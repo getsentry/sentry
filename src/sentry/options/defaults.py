@@ -95,6 +95,38 @@ register(
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
 )
 
+# Share of lock keys (0.0 to 1.0) that MigrationLockBackend sends to its new backend.
+# Only used when a lock manager is configured with the matching selector in
+# sentry.utils.locking.backends.migration.
+register(
+    "locks.default.migration-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "locks.post-process.migration-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When on, MigrationLockBackend also checks the new backend for keys that go to the old
+# backend. Turn it on before the matching rollout rate goes above 0, and turn it off only
+# after the rate is back at 0 and all locks on the new backend have expired. See the
+# MigrationLockBackend docstring for the full sequence.
+register(
+    "locks.default.migration-check-new",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "locks.post-process.migration-check-new",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Processing worker caches
 register(
     "dsym.cache-path",
@@ -252,12 +284,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
-    "auth.v2.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -268,6 +294,12 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "auth.email-verification-at-signup.email-password-enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "auth.email-verification-at-signup.sso-enabled",
@@ -879,6 +911,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+register(
+    "msteams.personal-installation-link.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Tenant-specific OAuth authority, required for single-tenant Azure Bots.
 # Empty (default) keeps the historical multi-tenant botframework.com authority.
 register("msteams.tenant-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1026,7 +1063,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Agentic triage sort: purpose-built for night shift candidate ranking.
+# Weights for agentic triage candidate ranking.
 # Each factor weight defaults to 0.25 (equal weighting across 4 factors).
 # Set a weight to 0 to skip that factor's aggregation entirely.
 register(
@@ -1072,10 +1109,83 @@ register(
 )
 
 
+# Before the artifact-lookup endpoint falls back to its two legacy `ReleaseFile` queries, check
+# that the release has any `ReleaseFile` for the requested dist, and skip both when it has none.
+register(
+    "sourcemaps.artifact-lookup.skip-legacy-without-release-files",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Upper bound on the number of `ArtifactBundleIndex` rows a single URL lookup in the
+# artifact-lookup endpoint scans. Releases that have more indexed files than this scan
+# their active bundles (uploaded or renewed recently) first, then the others, newest
+# first, until the budget is spent. 0 disables the limit and scans every bundle.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.max-index-rows",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Days added to `system.debug-files-renewal-age-threshold-days` to decide which bundles
+# count as active for the URL lookup. A bundle in use is renewed once it is older than the
+# threshold, so the margin must cover the time between lookups of a bundle in use.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.active-margin-days",
+    type=Int,
+    default=7,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of active, and of idle, bundles the URL lookup reads at most when
+# `sourcemaps.artifact-bundles.url-lookup.max-index-rows` is set. Lookups of releases with more
+# bundles than this are cut short even when the row budget isn't spent, which the
+# `artifact_bundle_url_lookup.candidates` metric tags as `truncated:candidates`. Capped at 10,000.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Fraction of the URL lookups cut short by the row budget or the bundle cap that are logged,
+# with the organization, project and release, to tell which releases lose files.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate",
+    type=Float,
+    default=0.01,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
+# debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
+register(
+    "sourcemaps.artifact-bundles.index-skip-debug-id-names",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Decide whether a release is fully indexed from its newest bundles only, instead of
+# counting every bundle in the release on each artifact-lookup request.
+register(
+    "sourcemaps.artifact-bundles.bounded-indexing-state",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Seconds to cache the bundle count per release used by the upload task to decide whether
+# to index and backfill. 0 disables the cache.
+register(
+    "sourcemaps.artifact-bundles.indexing-state-cache-ttl",
+    type=Int,
+    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1382,11 +1492,11 @@ register(
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Per-org overrides for night shift run options. Keyed by stringified
+# Per-org overrides for agentic triage run options. Keyed by stringified
 # organization id; each value is a partial set of run-option overrides (e.g.
 # {"max_candidates": 20}) that layer on top of the global defaults but below
 # any explicit caller-provided options. See
-# sentry.tasks.seer.night_shift.tweaks.get_night_shift_org_tweaks.
+# sentry.tasks.seer.agentic_triage.tweaks.get_agentic_triage_org_tweaks.
 register(
     "seer.night_shift.org_tweaks",
     type=Dict,
@@ -1416,15 +1526,6 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Fuzzy resolution always runs after an exact email miss so its proposal can be
-# inspected. This controls whether that proposal is used in the delivered prediction.
-register(
-    "seer.smart_assignment.fuzzy_user_matching.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Spread child run_auto_transition_issues_* tasks across this many seconds
 # after each schedule tick, to smooth burst load (DB/signals/queues).
 register(
@@ -1437,6 +1538,18 @@ register(
     "issues.derived_data.read_path_checks.killswitch",
     type=Bool,
     default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.derived_data.status_reconciliation.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.derived_data.status_reconciliation.dry_run",
+    type=Bool,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1629,6 +1742,21 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "store.enable-inline-payloads",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Suppresses working-cache keys only for events entering in the inline cohort.
+# Keyless events remain inline after rollout changes; keyed events keep writing.
+# Unprocessed backups and cleanup remain in Redis.
+register(
+    "store.disable-processing-store",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "post_process.get-autoassign-owners",
     type=Sequence,
     default=[],
@@ -1691,6 +1819,16 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 register(
     "relay.invalidation-direct-outside-atomic",
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Stage of each legacy inbound filter list on its way into custom inbound filter rows,
+# keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
+# off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
+register(
+    "custom-inbound-filters.legacy-filter-stage",
+    default={},
+    type=Dict,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2765,6 +2903,14 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Sends relay a quota that limits each monitor environment to
+# `crons.per_monitor_rate_limit` check-ins per minute.
+register(
+    "crons.per_monitor_relay_quota.enabled",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Deterministic % of check-ins that use the seat-acceptance timeout wrapper.
 # Keyed on project id. Default 0.0 so deploy is a no-op until dialed up via
 # sentry-options-automator.
@@ -3457,6 +3603,13 @@ register(
 )
 
 # Notification Options - Start
+register(
+    "notifications.issue-alerts.disable-rule-snooze",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Options for migrating to the notification platform
 # Notifications for internal testing
 register(
@@ -3495,6 +3648,25 @@ register(
 # the string values of `sentry.notifications.platform.types.NotificationSource`.
 register(
     "notifications.platform.killswitch.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Number of alerts per variant per day whose legacy payload is compared with the notification
+# platform's render of it. A variant is the source, provider, and the alert attributes the legacy
+# renderers branch on. 0 disables the comparison. Independent of the platform-rollout options above.
+register(
+    "notifications.platform.shadow-render.variant-daily-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notification sources that record engagement tracking (sent and engagement events).
+# Sources become metric tags, so this list is also what keeps those tags bounded.
+register(
+    "notifications.tracking.sources",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3685,15 +3857,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Whether the data source by detector and source id cache is enabled
-# When disabled, detector handlers query directly instead of using the cache
-register(
-    "workflow_engine.data_source_by_detector_and_source_id_cache.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
 # table.
@@ -3735,14 +3898,6 @@ register(
     "uptime.config-drift.cycle-hours",
     type=Int,
     default=24,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
-register(
-    "uptime.config-drift.repair",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4188,6 +4343,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_iteration_cap_reached``.
 register(
@@ -4406,6 +4562,24 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Treat artifact bundles uploaded with the release name "undefined", "null" or "" as uploaded
+# without a release, when every file in the bundle can be found by debug ID. Build tooling sends
+# these names when no release was set or detected.
+register(
+    "sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# The same for release names that are an unexpanded environment variable, such as `$GITHUB_SHA`,
+# or the bare name of one, such as `VERCEL_GIT_COMMIT_SHA`.
+register(
+    "sourcemaps.artifact-bundles.assemble.ignore-env-var-releases",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for token-level remapping of compound Dart exception types.
 register(
     "dart.compound-type-deobfuscation.enabled",
@@ -4422,20 +4596,6 @@ register(
     default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "preprod.snapshots.auto-approve-sibling-diffs.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "preprod.snapshots.objectstore.snapshots-usecase.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # How far back the ingestion delay measurement window reaches, in minutes.

@@ -1,4 +1,4 @@
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
@@ -142,10 +142,6 @@ function IssueOpenPeriodsList() {
       : []),
   ];
 
-  const renderHeadCell = (col: GridColumnOrder) => {
-    return <AlignLeft>{col.name}</AlignLeft>;
-  };
-
   const renderBodyCell = (
     col: GridColumnOrder<string>,
     dataRow: OpenPeriodDisplayData
@@ -180,7 +176,6 @@ function IssueOpenPeriodsList() {
         error={error}
         columnOrder={columnOrder}
         grid={{
-          renderHeadCell,
           renderBodyCell,
         }}
       />

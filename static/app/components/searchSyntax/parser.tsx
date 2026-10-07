@@ -163,6 +163,17 @@ export const regexOperators = [
   TermOperator.DOES_NOT_MATCH,
 ] as const;
 
+/**
+ * Kept in sync with MAX_REGEX_PATTERN_LENGTH and regex_pattern_length in
+ * src/sentry/api/event_search.py, which rejects longer patterns outright.
+ * fixtures/search-syntax/regex_operator.json pins the two together.
+ */
+const MAX_REGEX_PATTERN_LENGTH = 64;
+
+function getRegexPatternLength(pattern: string) {
+  return pattern.replaceAll(/\\./g, '_').length;
+}
+
 export type RegexOperator = (typeof regexOperators)[number];
 
 export const negationOperators: readonly TermOperator[] = [
@@ -350,6 +361,8 @@ export enum InvalidReason {
   INVALID_DURATION = 'invalid-duration',
   INVALID_DATE_FORMAT = 'invalid-date-format',
   PARENS_NOT_ALLOWED = 'parens-not-allowed',
+  REGEX_PATTERN_TOO_LONG = 'regex-pattern-too-long',
+  INVALID_REGEX = 'invalid-regex',
 }
 
 /**
@@ -667,6 +680,10 @@ export class TokenConverter {
     key: ReturnType<TokenConverter['tokenKeySimple']>
   ) => ({
     ...this.defaultTokenFields,
+    // The `[*]` membership operator is consumed by the array-includes rule around
+    // this token, so derive `text` from the key instead of the raw match to keep
+    // the tag identity operator-free (`tags[name,array]`).
+    text: `${prefix}[${key.text},array]`,
     type: Token.KEY_EXPLICIT_ARRAY_TAG as const,
     prefix,
     key,
@@ -1134,13 +1151,31 @@ export class TokenConverter {
   /**
    * Validates the pattern of a regex filter
    */
-  checkInvalidRegexPattern = (value: TextFilter['value']) =>
-    value.value === ''
-      ? {
-          type: InvalidReason.FILTER_MUST_HAVE_VALUE,
-          reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
-        }
-      : null;
+  checkInvalidRegexPattern = (value: TextFilter['value']) => {
+    if (value.value === '') {
+      return {
+        type: InvalidReason.FILTER_MUST_HAVE_VALUE,
+        reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
+      };
+    }
+
+    if (getRegexPatternLength(value.value) > MAX_REGEX_PATTERN_LENGTH) {
+      return {
+        type: InvalidReason.REGEX_PATTERN_TOO_LONG,
+        reason: this.config.invalidMessages[InvalidReason.REGEX_PATTERN_TOO_LONG],
+      };
+    }
+
+    const invalidRegexReason = this.config.validateRegexPattern?.(value.value);
+    if (invalidRegexReason) {
+      return {
+        type: InvalidReason.INVALID_REGEX,
+        reason: `${this.config.invalidMessages[InvalidReason.INVALID_REGEX]}:\n${invalidRegexReason}`,
+      };
+    }
+
+    return null;
+  };
 
   /**
    * Validates the value of a text filter
@@ -1551,6 +1586,11 @@ export type SearchConfig = {
    * If set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
   validateKeys?: boolean;
+  /**
+   * Returns the reason a regex filter's pattern is not valid RE2, or null when it is.
+   * Undefined while the engine loads, which lets patterns through until it resolves.
+   */
+  validateRegexPattern?: (pattern: string) => string | null;
 };
 
 export const defaultConfig: SearchConfig = {
@@ -1624,6 +1664,11 @@ export const defaultConfig: SearchConfig = {
       'Lists should not have empty values'
     ),
     [InvalidReason.PARENS_NOT_ALLOWED]: t('Parentheses are not supported in this search'),
+    [InvalidReason.REGEX_PATTERN_TOO_LONG]: t(
+      'Regex patterns are limited to %s characters. To search for a literal value that starts with //, quote it: "//..."',
+      MAX_REGEX_PATTERN_LENGTH
+    ),
+    [InvalidReason.INVALID_REGEX]: t('Invalid regex (RE2 syntax)'),
   },
 };
 

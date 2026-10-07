@@ -39,6 +39,7 @@ from sentry import features
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.models import ExploreSavedFormula
 from sentry.models.group import Group, parse_short_id
 from sentry.models.project import Project
 from sentry.search.eap import constants
@@ -101,13 +102,13 @@ class SearchResolver:
     granularity_secs: int | None = None
     _query_result_cache: dict[str, EAPResponse] = field(default_factory=dict)
     _resolved_attribute_cache: dict[
-        str, tuple[ResolvedAttribute, VirtualColumnDefinition | None]
+        str, tuple[ResolvedAttribute, list[VirtualColumnDefinition | None]]
     ] = field(default_factory=dict)
     _resolved_function_cache: dict[
         str,
         tuple[
             ResolvedFunction,
-            VirtualColumnDefinition | None,
+            list[VirtualColumnDefinition | None],
         ],
     ] = field(default_factory=dict)
     qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(default_factory=dict)
@@ -296,7 +297,9 @@ class SearchResolver:
         return (
             self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
             and organization is not None
-            and features.has("organizations:ourlogs-regex-searches", organization)
+            and features.has(
+                "organizations:ourlogs-regex-searches", organization, actor=self.params.user
+            )
         )
 
     def collect_terms(self, parsed_terms: Sequence[event_search.QueryToken]) -> list[str]:
@@ -486,7 +489,7 @@ class SearchResolver:
             if isinstance(item, event_search.AggregateFilter):
                 resolved_term, resolved_context = self.resolve_aggregate_term(item)
                 parsed_terms.append(resolved_term)
-                resolved_contexts.append(resolved_context)
+                resolved_contexts.extend(resolved_context)
 
         if len(parsed_terms) > 1:
             return (
@@ -577,7 +580,15 @@ class SearchResolver:
     def _resolve_term(
         self, term: event_search.SearchFilter
     ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
-        resolved_column, context_definition = self.resolve_column(term.key.name)
+        resolved_column, context_definitions = self.resolve_column(term.key.name)
+        non_none_definitions = [defn for defn in context_definitions if defn is not None]
+        if len(non_none_definitions) > 1:
+            raise ValueError(f"{term.key.name} resolved with multiple contexts")
+        elif len(non_none_definitions) == 1:
+            context_definition = non_none_definitions[0]
+        else:
+            context_definition = None
+
         self._raise_if_hidden_api_attribute(term.key.name, resolved_column)
 
         if term.value.is_regex:
@@ -864,7 +875,7 @@ class SearchResolver:
 
     def resolve_aggregate_term(
         self, term: event_search.AggregateFilter
-    ) -> tuple[AggregationFilter, VirtualColumnDefinition | None]:
+    ) -> tuple[AggregationFilter, list[VirtualColumnDefinition | None]]:
         resolved_column, context = self.resolve_column(term.key.name)
         self._raise_if_hidden_api_attribute(term.key.name, resolved_column)
         proto_definition = resolved_column.proto_definition
@@ -1068,19 +1079,19 @@ class SearchResolver:
             ):
                 continue
             resolved_columns.append(resolved_column)
-            resolved_contexts.append(context)
+            resolved_contexts.extend(context)
 
         if self.config.auto_fields:
             # Ensure fields we require to build a functioning interface are present.
             if not has_aggregates and "id" not in stripped_columns:
                 id_column, id_context = self.resolve_column("id")
                 resolved_columns.append(id_column)
-                resolved_contexts.append(id_context)
+                resolved_contexts.extend(id_context)
                 stripped_columns.append("id")
             if "id" in stripped_columns and "project.id" not in stripped_columns:
                 project_column, project_context = self.resolve_column("project.name")
                 resolved_columns.append(project_column)
-                resolved_contexts.append(project_context)
+                resolved_contexts.extend(project_context)
 
         return resolved_columns, resolved_contexts
 
@@ -1092,7 +1103,7 @@ class SearchResolver:
         default_value: float | None = None,
     ) -> tuple[
         ResolvedAttribute | ResolvedFunction,
-        VirtualColumnDefinition | None,
+        list[VirtualColumnDefinition | None],
     ]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
@@ -1121,7 +1132,7 @@ class SearchResolver:
             if self.config.disable_array_attributes and col.internal_type == constants.ARRAY:
                 continue
             resolved_columns.append(col)
-            resolved_contexts.append(context)
+            resolved_contexts.extend(context)
         return resolved_columns, resolved_contexts
 
     def should_hide_api_column(
@@ -1150,6 +1161,7 @@ class SearchResolver:
             visibility_attribute,
             item_type,
             include_internal=self.config.api_attribute_visibility_include_internal,
+            include_internal_convention_attributes=self.config.api_attribute_visibility_include_internal_convention_attributes,
         )
 
     def _raise_if_hidden_api_attribute(
@@ -1162,7 +1174,7 @@ class SearchResolver:
 
     def resolve_attribute(
         self, column: str, public_alias_override: str | None = None
-    ) -> tuple[ResolvedAttribute, VirtualColumnDefinition | None]:
+    ) -> tuple[ResolvedAttribute, list[VirtualColumnDefinition | None]]:
         """Attributes are columns that aren't 'functions' or 'aggregates', usually this means string or numeric
         attributes (aka. tags), but can also refer to fields like span.description"""
         # If a virtual context is defined the column definition is always the same
@@ -1241,7 +1253,7 @@ class SearchResolver:
             column_context = None
 
         if column_definition:
-            self._resolved_attribute_cache[column] = (column_definition, column_context)
+            self._resolved_attribute_cache[column] = (column_definition, [column_context])
             return self._resolved_attribute_cache[column]
         else:
             raise InvalidSearchQuery(f"Could not parse {column}")
@@ -1257,11 +1269,11 @@ class SearchResolver:
         resolved_functions, resolved_contexts = [], []
         for column in columns:
             try:
-                function, context = self.resolve_function(column)
+                function, contexts = self.resolve_function(column)
             except HiddenApiAttribute:
                 continue
             resolved_functions.append(function)
-            resolved_contexts.append(context)
+            resolved_contexts.extend(contexts)
         return resolved_functions, resolved_contexts
 
     def resolve_function(
@@ -1270,7 +1282,7 @@ class SearchResolver:
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
         default_value: float | None = None,
-    ) -> tuple[ResolvedFunction, VirtualColumnDefinition | None]:
+    ) -> tuple[ResolvedFunction, list[VirtualColumnDefinition | None]]:
         if match is None:
             match = fields.is_function(column)
             if match is None:
@@ -1287,6 +1299,17 @@ class SearchResolver:
         if alias in self._resolved_function_cache and default_value is None:
             return self._resolved_function_cache[alias]
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
+
+        if self.config.saved_formulas is not None:
+            if function_name in self.config.saved_formulas:
+                resolved_column, contexts = self.resolve_formula(
+                    self.config.saved_formulas[function_name], columns, alias
+                )
+                if not isinstance(resolved_column, ResolvedFunction):
+                    raise InvalidSearchQuery(
+                        f"The formula {function_name} must resolve to a function or equation"
+                    )
+                return resolved_column, contexts
 
         function_definition = self.get_function_definition(function_name)
         if (
@@ -1319,7 +1342,7 @@ class SearchResolver:
         alias: str,
         columns: str,
         default_value: float | None = None,
-    ) -> tuple[ResolvedFunction, VirtualColumnDefinition | None]:
+    ) -> tuple[ResolvedFunction, list[VirtualColumnDefinition | None]]:
         if function_definition.private and function_name not in self.config.fields_acl.functions:
             raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 
@@ -1434,7 +1457,7 @@ class SearchResolver:
             default_value=default_value,
         )
 
-        resolved_context = None
+        resolved_context: list[VirtualColumnDefinition | None] = [None]
         if default_value is None:
             self._resolved_function_cache[alias] = (resolved_function, resolved_context)
             return self._resolved_function_cache[alias]
@@ -1445,7 +1468,7 @@ class SearchResolver:
         self, equations: list[str]
     ) -> tuple[
         list[ResolvedColumn],
-        list[VirtualColumnDefinition],
+        list[VirtualColumnDefinition | None],
     ]:
         formulas = []
         contexts = []
@@ -1459,10 +1482,10 @@ class SearchResolver:
         return formulas, contexts
 
     def resolve_equation(
-        self, equation: str
+        self, equation: str, alias: str | None = None
     ) -> tuple[
         ResolvedColumn,
-        list[VirtualColumnDefinition],
+        list[VirtualColumnDefinition | None],
     ]:
         """Resolve an equation creating a ResolvedEquation object, we don't just return a Column.BinaryFormula since
         it'll help callers with extra information, like the existence of aggregates and the search type
@@ -1472,15 +1495,15 @@ class SearchResolver:
         if isinstance(operation, str):
             # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
             col, context = self.resolve_column(
-                operation, public_alias_override=f"equation|{equation}"
+                operation, public_alias_override=f"equation|{equation}" if alias is None else alias
             )
             if isinstance(col, ResolvedAttribute):
                 self._raise_if_hidden_api_attribute(operation, col)
-            return col, [context] if context else []
+            return col, context
         elif isinstance(operation, float):
             return (
                 ResolvedLiteral(
-                    public_alias=f"equation|{equation}",
+                    public_alias=f"equation|{equation}" if alias is None else alias,
                     search_type="number",
                     value=operation,
                 ),
@@ -1500,7 +1523,7 @@ class SearchResolver:
                 break
         return (
             ResolvedEquation(
-                public_alias=f"equation|{equation}",
+                public_alias=f"equation|{equation}" if alias is None else alias,
                 # Type of equations can become complex very quickly. We could try to make sure all the columns have the
                 # same type and return that, but then ratios would have types eg. (p75/p50), as well managing multiple
                 # column types is strange too (p75+count). Keeping this as just `number` for now
@@ -1517,7 +1540,7 @@ class SearchResolver:
         self, operation: arithmetic.OperandType
     ) -> tuple[
         Column,
-        list[VirtualColumnDefinition],
+        list[VirtualColumnDefinition | None],
     ]:
         """This function is to recursively step into the branches of the arithmetic to resolve branches to Columns for
         the RPC, but we can't only use this since we want the resolver to return a ResolvedEquation so the resolver API
@@ -1553,20 +1576,19 @@ class SearchResolver:
         col, context = self.resolve_column(operation, default_value=0)
         if isinstance(col, ResolvedAttribute):
             self._raise_if_hidden_api_attribute(operation, col)
-        contexts = [context] if context is not None else []
         proto_definition = col.proto_definition
 
         if isinstance(proto_definition, AttributeKey):
-            return Column(key=proto_definition), contexts
+            return Column(key=proto_definition), context
 
         if isinstance(proto_definition, AttributeAggregation):
-            return Column(aggregation=proto_definition), contexts
+            return Column(aggregation=proto_definition), context
 
         if isinstance(proto_definition, AttributeConditionalAggregation):
-            return Column(conditional_aggregation=proto_definition), contexts
+            return Column(conditional_aggregation=proto_definition), context
 
         if isinstance(proto_definition, Column.BinaryFormula):
-            return Column(formula=proto_definition), contexts
+            return Column(formula=proto_definition), context
 
         raise TypeError(f"Unsupported proto definition type: {type(proto_definition)}")
 
@@ -1601,3 +1623,17 @@ class SearchResolver:
             return context.default_value
 
         return value
+
+    def resolve_formula(
+        self, formula: ExploreSavedFormula, columns: str, alias: str
+    ) -> tuple[ResolvedColumn, list[VirtualColumnDefinition | None]]:
+        """Given a formula object, parse the arguments, then resolve it as an equation
+
+        Like equations these aren't cached
+        """
+        from sentry.search.eap.utils import resolve_and_parse_formula
+
+        arguments = fields.parse_arguments(formula.name, columns)
+
+        equation = resolve_and_parse_formula(formula, arguments, self.resolve_column)
+        return self.resolve_equation(equation, alias)

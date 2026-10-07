@@ -498,8 +498,8 @@ describe('searchSyntax/parser', () => {
   });
 
   describe('array membership filters', () => {
-    it('parses an explicit array typed tag with the [*] membership suffix', () => {
-      const result = parseSearch('tags[csv_headers,array][*]:foo');
+    it('parses an explicit array typed tag with the [*] membership operator', () => {
+      const result = parseSearch('tags[csv_headers[*],array]:foo');
 
       if (result === null) {
         throw new Error('Parsed result as null');
@@ -536,9 +536,9 @@ describe('searchSyntax/parser', () => {
       // label prettifies to the root name; the query text carries the `[*]`.
       expect(getKeyName(filter.key)).toBe('tags[csv_headers,array]');
       expect(getKeyLabel(filter.key)).toBe('csv_headers');
-      expect(stringifyToken(filter.key)).toBe('tags[csv_headers,array][*]');
+      expect(stringifyToken(filter.key)).toBe('tags[csv_headers[*],array]');
       // The whole filter round-trips without an operator sentinel.
-      expect(stringifyToken(filter)).toBe('tags[csv_headers,array][*]:foo');
+      expect(stringifyToken(filter)).toBe('tags[csv_headers[*],array]:foo');
     });
 
     it('does not treat the tags[...,array] form without [*] as membership', () => {
@@ -656,7 +656,7 @@ describe('searchSyntax/parser', () => {
     });
 
     it('parses a regex filter on an array membership key', () => {
-      const filter = parseRegexFilter('tags[csv_headers,array][*]://^a b//');
+      const filter = parseRegexFilter('tags[csv_headers[*],array]://^a b//');
 
       expect(filter).toEqual(
         expect.objectContaining({
@@ -682,7 +682,7 @@ describe('searchSyntax/parser', () => {
     });
 
     it('flags an empty pattern on an array membership key as missing a value', () => {
-      const filter = parseRegexFilter('tags[csv_headers,array][*]:////');
+      const filter = parseRegexFilter('tags[csv_headers[*],array]:////');
 
       expect(filter.invalid).toEqual(
         expect.objectContaining({type: InvalidReason.FILTER_MUST_HAVE_VALUE})
@@ -690,9 +690,63 @@ describe('searchSyntax/parser', () => {
     });
 
     it('does not flag a pattern on an array membership key when it has a value', () => {
-      const filter = parseRegexFilter('tags[csv_headers,array][*]://^a b//');
+      const filter = parseRegexFilter('tags[csv_headers[*],array]://^a b//');
 
       expect(filter.invalid).toBeNull();
+    });
+
+    it('appends the reason when validateRegexPattern rejects a pattern', () => {
+      const filter = parseRegexFilter('message://(?=a)b//', {
+        validateRegexPattern: () => 'invalid or unsupported Perl syntax',
+      });
+
+      expect(filter.invalid).toEqual({
+        type: InvalidReason.INVALID_REGEX,
+        reason: 'Invalid regex (RE2 syntax):\ninvalid or unsupported Perl syntax',
+      });
+    });
+
+    it('passes the pattern to validateRegexPattern without its delimiters', () => {
+      const validateRegexPattern = jest.fn(() => null);
+      parseRegexFilter('message://^a.*b//', {validateRegexPattern});
+
+      expect(validateRegexPattern).toHaveBeenCalledWith('^a.*b');
+    });
+
+    it('does not flag a pattern that validateRegexPattern accepts', () => {
+      const filter = parseRegexFilter('message://^a.*b//', {
+        validateRegexPattern: () => null,
+      });
+
+      expect(filter.invalid).toBeNull();
+    });
+
+    it('does not flag a pattern when no validateRegexPattern is configured', () => {
+      const filter = parseRegexFilter('message://(?=a)b//');
+
+      expect(filter.invalid).toBeNull();
+    });
+
+    it('does not run validateRegexPattern on an empty pattern', () => {
+      const validateRegexPattern = jest.fn(() => 'missing closing )');
+      const filter = parseRegexFilter('message:////', {validateRegexPattern});
+
+      expect(filter.invalid).toEqual(
+        expect.objectContaining({type: InvalidReason.FILTER_MUST_HAVE_VALUE})
+      );
+      expect(validateRegexPattern).not.toHaveBeenCalled();
+    });
+
+    it('does not run validateRegexPattern on a pattern that is too long', () => {
+      const validateRegexPattern = jest.fn(() => 'missing closing )');
+      const filter = parseRegexFilter(`message://${'a'.repeat(65)}//`, {
+        validateRegexPattern,
+      });
+
+      expect(filter.invalid).toEqual(
+        expect.objectContaining({type: InvalidReason.REGEX_PATTERN_TOO_LONG})
+      );
+      expect(validateRegexPattern).not.toHaveBeenCalled();
     });
   });
 });

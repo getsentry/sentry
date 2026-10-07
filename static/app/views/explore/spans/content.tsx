@@ -7,10 +7,10 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {getBootstrapOrganizationQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
@@ -82,7 +82,7 @@ function ExploreContentInner() {
 
   // The bootstrap query returns raw API org data, while useOrganization reads
   // the OrganizationStore value after FeatureFlagOverrides.loadOrg mutates it.
-  // Apply stored toolbar overrides here before comparing these two sources.
+  // Apply stored feature flag overrides before comparing these two sources.
   const bootstrappedOrganizationHasHighRange = bootstrapOrganization
     ? FeatureFlagOverrides.singleton()
         .getEnabledFeatureFlagList(bootstrapOrganization)
@@ -94,7 +94,7 @@ function ExploreContentInner() {
 
   // PageFiltersContainer normalizes URL date params on mount. Wait until the
   // bootstrapped org and OrganizationContext agree on the spans range feature.
-  // Compare effective bootstrap flags so stored toolbar overrides do not keep
+  // Compare effective bootstrap flags so stored feature flag overrides do not keep
   // the bootstrapped org and OrganizationContext permanently out of sync.
   const organizationRangeLoading =
     organizationLoading ||
@@ -133,7 +133,7 @@ function ExploreContentInner() {
         maxDateRange={datePageFilterProps.maxDateRange}
       >
         <AnalyticsArea name="explore.spans">
-          <AiQueryProvider>
+          <AiQueryProvider strategy="Traces">
             <Stack flex={1}>
               <SpansTabWrapper>
                 <SpansTabHeader />
@@ -231,16 +231,20 @@ function SpansTabHeader() {
       {defined(id) && title ? (
         <ExploreSavedQueryBreadcrumbs surface="traces" savedQueryId={id} title={title} />
       ) : (
-        <TopBar.Slot name="title">
-          {title || t('Traces')}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
-            title={t(
-              'Find problematic spans/traces or compute real-time metrics via aggregation.'
-            )}
-            linkLabel={t('Read the Docs')}
-          />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: title || t('Traces'),
+            labelTooltip: (
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/trace-explorer/">
+                {t(
+                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
+                )}
+              </DocumentationHint>
+            ),
+          }}
+        />
       )}
       <TopBar.Slot name="feedback">
         <FeedbackButton

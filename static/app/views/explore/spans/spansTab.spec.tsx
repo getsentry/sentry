@@ -14,6 +14,7 @@ import {
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,11 +65,7 @@ const invalidAttributeValidationBody: EventValidationData = {
 };
 
 describe('SpansTabContent', () => {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['gen-ai-features'],
-    },
-  });
+  const {organization, project} = initializeOrg();
 
   function setProjects(projects: Project[], selectedProjectIds?: number[]) {
     ProjectsStore.loadInitialData(projects);
@@ -137,11 +134,6 @@ describe('SpansTabContent', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
       method: 'GET',
       body: [],
     });
@@ -536,9 +528,14 @@ describe('SpansTabContent', () => {
 
   describe('Ask Seer', () => {
     describe('when the AI features are disabled', () => {
+      afterEach(() => {
+        ConfigStore.set('isSelfHosted', false);
+      });
+
       it('does not display the Ask Seer combobox', async () => {
+        ConfigStore.set('isSelfHosted', true);
         render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-          organization: {...organization, features: []},
+          organization,
           additionalWrapper: Wrapper,
         });
 

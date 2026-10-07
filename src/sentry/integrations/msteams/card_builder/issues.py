@@ -30,6 +30,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 
 from .base import MSTeamsMessageBuilder
@@ -52,28 +53,46 @@ from .block import (
 logger = logging.getLogger(__name__)
 
 
+def get_workflow_ids(rules: Sequence[Rule | NotificationOrigin]) -> list[int]:
+    workflow_ids = []
+    for rule in rules:
+        if isinstance(rule, NotificationOrigin):
+            workflow_id = rule.workflow_id
+        else:
+            action = rule.data.get("actions", [{}])[0]
+            workflow_id = action.get("workflow_id")
+
+        if workflow_id is not None:
+            workflow_ids.append(int(workflow_id))
+
+    return workflow_ids
+
+
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
         self,
         group: Group,
-        event: Event | GroupEvent,
+        event: Event | GroupEvent | None,
         rules: Sequence[Rule],
         integration: RpcIntegration,
+        workflow_ids: Sequence[int] = (),
     ):
         self.group = group
         self.event = event
         self.rules = rules
         self.integration = integration
+        self.workflow_ids = workflow_ids
 
     def generate_action_payload(self, action_type: ACTION_TYPE) -> Any:
         # we need nested data or else Teams won't handle the payload correctly
-        assert self.event.group is not None
+        workflow_ids = get_workflow_ids(self.rules)
         return {
             "payload": {
                 "actionType": action_type,
-                "groupId": self.event.group.id,
-                "eventId": self.event.event_id,
+                "groupId": self.group.id,
+                "eventId": self.event.event_id if self.event else None,
                 "rules": [rule.id for rule in self.rules],
+                "workflows": list(dict.fromkeys([*workflow_ids, *self.workflow_ids])),
                 "integrationId": self.integration.id,
             }
         }
@@ -156,8 +175,8 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         card_title: str,
         input_id: str,
         submit_button_title: str,
-        choices: Sequence[tuple[str, Any]],
-        default_choice: Any = None,
+        choices: Sequence[tuple[str, str]],
+        default_choice: str | None = None,
     ) -> AdaptiveCard:
         return MSTeamsMessageBuilder().build(
             title=create_text_block(card_title, weight=TextWeight.BOLDER),

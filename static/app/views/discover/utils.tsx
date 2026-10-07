@@ -1,9 +1,10 @@
-import type {Location} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 import * as Papa from 'papaparse';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
@@ -14,6 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {
@@ -42,7 +44,13 @@ import {
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertWizardRuleTemplates,
+  DEFAULT_WIZARD_TEMPLATE,
+} from 'sentry/views/alerts/wizard/options';
 import {
   DEFAULT_WIDGET_NAME,
   DisplayType,
@@ -52,14 +60,11 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {
-  getAllViews,
-  getTransactionViews,
-  getWebVitalsViews,
-} from 'sentry/views/discover/results/data';
+import {getAllViews} from 'sentry/views/discover/results/data';
 import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
 import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 /**
@@ -146,16 +151,14 @@ export function decodeColumnOrder(
 export function generateTitle({
   eventView,
   isHomepage,
-  organization,
 }: {
   eventView: EventView;
-  organization: Organization;
   isHomepage?: boolean;
 }) {
-  const titles = [getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')];
+  const titles = [t('Errors')];
 
   if (isHomepage) {
-    return getDiscoverDeprecation(organization) ? t('Errors') : t('Discover');
+    return t('Errors');
   }
 
   const eventViewName = eventView.name;
@@ -169,17 +172,7 @@ export function generateTitle({
 }
 
 export function getPrebuiltQueries(organization: Organization) {
-  const views = [...getAllViews(organization)];
-  if (
-    organization.features.includes('performance-view') &&
-    !getDiscoverDeprecation(organization)
-  ) {
-    // insert transactions queries at index 2
-    views.splice(2, 0, ...getTransactionViews(organization));
-    views.push(...getWebVitalsViews(organization));
-  }
-
-  return views;
+  return getAllViews(organization);
 }
 
 function disableMacros(value: string | null | boolean | number) {
@@ -918,17 +911,50 @@ export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
   [SavedQueryDatasets.TRANSACTIONS]: WidgetType.TRANSACTIONS,
 };
 
-export function getTransactionsDeprecation(organization: Organization) {
-  return organization.features.includes('discover-saved-queries-deprecation');
+/**
+ * Builds the metric monitor creation URL for a Discover event view.
+ */
+export function getCreateAlertFromViewUrl({
+  projects,
+  eventView,
+  organization,
+  referrer,
+  alertType,
+}: {
+  eventView: EventView;
+  organization: Organization;
+  projects: Project[];
+  alertType?: MetricAlertType;
+  referrer?: string;
+}): LocationDescriptor {
+  const project = projects.find(p => p.id === `${eventView.project[0]}`);
+  const queryParams = eventView.generateQueryStringObject();
+
+  let query = decodeScalar(queryParams.query);
+  if (project && query?.includes(`project:${project.slug}`)) {
+    query = query.replace(`project:${project.slug}`, '');
+  }
+
+  const alertTemplate = alertType
+    ? AlertWizardRuleTemplates[alertType]
+    : DEFAULT_WIZARD_TEMPLATE;
+
+  return getMetricMonitorUrl({
+    project,
+    environment: queryParams.environment,
+    aggregate: decodeScalar(queryParams.yAxis) ?? alertTemplate.aggregate,
+    dataset: alertTemplate.dataset,
+    organization,
+    query,
+    referrer,
+    eventTypes: [alertTemplate.eventTypes],
+  });
 }
 
-export function getDiscoverDeprecationEnabled(organization: Organization) {
-  return organization.features.includes('deprecate-discover');
-}
-
-export function getDiscoverDeprecation(organization: Organization) {
+export function canCreateAlerts(organization: Organization, projects: Project[]) {
   return (
-    getDiscoverDeprecationEnabled(organization) &&
-    getTransactionsDeprecation(organization)
+    isDemoModeActive() ||
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}))
   );
 }

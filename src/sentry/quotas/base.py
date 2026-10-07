@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from enum import IntEnum, unique
+from enum import IntEnum, StrEnum, unique
 from functools import total_ordering
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
@@ -124,6 +124,28 @@ def build_metric_abuse_quotas() -> list[AbuseQuota]:
     return quotas
 
 
+class QuotaDimension(StrEnum):
+    CHECK_IN_SLUG = "checkInSlug"
+    CHECK_IN_ENVIRONMENT = "checkInEnvironment"
+
+
+@dataclass(frozen=True)
+class QuotaGroupBy:
+    """
+    Counts a quota separately for each combination of dimension values.
+    ``max_cardinality`` caps the number of combinations per quota window.
+    """
+
+    max_cardinality: int
+    dimensions: tuple[QuotaDimension, ...]
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "maxCardinality": self.max_cardinality,
+            "dimensions": [d.value for d in self.dimensions],
+        }
+
+
 @total_ordering
 class QuotaConfig:
     """
@@ -161,6 +183,8 @@ class QuotaConfig:
     :param reason_code: A machine readable reason returned when this quota is
                         exceeded. Required in all cases except ``limit=None``,
                         since unlimited quotas can never be exceeded.
+    :param group_by:    Counts the quota separately for each combination of
+                        these dimensions. See ``QuotaGroupBy``.
     """
 
     __slots__ = [
@@ -172,6 +196,7 @@ class QuotaConfig:
         "window",
         "reason_code",
         "namespace",
+        "group_by",
     ]
 
     def __init__(
@@ -184,6 +209,7 @@ class QuotaConfig:
         window=None,
         reason_code=None,
         namespace=None,
+        group_by: QuotaGroupBy | None = None,
     ):
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
@@ -210,6 +236,7 @@ class QuotaConfig:
         self.window = window
         self.reason_code = reason_code
         self.namespace = namespace
+        self.group_by = group_by
 
     @property
     def should_track(self):
@@ -233,6 +260,7 @@ class QuotaConfig:
             "window": self.window,
             "namespace": self.namespace,
             "reasonCode": self.reason_code,
+            "groupBy": self.group_by.to_json() if self.group_by else None,
         }
 
         return prune_empty_keys(data)
@@ -268,6 +296,12 @@ class QuotaConfig:
             self.reason_code or "",
             self.namespace is not None,
             self.namespace or "",
+            self.group_by is not None,
+            (
+                (self.group_by.max_cardinality, self.group_by.dimensions)
+                if self.group_by
+                else (0, ())
+            ),
         )
 
     def __eq__(self, other: object) -> bool:
@@ -282,49 +316,6 @@ class QuotaConfig:
 
     def __hash__(self) -> int:
         return hash(self._comparison_key())
-
-
-class RateLimit:
-    """
-    Return value of ``quotas.is_rate_limited``.
-    """
-
-    __slots__ = ["is_limited", "retry_after", "reason", "reason_code"]
-
-    def __init__(self, is_limited, retry_after=None, reason=None, reason_code=None):
-        self.is_limited = is_limited
-        # delta of seconds in the future to retry
-        self.retry_after = retry_after
-        # human readable description
-        self.reason = reason
-        # machine readable description
-        self.reason_code = reason_code
-
-    def to_dict(self):
-        """
-        Converts the object into a plain dictionary
-        :return: a dict containing the non None elm of the RateLimit
-
-        >>> x = RateLimit(is_limited = False, retry_after = 33)
-        >>> x.to_dict() == {'is_limited': False, 'retry_after': 33}
-        True
-
-        """
-        return {
-            name: getattr(self, name, None)
-            for name in self.__slots__
-            if getattr(self, name, None) is not None
-        }
-
-
-class NotRateLimited(RateLimit):
-    def __init__(self, **kwargs):
-        super().__init__(False, **kwargs)
-
-
-class RateLimited(RateLimit):
-    def __init__(self, **kwargs):
-        super().__init__(True, **kwargs)
 
 
 def _limit_from_settings(x: Any) -> int | None:
@@ -375,13 +366,11 @@ class Quota(Service):
     to, for example error events or attachments. For more information on quota
     parameters, see ``QuotaConfig``.
 
-    To retrieve a list of active quotas, use ``quotas.get_quotas``. Also, to
-    check the current status of quota usage, call ``quotas.get_usage``.
+    To retrieve a list of active quotas, use ``quotas.get_quotas``.
     """
 
     __all__ = (
         "get_abuse_quotas",
-        "is_rate_limited",
         "validate",
         "refund",
         "get_event_retention",
@@ -414,43 +403,10 @@ class Quota(Service):
         """
         return []
 
-    def is_rate_limited(self, project, key=None):
-        """
-        Checks whether any of the quotas in effect for the given project and
-        project key has been exceeded and records consumption of the quota.
-
-        By invoking this method, the caller signals that data is being ingested
-        and needs to be counted against the quota. This increment happens
-        atomically if none of the quotas have been exceeded. Otherwise, a rate
-        limit is returned and data is not counted against the quotas.
-
-        When an event or any other data is dropped after ``is_rate_limited`` has
-        been called, use ``quotas.refund``.
-
-        If no key is specified, then only organization-wide and project-wide
-        quotas are checked. If a key is specified, then key-quotas are also
-        checked.
-
-        The return value is a subclass of ``RateLimit``:
-
-         - ``RateLimited``, if at least one quota has been exceeded. The event
-           should not be ingested by the caller, and none of the quotas have
-           been counted.
-
-         - ``NotRateLimited``, if consumption is within all quotas. Data must be
-           ingested by the caller, and the counters for all counters have been
-           incremented.
-
-        :param project: The project instance that is used to determine quotas.
-        :param key:     A project key to obtain quotas for. If omitted, only
-                        project and organization quotas are used.
-        """
-        return NotRateLimited()
-
     def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
         """
-        Signals event rejection after ``quotas.is_rate_limited`` has been called
-        successfully, and refunds the previously consumed quota.
+        Signals that data counted against quotas was dropped, and refunds the
+        previously consumed quota.
 
         :param project:   The project that the dropped data belonged to.
         :param key:       The project key that was used to ingest the data. If

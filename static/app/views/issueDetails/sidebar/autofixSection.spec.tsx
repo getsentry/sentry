@@ -1,10 +1,10 @@
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
@@ -19,8 +19,8 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 import {AutofixSection} from './autofixSection';
 
 jest.mock('sentry/utils/cells');
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   useMatches: jest.fn(),
 }));
 
@@ -43,7 +43,6 @@ describe('AutofixSection', () => {
   const mockProject = DetailedProjectFixture();
   const organization = OrganizationFixture({
     hideAiFeatures: false,
-    features: ['gen-ai-features'],
   });
 
   let mockGroup: ReturnType<typeof GroupFixture>;
@@ -93,7 +92,6 @@ describe('AutofixSection', () => {
   it('renders Resources section when AI features are disabled', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
-      features: ['gen-ai-features'],
     });
 
     const performanceGroup: Group = {
@@ -146,7 +144,6 @@ describe('AutofixSection', () => {
   it('returns null when AI features are disabled and no resources exist', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
-      features: ['gen-ai-features'],
     });
 
     const {container} = render(
@@ -200,6 +197,24 @@ describe('AutofixSection', () => {
     expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
+  it('starts collapsed on the autofix tab even when saved as open', async () => {
+    mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
+    localStorage.setItem('issue-details-fold-section-collapse:seer', 'false');
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    expect(await screen.findByRole('button', {name: 'View Section'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(localStorage.getItem('issue-details-fold-section-collapse:seer')).toBe(
+      'false'
+    );
+    localStorage.clear();
+  });
+
   it('drops the open button on the autofix tab but keeps the previews', async () => {
     mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
     MockApiClient.addMockResponse({
@@ -238,6 +253,8 @@ describe('AutofixSection', () => {
     render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
     });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));
 
     // The previews still earn their place as a table of contents; only the
     // button, which would navigate to the page already on screen, goes.
@@ -514,7 +531,7 @@ describe('AutofixSection', () => {
   it('shows org setup UI when SCM integration is missing', async () => {
     const seatBasedOrg = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['gen-ai-features', 'seat-based-seer-enabled'],
+      features: ['seat-based-seer-enabled'],
     });
 
     MockApiClient.addMockResponse({
@@ -547,7 +564,7 @@ describe('AutofixSection', () => {
   it('shows project setup UI when repos are not linked', async () => {
     const seatBasedOrg = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['gen-ai-features', 'seat-based-seer-enabled'],
+      features: ['seat-based-seer-enabled'],
     });
 
     MockApiClient.addMockResponse({
@@ -577,10 +594,34 @@ describe('AutofixSection', () => {
     );
   });
 
+  it('skips setup UI when the onboarding check fails', async () => {
+    const seatBasedOrg = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['seat-based-seer-enabled'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${seatBasedOrg.slug}/seer/onboarding-check/`,
+      statusCode: 500,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization: seatBasedOrg,
+    });
+
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
+    expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
+  });
+
   it('skips setup UI for legacy seer plan orgs without SCM integration', async () => {
     const legacyOrg = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['gen-ai-features', 'seer-added'],
+      features: ['seer-added'],
     });
 
     MockApiClient.addMockResponse({

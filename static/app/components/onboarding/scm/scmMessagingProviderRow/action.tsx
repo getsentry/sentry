@@ -6,6 +6,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {IconAdd} from 'sentry/icons/iconAdd';
+import {IconDelete} from 'sentry/icons/iconDelete';
+import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 
 import type {RowVisualState} from './types';
@@ -92,9 +94,9 @@ export function RowActions({
         size="sm"
         icon={<IconAdd size="xs" />}
         onClick={onChooseDestination}
-        aria-label={t('Choose destination for %s', resolvedProvider.provider.name)}
+        aria-label={t('Set up %s', resolvedProvider.provider.name)}
       >
-        {t('Choose destination')}
+        {t('Set up')}
       </Button>
     );
   }
@@ -105,7 +107,7 @@ export function RowActions({
         <Button
           ref={focusRef}
           size="sm"
-          variant="link"
+          icon={<IconEdit size="xs" />}
           onClick={onEditDestination}
           aria-label={t('Edit %s destination', resolvedProvider.provider.name)}
         >
@@ -113,7 +115,7 @@ export function RowActions({
         </Button>
         <Button
           size="sm"
-          variant="link"
+          icon={<IconDelete size="xs" />}
           onClick={onStartRemoving}
           aria-label={t('Remove %s destination', resolvedProvider.provider.name)}
         >
@@ -126,7 +128,7 @@ export function RowActions({
   if (visualState === 'removing') {
     return (
       <Flex gap="xl">
-        <Button ref={focusRef} size="sm" variant="link" onClick={onCancelRemoving}>
+        <Button ref={focusRef} size="sm" variant="transparent" onClick={onCancelRemoving}>
           {t('Cancel')}
         </Button>
         <Button size="sm" variant="danger" onClick={onConfirmRemove}>

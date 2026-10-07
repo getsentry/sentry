@@ -1,10 +1,13 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {expectTypeOf} from 'expect-type';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
+import {Button} from '@sentry/scraps/button';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {IconEllipsis} from 'sentry/icons';
 
 import {CompactSelect, getEscapedKey, type SelectOption} from './';
 
@@ -109,35 +112,96 @@ describe('CompactSelect', () => {
       );
     });
 
-    it('should only allow SelectTrigger as trigger', () => {
-      const value: 'opt_one' | 'opt_two' = 'opt_one';
+    it('rejects trigger refs on native elements and regular buttons', () => {
       void (
         <CompactSelect
-          value={value}
+          value="opt_one"
+          onChange={() => {}}
+          trigger={triggerProps => {
+            return (
+              <Fragment>
+                {/* @ts-expect-error not allowed */}
+                <button {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <Button {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <div {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <span {...triggerProps} />
+              </Fragment>
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts trigger props on OverlayTrigger.Button and OverlayTrigger.IconButton', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
           onChange={() => {}}
           trigger={props => {
-            // @ts-expect-error should only allow SelectTrigger components
-            return <DropdownButton {...props}>Trigger</DropdownButton>;
+            expectTypeOf(props).toExtend<
+              React.ComponentProps<typeof OverlayTrigger.Button>
+            >();
+            return <OverlayTrigger.Button {...props} />;
           }}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
+          options={[{value: 'opt_one', label: 'Option One'}]}
         />
       );
 
       void (
         <CompactSelect
-          value={value}
+          value="opt_one"
           onChange={() => {}}
           trigger={props => {
-            // no type error here
-            return <OverlayTrigger.Button {...props}>Trigger</OverlayTrigger.Button>;
+            const iconButtonProps = {
+              ...props,
+              icon: <IconEllipsis />,
+              'aria-label': 'Select option',
+            };
+            expectTypeOf(iconButtonProps).toExtend<
+              React.ComponentProps<typeof OverlayTrigger.IconButton>
+            >();
+            return <OverlayTrigger.IconButton {...iconButtonProps} />;
           }}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts merging trigger refs', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
+          onChange={() => {}}
+          trigger={({ref, ...triggerProps}) => {
+            return (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                ref={mergeRefs(ref, useRef<HTMLButtonElement>(null))}
+              />
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts merging trigger props', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
+          onChange={() => {}}
+          trigger={triggerProps => {
+            return (
+              <OverlayTrigger.Button
+                {...mergeProps(triggerProps, {ref: useRef<HTMLButtonElement>(null)})}
+              />
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
         />
       );
     });

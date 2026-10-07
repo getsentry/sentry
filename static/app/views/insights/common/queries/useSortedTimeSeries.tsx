@@ -14,7 +14,6 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import {decodeSorts} from 'sentry/utils/queryString';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
-import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {AnyMutableSearch} from 'sentry/utils/url/formatSearchStringForQueryParam';
 import {
@@ -38,13 +37,11 @@ interface Options<Fields> {
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];
-  includeAnnotations?: boolean;
   includeMeasuredIngestionDelayMetadata?: boolean;
   interval?: string;
   logQuery?: string[];
   metricQuery?: string[];
   orderby?: string | string[];
-  referrer?: string;
   samplingMode?: SamplingMode;
   search?: AnyMutableSearch;
   spanQuery?: string[];
@@ -73,7 +70,6 @@ export const useSortedTimeSeries = <
     logQuery,
     metricQuery,
     spanQuery,
-    includeAnnotations,
     includeMeasuredIngestionDelayMetadata,
   } = options;
 
@@ -122,7 +118,6 @@ export const useSortedTimeSeries = <
       interval,
       includeMeasuredIngestionDelayMetadata,
       sampling: samplingMode,
-      includeAnnotations,
       extrapolate: !disableAggregateExtrapolation,
       queryOptions: {
         enabled: enabled && pageFilters.isReady,
@@ -154,8 +149,7 @@ export type SortedTimeSeries = ReturnType<typeof useSortedTimeSeries>;
 
 export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
-  yAxis: string[],
-  fields?: string[]
+  yAxis: string[]
 ): SeriesMap {
   if (!result) {
     return {};
@@ -193,13 +187,6 @@ export function transformToSeriesMap(
           seriesData.order
         );
 
-        if (fields) {
-          const groupByFields = fields.filter(field => !yAxis.includes(field));
-          const groupBy = parseGroupBy(groupName, groupByFields);
-          timeSeries.groupBy = groupBy;
-          timeSeries.meta.isOther = groupName === 'Other';
-        }
-
         allTimeSeries.push(timeSeries);
       });
     }
@@ -222,13 +209,6 @@ export function transformToSeriesMap(
           seriesData,
           groupData.order as unknown as number // `order` is always present
         );
-
-        if (fields) {
-          const groupByFields = fields.filter(field => !yAxis.includes(field));
-          const groupBy = parseGroupBy(groupName, groupByFields);
-          timeSeries.groupBy = groupBy;
-          timeSeries.meta.isOther = groupName === 'Other';
-        }
 
         allTimeSeries.push(timeSeries);
       });

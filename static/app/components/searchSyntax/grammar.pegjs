@@ -351,8 +351,8 @@ explicit_array_tag_key
 array_access_suffix = open_bracket "*" closed_bracket
 
 array_includes_tag_key
-  = base:explicit_array_tag_key array_access_suffix {
-      return tc.tokenKeyArrayIncludes(base, "*");
+  = prefix:"tags" open_bracket key:escaped_key array_access_suffix spaces comma spaces 'array' closed_bracket {
+      return tc.tokenKeyArrayIncludes(tc.tokenKeyExplicitArrayTag(prefix, key), "*");
     }
 
 array_includes_attr_key

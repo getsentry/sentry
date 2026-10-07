@@ -1,4 +1,4 @@
-import type {NavigateFunction} from 'react-router-dom';
+import type {NavigateFunction} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';

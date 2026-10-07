@@ -2,10 +2,10 @@ import {useMemo} from 'react';
 
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 
 interface MetricsQueryApiResponse {
   data: Array<

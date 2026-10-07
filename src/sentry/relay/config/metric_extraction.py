@@ -2,9 +2,9 @@ import logging
 from collections.abc import Sequence
 
 from sentry_relay.processing import validate_sampling_condition
+from sentry_sdk import traces
 
 from sentry import features, options
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import (
     ON_DEMAND_ENABLED_KEY,
     DashboardWidgetQuery,
@@ -22,9 +22,7 @@ from sentry.snuba.metrics.extraction import (
     SpecVersion,
     should_use_on_demand_metrics,
 )
-from sentry.snuba.models import SnubaQuery
 from sentry.utils import json, metrics
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -43,16 +41,6 @@ def get_max_widget_specs(organization: Organization) -> int:
     return max_widget_specs
 
 
-def get_max_alert_specs(organization: Organization) -> int:
-    if organization.id in options.get("on_demand.extended_alert_spec_orgs") and (
-        extended_max_specs := options.get("on_demand.extended_max_alert_specs")
-    ):
-        return extended_max_specs
-
-    max_alert_specs = options.get("on_demand.max_alert_specs")
-    return max_alert_specs
-
-
 def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
     feature_names = [
         "organizations:on-demand-metrics-extraction",
@@ -66,98 +54,6 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
             enabled_features.add(feature)
 
     return enabled_features
-
-
-def get_all_alert_metric_specs(
-    project: Project,
-    enabled_features: set[str],
-    prefilling: bool,
-    prefilling_for_deprecation: bool,
-) -> list[HashedMetricSpec]:
-    if not (
-        "organizations:on-demand-metrics-extraction" in enabled_features
-        or prefilling
-        or prefilling_for_deprecation
-    ):
-        return []
-
-    metrics.incr(
-        "on_demand_metrics.get_alerts",
-        tags={"prefilling": prefilling},
-    )
-
-    datasets = [Dataset.PerformanceMetrics.value]
-    if prefilling:
-        datasets.append(Dataset.Transactions.value)
-
-    alert_rules = (
-        AlertRule.objects.fetch_for_project(project)
-        .filter(
-            organization=project.organization,
-            status=AlertRuleStatus.PENDING.value,
-            snuba_query__dataset__in=datasets,
-        )
-        .select_related("snuba_query")
-    )
-
-    specs = []
-    with metrics.timer("on_demand_metrics.alert_spec_convert"):
-        for alert in alert_rules:
-            alert_snuba_query = alert.snuba_query
-            metrics.incr(
-                "on_demand_metrics.before_alert_spec_generation",
-                tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
-            )
-
-            if results := _convert_snuba_query_to_metrics(
-                project,
-                alert_snuba_query,
-                prefilling,
-                prefilling_for_deprecation=prefilling_for_deprecation,
-            ):
-                for spec in results:
-                    metrics.incr(
-                        "on_demand_metrics.on_demand_spec.for_alert",
-                        tags={"prefilling": prefilling},
-                    )
-                    specs.append(spec)
-    return specs
-
-
-def get_default_version_alert_metric_specs(
-    project: Project,
-    enabled_features: set[str],
-    prefilling: bool,
-    prefilling_for_deprecation: bool,
-) -> list[HashedMetricSpec]:
-    specs = get_all_alert_metric_specs(
-        project, enabled_features, prefilling, prefilling_for_deprecation=prefilling_for_deprecation
-    )
-    specs_per_version = get_specs_per_version(specs)
-    default_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
-    return specs_per_version.get(default_extraction_version, [])
-
-
-def _convert_snuba_query_to_metrics(
-    project: Project,
-    snuba_query: SnubaQuery,
-    prefilling: bool,
-    prefilling_for_deprecation: bool,
-) -> Sequence[HashedMetricSpec] | None:
-    """
-    If the passed snuba_query is a valid query for on-demand metric extraction,
-    returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
-    """
-    environment = snuba_query.environment.name if snuba_query.environment is not None else None
-    return _convert_aggregate_and_query_to_metrics(
-        project,
-        snuba_query.dataset,
-        snuba_query.aggregate,
-        snuba_query.query,
-        environment,
-        prefilling,
-        prefilling_for_deprecation=prefilling_for_deprecation,
-    )
 
 
 def convert_widget_query_to_metric(
@@ -222,16 +118,6 @@ def _generate_metric_specs(
     return metrics_specs
 
 
-def get_specs_per_version(specs: Sequence[HashedMetricSpec]) -> dict[int, list[HashedMetricSpec]]:
-    """This splits a list of specs into versioned specs for per-version logic"""
-    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
-    for hash, spec, spec_version in specs:
-        specs_per_version.setdefault(spec_version.version, [])
-        specs_per_version[spec_version.version].append((hash, spec, spec_version))
-
-    return specs_per_version
-
-
 def _convert_aggregate_and_query_to_metrics(
     project: Project,
     dataset: str,
@@ -271,10 +157,13 @@ def _convert_aggregate_and_query_to_metrics(
         "groupbys": groupbys,
     }
 
-    with start_span(
-        op="converting_aggregate_and_query", name="converting_aggregate_and_query"
-    ) as span:
-        set_span_data(span, "widget_query_args", {"query": query, "aggregate": aggregate})
+    with traces.start_span(
+        name="converting_aggregate_and_query",
+        attributes={
+            "sentry.op": "converting_aggregate_and_query",
+            "widget_query_args": repr({"query": query, "aggregate": aggregate}),
+        },
+    ):
         # Create as many specs as we support
         for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
             try:

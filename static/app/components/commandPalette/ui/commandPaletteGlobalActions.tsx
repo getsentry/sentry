@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
+import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
@@ -11,7 +12,11 @@ import {
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
@@ -40,6 +45,7 @@ import {
   IconList,
   IconLock,
   IconOpen,
+  IconPlay,
   IconRepository,
   IconSearch,
   IconSeer,
@@ -63,9 +69,12 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -114,7 +123,6 @@ export function isNavItemVisible(
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
@@ -259,6 +267,40 @@ function ResolvedIdentifierCommandPaletteAction() {
 }
 
 /**
+ * Opens the session replay recording the current browser session (in
+ * Sentry's own org) and copies its link, so it can be shared in a bug report.
+ */
+async function openCurrentReplay() {
+  const replay = Sentry.getReplay();
+  if (!replay) {
+    addErrorMessage(t('Session Replay is not enabled for this session'));
+    return;
+  }
+
+  // Upgrades a buffered replay to a session replay (keeping its id) so the
+  // link resolves, or starts recording if nothing is recording yet.
+  const flushed = replay.flush();
+
+  // Only wait when there's no id yet (a buffered replay already has one), so
+  // window.open stays within the user gesture and isn't popup-blocked.
+  let replayId = replay.getReplayId();
+  if (!replayId) {
+    await flushed;
+    replayId = replay.getReplayId();
+  }
+  if (!replayId) {
+    addErrorMessage(t('No replay is currently recording'));
+    return;
+  }
+
+  const url = `https://sentry.sentry.io/explore/replays/${replayId}/`;
+  // Copy first: the new tab takes focus, and the clipboard rejects writes from
+  // an unfocused document.
+  copyToClipboard(url, {successMessage: t('Copied replay link to clipboard')});
+  window.open(url, '_blank', 'noreferrer');
+}
+
+/**
  * Registers globally-available actions into the CMDK collection via JSX.
  * Must be mounted inside CMDKProvider (which requires CommandPaletteStateProvider).
  */
@@ -266,6 +308,7 @@ export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const user = useUser();
+  const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
   const {organizations} = useLegacyStore(OrganizationsStore);
   const sentryConfig = useLegacyStore(ConfigStore);
@@ -293,6 +336,12 @@ export function GlobalCommandPaletteActions() {
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));
   const currentProjectSlugs = new Set(currentProjects.map(p => p.slug));
+  // Included in project picker query keys so starring/unstarring a project
+  // reorders the cached list.
+  const bookmarkedProjectSlugs = projects
+    .filter(p => p.isBookmarked)
+    .map(p => p.slug)
+    .join(',');
   const visibleProjectSettingsNavItems = useMemo(() => {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),
@@ -394,22 +443,12 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/explore/metrics/`}
             />
           )}
-          {organization.features.includes('explore-errors') &&
-            !getDiscoverDeprecation(organization) && (
-              <CMDKAction
-                display={{label: t('Errors')}}
-                to={`${prefix}/explore/errors-v2/`}
-              />
-            )}
+          {/* TODO(nikki): I removed the errors on eap UI here so it wouldn't get confused with discover errors, add it back before launch */}
           <CMDKAction
             display={{
-              label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
+              label: t('Errors'),
             }}
-            to={
-              getDiscoverDeprecation(organization)
-                ? `${prefix}/explore/errors/homepage/`
-                : `${prefix}/explore/discover/homepage/`
-            }
+            to={`${prefix}/explore/errors/`}
           />
           {organization.features.includes('profiling') && (
             <CMDKAction
@@ -714,11 +753,16 @@ export function GlobalCommandPaletteActions() {
                       organization.slug,
                       suffix,
                       params.projectId ?? [...queryProjectIds].join(','),
+                      bookmarkedProjectSlugs,
                     ],
                     queryFn: () => {
                       const sorted = [
-                        ...projects.filter(p => currentProjectSlugs.has(p.slug)),
-                        ...projects.filter(p => !currentProjectSlugs.has(p.slug)),
+                        ...sortProjects(
+                          projects.filter(p => currentProjectSlugs.has(p.slug))
+                        ),
+                        ...sortProjects(
+                          projects.filter(p => !currentProjectSlugs.has(p.slug))
+                        ),
                       ];
                       return sorted.map(project => ({
                         display: {
@@ -932,7 +976,7 @@ export function GlobalCommandPaletteActions() {
             ),
             enabled: query.length >= 1,
             select: data =>
-              data.json.map(project => ({
+              sortProjects(data.json).map(project => ({
                 display: {
                   label: project.slug,
                   icon: <ProjectAvatar project={project} size={16} />,
@@ -969,18 +1013,17 @@ export function GlobalCommandPaletteActions() {
               'cmdk-project-nav',
               organization.slug,
               projects.map(p => p.slug).join(','),
+              bookmarkedProjectSlugs,
             ],
             queryFn: () =>
-              projects
-                .toSorted((a, b) => a.slug.localeCompare(b.slug))
-                .map(project => ({
-                  display: {
-                    label: project.slug,
-                    icon: <ProjectAvatar project={project} size={16} />,
-                  },
-                  keywords: [project.name, project.slug],
-                  to: `/organizations/${organization.slug}/issues/?project=${project.id}`,
-                })),
+              sortProjects(projects).map(project => ({
+                display: {
+                  label: project.slug,
+                  icon: <ProjectAvatar project={project} size={16} />,
+                },
+                keywords: [project.name, project.slug],
+                to: `/organizations/${organization.slug}/issues/?project=${project.id}`,
+              })),
             enabled: state === 'selected',
             staleTime: Infinity,
           })
@@ -1099,6 +1142,14 @@ export function GlobalCommandPaletteActions() {
           />
         )}
       </CMDKAction>
+
+      {isSentryEmployee && (
+        <CMDKAction
+          display={{label: t('Open my current replay session'), icon: <IconPlay />}}
+          keywords={[t('replay'), t('session'), t('bug'), t('report'), t('share')]}
+          onAction={openCurrentReplay}
+        />
+      )}
 
       {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (
         <CMDKAction

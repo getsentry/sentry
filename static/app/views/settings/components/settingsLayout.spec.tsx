@@ -4,8 +4,6 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 
-import {BreadcrumbProvider} from './settingsBreadcrumb/context';
-
 describe('SettingsLayout', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -28,10 +26,6 @@ describe('SettingsLayout', () => {
   });
 
   it('renders', () => {
-    render(
-      <BreadcrumbProvider>
-        <SettingsLayout>content</SettingsLayout>
-      </BreadcrumbProvider>
-    );
+    render(<SettingsLayout>content</SettingsLayout>);
   });
 });

@@ -19,7 +19,7 @@ from sentry import audit_log, killswitches
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.environment import Environment
-from sentry.monitors.constants import TIMEOUT, PermitCheckInStatus
+from sentry.monitors.constants import MAX_TIMEOUT, TIMEOUT, PermitCheckInStatus
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
 from sentry.monitors.models import (
     CheckInStatus,
@@ -454,6 +454,69 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.TIMEOUT
         assert checkin.duration == 5000
+
+    def test_check_in_in_progress_timeout_capped(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        self.send_checkin(
+            monitor.slug,
+            status="in_progress",
+            ts=now - timedelta(minutes=MAX_TIMEOUT - 10),
+            item_ts=now,
+        )
+        self.send_checkin(monitor.slug, guid=self.guid, status="in_progress", ts=now)
+
+        # The in-progress update can not extend the timeout past MAX_TIMEOUT
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.timeout_at == checkin.date_added.replace(
+            second=0, microsecond=0
+        ) + timedelta(minutes=MAX_TIMEOUT)
+
+    def test_check_in_in_progress_after_timeout(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, status="in_progress")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        checkin.update(status=CheckInStatus.TIMEOUT)
+
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            status="in_progress",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.CHECKIN_FINISHED}], monitor
+            ),
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.TIMEOUT
+
+    def test_check_in_update_past_max_timeout(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        self.send_checkin(
+            monitor.slug,
+            status="in_progress",
+            ts=now - timedelta(minutes=MAX_TIMEOUT + 1),
+            item_ts=now,
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        checkin.update(status=CheckInStatus.TIMEOUT)
+
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            ts=now,
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.CHECKIN_FINISHED}], monitor
+            ),
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.TIMEOUT
+        assert checkin.duration is None
 
     def test_check_in_update(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
@@ -1076,6 +1139,21 @@ class MonitorConsumerTest(TestCase):
         assert monitor.exists()
         assert monitor[0].config["checkin_margin"] == 1
 
+    def test_monitor_upsert_limits_clamped(self) -> None:
+        self.send_checkin(
+            "long-running-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "max_runtime": 20160,
+                "checkin_margin": 100000,
+            },
+        )
+
+        monitor = Monitor.objects.get(slug="long-running-monitor")
+        assert monitor.config["max_runtime"] == 10080
+        assert monitor.config["checkin_margin"] == 40320
+        assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
     def test_monitor_invalid_config(self) -> None:
         # 6 value schedule
         self.send_checkin(
@@ -1121,6 +1199,22 @@ class MonitorConsumerTest(TestCase):
                         "type": ProcessingErrorType.MONITOR_NOT_FOUND,
                     },
                 ],
+            ),
+        )
+
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
+    def test_payload_key_collides_with_log_record(self) -> None:
+        """
+        Client payload keys are logged on failure paths. A key such as
+        `message` collides with a `logging.LogRecord` attribute and must not
+        break check-in processing.
+        """
+        self.send_checkin(
+            "my-missing-monitor",
+            message="hello",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
             ),
         )
 
