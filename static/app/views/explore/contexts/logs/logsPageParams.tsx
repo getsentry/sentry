@@ -1,4 +1,4 @@
-import {useLayoutEffect} from 'react';
+import {createContext, useContext, useLayoutEffect, type ReactNode} from 'react';
 import type {Location} from 'history';
 
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -22,7 +22,11 @@ export interface PersistedLogsPageParams {
   sortBys: Sort[];
 }
 
-export function usePersistedLogsPageParams() {
+const PersistedLogsPageParamsContext = createContext<
+  ReturnType<typeof useLocalStorageState<PersistedLogsPageParams>> | undefined
+>(undefined);
+
+export function PersistedLogsPageParamsProvider({children}: {children: ReactNode}) {
   useLayoutEffect(() => {
     const pastParams = localStorageWrapper.getItem(
       getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION)
@@ -32,10 +36,26 @@ export function usePersistedLogsPageParams() {
     }
   });
 
-  return useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
+  const state = useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
     fields: defaultLogFields() as string[],
     sortBys: [logsTimestampDescendingSortBy],
   });
+
+  return (
+    <PersistedLogsPageParamsContext value={state}>
+      {children}
+    </PersistedLogsPageParamsContext>
+  );
+}
+
+export function usePersistedLogsPageParams() {
+  const context = useContext(PersistedLogsPageParamsContext);
+  if (context === undefined) {
+    throw new Error(
+      'usePersistedLogsPageParams requires PersistedLogsPageParamsProvider'
+    );
+  }
+  return context;
 }
 
 export function stripLogParamsFromLocation(location: Location): Location {

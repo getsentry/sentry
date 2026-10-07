@@ -110,6 +110,26 @@ export function getExpandedProjectIds(
 }
 
 /**
+ * The user's existing columns are kept in place and extras are appended with dedup.
+ * Limit only applies when there are extras to add. When hitting the limit, the
+ * existing columns are trimmed first.
+ */
+export function mergeSeerExtraFields(
+  currentFields: readonly string[],
+  extraFields: readonly string[] | undefined,
+  limit = 10
+): string[] {
+  const filteredExtra = [
+    ...new Set(extraFields?.filter(field => !currentFields.includes(field))),
+  ];
+  if (!filteredExtra?.length) {
+    return [...currentFields];
+  }
+  const keep = Math.max(0, limit - filteredExtra.length);
+  return [...currentFields.slice(0, keep), ...filteredExtra.slice(0, limit)];
+}
+
+/**
  * Whether the query contains any `OR` boolean operator (including ones nested
  * inside parenthesized groups). When it does, we skip moving `project:` to the
  * page-level selector, since a project term could be scoped to one branch of the
