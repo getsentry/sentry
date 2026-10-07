@@ -23,10 +23,14 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.platform.shadow.capture import shadow_read
 from sentry.notifications.platform.types import NotificationSource
-from sentry.notifications.types import TEST_NOTIFICATION_ID, NotificationOrigin, RuleFuture
+from sentry.notifications.types import (
+    TEST_NOTIFICATION_ID,
+    NotificationActionContext,
+    NotificationOrigin,
+    RuleFuture,
+)
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
@@ -202,35 +206,19 @@ class BaseIssueAlertHandler(ABC):
         return blob
 
     @classmethod
-    def create_rule_instance_from_action(
+    def create_action_context(
         cls,
         action: Action,
         detector: Detector,
         event_data: WorkflowEventData,
         workflow_id: WorkflowId,
-    ) -> Rule:
-        """
-        Creates a Rule instance from the Action model.
-        :param action: Action
-        :param detector: Detector
-        :param event_data: WorkflowEventData
-        :param workflow_id: The workflow ID that triggered this action
-        :return: Rule instance
-        """
+    ) -> NotificationActionContext:
         origin = cls.create_notification_origin(detector, event_data, workflow_id)
-        data = cls.build_rule_data_from_action(action, detector, origin)
-
-        rule = Rule(
-            id=action.id,
+        return NotificationActionContext(
+            origin=origin,
+            action_id=action.id,
             project=detector.linked_project,
-            environment_id=origin.environment_id,
-            label=origin.label,
-            data=dict(data),
-            status=ObjectStatus.ACTIVE,
-            source=RuleSource.ISSUE,
         )
-
-        return rule
 
     @classmethod
     def build_rule_data_from_action(
@@ -301,7 +289,8 @@ class BaseIssueAlertHandler(ABC):
     @staticmethod
     def get_rule_futures(
         event_data: WorkflowEventData,
-        rule: Rule,
+        context: NotificationActionContext,
+        actions: Sequence[dict[str, Any]],
         notification_uuid: str,
     ) -> Collection[tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]]:
         """
@@ -313,7 +302,9 @@ class BaseIssueAlertHandler(ABC):
                 f"WorkflowEventData.event expected GroupEvent, but received: {type(event_data.event).__name__}"
             )
 
-        grouped_futures = activate_downstream_actions(rule, event_data.event, notification_uuid)
+        grouped_futures = activate_downstream_actions(
+            context, actions, event_data.event, notification_uuid
+        )
         return grouped_futures.values()
 
     @staticmethod
@@ -368,12 +359,14 @@ class BaseIssueAlertHandler(ABC):
             NotificationSource.ISSUE,
             lambda _: issue_notification_data_factory(invocation),
         ):
-            # Create a rule
-            rule = cls.create_rule_instance_from_action(
+            context = cls.create_action_context(
                 invocation.action,
                 invocation.detector,
                 invocation.event_data,
                 workflow_id=invocation.workflow_id,
+            )
+            rule_data = cls.build_rule_data_from_action(
+                invocation.action, invocation.detector, context.origin
             )
 
             logger.info(
@@ -382,21 +375,24 @@ class BaseIssueAlertHandler(ABC):
                     "action_id": invocation.action.id,
                     "detector_id": invocation.detector.id,
                     "event_data": asdict(invocation.event_data),
-                    "rule_id": rule.id,
-                    "rule_project_id": rule.project.id,
-                    "rule_environment_id": rule.environment_id,
-                    "rule_label": rule.label,
-                    "rule_data": rule.data,
+                    "legacy_rule_id": context.origin.legacy_rule_id,
+                    "workflow_id": context.origin.workflow_id,
+                    "rule_project_id": context.project.id,
+                    "rule_environment_id": context.origin.environment_id,
+                    "rule_label": context.origin.label,
+                    "rule_data": rule_data,
                 },
             )
             # Get the futures
             futures = cls.get_rule_futures(
-                invocation.event_data, rule, invocation.notification_uuid
+                invocation.event_data,
+                context,
+                rule_data["actions"],
+                invocation.notification_uuid,
             )
 
             # Execute the futures
-            # If the rule id is -1, we are sending a test notification
-            if rule.id == TEST_NOTIFICATION_ID:
+            if context.origin.legacy_rule_id == TEST_NOTIFICATION_ID:
                 cls.send_test_notification(invocation.event_data, futures)
             else:
                 cls.execute_futures(invocation.event_data, futures)

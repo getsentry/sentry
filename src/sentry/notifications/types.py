@@ -8,6 +8,7 @@ from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
     from sentry.models.rule import Rule
 
 
@@ -86,8 +87,25 @@ class NotificationOrigin:
         return hash(self.identifier)
 
 
+@dataclass(frozen=True)
+class NotificationActionContext:
+    """Identity for action execution; executable configuration is passed separately."""
+
+    origin: NotificationOrigin
+    action_id: int
+    project: Project
+
+    @classmethod
+    def from_legacy_rule(cls, rule: Rule) -> NotificationActionContext:
+        return cls(
+            origin=NotificationOrigin.from_legacy_rule(rule),
+            action_id=rule.id,
+            project=rule.project,
+        )
+
+
 class RuleFuture(NamedTuple):
-    rule: Rule
+    context: NotificationActionContext
     kwargs: dict[str, Any]
 
 
