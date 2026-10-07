@@ -14,6 +14,7 @@ import type {ESTree, Visitor} from '@oxlint/plugins';
 import {normalizePropertyName} from '../utils/normalizePropertyName.ts';
 import {getStyledCallInfo} from '../utils/styled.ts';
 
+import {parseCssTemplate} from './css.ts';
 import type {ExtractorContext, StyleDeclaration} from './types.ts';
 import {decomposeValue} from './valueDecomposer.ts';
 
@@ -24,19 +25,8 @@ export function createStyledExtractor({
   collector,
   themeTracker,
   ruleContext,
+  importTracker,
 }: ExtractorContext): Visitor {
-  /**
-   * Extract CSS property from template literal quasi text.
-   * Must correctly handle nested selectors (a:hover) and only match actual properties.
-   */
-  function extractCssProperty(cssText: string) {
-    // Match a CSS property declaration: property-name: value
-    // The property must appear after {, ;, or at line start (with optional whitespace)
-    // This avoids matching pseudo-selectors like a:hover
-    const match = cssText.match(/(?:^|[{;])\s*([a-z-]+)\s*:\s*[^;{]*$/i);
-    return match?.[1] ?? null;
-  }
-
   /**
    * Check if we're in a lookup table pattern that should be excluded.
    * e.g., ({ none: theme.tokens.content.primary })[status]
@@ -63,45 +53,33 @@ export function createStyledExtractor({
     templateNode: ESTree.TemplateLiteral,
     sourceNode: ESTree.Node
   ) {
-    templateNode.expressions?.forEach((expr, index) => {
-      const precedingQuasi = templateNode.quasis[index];
-      if (!precedingQuasi) {
-        return;
+    const parsed = parseCssTemplate(
+      templateNode,
+      ruleContext.sourceCode.getText(templateNode)
+    );
+    if (!parsed) {
+      return;
+    }
+
+    for (const declaration of parsed) {
+      for (const {expression, index} of declaration.interpolations) {
+        const precedingQuasi = templateNode.quasis[index];
+        if (!precedingQuasi) {
+          continue;
+        }
+        collector.add({
+          kind: 'styled',
+          property: {name: declaration.name, node: precedingQuasi},
+          values: decomposeValue(expression, themeTracker),
+          context: {
+            file: ruleContext.filename,
+            scopeId: themeTracker.getCurrentScopeId(),
+            themeBinding: themeTracker.getActiveBinding(),
+          },
+          raw: {containerNode: templateNode, sourceNode},
+        });
       }
-
-      const cssText = precedingQuasi.value.cooked || precedingQuasi.value.raw;
-      if (!cssText) {
-        return;
-      }
-
-      const property = extractCssProperty(cssText);
-      if (!property) {
-        return;
-      }
-
-      // Decompose the expression into possible values
-      const values = decomposeValue(expr, themeTracker);
-
-      const declaration: StyleDeclaration = {
-        kind: 'styled',
-        property: {
-          name: normalizePropertyName(property),
-          node: precedingQuasi,
-        },
-        values,
-        context: {
-          file: ruleContext.filename,
-          scopeId: themeTracker.getCurrentScopeId(),
-          themeBinding: themeTracker.getActiveBinding(),
-        },
-        raw: {
-          containerNode: templateNode,
-          sourceNode,
-        },
-      };
-
-      collector.add(declaration);
-    });
+    }
   }
 
   /**
@@ -158,7 +136,7 @@ export function createStyledExtractor({
 
   return {
     TaggedTemplateExpression(node: ESTree.TaggedTemplateExpression) {
-      if (!getStyledCallInfo(node)) {
+      if (!getStyledCallInfo(node, importTracker)) {
         return;
       }
       processTemplateLiteral(node.quasi, node);
@@ -166,7 +144,7 @@ export function createStyledExtractor({
 
     // Handle styled.div({ ... }) object syntax
     CallExpression(node: ESTree.CallExpression) {
-      if (!getStyledCallInfo(node)) {
+      if (!getStyledCallInfo(node, importTracker)) {
         return;
       }
 

@@ -139,6 +139,17 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
 
+    def test_create_notification_origin(self) -> None:
+        origin = self.handler.create_notification_origin(
+            self.detector, self.event_data, workflow_id=self.workflow.id
+        )
+
+        assert origin.label == self.workflow.name
+        assert self.workflow.environment is not None
+        assert origin.environment_id == self.workflow.environment.id
+        assert origin.workflow_id == self.workflow.id
+        assert origin.legacy_rule_id == self.rule.id
+
     def test_create_rule_instance_from_action_with_workflow_only(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         self.rule.delete()
