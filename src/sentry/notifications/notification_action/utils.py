@@ -2,7 +2,6 @@ import logging
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.integrations.slack.message_builder.incidents import should_show_investigation_button
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.registry import (
     activity_handler_registry,
@@ -195,10 +194,6 @@ def metric_alert_notification_data_factory(
         text=attachment_info["text"],
         chart_url=chart_url,
         notes=notification_context.notes,
-        project_id=metric_issue_context.group.project_id if metric_issue_context.group else None,
-        show_investigation_button=should_show_investigation_button(
-            organization, metric_issue_context.new_status
-        ),
     )
 
 
