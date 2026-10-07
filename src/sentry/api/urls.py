@@ -195,9 +195,6 @@ from sentry.explore.endpoints.explore_saved_query_detail import (
     ExploreSavedQueryVisitEndpoint,
 )
 from sentry.explore.endpoints.explore_saved_query_starred import ExploreSavedQueryStarredEndpoint
-from sentry.explore.endpoints.explore_saved_query_starred_order import (
-    ExploreSavedQueryStarredOrderEndpoint,
-)
 from sentry.explore.endpoints.saved_queries import SavedQueriesEndpoint
 from sentry.explore.endpoints.saved_query_starred_order import SavedQueryStarredOrderEndpoint
 from sentry.feedback.endpoints.organization_feedback_categories import (
@@ -1568,11 +1565,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/(?P<id>\d+)/starred/$",
         ExploreSavedQueryStarredEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-starred",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/starred/order/$",
-        ExploreSavedQueryStarredOrderEndpoint.as_view(),
-        name="sentry-api-0-explore-saved-query-starred-order",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/explore/all-queries/$",

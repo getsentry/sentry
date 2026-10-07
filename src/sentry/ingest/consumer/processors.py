@@ -17,6 +17,7 @@ from sentry.constants import DataCategory
 from sentry.event_manager import save_attachment
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
+from sentry.ingest.event_payload import get_event_payload_transport
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
@@ -217,10 +218,11 @@ def process_event(
         # for them. Storing would orphan the payload in Redis until its TTL
         # expires, since nothing on the feedback path deletes it.
         cache_key = None
-        if data.get("type") != "feedback":
+        transport = get_event_payload_transport(data["event_id"])
+        if data.get("type") != "feedback" and transport.cache:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
-        if consumer_type == ConsumerType.Transactions:
+        if consumer_type == ConsumerType.Transactions and cache_key:
             track_sampled_event(
                 data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
             )
@@ -236,7 +238,7 @@ def process_event(
             else:
                 app_feature = None
 
-            if app_feature is not None:
+            if app_feature is not None and cache_key:
                 record(settings.EVENT_PROCESSING_STORE, app_feature, len(payload), UsageUnit.BYTES)
         except Exception:
             pass
@@ -255,12 +257,11 @@ def process_event(
             )
             return
         if data.get("type") == "transaction":
-            assert cache_key is not None
             # No need for preprocess/process for transactions thus submit
             # directly transaction specific save_event task.
             save_transaction_kwargs: dict[str, Any] = {
                 "cache_key": cache_key,
-                "data": None,
+                "data": data if transport.inline else None,
                 "start_time": start_time,
                 "event_id": event_id,
                 "project_id": project_id,
@@ -304,7 +305,7 @@ def process_event(
                 attributes={"sentry.op": "ingest_consumer.process_event.preprocess_event"},
             ):
                 preprocess_kwargs: dict[str, Any] = {
-                    "cache_key": cache_key or "",
+                    "cache_key": cache_key,
                     "data": data,
                     "start_time": start_time,
                     "event_id": event_id,

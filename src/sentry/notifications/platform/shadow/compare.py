@@ -10,6 +10,7 @@ import orjson
 import sentry_sdk
 from slack_sdk.models.blocks import Block
 
+from sentry.models.group import Group
 from sentry.notifications.platform.registry import (
     provider_registry,
     renderer_registry,
@@ -31,6 +32,7 @@ class ShadowOutcome(StrEnum):
     MATCH = "match"
     MISMATCH = "mismatch"
     LEGACY_NOT_CAPTURED = "legacy_not_captured"
+    GROUP_CHANGED = "group_changed"
     NO_RENDERER = "no_renderer"
     PLATFORM_ERROR = "platform_error"
     COMPARE_ERROR = "compare_error"
@@ -100,7 +102,28 @@ def _diff(legacy: Mapping[str, Any], platform: Mapping[str, Any]) -> list[str]:
     return checker.mismatches
 
 
+def _group_changed(invocation: ActionInvocation) -> bool:
+    """
+    Whether the group state the issue renderers read has changed since the invocation loaded the
+    group. Issue renderers re-read the group from cache, so a change would show up as a diff.
+    """
+    group = invocation.event_data.group
+    try:
+        current = Group.objects.get_from_cache(id=group.id)
+    except Group.DoesNotExist:
+        return True
+
+    event_datetime = getattr(invocation.event_data.event, "datetime", None)
+
+    def state(g: Group) -> tuple[object, ...]:
+        last_seen = max(g.last_seen, event_datetime) if event_datetime else g.last_seen
+        return (g.status, g.substatus, last_seen)
+
+    return state(current) != state(group)
+
+
 def _compare_with_platform(
+    invocation: ActionInvocation,
     source: NotificationSource,
     provider_key: NotificationProviderKey,
     legacy_render: LegacyRender | None,
@@ -116,6 +139,8 @@ def _compare_with_platform(
         return ShadowResult(outcome=ShadowOutcome.NO_RENDERER)
     if legacy_render is None:
         return ShadowResult(outcome=ShadowOutcome.LEGACY_NOT_CAPTURED)
+    if source == NotificationSource.ISSUE and _group_changed(invocation):
+        return ShadowResult(outcome=ShadowOutcome.GROUP_CHANGED)
 
     try:
         data = build_data(legacy_render)
@@ -138,6 +163,14 @@ def _compare_with_platform(
     return ShadowResult(outcome=ShadowOutcome.MISMATCH, diff=entries)
 
 
+def _invocation_log_extra(invocation: ActionInvocation) -> dict[str, Any]:
+    return {
+        "organization_id": invocation.detector.linked_project.organization_id,
+        "group_id": invocation.event_data.group.id,
+        "detector_id": invocation.detector.id,
+    }
+
+
 def report(
     invocation: ActionInvocation,
     source: NotificationSource,
@@ -148,7 +181,7 @@ def report(
 ) -> None:
     """
     Compares the legacy render with the platform's and records the outcome as metrics, logging
-    the diff on a mismatch. Never raises.
+    the diff on a mismatch and the invocation when no legacy render was captured. Never raises.
     """
     log_extra: dict[str, Any] = {
         "source": source.value,
@@ -162,7 +195,9 @@ def report(
         with metrics.timer(
             "notifications.platform.shadow.duration", tags=tags, sample_rate=1.0
         ) as timer_tags:
-            result = _compare_with_platform(source, provider_key, legacy_render, build_data)
+            result = _compare_with_platform(
+                invocation, source, provider_key, legacy_render, build_data
+            )
             timer_tags["outcome"] = result.outcome.value
         metrics.incr(
             "notifications.platform.shadow.result",
@@ -175,11 +210,18 @@ def report(
                 "notifications.platform.shadow.mismatch",
                 extra={
                     **log_extra,
-                    "organization_id": invocation.detector.linked_project.organization_id,
-                    "group_id": invocation.event_data.group.id,
-                    "detector_id": invocation.detector.id,
+                    **_invocation_log_extra(invocation),
                     "diff_count": len(result.diff),
                     "diff": result.diff,
+                },
+            )
+        elif result.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED:
+            logger.info(
+                "notifications.platform.shadow.legacy_not_captured",
+                extra={
+                    **log_extra,
+                    **_invocation_log_extra(invocation),
+                    "integration_id": invocation.action.integration_id,
                 },
             )
     except Exception:

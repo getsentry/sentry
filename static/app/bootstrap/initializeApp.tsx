@@ -9,9 +9,11 @@ import {initializeSdk} from './initializeSdk';
 import {processInitQueue} from './processInitQueue';
 import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
+import {reportPreloadRequestMetrics} from './reportPreloadRequestMetrics';
 
 export function initializeApp(config: Config) {
   initializeSdk(config);
+  reportPreloadRequestMetrics();
   // Initialize the config store after the SDK, so we can log errors to Sentry during config initialization if needed. N.B. This mutates the config slightly
   commonInitialization(config);
 
