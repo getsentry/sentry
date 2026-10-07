@@ -78,22 +78,25 @@ function resolveFlexAlign(value: NonNullable<FlexLayoutProps['align']> & string)
   }
 }
 
+const GAP_OPTIONS = {fixed: 'gap', resolve: resolveSpacing};
+const DIRECTION_OPTIONS = {fixed: 'direction'};
+const WRAP_OPTIONS = {fixed: 'wrap'};
+const JUSTIFY_OPTIONS = {
+  fixed: 'flexJustify',
+  resolve: (value: FlexJustify) => FLEX_JUSTIFY_CONTENT[value],
+};
+const ALIGN_OPTIONS = {fixed: 'flexAlign', resolve: resolveFlexAlign};
+
 function FlexComponent<T extends ContainerElement = 'div'>(
   props: FlexProps<T> | FlexPropsWithRenderFunction<T>
 ) {
   const acc = createLayoutStyle(typeof props.children === 'function');
   addContainerStyles(acc, props, props.display ?? 'flex');
-  addLayoutProp(acc, 'gap', props.gap, {fixed: 'gap', resolve: resolveSpacing});
-  addLayoutProp(acc, 'flexDirection', props.direction, {fixed: 'direction'});
-  addLayoutProp(acc, 'flexWrap', props.wrap, {fixed: 'wrap'});
-  addLayoutProp(acc, 'justifyContent', props.justify, {
-    fixed: 'flexJustify',
-    resolve: value => FLEX_JUSTIFY_CONTENT[value],
-  });
-  addLayoutProp(acc, 'alignItems', props.align, {
-    fixed: 'flexAlign',
-    resolve: resolveFlexAlign,
-  });
+  addLayoutProp(acc, 'gap', props.gap, GAP_OPTIONS);
+  addLayoutProp(acc, 'flexDirection', props.direction, DIRECTION_OPTIONS);
+  addLayoutProp(acc, 'flexWrap', props.wrap, WRAP_OPTIONS);
+  addLayoutProp(acc, 'justifyContent', props.justify, JUSTIFY_OPTIONS);
+  addLayoutProp(acc, 'alignItems', props.align, ALIGN_OPTIONS);
   return useLayoutElement(props, acc, OMIT_FLEX_PROPS);
 }
 

@@ -93,7 +93,7 @@ function isResponsive(prop: unknown): prop is Partial<Record<ResponsiveKey, any>
   return typeof prop === 'object' && prop !== null;
 }
 
-interface LayoutPropOptions<T> {
+export interface LayoutPropOptions<T> {
   /**
    * The static-class vocabulary for this prop's values (`FIXED` in
    * scripts/genStylexTheme.ts). Values found there need no inline variable.

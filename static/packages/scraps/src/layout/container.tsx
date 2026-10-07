@@ -12,11 +12,13 @@ import type {
 import {radius, space} from '@sentry/scraps/theme/constants.stylex';
 import {background, border} from '@sentry/scraps/theme/tokens.stylex';
 
+import type {LayoutProperty} from './generatedStyles';
 import {ContainerQueryProvider, type Responsive, type Shorthand} from './styles';
 import {
   addLayoutProp,
   createLayoutStyle,
   finishLayoutStyle,
+  type LayoutPropOptions,
   type LayoutStyle,
 } from './stylexLayout';
 
@@ -343,109 +345,118 @@ export function resolveBackground(value: SurfaceVariant | 'overlay'): string {
   return background[value];
 }
 
+type PropHandler = (acc: LayoutStyle, value: unknown) => void;
+
+function layoutProp<T>(
+  property: LayoutProperty,
+  options?: LayoutPropOptions<T>
+): PropHandler {
+  return (acc, value) => addLayoutProp(acc, property, value as Responsive<T>, options);
+}
+
+function borderProp(side: BorderSide): PropHandler {
+  return (acc, value) => addBorder(acc, side, value as Responsive<BorderVariant>);
+}
+
 /**
- * Adds the styles of every `Container` prop. `display` is passed separately
- * so `Flex` and `Grid` can default it without copying props.
+ * One handler per `Container` prop (except `display`), built once so a render
+ * only visits the props that were passed.
+ */
+const CONTAINER_PROP_HANDLERS: Record<string, PropHandler | undefined> = {
+  containerType: layoutProp('containerType', {fixed: 'containerType'}),
+  position: layoutProp('position', {fixed: 'position'}),
+
+  inset: layoutProp('inset', {fixed: 'inset'}),
+  top: layoutProp('top', {fixed: 'top'}),
+  bottom: layoutProp('bottom', {fixed: 'bottom'}),
+  left: layoutProp('left', {fixed: 'left'}),
+  right: layoutProp('right', {fixed: 'right'}),
+
+  overflow: layoutProp('overflow', {fixed: 'overflow'}),
+  overflowX: layoutProp('overflowX', {fixed: 'overflowX'}),
+  overflowY: layoutProp('overflowY', {fixed: 'overflowY'}),
+  overscrollBehavior: layoutProp('overscrollBehavior'),
+  pointerEvents: layoutProp('pointerEvents', {fixed: 'pointerEvents'}),
+  cursor: layoutProp('cursor', {fixed: 'cursor'}),
+  contain: layoutProp('contain'),
+
+  padding: layoutProp('padding', {fixed: 'padding', resolve: resolveSpacing}),
+  paddingTop: layoutProp('paddingTop', {fixed: 'paddingTop', resolve: resolveSpace}),
+  paddingBottom: layoutProp('paddingBottom', {
+    fixed: 'paddingBottom',
+    resolve: resolveSpace,
+  }),
+  paddingLeft: layoutProp('paddingLeft', {fixed: 'paddingLeft', resolve: resolveSpace}),
+  paddingRight: layoutProp('paddingRight', {
+    fixed: 'paddingRight',
+    resolve: resolveSpace,
+  }),
+
+  margin: layoutProp('margin', {fixed: 'margin', resolve: resolveMargin}),
+  marginTop: layoutProp('marginTop', {fixed: 'marginTop', resolve: resolveMarginSize}),
+  marginBottom: layoutProp('marginBottom', {
+    fixed: 'marginBottom',
+    resolve: resolveMarginSize,
+  }),
+  marginLeft: layoutProp('marginLeft', {fixed: 'marginLeft', resolve: resolveMarginSize}),
+  marginRight: layoutProp('marginRight', {
+    fixed: 'marginRight',
+    resolve: resolveMarginSize,
+  }),
+
+  background: layoutProp('backgroundColor', {
+    fixed: 'background',
+    resolve: resolveBackground,
+  }),
+  radius: layoutProp('borderRadius', {fixed: 'radius', resolve: resolveRadius}),
+
+  width: layoutProp('width', {fixed: 'width'}),
+  minWidth: layoutProp('minWidth', {fixed: 'minWidth'}),
+  maxWidth: layoutProp('maxWidth', {fixed: 'maxWidth'}),
+  height: layoutProp('height', {fixed: 'height'}),
+  minHeight: layoutProp('minHeight', {fixed: 'minHeight'}),
+  maxHeight: layoutProp('maxHeight', {fixed: 'maxHeight'}),
+
+  area: layoutProp('gridArea'),
+  row: layoutProp('gridRow'),
+  column: layoutProp('gridColumn'),
+
+  order: layoutProp('order'),
+  flex: layoutProp('flex', {fixed: 'flex'}),
+  flexGrow: layoutProp('flexGrow', {fixed: 'flexGrow'}),
+  flexShrink: layoutProp('flexShrink', {fixed: 'flexShrink'}),
+  flexBasis: layoutProp('flexBasis'),
+  alignSelf: layoutProp('alignSelf', {fixed: 'alignSelf'}),
+  justifySelf: layoutProp('justifySelf', {fixed: 'justifySelf'}),
+
+  border: borderProp('border'),
+  borderTop: borderProp('borderTop'),
+  borderBottom: borderProp('borderBottom'),
+  borderLeft: borderProp('borderLeft'),
+  borderRight: borderProp('borderRight'),
+
+  visibility: layoutProp('visibility', {fixed: 'visibility'}),
+  whiteSpace: layoutProp('whiteSpace', {fixed: 'whiteSpace'}),
+};
+
+const DISPLAY_OPTIONS = {fixed: 'display'};
+
+/**
+ * Adds the styles of every `Container` prop that was passed. `display` is
+ * passed separately so `Flex` and `Grid` can default it without copying props.
  */
 export function addContainerStyles(
   acc: LayoutStyle,
   p: ContainerLayoutProps,
   display: ContainerLayoutProps['display'] = p.display
 ): void {
-  addLayoutProp(acc, 'containerType', p.containerType, {fixed: 'containerType'});
-
-  addLayoutProp(acc, 'display', display, {fixed: 'display'});
-  addLayoutProp(acc, 'position', p.position, {fixed: 'position'});
-
-  addLayoutProp(acc, 'inset', p.inset, {fixed: 'inset'});
-  addLayoutProp(acc, 'top', p.top, {fixed: 'top'});
-  addLayoutProp(acc, 'bottom', p.bottom, {fixed: 'bottom'});
-  addLayoutProp(acc, 'left', p.left, {fixed: 'left'});
-  addLayoutProp(acc, 'right', p.right, {fixed: 'right'});
-
-  addLayoutProp(acc, 'overflow', p.overflow, {fixed: 'overflow'});
-  addLayoutProp(acc, 'overflowX', p.overflowX, {fixed: 'overflowX'});
-  addLayoutProp(acc, 'overflowY', p.overflowY, {fixed: 'overflowY'});
-
-  addLayoutProp(acc, 'overscrollBehavior', p.overscrollBehavior);
-
-  addLayoutProp(acc, 'pointerEvents', p.pointerEvents, {fixed: 'pointerEvents'});
-
-  addLayoutProp(acc, 'cursor', p.cursor, {fixed: 'cursor'});
-  addLayoutProp(acc, 'contain', p.contain);
-
-  addLayoutProp(acc, 'padding', p.padding, {fixed: 'padding', resolve: resolveSpacing});
-  addLayoutProp(acc, 'paddingTop', p.paddingTop, {
-    fixed: 'paddingTop',
-    resolve: resolveSpace,
-  });
-  addLayoutProp(acc, 'paddingBottom', p.paddingBottom, {
-    fixed: 'paddingBottom',
-    resolve: resolveSpace,
-  });
-  addLayoutProp(acc, 'paddingLeft', p.paddingLeft, {
-    fixed: 'paddingLeft',
-    resolve: resolveSpace,
-  });
-  addLayoutProp(acc, 'paddingRight', p.paddingRight, {
-    fixed: 'paddingRight',
-    resolve: resolveSpace,
-  });
-
-  addLayoutProp(acc, 'margin', p.margin, {fixed: 'margin', resolve: resolveMargin});
-  addLayoutProp(acc, 'marginTop', p.marginTop, {
-    fixed: 'marginTop',
-    resolve: resolveMarginSize,
-  });
-  addLayoutProp(acc, 'marginBottom', p.marginBottom, {
-    fixed: 'marginBottom',
-    resolve: resolveMarginSize,
-  });
-  addLayoutProp(acc, 'marginLeft', p.marginLeft, {
-    fixed: 'marginLeft',
-    resolve: resolveMarginSize,
-  });
-  addLayoutProp(acc, 'marginRight', p.marginRight, {
-    fixed: 'marginRight',
-    resolve: resolveMarginSize,
-  });
-
-  addLayoutProp(acc, 'backgroundColor', p.background, {
-    fixed: 'background',
-    resolve: resolveBackground,
-  });
-
-  addLayoutProp(acc, 'borderRadius', p.radius, {fixed: 'radius', resolve: resolveRadius});
-
-  addLayoutProp(acc, 'width', p.width, {fixed: 'width'});
-  addLayoutProp(acc, 'minWidth', p.minWidth, {fixed: 'minWidth'});
-  addLayoutProp(acc, 'maxWidth', p.maxWidth, {fixed: 'maxWidth'});
-
-  addLayoutProp(acc, 'height', p.height, {fixed: 'height'});
-  addLayoutProp(acc, 'minHeight', p.minHeight, {fixed: 'minHeight'});
-  addLayoutProp(acc, 'maxHeight', p.maxHeight, {fixed: 'maxHeight'});
-
-  addLayoutProp(acc, 'gridArea', p.area);
-  addLayoutProp(acc, 'gridRow', p.row);
-  addLayoutProp(acc, 'gridColumn', p.column);
-
-  addLayoutProp(acc, 'order', p.order);
-  addLayoutProp(acc, 'flex', p.flex, {fixed: 'flex'});
-  addLayoutProp(acc, 'flexGrow', p.flexGrow, {fixed: 'flexGrow'});
-  addLayoutProp(acc, 'flexShrink', p.flexShrink, {fixed: 'flexShrink'});
-  addLayoutProp(acc, 'flexBasis', p.flexBasis);
-
-  addLayoutProp(acc, 'alignSelf', p.alignSelf, {fixed: 'alignSelf'});
-  addLayoutProp(acc, 'justifySelf', p.justifySelf, {fixed: 'justifySelf'});
-
-  addBorder(acc, 'border', p.border);
-  addBorder(acc, 'borderTop', p.borderTop);
-  addBorder(acc, 'borderBottom', p.borderBottom);
-  addBorder(acc, 'borderLeft', p.borderLeft);
-  addBorder(acc, 'borderRight', p.borderRight);
-
-  addLayoutProp(acc, 'visibility', p.visibility, {fixed: 'visibility'});
-  addLayoutProp(acc, 'whiteSpace', p.whiteSpace, {fixed: 'whiteSpace'});
+  addLayoutProp(acc, 'display', display, DISPLAY_OPTIONS);
+  for (const key in p) {
+    const handler = CONTAINER_PROP_HANDLERS[key];
+    if (handler !== undefined) {
+      handler(acc, (p as Record<string, unknown>)[key]);
+    }
+  }
 }
 
 /**

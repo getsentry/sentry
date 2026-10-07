@@ -116,12 +116,18 @@ function resolveDistribution(value: keyof typeof GRID_DISTRIBUTION) {
   return GRID_DISTRIBUTION[value] ?? value;
 }
 
+const GAP_OPTIONS = {fixed: 'gap', resolve: resolveSpacing};
+const JUSTIFY_OPTIONS = {fixed: 'gridJustify', resolve: resolveDistribution};
+const ALIGN_CONTENT_OPTIONS = {fixed: 'gridAlignContent', resolve: resolveDistribution};
+const ALIGN_OPTIONS = {fixed: 'gridAlign'};
+const JUSTIFY_ITEMS_OPTIONS = {fixed: 'justifyItems'};
+
 function GridComponent<T extends ContainerElement = 'div'>(
   props: GridProps<T> | GridPropsWithRenderFunction<T>
 ) {
   const acc = createLayoutStyle(typeof props.children === 'function');
   addContainerStyles(acc, props, props.display ?? 'grid');
-  addLayoutProp(acc, 'gap', props.gap, {fixed: 'gap', resolve: resolveSpacing});
+  addLayoutProp(acc, 'gap', props.gap, GAP_OPTIONS);
 
   addLayoutProp(acc, 'gridTemplateColumns', props.columns);
   addLayoutProp(acc, 'gridTemplateRows', props.rows);
@@ -130,16 +136,10 @@ function GridComponent<T extends ContainerElement = 'div'>(
   addLayoutProp(acc, 'gridAutoRows', props.autoRows);
   addLayoutProp(acc, 'gridAutoFlow', props.flow);
 
-  addLayoutProp(acc, 'justifyContent', props.justify, {
-    fixed: 'gridJustify',
-    resolve: resolveDistribution,
-  });
-  addLayoutProp(acc, 'alignContent', props.alignContent, {
-    fixed: 'gridAlignContent',
-    resolve: resolveDistribution,
-  });
-  addLayoutProp(acc, 'alignItems', props.align, {fixed: 'gridAlign'});
-  addLayoutProp(acc, 'justifyItems', props.justifyItems, {fixed: 'justifyItems'});
+  addLayoutProp(acc, 'justifyContent', props.justify, JUSTIFY_OPTIONS);
+  addLayoutProp(acc, 'alignContent', props.alignContent, ALIGN_CONTENT_OPTIONS);
+  addLayoutProp(acc, 'alignItems', props.align, ALIGN_OPTIONS);
+  addLayoutProp(acc, 'justifyItems', props.justifyItems, JUSTIFY_ITEMS_OPTIONS);
   return useLayoutElement(props, acc, OMIT_GRID_PROPS);
 }
 

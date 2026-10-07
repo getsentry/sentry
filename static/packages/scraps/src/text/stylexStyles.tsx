@@ -128,21 +128,27 @@ export function getColorStyle(variant: ContentVariant | 'muted' | 'inherit' | un
   return colors[variant === 'muted' ? 'secondary' : (variant ?? 'primary')];
 }
 
+const FONT_SIZE_OPTIONS = {
+  fixed: 'fontSize',
+  resolve: (value: TextSize | HeadingSize) => fontSize[value],
+};
+const DENSITY_OPTIONS = {
+  fixed: 'density',
+  resolve: (value: Density) => lineHeight[value],
+};
+const TEXT_ALIGN_OPTIONS = {fixed: 'textAlign'};
+const CURSOR_OPTIONS = {fixed: 'cursor'};
+const WHITE_SPACE_OPTIONS = {fixed: 'whiteSpace'};
+
 export function addFontSize(
   acc: LayoutStyle,
   size: Responsive<TextSize | HeadingSize> | undefined
 ) {
-  addLayoutProp(acc, 'fontSize', size, {
-    fixed: 'fontSize',
-    resolve: value => fontSize[value],
-  });
+  addLayoutProp(acc, 'fontSize', size, FONT_SIZE_OPTIONS);
 }
 
 export function addDensity(acc: LayoutStyle, density: Responsive<Density> | undefined) {
-  addLayoutProp(acc, 'lineHeight', density, {
-    fixed: 'density',
-    resolve: value => lineHeight[value],
-  });
+  addLayoutProp(acc, 'lineHeight', density, DENSITY_OPTIONS);
 }
 
 /**
@@ -154,11 +160,14 @@ export function addCommonTextStyles(
   p: BaseTextProps,
   {fullWidthEllipsis}: {fullWidthEllipsis: boolean}
 ) {
-  addLayoutProp(acc, 'textAlign', p.align, {fixed: 'textAlign'});
-  addLayoutProp(acc, 'cursor', p.cursor, {fixed: 'cursor'});
-  addLayoutProp(acc, 'whiteSpace', p.wrap ?? (p.ellipsis ? 'nowrap' : undefined), {
-    fixed: 'whiteSpace',
-  });
+  addLayoutProp(acc, 'textAlign', p.align, TEXT_ALIGN_OPTIONS);
+  addLayoutProp(acc, 'cursor', p.cursor, CURSOR_OPTIONS);
+  addLayoutProp(
+    acc,
+    'whiteSpace',
+    p.wrap ?? (p.ellipsis ? 'nowrap' : undefined),
+    WHITE_SPACE_OPTIONS
+  );
 
   const decoration = getDecorationKey(p);
   addStyles(
