@@ -422,7 +422,7 @@ describe('IssueList', () => {
 
     expect(screen.queryByRole('menu', {name: 'Filter'})).not.toBeInTheDocument();
     await waitFor(() => expect(filterButton).toHaveFocus());
-    expect(screen.getByText('Ordered by Last Seen')).toBeInTheDocument();
+    expect(screen.queryByText('Ordered by Last Seen')).not.toBeInTheDocument();
     expect(getSearchInput()).toBeInTheDocument();
   });
 
@@ -685,7 +685,7 @@ describe('IssueList', () => {
 
   describe('sort persistence', () => {
     it('does not persist sort to localStorage without the recommended-sort feature', async () => {
-      render(<IssueListOverview />, {organization, initialRouterConfig});
+      const {router} = render(<IssueListOverview />, {organization, initialRouterConfig});
 
       await userEvent.click(screen.getByRole('button', {name: 'Display Options'}));
       await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
@@ -695,7 +695,7 @@ describe('IssueList', () => {
         })
       );
 
-      expect(screen.getByText('Ordered by Events')).toBeInTheDocument();
+      expect(router.location.query.sort).toBe(IssueSortOptions.FREQ);
 
       // Writing while the feature is off would leave a stale value that overrides
       // the Recommended default once the flag is enabled.

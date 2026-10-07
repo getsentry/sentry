@@ -14,7 +14,7 @@ import {
 import {IssueFilterMenu} from 'sentry/views/issueList/filterMenu';
 import {IssueSearch} from 'sentry/views/issueList/issueSearch';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
-import {getSortLabel, type IssueSortOptions} from 'sentry/views/issueList/utils';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 interface Props {
   onSearch: (query: string) => void;
@@ -32,9 +32,6 @@ export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
         <IssueSearch query={query} onSearch={onSearch} />
       </Container>
       <Flex gap="sm" align="center">
-        <Text size="xs" variant="muted">
-          {t('Ordered by %s', getSortLabel(sort))}
-        </Text>
         <IssueFilterMenu query={query} onSearch={onSearch} />
         <CompactSelectControl
           menuTitle={t('Display Options')}
