@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import omit from 'lodash/omit';
@@ -180,23 +180,27 @@ function WidgetCard(props: Props) {
     organization.features.includes('seer-explorer-chat-prompts') &&
     isSeerExplorerEnabled(organization);
 
-  const onDataFetched = (newData: Data) => {
-    if (props.onDataFetched) {
-      props.onDataFetched({
-        tableResults: newData.tableResults,
-        timeseriesResultsTypes: newData.timeseriesResultsTypes,
-        timeseriesResultsUnits: newData.timeseriesResultsUnits,
-      });
-    }
+  const propsOnDataFetched = props.onDataFetched;
+  const onDataFetched = useCallback(
+    (newData: Data) => {
+      if (propsOnDataFetched) {
+        propsOnDataFetched({
+          tableResults: newData.tableResults,
+          timeseriesResultsTypes: newData.timeseriesResultsTypes,
+          timeseriesResultsUnits: newData.timeseriesResultsUnits,
+        });
+      }
 
-    setData(prevData => ({...prevData, ...newData}));
+      setData(prevData => ({...prevData, ...newData}));
 
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setIsLoadingTextVisible(false);
-  };
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setIsLoadingTextVisible(false);
+    },
+    [propsOnDataFetched]
+  );
 
   const {
     api,
@@ -242,7 +246,7 @@ function WidgetCard(props: Props) {
     dashboardFilters,
   });
 
-  const onDataFetchStart = () => {
+  const onDataFetchStart = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -252,7 +256,7 @@ function WidgetCard(props: Props) {
     timeoutRef.current = setTimeout(() => {
       setIsLoadingTextVisible(true);
     }, 3000);
-  };
+  }, []);
 
   useEffect(() => {
     return () => {
