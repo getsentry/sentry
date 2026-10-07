@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -25,12 +25,8 @@ import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  buildDetectorZoomQuery,
-  computeZoomRangeMs,
-} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
+import {useZoomToOpenPeriodRange} from 'sentry/views/detectors/components/details/common/useZoomToOpenPeriodRange';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
@@ -159,25 +155,7 @@ function LatestGroupWithOpenPeriods({
   intervalSeconds?: number;
 }) {
   const {data: group, isPending, isError} = useGroup({groupId});
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const zoomToRange = useCallback(
-    (start: Date, end?: Date) => {
-      const startMs = start.getTime();
-      const endMs = (end ?? new Date()).getTime();
-      const zoomRange = computeZoomRangeMs({
-        startMs,
-        endMs,
-        intervalSeconds,
-      });
-      navigate({
-        pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomRange),
-      });
-    },
-    [location.pathname, location.query, navigate, intervalSeconds]
-  );
+  const zoomToOpenPeriodRange = useZoomToOpenPeriodRange(intervalSeconds);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -229,7 +207,7 @@ function LatestGroupWithOpenPeriods({
           direction="column"
           padding="0"
         >
-          <OpenPeriodsSubTable groupId={group.id} onZoom={zoomToRange} />
+          <OpenPeriodsSubTable groupId={group.id} onZoom={zoomToOpenPeriodRange} />
         </SimpleTable.RowCell>
       </SimpleTable.Row>
     </SimpleTable>
