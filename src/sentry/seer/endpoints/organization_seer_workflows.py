@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Sequence
 from functools import partial
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.db.models import Exists, OuterRef, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
@@ -165,7 +165,10 @@ def _triage_runs_visible_for_projects(accessible_project_ids: Sequence[int]) -> 
     # non-empty list before treating containment as access.
     targets_declared = Q(extras__has_key="target_project_ids") & ~Q(extras__target_project_ids=[])
     targets_visible = Q(extras__target_project_ids__contained_by=list(accessible_project_ids))
-    return ((targets_declared & targets_visible) | ~targets_declared) & ~Exists(outside_projects)
+    return cast(
+        Q,
+        ((targets_declared & targets_visible) | ~targets_declared) & ~Exists(outside_projects),
+    )
 
 
 def serialize_workflow_page(
