@@ -22,6 +22,10 @@ interface KeyValueColumnsProps {
   columnCount?: number;
   columnTestId?: string;
   'data-test-id'?: string;
+  /**
+   * Widest the key column can grow, as a share of each column. Defaults to 50%.
+   */
+  maxKeyWidth?: string;
 }
 
 export function KeyValueColumns({
@@ -29,6 +33,7 @@ export function KeyValueColumns({
   columnCount,
   columnTestId = 'key-value-column',
   'data-test-id': dataTestId,
+  maxKeyWidth,
 }: KeyValueColumnsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const measuredColumnCount = useContainerColumnCount(containerRef);
@@ -43,7 +48,7 @@ export function KeyValueColumns({
       data-test-id={dataTestId}
     >
       {children(resolvedColumnCount).map((rows, index) => (
-        <Column key={index} data-test-id={columnTestId}>
+        <Column key={index} data-test-id={columnTestId} maxKeyWidth={maxKeyWidth}>
           {rows}
         </Column>
       ))}
@@ -51,8 +56,13 @@ export function KeyValueColumns({
   );
 }
 
-const Column = styled('div')`
+const Column = styled('div')<{maxKeyWidth?: string}>`
   ${keyValueGridStyles};
+  ${p =>
+    p.maxKeyWidth &&
+    css`
+      grid-template-columns: fit-content(${p.maxKeyWidth}) 1fr;
+    `}
 
   &:first-child {
     margin-left: -${p => p.theme.space.sm};

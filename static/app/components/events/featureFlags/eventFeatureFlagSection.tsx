@@ -274,7 +274,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     >
       {hasFlags ? (
         <Container marginBottom="xl">
-          <KeyValueColumns>
+          <KeyValueColumns maxKeyWidth="70%">
             {columnCount =>
               splitIntoColumns(
                 truncatedItems.map((rowProps, index) => (

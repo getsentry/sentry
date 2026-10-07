@@ -116,7 +116,7 @@ export function EventFeatureFlagDrawer({
         {actions}
       </EventNavigator>
       <EventDrawerBody>
-        <KeyValueColumns columnCount={1}>
+        <KeyValueColumns columnCount={1} maxKeyWidth="70%">
           {() => [
             searchResults.map((rowProps, index) => (
               <KeyValueTableDataRow key={index} {...rowProps} />
