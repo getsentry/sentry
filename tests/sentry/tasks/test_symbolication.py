@@ -45,7 +45,10 @@ def mock_event_processing_store():
 
 
 @django_db_all
-@pytest.mark.parametrize("inline", (False, True))
+@pytest.mark.parametrize(
+    "inline,disable_store,redis_backups",
+    [(False, False, 1), (True, False, 1), (True, True, 0)],
+)
 def test_move_to_symbolicate_event(
     default_project,
     mock_process_event,
@@ -53,24 +56,27 @@ def test_move_to_symbolicate_event(
     mock_symbolicate_event,
     mock_event_processing_store,
     inline,
+    disable_store,
+    redis_backups,
 ):
     data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
-    cache_key = None if inline else "e:1"
+    cache_key = None if disable_store else "e:1"
     mock_event_processing_store.store.return_value = "e:1"
     with (
         override_options(
             {
                 "store.enable-inline-payloads": float(inline),
-                "store.disable-processing-store": inline,
+                "store.disable-processing-store": disable_store,
             }
         ),
         mock.patch("sentry.tasks.store.reprocessing2.backup_unprocessed_event") as backup,
     ):
         preprocess_event(cache_key=cache_key, data=data)
 
-    backup.assert_called_once_with(data=data)
+    assert backup.call_args_list == [mock.call(data=data)] * redis_backups
     assert mock_symbolicate_event.delay.call_count == 1
     kwargs = mock_symbolicate_event.delay.call_args.kwargs
+    assert (kwargs["unprocessed"] == data) is inline
     assert kwargs["data"] == (data if inline else None)
     assert kwargs["cache_key"] == cache_key
     assert mock_process_event.delay.call_count == 0
