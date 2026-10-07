@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -31,6 +32,18 @@ type BannerWrapperProps = {
   backgroundImg?: string;
 };
 
+const BannerFlex = styled(Flex, {
+  shouldForwardProp: prop => prop !== 'backgroundImg',
+})<{backgroundImg?: string}>`
+  background-color: ${p => (p.backgroundImg ? 'transparent' : p.theme.colors.gray800)};
+  background-image: ${p => (p.backgroundImg ? `url(${p.backgroundImg})` : 'none')};
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow: ${p => p.theme.shadow.medium};
+  color: ${p => p.theme.tokens.content.onVibrant.light};
+`;
+
 type Props = BannerWrapperProps & {
   children?: React.ReactNode;
   className?: string;
@@ -57,23 +70,15 @@ export function Banner({
 
   return (
     <Container position="relative" marginBottom="xl">
-      <Flex
+      <BannerFlex
         className={className}
+        backgroundImg={backgroundImg}
         align="center"
         justify="center"
         position="relative"
         overflow="hidden"
         radius="md"
         height={{zero: '180px', xl: '220px'}}
-        css={css`
-          background-color: ${backgroundImg ? 'transparent' : theme.colors.gray800};
-          background-image: ${backgroundImg ? `url(${backgroundImg})` : 'none'};
-          background-position: center;
-          background-repeat: no-repeat;
-          background-size: cover;
-          box-shadow: ${theme.shadow.medium};
-          color: ${theme.tokens.content.onVibrant.light};
-        `}
       >
         {backgroundComponent}
         <Grid
@@ -102,7 +107,7 @@ export function Banner({
             {children}
           </Grid>
         </Grid>
-      </Flex>
+      </BannerFlex>
       <Button
         size="zero"
         icon={<IconClose />}
