@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
@@ -24,7 +25,9 @@ export function EventMessage({
 }: Props) {
   const showEventLevel = level && eventTypeHasLogLevel(type);
   const renderedMessage = message ? (
-    <Message>{message}</Message>
+    <Message>
+      {typeof message === 'string' ? <AnsiText>{message}</AnsiText> : message}
+    </Message>
   ) : (
     <NoMessage>({t('No error message')})</NoMessage>
   );

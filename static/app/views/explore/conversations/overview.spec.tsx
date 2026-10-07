@@ -138,6 +138,44 @@ describe('ConversationsOverviewPage', () => {
     ).toBeTruthy();
   });
 
+  it('only fetches conversations on the Conversations tab', async () => {
+    const conversationsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+    });
+    render(<ConversationsOverviewPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/agents/`,
+          query: {table: 'traces'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by trace ID, operation, service, or user'
+      )
+    ).toBeInTheDocument();
+    expect(conversationsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by model, provider, tokens, or operation'
+      )
+    ).toBeInTheDocument();
+    expect(conversationsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
+    await waitFor(() => expect(conversationsRequest).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(conversationsRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('tailors the search placeholder to the selected table', async () => {
     render(<ConversationsOverviewPage />, {organization});
 
@@ -276,10 +314,9 @@ describe('ConversationsOverviewPage', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
 
-    expect(screen.getByRole('tab', {name: 'Conversations'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(
+      await screen.findByRole('tab', {name: 'Conversations', selected: true})
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('combobox', {name: 'Add a search term'})
     ).not.toBeInTheDocument();
@@ -287,12 +324,12 @@ describe('ConversationsOverviewPage', () => {
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
   });
 
-  it('opens a pasted conversation ID from the traces tab', async () => {
+  it('only opens a pasted conversation ID after selecting the Conversations tab', async () => {
     const {router} = render(<ConversationsOverviewPage />, {organization});
 
     await userEvent.click(await screen.findByRole('tab', {name: 'Traces'}));
 
-    MockApiClient.addMockResponse({
+    const conversationsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
         {
@@ -324,6 +361,11 @@ describe('ConversationsOverviewPage', () => {
     await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
     await userEvent.keyboard('abcdef12{Enter}');
 
+    await waitFor(() => expect(router.location.query.query).toBe('abcdef12'));
+    expect(router.location.pathname).not.toContain('/conversations/abcdef12/');
+    expect(conversationsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
     await waitFor(() => {
       expect(router.location.pathname).toBe(
         `/organizations/${organization.slug}/explore/agents/conversations/abcdef12/`
@@ -358,7 +400,7 @@ describe('ConversationsOverviewPage', () => {
     expect(await screen.findByTestId('spans-table')).toBeInTheDocument();
   });
 
-  it('keeps the missing messages alert visible across tabs', async () => {
+  it('only shows the missing messages alert on the Conversations tab', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
@@ -390,12 +432,17 @@ describe('ConversationsOverviewPage', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
     expect(
-      screen.getByText(/These conversations' inputs and outputs weren't captured/)
-    ).toBeInTheDocument();
+      screen.queryByText(/These conversations' inputs and outputs weren't captured/)
+    ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
     expect(
-      screen.getByText(/These conversations' inputs and outputs weren't captured/)
+      screen.queryByText(/These conversations' inputs and outputs weren't captured/)
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
+    expect(
+      await screen.findByText(/These conversations' inputs and outputs weren't captured/)
     ).toBeInTheDocument();
   });
 

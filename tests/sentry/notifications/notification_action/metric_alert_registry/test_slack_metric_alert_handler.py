@@ -25,7 +25,6 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
     get_detector_serializer,
 )
 from sentry.notifications.notification_action.utils import metric_alert_notification_data_factory
-from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -107,6 +106,7 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         mock_client_instance.chat_postMessage.assert_called_once()
         call_kwargs = mock_client_instance.chat_postMessage.call_args.kwargs
         assert call_kwargs["channel"] == "channel123"
+        assert "referrer=metric_alert_slack&" in call_kwargs["text"]
         assert call_kwargs["attachments"] is not None
         attachments: list[Any] = call_kwargs["attachments"]
         assert len(attachments) == 1
@@ -343,7 +343,14 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
         )
 
         notification_data = metric_alert_notification_data_factory(
-            IssueNotificationContext(invocation)
+            action_type=self.action.type,
+            notification_context=notification_context,
+            alert_context=alert_context,
+            metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
+            organization=organization,
+            notification_uuid=notification_uuid,
+            chart_url=None,
         )
         assert notification_data.notes == "Check the runbook"
         assert notification_data.new_status == IncidentStatus.CLOSED.value

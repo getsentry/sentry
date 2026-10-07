@@ -21,6 +21,7 @@ export default function SentryConfigurationPage() {
               initialQuery={QUERY}
               title={CONFIG.label}
               titleDescription={CONFIG.description}
+              titleBadge={CONFIG.badge}
             />
           </NoProjectMessage>
         </PageFiltersContainer>

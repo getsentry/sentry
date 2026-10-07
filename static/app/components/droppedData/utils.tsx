@@ -1,11 +1,12 @@
 import type {Theme} from '@emotion/react';
 
+import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+
 const CONFIGURED_CLIENT_DISCARD_REASONS = new Set(['before_send', 'sample_rate']);
 
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
@@ -121,12 +122,11 @@ export function reasonDescription(reason: string, category: string): string | un
 }
 
 export function hasDroppedData(
-  droppedAnnotations: Annotation[] | undefined,
-  acceptedAnnotations?: Annotation[]
-): droppedAnnotations is Annotation[] {
+  droppedEvents: DroppedEventsBucket[] | undefined,
+  acceptedEvents?: DroppedEventsBucket[]
+): droppedEvents is DroppedEventsBucket[] {
   return (
-    defined(droppedAnnotations) &&
-    highlightedBuckets(droppedAnnotations, acceptedAnnotations).length > 0
+    defined(droppedEvents) && highlightedBuckets(droppedEvents, acceptedEvents).length > 0
   );
 }
 
@@ -150,7 +150,7 @@ export function formatDroppedShare(ratio: number): string {
   return formatPercentage(ratio, 2, {minimumValue: SHARE_MIN_VALUE});
 }
 
-function isConfiguredDrop({outcome, reason}: Annotation): boolean {
+function isConfiguredDrop({outcome, reason}: DroppedEventsBucket): boolean {
   if (outcome === 'filtered') {
     return true;
   }
@@ -195,98 +195,86 @@ export function severityColor(ratio: number, theme: Theme): string {
   return withAlpha(theme.tokens.background.secondary, 1);
 }
 
-interface AnnotationVolume {
-  eventCount: number;
-  byteSize?: number;
+interface EventVolume {
+  count: number;
 }
 
-export interface OutcomeVolume extends AnnotationVolume {
+export interface OutcomeVolume extends EventVolume {
   outcome: string;
 }
 
 /**
- * A group of annotations that share the same time bucket.
+ * Dropped and accepted volume for one chart time bucket.
  */
-export interface AnnotationBucket {
-  accepted: AnnotationVolume;
-  annotations: Annotation[];
+export interface DroppedDataBucket {
+  accepted: EventVolume;
   byOutcome: OutcomeVolume[];
-  dropped: AnnotationVolume;
+  dropped: EventVolume;
   end: number;
+  events: DroppedEventsBucket[];
   ratio: number;
   start: number;
 }
 
-interface VolumeDraft {
-  byteSize: number | undefined;
-  eventCount: number;
-}
-
 interface BucketDraft {
-  accepted: VolumeDraft;
-  annotations: Annotation[];
-  byOutcome: Map<string, OutcomeVolume & VolumeDraft>;
-  dropped: VolumeDraft;
+  byOutcome: Map<string, OutcomeVolume>;
+  dropped: EventVolume;
   end: number;
+  events: DroppedEventsBucket[];
   start: number;
 }
 
-function emptyVolume(): VolumeDraft {
-  return {eventCount: 0, byteSize: undefined};
+function emptyVolume(): EventVolume {
+  return {count: 0};
 }
 
-function addAnnotation(volume: VolumeDraft, annotation: Annotation): void {
-  volume.eventCount += annotation.eventCount;
-
-  if (defined(annotation.byteSize)) {
-    volume.byteSize = (volume.byteSize ?? 0) + annotation.byteSize;
-  }
+function addCount(volume: EventVolume, event: DroppedEventsBucket): void {
+  volume.count += event.count;
 }
 
-function addDroppedAnnotation(
+function addDroppedEvent(
   drafts: Map<string, BucketDraft>,
-  annotation: Annotation
+  event: DroppedEventsBucket
 ): void {
-  if (isConfiguredDrop(annotation)) {
+  if (isConfiguredDrop(event)) {
     return;
   }
 
-  const key = `${annotation.start}-${annotation.end}`;
+  const key = `${event.start}-${event.end}`;
   let draft = drafts.get(key);
 
   if (!draft) {
     draft = {
-      start: annotation.start,
-      end: annotation.end,
-      annotations: [],
+      start: event.start,
+      end: event.end,
+      events: [],
       byOutcome: new Map(),
       dropped: emptyVolume(),
-      accepted: emptyVolume(),
     };
     drafts.set(key, draft);
   }
 
-  draft.annotations.push(annotation);
-  addAnnotation(draft.dropped, annotation);
+  draft.events.push(event);
+  addCount(draft.dropped, event);
 
-  let outcomeVolume = draft.byOutcome.get(annotation.outcome);
+  let outcomeVolume = draft.byOutcome.get(event.outcome);
   if (!outcomeVolume) {
     outcomeVolume = {
-      outcome: annotation.outcome,
+      outcome: event.outcome,
       ...emptyVolume(),
     };
-    draft.byOutcome.set(annotation.outcome, outcomeVolume);
+    draft.byOutcome.set(event.outcome, outcomeVolume);
   }
-  addAnnotation(outcomeVolume, annotation);
+  addCount(outcomeVolume, event);
 }
 
-function acceptedVolumeByStart(annotations: Annotation[]): Map<number, VolumeDraft> {
-  const volumes = new Map<number, VolumeDraft>();
+function acceptedVolumeByStart(events: DroppedEventsBucket[]): Map<number, EventVolume> {
+  const volumes = new Map<number, EventVolume>();
 
-  for (const annotation of annotations) {
-    const accepted = volumes.get(annotation.start) ?? emptyVolume();
-    addAnnotation(accepted, annotation);
-    volumes.set(annotation.start, accepted);
+  for (const event of events) {
+    const accepted = volumes.get(event.start) ?? emptyVolume();
+    addCount(accepted, event);
+    volumes.set(event.start, accepted);
   }
 
   return volumes;
@@ -294,19 +282,17 @@ function acceptedVolumeByStart(annotations: Annotation[]): Map<number, VolumeDra
 
 function toBucket(
   draft: BucketDraft,
-  acceptedByStart: Map<number, VolumeDraft>
-): AnnotationBucket {
+  acceptedByStart: Map<number, EventVolume>
+): DroppedDataBucket {
   const accepted = acceptedByStart.get(draft.start) ?? emptyVolume();
-  const total = draft.dropped.eventCount + accepted.eventCount;
-  const ratio = total > 0 ? draft.dropped.eventCount / total : 0;
+  const total = draft.dropped.count + accepted.count;
+  const ratio = total > 0 ? draft.dropped.count / total : 0;
 
   return {
     start: draft.start,
     end: draft.end,
-    annotations: draft.annotations,
-    byOutcome: Array.from(draft.byOutcome.values()).sort(
-      (a, b) => b.eventCount - a.eventCount
-    ),
+    events: draft.events,
+    byOutcome: Array.from(draft.byOutcome.values()).sort((a, b) => b.count - a.count),
     dropped: draft.dropped,
     accepted,
     ratio,
@@ -314,29 +300,29 @@ function toBucket(
 }
 
 /**
- * Group dropped annotations by their `(start, end)` time bucket, joining the
+ * Group dropped events by their `(start, end)` time bucket, joining the
  * accepted volume for the same bucket so every total has a denominator.
  */
 export function groupIntoBuckets(
-  droppedAnnotations: Annotation[],
-  acceptedAnnotations: Annotation[] = []
-): AnnotationBucket[] {
+  droppedEvents: DroppedEventsBucket[],
+  acceptedEvents: DroppedEventsBucket[] = []
+): DroppedDataBucket[] {
   const drafts = new Map<string, BucketDraft>();
 
-  for (const annotation of droppedAnnotations) {
-    addDroppedAnnotation(drafts, annotation);
+  for (const event of droppedEvents) {
+    addDroppedEvent(drafts, event);
   }
 
-  const acceptedByStart = acceptedVolumeByStart(acceptedAnnotations);
+  const acceptedByStart = acceptedVolumeByStart(acceptedEvents);
 
   return Array.from(drafts.values()).map(draft => toBucket(draft, acceptedByStart));
 }
 
 export function highlightedBuckets(
-  droppedAnnotations: Annotation[],
-  acceptedAnnotations?: Annotation[]
-): AnnotationBucket[] {
-  return groupIntoBuckets(droppedAnnotations, acceptedAnnotations).filter(
+  droppedEvents: DroppedEventsBucket[],
+  acceptedEvents?: DroppedEventsBucket[]
+): DroppedDataBucket[] {
+  return groupIntoBuckets(droppedEvents, acceptedEvents).filter(
     bucket => bucket.ratio > 0
   );
 }

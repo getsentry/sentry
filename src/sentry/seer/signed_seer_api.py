@@ -149,7 +149,12 @@ def make_signed_seer_api_request(
     viewer_context: SeerViewerContext | None = None,
     metrics_endpoint: str | None = None,
 ) -> BaseHTTPResponse:
-    """Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies."""
+    """Send a signed request to Seer.
+
+    All outbound Sentry-to-Seer HTTP requests must go through this function so
+    ViewerContext propagation, signing, tracing, and metrics remain consistent.
+    Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies.
+    """
     host = connection_pool.host
     if connection_pool.port:
         host += ":" + str(connection_pool.port)

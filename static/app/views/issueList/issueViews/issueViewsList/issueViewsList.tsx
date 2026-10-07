@@ -381,7 +381,10 @@ export default function IssueViewsList() {
   return (
     <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Title>{t('All Views')}</Layout.Title>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: t('All Views')}}
+        />
         <TopBar.Slot name="feedback">
           <FeedbackButton
             size="sm"

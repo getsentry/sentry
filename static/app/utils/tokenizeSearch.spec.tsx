@@ -309,9 +309,9 @@ describe('utils/tokenizeSearch', () => {
       },
       {
         name: 'should keep an array membership typed key whole when it contains a space',
-        string: 'tags[foo, array][*]:x',
+        string: 'tags[foo[*], array]:x',
         object: {
-          tokens: [{type: TokenType.FILTER, key: 'tags[foo, array][*]', value: 'x'}],
+          tokens: [{type: TokenType.FILTER, key: 'tags[foo[*], array]', value: 'x'}],
         },
       },
       {
