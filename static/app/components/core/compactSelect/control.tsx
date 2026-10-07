@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import * as React from 'react';
+import {createPortal} from 'react-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -204,6 +205,8 @@ export interface ControlProps
    */
   trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
   triggerId?: string;
+  /** Render the floating menu in a portal to avoid clipping by its container. */
+  usePortal?: boolean;
 }
 
 /**
@@ -232,6 +235,7 @@ export function Control<Value extends SelectKey>({
   menuWidth,
   menuMinWidth,
   menuPresentation = 'floating',
+  usePortal = false,
   menuHeight,
   menuHeaderTrailingItems,
   menuBody,
@@ -677,6 +681,16 @@ export function Control<Value extends SelectKey>({
     );
   }
 
+  const floatingMenu = (
+    <StyledPositionWrapper
+      visible={overlayIsOpen}
+      zIndex={theme.zIndex?.dropdown}
+      {...overlayProps}
+    >
+      {menuContent}
+    </StyledPositionWrapper>
+  );
+
   return (
     <ControlContext value={contextValue}>
       <Container width="max-content" position="relative" {...wrapperProps}>
@@ -686,13 +700,7 @@ export function Control<Value extends SelectKey>({
         ) : (
           <OverlayTrigger.Button {...mergedTriggerProps} />
         )}
-        <StyledPositionWrapper
-          visible={overlayIsOpen}
-          zIndex={theme.zIndex?.dropdown}
-          {...overlayProps}
-        >
-          {menuContent}
-        </StyledPositionWrapper>
+        {usePortal ? createPortal(floatingMenu, document.body) : floatingMenu}
       </Container>
     </ControlContext>
   );

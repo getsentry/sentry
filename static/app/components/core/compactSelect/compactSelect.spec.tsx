@@ -5,7 +5,7 @@ import {expectTypeOf} from 'expect-type';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
-import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {CompactSelectControl, MenuComponents} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconEllipsis} from 'sentry/icons';
@@ -21,6 +21,52 @@ describe('getEscapedKey', () => {
 });
 
 describe('CompactSelect', () => {
+  it.each([false, true])('supports nested menus with usePortal=%s', async usePortal => {
+    const onChange = jest.fn();
+    const {container} = render(
+      <CompactSelectControl
+        menuTitle="Display Options"
+        trigger={props => (
+          <OverlayTrigger.Button {...props}>Display Options</OverlayTrigger.Button>
+        )}
+        menuBody={
+          <CompactSelect
+            usePortal={usePortal}
+            value="date"
+            onChange={onChange}
+            options={[
+              {value: 'date', label: 'Last seen'},
+              {value: 'new', label: 'First seen'},
+            ]}
+          />
+        }
+      />
+    );
+
+    const displayTrigger = screen.getByRole('button', {name: 'Display Options'});
+    await userEvent.click(displayTrigger);
+    const sortTrigger = screen.getByRole('button', {name: 'Last seen'});
+    await userEvent.click(sortTrigger);
+    const menu = screen.getByRole('listbox');
+    if (usePortal) {
+      expect(container).not.toContainElement(menu);
+    } else {
+      expect(container).toContainElement(menu);
+    }
+    await userEvent.click(screen.getByRole('option', {name: 'First seen'}));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({value: 'new'}));
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(displayTrigger).toHaveAttribute('aria-expanded', 'true');
+
+    await userEvent.click(sortTrigger);
+    await waitFor(() =>
+      expect(screen.getByRole('option', {name: 'Last seen'})).toHaveFocus()
+    );
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(displayTrigger).toHaveAttribute('aria-expanded', 'true');
+  });
+
   it('renders a panel without a trigger and focuses search before header actions', async () => {
     const onChange = jest.fn();
     const onClose = jest.fn();

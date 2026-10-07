@@ -79,6 +79,7 @@ export function IssueListSortOptions({
 
   return (
     <CompactSelect
+      usePortal
       className={className}
       onChange={opt => onSelect(opt.value)}
       options={sortKeys.map(key => ({
