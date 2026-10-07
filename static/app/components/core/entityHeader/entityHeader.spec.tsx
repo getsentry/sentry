@@ -201,6 +201,37 @@ describe('EntityHeader', () => {
       expect(screen.queryByRole('link', {name: 'Rage Clicks'})).not.toBeInTheDocument();
     });
 
+    it('signals navigating with colour and explaining with an underline', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          stats={[
+            {type: 'link', label: 'Dead Clicks', value: 4, to: '/replays/1/'},
+            {type: 'text', label: 'Rage Clicks', value: 0},
+          ]}
+        />
+      );
+
+      // Two signals for two meanings. One treatment for both would mean a link
+      // that only navigates looks like one that explains — and a dotted
+      // underline reads as "hover for more" to most people.
+      const link = screen.getByRole('link', {name: '4 Dead Clicks'});
+      const plain = screen.getByText('Rage Clicks');
+
+      const textColour = (element: HTMLElement) =>
+        getEmotionRules(element)
+          .join(' ')
+          .match(/[;{]\s*color:\s*([^;}]+)/)?.[1]
+          ?.trim();
+
+      expect(textColour(link)).toBeDefined();
+      expect(textColour(link)).not.toBe(textColour(plain));
+
+      // Neither is underlined: nothing here explains, so nothing signals that.
+      expect(link).not.toHaveStyle({textDecoration: 'underline'});
+      expect(plain).not.toHaveStyle({textDecoration: 'underline'});
+    });
+
     it('explains a stat label through a tooltip without restyling it', async () => {
       render(
         <EntityHeader

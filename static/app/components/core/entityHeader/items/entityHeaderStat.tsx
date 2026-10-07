@@ -102,10 +102,12 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
       </Text>
     );
 
+  // Colour says it navigates, an underline says it explains. Two signals for
+  // two meanings — a dotted underline for both would have meant a link looked
+  // like a tooltip, which is the more widely read of the two.
   const labelStyles = {
     size: 'sm',
     bold: true,
-    variant: 'muted',
     density: 'comfortable',
     wrap: 'nowrap',
   } as const;
@@ -114,15 +116,14 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
   if (props.type === 'link') {
     const {to, onClick} = props;
     // The label is what navigates, so the link is named by what it leads to
-    // rather than by a number. The dotted underline is the same treatment Issue
-    // Details gives its stat links.
+    // rather than by a number.
     //
     // The anchor carries the label's text styles rather than wrapping an element
     // that has them, the same way `BreadcrumbItemLink` styles its link. `Link`
     // emits `text-box-trim` but no font size, so wrapping would leave the anchor
     // trimmed to the font it inherits from the row rather than the stat's own.
     labelContent = (
-      <Text {...labelStyles} underline="dotted">
+      <Text {...labelStyles} variant="accent">
         {styleProps => {
           const link = (
             <Link
@@ -138,9 +139,11 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
             </Link>
           );
           // The tooltip attaches to the link rather than wrapping it in
-          // InfoText, which would put a second tab stop inside the anchor.
+          // InfoText, which would put a second tab stop inside the anchor — so
+          // it has to carry the underline itself. Without it a link that
+          // explains looks exactly like one that only navigates.
           return labelTooltip ? (
-            <Tooltip title={labelTooltip} skipWrapper>
+            <Tooltip title={labelTooltip} skipWrapper showUnderline>
               {link}
             </Tooltip>
           ) : (
@@ -151,12 +154,16 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
     );
   } else if (labelTooltip) {
     labelContent = (
-      <InfoText title={labelTooltip} {...labelStyles}>
+      <InfoText title={labelTooltip} variant="muted" {...labelStyles}>
         {label}
       </InfoText>
     );
   } else {
-    labelContent = <Text {...labelStyles}>{label}</Text>;
+    labelContent = (
+      <Text {...labelStyles} variant="muted">
+        {label}
+      </Text>
+    );
   }
 
   return (

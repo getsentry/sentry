@@ -278,7 +278,9 @@ stats={[
 ]}
 ```
 
-On a `link` stat it is the **label** that navigates, not the value. A link named by its own digits says nothing in a screen reader's links list. It carries a dotted underline, the same treatment Issue Details gives its stat links, and the value is left to explain itself through `valueTooltip`.
+On a `link` stat it is the **label** that navigates, not the value. A link named by its own digits says nothing in a screen reader's links list.
+
+Colour says it navigates; an underline says it explains. A link label is accent-coloured, a tooltipped label is underlined, and one that does both is both. Using a single treatment for the two would mean a link that only navigates looked like one that explains — and an underline reads as "hover for more" to most people, so that is the meaning it keeps.
 
 The link is named from the value _and_ the label, so a screen reader moving element by element hears "4 Dead Clicks" in one go rather than "4", then "link, Dead Clicks". The value is hidden from assistive technology on a link stat, since it is already spoken as part of that name.
 
