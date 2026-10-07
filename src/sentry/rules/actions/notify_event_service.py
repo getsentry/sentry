@@ -155,6 +155,3 @@ class NotifyEventServiceAction(EventAction):
 
     def get_services(self) -> Sequence[Any]:
         return list(self.get_sentry_app_services())
-
-    def get_form_instance(self) -> NotifyEventServiceForm:
-        return NotifyEventServiceForm(self.data, services=self.get_services())

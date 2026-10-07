@@ -1135,21 +1135,24 @@ class RPCBase:
                         int(groupby_attributes[resolved_groupby.internal_name])
                     ]
                 else:
-                    resolved_groupby, context = search_resolver.resolve_attribute(col)
+                    resolved_groupby, contexts = search_resolver.resolve_attribute(col)
 
                     # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
                     # Since timeseries run the query with the original column, we need to map
                     # them correctly so they map the table result. We need to map both the column name
                     # and the values.
-                    if context is not None:
-                        resolved_groupby = search_resolver.map_context_to_original_column(context)
+                    for context in contexts:
+                        if context is not None:
+                            resolved_groupby = search_resolver.map_context_to_original_column(
+                                context
+                            )
 
-                    groupby_value = groupby_attributes[resolved_groupby.internal_name]
-                    if context is not None:
-                        groupby_value = context.constructor(params, search_resolver).value_map[
-                            groupby_value
-                        ]
-                        groupby_attributes[resolved_groupby.internal_name] = groupby_value
+                        groupby_value = groupby_attributes[resolved_groupby.internal_name]
+                        if context is not None:
+                            groupby_value = context.constructor(params, search_resolver).value_map[
+                                groupby_value
+                            ]
+                            groupby_attributes[resolved_groupby.internal_name] = groupby_value
 
                     remapped_groupby[col] = groupby_value
 

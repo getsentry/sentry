@@ -388,6 +388,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert other["groupBy"] is None
         assert other["meta"]["isOther"] is True
         assert other["meta"]["order"] == 1
+        assert other["values"][0]["value"] == 1
 
     def test_incomplete_bucket(self):
         with freeze_time(self.end):

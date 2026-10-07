@@ -405,7 +405,7 @@ class PerformanceNPlusOneExperimentalGroupType(GroupType):
     category = GroupCategory.DB_QUERY.value
     noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
-    released = False
+    released = True
 
 
 @dataclass(frozen=True)
@@ -460,7 +460,7 @@ class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
     category = GroupCategory.HTTP_CLIENT.value
     noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
-    released = False
+    released = True
 
 
 @dataclass(frozen=True)
@@ -579,6 +579,7 @@ class QueryInjectionVulnerabilityGroupType(GroupType):
     slug = "query_injection_vulnerability"
     description = "Potential Query Injection Vulnerability"
     category = GroupCategory.DB_QUERY.value
+    released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
     noise_config = NoiseConfig(ignore_limit=10)
@@ -668,7 +669,7 @@ class LLMDetectedExperimentalGroupTypeV2(GroupType):
     description = "LLM Detected Issue"
     category = GroupCategory.AI_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
-    released = False
+    released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
 

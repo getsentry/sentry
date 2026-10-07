@@ -302,7 +302,11 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           {props => (
             <CardContainer {...props}>
               {splitIntoColumns(truncatedItems, columnCount).map((column, index) => (
-                <KeyValueTableCard key={index} expandLeft contentItems={column} />
+                <KeyValueTableCard
+                  key={index}
+                  itemProps={{expandLeft: true}}
+                  contentItems={column}
+                />
               ))}
             </CardContainer>
           )}
