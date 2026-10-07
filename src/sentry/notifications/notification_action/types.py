@@ -23,6 +23,7 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.notifications.platform.shadow.capture import shadow_read
 from sentry.notifications.platform.types import NotificationSource
 from sentry.notifications.types import (
