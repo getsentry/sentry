@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -135,7 +135,7 @@ export function AggregatesTable({
         prependColumnWidths={['min-content']}
         scrollable
         header={
-          <SimpleTable.HeaderRow css={titleCaseHeaderStyle}>
+          <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell />
             {visibleAggregateFields.map((aggregateField, i) => {
               // Hide column names before alignment is determined
@@ -300,8 +300,4 @@ const TopResultsIndicator = styled('div')<{color: string}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => p.color};
-`;
-
-const titleCaseHeaderStyle = css`
-  text-transform: capitalize;
 `;

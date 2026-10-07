@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
@@ -783,7 +782,7 @@ function LogsTableHeader({
   const pinningEnabled = !!useLogsPinning();
   return (
     <SimpleTable.Head>
-      <SimpleTable.HeaderRow css={titleCaseHeaderStyle}>
+      <SimpleTable.HeaderRow>
         <FirstTableHeadCell align="left" />
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
@@ -974,7 +973,3 @@ function BackToTopButton({
     </Button>
   );
 }
-
-const titleCaseHeaderStyle = css`
-  text-transform: capitalize;
-`;

@@ -95,7 +95,7 @@ function GridEditableHead<DataRow, Order extends GridColumnOrder<unknown>>({
   const prependColumns = grid.renderPrependColumns ? grid.renderPrependColumns(true) : [];
 
   return (
-    <SimpleTable.HeaderRow css={titleCaseHeaderStyle} data-test-id="grid-head-row">
+    <SimpleTable.HeaderRow data-test-id="grid-head-row">
       {prependColumns &&
         columnOrder.length > 0 &&
         prependColumns.map((item, i) => (
@@ -288,8 +288,4 @@ const clickableRowStyle = css`
 
 const tableStyle = (theme: Theme) => css`
   margin-bottom: ${theme.space.xl};
-`;
-
-const titleCaseHeaderStyle = css`
-  text-transform: capitalize;
 `;

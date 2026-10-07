@@ -87,12 +87,4 @@ describe('GridEditable', () => {
     expect(rules).toContain('flex-direction: column');
     expect(rules).toContain('align-items: stretch');
   });
-
-  it('renders its column headers in title case', () => {
-    render(<GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
-
-    expect(getEmotionRules(screen.getByTestId('grid-head-row')).join('')).toContain(
-      'text-transform: capitalize'
-    );
-  });
 });

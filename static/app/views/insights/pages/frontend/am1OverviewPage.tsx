@@ -68,15 +68,15 @@ const DURATION_TOOLTIP = tct(
 );
 
 const FRONTEND_COLUMN_TITLES = [
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
+  {title: 'Transaction'},
+  {title: 'Operation'},
+  {title: 'Project'},
+  {title: 'TPM'},
   {title: 'p50()', tooltip: DURATION_TOOLTIP},
   {title: 'p75()', tooltip: DURATION_TOOLTIP},
   {title: 'p95()', tooltip: DURATION_TOOLTIP},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
+  {title: 'Users'},
+  {title: 'User misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
 interface Am1FrontendOverviewPageProps {

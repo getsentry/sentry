@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -194,7 +193,7 @@ export function SpansTable({
         prependColumnWidths={[`${SPAN_DETAILS_COLUMN_WIDTH}px`]}
         scrollable
         header={
-          <SimpleTable.HeaderRow css={titleCaseHeaderStyle}>
+          <SimpleTable.HeaderRow>
             <SpanDetailsToggleHeadCell aria-label={t('Span details')} />
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
@@ -381,7 +380,3 @@ export function addValidatedFieldTypesToMeta({
 
   return {...meta, fields};
 }
-
-const titleCaseHeaderStyle = css`
-  text-transform: capitalize;
-`;
