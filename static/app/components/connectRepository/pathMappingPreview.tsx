@@ -46,7 +46,7 @@ export function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewPr
         direction={{zero: 'column', '2xs': 'row'}}
         align={{zero: 'stretch', '2xs': 'end'}}
       >
-        <Stack gap="sm">
+        <Stack gap="sm" style={{flex: 1, minWidth: 0}}>
           <Text bold variant="muted">
             {t('In your stack trace')}
           </Text>
