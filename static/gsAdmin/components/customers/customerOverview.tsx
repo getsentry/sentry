@@ -678,8 +678,8 @@ function TrialManagementActions({
 
   return (
     <DetailLabel key={apiName} title={formattedTrialName}>
-      <Stack gap="md">
-        <StyledTag
+      <Stack gap="md" align="start">
+        <Tag
           variant={
             lessThanOneDayLeft
               ? 'promotion'
@@ -695,7 +695,7 @@ function TrialManagementActions({
             : hasUsedProductTrial
               ? 'Used'
               : 'Available'}
-        </StyledTag>
+        </Tag>
         <Flex align="center" wrap="wrap" gap="md">
           <Button
             size="xs"
@@ -1027,7 +1027,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
         {productTrialCategories.length + productTrialAddOns.length > 0 && (
           <Fragment>
             <h6>Product Trials</h6>
-            <ProductTrialsList gap="md">
+            <DescriptionList gap="md">
               {productTrialCategories.map(categoryInfo => {
                 const categoryName = getPlanCategoryName({
                   plan: customer.planDetails,
@@ -1066,7 +1066,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                 }
                 return null;
               })}
-            </ProductTrialsList>
+            </DescriptionList>
           </Fragment>
         )}
         <Fragment>
@@ -1117,24 +1117,6 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     </DetailsContainer>
   );
 }
-
-const ProductTrialsList = styled(DescriptionList)`
-  dt {
-    justify-self: start;
-    display: flex;
-    align-items: center;
-    min-height: 38px;
-  }
-  dd {
-    display: flex;
-    align-items: center;
-    min-height: 38px;
-  }
-`;
-
-const StyledTag = styled(Tag)`
-  width: fit-content;
-`;
 
 type ThresholdLabelProps = {
   children: React.ReactNode;
