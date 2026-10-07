@@ -9,6 +9,7 @@ import orjson
 import pytest
 
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.notifications.additional_attachment_manager import manager as attachment_manager
@@ -384,6 +385,13 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         action = self.create_shadow_action("slack", {"notes": "Check the runbook"})
         client = self.assert_match(self.invocation(action))
         client.return_value.chat_postMessage.assert_called_once()
+
+    @with_feature(["organizations:investigations", "organizations:investigations-slack"])
+    def test_slack_with_investigation_button_matches(self) -> None:
+        action = self.create_shadow_action("slack")
+        client = self.assert_match(self.invocation(action))
+        attachments = client.return_value.chat_postMessage.call_args.kwargs["attachments"]
+        assert SlackAction.SEER_INVESTIGATION_START in attachments
 
     def test_slack_resolution_matches(self) -> None:
         action = self.create_shadow_action("slack", {"notes": "Check the runbook"})

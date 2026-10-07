@@ -1,12 +1,23 @@
 from datetime import datetime
 
+import orjson
+
+from sentry import features
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING, SlackBody
+from sentry.integrations.slack.message_builder.routing import encode_action_id
+from sentry.integrations.slack.message_builder.types import (
+    INCIDENT_COLOR_MAPPING,
+    SlackAction,
+    SlackBlock,
+    SlackBody,
+)
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.organization import Organization
+from sentry.notifications.utils.actions import MessageAction
 
 
 def get_started_at(timestamp: datetime | None) -> str:
@@ -15,6 +26,34 @@ def get_started_at(timestamp: datetime | None) -> str:
     return "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
         timestamp.timestamp(), "{date_pretty}", "{time}"
     )
+
+
+def should_show_investigation_button(
+    organization: Organization, new_status: IncidentStatus
+) -> bool:
+    return (
+        new_status != IncidentStatus.CLOSED
+        and features.has("organizations:investigations", organization)
+        and features.has("organizations:investigations-slack", organization)
+    )
+
+
+def build_investigation_block(
+    *, organization_id: int, project_id: int, group_id: int, open_period_id: int
+) -> SlackBlock:
+    button = BlockSlackMessageBuilder.get_button_action(
+        MessageAction(
+            name="investigate_with_seer",
+            label="Investigate with Seer",
+            value=orjson.dumps({"groupId": group_id, "openPeriodId": open_period_id}).decode(),
+            action_id=encode_action_id(
+                action=SlackAction.SEER_INVESTIGATION_START,
+                organization_id=organization_id,
+                project_id=project_id,
+            ),
+        )
+    )
+    return {"type": "actions", "elements": [button]}
 
 
 class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
@@ -27,6 +66,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         chart_url: str | None = None,
         notification_uuid: str | None = None,
         notes: str | None = None,
+        open_period_id: int | None = None,
     ) -> None:
         """
         Builds an incident attachment when a metric alert fires or is resolved.
@@ -44,6 +84,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self.chart_url = chart_url
         self.notification_uuid = notification_uuid
         self.notes = notes
+        self.open_period_id = open_period_id
 
     def build(self) -> SlackBody:
         data = incident_attachment_info(
@@ -64,6 +105,23 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
 
         if self.chart_url:
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
+
+        group = self.metric_issue_context.group
+        if (
+            group is not None
+            and self.open_period_id is not None
+            and should_show_investigation_button(
+                self.organization, self.metric_issue_context.new_status
+            )
+        ):
+            blocks.append(
+                build_investigation_block(
+                    organization_id=self.organization.id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    open_period_id=self.open_period_id,
+                )
+            )
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
         fallback_text = f"<{data['title_link']}|*{escape_slack_text(data['title'])}*>"

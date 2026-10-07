@@ -3,10 +3,13 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+import orjson
 import pytest
 
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
+from sentry.integrations.slack.message_builder.routing import decode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
@@ -170,3 +173,40 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         assert "Resolved" in result["text"]
         assert self.detector.name in result["text"]
         assert result["attachments"][0]["blocks"][1]["text"]["text"] == "notes: Check the runbook"
+
+    def test_render_includes_investigation_button(self) -> None:
+        result = SlackMetricAlertRenderer.render(
+            data=self.notification_data.copy(
+                update={"project_id": self.project.id, "show_investigation_button": True}
+            ),
+            rendered_template=self.rendered_template,
+        )
+
+        blocks: list[Any] = result["attachments"][0]["blocks"]
+        assert [block["type"] for block in blocks] == ["section", "actions"]
+        (button,) = blocks[1]["elements"]
+        assert button["text"]["text"] == "Investigate with Seer"
+        routing = decode_action_id(button["action_id"])
+        assert routing.action == SlackAction.SEER_INVESTIGATION_START
+        assert routing.organization_id == self.organization.id
+        assert routing.project_id == self.project.id
+        assert orjson.loads(button["value"]) == {
+            "groupId": self.group.id,
+            "openPeriodId": self.notification_data.open_period_context.id,
+        }
+
+    def test_render_without_investigation_button(self) -> None:
+        result = SlackMetricAlertRenderer.render(
+            data=self.notification_data.copy(update={"project_id": self.project.id}),
+            rendered_template=self.rendered_template,
+        )
+
+        assert [block["type"] for block in result["attachments"][0]["blocks"]] == ["section"]
+
+    def test_render_without_project_has_no_investigation_button(self) -> None:
+        result = SlackMetricAlertRenderer.render(
+            data=self.notification_data.copy(update={"show_investigation_button": True}),
+            rendered_template=self.rendered_template,
+        )
+
+        assert [block["type"] for block in result["attachments"][0]["blocks"]] == ["section"]

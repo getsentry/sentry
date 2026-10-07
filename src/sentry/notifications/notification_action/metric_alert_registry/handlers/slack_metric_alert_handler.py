@@ -12,6 +12,7 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.slack.message_builder.incidents import should_show_investigation_button
 from sentry.integrations.slack.utils.notifications import send_incident_alert_notification
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
@@ -87,6 +88,10 @@ def _send_via_notification_platform(
         text=attachment_info["text"],
         chart_url=chart_url,
         notes=notification_context.notes,
+        project_id=metric_issue_context.group.project_id if metric_issue_context.group else None,
+        show_investigation_button=should_show_investigation_button(
+            organization, metric_issue_context.new_status
+        ),
     )
 
     target = IntegrationNotificationTarget(

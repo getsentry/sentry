@@ -155,6 +155,7 @@ def _build_notification_payload(
         chart_url=chart_url,
         notification_uuid=notification_uuid,
         notes=notes,
+        open_period_id=open_period_context.id,
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
