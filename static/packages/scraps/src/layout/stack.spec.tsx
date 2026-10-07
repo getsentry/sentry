@@ -247,12 +247,15 @@ describe('Stack', () => {
       const props: StackProps<any> = {};
       expectTypeOf(props.children).toEqualTypeOf<React.ReactNode | undefined>();
     });
-    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+    it('render prop signature limits children to (props: {className, style}) => React.ReactNode | undefined', () => {
       const props: StackPropsWithRenderFunction<any> = {
         children: () => {},
       };
       expectTypeOf(props.children).toEqualTypeOf<
-        (props: {className: string}) => React.ReactNode | undefined
+        (props: {
+          className: string;
+          style?: React.CSSProperties;
+        }) => React.ReactNode | undefined
       >();
     });
   });

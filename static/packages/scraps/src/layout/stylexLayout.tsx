@@ -4,6 +4,7 @@ import * as stylex from '@stylexjs/stylex';
 import {
   baseStyles,
   breakpointStyles,
+  breakpointVarSuffix,
   fixedStyles,
   type LayoutProperty,
 } from './generatedStyles';
@@ -20,11 +21,19 @@ import type {Responsive, ResponsiveKey} from './styles';
  */
 export interface LayoutStyle {
   classNames: string[];
+  /**
+   * Set plain (non-responsive) values as inline styles instead of classes.
+   * Used for the render-prop form, where the styles land on the caller's
+   * element: with Emotion, layout props were composed after that element's
+   * own (often Emotion) styles and won; classes from an earlier stylesheet
+   * would lose to them.
+   */
+  inline: boolean;
   style: Record<string, string> | undefined;
 }
 
-export function createLayoutStyle(): LayoutStyle {
-  return {classNames: [], style: undefined};
+export function createLayoutStyle(inline = false): LayoutStyle {
+  return {classNames: [], inline, style: undefined};
 }
 
 // Same cascade order as `rc()`: the container axis, then the viewport axis.
@@ -52,7 +61,7 @@ const RESPONSIVE_KEYS: readonly ResponsiveKey[] = [
 
 /** Must match `layoutVarName` in scripts/genStylexTheme.ts. */
 function layoutVarName(property: LayoutProperty, key?: ResponsiveKey): string {
-  return key ? `--sx-${property}-${key.replace(':', '-')}` : `--sx-${property}`;
+  return key ? `--sx-${property}-${breakpointVarSuffix[key]}` : `--sx-${property}`;
 }
 
 type CompiledStyle = Record<PropertyKey, unknown>;
@@ -100,8 +109,18 @@ function addBase<T>(
   acc: LayoutStyle,
   property: LayoutProperty,
   value: T,
-  {fixed, resolve}: LayoutPropOptions<T>
+  {fixed, resolve}: LayoutPropOptions<T>,
+  allowInline: boolean
 ): boolean {
+  if (acc.inline && allowInline) {
+    const resolved = resolve ? resolve(value) : value;
+    if (resolved === undefined) {
+      return false;
+    }
+    setVar(acc, property, String(resolved));
+    return true;
+  }
+
   if (fixed !== undefined) {
     const fixedStyle = fixedStyleMap[`${fixed}:${String(value)}`];
     if (fixedStyle) {
@@ -135,7 +154,7 @@ export function addLayoutProp<T>(
   }
 
   if (!isResponsive(value)) {
-    addBase(acc, property, value, options);
+    addBase(acc, property, value, options, true);
     return;
   }
 
@@ -147,7 +166,8 @@ export function addLayoutProp<T>(
     }
 
     if (first) {
-      first = !addBase(acc, property, v, options);
+      // Never inline: the breakpoint classes below must be able to override it.
+      first = !addBase(acc, property, v, options, false);
       continue;
     }
 

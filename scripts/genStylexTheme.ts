@@ -249,9 +249,19 @@ const BREAKPOINTS: Array<[key: string, query: string]> = [
   ]),
 ];
 
-/** Must match `layoutVarName` in layout/stylex.tsx. */
+// StyleX orders `@media` rules by width but `@container` rules by their
+// declaration text, so the variable names carry the breakpoint's position to
+// keep the cascade mobile-first: `--sx-gap-01-3xs`, `--sx-gap-02-2xs`, …
+const breakpointVarSuffix = Object.fromEntries(
+  BREAKPOINTS.map(([key], i) => [
+    key,
+    `${String(i + 1).padStart(2, '0')}-${key.replace(':', '-')}`,
+  ])
+);
+
+/** Must match `layoutVarName` in layout/stylexLayout.tsx. */
 function layoutVarName(property: string, key?: string) {
-  return key ? `--sx-${property}-${key.replace(':', '-')}` : `--sx-${property}`;
+  return key ? `--sx-${property}-${breakpointVarSuffix[key]}` : `--sx-${property}`;
 }
 
 const spaceTokens = Object.keys(theme.space);
@@ -531,6 +541,12 @@ ${LAYOUT_PROPERTIES.flatMap(p =>
 export const fixedStyles = stylex.create({
 ${fixedEntries.map(e => `  ${e},`).join('\n')}
 });
+
+/**
+ * Variable name suffix per responsive key: StyleX orders \`@container\` rules by
+ * their declaration text, so the suffix carries the breakpoint's position.
+ */
+export const breakpointVarSuffix: Record<string, string> = ${JSON.stringify(breakpointVarSuffix)};
 
 export type LayoutProperty = keyof typeof baseStyles;
 export type ResponsiveKey = ${BREAKPOINTS.map(([k]) => JSON.stringify(k)).join(' | ')};

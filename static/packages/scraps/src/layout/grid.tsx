@@ -119,7 +119,7 @@ function resolveDistribution(value: keyof typeof GRID_DISTRIBUTION) {
 function GridComponent<T extends ContainerElement = 'div'>(
   props: GridProps<T> | GridPropsWithRenderFunction<T>
 ) {
-  const acc = createLayoutStyle();
+  const acc = createLayoutStyle(typeof props.children === 'function');
   addContainerStyles(acc, props, props.display ?? 'grid');
   addLayoutProp(acc, 'gap', props.gap, {fixed: 'gap', resolve: resolveSpacing});
 

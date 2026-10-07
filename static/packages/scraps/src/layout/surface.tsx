@@ -94,7 +94,7 @@ function SurfaceComponent<T extends ContainerElement = 'div'>(
     | FlatSurfacePropsWithRenderFunction
     | OverlaySurfacePropsWithRenderFunction
 ) {
-  const acc = createLayoutStyle();
+  const acc = createLayoutStyle(typeof props.children === 'function');
   const isOverlay = props.variant === 'overlay';
 
   // The render-prop form takes no container props, only the surface styles.

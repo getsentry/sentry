@@ -341,7 +341,7 @@ function TextComponent<T extends TextPrimitive = 'span'>(
   props: TextProps<T> | TextPropsWithRenderFunction<T>
 ) {
   const p = props as unknown as Omit<TextStyleProps, 'theme'>;
-  const acc = createLayoutStyle();
+  const acc = createLayoutStyle(typeof props.children === 'function');
   addFontSize(acc, p.size);
   addDensity(acc, p.density);
   addTextDisplay(acc, p);

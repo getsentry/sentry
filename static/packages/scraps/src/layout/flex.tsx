@@ -81,7 +81,7 @@ function resolveFlexAlign(value: NonNullable<FlexLayoutProps['align']> & string)
 function FlexComponent<T extends ContainerElement = 'div'>(
   props: FlexProps<T> | FlexPropsWithRenderFunction<T>
 ) {
-  const acc = createLayoutStyle();
+  const acc = createLayoutStyle(typeof props.children === 'function');
   addContainerStyles(acc, props, props.display ?? 'flex');
   addLayoutProp(acc, 'gap', props.gap, {fixed: 'gap', resolve: resolveSpacing});
   addLayoutProp(acc, 'flexDirection', props.direction, {fixed: 'direction'});

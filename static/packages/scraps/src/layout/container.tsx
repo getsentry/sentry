@@ -318,7 +318,7 @@ function addBorder(
   if (value === undefined) {
     return;
   }
-  if (typeof value === 'string') {
+  if (typeof value === 'string' && !acc.inline) {
     addLayoutProp(acc, `${side}Width`, value, {fixed: side});
     return;
   }
@@ -522,7 +522,7 @@ export function useLayoutElement(
 function ContainerComponent<T extends ContainerElement = 'div'>(
   props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
 ) {
-  const acc = createLayoutStyle();
+  const acc = createLayoutStyle(typeof props.children === 'function');
   addContainerStyles(acc, props);
   return useLayoutElement(props, acc, OMIT_CONTAINER_PROPS);
 }

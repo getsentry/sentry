@@ -68,7 +68,7 @@ export type HeadingPropsWithRenderFunction = BaseHeadingProps &
   >;
 
 function HeadingComponent(props: HeadingProps | HeadingPropsWithRenderFunction) {
-  const acc = createLayoutStyle();
+  const acc = createLayoutStyle(typeof props.children === 'function');
   const inherit = props.variant === 'inherit';
 
   if (inherit && props.size === undefined) {
