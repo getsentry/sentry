@@ -48,10 +48,6 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   groupBy?: Attribute[];
   /**
-   * Whether to request measured ingestion delay metadata.
-   */
-  includeMeasuredIngestionDelayMetadata?: boolean;
-  /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
   interval?: string;
@@ -122,7 +118,6 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     enabled,
     groupBy,
     extrapolate,
-    includeMeasuredIngestionDelayMetadata,
     query,
     sampling,
     caseInsensitive,
@@ -184,9 +179,6 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
-          includeMeasuredIngestionDelayMetadata: includeMeasuredIngestionDelayMetadata
-            ? 1
-            : undefined,
         },
         staleTime: Infinity,
       }

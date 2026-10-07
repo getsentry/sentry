@@ -619,11 +619,6 @@
       "count": 2
     }
   },
-  "static/app/components/keyValueTree/styles.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/components/lastCommit.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -825,11 +820,6 @@
     }
   },
   "static/app/components/panels/panelFooter.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/passwordStrength.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
