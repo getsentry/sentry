@@ -234,15 +234,6 @@ class AttributeNamesResponse(BaseModel):
     custom_fields: list[AttributeMeta] = []
 
 
-class AttributeBucket(BaseModel):
-    value: str
-    count: float
-
-
-class AttributesAndValuesResponse(BaseModel):
-    attributes_and_values: dict[str, list[AttributeBucket]]
-
-
 class MetricMetadataRow(BaseModel):
     name: str
     type: str
