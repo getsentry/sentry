@@ -754,9 +754,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         # Only the EAP RPC datasets can measure ingestion delay, and only the item types the
         # outcomes lookup understands. The rest would just log an unsupported item type.
 
-        include_measured_ingestion_delay_metadata = request.GET.get(
-            "includeMeasuredIngestionDelayMetadata"
-        ) is not None and batch_features.get(
+        include_measured_ingestion_delay_metadata = batch_features.get(
             "organizations:measured-ingestion-delay-metadata", False
         )
 
