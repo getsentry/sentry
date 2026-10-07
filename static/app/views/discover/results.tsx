@@ -1253,7 +1253,7 @@ function SaveQueryButton({
     const nextEventView = eventView.clone();
     nextEventView.name = name;
     // The save query modal shows its own success and error messages
-    const sq = await handleCreateSavedQuery(
+    const createdSavedQuery = await handleCreateSavedQuery(
       api,
       organization,
       nextEventView,
@@ -1263,23 +1263,31 @@ function SaveQueryButton({
     if (starred) {
       try {
         await starQuery(
-          {queryId: Number(sq.id), queryType: SavedQueryType.DISCOVER},
+          {
+            queryId: Number(createdSavedQuery.id),
+            queryType: SavedQueryType.DISCOVER,
+          },
           true
         );
       } catch (err) {
         Sentry.captureException(err);
       }
     }
-    const view = EventView.fromSavedQuery(sq);
+    const view = EventView.fromSavedQuery(createdSavedQuery);
     Banner.dismiss('discover');
     navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
-    return {id: sq.id};
+    return {id: createdSavedQuery.id};
   };
 
   const handleUpdate = async () => {
-    const sq = await handleUpdateSavedQuery(api, organization, eventView, yAxis);
-    const view = EventView.fromSavedQuery(sq);
-    setSavedQuery(sq);
+    const updatedSavedQuery = await handleUpdateSavedQuery(
+      api,
+      organization,
+      eventView,
+      yAxis
+    );
+    const view = EventView.fromSavedQuery(updatedSavedQuery);
+    setSavedQuery(updatedSavedQuery);
     navigate(view.getResultsViewShortUrlTarget(organization));
   };
 
