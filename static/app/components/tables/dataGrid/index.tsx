@@ -260,7 +260,8 @@ const HeadCellStatic = styled('th')`
 `;
 
 const bodyCellStaticStyle = (theme: Theme) => css`
-  /* The first child is the interaction state layer, so the 2nd is the first cell. */
+  /* Need to select the 2nd child to select the first cell
+     as the first child is the interaction state layer */
   &:nth-child(2) {
     padding: ${theme.space.md} 0 ${theme.space.md} ${theme.space['2xl']};
   }
