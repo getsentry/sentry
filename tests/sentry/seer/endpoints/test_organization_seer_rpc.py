@@ -1,9 +1,11 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
+from sentry.seer.endpoints.seer_rpc import get_organization_projects
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -390,6 +392,161 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"has_code_mappings": False, "project_slug_to_id": {}}
+
+
+class TestOrganizationSeerRpcTeamRestrictedMember(APITestCase):
+    """A closed-membership member only reaches projects on their own teams."""
+
+    endpoint = "sentry-api-0-organization-seer-rpc"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        self.member_team = self.create_team(organization=self.organization)
+        self.other_team = self.create_team(organization=self.organization)
+        self.visible_project = self.create_project(
+            organization=self.organization, teams=[self.member_team]
+        )
+        self.restricted_project = self.create_project(
+            organization=self.organization, teams=[self.other_team]
+        )
+
+        self.member = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=self.member,
+            role="member",
+            teams=[self.member_team],
+        )
+        self.login_as(self.member)
+
+    def _post(self, method_name: str, args: dict[str, Any]) -> Any:
+        path = reverse(
+            self.endpoint,
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "method_name": method_name,
+            },
+        )
+        return self.client.post(path, data={"args": args}, format="json")
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_organization_projects_omits_inaccessible_projects(self) -> None:
+        response = self._post("get_organization_projects", {})
+
+        assert response.status_code == 200
+        assert [p["id"] for p in response.data["projects"]] == [self.visible_project.id]
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_open_membership_member_sees_every_project(self) -> None:
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        response = self._post("get_organization_projects", {})
+
+        assert response.status_code == 200
+        assert {p["id"] for p in response.data["projects"]} == {
+            self.visible_project.id,
+            self.restricted_project.id,
+        }
+
+    def test_internal_callers_are_not_scoped(self) -> None:
+        response = get_organization_projects(org_id=self.organization.id)
+
+        assert {p.id for p in response.projects} == {
+            self.visible_project.id,
+            self.restricted_project.id,
+        }
+
+    @with_feature("organizations:seer-public-rpc")
+    @patch("sentry.seer.assisted_query.issues_tools.ApiClient")
+    def test_execute_issues_query_skips_inaccessible_projects(
+        self, mock_api_client: MagicMock
+    ) -> None:
+        response = self._post(
+            "execute_issues_query",
+            {"project_ids": [self.restricted_project.id], "query": "is:unresolved"},
+        )
+
+        assert response.status_code == 200
+        assert response.data == []
+        mock_api_client.assert_not_called()
+
+    @with_feature("organizations:seer-public-rpc")
+    @patch("sentry.seer.assisted_query.issues_tools.ApiClient")
+    def test_execute_issues_query_narrows_to_accessible_projects(
+        self, mock_api_client: MagicMock
+    ) -> None:
+        mock_api_client.return_value.get.return_value = MagicMock(data=[])
+
+        response = self._post(
+            "execute_issues_query",
+            {
+                "project_ids": [self.visible_project.id, self.restricted_project.id],
+                "query": "is:unresolved",
+            },
+        )
+
+        assert response.status_code == 200
+        params = mock_api_client.return_value.get.call_args.kwargs["params"]
+        assert params["project"] == [self.visible_project.id]
+
+    @with_feature("organizations:seer-public-rpc")
+    @patch("sentry.seer.agent.tools.client.get")
+    def test_execute_table_query_defaults_to_accessible_projects(self, mock_get: MagicMock) -> None:
+        mock_get.return_value = MagicMock(data={"data": []})
+
+        response = self._post(
+            "execute_table_query",
+            {"dataset": "spans", "fields": ["id"], "per_page": 10, "stats_period": "1h"},
+        )
+
+        assert response.status_code == 200
+        assert mock_get.call_args.kwargs["params"]["project"] == [self.visible_project.id]
+
+    @with_feature("organizations:seer-public-rpc")
+    @patch("sentry.seer.agent.tools.client.get")
+    def test_execute_table_query_skips_inaccessible_slugs(self, mock_get: MagicMock) -> None:
+        response = self._post(
+            "execute_table_query",
+            {
+                "dataset": "spans",
+                "fields": ["id"],
+                "per_page": 10,
+                "stats_period": "1h",
+                "project_slugs": [self.restricted_project.slug],
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"data": []}
+        mock_get.assert_not_called()
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_latest_issue_event_hides_inaccessible_issue(self) -> None:
+        group = self.create_group(project=self.restricted_project)
+
+        response = self._post("get_latest_issue_event", {"group_id": group.id})
+
+        assert response.status_code == 200
+        assert response.data == {}
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_dsn_hides_inaccessible_project(self) -> None:
+        response = self._post("get_dsn", {"project_slug": self.restricted_project.slug})
+
+        assert response.status_code == 200
+        assert response.data is None
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_team_members_hides_other_teams(self) -> None:
+        response = self._post("get_team_members", {"team_slug": self.other_team.slug})
+
+        assert response.status_code == 200
+        assert response.data is None
 
 
 class TestOrganizationSeerRpcGetEventDetailsWire(APITestCase, SnubaTestCase):

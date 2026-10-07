@@ -5,6 +5,7 @@ from sentry.api.client import ApiClient
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.seer.public_caller import scope_projects
 from sentry.seer.sentry_data_models import (
     AttributeMeta,
     AttributeNamesResponse,
@@ -155,6 +156,11 @@ def get_attribute_names(
     """
     organization = Organization.objects.get(id=org_id)
 
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return AttributeNamesResponse(fields={"string": [], "number": []}, built_in_fields=[])
+    project_ids = scoped.project_ids or []
+
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
     fields: dict[str, list[str]] = {"string": [], "number": []}
@@ -266,6 +272,11 @@ def get_attribute_values_with_substring(
         return AttributeValuesResponse(__root__={})
 
     organization = Organization.objects.get(id=org_id)
+
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return AttributeValuesResponse(__root__={})
+    project_ids = scoped.project_ids or []
 
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
