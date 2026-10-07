@@ -424,10 +424,7 @@ function mappingHasChanged(
   );
 }
 
-// Returns true when editProjectRepoMappings will send a write request for this
-// row — i.e. it is new (no server id) or has been changed relative to the
-// seeded original. Used by the edit form's Save gate so only rows that will
-// actually be sent can block Save.
+// True for rows sent on save: new rows and seeded rows that changed.
 export function isPendingWrite(
   mapping: PathMappingValue,
   seededById: Map<string, RepositoryProjectPathConfig>

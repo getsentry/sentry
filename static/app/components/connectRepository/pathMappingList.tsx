@@ -53,6 +53,7 @@ export const PathMappingList = withForm({
     existingMappings?: RepositoryProjectPathConfig[];
     projectSlug?: string;
     providerKey?: string;
+    seededById?: Map<string, RepositoryProjectPathConfig>;
   },
   render: function PathMappingListRender({
     form,
@@ -60,6 +61,7 @@ export const PathMappingList = withForm({
     defaultBranch,
     existingMappings,
     projectSlug,
+    seededById,
   }) {
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
     const newRowValue: PathMappingValue = {...EMPTY_MAPPING, branch: branchFallback};
@@ -121,7 +123,11 @@ export const PathMappingList = withForm({
             return (
               <form.Subscribe selector={state => state.values.pathMappings}>
                 {pathMappings => {
-                  const warnings = getPathMappingWarnings(pathMappings, existingMappings);
+                  const warnings = getPathMappingWarnings(
+                    pathMappings,
+                    existingMappings,
+                    seededById
+                  );
                   const addDisabledReason = hasDuplicateMappings(
                     pathMappings,
                     branchFallback

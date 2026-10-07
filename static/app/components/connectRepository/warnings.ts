@@ -1,6 +1,7 @@
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 import {normalizeRoot} from './normalization';
+import {isPendingWrite} from './queries';
 import type {PathMappingValue} from './type';
 
 export type PathMappingWarning =
@@ -9,7 +10,14 @@ export type PathMappingWarning =
   | {sourceRoot: string; stackRoot: string; type: 'exactInForm'}
   | {repoName: string; sourceRoot: string; stackRoot: string; type: 'exactAcrossRepos'};
 
-type NormalizedRow = {hasCodeOwner: boolean; sourceRoot: string; stackRoot: string};
+type NormalizedRow = {
+  checkAcrossRepos: boolean;
+  hasCodeOwner: boolean;
+  sourceRoot: string;
+  stackRoot: string;
+};
+
+type SeededById = Map<string, RepositoryProjectPathConfig>;
 
 type NormalizedExisting = {repoName: string; sourceRoot: string; stackRoot: string};
 
@@ -19,7 +27,7 @@ function deriveWarning(
   rows: NormalizedRow[],
   existing: NormalizedExisting[]
 ): PathMappingWarning | undefined {
-  const {stackRoot, sourceRoot, hasCodeOwner} = row;
+  const {stackRoot, sourceRoot, hasCodeOwner, checkAcrossRepos} = row;
 
   const inFormDuplicate = rows.find(
     (other, i) =>
@@ -29,9 +37,11 @@ function deriveWarning(
     return {sourceRoot: inFormDuplicate.sourceRoot, stackRoot, type: 'exactInForm'};
   }
 
-  const acrossReposDuplicate = existing.find(
-    other => other.stackRoot === stackRoot && other.sourceRoot === sourceRoot
-  );
+  const acrossReposDuplicate = checkAcrossRepos
+    ? existing.find(
+        other => other.stackRoot === stackRoot && other.sourceRoot === sourceRoot
+      )
+    : undefined;
   if (acrossReposDuplicate) {
     return {
       repoName: acrossReposDuplicate.repoName,
@@ -58,14 +68,18 @@ export function isExactWarning(
   return warning?.type === 'exactInForm' || warning?.type === 'exactAcrossRepos';
 }
 
+// Unchanged seeded rows send no request, so a cross-repo duplicate on them can't
+// fail on save and isn't worth warning about.
 export function getPathMappingWarnings(
   values: PathMappingValue[],
-  existingMappings: RepositoryProjectPathConfig[] = []
+  existingMappings: RepositoryProjectPathConfig[] = [],
+  seededById: SeededById = new Map()
 ): Array<PathMappingWarning | undefined> {
   const rows = values.map(v => ({
     stackRoot: normalizeRoot(v.stackRoot),
     sourceRoot: normalizeRoot(v.sourceRoot),
     hasCodeOwner: v.hasCodeOwner ?? false,
+    checkAcrossRepos: isPendingWrite(v, seededById),
   }));
 
   const normalizedExisting: NormalizedExisting[] = existingMappings.map(m => ({
@@ -79,7 +93,10 @@ export function getPathMappingWarnings(
 
 export function hasExactDuplicate(
   mappings: PathMappingValue[],
-  existingMappings: RepositoryProjectPathConfig[] = []
+  existingMappings: RepositoryProjectPathConfig[] = [],
+  seededById: SeededById = new Map()
 ): boolean {
-  return getPathMappingWarnings(mappings, existingMappings).some(isExactWarning);
+  return getPathMappingWarnings(mappings, existingMappings, seededById).some(
+    isExactWarning
+  );
 }

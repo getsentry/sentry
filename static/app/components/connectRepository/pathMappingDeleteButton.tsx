@@ -22,9 +22,7 @@ export function PathMappingDeleteButton({
       aria-label={t('Delete path mapping')}
       disabled={hasCodeOwner}
       tooltipProps={
-        hasCodeOwner
-          ? {title: <CodeOwnerMessage projectSlug={projectSlug} />, isHoverable: true}
-          : undefined
+        hasCodeOwner ? {title: <CodeOwnerMessage projectSlug={projectSlug} />} : undefined
       }
       onClick={onDelete}
     />
