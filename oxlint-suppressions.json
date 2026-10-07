@@ -1314,11 +1314,6 @@
       "count": 1
     }
   },
-  "static/app/components/tables/sortableHeaderCell.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/components/timeline/index.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 6
