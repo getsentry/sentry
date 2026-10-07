@@ -340,6 +340,15 @@ const config: Config.InitialOptions = {
    */
   clearMocks: true,
 
+  /**
+   * Restart a CI worker once its heap passes 1GB after a test file. Workers
+   * otherwise retain ~30MB per file and reach 3-4GB by the end of a shard, where
+   * V8's full GCs block for 3-5s and time out whichever test is running.
+   * Locally this is left unset so single-file runs stay in band.
+   * @link - https://jestjs.io/docs/configuration#workeridlememorylimit-numberstring
+   */
+  workerIdleMemoryLimit: CI ? '1GB' : undefined,
+
   testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.js',
   testEnvironmentOptions: {
     globalsCleanup: 'on',
