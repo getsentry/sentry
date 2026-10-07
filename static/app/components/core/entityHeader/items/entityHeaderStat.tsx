@@ -1,5 +1,3 @@
-import {useId} from 'react';
-
 import {ROW_HEIGHT, STAT_VALUE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -15,12 +13,6 @@ interface EntityHeaderStatBase {
    * Short, static label such as "Dead Clicks".
    */
   label: string;
-  /**
-   * The measurement itself. Keep it to the single number the label names, and
-   * put any breakdown in `valueTooltip` — a stat that renders its own detail
-   * inline fights the density the row is built for.
-   */
-  value: React.ReactNode;
   /**
    * What the stat measures, for a label that is jargon on its own. Takes
    * structured content as readily as a string, so it can be built from
@@ -47,6 +39,12 @@ export type EntityHeaderStatProps =
   | ({
       type: 'text';
       /**
+       * The measurement itself. Keep it to the single number the label names,
+       * and put any breakdown in `valueTooltip` — a stat that renders its own
+       * detail inline fights the density the row is built for.
+       */
+      value: React.ReactNode;
+      /**
        * What the value is made of — the projects behind an error count, say.
        * Takes structured content, which is how a breakdown stays out of the row.
        *
@@ -64,12 +62,16 @@ export type EntityHeaderStatProps =
        */
       to: LinkProps['to'];
       type: 'link';
+      /**
+       * Text, not a node, because the link is named from it. A graphic here
+       * would leave the link named by its label alone, silently dropping the
+       * half that says how many.
+       */
+      value: number | string;
       onClick?: () => void;
     } & EntityHeaderStatBase);
 
 export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boolean}) {
-  const valueId = useId();
-  const labelId = useId();
   const {isLoading, label, labelTooltip, loadingWidth = '80px', value} = props;
   // The whole stat becomes one skeleton, label included. The label is static and
   // could be shown immediately, but a half-drawn stat reads as broken next to a
@@ -86,17 +88,16 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
 
   // A stat is one fact split across two elements, which a screen reader moving
   // element by element reads as two: "0", then "link, Dead Clicks". On a link
-  // stat the anchor is named from both, so it reads "0 Dead Clicks" in one go —
-  // and the value is hidden, since it is now spoken as part of that name.
-  // (`aria-labelledby` resolves hidden references, so the text still counts.)
+  // stat the anchor is named from both, so it reads "0 Dead Clicks" in one go,
+  // and the value is hidden since the name already speaks it.
   const isLink = props.type === 'link';
   const valueContent =
     props.type === 'text' && props.valueTooltip ? (
-      <InfoText id={valueId} title={props.valueTooltip} {...valueStyles}>
+      <InfoText title={props.valueTooltip} {...valueStyles}>
         {value}
       </InfoText>
     ) : (
-      <Text id={valueId} aria-hidden={isLink} {...valueStyles}>
+      <Text aria-hidden={isLink} {...valueStyles}>
         {value}
       </Text>
     );
@@ -127,10 +128,10 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
             <Link
               to={to}
               onClick={onClick}
-              id={labelId}
-              // Self-reference keeps the label's own text in the name, after
-              // the value: "0 Dead Clicks" rather than "Dead Clicks".
-              aria-labelledby={`${valueId} ${labelId}`}
+              // Composed rather than assembled from the DOM with
+              // `aria-labelledby`, which would have to reach into the hidden
+              // value node — something not every engine is known to honour.
+              aria-label={`${props.value} ${label}`}
               {...styleProps}
             >
               {label}

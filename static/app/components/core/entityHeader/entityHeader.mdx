@@ -282,6 +282,8 @@ On a `link` stat it is the **label** that navigates, not the value. A link named
 
 The link is named from the value _and_ the label, so a screen reader moving element by element hears "4 Dead Clicks" in one go rather than "4", then "link, Dead Clicks". The value is hidden from assistive technology on a link stat, since it is already spoken as part of that name.
 
+That is why a `link` stat's `value` is text rather than a node: the name is composed from it. A graphic there would leave the link named by its label alone, silently dropping the half that says how many. A `text` stat keeps the wider type, since nothing is composed from it.
+
 ## Loading
 
 Pass `isLoading` and each slot renders a skeleton sized from the typography it will hold. Because the skeleton comes from the same declarations as the loaded state, the two cannot drift apart — there is no placeholder twin to keep in sync.

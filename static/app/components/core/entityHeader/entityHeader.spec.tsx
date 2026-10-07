@@ -193,6 +193,9 @@ describe('EntityHeader', () => {
       );
       expect(screen.queryByRole('link', {name: '4'})).not.toBeInTheDocument();
 
+      // And not announced a second time on its own, now the name speaks it.
+      expect(screen.getByText('4')).toHaveAttribute('aria-hidden', 'true');
+
       // A text stat links nothing at all.
       expect(screen.getByText('Rage Clicks')).toBeInTheDocument();
       expect(screen.queryByRole('link', {name: 'Rage Clicks'})).not.toBeInTheDocument();
