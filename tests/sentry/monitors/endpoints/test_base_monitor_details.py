@@ -169,6 +169,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
             call(
                 "monitors.serializer.expand_alert_rule",
                 tags={"endpoint": self.endpoint, "ui_request": True},
+                sample_rate=1.0,
             )
         ]
         mock_logger.info.assert_called_once_with(

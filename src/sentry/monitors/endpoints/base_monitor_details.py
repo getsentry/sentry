@@ -46,7 +46,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
         # expand=alertRule is slated for removal; track who still relies on it.
         if "alertRule" in expand:
             attribution = get_request_attribution(request)
-            metrics.incr("monitors.serializer.expand_alert_rule", tags=attribution)
+            metrics.incr("monitors.serializer.expand_alert_rule", tags=attribution, sample_rate=1.0)
             logger.info(
                 "monitors.serializer.expand_alert_rule",
                 extra={"organization_id": project.organization_id, **attribution},
