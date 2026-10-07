@@ -12,6 +12,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {COLUMN_ALIGN_JUSTIFY} from 'sentry/components/tables/sortableHeaderCell';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -221,7 +222,7 @@ export function SpansTable({
                   handleSortClick={updateSort}
                   sort={direction}
                 >
-                  <Flex align="center" gap="xs">
+                  <Flex align="center" gap="xs" justify={COLUMN_ALIGN_JUSTIFY[align]}>
                     <Text as="span" size="sm" variant="inherit">
                       {label}
                     </Text>
@@ -349,6 +350,7 @@ const SpanDetailsToggleHeadCell = styled(SimpleTable.HeaderCell)`
 
 const SpanDetailsToggleCell = styled(SimpleTable.RowCell)`
   align-items: center;
+  justify-content: center;
   padding: 0;
 `;
 

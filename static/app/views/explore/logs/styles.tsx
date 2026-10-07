@@ -155,6 +155,10 @@ export const LogAttributeTreeWrapper = styled('div')`
 export const LogTableBodyCell = styled(SimpleTable.RowCell)<{
   reservePinGutter?: boolean;
 }>`
+  /* Field renderers size their content to the cell, as in right-aligned numbers. */
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};
@@ -176,6 +180,7 @@ export const LogTableBodyCell = styled(SimpleTable.RowCell)<{
 
 export const LogErrorLabelCell = styled(LogTableBodyCell)`
   grid-column: 2 / -1;
+  align-items: flex-start;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
