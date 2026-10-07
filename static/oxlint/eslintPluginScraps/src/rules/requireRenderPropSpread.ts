@@ -23,7 +23,7 @@ function getComponentName(
   importTracker: ImportTracker
 ): string | null {
   if (nameNode.type === 'JSXIdentifier') {
-    const info = importTracker.resolve(nameNode);
+    const info = importTracker.resolve(nameNode.name);
     if (!info || !isScrapsSource(info.source) || info.imported === '*') {
       return null;
     }
@@ -34,7 +34,7 @@ function getComponentName(
     nameNode.type === 'JSXMemberExpression' &&
     nameNode.object.type === 'JSXIdentifier'
   ) {
-    const info = importTracker.resolve(nameNode.object);
+    const info = importTracker.resolve(nameNode.object.name);
     return info?.imported === '*' && isScrapsSource(info.source)
       ? nameNode.property.name
       : null;
@@ -276,7 +276,7 @@ export const requireRenderPropSpread = defineRule({
   },
 
   create(context) {
-    const importTracker = createImportTracker(context);
+    const importTracker = createImportTracker();
 
     return {
       ...importTracker.visitors,

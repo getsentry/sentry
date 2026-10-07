@@ -1,6 +1,5 @@
 import type {ESTree, Context, Visitor} from '@oxlint/plugins';
 
-import {createImportTracker} from '../tracker/imports.ts';
 import {createThemeTracker} from '../tracker/theme.ts';
 
 import {createCssPropExtractor} from './cssProp.ts';
@@ -82,14 +81,12 @@ export function createStyleCollector(context: Context) {
 
   // Create theme tracker first (extractors depend on it)
   const themeTracker = createThemeTracker();
-  const importTracker = createImportTracker(context);
 
   // Create extractors with access to collector and theme tracker
   const extractorContext: ExtractorContext = {
     collector,
     themeTracker,
     ruleContext: context,
-    importTracker,
   };
 
   const styledVisitors = createStyledExtractor(extractorContext);
@@ -98,7 +95,6 @@ export function createStyleCollector(context: Context) {
 
   // Merge all visitors
   const visitors = mergeVisitors(
-    importTracker.visitors,
     themeTracker.visitors,
     styledVisitors,
     cssPropVisitors,
