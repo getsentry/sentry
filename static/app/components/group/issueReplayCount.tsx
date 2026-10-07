@@ -51,6 +51,7 @@ export function IssueReplayCount({group}: Props) {
 
 const ReplayCountLink = styled(Link)`
   display: inline-flex;
+  align-items: center;
   color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.font.size.sm};
   gap: 0 ${p => p.theme.space.xs};
