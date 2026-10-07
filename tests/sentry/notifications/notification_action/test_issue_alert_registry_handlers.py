@@ -35,7 +35,6 @@ from sentry.testutils.helpers.data_blobs import (
     WEBHOOK_ACTION_DATA_BLOBS,
 )
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
@@ -153,7 +152,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
     def test_create_rule_instance_from_action_with_workflow_only(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
-        AlertRuleWorkflow.objects.filter(rule_id=self.rule.id).delete()
         self.rule.delete()
         rule = self.handler.create_rule_instance_from_action(
             self.action, self.detector, self.event_data, workflow_id=self.workflow.id
