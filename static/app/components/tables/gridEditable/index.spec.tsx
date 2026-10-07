@@ -1,4 +1,5 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
@@ -60,5 +61,30 @@ describe('GridEditable', () => {
     expect(screen.getByRole('columnheader', {name: 'Count'})).not.toHaveAttribute(
       'aria-sort'
     );
+  });
+
+  it('renders resize handles for every column but the last when resizable', () => {
+    render(<GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
+
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
+  });
+
+  it('sizes unsized columns to their content when fit to max content', () => {
+    render(
+      <GridEditable columnOrder={COLUMN_ORDER} data={DATA} fit="max-content" grid={{}} />
+    );
+
+    expect(screen.getByRole('table')).toHaveStyle({
+      gridTemplateColumns: 'minmax(max-content, auto) minmax(max-content, auto)',
+    });
+  });
+
+  it('stretches body cell content across the cell', () => {
+    render(<GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
+
+    const rules = getEmotionRules(screen.getByRole('cell', {name: 'first'})).join('');
+
+    expect(rules).toContain('flex-direction: column');
+    expect(rules).toContain('align-items: stretch');
   });
 });
