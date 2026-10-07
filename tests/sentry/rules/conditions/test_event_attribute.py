@@ -1,6 +1,6 @@
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
-from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 
 
 class EventAttributeConditionTest(RuleTestCase):

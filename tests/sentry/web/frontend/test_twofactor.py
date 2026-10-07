@@ -39,6 +39,7 @@ class TwoFactorTest(TestCase):
         assert resp.status_code == 302
         assert resp["Location"] == "/auth/login/"
 
+    @override_options({"auth.v2.enabled": False})
     def test_no_2fa_configured(self) -> None:
         user = self.create_user()
         self.login_as(user)
@@ -64,6 +65,7 @@ class TwoFactorTest(TestCase):
         assert resp.status_code == 302
         assert "_pending_2fa" not in self.client.session
 
+    @override_options({"auth.v2.enabled": False})
     def test_otp_challenge(self) -> None:
         user = self.create_user()
         interface = TotpInterface()
@@ -97,6 +99,7 @@ class TwoFactorTest(TestCase):
         assert "Invalid confirmation code" in resp.content.decode("utf8")
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
+    @override_options({"auth.v2.enabled": False})
     def test_otp_submit_success(self, mock_validate: mock.MagicMock) -> None:
         user = self.create_user()
         interface = TotpInterface()

@@ -217,6 +217,15 @@ class TestBuildShimEventData:
             },
         }
 
+    def test_ensures_string_user_id(self) -> None:
+        segment_span = build_segment_span(
+            attributes={"user.id": {"value": 1231908, "type": "integer"}}
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["user"] == {"id": "1231908"}
+
     def test_reconstructs_user_with_only_geo(self) -> None:
         # Relay derives `user.geo.*` from the client IP on both paths, but only ever gets identity
         # from the SDK, so geo-only is the normal shape for a segment from the span buffer.
@@ -239,6 +248,30 @@ class TestBuildShimEventData:
         event = build_shim_event_data(segment_span, [segment_span])
 
         assert event["sdk"] == {"name": "sentry.python", "version": "4.15.13"}
+
+    def test_sdk_fields_are_all_or_none(self) -> None:
+        # The `sdk` dict must have both `name` and `version` or the event data on the occurrence
+        # will fail schema validation, so we only include it if we have both
+        no_version_segment_span = build_segment_span(
+            attributes={"sentry.sdk.name": {"value": "sentry.python", "type": "string"}}
+        )
+        no_version_event = build_shim_event_data(no_version_segment_span, [no_version_segment_span])
+        assert "sdk" not in no_version_event
+
+        no_name_segment_span = build_segment_span(
+            attributes={"sentry.sdk.version": {"value": "4.15.13", "type": "string"}}
+        )
+        no_name_event = build_shim_event_data(no_name_segment_span, [no_name_segment_span])
+        assert "sdk" not in no_name_event
+
+        with_both_segment_span = build_segment_span(
+            attributes={
+                "sentry.sdk.name": {"value": "sentry.python", "type": "string"},
+                "sentry.sdk.version": {"value": "4.15.13", "type": "string"},
+            }
+        )
+        with_both_event = build_shim_event_data(with_both_segment_span, [with_both_segment_span])
+        assert with_both_event["sdk"] == {"name": "sentry.python", "version": "4.15.13"}
 
     def test_reconstructs_request(self) -> None:
         segment_span = build_segment_span(
