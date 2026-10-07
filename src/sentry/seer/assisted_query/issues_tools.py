@@ -261,9 +261,6 @@ def _get_release_values(organization: Organization, project_ids: list[int]) -> l
 
     Returns a list of recent release versions for the organization/projects.
     """
-    # Both ``projects__`` lookups must live in one filter() call: chaining them
-    # would join ReleaseProject twice, matching a release that has some active
-    # project and, separately, one of ``project_ids``.
     project_filter: dict[str, Any] = {"projects__status": ObjectStatus.ACTIVE}
     if project_ids and ALL_ACCESS_PROJECT_ID not in project_ids:
         project_filter["projects__id__in"] = project_ids
