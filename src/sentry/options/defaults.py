@@ -2871,6 +2871,27 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Expected, intentional shifts in check-in volume (such as enabling relay
+# rate-limiting) that should not be detected as system incidents. Historic
+# volume is scaled by these shifts when computing the expected volume for a
+# tick. Each entry is a mapping of
+#
+#   start:      When the volume began to shift (ISO 8601 string or unix ts)
+#   end:        (optional) When the shift was fully applied. Volume is assumed
+#               to change linearly between start and end. Defaults to start.
+#   pct_change: Expected percentage change in volume, -20 is a 20% drop.
+#
+# An entry has no effect once its end is older than the volume history
+# retention (30 days) and may then be removed.
+#
+# See the `monitors.system_incidents` module for more details
+register(
+    "crons.system_incidents.volume_shifts",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Determines how many check-ins per-minute will be allowed per monitor. This is
 # used when computing the QuotaConfig for the DataCategory.MONITOR (check-ins)
 #

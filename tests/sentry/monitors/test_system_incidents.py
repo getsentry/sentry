@@ -1,8 +1,9 @@
 import itertools
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
+import pytest
 from django.conf import settings
 from django.utils import timezone
 
@@ -16,10 +17,12 @@ from sentry.monitors.system_incidents import (
     AnomalyTransition,
     DecisionResult,
     TickAnomalyDecision,
+    VolumeShift,
     _make_reference_ts,
     get_clock_tick_decision,
     get_clock_tick_volume_metric,
     get_last_incident_ts,
+    get_volume_shifts,
     make_clock_tick_decision,
     process_clock_tick_for_system_incidents,
     prune_incident_check_in_volume,
@@ -374,6 +377,149 @@ def test_record_clock_tick_volume_metric_uniform(
         sample_rate=1.0,
     )
     assert get_clock_tick_volume_metric(past_ts) == 0.0
+
+
+def test_volume_shift_volume_factor() -> None:
+    start = datetime(2026, 10, 7, 12, 0, tzinfo=UTC)
+    shift = VolumeShift(start=start, end=start + timedelta(hours=2), pct_change=-20)
+
+    assert shift.volume_factor(start - timedelta(minutes=1)) == 1.0
+    assert shift.volume_factor(start) == 1.0
+    assert shift.volume_factor(start + timedelta(hours=1)) == 0.9
+    assert shift.volume_factor(start + timedelta(hours=2)) == 0.8
+    assert shift.volume_factor(start + timedelta(days=1)) == 0.8
+
+    # A shift without a ramp applies immediately
+    step = VolumeShift(start=start, end=start, pct_change=-20)
+    assert step.volume_factor(start - timedelta(minutes=1)) == 1.0
+    assert step.volume_factor(start + timedelta(minutes=1)) == 0.8
+
+
+@mock.patch("sentry.monitors.system_incidents.logger")
+def test_get_volume_shifts(logger: mock.MagicMock) -> None:
+    start = datetime(2026, 10, 7, 12, 0, tzinfo=UTC)
+    end = datetime(2026, 10, 7, 14, 0, tzinfo=UTC)
+
+    shifts = [
+        {"start": "2026-10-07T12:00:00Z", "end": "2026-10-07T14:00:00+00:00", "pct_change": -20},
+        {"start": int(start.timestamp()), "pct_change": "10"},
+        # Invalid entries are skipped
+        {"start": "not a date", "pct_change": -20},
+        {"start": "2026-10-07T12:00:00Z"},
+        {"start": "2026-10-07T14:00:00Z", "end": "2026-10-07T12:00:00Z", "pct_change": -20},
+        {"start": "2026-10-07T12:00:00Z", "pct_change": -100},
+    ]
+    with override_options({"crons.system_incidents.volume_shifts": shifts}):
+        assert get_volume_shifts() == [
+            VolumeShift(start=start, end=end, pct_change=-20),
+            VolumeShift(start=start, end=start, pct_change=10),
+        ]
+
+    assert logger.exception.call_count == 2
+    assert logger.error.call_count == 2
+
+
+@mock.patch("sentry.monitors.system_incidents.logger")
+@mock.patch("sentry.monitors.system_incidents.metrics")
+def test_record_clock_tick_volume_metric_volume_shift(
+    metrics: mock.MagicMock, logger: mock.MagicMock
+) -> None:
+    tick = timezone.now().replace(second=0, microsecond=0)
+    past_ts = tick - timedelta(minutes=1)
+
+    # Historic volume all from before the shift
+    fill_historic_volume(
+        start=past_ts - MONITOR_VOLUME_DECISION_STEP,
+        length=MONITOR_VOLUME_RETENTION,
+        step=MONITOR_VOLUME_DECISION_STEP,
+        counts=[1000],
+    )
+
+    # Volume has dropped by 20% after the shift was applied
+    update_check_in_volume([past_ts] * 800)
+
+    shifts = [{"start": (past_ts - timedelta(hours=12)).isoformat(), "pct_change": -20}]
+    with override_options(
+        {
+            "crons.system_incidents.collect_metrics": True,
+            "crons.system_incidents.volume_shifts": shifts,
+        }
+    ):
+        record_clock_tick_volume_metric(tick)
+
+    # The drop is expected, so the volume is not anomalous
+    assert get_clock_tick_volume_metric(past_ts) == 0.0
+
+
+@mock.patch("sentry.monitors.system_incidents.logger")
+@mock.patch("sentry.monitors.system_incidents.metrics")
+def test_record_clock_tick_volume_metric_volume_shift_partial(
+    metrics: mock.MagicMock, logger: mock.MagicMock
+) -> None:
+    tick = timezone.now().replace(second=0, microsecond=0)
+    past_ts = tick - timedelta(minutes=1)
+
+    # 15 days of history from before the shift, and 15 days after
+    for days in range(1, 31):
+        count = 800 if days <= 15 else 1000
+        update_check_in_volume([past_ts - timedelta(days=days)] * count)
+
+    shift_start = past_ts - timedelta(days=15, hours=12)
+    shifts = [{"start": shift_start.isoformat(), "pct_change": -20}]
+
+    update_check_in_volume([past_ts] * 800)
+
+    with override_options({"crons.system_incidents.collect_metrics": True}):
+        record_clock_tick_volume_metric(tick)
+
+    # Without the shift the history is a blend of old and new volume
+    assert get_clock_tick_volume_metric(past_ts) == pytest.approx(-100 / 9)
+
+    with override_options(
+        {
+            "crons.system_incidents.collect_metrics": True,
+            "crons.system_incidents.volume_shifts": shifts,
+        }
+    ):
+        record_clock_tick_volume_metric(tick)
+
+    assert get_clock_tick_volume_metric(past_ts) == pytest.approx(0.0)
+
+
+@mock.patch("sentry.monitors.system_incidents.logger")
+@mock.patch("sentry.monitors.system_incidents.metrics")
+def test_record_clock_tick_volume_metric_volume_shift_ramp(
+    metrics: mock.MagicMock, logger: mock.MagicMock
+) -> None:
+    tick = timezone.now().replace(second=0, microsecond=0)
+    past_ts = tick - timedelta(minutes=1)
+
+    fill_historic_volume(
+        start=past_ts - MONITOR_VOLUME_DECISION_STEP,
+        length=MONITOR_VOLUME_RETENTION,
+        step=MONITOR_VOLUME_DECISION_STEP,
+        counts=[1000],
+    )
+
+    # Halfway through rolling out a 20% drop
+    update_check_in_volume([past_ts] * 900)
+
+    shifts = [
+        {
+            "start": (past_ts - timedelta(hours=1)).isoformat(),
+            "end": (past_ts + timedelta(hours=1)).isoformat(),
+            "pct_change": -20,
+        }
+    ]
+    with override_options(
+        {
+            "crons.system_incidents.collect_metrics": True,
+            "crons.system_incidents.volume_shifts": shifts,
+        }
+    ):
+        record_clock_tick_volume_metric(tick)
+
+    assert get_clock_tick_volume_metric(past_ts) == pytest.approx(0.0)
 
 
 @override_options({"crons.system_incidents.collect_metrics": True})
