@@ -209,7 +209,6 @@ export function ReleasesDrawerTable({
         emptyMessage={tableEmptyMessage}
         fit="max-content"
         stickyHeader
-        scrollable
         grid={{
           renderHeadCell: column => <span>{column.name}</span>,
           renderBodyCell,

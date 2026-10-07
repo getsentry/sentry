@@ -61,4 +61,20 @@ describe('GridEditable', () => {
       'aria-sort'
     );
   });
+
+  it('renders resize handles for every column but the last when resizable', () => {
+    render(<GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
+
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
+  });
+
+  it('sizes unsized columns to their content when fit to max content', () => {
+    render(
+      <GridEditable columnOrder={COLUMN_ORDER} data={DATA} fit="max-content" grid={{}} />
+    );
+
+    expect(screen.getByRole('table')).toHaveStyle({
+      gridTemplateColumns: 'minmax(max-content, auto) minmax(max-content, auto)',
+    });
+  });
 });

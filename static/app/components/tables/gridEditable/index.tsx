@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {Fragment, useMemo} from 'react';
+import {css, type Theme} from '@emotion/react';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -7,16 +8,15 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
-  Table,
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
-import {DataTable} from 'sentry/components/tables/dataTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
-  GridBodyCellStatic,
+  gridBodyCellStaticStyle,
   GridHeadCellStatic,
   Header,
   HeaderButtonContainer,
@@ -68,7 +68,6 @@ type GridEditableProps<
    * @default true
    */
   resizable?: boolean;
-  scrollable?: boolean;
   stickyHeader?: boolean;
 
   /**
@@ -96,7 +95,7 @@ function GridEditableHead<DataRow, Order extends GridColumnOrder<unknown>>({
   const prependColumns = grid.renderPrependColumns ? grid.renderPrependColumns(true) : [];
 
   return (
-    <DataTable.Row data-test-id="grid-head-row">
+    <SimpleTable.HeaderRow data-test-id="grid-head-row">
       {prependColumns &&
         columnOrder.length > 0 &&
         prependColumns.map((item, i) => (
@@ -108,22 +107,21 @@ function GridEditableHead<DataRow, Order extends GridColumnOrder<unknown>>({
         const columnSort = grid.getColumnSort?.(column, i);
 
         return (
-          <DataTable.HeadCell
+          <SimpleTable.HeaderCell
             align={columnSort?.align}
             columnIndex={i}
             data-test-id="grid-head-cell"
             key={`${i}.${String(column.key)}`}
-            isFirst={i === 0}
-            onSort={columnSort?.onSort}
+            handleSortClick={columnSort?.onSort}
             replace={columnSort?.replace}
             sort={columnSort?.direction}
             to={columnSort?.to}
           >
             {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-          </DataTable.HeadCell>
+          </SimpleTable.HeaderCell>
         );
       })}
-    </DataTable.Row>
+    </SimpleTable.HeaderRow>
   );
 }
 
@@ -147,19 +145,25 @@ export function GridEditable<
     onRowMouseOut,
     onRowMouseOver,
     resizable = true,
-    scrollable,
     stickyHeader,
     title,
   } = props;
 
   const columns = useMemo<TableColumnConfig[]>(
     () =>
-      props.columnOrder.map(column => ({
-        key: String(column.key),
-        resizable,
-        width: grid.staticColumnWidths?.[String(column.key)] ?? column.width,
-      })),
-    [grid.staticColumnWidths, props.columnOrder, resizable]
+      props.columnOrder.map(column => {
+        const width = grid.staticColumnWidths?.[String(column.key)] ?? column.width;
+
+        return {
+          key: String(column.key),
+          resizable,
+          width:
+            fit && (width === undefined || width === COL_WIDTH_UNDEFINED)
+              ? `minmax(${fit}, auto)`
+              : width,
+        };
+      }),
+    [fit, grid.staticColumnWidths, props.columnOrder, resizable]
   );
 
   const onColumnResize = (columnIndex: number, width: number) => {
@@ -171,20 +175,20 @@ export function GridEditable<
 
   const renderGridBody = () => {
     if (error) {
-      return <DataTable.Error />;
+      return <SimpleTable.Error />;
     }
 
     if (isLoading) {
-      return <DataTable.Loading />;
+      return <SimpleTable.Loading />;
     }
 
     if (!data || data.length === 0) {
       return (
-        <DataTable.Empty>
+        <SimpleTable.Empty>
           {props.emptyMessage ?? (
             <EmptyState title={t('No results found for your query')} />
           )}
-        </DataTable.Empty>
+        </SimpleTable.Empty>
       );
     }
 
@@ -197,13 +201,13 @@ export function GridEditable<
       : [];
 
     return (
-      <DataTable.Row
+      <SimpleTable.Row
         key={row}
+        css={isRowClickable?.(dataRow) ? clickableRowStyle : undefined}
         onMouseOver={event => onRowMouseOver?.(dataRow, row, event)}
         onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
         onClick={event => onRowClick?.(dataRow, row, event)}
         data-test-id="grid-body-row"
-        isClickable={isRowClickable?.(dataRow)}
       >
         <InteractionStateLayer
           isHovered={row === highlightedRowKey}
@@ -212,18 +216,25 @@ export function GridEditable<
         />
 
         {prependColumns?.map((item, i) => (
-          <GridBodyCellStatic data-test-id="grid-body-cell" key={`prepend-${i}`}>
+          <SimpleTable.RowCell
+            css={gridBodyCellStaticStyle}
+            data-test-id="grid-body-cell"
+            key={`prepend-${i}`}
+          >
             {item}
-          </GridBodyCellStatic>
+          </SimpleTable.RowCell>
         ))}
         {props.columnOrder.map((col, i) => (
-          <DataTable.Cell data-test-id="grid-body-cell" key={`${String(col.key)}${i}`}>
+          <SimpleTable.RowCell
+            data-test-id="grid-body-cell"
+            key={`${String(col.key)}${i}`}
+          >
             {grid.renderBodyCell
               ? grid.renderBodyCell(col, dataRow, row, i)
               : dataRow[col.key as string]}
-          </DataTable.Cell>
+          </SimpleTable.RowCell>
         ))}
-      </DataTable.Row>
+      </SimpleTable.Row>
     );
   };
 
@@ -239,25 +250,33 @@ export function GridEditable<
             )}
           </Header>
         )}
-        <DataTable.Frame style={bodyStyle} showVerticalScrollbar={scrollable}>
-          <DataTable.Grid
-            aria-label={ariaLabel}
-            columns={columns}
-            data-test-id="grid-editable"
-            fit={fit}
-            height={height}
-            minimumColumnWidth={COL_WIDTH_MINIMUM}
-            onColumnResize={grid.onResizeColumn ? onColumnResize : undefined}
-            prependColumnWidths={grid.prependColumnWidths}
-            scrollable={scrollable}
-          >
-            <DataTable.Head sticky={stickyHeader}>
-              <GridEditableHead columnOrder={props.columnOrder} grid={grid} />
-            </DataTable.Head>
-            <Table.Body>{renderGridBody()}</Table.Body>
-          </DataTable.Grid>
-        </DataTable.Frame>
+        <SimpleTable
+          aria-label={ariaLabel}
+          columns={columns}
+          css={tableStyle}
+          customSections
+          data-test-id="grid-editable"
+          maxHeight={height}
+          minimumColumnWidth={COL_WIDTH_MINIMUM}
+          onColumnResize={grid.onResizeColumn ? onColumnResize : undefined}
+          prependColumnWidths={grid.prependColumnWidths}
+          scrollable
+          style={bodyStyle}
+        >
+          <SimpleTable.Head sticky={stickyHeader}>
+            <GridEditableHead columnOrder={props.columnOrder} grid={grid} />
+          </SimpleTable.Head>
+          <SimpleTable.Body>{renderGridBody()}</SimpleTable.Body>
+        </SimpleTable>
       </Profiler>
     </Fragment>
   );
 }
+
+const clickableRowStyle = css`
+  cursor: pointer;
+`;
+
+const tableStyle = (theme: Theme) => css`
+  margin-bottom: ${theme.space.xl};
+`;
