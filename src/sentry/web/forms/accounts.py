@@ -253,13 +253,3 @@ class RegistrationForm(PasswordlessRegistrationForm):
                     user=user, key="timezone", value=self.cleaned_data.get("timezone")
                 )
         return user
-
-
-class TwoFactorForm(forms.Form):
-    otp = forms.CharField(
-        label=_("Authenticator code"),
-        max_length=20,
-        widget=forms.TextInput(
-            attrs={"placeholder": _("Authenticator or recovery code"), "autofocus": True}
-        ),
-    )
