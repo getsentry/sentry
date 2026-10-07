@@ -1228,6 +1228,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "project": [self.project.id],
                 "statsPeriod": "1h",
             }
+        if endpoint.endpoint_name == "OrganizationEventsDroppedEndpoint":
+            return {
+                "dataset": "spans",
+                "project": [self.project.id],
+                "statsPeriod": "1h",
+                "interval": "1h",
+            }
         if endpoint.endpoint_name == "OrganizationPreprodLatestBaseSnapshotEndpoint":
             self._resource("preprod_snapshot")
             return {"app_id": "com.example.permission-matrix-resource"}

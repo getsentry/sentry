@@ -154,6 +154,23 @@ class TitleHelpersTest(TestCase):
             == "from request"
         )
 
+    def test_first_user_message_from_structured_messages(self) -> None:
+        span = make_gen_ai_span(
+            project_id=1,
+            messages=[
+                {"role": "system", "content": "System context"},
+                {"role": "user", "content": "Help me"},
+            ],
+        )
+
+        assert first_user_message_from_span(span) == "Help me"
+
+        span["attributes"][LEGACY_GEN_AI_REQUEST_MESSAGES] = span["attributes"].pop(
+            ATTRIBUTE_NAMES.GEN_AI_INPUT_MESSAGES
+        )
+
+        assert first_user_message_from_span(span) == "Help me"
+
     def test_first_user_message_missing(self) -> None:
         assert (
             first_user_message_from_span(make_gen_ai_span(project_id=1, omit_messages=True)) is None

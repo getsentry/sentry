@@ -1,17 +1,14 @@
-import type {ComponentProps, HTMLAttributes, ReactNode, RefObject} from 'react';
+import type {HTMLAttributes, MouseEvent, ReactNode, RefObject} from 'react';
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
-import {
-  fullWidthCellStyle,
-  Table,
-  type TableColumnConfig,
-} from '@sentry/scraps/table';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {fullWidthCellStyle, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 import {
   type ColumnAlign,
@@ -22,12 +19,45 @@ import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/sta
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
-interface TableProps extends Omit<HTMLAttributes<HTMLTableElement>, 'children'> {
-  children?: ReactNode;
-  columns?: TableColumnConfig[];
-  /** The header row, rendered into the table's `<thead>`. */
-  header?: ReactNode;
-  ref?: RefObject<HTMLTableElement | null>;
+const HEADER_ROW_HEIGHT = 40;
+
+type TableSectionsProps =
+  | {
+      /**
+       * Render `children` as the table's sections, such as its `Head` and `Body`,
+       * instead of as the rows of a single body.
+       */
+      customSections: true;
+      header?: never;
+    }
+  | {
+      customSections?: false;
+      /** The header row, rendered into the table's `<thead>`. */
+      header?: ReactNode;
+    };
+
+type TableProps = Omit<HTMLAttributes<HTMLTableElement>, 'children'> &
+  TableSectionsProps & {
+    children?: ReactNode;
+    columns?: TableColumnConfig[];
+    flexibleLastColumn?: boolean;
+    maxHeight?: CSS['maxHeight'];
+    minimumColumnWidth?: number;
+    onColumnResize?: (index: number, width: number) => void;
+    prependColumnWidths?: string[];
+    ref?: RefObject<HTMLTableElement | null>;
+    scrollable?: boolean;
+  };
+
+interface HeaderCellProps extends HTMLAttributes<HTMLTableCellElement> {
+  align?: ColumnAlign;
+  columnIndex?: number;
+  divider?: boolean;
+  handleSortClick?: (event: MouseEvent) => void;
+  replace?: boolean;
+  sort?: SortDirection;
+  to?: LocationDescriptor;
+  variant?: HeaderCellVariant;
 }
 
 interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
@@ -37,29 +67,29 @@ interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
 
 type HeaderCellVariant = 'default' | 'first' | 'remaining' | 'full-width';
 
-export function SimpleTable({children, columns, header, ...props}: TableProps) {
-  // This shell has no resize affordance, so its columns do not opt into one.
-  const unresizableColumns = columns?.map(column => ({resizable: false, ...column}));
+export function SimpleTable({
+  children,
+  columns,
+  customSections,
+  header,
+  ...props
+}: TableProps) {
+  // Most tables have fixed layouts, so their columns resize only when they opt in.
+  const resolvedColumns = columns?.map(column => ({resizable: false, ...column}));
 
   return (
-    <StyledTable columns={unresizableColumns} {...props}>
+    <StyledTable columns={resolvedColumns} {...props}>
       <PanelProvider>
-        {header && <Table.Head>{header}</Table.Head>}
-        <Table.Body>{children}</Table.Body>
+        {customSections ? (
+          children
+        ) : (
+          <Fragment>
+            {header ? <Table.Head>{header}</Table.Head> : null}
+            <Table.Body>{children}</Table.Body>
+          </Fragment>
+        )}
       </PanelProvider>
     </StyledTable>
-  );
-}
-
-function HeaderRow({
-  children,
-  sticky,
-  ...props
-}: HTMLAttributes<HTMLTableRowElement> & {sticky?: boolean}) {
-  return (
-    <StyledHeaderRow sticky={sticky} {...props}>
-      {children}
-    </StyledHeaderRow>
   );
 }
 
@@ -72,16 +102,7 @@ function HeaderCell({
   variant = 'default',
   divider = defined(children) ? true : false,
   ...props
-}: HTMLAttributes<HTMLTableCellElement> & {
-  align?: ColumnAlign;
-  children?: React.ReactNode;
-  columnIndex?: number;
-  divider?: boolean;
-  handleSortClick?: (event: React.MouseEvent) => void;
-  sort?: SortDirection;
-  to?: LocationDescriptor;
-  variant?: HeaderCellVariant;
-}) {
+}: HeaderCellProps) {
   return (
     <ColumnHeaderCell
       {...props}
@@ -111,12 +132,7 @@ function Row({children, variant = 'default', ref, ...props}: RowProps) {
   );
 }
 
-function RowCell({
-  children,
-  ...props
-}: ComponentProps<typeof Flex> & {
-  children: React.ReactNode;
-}) {
+function RowCell({children, ...props}: FlexProps<'td'>) {
   return (
     <Flex as="td" role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
       {children}
@@ -124,19 +140,40 @@ function RowCell({
   );
 }
 
-const StyledTable = styled(Table)`
+const StyledTable = styled(Table, {
+  shouldForwardProp: prop => prop !== 'maxHeight' && prop !== 'scrollable',
+})<{maxHeight?: CSS['maxHeight']; scrollable?: boolean}>`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   position: relative;
   margin: 0;
   width: 100%;
-  overflow: hidden;
+  overflow: ${p => (p.scrollable ? 'auto' : 'hidden')};
+
+  ${p =>
+    p.maxHeight &&
+    css`
+      max-height: ${p.maxHeight};
+      min-height: 0;
+    `}
+
+  /* Pin the header to a definite track in tables that can scroll; a content-based
+     header track lets Safari mis-size the <thead> on back/forward navigation. */
+  ${p =>
+    (p.scrollable || p.maxHeight) &&
+    css`
+      &:has(> thead + tbody) {
+        grid-template-rows: ${HEADER_ROW_HEIGHT}px auto;
+      }
+
+      &:has(> thead + tbody + tbody) {
+        grid-template-rows: ${HEADER_ROW_HEIGHT}px fit-content(100%) auto;
+      }
+    `}
 `;
 
-const StyledHeaderRow = styled(Table.Row, {
-  shouldForwardProp: prop => prop !== 'sticky',
-})<{sticky?: boolean}>`
+const StyledHeaderRow = styled(Table.Row)`
   background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: calc(${p => p.theme.radius.md} + 1px)
@@ -144,16 +181,8 @@ const StyledHeaderRow = styled(Table.Row, {
   text-transform: none;
   justify-content: left;
   padding: 0;
-  min-height: 40px;
+  min-height: ${HEADER_ROW_HEIGHT}px;
   align-items: center;
-
-  ${p =>
-    p.sticky &&
-    css`
-      position: sticky;
-      top: 0;
-      z-index: ${p.theme.zIndex.initial};
-    `}
 `;
 
 const StyledRow = styled(Table.Row, {
@@ -270,7 +299,9 @@ function FullWidthRow({children, ...props}: RowProps) {
   );
 }
 
-SimpleTable.HeaderRow = HeaderRow;
+SimpleTable.Body = Table.Body;
+SimpleTable.Head = Table.Head;
+SimpleTable.HeaderRow = StyledHeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;

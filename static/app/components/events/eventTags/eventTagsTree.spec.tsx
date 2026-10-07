@@ -102,7 +102,7 @@ describe('EventTagsTree', () => {
     });
 
     treeBranchTags.forEach(tag => {
-      expect(screen.getByText(tag, {ignore: '[aria-hidden="true"]'})).toBeInTheDocument();
+      expect(screen.getByText(tag, {selector: 'div'})).toBeInTheDocument();
     });
 
     const rows = screen.queryAllByTestId('tag-tree-row');
@@ -263,9 +263,7 @@ describe('EventTagsTree', () => {
       organization,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
-    expect(
-      await screen.findByText('boring-tag', {ignore: '[aria-hidden="true"]'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('boring-tag', {selector: 'div'})).toBeInTheDocument();
     expect(screen.getByText('boring tag')).toBeInTheDocument();
     expect(screen.queryByText('null tag')).not.toBeInTheDocument();
     expect(screen.queryByText('undefined tag')).not.toBeInTheDocument();
@@ -281,12 +279,8 @@ describe('EventTagsTree', () => {
     });
 
     expect(mockDetailedProject).toHaveBeenCalled();
-    expect(
-      await screen.findByText('constructor', {ignore: '[aria-hidden="true"]'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('name', {ignore: '[aria-hidden="true"]'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('constructor', {selector: 'div'})).toBeInTheDocument();
+    expect(screen.getByText('name', {selector: 'div'})).toBeInTheDocument();
     expect(screen.getByText('Event')).toBeInTheDocument();
   });
 
@@ -311,7 +305,7 @@ describe('EventTagsTree', () => {
     // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const normalTagRow = (
-      await screen.findByText('useless-tag', {ignore: '[aria-hidden="true"]'})
+      await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;
     const normalTagDropdown = within(normalTagRow).getByLabelText('Tag Actions Menu');
     await clickAction(normalTagDropdown);
@@ -320,7 +314,7 @@ describe('EventTagsTree', () => {
     // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const highlightTagRow = screen
-      .getByText('highlighted-tag', {ignore: '[aria-hidden="true"]'})
+      .getByText('highlighted-tag', {selector: 'div'})
       .closest('div[data-test-id=tag-tree-row]') as HTMLElement;
     const highlightTagDropdown =
       within(highlightTagRow).getByLabelText('Tag Actions Menu');
@@ -352,7 +346,7 @@ describe('EventTagsTree', () => {
     // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const normalTagRow = (
-      await screen.findByText('useless-tag', {ignore: '[aria-hidden="true"]'})
+      await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;
     const normalTagDropdown = within(normalTagRow).getByLabelText('Tag Actions Menu');
     await clickAction(normalTagDropdown);
@@ -377,7 +371,7 @@ describe('EventTagsTree', () => {
     // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const normalTagRow = (
-      await screen.findByText('useless-tag', {ignore: '[aria-hidden="true"]'})
+      await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;
     const normalTagDropdown = within(normalTagRow).getByLabelText('Tag Actions Menu');
     await clickAction(normalTagDropdown);

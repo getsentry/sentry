@@ -76,6 +76,7 @@ from sentry.monitors.system_incidents import update_check_in_volume
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     ensure_cron_detector,
+    get_max_timeout_at,
     get_new_timeout_at,
     get_timeout_at,
     signal_first_checkin,
@@ -456,7 +457,20 @@ def update_existing_check_in(
         already_user_complete and updated_status == CheckInStatus.IN_PROGRESS
     )
 
-    if already_user_complete and not updated_duration_only and not is_out_of_order_in_progress:
+    # Check-ins can not change once they are older than MAX_TIMEOUT
+    is_past_max_timeout = start_time >= get_max_timeout_at(existing_check_in)
+
+    # In-progress updates can not reopen a timed out check-in
+    is_reopening_timeout = (
+        existing_check_in.status == CheckInStatus.TIMEOUT
+        and updated_status == CheckInStatus.IN_PROGRESS
+    )
+
+    if (
+        (already_user_complete and not updated_duration_only and not is_out_of_order_in_progress)
+        or is_past_max_timeout
+        or is_reopening_timeout
+    ):
         finished_error: CheckinFinished = {
             "type": ProcessingErrorType.CHECKIN_FINISHED,
         }

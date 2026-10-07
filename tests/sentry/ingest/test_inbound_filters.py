@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.test import override_settings
 from sentry_ophio.glob import is_glob_match
@@ -13,6 +15,7 @@ from sentry.ingest.inbound_filters import (
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
 )
+from sentry.models.custominboundfilter import LegacyFilter
 from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -403,6 +406,12 @@ def release_rule_condition(values: list[str]) -> dict:
             id="ip_address_reads_the_envelope_client_ip",
         ),
         pytest.param(
+            "error",
+            [{"type": "geo_country_code", "value": ["US", "CA"]}],
+            {"op": "glob", "name": "event.user.geo.country_code", "value": ["US", "CA"]},
+            id="geo_country_code_reads_the_event_user_geo",
+        ),
+        pytest.param(
             "all",
             [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
@@ -596,6 +605,31 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
     generic_filters = get_custom_inbound_filter_generic_filters(default_project)
     assert [generic_filter["id"] for generic_filter in generic_filters] == [
         f"custom-inbound-filter:{custom_filter.id}" for custom_filter in created
+    ]
+
+
+@django_db_all
+@patch("sentry.ingest.inbound_filters.MAX_FILTERS_PER_PROJECT", 2)
+def test_custom_inbound_filters_stop_at_the_project_cap(default_project, factories) -> None:
+    # The API refuses to create a filter past the cap, so rows past it exist only if they
+    # were made some other way. Relay still gets at most the cap, oldest first.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "value": ["0.*"]}],
+        legacy_filter=LegacyFilter.RELEASE_VERSION,
+    )
+    created = [
+        factories.create_project_custom_inbound_filter(
+            default_project,
+            conditions=[{"type": "release", "value": [f"{version}.*"]}],
+        )
+        for version in (1, 2, 3)
+    ]
+
+    generic_filters = get_custom_inbound_filter_generic_filters(default_project)
+    assert [generic_filter["id"] for generic_filter in generic_filters] == [
+        f"custom-inbound-filter:{custom_filter.id}" for custom_filter in created[:2]
     ]
 
 

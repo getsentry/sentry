@@ -162,7 +162,7 @@ describe('Performance GridEditable Table', () => {
     expect(await screen.findAllByTestId('relative-ops-breakdown')).toHaveLength(2);
 
     expect(screen.getAllByRole('columnheader')).toHaveLength(6);
-    expect(screen.getByText('operation duration')).toBeInTheDocument();
+    expect(screen.getByText('Operation duration')).toBeInTheDocument();
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
   });
 
