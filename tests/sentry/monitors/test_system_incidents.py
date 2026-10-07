@@ -187,7 +187,12 @@ def test_record_last_incident_ts_expires() -> None:
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
-@override_options({"crons.system_incidents.collect_metrics": True})
+@override_options(
+    {
+        "crons.system_incidents.collect_metrics": True,
+        "crons.system_incidents.volume_shifts": [],
+    }
+)
 def test_record_clock_tick_volume_metric_simple(
     metrics: mock.MagicMock, logger: mock.MagicMock
 ) -> None:
@@ -242,7 +247,12 @@ def test_record_clock_tick_volume_metric_simple(
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
-@override_options({"crons.system_incidents.collect_metrics": True})
+@override_options(
+    {
+        "crons.system_incidents.collect_metrics": True,
+        "crons.system_incidents.volume_shifts": [],
+    }
+)
 def test_record_clock_tick_volume_metric_volume_drop(
     metrics: mock.MagicMock, logger: mock.MagicMock
 ) -> None:
@@ -298,7 +308,12 @@ def test_record_clock_tick_volume_metric_volume_drop(
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
-@override_options({"crons.system_incidents.collect_metrics": True})
+@override_options(
+    {
+        "crons.system_incidents.collect_metrics": True,
+        "crons.system_incidents.volume_shifts": [],
+    }
+)
 def test_record_clock_tick_volume_metric_low_history(
     metrics: mock.MagicMock, logger: mock.MagicMock
 ) -> None:
@@ -326,7 +341,12 @@ def test_record_clock_tick_volume_metric_low_history(
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
-@override_options({"crons.system_incidents.collect_metrics": True})
+@override_options(
+    {
+        "crons.system_incidents.collect_metrics": True,
+        "crons.system_incidents.volume_shifts": [],
+    }
+)
 def test_record_clock_tick_volume_metric_uniform(
     metrics: mock.MagicMock, logger: mock.MagicMock
 ) -> None:
@@ -469,7 +489,12 @@ def test_record_clock_tick_volume_metric_volume_shift_partial(
 
     update_check_in_volume([past_ts] * 800)
 
-    with override_options({"crons.system_incidents.collect_metrics": True}):
+    with override_options(
+        {
+            "crons.system_incidents.collect_metrics": True,
+            "crons.system_incidents.volume_shifts": [],
+        }
+    ):
         record_clock_tick_volume_metric(tick)
 
     # Without the shift the history is a blend of old and new volume
