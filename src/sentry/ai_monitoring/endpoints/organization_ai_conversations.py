@@ -7,6 +7,7 @@ import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
 from sentry.ai_monitoring.conversation_aggregates import (
@@ -46,7 +47,6 @@ from sentry.search.eap.types import EAPResponse, FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
@@ -246,7 +246,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         return response
 
-    @trace
+    @traces.trace
     def _get_conversations(
         self,
         snuba_params: SnubaParams,
@@ -289,7 +289,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             )
         return response
 
-    @trace
+    @traces.trace
     def _fetch_conversation_ids(
         self,
         snuba_params: SnubaParams,
@@ -327,7 +327,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             sampling_mode=sampling_mode,
         )
 
-    @trace
+    @traces.trace
     def _get_conversations_data(
         self, snuba_params: SnubaParams, conversation_ids: list[str]
     ) -> list[AIConversationData]:
@@ -409,7 +409,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             if conversation_id in conversations_map
         ]
 
-    @trace
+    @traces.trace
     def _apply_titles(
         self,
         conversations_map: dict[str, AIConversationData],

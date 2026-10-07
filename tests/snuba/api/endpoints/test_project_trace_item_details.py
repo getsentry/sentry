@@ -664,6 +664,38 @@ class ProjectTraceItemDetailsEndpointTest(
         assert "__sentry_internal_span_buffer_outcome" in attribute_names
         assert "__sentry_internal_test" in attribute_names
 
+    def test_internal_convention_attributes_without_elevated_mode(self) -> None:
+        span = self.create_span(
+            {
+                "sentry_tags": {"dsc.environment": "production"},
+                "tags": {
+                    "normal_attr": "visible",
+                    "__sentry_internal_test": "internal",
+                    "sentry._internal.received_at": "internal",
+                },
+            },
+            start_ts=self.one_min_ago,
+        )
+        span["trace_id"] = self.trace_uuid
+        self.store_spans([span])
+
+        for flags, include_conventions in (
+            ({}, False),
+            ({"is_staff": True}, True),
+            ({"is_superuser": True}, True),
+        ):
+            user = self.create_user(**flags)
+            self.create_member(user=user, organization=self.organization, teams=[self.team])
+            self.login_as(user=user)
+
+            response = self.do_request("spans", span["span_id"])
+            assert response.status_code == 200, response.data
+            attribute_names = {attr["name"] for attr in response.data["attributes"]}
+            assert "normal_attr" in attribute_names
+            assert ("dsc.environment" in attribute_names) == include_conventions
+            assert "__sentry_internal_test" not in attribute_names
+            assert "sentry._internal.received_at" not in attribute_names
+
     def test_attachment(self) -> None:
         attachment = self.create_trace_attachment(trace_id=self.trace_uuid, attributes={"foo": 2})
         self.store_eap_items([attachment])

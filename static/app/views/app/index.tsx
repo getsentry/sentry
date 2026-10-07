@@ -201,8 +201,6 @@ export function App() {
   useEffect(() => GuideStore.onURLChange(), [location]);
 
   useEffect(() => {
-    getOverride('analytics:init-user')?.(user);
-
     // Skip loading organization-related data before the user is logged in,
     // because it triggers a 401 error in the UI.
     if (!preloadData) {
@@ -210,6 +208,12 @@ export function App() {
     }
 
     loadOrganizations();
+
+    // Set the user for analytics
+    if (user) {
+      getOverride('analytics:init-user')?.(user);
+    }
+
     fetchGuides();
 
     // When the app is unloaded clear the organizations list

@@ -467,19 +467,26 @@ def update_existing_attachments(job: PostProcessJob) -> None:
     1) ingested prior to the event via the standalone attachment endpoint.
     2) part of a different group before reprocessing started.
 
-    Also makes a second attempt at promoting pending attachments, for projects on
-    `projects:defer-attachment-storage`. See the comment below for why.
+    Also makes a second attempt at promoting pending attachments.
     """
     from sentry.event_manager import save_pending_attachments
     from sentry.models.eventattachment import EventAttachment
 
     event = job["event"]
 
-    # NOTE: This update can probably be removed once `defer-attachment-storage` has graduated
-    # (need to verify post_processing behavior). See INGEST-1173.
-    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).exclude(
-        group_id=event.group_id
-    ).update(group_id=event.group_id)
+    # NOTE: This update can probably be removed (need to verify post_processing behavior). See INGEST-1173.
+    changed = (
+        EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id)
+        .exclude(group_id=event.group_id)
+        .update(group_id=event.group_id)
+    )
+    if changed:
+        metrics.incr(
+            "sentry.tasks.post_process.change_group_id",
+            amount=changed,
+            sample_rate=1,
+            tags={"is_reprocessed": job["is_reprocessed"]},
+        )
 
     # `process_individual_attachment` decides whether an attachment is "pending" by asking
     # eventstore -- i.e. Snuba -- whether the event exists yet. Snuba lags, so an

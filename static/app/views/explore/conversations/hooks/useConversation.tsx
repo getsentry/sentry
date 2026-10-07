@@ -51,16 +51,12 @@ interface ConversationApiSpan {
   'gen_ai.operation.name'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
-  'gen_ai.request.messages'?: string;
   'gen_ai.request.model'?: string;
   'gen_ai.response.model'?: string;
   'gen_ai.response.object'?: string;
-  'gen_ai.response.text'?: string;
   'gen_ai.tool.call.arguments'?: string;
   'gen_ai.tool.call.result'?: string;
-  'gen_ai.tool.input'?: string;
   'gen_ai.tool.name'?: string;
-  'gen_ai.tool.output'?: string;
   'gen_ai.usage.cache_creation.input_tokens'?: number;
   'gen_ai.usage.cache_read.input_tokens'?: number;
   'gen_ai.usage.input_tokens'?: number;
@@ -177,17 +173,13 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_OPERATION_NAME]: apiSpan['gen_ai.operation.name'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
-      [SpanFields.GEN_AI_REQUEST_MESSAGES]: apiSpan['gen_ai.request.messages'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
-      [SpanFields.GEN_AI_RESPONSE_TEXT]: apiSpan['gen_ai.response.text'] ?? '',
       [SpanFields.GEN_AI_REQUEST_MODEL]: apiSpan['gen_ai.request.model'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_MODEL]: apiSpan['gen_ai.response.model'] ?? '',
       [SpanFields.GEN_AI_AGENT_NAME]: apiSpan['gen_ai.agent.name'] ?? '',
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
       'gen_ai.tool.call.arguments': apiSpan['gen_ai.tool.call.arguments'] ?? '',
       'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
-      'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
-      'gen_ai.tool.output': apiSpan['gen_ai.tool.output'] ?? '',
       ...(apiSpan['gen_ai.usage.input_tokens'] !== undefined && {
         [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: apiSpan['gen_ai.usage.input_tokens'],
       }),
@@ -352,7 +344,7 @@ function orderDepthFirst(
   return ordered;
 }
 
-const MAX_PAGES = 10;
+const MAX_PAGES = 100;
 
 export function useConversation(
   conversation: UseConversationsOptions
@@ -382,7 +374,6 @@ export function useConversation(
 
   const queryParams = {
     project,
-    per_page: 1000,
     ...datetimeParams,
   };
 

@@ -402,7 +402,7 @@ type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 /**
  * Called when the app is mounted.
  */
-type AnalyticsInitUser = (user: User | null) => void;
+type AnalyticsInitUser = (user: User) => void;
 
 /**
  * Trigger analytics tracking in the override registry.
