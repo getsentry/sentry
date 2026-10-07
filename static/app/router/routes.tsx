@@ -1,5 +1,4 @@
-import type {RouteObject} from 'react-router-dom';
-import {Outlet} from 'react-router-dom';
+import {Outlet, type RouteObject} from 'react-router';
 import memoize from 'lodash/memoize';
 
 import {t} from 'sentry/locale';
