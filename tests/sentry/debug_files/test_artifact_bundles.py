@@ -13,10 +13,12 @@ from sentry.debug_files.artifact_bundles import (
     get_bundles_indexing_state,
     get_cached_bundles_indexing_state,
     get_redis_cluster_for_artifact_bundles,
+    index_urls_in_bundle,
     query_artifact_bundles_containing_file,
 )
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleArchive,
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
     ProjectArtifactBundle,
@@ -355,6 +357,72 @@ class QueryArtifactBundlesContainingFileTest(TestCase):
             (newer[3].id, "index"),
             (newer[4].id, "release"),
         }
+
+
+class IndexUrlsInBundleTest(TestCase):
+    debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+    def index(self) -> list[str]:
+        files = {
+            "files/_/_/generated.js": {
+                "url": f"~/{self.debug_id}-0.js",
+                "type": "minified_source",
+                "content": b"generated",
+                "headers": {"debug-id": self.debug_id},
+            },
+            "files/_/_/generated.js.map": {
+                "url": f"~/{self.debug_id.upper()}-0.js.map",
+                "type": "source_map",
+                "content": b"generated_map",
+                "headers": {"Debug-Id": self.debug_id.upper()},
+            },
+            "files/_/_/app.js": {
+                "url": "~/static/js/app.js",
+                "type": "minified_source",
+                "content": b"app",
+                "headers": {"debug-id": self.debug_id},
+            },
+            "files/_/_/other.js": {
+                "url": f"~/{self.debug_id}-1.js",
+                "type": "minified_source",
+                "content": b"other",
+                "headers": {"debug-id": "aaaaaaaa-0000-0000-0000-000000000000"},
+            },
+            "files/_/_/plain.js": {
+                "url": f"~/{self.debug_id}-2.js",
+                "type": "minified_source",
+                "content": b"plain",
+            },
+        }
+        artifact_bundle = self.create_artifact_bundle(artifact_count=len(files))
+        with ArtifactBundleArchive(BytesIO(make_compressed_zip_file(files))) as archive:
+            index_urls_in_bundle(self.organization.id, artifact_bundle, archive)
+
+        artifact_bundle.refresh_from_db()
+        assert artifact_bundle.indexing_state == ArtifactBundleIndexingState.WAS_INDEXED.value
+        return sorted(
+            ArtifactBundleIndex.objects.filter(artifact_bundle=artifact_bundle).values_list(
+                "url", flat=True
+            )
+        )
+
+    def test_indexes_all_urls_by_default(self) -> None:
+        assert self.index() == [
+            f"~/{self.debug_id.upper()}-0.js.map",
+            f"~/{self.debug_id}-0.js",
+            f"~/{self.debug_id}-1.js",
+            f"~/{self.debug_id}-2.js",
+            "~/static/js/app.js",
+        ]
+
+    @override_options({"sourcemaps.artifact-bundles.index-skip-debug-id-names": True})
+    def test_skips_files_named_after_their_debug_id(self) -> None:
+        # Only files whose own debug ID starts their name are skipped.
+        assert self.index() == [
+            f"~/{self.debug_id}-1.js",
+            f"~/{self.debug_id}-2.js",
+            "~/static/js/app.js",
+        ]
 
 
 class GetArtifactBundlesContainingUrlTest(TestCase):

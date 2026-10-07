@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 

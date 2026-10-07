@@ -1115,11 +1115,29 @@ register(
 )
 
 
+# Before the artifact-lookup endpoint falls back to its two legacy `ReleaseFile` queries, check
+# that the release has any `ReleaseFile` for the requested dist, and skip both when it has none.
+register(
+    "sourcemaps.artifact-lookup.skip-legacy-without-release-files",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
+# debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
+register(
+    "sourcemaps.artifact-bundles.index-skip-debug-id-names",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Decide whether a release is fully indexed from its newest bundles only, instead of
