@@ -10,6 +10,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
 from sentry.models.team import Team, TeamStatus
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.public_caller import scope_projects
 from sentry.seer.sentry_data_models import (
     ExecuteIssuesQuerySuccessResponse,
     ExecuteQueryErrorResponse,
@@ -456,6 +457,11 @@ def get_issue_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return IssueFilterKeysResponse(tags=[], feature_flags=[], built_in_fields=[])
+    project_ids = scoped.project_ids or []
+
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     base_params: dict[str, Any] = {
@@ -567,6 +573,11 @@ def get_filter_key_values(
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
+
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return FilterKeyValuesResponse(__root__=[])
+    project_ids = scoped.project_ids or []
 
     # Check if this is a built-in field first
     # For 'has' field, we need to get tag keys first
@@ -698,6 +709,11 @@ def execute_issues_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return ExecuteIssuesQuerySuccessResponse(__root__=[])
+    project_ids = scoped.project_ids or []
+
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     params: dict[str, Any] = {
@@ -774,6 +790,11 @@ def get_issues_stats(
 
     if not issue_ids:
         return IssuesStatsResponse(__root__=[])
+
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return IssuesStatsResponse(__root__=[])
+    project_ids = scoped.project_ids or []
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 

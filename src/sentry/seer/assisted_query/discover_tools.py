@@ -6,6 +6,7 @@ from sentry.api.client import ApiClient
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.seer.public_caller import scope_projects
 from sentry.seer.sentry_data_models import (
     EventFilterKeyEntry,
     EventFilterKeysResponse,
@@ -217,6 +218,11 @@ def get_event_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return EventFilterKeysResponse(__root__={})
+    project_ids = scoped.project_ids
+
     # Treat empty projects as a query for all projects.
     if not project_ids:
         project_ids = [ALL_ACCESS_PROJECT_ID]
@@ -283,6 +289,11 @@ def get_event_filter_key_values(
     except Organization.DoesNotExist:
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
+
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return EventFilterKeyValuesResponse(__root__=[])
+    project_ids = scoped.project_ids
 
     # Treat empty projects as a query for all projects.
     if not project_ids:
