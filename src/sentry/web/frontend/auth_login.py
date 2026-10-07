@@ -38,7 +38,6 @@ from sentry.utils.auth import (
     get_login_redirect,
     has_user_registration,
     initiate_login,
-    is_react_auth_enabled,
     is_valid_redirect,
     login,
 )
@@ -89,7 +88,6 @@ def should_render_react_auth(request: HttpRequest) -> bool:
         request.method == "GET"
         and request.resolver_match
         and request.resolver_match.url_name in REACT_AUTH_URL_NAMES
-        and is_react_auth_enabled(request)
     )
 
 
