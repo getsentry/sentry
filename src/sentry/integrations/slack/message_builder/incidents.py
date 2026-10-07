@@ -4,10 +4,7 @@ from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueCo
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.investigations import (
-    build_investigation_block,
-    should_show_investigation_button,
-)
+from sentry.integrations.slack.message_builder.investigations import build_investigation_block
 from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING, SlackBody
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.organization import Organization
@@ -71,22 +68,11 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         if self.chart_url:
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
 
-        group = self.metric_issue_context.group
-        if (
-            group is not None
-            and self.open_period_id is not None
-            and should_show_investigation_button(
-                self.organization, self.metric_issue_context.new_status
-            )
-        ):
-            blocks.append(
-                build_investigation_block(
-                    organization_id=self.organization.id,
-                    project_id=group.project_id,
-                    group_id=group.id,
-                    open_period_id=self.open_period_id,
-                )
-            )
+        investigation_block = build_investigation_block(
+            self.organization, self.metric_issue_context, self.open_period_id
+        )
+        if investigation_block:
+            blocks.append(investigation_block)
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
         fallback_text = f"<{data['title_link']}|*{escape_slack_text(data['title'])}*>"
