@@ -3,16 +3,16 @@ import {Button} from '@sentry/scraps/button';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-const CODE_OWNER_DELETE_TOOLTIP = t(
-  'Remove the Code Owners connection before deleting this mapping.'
-);
+import {CodeOwnerMessage} from './codeOwnerMessage';
 
 export function PathMappingDeleteButton({
   hasCodeOwner,
   onDelete,
+  projectSlug,
 }: {
   onDelete: () => void;
   hasCodeOwner?: boolean;
+  projectSlug?: string;
 }) {
   return (
     <Button
@@ -21,7 +21,11 @@ export function PathMappingDeleteButton({
       icon={<IconDelete />}
       aria-label={t('Delete path mapping')}
       disabled={hasCodeOwner}
-      tooltipProps={hasCodeOwner ? {title: CODE_OWNER_DELETE_TOOLTIP} : undefined}
+      tooltipProps={
+        hasCodeOwner
+          ? {title: <CodeOwnerMessage projectSlug={projectSlug} />, isHoverable: true}
+          : undefined
+      }
       onClick={onDelete}
     />
   );

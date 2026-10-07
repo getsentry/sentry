@@ -28,6 +28,7 @@ interface PathMappingSummaryProps extends PathMappingValue {
   onExpandToggle: () => void;
   defaultBranch?: string;
   onDelete?: () => void;
+  projectSlug?: string;
   warning?: PathMappingWarning;
 }
 
@@ -53,6 +54,7 @@ export function PathMappingSummary({
   onDelete,
   onExpandToggle,
   defaultBranch,
+  projectSlug,
   warning,
   automaticallyGenerated,
   hasCodeOwner,
@@ -120,7 +122,11 @@ export function PathMappingSummary({
             onClick={onExpandToggle}
           />
           {onDelete && (
-            <PathMappingDeleteButton hasCodeOwner={hasCodeOwner} onDelete={onDelete} />
+            <PathMappingDeleteButton
+              hasCodeOwner={hasCodeOwner}
+              onDelete={onDelete}
+              projectSlug={projectSlug}
+            />
           )}
         </Flex>
       </Flex>

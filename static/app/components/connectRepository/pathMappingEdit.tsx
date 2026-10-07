@@ -58,6 +58,7 @@ export const PathMappingEdit = withFieldGroup({
                     <PathMappingDeleteButton
                       hasCodeOwner={hasCodeOwner}
                       onDelete={onDelete}
+                      projectSlug={projectSlug}
                     />
                   )}
                 </Flex>

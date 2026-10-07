@@ -48,6 +48,7 @@ export function PathMapping({
           {...value}
           defaultBranch={defaultBranch}
           expanded={editing}
+          projectSlug={projectSlug}
           warning={warning}
           onDelete={onDelete}
           onExpandToggle={onExpandToggle}

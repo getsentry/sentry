@@ -9,9 +9,11 @@ function renderMapping({
   value = {stackRoot: '', sourceRoot: '', branch: ''},
   editing = false,
   isNew = false,
+  projectSlug,
 }: {
   editing?: boolean;
   isNew?: boolean;
+  projectSlug?: string;
   value?: PathMappingValue;
 } = {}) {
   function Wrapper() {
@@ -30,6 +32,7 @@ function renderMapping({
           value={value}
           onDelete={jest.fn()}
           onExpandToggle={jest.fn()}
+          projectSlug={projectSlug}
         />
       </form.AppForm>
     );
@@ -111,5 +114,25 @@ describe('PathMapping', () => {
     );
 
     expect(screen.getByText('lib/')).toBeInTheDocument();
+  });
+
+  it('explains the disabled delete with a link to Code Owners', async () => {
+    renderMapping({
+      projectSlug: 'my-project',
+      value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main', hasCodeOwner: true},
+    });
+
+    const deleteButton = screen.getByRole('button', {name: 'Delete path mapping'});
+    expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(deleteButton);
+
+    expect(await screen.findByRole('link', {name: 'Code Owners'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/projects/my-project/ownership/')
+    );
+    expect(
+      screen.getByText(/Remove the Code Owners connection before editing these paths/)
+    ).toBeInTheDocument();
   });
 });

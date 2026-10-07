@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Link} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {CodeOwnerMessage} from './codeOwnerMessage';
 import type {PathMappingWarning} from './warnings';
 
 interface PathMappingWarningAlertProps {
@@ -28,16 +27,10 @@ export function PathMappingWarningAlert({
   warning,
   projectSlug,
 }: PathMappingWarningAlertProps) {
-  const organization = useOrganization();
-
   if (warning?.type === 'codeOwner') {
-    const ownershipUrl = `/settings/${organization.slug}/projects/${projectSlug}/ownership/`;
     return (
       <Alert variant="warning" showIcon>
-        {tct(
-          'This mapping is linked to a [link:Code Owners] file. Remove the Code Owners connection before editing these paths or deleting this mapping.',
-          {link: <Link to={ownershipUrl} />}
-        )}
+        <CodeOwnerMessage projectSlug={projectSlug} />
       </Alert>
     );
   }
