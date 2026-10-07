@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Collection, Mapping
 from copy import copy
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import NotRequired, TypedDict, cast
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -73,18 +73,21 @@ def is_tracking_enabled(
     )
 
 
-def decorate_links(
-    rendered_template: NotificationRenderedTemplate, *, referrer: str, notification_uuid: str
-) -> tuple[NotificationRenderedTemplate, set[NotificationLink]]:
-    """
-    Adds `referrer`, `notification_uuid`, and `notification_link` (the link's `tracked_as` name) to
-    every tracked link in the rendered template, replacing any values already there. Returns the
-    decorated template and the names of the links it contains. A link that can't be decorated is
-    kept as it was.
-    """
-    links: set[NotificationLink] = set()
+@dataclass
+class NotificationLinkDecorator:
+    source: NotificationSource | str
+    provider: NotificationProviderKey | str
+    notification_uuid: str | None
+    links: set[NotificationLink] = field(default_factory=set, init=False)
 
-    def decorate(url: str, tracked_as: NotificationLink) -> str:
+    def decorate(self, url: str, tracked_as: NotificationLink) -> str:
+        """
+        Add tracking parameters to a URL and include its name in the set of links present in the
+        notification. A URL that can't be decorated is returned unchanged and isn't included.
+        """
+        if self.notification_uuid is None or not is_tracking_enabled(self.source, self.provider):
+            return url
+
         try:
             parsed = urlsplit(url)
             query = [
@@ -93,54 +96,61 @@ def decorate_links(
                 if key not in ("referrer", "notification_uuid", "notification_link")
             ]
             query += [
-                ("referrer", referrer),
-                ("notification_uuid", notification_uuid),
+                ("referrer", f"{self.source}-{self.provider}"),
+                ("notification_uuid", self.notification_uuid),
                 ("notification_link", tracked_as),
             ]
             decorated = urlunsplit(parsed._replace(query=urlencode(query)))
         except Exception:
             logger.exception("notifications.tracking.decorate_link.failed", extra={"url": url})
             return url
-        links.add(tracked_as)
+        self.links.add(tracked_as)
         return decorated
 
-    def decorate_blocks(blocks: list[NotificationTextBlock]) -> list[NotificationTextBlock]:
-        return [
-            (
-                replace(block, url=decorate(block.url, block.tracked_as))
-                if isinstance(block, LinkTextBlock) and block.tracked_as
-                else block
-            )
-            for block in blocks
-        ]
+    def decorate_template(
+        self, rendered_template: NotificationRenderedTemplate
+    ) -> NotificationRenderedTemplate:
+        if self.notification_uuid is None or not is_tracking_enabled(self.source, self.provider):
+            return rendered_template
 
-    def decorate_text(
-        text: str | list[NotificationTextBlock],
-    ) -> str | list[NotificationTextBlock]:
-        return text if isinstance(text, str) else decorate_blocks(text)
+        def decorate_blocks(blocks: list[NotificationTextBlock]) -> list[NotificationTextBlock]:
+            return [
+                (
+                    replace(block, url=self.decorate(block.url, block.tracked_as))
+                    if isinstance(block, LinkTextBlock) and block.tracked_as
+                    else block
+                )
+                for block in blocks
+            ]
 
-    def decorate_section(section: NotificationSection) -> NotificationSection:
-        decorated_section = copy(section)
-        decorated_section.blocks = decorate_blocks(section.blocks)
-        return decorated_section
+        def decorate_text(
+            text: str | list[NotificationTextBlock],
+        ) -> str | list[NotificationTextBlock]:
+            return text if isinstance(text, str) else decorate_blocks(text)
 
-    decorated = replace(
-        rendered_template,
-        subject=decorate_text(rendered_template.subject),
-        body=[decorate_section(section) for section in rendered_template.body],
-        actions=[
-            (
-                replace(action, link=decorate(action.link, action.tracked_as))
-                if action.tracked_as
-                else action
-            )
-            for action in rendered_template.actions
-        ],
-        footer=(
-            None if rendered_template.footer is None else decorate_text(rendered_template.footer)
-        ),
-    )
-    return decorated, links
+        def decorate_section(section: NotificationSection) -> NotificationSection:
+            decorated_section = copy(section)
+            decorated_section.blocks = decorate_blocks(section.blocks)
+            return decorated_section
+
+        return replace(
+            rendered_template,
+            subject=decorate_text(rendered_template.subject),
+            body=[decorate_section(section) for section in rendered_template.body],
+            actions=[
+                (
+                    replace(action, link=self.decorate(action.link, action.tracked_as))
+                    if action.tracked_as
+                    else action
+                )
+                for action in rendered_template.actions
+            ],
+            footer=(
+                None
+                if rendered_template.footer is None
+                else decorate_text(rendered_template.footer)
+            ),
+        )
 
 
 def record_sent(context: NotificationTrackingContext, *, links: Collection[str] = ()) -> None:

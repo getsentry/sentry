@@ -14,8 +14,10 @@ from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.service import NotificationRenderError
 from sentry.notifications.platform.templates.issue import IssueNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
+    NotificationLink,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
@@ -38,7 +40,11 @@ if TYPE_CHECKING:
 class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> MSTeamsRenderable:
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueMSTeamsRenderer does not support {data.__class__.__name__}")
@@ -67,6 +73,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
         rules = [data.rule.to_rule()] if data.rule else []
         issue_url = cls.build_issue_url(group=group, notification_uuid=data.notification_uuid)
+        issue_url = link_decorator.decorate(issue_url, NotificationLink.ISSUE)
 
         fields: list[Block | None] = [
             cls.build_description(group=group, event=event),

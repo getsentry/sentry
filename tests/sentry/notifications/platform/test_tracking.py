@@ -7,8 +7,8 @@ from sentry.analytics.events.notification_tracking import (
 )
 from sentry.notifications.platform.tracking import (
     NotificationEngagementMechanism,
+    NotificationLinkDecorator,
     NotificationTrackingContext,
-    decorate_links,
     is_tracking_enabled,
     record_engagement,
     record_sent,
@@ -214,6 +214,7 @@ class RecordEngagementTest(TestCase):
         mock_record.assert_not_called()
 
 
+@override_options(ENABLED_OPTIONS)
 class DecorateLinksTest(TestCase):
     referrer = "activity-seer-rca-completed-email"
     notification_uuid = "0b1c3a4e-7d0f-4b8a-9b6e-0c7a2f3d5e61"
@@ -222,9 +223,12 @@ class DecorateLinksTest(TestCase):
     def decorate(
         self, rendered_template: NotificationRenderedTemplate
     ) -> tuple[NotificationRenderedTemplate, set[NotificationLink]]:
-        return decorate_links(
-            rendered_template, referrer=self.referrer, notification_uuid=self.notification_uuid
+        decorator = NotificationLinkDecorator(
+            source=NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
+            provider=NotificationProviderKey.EMAIL,
+            notification_uuid=self.notification_uuid,
         )
+        return decorator.decorate_template(rendered_template), decorator.links
 
     def test_decorates_tracked_links(self) -> None:
         rendered_template = NotificationRenderedTemplate(

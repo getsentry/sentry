@@ -1,5 +1,6 @@
 from typing import Protocol
 
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationRenderedTemplate,
@@ -18,7 +19,11 @@ class NotificationRenderer[RenderableT](Protocol):
 
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> RenderableT:
         """
         Convert a rendered template into a renderable object specific to the provider.
@@ -26,6 +31,7 @@ class NotificationRenderer[RenderableT](Protocol):
 
         We pass in the data as well since custom renderers may use raw data to modify the output
         for the provider where the template cannot. For example, custom markdown formatting,
-        provider-specific features like modals, etc.
+        provider-specific features like modals, etc. Custom renderers can use `link_decorator` to
+        decorate links they create outside the rendered template.
         """
         ...

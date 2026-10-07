@@ -11,7 +11,8 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.shadow.capture import record_legacy_render
-from sentry.notifications.platform.types import NotificationProviderKey
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.notifications.types import RuleFuture
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -52,7 +53,15 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
             message = DiscordIssuesMessageBuilder(
-                event.group, event=event, tags=tags, rules=rules
+                event.group,
+                event=event,
+                tags=tags,
+                rules=rules,
+                link_decorator=NotificationLinkDecorator(
+                    source=NotificationSource.ISSUE,
+                    provider=NotificationProviderKey.DISCORD,
+                    notification_uuid=notification_uuid,
+                ),
             ).build(notification_uuid=notification_uuid)
             record_legacy_render(NotificationProviderKey.DISCORD, message)
 

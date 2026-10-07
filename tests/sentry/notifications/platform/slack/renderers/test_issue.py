@@ -15,7 +15,10 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationTemplate,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
 )
@@ -24,6 +27,20 @@ from sentry.testutils.notifications.platform import MockNotification
 from sentry.utils import json
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+
+
+def render_issue(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> SlackRenderable:
+    return IssueSlackRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source=data.source,
+            provider=NotificationProviderKey.SLACK,
+            notification_uuid=data.notification_uuid,
+        ),
+    )
 
 
 class IssueAlertInvocationMixin(TestCase):
@@ -152,7 +169,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            IssueSlackRenderer.render(
+            render_issue(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -280,7 +297,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueSlackRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -297,7 +314,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueSlackRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -318,7 +335,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueSlackRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )

@@ -14,7 +14,11 @@ from sentry.notifications.platform.msteams.renderers.metric_alert import (
     MSTeamsMetricAlertRenderer,
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
-from sentry.notifications.platform.types import NotificationRenderedTemplate
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationRenderedTemplate,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
@@ -83,6 +87,11 @@ class MetricAlertCardLegacyParityTest(MetricAlertHandlerBase):
         return MSTeamsMetricAlertRenderer.render(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Metric Alert", body=[]),
+            link_decorator=NotificationLinkDecorator(
+                source=data.source,
+                provider=NotificationProviderKey.MSTEAMS,
+                notification_uuid=data.notification_uuid,
+            ),
         )
 
     def assert_parity(self, priority: DetectorPriorityLevel, expected_status: str) -> None:

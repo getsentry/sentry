@@ -12,7 +12,11 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
-from sentry.notifications.platform.types import NotificationRenderedTemplate
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationRenderedTemplate,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -70,6 +74,11 @@ class IssueCardLegacyParityTest(TestCase):
         return IssueMSTeamsRenderer.render(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+            link_decorator=NotificationLinkDecorator(
+                source=data.source,
+                provider=NotificationProviderKey.MSTEAMS,
+                notification_uuid=data.notification_uuid,
+            ),
         )
 
     def assert_parity(self) -> None:

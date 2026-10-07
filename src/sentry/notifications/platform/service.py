@@ -30,9 +30,8 @@ from sentry.notifications.platform.threading import (
     ThreadingService,
 )
 from sentry.notifications.platform.tracking import (
+    NotificationLinkDecorator,
     NotificationTrackingContext,
-    decorate_links,
-    is_tracking_enabled,
     record_sent,
 )
 from sentry.notifications.platform.types import (
@@ -189,20 +188,22 @@ class NotificationService[T: NotificationData]:
         provider: type[NotificationProvider[RenderableT]],
     ) -> tuple[RenderableT, set[NotificationLink]]:
         """
-        Returns the renderable and the names of the tracked links it contains. Links are only tracked
-        through the provider's default renderer, since custom renderers don't use the rendered
-        template.
+        Returns the renderable and the names of the tracked links it contains.
         """
         rendered_template = template.render(data=data)
         renderer = provider.get_renderer(data=data)
-        links: set[NotificationLink] = set()
-        if renderer is provider.default_renderer and is_tracking_enabled(data.source, provider.key):
-            rendered_template, links = decorate_links(
-                rendered_template,
-                referrer=f"{data.source}-{provider.key}",
-                notification_uuid=data.notification_uuid,
-            )
-        return renderer.render(data=data, rendered_template=rendered_template), links
+        link_decorator = NotificationLinkDecorator(
+            source=data.source,
+            provider=provider.key,
+            notification_uuid=data.notification_uuid,
+        )
+        rendered_template = link_decorator.decorate_template(rendered_template)
+        renderable = renderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=link_decorator,
+        )
+        return renderable, set(link_decorator.links)
 
     @staticmethod
     def _resolve_thread_context(

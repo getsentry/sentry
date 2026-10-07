@@ -31,6 +31,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixTrigger,
     SeerAutofixUpdate,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -102,7 +103,11 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         if isinstance(data, SeerAutofixTrigger):
             autofix_button = cls._render_autofix_button(data)

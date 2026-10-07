@@ -14,13 +14,30 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
 )
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification
+
+
+def render_issue(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> dict[str, Any]:
+    return IssueDiscordRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source=data.source,
+            provider=NotificationProviderKey.DISCORD,
+            notification_uuid=data.notification_uuid,
+        ),
+    )
 
 
 class IssueDiscordRendererTest(TestCase):
@@ -62,7 +79,7 @@ class IssueDiscordRendererTest(TestCase):
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            IssueDiscordRenderer.render(
+            render_issue(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -71,7 +88,7 @@ class IssueDiscordRendererTest(TestCase):
         data, event, group = self._create_data()
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueDiscordRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -105,7 +122,7 @@ class IssueDiscordRendererTest(TestCase):
         )
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueDiscordRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )

@@ -16,6 +16,7 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -40,7 +41,11 @@ type MSTeamsRenderable = AdaptiveCard
 class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> MSTeamsRenderable:
         from sentry.integrations.msteams.card_builder.block import (
             ADAPTIVE_CARD_SCHEMA_URL,

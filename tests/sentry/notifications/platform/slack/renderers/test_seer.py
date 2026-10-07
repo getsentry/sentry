@@ -15,7 +15,7 @@ from slack_sdk.models.blocks import (
 )
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
-from sentry.notifications.platform.slack.provider import SlackNotificationProvider
+from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.slack.renderers.seer import AUTOFIX_CONFIG, SeerSlackRenderer
 from sentry.notifications.platform.slack.renderers.seer_agent_write_approval import (
     SeerAgentWriteApprovalSlackRenderer,
@@ -28,9 +28,29 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
 )
-from sentry.notifications.platform.types import NotificationRenderedTemplate
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
+    NotificationRenderedTemplate,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
+
+
+def render_seer(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> SlackRenderable:
+    renderer = SlackNotificationProvider.get_renderer(data=data)
+    return renderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source=data.source,
+            provider=NotificationProviderKey.SLACK,
+            notification_uuid=data.notification_uuid,
+        ),
+    )
 
 
 class SeerSlackRendererTest(TestCase):
@@ -298,7 +318,7 @@ class SeerSlackRendererAgentErrorTest(TestCase):
 
     def test_render_dispatches_to_agent_error(self) -> None:
         data = SeerAgentError(organization_id=1, error_message="Something went wrong.")
-        renderable = SeerSlackRenderer.render(
+        renderable = render_seer(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="", body=[]),
         )
@@ -394,7 +414,7 @@ class SeerSlackRendererAgentTest(TestCase):
 
     def test_render_dispatches_to_agent_response(self) -> None:
         data = self._create_agent_response(summary="Test")
-        renderable = SeerSlackRenderer.render(
+        renderable = render_seer(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="", body=[]),
         )
@@ -414,7 +434,7 @@ class SeerAgentWriteApprovalSlackRendererTest(TestCase):
 
         renderer = SlackNotificationProvider.get_renderer(data=data)
         assert renderer is SeerAgentWriteApprovalSlackRenderer
-        renderable = renderer.render(data=data, rendered_template=self.rendered_template)
+        renderable = render_seer(data, self.rendered_template)
 
         assert renderable["text"] == "Seer needs approval to make a change"
         assert len(renderable["blocks"]) == 3

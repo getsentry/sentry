@@ -7,8 +7,10 @@ from sentry.notifications.platform.msteams.provider import MSTeamsRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
+    NotificationLink,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
@@ -21,7 +23,11 @@ from sentry.notifications.platform.types import (
 class MSTeamsMetricAlertRenderer(NotificationRenderer[MSTeamsRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> MSTeamsRenderable:
         if not isinstance(data, MetricAlertNotificationData):
             raise ValueError(
@@ -42,6 +48,7 @@ class MSTeamsMetricAlertRenderer(NotificationRenderer[MSTeamsRenderable]):
         footer_text = "Sentry Incident | {}".format(
             data.open_period_context.date_started.strftime("%b %d")
         )
+        title_link = link_decorator.decorate(data.title_link, NotificationLink.ALERT)
 
         return {
             "type": "AdaptiveCard",
@@ -65,7 +72,7 @@ class MSTeamsMetricAlertRenderer(NotificationRenderer[MSTeamsRenderable]):
                                     "items": [
                                         {
                                             "type": "TextBlock",
-                                            "text": f"[{data.title}]({data.title_link})",
+                                            "text": f"[{data.title}]({title_link})",
                                             "fontType": "Default",
                                             "weight": TextWeight.BOLDER,
                                         },

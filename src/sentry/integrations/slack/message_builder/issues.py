@@ -52,6 +52,8 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.platform.types import NotificationLink
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -427,6 +429,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         send_nudge: bool = False,
         has_mentions_read_scope: bool = False,
         workflow_id: int | None = None,
+        *,
+        link_decorator: NotificationLinkDecorator,
     ) -> None:
         super().__init__()
         self.group = group
@@ -445,6 +449,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.send_nudge = send_nudge
         self.has_mentions_read_scope = has_mentions_read_scope
         self.workflow_id = workflow_id
+        self.link_decorator = link_decorator
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
@@ -658,6 +663,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     rule_environment_id,
                     notification_uuid=notification_uuid,
                 )
+        if title_link is not None:
+            title_link = self.link_decorator.decorate(title_link, NotificationLink.ISSUE)
 
         blocks = [self.get_title_block(event_or_group, has_action, title_link)]
 

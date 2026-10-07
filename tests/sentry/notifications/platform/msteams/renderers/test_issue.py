@@ -48,13 +48,30 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification
 from sentry.types.actor import Actor
+
+
+def render_issue(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> AdaptiveCard:
+    return IssueMSTeamsRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source=data.source,
+            provider=NotificationProviderKey.MSTEAMS,
+            notification_uuid=data.notification_uuid,
+        ),
+    )
 
 
 class IssueMSTeamsRendererTest(TestCase):
@@ -231,7 +248,7 @@ class IssueMSTeamsRendererTest(TestCase):
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            IssueMSTeamsRenderer.render(
+            render_issue(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -240,7 +257,7 @@ class IssueMSTeamsRendererTest(TestCase):
         data, event, group = self._create_data()
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -255,7 +272,7 @@ class IssueMSTeamsRendererTest(TestCase):
         data, _, group = self._create_data()
         group.update(status=GroupStatus.RESOLVED, substatus=None)
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
         )
@@ -276,7 +293,7 @@ class IssueMSTeamsRendererTest(TestCase):
         data, _, group = self._create_data()
         GroupAssignee.objects.assign(group, self.user)
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
         )
@@ -291,7 +308,7 @@ class IssueMSTeamsRendererTest(TestCase):
         # them as strings regardless of what was sent.
         data, _, _ = self._create_data()
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
         )
@@ -309,7 +326,7 @@ class IssueMSTeamsRendererTest(TestCase):
         )
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -328,7 +345,7 @@ class IssueMSTeamsRendererTest(TestCase):
         )
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -357,7 +374,7 @@ class IssueMSTeamsRendererTest(TestCase):
         )
         assert latest_event.group_id == group.id
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
         )
@@ -379,7 +396,7 @@ class IssueMSTeamsRendererTest(TestCase):
             patch.object(eventstore.backend, "get_event_by_id", return_value=event),
             patch.object(event, "for_group", return_value=group_event) as for_group,
         ):
-            result = IssueMSTeamsRenderer.render(
+            result = render_issue(
                 data=data,
                 rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
             )
@@ -394,7 +411,7 @@ class IssueMSTeamsRendererTest(TestCase):
         GroupAssignee.objects.assign(group, self.user)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -409,7 +426,7 @@ class IssueMSTeamsRendererTest(TestCase):
         with patch.object(
             Group, "get_assignee", side_effect=Actor.InvalidActor("Assignee no longer exists")
         ):
-            result = IssueMSTeamsRenderer.render(
+            result = render_issue(
                 data=data,
                 rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
             )
@@ -428,7 +445,7 @@ class IssueMSTeamsRendererTest(TestCase):
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
         with pytest.raises(NotificationRenderError, match="Group 999999999 not found"):
-            IssueMSTeamsRenderer.render(
+            render_issue(
                 data=data,
                 rendered_template=rendered_template,
             )

@@ -16,6 +16,7 @@ from sentry.notifications.platform.msteams.provider import (
 )
 from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
 from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedAction,
@@ -28,12 +29,25 @@ from tests.sentry.integrations.msteams.test_message_builder import _is_open_url_
 
 
 class MSTeamsRendererTest(TestCase):
+    def render(
+        self, data: MockNotification, rendered_template: NotificationRenderedTemplate
+    ) -> MSTeamsRenderable:
+        return MSTeamsRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=NotificationLinkDecorator(
+                source=data.source,
+                provider=NotificationProviderKey.MSTEAMS,
+                notification_uuid=data.notification_uuid,
+            ),
+        )
+
     def test_default_renderer(self) -> None:
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
 
-        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
+        renderable = self.render(data, rendered_template)
 
         # Verify the basic structure of the AdaptiveCard
         assert renderable["type"] == "AdaptiveCard"
@@ -106,7 +120,7 @@ class MSTeamsRendererTest(TestCase):
             chart=None,  # No chart
         )
 
-        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
+        renderable = self.render(data, rendered_template)
 
         body_blocks = renderable["body"]
         assert len(body_blocks) == 6  # title, 3 body blocks, actions, footer (no chart)
@@ -128,7 +142,7 @@ class MSTeamsRendererTest(TestCase):
             chart=base_template.chart,
         )
 
-        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
+        renderable = self.render(data, rendered_template)
 
         body_blocks = renderable["body"]
         assert len(body_blocks) == 6  # title, 3 body blocks, actions, chart (no footer)
@@ -154,7 +168,7 @@ class MSTeamsRendererTest(TestCase):
             chart=base_template.chart,
         )
 
-        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
+        renderable = self.render(data, rendered_template)
 
         body_blocks = renderable["body"]
         assert len(body_blocks) == 6  # title, 3 body blocks, chart, footer (no actions)
@@ -189,7 +203,7 @@ class MSTeamsRendererTest(TestCase):
             chart=None,
         )
 
-        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
+        renderable = self.render(data, rendered_template)
 
         body_blocks = renderable["body"]
         actions_block = body_blocks[4]

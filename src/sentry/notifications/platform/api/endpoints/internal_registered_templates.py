@@ -13,6 +13,7 @@ from sentry.notifications.platform.email.provider import EmailRenderer
 from sentry.notifications.platform.msteams.provider import MSTeamsRenderable, MSTeamsRenderer
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -83,7 +84,15 @@ def serialize_email_preview[T: NotificationData](
 ) -> dict[str, Any]:
     data = template.example_data
     rendered_template = template.render_example()
-    email = EmailRenderer.render(data=data, rendered_template=rendered_template)
+    email = EmailRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source=data.source,
+            provider=NotificationProviderKey.EMAIL,
+            notification_uuid=data.notification_uuid,
+        ),
+    )
     return {
         "subject": email.subject,
         "text_content": email.body,
@@ -96,7 +105,15 @@ def serialize_msteams_preview[T: NotificationData](
 ) -> MSTeamsRenderable:
     data = template.example_data
     rendered_template = template.render_example()
-    return MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
+    return MSTeamsRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source=data.source,
+            provider=NotificationProviderKey.MSTEAMS,
+            notification_uuid=data.notification_uuid,
+        ),
+    )
 
 
 def serialize_slack_preview[T: NotificationData](
@@ -105,7 +122,15 @@ def serialize_slack_preview[T: NotificationData](
     data = template.example_data
     rendered_template = template.render_example()
     renderer = SlackNotificationProvider.get_renderer(data=data)
-    message = renderer.render(data=data, rendered_template=rendered_template)
+    message = renderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source=data.source,
+            provider=NotificationProviderKey.SLACK,
+            notification_uuid=data.notification_uuid,
+        ),
+    )
 
     serialized_blocks = []
     for block in message.get("blocks", []):
@@ -119,7 +144,15 @@ def serialize_discord_preview[T: NotificationData](
 ) -> DiscordRenderable:
     data = template.example_data
     rendered_template = template.render_example()
-    return DiscordRenderer.render(data=data, rendered_template=rendered_template)
+    return DiscordRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source=data.source,
+            provider=NotificationProviderKey.DISCORD,
+            notification_uuid=data.notification_uuid,
+        ),
+    )
 
 
 def serialize_template[T: NotificationData](

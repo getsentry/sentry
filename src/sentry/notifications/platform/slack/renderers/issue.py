@@ -6,6 +6,7 @@ from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.issue import IssueNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -18,7 +19,11 @@ from sentry.notifications.platform.types import (
 class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueSlackRenderer does not support {data.__class__.__name__}")
@@ -30,14 +35,16 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.event_id:
             event = eventstore.backend.get_event_by_id(group.project.id, data.event_id)
 
-        blocks_dict = SlackIssuesMessageBuilder(
+        builder = SlackIssuesMessageBuilder(
             group=group,
             event=event,
             tags=set(data.tags) if data.tags else None,
             rules=[data.rule.to_rule()] if data.rule else None,
             notes=data.notes,
             link_to_event=True,
-        ).build(notification_uuid=data.notification_uuid)
+            link_decorator=link_decorator,
+        )
+        blocks_dict = builder.build(notification_uuid=data.notification_uuid)
 
         return SlackRenderable(
             blocks=blocks_dict.get("blocks", []),

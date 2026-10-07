@@ -20,6 +20,7 @@ from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
@@ -316,7 +317,15 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         data = MockNotification(message="test")
         rendered_template = MockNotificationTemplate().render(data)
         renderer = SlackNotificationProvider.get_renderer(data=data)
-        self.slack_renderable = renderer.render(data=data, rendered_template=rendered_template)
+        self.slack_renderable = renderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=NotificationLinkDecorator(
+                source=data.source,
+                provider=NotificationProviderKey.SLACK,
+                notification_uuid=data.notification_uuid,
+            ),
+        )
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_send_notification_success(self, mock_chat_post: MagicMock) -> None:

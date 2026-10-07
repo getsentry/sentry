@@ -5,8 +5,10 @@ from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
+    NotificationLink,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
@@ -19,7 +21,11 @@ from sentry.notifications.platform.types import (
 class DiscordMetricAlertRenderer(NotificationRenderer[DiscordRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> DiscordRenderable:
         if not isinstance(data, MetricAlertNotificationData):
             raise ValueError(
@@ -41,10 +47,11 @@ class DiscordMetricAlertRenderer(NotificationRenderer[DiscordRenderable]):
         status = get_status_text(IncidentStatus(data.new_status))
         description = f"{data.text}{get_started_at(data.open_period_context.date_started)}"
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))
+        title_link = link_decorator.decorate(data.title_link, NotificationLink.ALERT)
 
         embed = DiscordMessageEmbed(
             title=data.title,
-            url=data.title_link,
+            url=title_link,
             description=description,
             color=color,
             image=(DiscordMessageEmbedImage(url=data.chart_url) if data.chart_url else None),
