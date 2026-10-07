@@ -1,20 +1,18 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {EmptyStateWarning, EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
@@ -37,14 +35,20 @@ import {
 } from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
 import {SpanTable} from 'sentry/views/explore/tables/tracesTable/spansTable';
 import {
-  BreakdownPanelItem,
+  BreakdownCell,
   EmptyStateText,
   EmptyValueContainer,
-  StyledPanel,
-  StyledPanelHeader,
-  StyledPanelItem,
   WrappingText,
 } from 'sentry/views/explore/tables/tracesTable/styles';
+
+const TRACES_TABLE_COLUMNS: TableColumnConfig[] = [
+  {key: 'trace', width: 'min-content'},
+  {key: 'root', width: 'minmax(105px, auto)'},
+  {key: 'spans', width: 'min-content'},
+  {key: 'timeline', width: 'min-content'},
+  {key: 'duration', width: 'min-content'},
+  {key: 'timestamp', width: 'min-content'},
+];
 
 interface TracesTableProps {
   tracesTableResult: TracesTableResult;
@@ -67,75 +71,58 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
 
   return (
     <Fragment>
-      <StyledPanel>
-        <Container width="100%" minWidth={0} overflowX="auto">
-          <Grid width="100%" columns="116px auto repeat(3, min-content) 95px">
-            <StyledPanelHeader justify="start" lightText radius="md 0 0 0">
-              {t('Trace ID')}
-            </StyledPanelHeader>
-
-            <StyledPanelHeader justify="start" lightText>
-              {t('Trace Root')}
-            </StyledPanelHeader>
-
-            <StyledPanelHeader justify="end" lightText>
+      <SimpleTable
+        aria-label={t('Trace samples')}
+        columns={TRACES_TABLE_COLUMNS}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Trace ID')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Trace Root')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="right">
               {query ? t('Matching Spans') : t('Total Spans')}
-            </StyledPanelHeader>
-
-            <StyledPanelHeader justify="start" lightText>
-              {t('Timeline')}
-            </StyledPanelHeader>
-
-            <StyledPanelHeader justify="end" lightText>
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Timeline')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="right">
               {t('Root Duration')}
-            </StyledPanelHeader>
-
-            <StyledPanelHeader justify="end" lightText radius="0 md 0 0">
-              <Flex gap="xs">
-                {t('Timestamp')}
-                <IconArrow size="xs" direction="down" />
-              </Flex>
-            </StyledPanelHeader>
-
-            {isPending && (
-              <StyledPanelItem span={6} overflow>
-                <LoadingIndicator />
-              </StyledPanelItem>
-            )}
-            {showErrorState && (
-              <StyledPanelItem span={6} overflow>
-                <WarningStreamWrapper>
-                  <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-                </WarningStreamWrapper>
-              </StyledPanelItem>
-            )}
-            {showEmptyState && (
-              <StyledPanelItem span={6} overflow>
-                <EmptyStateWarning>
-                  <EmptyStateText size="xl">{t('No trace results found')}</EmptyStateText>
-                  <EmptyStateText size="md">
-                    {tct('Try adjusting your filters or refer to [docSearchProps].', {
-                      docSearchProps: (
-                        <ExternalLink href={SPAN_PROPS_DOCS_URL}>
-                          {t('docs for search properties')}
-                        </ExternalLink>
-                      ),
-                    })}
-                  </EmptyStateText>
-                </EmptyStateWarning>
-              </StyledPanelItem>
-            )}
-            {data?.data?.map((trace, i) => (
-              <TraceRow
-                key={trace.trace}
-                trace={trace}
-                defaultExpanded={query && i === 0}
-                query={query}
-              />
-            ))}
-          </Grid>
-        </Container>
-      </StyledPanel>
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="right" sort="desc">
+              {t('Timestamp')}
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {isPending && <SimpleTable.Loading />}
+        {showErrorState && (
+          <SimpleTable.Empty>
+            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
+          </SimpleTable.Empty>
+        )}
+        {showEmptyState && (
+          <SimpleTable.Empty>
+            <EmptyStateWarning>
+              <EmptyStateText size="xl">{t('No trace results found')}</EmptyStateText>
+              <EmptyStateText size="md">
+                {tct('Try adjusting your filters or refer to [docSearchProps].', {
+                  docSearchProps: (
+                    <ExternalLink href={SPAN_PROPS_DOCS_URL}>
+                      {t('docs for search properties')}
+                    </ExternalLink>
+                  ),
+                })}
+              </EmptyStateText>
+            </EmptyStateWarning>
+          </SimpleTable.Empty>
+        )}
+        {data?.data?.map((trace, i) => (
+          <TraceRow
+            key={trace.trace}
+            trace={trace}
+            defaultExpanded={query && i === 0}
+            query={query}
+          />
+        ))}
+      </SimpleTable>
       <Pagination
         pageLinks={result.data?.headers.Link}
         paginationAnalyticsEvent={paginationAnalyticsEvent}
@@ -201,72 +188,74 @@ function TraceRow({
 
   return (
     <Fragment>
-      <StyledPanelItem align="center" center onClick={onClickExpand}>
-        <StyledButton
-          icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
-          aria-label={t('Toggle trace details')}
-          aria-expanded={expanded}
-          size="zero"
-          variant="transparent"
-          onClick={() =>
-            trackAnalytics('trace_explorer.toggle_trace_details', {
-              organization,
-              expanded,
-              source: 'new explore',
+      <SimpleTable.Row>
+        <SimpleTable.RowCell gap="xs" onClick={onClickExpand}>
+          <Button
+            icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
+            aria-label={t('Toggle trace details')}
+            aria-expanded={expanded}
+            size="zero"
+            variant="transparent"
+            onClick={() =>
+              trackAnalytics('trace_explorer.toggle_trace_details', {
+                organization,
+                expanded,
+                source: 'new explore',
+              })
+            }
+          />
+          <TraceIdRenderer
+            projectSlugs={projectSlugs}
+            traceId={trace.trace}
+            traceName={trace.name}
+            timestamp={trace.end}
+            onClick={event => {
+              event.stopPropagation();
+              trackAnalytics('trace_explorer.open_trace', {
+                organization,
+                source: 'new explore',
+              });
+            }}
+            location={location}
+          />
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          <Tooltip title={trace.name} containerDisplayMode="block" showOnlyOnOverflow>
+            <Description>
+              <ProjectBadgeWrapper>
+                <ProjectsRenderer projectSlugs={projectSlugs} />
+              </ProjectBadgeWrapper>
+              {trace.name ? (
+                <WrappingText>{trace.name}</WrappingText>
+              ) : (
+                <EmptyValueContainer>{t('Missing Trace Root')}</EmptyValueContainer>
+              )}
+            </Description>
+          </Tooltip>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell justify="end">
+          {query ? (
+            tct('[numerator][space]of[space][denominator]', {
+              numerator: <Count value={trace.matchingSpans} />,
+              denominator: <Count value={trace.numSpans} />,
+              space: <Fragment>&nbsp;</Fragment>,
             })
-          }
-        />
-        <TraceIdRenderer
-          projectSlugs={projectSlugs}
-          traceId={trace.trace}
-          traceName={trace.name}
-          timestamp={trace.end}
-          onClick={event => {
-            event.stopPropagation();
-            trackAnalytics('trace_explorer.open_trace', {
-              organization,
-              source: 'new explore',
-            });
-          }}
-          location={location}
-        />
-      </StyledPanelItem>
-      <StyledPanelItem align="left" overflow>
-        <Tooltip title={trace.name} containerDisplayMode="block" showOnlyOnOverflow>
-          <Description>
-            <ProjectBadgeWrapper>
-              <ProjectsRenderer projectSlugs={projectSlugs} />
-            </ProjectBadgeWrapper>
-            {trace.name ? (
-              <WrappingText>{trace.name}</WrappingText>
-            ) : (
-              <EmptyValueContainer>{t('Missing Trace Root')}</EmptyValueContainer>
-            )}
-          </Description>
-        </Tooltip>
-      </StyledPanelItem>
-      <StyledPanelItem align="right">
-        {query ? (
-          tct('[numerator][space]of[space][denominator]', {
-            numerator: <Count value={trace.matchingSpans} />,
-            denominator: <Count value={trace.numSpans} />,
-            space: <Fragment>&nbsp;</Fragment>,
-          })
-        ) : (
-          <Count value={trace.numSpans} />
-        )}
-      </StyledPanelItem>
-      <Breakdown trace={trace} />
-      <StyledPanelItem align="right">
-        {defined(trace.rootDuration) ? (
-          <PerformanceDuration milliseconds={trace.rootDuration} abbreviation />
-        ) : (
-          <EmptyValueContainer />
-        )}
-      </StyledPanelItem>
-      <StyledPanelItem align="right">
-        <SpanTimeRenderer timestamp={trace.start} tooltipShowSeconds />
-      </StyledPanelItem>
+          ) : (
+            <Count value={trace.numSpans} />
+          )}
+        </SimpleTable.RowCell>
+        <Breakdown trace={trace} />
+        <SimpleTable.RowCell justify="end">
+          {defined(trace.rootDuration) ? (
+            <PerformanceDuration milliseconds={trace.rootDuration} abbreviation />
+          ) : (
+            <EmptyValueContainer />
+          )}
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell justify="end">
+          <SpanTimeRenderer timestamp={trace.start} tooltipShowSeconds />
+        </SimpleTable.RowCell>
+      </SimpleTable.Row>
       {expanded && <SpanTable trace={trace} />}
     </Fragment>
   );
@@ -283,8 +272,7 @@ function Breakdown({trace}: {trace: TraceResult}) {
   );
 
   return (
-    <BreakdownPanelItem
-      align="right"
+    <BreakdownCell
       highlightedSliceName={highlightedSliceName}
       onMouseLeave={() => setHighlightedSliceName('')}
     >
@@ -292,16 +280,6 @@ function Breakdown({trace}: {trace: TraceResult}) {
         trace={trace}
         setHighlightedSliceName={setHighlightedSliceName}
       />
-    </BreakdownPanelItem>
+    </BreakdownCell>
   );
 }
-
-const StyledButton = styled(Button)`
-  margin-right: ${p => p.theme.space.xs};
-`;
-
-const WarningStreamWrapper = styled(EmptyStreamWrapper)`
-  > svg {
-    fill: ${p => p.theme.colors.gray400};
-  }
-`;
