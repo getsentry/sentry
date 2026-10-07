@@ -24,23 +24,30 @@ const schema = z.object({
 });
 
 interface Props {
+  mode: 'reset' | 'set';
   onInvalidToken: () => void;
-  onSuccess: () => void;
+  onSuccess: (nextUri?: string) => void;
   token: string;
   userId: string;
 }
 
-export function PasswordResetForm({userId, token, onSuccess, onInvalidToken}: Props) {
+export function PasswordResetForm({
+  mode,
+  userId,
+  token,
+  onSuccess,
+  onInvalidToken,
+}: Props) {
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   const mutation = useMutation({
     mutationFn: (value: z.infer<typeof schema>) =>
-      fetchMutation<void>({
-        url: getApiUrl('/auth/recovery/confirm/'),
+      fetchMutation<{nextUri: string} | undefined>({
+        url: getApiUrl(mode === 'set' ? '/auth/password/' : '/auth/recovery/confirm/'),
         method: 'POST',
         data: {userId, token, password: value.password},
       }),
-    onSuccess,
+    onSuccess: result => onSuccess(result?.nextUri),
     onError: error => {
       if (
         error instanceof RequestError &&
@@ -68,7 +75,9 @@ export function PasswordResetForm({userId, token, onSuccess, onInvalidToken}: Pr
         setSubmitError(
           getRequestErrorUserMessage(
             error,
-            t('Unable to reset your password. Try again.')
+            mode === 'set'
+              ? t('Unable to set your password. Try again.')
+              : t('Unable to reset your password. Try again.')
           )
         );
       });
@@ -126,7 +135,9 @@ export function PasswordResetForm({userId, token, onSuccess, onInvalidToken}: Pr
           >
             {t('Back to sign in')}
           </LinkButton>
-          <form.SubmitButton variant="primary">{t('Reset password')}</form.SubmitButton>
+          <form.SubmitButton variant="primary">
+            {mode === 'set' ? t('Set password') : t('Reset password')}
+          </form.SubmitButton>
         </Flex>
       </Stack>
     </form.AppForm>

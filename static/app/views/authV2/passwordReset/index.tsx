@@ -13,22 +13,35 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
 
 import {PasswordResetForm} from './passwordResetForm';
 
+interface Props {
+  mode: 'reset' | 'set';
+}
+
 export default function PasswordReset() {
+  return <PasswordChange mode="reset" />;
+}
+
+export function PasswordChange({mode}: Props) {
   const theme = useTheme();
+  const title = mode === 'set' ? t('Set Password') : t('Reset Password');
   const {userId, token} = useParams<{token: string; userId: string}>();
   const [isComplete, setComplete] = useState(false);
   const [isTokenInvalid, setTokenInvalid] = useState(false);
   const validation = useQuery({
-    ...apiOptions.as<{valid: boolean}>()('/auth/recovery/confirm/', {
-      query: {userId, token},
-      staleTime: 0,
-    }),
+    ...apiOptions.as<{valid: boolean}>()(
+      mode === 'set' ? '/auth/password/' : '/auth/recovery/confirm/',
+      {
+        query: {userId, token},
+        staleTime: 0,
+      }
+    ),
     enabled: !isComplete && !isTokenInvalid,
     retry: false,
     refetchOnWindowFocus: false,
@@ -42,9 +55,9 @@ export default function PasswordReset() {
 
   return (
     <Stack width="100%" maxWidth="360px" gap="2xl">
-      <SentryDocumentTitle title={t('Reset Password')} />
+      <SentryDocumentTitle title={title} />
       <Heading as="h1" size="3xl" align="center">
-        {t('Reset Password')}
+        {title}
       </Heading>
       <AnimatePresence initial={false} mode="wait">
         <MotionContent
@@ -60,9 +73,13 @@ export default function PasswordReset() {
           ) : isTokenInvalid || validation.data?.valid === false ? (
             <Stack gap="lg">
               <Alert variant="warning">
-                {t(
-                  'This password reset link is invalid or expired. Request a new link to continue.'
-                )}
+                {mode === 'set'
+                  ? t(
+                      'This password setup link is invalid or expired. Request a new link to continue.'
+                    )
+                  : t(
+                      'This password reset link is invalid or expired. Request a new link to continue.'
+                    )}
               </Alert>
               <Flex>
                 <LinkButton
@@ -80,7 +97,9 @@ export default function PasswordReset() {
               <Alert variant="danger">
                 {getRequestErrorUserMessage(
                   validation.error,
-                  t('Unable to check this password reset link. Try again.')
+                  mode === 'set'
+                    ? t('Unable to check this password setup link. Try again.')
+                    : t('Unable to check this password reset link. Try again.')
                 )}
               </Alert>
               <Button
@@ -93,9 +112,16 @@ export default function PasswordReset() {
             </Stack>
           ) : (
             <PasswordResetForm
+              mode={mode}
               userId={userId}
               token={token}
-              onSuccess={() => setComplete(true)}
+              onSuccess={nextUri => {
+                if (nextUri) {
+                  testableWindowLocation.assign(nextUri);
+                  return;
+                }
+                setComplete(true);
+              }}
               onInvalidToken={() => setTokenInvalid(true)}
             />
           )}
