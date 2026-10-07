@@ -95,7 +95,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
         Generate suggested prompts for the Seer Agent chat empty state from the user's page.
         """
         if not features.has(
-            "organizations:seer-explorer-chat-suggestions", organization, actor=request.user
+            "organizations:seer-chat-suggestions", organization, actor=request.user
         ):
             raise PermissionDenied("Feature flag not enabled")
 

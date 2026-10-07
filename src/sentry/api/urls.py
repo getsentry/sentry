@@ -2560,9 +2560,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-suggestions/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/chat-suggestions/$",
         OrganizationSeerChatSuggestionsEndpoint.as_view(),
-        name="sentry-api-0-organization-seer-explorer-suggestions",
+        name="sentry-api-0-organization-seer-chat-suggestions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-overview/$",
