@@ -39,6 +39,18 @@ function invalid(
 
 ruleTester.run('prefer-primitives', preferPrimitives, {
   valid: [
+    ...['{styles}', '{display: styles}'].map(pattern => ({
+      name: `destructured ${pattern} does not inherit initializer styles`,
+      code: `const ${pattern} = {display:'flex'}; const C = <div style={styles}/>;`,
+    })),
+    {
+      name: 'array destructuring and aliases do not inherit initializer styles',
+      code: `const [styles] = [{display:'flex'}]; const alias = styles; const C = <><div style={styles}/><div style={alias}/></>;`,
+    },
+    {
+      name: 'aliases of destructured bindings do not inherit initializer styles',
+      code: `const {display: styles} = {display:'flex'}; const alias = styles; const C = <div style={alias}/>;`,
+    },
     ...['p', 'time', 'legend'].map(element => ({
       name: `layout display on ${element} cannot fall through to Text`,
       code: `${emotion} const F = styled.${element}\`display:flex;font-size:12px;color:red;\`; const G = <${element} style={{display:'grid',fontSize:12,color:'red'}}/>;`,

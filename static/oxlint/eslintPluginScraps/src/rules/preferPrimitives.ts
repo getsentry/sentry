@@ -520,6 +520,7 @@ export const preferPrimitives = defineRule({
         if (
           binding &&
           definition?.node.type === 'VariableDeclarator' &&
+          definition.node.id.type === 'Identifier' &&
           definition.node.init &&
           safeBinding(binding)
         ) {
