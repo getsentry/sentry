@@ -114,6 +114,8 @@ from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
@@ -669,6 +671,18 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_api_application(owner: User, **kwargs) -> ApiApplication:
+        kwargs.setdefault("name", "Example App")
+        kwargs.setdefault("redirect_uris", "https://example.com/callback")
+        return ApiApplication.objects.create(owner=owner, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_api_device_code(application: ApiApplication, **kwargs) -> ApiDeviceCode:
+        return ApiDeviceCode.objects.create(application=application, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_auth_provider(**kwargs):
         return AuthProvider.objects.create(**kwargs)
 
@@ -1084,6 +1098,7 @@ class Factories:
         fixture_path="artifact_bundle_debug_ids",
         date_uploaded=None,
         date_last_modified=None,
+        indexing_state=None,
     ):
         if date_uploaded is None:
             date_uploaded = timezone.now()
@@ -1100,6 +1115,7 @@ class Factories:
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
             date_last_modified=date_last_modified,
+            indexing_state=indexing_state,
         )
         return artifact_bundle
 

@@ -34,12 +34,28 @@ class SerializableRuleProxy(BaseModel):
     @classmethod
     def from_rule(cls, rule: Rule) -> SerializableRuleProxy:
         origin = NotificationOrigin.from_legacy_rule(rule)
-        return cls(
-            id=rule.id,
-            label=rule.label,
+        return cls.from_origin(
+            origin,
+            action_id=rule.id,
             data=rule.data,
-            environment_id=rule.environment_id,
             project_id=rule.project.id,
+        )
+
+    @classmethod
+    def from_origin(
+        cls,
+        origin: NotificationOrigin,
+        *,
+        action_id: int,
+        data: dict[str, Any],
+        project_id: int,
+    ) -> SerializableRuleProxy:
+        return cls(
+            id=action_id,
+            label=origin.label,
+            data=data,
+            environment_id=origin.environment_id,
+            project_id=project_id,
             workflow_id=origin.workflow_id,
             legacy_rule_id=origin.legacy_rule_id,
         )

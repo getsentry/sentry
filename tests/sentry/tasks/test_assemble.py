@@ -36,6 +36,7 @@ from sentry.tasks.assemble import (
     delete_assemble_status,
     get_assemble_status,
     get_placeholder_release_kind,
+    get_url_extension,
     set_assemble_status,
 )
 from sentry.testutils.cases import TestCase
@@ -866,6 +867,23 @@ def test_get_placeholder_release_kind(release: str, kind: str | None) -> None:
     assert get_placeholder_release_kind(release) == kind
 
 
+@pytest.mark.parametrize(
+    ("url", "extension"),
+    [
+        ("~/static/js/main.js", ".js"),
+        ("~/static/js/main.js.map", ".map"),
+        ("~/index.HTML", ".html"),
+        ("app:///index.android.bundle", ".bundle"),
+        ("~/app.js?v=1#top", ".js"),
+        ("~/LICENSE", ""),
+        ("~/.hidden", ""),
+        ("~/file.averyveryverylongextension", "other"),
+    ],
+)
+def test_get_url_extension(url: str, extension: str) -> None:
+    assert get_url_extension(url) == extension
+
+
 class AssemblePlaceholderReleaseTest(BaseAssembleTest):
     debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
@@ -891,6 +909,13 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
                 "release_name", "dist_name"
             )
         )
+
+    def placeholder_release_logs(self, logger: MagicMock) -> list[dict[str, Any]]:
+        return [
+            call.kwargs["extra"]
+            for call in logger.info.call_args_list
+            if call.args == ("assemble.artifact_bundle.placeholder_release",)
+        ]
 
     def test_placeholder_release_kept_by_default(self) -> None:
         self.assemble(make_artifact_bundle(make_debug_id_files(self.debug_id)), version="undefined")
@@ -935,6 +960,49 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
         self.assemble(make_artifact_bundle(files), version="undefined")
 
         assert self.release_names() == [("undefined", "")]
+
+    @override_options({"sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases": True})
+    def test_placeholder_release_logged_with_files_without_debug_ids(self) -> None:
+        files = make_debug_id_files(self.debug_id)
+        files["files/_/_/app.js"] = {"url": "~/app.js", "type": "minified_source", "content": "1"}
+        files["files/_/_/app.js.map"] = {
+            "url": "~/app.js.map",
+            "type": "source_map",
+            "content": "{}",
+        }
+
+        with patch("sentry.tasks.assemble.logger") as logger:
+            self.assemble(make_artifact_bundle(files), version="undefined")
+
+        assert self.placeholder_release_logs(logger) == [
+            {
+                "organization_id": self.organization.id,
+                "project_ids": [self.project.id],
+                "kind": "undefined",
+                "outcome": "kept_files_without_debug_ids",
+                "artifact_count": 4,
+                "has_debug_ids": True,
+                "files_without_debug_ids": 2,
+                "types_without_debug_ids": {"minified_source": 1, "source_map": 1},
+                "extensions_without_debug_ids": {".js": 1, ".map": 1},
+            }
+        ]
+
+    def test_placeholder_release_logged_when_kept_by_default(self) -> None:
+        with patch("sentry.tasks.assemble.logger") as logger:
+            self.assemble(make_artifact_bundle(make_debug_id_files(self.debug_id)), version="null")
+
+        (log,) = self.placeholder_release_logs(logger)
+        assert log["kind"] == "null"
+        assert log["outcome"] == "kept"
+        assert log["files_without_debug_ids"] == 0
+        assert log["types_without_debug_ids"] == {}
+
+    def test_real_release_not_logged(self) -> None:
+        with patch("sentry.tasks.assemble.logger") as logger:
+            self.assemble(make_artifact_bundle(make_debug_id_files(self.debug_id)), version="1.0.0")
+
+        assert self.placeholder_release_logs(logger) == []
 
     @override_options({"sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases": True})
     def test_env_var_release_needs_its_own_option(self) -> None:
