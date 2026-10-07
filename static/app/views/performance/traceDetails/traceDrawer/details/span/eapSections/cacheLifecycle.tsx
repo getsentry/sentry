@@ -17,13 +17,13 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {
-  getSpanLinkType,
   useTraceItemDetails,
   type TraceItemResponseAttribute,
   type TraceItemResponseLink,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {getSpanLinkType} from 'sentry/views/performance/traceDetails/getSpanLinkType';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';

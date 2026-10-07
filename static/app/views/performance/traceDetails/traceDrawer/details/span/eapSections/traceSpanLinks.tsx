@@ -16,12 +16,12 @@ import {
   type AttributesFieldRender,
 } from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
-  getSpanLinkType,
   type TraceItemResponseAttribute,
   type TraceItemResponseLink,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {getSpanLinkType} from 'sentry/views/performance/traceDetails/getSpanLinkType';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';

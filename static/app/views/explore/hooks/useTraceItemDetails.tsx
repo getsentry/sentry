@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useHover} from '@react-aria/interactions';
-import {SEARCH_SENTRY__LINK__TYPE} from '@sentry/conventions/attributes/search';
 import {captureException} from '@sentry/react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -12,7 +11,6 @@ import type {Meta} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
-import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -89,11 +87,6 @@ export type TraceItemResponseLink = {
   /** Absent when the SDK did not record the sampling decision. */
   sampled?: boolean;
 };
-
-/** The type the SDK set on a span link, e.g. `previous_trace` or `cache_origin`. */
-export function getSpanLinkType(link: TraceItemResponseLink): string | undefined {
-  return getAttributeValue(link.attributes ?? [], SEARCH_SENTRY__LINK__TYPE, 'string');
-}
 
 type TraceItemDetailsUrlParams = {
   organizationSlug: string;
