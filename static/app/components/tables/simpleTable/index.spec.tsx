@@ -1,6 +1,8 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
+import {Button} from '@sentry/scraps/button';
+
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 describe('SimpleTable component', () => {
@@ -134,6 +136,42 @@ describe('SimpleTable component', () => {
 
     expect(header).not.toHaveAttribute('align');
     expect(getEmotionRules(content).join('')).toContain('justify-content: center');
+  });
+
+  it('renders interactive content directly in the column header when interactive', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell interactive>
+              <Button>Select all</Button>
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Select all'}).parentElement).toBe(
+      screen.getByRole('columnheader', {name: 'Select all'})
+    );
+  });
+
+  it('aligns interactive content through styles when interactive and aligned', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell align="right" interactive>
+              <Button>Add</Button>
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
+    );
+
+    expect(
+      getEmotionRules(screen.getByRole('columnheader', {name: 'Add'})).join('')
+    ).toContain('justify-content: flex-end');
   });
 
   it('renders a single spanning cell when given a full width row', () => {
