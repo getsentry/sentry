@@ -1,8 +1,15 @@
 import logging
 
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    NotificationContext,
+    OpenPeriodContext,
+)
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
     activity_handler_registry,
     group_type_notification_registry,
@@ -18,9 +25,9 @@ from sentry.notifications.platform.templates.issue import (
     SerializableRuleProxy,
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
-from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
@@ -163,35 +170,36 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
 
 
 def metric_alert_notification_data_factory(
-    issue_notif_context: IssueNotificationContext,
     *,
+    action_type: str,
+    notification_context: NotificationContext,
+    alert_context: AlertContext,
+    metric_issue_context: MetricIssueContext,
+    open_period_context: OpenPeriodContext,
+    organization: Organization,
+    notification_uuid: str,
     chart_url: str | None,
 ) -> MetricAlertNotificationData:
-    notification_context = issue_notif_context.notification_context
-    alert_context = issue_notif_context.alert_context
-    metric_issue_context = issue_notif_context.metric_issue_context
-    open_period_context = issue_notif_context.open_period_context
-    organization = issue_notif_context.organization
-
     if notification_context.integration_id is None:
         raise ValueError("Integration ID is None")
 
     if notification_context.target_identifier is None:
         raise ValueError("Target identifier is None")
 
-    referrer = f"metric_alert_{issue_notif_context.action_type}"
+    if action_type == Action.Type.SLACK_STAGING:
+        action_type = Action.Type.SLACK
     attachment_info = incident_attachment_info(
         organization=organization,
         alert_context=alert_context,
         metric_issue_context=metric_issue_context,
-        notification_uuid=issue_notif_context.notification_uuid,
-        referrer=referrer,
+        notification_uuid=notification_uuid,
+        referrer=f"metric_alert_{action_type}",
     )
 
     return MetricAlertNotificationData(
         group_id=metric_issue_context.id,
         organization_id=organization.id,
-        notification_uuid=issue_notif_context.notification_uuid,
+        notification_uuid=notification_uuid,
         action_id=notification_context.id,
         open_period_context=open_period_context,
         new_status=metric_issue_context.new_status.value,

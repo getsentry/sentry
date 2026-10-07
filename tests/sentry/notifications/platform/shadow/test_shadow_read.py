@@ -496,19 +496,10 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         attachments = client.return_value.chat_postMessage.call_args.kwargs["attachments"]
         assert "https://chart.example" in attachments
 
-    def test_slack_staging_differs_by_referrer(self) -> None:
+    def test_slack_staging_matches(self) -> None:
         action = self.create_shadow_action("slack_staging")
 
-        observation, _ = self.send(self.invocation(action))
-
-        assert observation.outcome == ShadowOutcome.MISMATCH
-        log = observation.mismatch
-        assert log is not None
-        [entry] = log["diff"]
-        assert entry.startswith("text: ")
-        legacy, platform = (payload["text"] for payload in observation.payloads)
-        assert "referrer=metric_alert_slack&" in legacy
-        assert "referrer=metric_alert_slack_staging&" in platform
+        self.assert_match(self.invocation(action))
 
     @mock.patch(f"{SLACK_METRIC_HANDLER}._send_via_notification_platform")
     @mock.patch(f"{SLACK_METRIC_HANDLER}.NotificationService.has_access", return_value=True)
