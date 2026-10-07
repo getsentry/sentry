@@ -22,11 +22,11 @@ import type {Responsive, ResponsiveKey} from './styles';
 export interface LayoutStyle {
   classNames: string[];
   /**
-   * Set plain (non-responsive) values as inline styles instead of classes.
-   * Used for the render-prop form, where the styles land on the caller's
-   * element: with Emotion, layout props were composed after that element's
-   * own (often Emotion) styles and won; classes from an earlier stylesheet
-   * would lose to them.
+   * Also set plain (non-responsive) values as inline styles. Used for the
+   * render-prop form, where the styles land on the caller's element: with
+   * Emotion, layout props were composed after that element's own (often
+   * Emotion) styles and won, while classes from an earlier stylesheet lose to
+   * them. Classes are still added for callers that replace `style`.
    */
   inline: boolean;
   style: Record<string, string> | undefined;
@@ -100,6 +100,10 @@ interface LayoutPropOptions<T> {
    */
   fixed?: string;
   /**
+   * Opt out of inline values; the caller sets them itself.
+   */
+  noInline?: boolean;
+  /**
    * Maps a prop value to its CSS value. Returning undefined omits it.
    */
   resolve?: (value: T) => string | number | undefined;
@@ -109,16 +113,14 @@ function addBase<T>(
   acc: LayoutStyle,
   property: LayoutProperty,
   value: T,
-  {fixed, resolve}: LayoutPropOptions<T>,
+  {fixed, noInline, resolve}: LayoutPropOptions<T>,
   allowInline: boolean
 ): boolean {
-  if (acc.inline && allowInline) {
+  if (acc.inline && allowInline && !noInline) {
     const resolved = resolve ? resolve(value) : value;
-    if (resolved === undefined) {
-      return false;
+    if (resolved !== undefined) {
+      setVar(acc, property, String(resolved));
     }
-    setVar(acc, property, String(resolved));
-    return true;
   }
 
   if (fixed !== undefined) {

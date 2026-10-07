@@ -318,8 +318,16 @@ function addBorder(
   if (value === undefined) {
     return;
   }
-  if (typeof value === 'string' && !acc.inline) {
-    addLayoutProp(acc, `${side}Width`, value, {fixed: side});
+  if (typeof value === 'string') {
+    if (acc.inline) {
+      acc.style = {
+        ...acc.style,
+        [`${side}Width`]: value === 'none' ? '0' : '1px',
+        [`${side}Style`]: value === 'none' ? 'none' : 'solid',
+        ...(value === 'none' ? {} : {[`${side}Color`]: borderColor(value)}),
+      };
+    }
+    addLayoutProp(acc, `${side}Width`, value, {fixed: side, noInline: true});
     return;
   }
   addLayoutProp(acc, `${side}Width`, value, {resolve: v => (v === 'none' ? '0' : '1px')});
