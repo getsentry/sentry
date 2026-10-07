@@ -48,6 +48,10 @@ interface ConversationApiSpan {
   'gen_ai.cost.total_tokens'?: number;
   'gen_ai.embeddings.input'?: string;
   'gen_ai.input.messages'?: string;
+  'gen_ai.memory.query.text'?: string;
+  'gen_ai.memory.record.count'?: number;
+  'gen_ai.memory.record.id'?: string;
+  'gen_ai.memory.store.id'?: string;
   'gen_ai.operation.name'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
@@ -174,6 +178,12 @@ function createNodeFromApiSpan(
       // operation type.
       [SpanFields.GEN_AI_OPERATION_NAME]: apiSpan['gen_ai.operation.name'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
+      [SpanFields.GEN_AI_MEMORY_STORE_ID]: apiSpan['gen_ai.memory.store.id'] ?? '',
+      [SpanFields.GEN_AI_MEMORY_QUERY_TEXT]: apiSpan['gen_ai.memory.query.text'] ?? '',
+      [SpanFields.GEN_AI_MEMORY_RECORD_ID]: apiSpan['gen_ai.memory.record.id'] ?? '',
+      ...(apiSpan['gen_ai.memory.record.count'] !== undefined && {
+        [SpanFields.GEN_AI_MEMORY_RECORD_COUNT]: apiSpan['gen_ai.memory.record.count'],
+      }),
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
       [SpanFields.GEN_AI_REQUEST_MODEL]: apiSpan['gen_ai.request.model'] ?? '',
