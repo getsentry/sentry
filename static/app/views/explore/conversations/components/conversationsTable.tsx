@@ -21,6 +21,7 @@ import {
   type GridColumnOrder,
   type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
+import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -329,6 +330,7 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
           isLoading={isFetching}
           error={error}
           data={data}
+          emptyMessage={<TableNoDataPanel />}
           columnOrder={displayedColumns}
           stickyHeader
           // GridEditable's Panel body has a default bottom margin; drop it so

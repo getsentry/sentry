@@ -74,6 +74,16 @@ describe('ConversationsTable', () => {
     });
   });
 
+  it('renders the shared no-data state when there are no conversations', async () => {
+    mockConversations([]);
+
+    renderTable();
+
+    expect(
+      await screen.findByRole('heading', {name: 'No results found'})
+    ).toBeInTheDocument();
+  });
+
   it('renders the AI-generated title when present', async () => {
     mockConversations([
       {
