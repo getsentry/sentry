@@ -146,10 +146,7 @@ class AgenticTriageFixtures(Fixtures):
 
     @pytest.fixture(autouse=True)
     def enable_agentic_triage(self):
-        with (
-            override_options({"seer.night_shift.enable": True}),
-            with_feature("organizations:seer-night-shift"),
-        ):
+        with override_options({"seer.night_shift.enable": True}):
             yield
 
     def _make_eligible(
@@ -304,12 +301,7 @@ class TestScheduleAgenticTriage(TestCase):
 
     def test_eligible_orgs_empty_on_self_hosted(self) -> None:
         org = self.create_organization()
-        with self.feature(
-            {
-                "organizations:seer-night-shift": [org.slug],
-                "organizations:seat-based-seer-enabled": [org.slug],
-            }
-        ):
+        with self.feature({"organizations:seat-based-seer-enabled": [org.slug]}):
             assert _get_eligible_orgs_from_batch([org]) == [org]
             with override_settings(SENTRY_SELF_HOSTED=True):
                 assert _get_eligible_orgs_from_batch([org]) == []
@@ -330,12 +322,7 @@ class TestScheduleAgenticTriage(TestCase):
         with (
             freeze_time("2024-07-22 22:30:00Z"),
             self.options({"seer.night_shift.enable": True}),
-            self.feature(
-                {
-                    "organizations:seer-night-shift": [org.slug],
-                    "organizations:seat-based-seer-enabled": [org.slug],
-                }
-            ),
+            self.feature({"organizations:seat-based-seer-enabled": [org.slug]}),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
             ) as mock_worker,
@@ -361,12 +348,7 @@ class TestScheduleAgenticTriage(TestCase):
 
         with (
             self.options({"seer.night_shift.enable": True}),
-            self.feature(
-                {
-                    "organizations:seer-night-shift": [org.slug],
-                    "organizations:seat-based-seer-enabled": [org.slug],
-                }
-            ),
+            self.feature({"organizations:seat-based-seer-enabled": [org.slug]}),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
             ) as mock_worker,
@@ -386,12 +368,7 @@ class TestScheduleAgenticTriage(TestCase):
         with (
             freeze_time("2024-07-22 22:30:00Z"),
             self.options({"seer.night_shift.enable": True}),
-            self.feature(
-                {
-                    "organizations:seer-night-shift": [org.slug],
-                    "organizations:seat-based-seer-enabled": [org.slug],
-                }
-            ),
+            self.feature({"organizations:seat-based-seer-enabled": [org.slug]}),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
             ) as mock_worker,
@@ -405,19 +382,13 @@ class TestScheduleAgenticTriage(TestCase):
         ]
 
     def test_skips_orgs_without_seat_based_seer(self) -> None:
-        org = self.create_org_with_seer()
+        self.create_org_with_seer()
 
         with (
             self.options(
                 {
                     "seer.night_shift.enable": True,
                     "seer.night_shift.enable_for_legacy_orgs": False,
-                }
-            ),
-            self.feature(
-                {
-                    "organizations:seer-night-shift": [org.slug],
-                    # seat-based-seer-enabled intentionally omitted
                 }
             ),
             patch(
@@ -437,12 +408,6 @@ class TestScheduleAgenticTriage(TestCase):
                     "seer.night_shift.enable_for_legacy_orgs": True,
                 }
             ),
-            self.feature(
-                {
-                    "organizations:seer-night-shift": [org.slug],
-                    # seat-based-seer-enabled intentionally omitted
-                }
-            ),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
             ) as mock_worker,
@@ -457,12 +422,7 @@ class TestScheduleAgenticTriage(TestCase):
 
         with (
             self.options({"seer.night_shift.enable": True}),
-            self.feature(
-                {
-                    "organizations:seer-night-shift": [org.slug],
-                    "organizations:seat-based-seer-enabled": [org.slug],
-                }
-            ),
+            self.feature({"organizations:seat-based-seer-enabled": [org.slug]}),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
             ) as mock_worker,
@@ -476,12 +436,7 @@ class TestScheduleAgenticTriage(TestCase):
 
         with (
             self.options({"seer.night_shift.enable": True}),
-            self.feature(
-                {
-                    "organizations:seer-night-shift": [org.slug],
-                    "organizations:seat-based-seer-enabled": [org.slug],
-                }
-            ),
+            self.feature({"organizations:seat-based-seer-enabled": [org.slug]}),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
             ) as mock_worker,
@@ -491,27 +446,22 @@ class TestScheduleAgenticTriage(TestCase):
 
     def test_skips_orgs_without_seer_project_repository(self) -> None:
         # Orgs that have never connected a Seer repo are pre-filtered before
-        # the feature flag fanout — even if they happen to have all the flags.
+        # the eligibility checks — even if they happen to have all the flags.
         org = self.create_organization()
 
         with (
             self.options({"seer.night_shift.enable": True}),
-            self.feature(
-                {
-                    "organizations:seer-night-shift": [org.slug],
-                    "organizations:seat-based-seer-enabled": [org.slug],
-                }
-            ),
+            self.feature({"organizations:seat-based-seer-enabled": [org.slug]}),
             patch(
                 "sentry.tasks.seer.agentic_triage.cron.run_agentic_triage_for_org"
             ) as mock_worker,
             patch(
-                "sentry.tasks.seer.agentic_triage.cron.features.batch_has_for_organizations"
-            ) as mock_batch_has,
+                "sentry.tasks.seer.agentic_triage.cron._get_eligible_orgs_from_batch"
+            ) as mock_eligible,
         ):
             schedule_agentic_triage()
             mock_worker.apply_async.assert_not_called()
-            mock_batch_has.assert_not_called()
+            mock_eligible.assert_not_called()
 
 
 @django_db_all
@@ -719,15 +669,6 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
         org = self.create_organization()
 
         with self.options({"seer.night_shift.enable": False}):
-            run_id = run_agentic_triage_for_org(org.id)
-
-        assert run_id is None
-        assert not SeerWorkflowRun.objects.filter(organization=org).exists()
-
-    def test_skips_org_run_when_feature_disabled(self) -> None:
-        org = self.create_organization()
-
-        with self.feature({"organizations:seer-night-shift": False}):
             run_id = run_agentic_triage_for_org(org.id)
 
         assert run_id is None

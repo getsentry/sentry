@@ -31,10 +31,6 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_feature_flag_disabled_returns_404(self) -> None:
-        SeerWorkflowRun.objects.create(organization=self.organization)
-        self.get_error_response(self.organization.slug, status_code=404)
-
     def test_returns_runs_for_org_with_nested_results(self) -> None:
         group = self.create_group()
         run = SeerWorkflowRun.objects.create(
@@ -49,8 +45,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             extras={"action": "autofix_triggered", "reason": "Null pointer in the checkout flow"},
         )
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(run.id)
@@ -97,8 +92,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             },
         )
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         issue = response.data[0]["issues"][0]
         assert issue["action"] == "skip"
@@ -115,8 +109,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             extras={"action": "skip"},
         )
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         issue = response.data[0]["issues"][0]
         assert issue["groupTitle"] is None
@@ -143,8 +136,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             extras={"action": "autofix_triggered"},
         )
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         issue = response.data[0]["issues"][0]
         assert issue["seerRunId"] == str(issue_seer_run.uuid)
@@ -174,8 +166,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             extras={"action": "autofix_triggered"},
         )
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         issue = response.data[0]["issues"][0]
         assert issue["pullRequests"][0]["status"] == "merged"
@@ -202,8 +193,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             extras={"action": "autofix_triggered"},
         )
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         issue = response.data[0]["issues"][0]
         assert issue["pullRequests"] == []
@@ -236,8 +226,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             extras={"action": "skip"},
         )
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         by_run_id = {r["id"]: r for r in response.data}
         assert len(by_run_id[str(run_a.id)]["issues"][0]["pullRequests"]) == 1
@@ -253,8 +242,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         SeerWorkflowRunExecution.objects.create(run=run, seer_run=pending_run)
         SeerWorkflowRunExecution.objects.create(run=run)
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         seer_run_ids = [r["seerRunId"] for r in response.data[0]["seerRuns"]]
         assert seer_run_ids == [
@@ -277,8 +265,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             },
         )
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert response.data[0]["errorMessage"] == "shard failed"
         assert response.data[0]["errorType"] == "shard_delivery_failed"
@@ -292,8 +279,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             },
         )
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert response.data[0]["id"] == str(run.id)
         assert response.data[0]["errorMessage"] == "Diagnostic details"
@@ -322,8 +308,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             extras={"error_message": "Invalid agentic triage shard plan"},
         )
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         by_run_id = {item["id"]: item for item in response.data}
         assert by_run_id[str(dispatch_run.id)]["errorType"] == "shard_dispatch_failed"
@@ -336,8 +321,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         older = SeerWorkflowRun.objects.create(organization=self.organization)
         newer = SeerWorkflowRun.objects.create(organization=self.organization)
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert [r["id"] for r in response.data] == [str(newer.id), str(older.id)]
 
@@ -346,8 +330,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         SeerWorkflowRun.objects.create(organization=other_org)
         own_run = SeerWorkflowRun.objects.create(organization=self.organization)
 
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(own_run.id)
@@ -371,9 +354,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         Factories.create_seer_workflow_run_execution(run=newer)
         Factories.create_seer_workflow_run(organization=self.create_organization())
 
-        with self.feature(
-            ["organizations:seer-workflows-monitor-cleanup", "organizations:seer-night-shift"]
-        ):
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(self.organization.slug)
             assert response.status_code == 200
             assert [run["id"] for run in response.data] == [
@@ -385,13 +366,8 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             response = self.get_success_response(self.organization.slug, per_page=2)
             assert [run["id"] for run in response.data] == [str(newer.id), str(cleanup.id)]
 
-        with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            response = self.get_success_response(self.organization.slug)
-            assert [run["id"] for run in response.data] == [str(cleanup.id)]
-
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
-            assert [run["id"] for run in response.data] == [str(newer.id), str(older.id)]
+        response = self.get_success_response(self.organization.slug)
+        assert [run["id"] for run in response.data] == [str(newer.id), str(older.id)]
 
     def test_history_hides_runs_outside_user_access(self) -> None:
         project = self.project
