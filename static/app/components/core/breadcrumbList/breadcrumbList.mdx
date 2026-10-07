@@ -594,10 +594,11 @@ a row of icons competing for the same space.
 `BreadcrumbList` uses the nearest inline-size query container. Standalone lists
 establish their own container; lists rendered in the TopBar `breadcrumbs` slot
 reuse the TopBar's flexible content region so the slot remains content-sized.
-Below 512px, parent items hide and `'link'` parents collapse into a single `…`
-overflow button. Any other parent type simply collapses out of view — only links
-survive in the overflow menu. The page title is rendered separately in the title
-slot and remains visible there.
+Below 512px, parent items hide. Links and `'select'` parents with a `to`
+destination appear in a single `…` overflow menu. A select appears there as a
+link to its current selection; its other options are not available in that menu.
+Selects without `to` disappear at this width. The page title remains visible in
+the separate title slot.
 
 Drag the resize handle to see the transition:
 

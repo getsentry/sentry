@@ -39,10 +39,10 @@ There are no dedicated title-level `help`, `badge`, `href`, `status`, or `titleG
 Move explanations and documentation links into `labelTooltip`. The title's `InfoText` supplies the hover/focus trigger, so do not nest `InfoTip` or `Tooltip` inside it.
 
 ```tsx
-labelTooltip: <ReadTheDocs docsUrl={docsUrl}>{description}</ReadTheDocs>,
+labelTooltip: <DocumentationHint docsUrl={docsUrl}>{description}</DocumentationHint>,
 ```
 
-Import `ReadTheDocs` from `sentry/components/readTheDocs`. It renders only the text and documentation link. Outside a title, it can be passed as the `title` of an `InfoTip`.
+Import `DocumentationHint` from `sentry/components/documentationHint`. It renders only the text and documentation link. Outside a title, it can be passed as the `title` of an `InfoTip`.
 
 For plain explanatory text, pass the string directly. Preserve conditional descriptions and documentation URLs. The separate info icon is removed.
 

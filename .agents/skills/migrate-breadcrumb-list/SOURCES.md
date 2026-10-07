@@ -44,7 +44,7 @@ Run 2 also found a regression introduced by run 1's fix — the step 6 "add as s
 - Corrected the claim that ReactElement<Props> restricts the JSX component. It does not.
 - Replaced the stale test setup instructions using the current shared renderer, and removed guidance that would preserve tests solely for deleted decorations.
 - Rebuilt the inventory from current imports. Removed already-migrated wrappers from the backlog and replaced fixed importer-count rules with inspection of remaining navigation needs.
-- Sources for these corrections: the current breadcrumb item implementations, TopBar, Settings BreadcrumbDropdown, EditableIssueViewHeader, secondary navigation badge definitions, and the default React Testing Library renderer.
+- Sources for these corrections: the current breadcrumb item implementations, TopBar, `views/settings/components/settingsBreadcrumb/settingsBreadcrumbSelector.tsx` and `views/settings/components/settingsBreadcrumb/settingsBreadcrumbsProvider.tsx`, EditableIssueViewHeader, secondary navigation badge definitions, and the default React Testing Library renderer.
 - Trigger checks: "migrate breadcrumbs", "replace sentry/components/breadcrumbs", and "preserve page filters during breadcrumb migration" should activate the skill. "Inspect event breadcrumbs", "add a CMDK group", and "redesign Settings routing" should not.
 - Other skill references to breadcrumbs were checked. Container-query guidance remains valid; CMDK breadcrumb terminology and backend telemetry breadcrumbs are unrelated to this API.
 
