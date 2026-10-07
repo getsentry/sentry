@@ -26,6 +26,11 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {
+  DEFAULT_CHECKIN_MARGIN,
+  DEFAULT_MAX_RUNTIME,
+  MAX_RUNTIME_LIMIT,
+} from 'sentry/utils/monitor/cron';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -56,9 +61,6 @@ const DEFAULT_CRONTAB = '0 0 * * *';
 const RULE_TARGET_MAP = {team: 'Team', user: 'Member'} as const;
 const RULES_SELECTOR_MAP = {Team: 'team', Member: 'user'} as const;
 
-// In minutes
-export const DEFAULT_MAX_RUNTIME = 30;
-export const DEFAULT_CHECKIN_MARGIN = 1;
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
 
@@ -429,13 +431,14 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
               <NumberField
                 name="config.maxRuntime"
                 min={TIMEOUT_MINIMUM}
+                max={MAX_RUNTIME_LIMIT}
                 placeholder={tn(
                   'Defaults to %s minute',
                   'Defaults to %s minutes',
                   DEFAULT_MAX_RUNTIME
                 )}
                 help={t(
-                  'Number of minutes before an in-progress check-in is marked timed out.'
+                  'Number of minutes before an in-progress check-in is marked timed out. The maximum is 10080 minutes (7 days).'
                 )}
                 label={t('Max Runtime')}
               />

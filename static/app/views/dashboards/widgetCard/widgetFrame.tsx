@@ -5,6 +5,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconCopy, IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
@@ -28,7 +29,7 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   onFullScreenViewClick?: () => void | Promise<void>;
   revealTooltip?: 'always' | 'hover';
   title?: string;
-  warnings?: string[];
+  warnings?: React.ReactNode[];
 }
 
 export function WidgetFrame(props: WidgetFrameProps) {
@@ -132,16 +133,20 @@ export function WidgetFrame(props: WidgetFrameProps) {
                 <DropdownMenu
                   items={actions}
                   isDisabled={props.actionsDisabled}
-                  triggerProps={{
-                    'aria-label': t('Widget actions'),
-                    size: 'xs',
-                    variant: 'transparent',
-                    showChevron: false,
-                    icon: <IconEllipsis direction="down" size="sm" />,
-                    tooltipProps: {
-                      title: hasDisabledActionsMessage ? undefined : t('Widget actions'),
-                    },
-                  }}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.IconButton
+                      {...triggerProps}
+                      aria-label={t('Widget actions')}
+                      size="xs"
+                      variant="transparent"
+                      icon={<IconEllipsis direction="down" size="sm" />}
+                      tooltipProps={{
+                        title: hasDisabledActionsMessage
+                          ? undefined
+                          : t('Widget actions'),
+                      }}
+                    />
+                  )}
                   position="bottom-end"
                 />
               ) : null}

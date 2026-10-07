@@ -26,6 +26,7 @@ from sentry.issues.derived.processing import PIPELINE
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,15 @@ def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDa
         return {}
 
     result: dict[int, GroupDerivedDataResponse] = {}
+    served_by_status = {"fresh": 0, "stale_hash": 0, "invalidated": 0}
     for derived in GroupDerivedData.objects.filter(group_id__in=group_ids):
+        if derived.pipeline_hash is None:
+            served_by_status["invalidated"] += 1
+        elif derived.pipeline_hash == PIPELINE.pipeline_hash:
+            served_by_status["fresh"] += 1
+        else:
+            served_by_status["stale_hash"] += 1
+
         try:
             state = GroupDerivedDataStore.load(PIPELINE, derived)
             progress = state[PROGRESS]
@@ -68,4 +77,14 @@ def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDa
                 "Failed to serialize group derived data",
                 extra={"group_id": derived.group_id},
             )
+
+    for status, count in served_by_status.items():
+        if count:
+            metrics.incr(
+                "issues.derived.served",
+                amount=count,
+                sample_rate=1.0,
+                tags={"status": status},
+            )
+
     return result

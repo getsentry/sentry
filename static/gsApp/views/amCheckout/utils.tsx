@@ -11,10 +11,12 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
-import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {THREE_DS_REFERRER, MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, ReservedBudgetCategoryType} from 'getsentry/types';
 import type {
@@ -573,6 +575,7 @@ export function useSubmitCheckout({
   referrer?: string;
 }) {
   const api = useApi({});
+  const navigate = useNavigate();
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
@@ -610,6 +613,21 @@ export function useSubmitCheckout({
       SubscriptionStore.loadData(organization.slug);
 
       const {invoice} = response;
+
+      // The plan change went through, but the bank wants the cardholder to
+      // authenticate before releasing the money. Send them to the invoice,
+      // which opens the payment modal on arrival and resumes the same charge.
+      // Deliberately not the checkout success screen: nothing is paid yet, and
+      // showing a receipt would say otherwise.
+      if (response.paymentRequiresAction && response.invoiceGuid) {
+        navigate(
+          normalizeUrl(
+            `/settings/${organization.slug}/billing/receipts/${response.invoiceGuid}/?referrer=${THREE_DS_REFERRER}`
+          )
+        );
+        return;
+      }
+
       const nextQueryParams = [referrer];
       if (justBoughtSeer) {
         nextQueryParams.push('showSeerAutomationAlert=true');

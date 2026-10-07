@@ -42,7 +42,7 @@ from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
-from sentry.utils.snuba_rpc import trace_item_details_rpc
+from sentry.utils.snuba_rpc import SnubaRPCBadRequest, trace_item_details_rpc
 
 _NUMERIC_COERCIONS: dict[str, type] = {"valFloat": float, "valDouble": float}
 _VAL_TYPE_TO_COLUMN_TYPE: dict[str, ColumnType] = {
@@ -114,6 +114,7 @@ def convert_rpc_attribute_to_json(
     trace_item_type: SupportedTraceItemType,
     include_internal: bool = False,
     include_arrays: bool = False,
+    include_internal_convention_attributes: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
     all_internal_names = {attr["name"] for attr in attributes}
@@ -122,7 +123,10 @@ def convert_rpc_attribute_to_json(
         internal_name = attribute["name"]
 
         if not can_expose_attribute_to_api(
-            internal_name, trace_item_type, include_internal=include_internal
+            internal_name,
+            trace_item_type,
+            include_internal=include_internal,
+            include_internal_convention_attributes=include_internal_convention_attributes,
         ):
             continue
 
@@ -349,12 +353,30 @@ def serialize_link(link: dict) -> dict:
 
     if attributes := link.get("attributes"):
         clean_link["attributes"] = [
-            {"name": k, "value": v, "type": infer_type(v)}
-            for k, v in attributes.items()
-            if infer_type(v) is not None
+            serialized
+            for name, value in attributes.items()
+            if (serialized := serialize_link_attribute(name, value)) is not None
         ]
 
     return clean_link
+
+
+def serialize_link_attribute(name: str, value: Any) -> dict | None:
+    """
+    Serializes a single span link attribute, returning `None` for unsupported
+    values. The stored value shape depends on the ingest pipeline: the
+    transaction pipeline stores bare scalars (e.g. `"parent"`), while the span
+    pipeline stores typed envelopes (e.g. `{"type": "string", "value": "parent"}`).
+    Normalize both to a bare scalar.
+    """
+    if isinstance(value, dict):
+        value = value.get("value")
+
+    attribute_type = infer_type(value)
+    if attribute_type is None:
+        return None
+
+    return {"name": name, "value": value, "type": attribute_type}
 
 
 def infer_type(value: Any) -> str | None:
@@ -387,6 +409,12 @@ class ProjectTraceItemDetailsEndpointSerializer(serializers.Serializer):
     trace_id = serializers.UUIDField(format="hex", required=True)
     item_type = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=True)
     referrer = serializers.CharField(required=False)
+    routing_hint = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=False,
+        help_text="Opaque routingHint from the events response containing this item.",
+    )
 
 
 @cell_silo_endpoint
@@ -402,6 +430,10 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         Retrieve a Trace Item for a project.
 
         For example, you might ask 'give me all the details about the span/log with id 01234567'
+
+        Pass the events response's meta.routingHint as routing_hint to look up an item
+        using the same storage. Omitted or empty hints use the default storage;
+        invalid hints return 400. Treat the hint as opaque and pass it unchanged.
         """
         serializer = ProjectTraceItemDetailsEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
@@ -472,9 +504,13 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 request_id=str(uuid.uuid4()),
             ),
             trace_id=trace_id,
+            routing_hint=serialized.get("routing_hint", ""),
         )
 
-        resp = MessageToDict(trace_item_details_rpc(req, debug=debug))
+        try:
+            resp = MessageToDict(trace_item_details_rpc(req, debug=debug))
+        except SnubaRPCBadRequest as error:
+            raise BadRequest(detail="Invalid trace item details request.") from error
 
         include_arrays = features.has(
             "organizations:trace-item-details-array-fields",
@@ -483,6 +519,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         )
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
+        include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
 
         resp_dict = {
             "itemId": serialize_item_id(resp["itemId"], item_type),
@@ -491,6 +528,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 resp["attributes"],
                 item_type,
                 include_internal=include_internal,
+                include_internal_convention_attributes=include_internal_convention_attributes,
                 include_arrays=include_arrays,
             ),
             "meta": serialize_meta(resp["attributes"], item_type),

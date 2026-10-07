@@ -1,15 +1,60 @@
 import {Badge} from '@sentry/scraps/badge';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
+
+type FilterSelectorTriggerButtonProps = React.ComponentProps<
+  typeof OverlayTrigger.Button
+> & {
+  globalFilter: GlobalFilter;
+  showDatasetLabel?: boolean;
+};
+
+/**
+ * Trigger button shared by all global filter selectors. Always shows the
+ * filter's dataset in a tooltip, and optionally inline as a muted prefix (used
+ * to disambiguate filters on the same key across different datasets).
+ */
+export function FilterSelectorTriggerButton({
+  globalFilter,
+  showDatasetLabel,
+  children,
+  ...triggerProps
+}: FilterSelectorTriggerButtonProps) {
+  const datasetLabel = getDatasetLabel(globalFilter.dataset);
+
+  return (
+    <Tooltip
+      title={t('%s Filter', datasetLabel)}
+      // The open menu already shows the dataset in its title
+      disabled={!!triggerProps['aria-expanded']}
+      skipWrapper
+    >
+      <OverlayTrigger.Button {...triggerProps}>
+        <Flex gap="xs" align="center" minWidth={0}>
+          {showDatasetLabel && (
+            <Text variant="muted" bold={false}>
+              {datasetLabel}
+            </Text>
+          )}
+          {children}
+        </Flex>
+      </OverlayTrigger.Button>
+    </Tooltip>
+  );
+}
+
 type FilterSelectorTriggerProps = {
   activeFilterValues: string[];
   globalFilter: GlobalFilter;

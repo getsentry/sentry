@@ -1,18 +1,13 @@
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {DropdownButtonProps} from '@sentry/scraps/dropdownMenu';
-import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
 
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
-  getStoredIssueSort,
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
@@ -58,13 +53,6 @@ export function IssueListSortOptions({
   showIcon = true,
 }: Props) {
   const organization = useOrganization();
-  const {viewId} = useParams<{viewId?: string}>();
-  const hasRecommendedSortDefault = organization.features.includes(
-    'issue-stream-recommended-sort-default'
-  );
-  // The trigger badge announces the Recommended default. A stored sort means
-  // the user has already made an explicit choice, so stop announcing.
-  const hasChosenSort = getStoredIssueSort(organization.slug) !== null;
   // The explicit v1/v2 sort values are URL-only escape hatches for pinning one of
   // the two recommended scorers; the dropdown just shows them as Recommended.
   const isPinnedRecommended =
@@ -97,9 +85,6 @@ export function IssueListSortOptions({
         value: key,
         label: getSortLabel(key),
         details: getSortTooltip(key),
-        ...(key === IssueSortOptions.RECOMMENDED
-          ? {trailingItems: <FeatureBadge type="new" />}
-          : {}),
       }))}
       menuWidth={240}
       value={sortKey}
@@ -109,29 +94,7 @@ export function IssueListSortOptions({
           size={triggerSize}
           icon={showIcon && <IconSort />}
         >
-          {hasRecommendedSortDefault &&
-          !hasChosenSort &&
-          !viewId &&
-          sortKey === IssueSortOptions.RECOMMENDED ? (
-            <Flex as="span" gap="sm" align="center">
-              {triggerProps.children}
-              <FeatureBadge
-                type="new"
-                tooltipProps={{
-                  position: 'bottom',
-                  title: (
-                    <Text as="div" align="left">
-                      {t(
-                        "Issues now default to the Recommended sort. Pick a different sort and we'll remember your choice."
-                      )}
-                    </Text>
-                  ),
-                }}
-              />
-            </Flex>
-          ) : (
-            triggerProps.children
-          )}
+          {triggerProps.children}
         </OverlayTrigger.Button>
       )}
     />

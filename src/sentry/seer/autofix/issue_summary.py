@@ -14,7 +14,6 @@ from urllib3.connectionpool import HTTPConnectionPool
 
 from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.locks import locks
@@ -29,7 +28,12 @@ from sentry.seer.autofix.constants import (
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import (
+    IssueSummaryEventNotFound,
+    IssueSummaryHidden,
+    IssueSummarySelfHosted,
+    NoSeerQuotaException,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -39,7 +43,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
-from sentry.seer.models import SummarizeIssueResponse
+from sentry.seer.models import IssueSummary, SummarizeIssueResponse
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import (
@@ -58,18 +62,20 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.settings import is_self_hosted
 from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
+
 auto_run_source_map = {
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
-    SeerAutomationSource.NIGHT_SHIFT: "night_shift",
+    SeerAutomationSource.AGENTIC_TRIAGE: "night_shift",
 }
 
 referrer_map = {
     SeerAutomationSource.POST_PROCESS: AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
-    SeerAutomationSource.NIGHT_SHIFT: AutofixReferrer.NIGHT_SHIFT,
+    SeerAutomationSource.AGENTIC_TRIAGE: AutofixReferrer.AGENTIC_TRIAGE,
 }
 
 STOPPING_POINT_HIERARCHY = {
@@ -385,7 +391,7 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
 def run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
-    event: GroupEvent,
+    event: Event | GroupEvent,
     source: SeerAutomationSource,
 ) -> None:
     if source == SeerAutomationSource.ISSUE_DETAILS:
@@ -484,15 +490,13 @@ def _generate_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     force_event_id: str | None,
-    source: SeerAutomationSource,
     cache_key: str,
-    should_run_automation: bool = True,
-) -> tuple[dict[str, Any], int]:
+) -> IssueSummary:
     """Core logic to generate and cache the issue summary."""
     serialized_event, event = _get_event(group, user, provided_event_id=force_event_id)
 
     if not serialized_event or not event:
-        return {"detail": "Could not find an event for the issue"}, 400
+        raise IssueSummaryEventNotFound("Could not find an event for the issue")
 
     trace_tree = None
     if event:
@@ -531,23 +535,17 @@ def _generate_summary(
                 exc_info=True,
             )
 
-    summary_dict = issue_summary.dict()
-    summary_dict["event_id"] = event.event_id
-    cache.set(cache_key, summary_dict, timeout=int(timedelta(days=7).total_seconds()))
+    summary = IssueSummary(**issue_summary.dict(), event_id=event.event_id)
+    cache.set(cache_key, summary.dict(), timeout=int(timedelta(days=7).total_seconds()))
 
-    if should_run_automation:
-        try:
-            run_automation(group, user, event, source)
-        except Exception:
-            logger.exception(
-                "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
-            )
-
-    return summary_dict, 200
+    return summary
 
 
-def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
-    if source == SeerAutomationSource.ISSUE_DETAILS:
+def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource) -> None:
+    if source in {
+        SeerAutomationSource.ISSUE_DETAILS,
+        SeerAutomationSource.FIRST_ASSIGNMENT,
+    }:
         return
 
     quotas.backend.record_seer_run(
@@ -563,33 +561,22 @@ def get_issue_summary_lock_key(group_id: int) -> tuple[str, str]:
     return (f"ai-group-summary-v2-lock:{group_id}", "get_issue_summary")
 
 
-def get_issue_summary(
+def get_or_generate_issue_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser | None = None,
     force_event_id: str | None = None,
     source: SeerAutomationSource = SeerAutomationSource.ISSUE_DETAILS,
-    should_run_automation: bool = True,
-) -> tuple[dict[str, Any], int]:
+) -> IssueSummary:
     """
-    Generate an AI summary for an issue.
-
-    Args:
-        group: The issue group
-        user: The user requesting the summary
-        force_event_id: Optional event ID to force summarizing a specific event
-        source: The source triggering the summary generation
-        should_run_automation: Whether to trigger automation after generating summary
-
-    Returns:
-        A tuple containing (summary_data, status_code)
+    Get a cached AI issue summary or generate one.
     """
     if user is None:
         user = AnonymousUser()
-    if not features.has("organizations:gen-ai-features", group.organization, actor=user):
-        return {"detail": "Feature flag not enabled"}, 400
+    if is_self_hosted():
+        raise IssueSummarySelfHosted("Seer is not available on this installation.")
 
     if group.organization.get_option("sentry:hide_ai_features"):
-        return {"detail": "AI features are disabled for this organization."}, 403
+        raise IssueSummaryHidden("AI features are disabled for this organization.")
 
     cache_key = get_issue_summary_cache_key(group.id)
     lock_key, lock_name = get_issue_summary_lock_key(group.id)
@@ -598,15 +585,18 @@ def get_issue_summary(
 
     # if force_event_id is set, we always generate a new summary
     if force_event_id:
-        summary_dict, status_code = _generate_summary(
-            group, user, force_event_id, source, cache_key, should_run_automation
+        summary = _generate_summary(
+            group,
+            user,
+            force_event_id,
+            cache_key,
         )
         _log_seer_scanner_billing_event(group, source)
-        return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
+        return summary
 
     # 1. Check cache first
     if cached_summary := cache.get(cache_key):
-        return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
+        return IssueSummary.validate(cached_summary)
 
     # 2. Try to acquire lock
     try:
@@ -617,17 +607,20 @@ def get_issue_summary(
             # Re-check cache after acquiring lock, in case another process finished
             # while we were waiting for the lock.
             if cached_summary := cache.get(cache_key):
-                return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
+                return IssueSummary.validate(cached_summary)
 
             # Lock acquired and cache is still empty, proceed with generation
-            summary_dict, status_code = _generate_summary(
-                group, user, force_event_id, source, cache_key, should_run_automation
+            summary = _generate_summary(
+                group,
+                user,
+                force_event_id,
+                cache_key,
             )
             _log_seer_scanner_billing_event(group, source)
-            return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
+            return summary
 
     except UnableToAcquireLock:
         # Failed to acquire lock within timeout. Check cache one last time.
         if cached_summary := cache.get(cache_key):
-            return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
-        return {"detail": "Timeout waiting for summary generation lock"}, 503
+            return IssueSummary.validate(cached_summary)
+        raise

@@ -563,9 +563,9 @@ describe('CustomerOverview', () => {
     };
 
     const spansButtons = getTrialButtons('Spans:');
-    expect(spansButtons.startTrialButton).toBeDisabled();
-    expect(spansButtons.stopTrialButton).toBeDisabled();
-    expect(spansButtons.extendTrialButton).toBeDisabled();
+    expect(spansButtons.startTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(spansButtons.stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(spansButtons.extendTrialButton).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.hover(spansButtons.startTrialButton);
     expect(
@@ -577,13 +577,13 @@ describe('CustomerOverview', () => {
     // Allow Trial is unaffected by the enterprise non-Seer start block: it stays
     // enabled once a trial has been used, regardless of plan.
     const replaysButtons = getTrialButtons('Replays:');
-    expect(replaysButtons.startTrialButton).toBeDisabled();
-    expect(replaysButtons.allowTrialButton).toBeEnabled();
+    expect(replaysButtons.startTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(replaysButtons.allowTrialButton).not.toHaveAttribute('aria-disabled', 'true');
 
     const seerButtons = getTrialButtons('Seer:');
-    expect(seerButtons.startTrialButton).toBeEnabled();
-    expect(seerButtons.stopTrialButton).toBeDisabled();
-    expect(seerButtons.extendTrialButton).toBeDisabled();
+    expect(seerButtons.startTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+    expect(seerButtons.stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(seerButtons.extendTrialButton).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('keeps stop/extend available for an in-flight non-Seer trial on enterprise plans', async () => {
@@ -630,15 +630,15 @@ describe('CustomerOverview', () => {
     // still be able to wind down or extend a trial that is already running.
     expect(
       within(spansDefinition).getByRole('button', {name: 'Stop Trial'})
-    ).toBeEnabled();
+    ).not.toHaveAttribute('aria-disabled', 'true');
     expect(
       within(spansDefinition).getByRole('button', {name: 'Extend Trial'})
-    ).toBeEnabled();
+    ).not.toHaveAttribute('aria-disabled', 'true');
 
     const startTrialButton = within(spansDefinition).getByRole('button', {
       name: 'Start Trial',
     });
-    expect(startTrialButton).toBeDisabled();
+    expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
     await userEvent.hover(startTrialButton);
     expect(
       await screen.findByText(
@@ -780,32 +780,32 @@ describe('CustomerOverview', () => {
         expect(extendTrialButton).toBeInTheDocument();
 
         if (category === DataCategory.REPLAYS) {
-          expect(allowTrialButton).toBeDisabled();
-          expect(startTrialButton).toBeDisabled();
-          expect(stopTrialButton).toBeEnabled();
-          expect(extendTrialButton).toBeEnabled();
+          expect(allowTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).not.toHaveAttribute('aria-disabled', 'true');
           expect(
             within(definition).getByText(/Active \(until .* UTC\)/)
           ).toBeInTheDocument();
         } else if (category === DataCategory.SPANS) {
-          expect(allowTrialButton).toBeDisabled();
-          expect(startTrialButton).toBeDisabled();
-          expect(stopTrialButton).toBeDisabled();
-          expect(extendTrialButton).toBeEnabled();
+          expect(allowTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).not.toHaveAttribute('aria-disabled', 'true');
           expect(
             within(definition).getByText(/Active \(until .* UTC\)/)
           ).toBeInTheDocument();
         } else if (category === AddOnCategory.LEGACY_SEER) {
-          expect(allowTrialButton).toBeEnabled();
-          expect(startTrialButton).toBeDisabled();
-          expect(stopTrialButton).toBeDisabled();
-          expect(extendTrialButton).toBeDisabled();
+          expect(allowTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).toHaveAttribute('aria-disabled', 'true');
           expect(within(definition).getByText('Used')).toBeInTheDocument();
         } else {
-          expect(allowTrialButton).toBeDisabled();
-          expect(startTrialButton).toBeEnabled();
-          expect(stopTrialButton).toBeDisabled();
-          expect(extendTrialButton).toBeDisabled();
+          expect(allowTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).toHaveAttribute('aria-disabled', 'true');
           expect(within(definition).getByText('Available')).toBeInTheDocument();
         }
       } else {

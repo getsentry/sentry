@@ -313,8 +313,6 @@ def _build_seer_request(
 
     model_version = get_grouping_model_version(event.project)
 
-    skip_fallback = should_skip_seer_fallback(event.project)
-
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
         "hash": event.get_primary_hash(),
@@ -326,7 +324,7 @@ def _build_seer_request(
         "model": model_version,
         "training_mode": training_mode,
         "platform": event.platform or "unknown",
-        "skip_fallback": skip_fallback,
+        "skip_fallback": should_skip_seer_fallback(event.project),
     }
     event.data.pop("stacktrace_string", None)
 
@@ -710,7 +708,7 @@ def maybe_send_seer_for_new_model_training(
     Send a training_mode=true request to Seer for the project's current non-stable model
     version if the existing grouphash hasn't been sent to that version yet.
 
-    This only happens for projects on a non-stable model (via feature flags). It helps
+    This only happens for projects using the configured next model. It helps
     build data for existing groups without affecting production grouping decisions.
 
     Args:

@@ -62,6 +62,7 @@ export function RangeSlider({
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     updateSliderValue();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);

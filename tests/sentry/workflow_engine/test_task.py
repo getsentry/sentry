@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 from google.api_core.exceptions import RetryError
@@ -8,10 +9,12 @@ from sentry.issues.status_change_consumer import process_status_change_message, 
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionGroupEvaluation,
     WorkflowEvaluationOutcome,
@@ -55,7 +58,7 @@ class TestProcessWorkflowActivity(TestCase):
         self.detector = self.create_detector(type=MetricIssue.slug)
 
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
-    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    @mock.patch("sentry.workflow_engine.processors.evaluations.logging.logger")
     def test_process_workflow_activity__no_workflows(self, mock_logger: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
@@ -82,7 +85,7 @@ class TestProcessWorkflowActivity(TestCase):
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
         return_value=(set(), {}, EvaluationStats(), {}),
     )
-    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    @mock.patch("sentry.workflow_engine.processors.evaluations.logging.logger")
     def test_process_workflow_activity__workflows__no_actions(
         self,
         mock_logger: mock.MagicMock,
@@ -128,10 +131,7 @@ class TestProcessWorkflowActivity(TestCase):
         "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
         return_value=([], {}),
     )
-    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
-    def test_process_workflow_activity(
-        self, mock_logger: mock.MagicMock, mock_filter_actions: mock.MagicMock
-    ) -> None:
+    def test_process_workflow_activity(self, mock_filter_actions: mock.MagicMock) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
         self.action_group = self.create_data_condition_group(logic_type="any-short")
@@ -160,9 +160,62 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
 
+    def _create_workflow_with_action(self, **workflow_kwargs: Any) -> DataConditionGroup:
+        workflow = self.create_workflow(organization=self.organization, **workflow_kwargs)
+        action_group = self.create_data_condition_group(logic_type="any-short")
+        self.create_data_condition_group_action(
+            condition_group=action_group,
+            action=self.create_action(),
+        )
+        self.create_workflow_data_condition_group(workflow, action_group)
+        self.create_detector_workflow(detector=self.detector, workflow=workflow)
+        return action_group
+
+    @mock.patch(
+        "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
+        return_value=([], {}),
+    )
+    def test_process_workflow_activity__matching_environment(
+        self, mock_filter_actions: mock.MagicMock
+    ) -> None:
+        # An Activity has no environment of its own, so it is taken from the group.
+        environment = self.create_environment(project=self.project)
+        GroupEnvironment.objects.create(group_id=self.group.id, environment_id=environment.id)
+        action_group = self._create_workflow_with_action(environment=environment)
+
+        process_workflow_activity(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+        )
+
+        mock_filter_actions.assert_called_once_with(
+            {action_group},
+            WorkflowEventData(event=self.activity, group=self.group),
+        )
+
+    @mock.patch(
+        "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
+        return_value=([], {}),
+    )
+    def test_process_workflow_activity__other_environment(
+        self, mock_filter_actions: mock.MagicMock
+    ) -> None:
+        environment = self.create_environment(project=self.project)
+        GroupEnvironment.objects.create(group_id=self.group.id, environment_id=environment.id)
+        self._create_workflow_with_action(environment=self.create_environment(project=self.project))
+
+        process_workflow_activity(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+        )
+
+        assert mock_filter_actions.call_count == 0
+
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
-    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    @mock.patch("sentry.workflow_engine.processors.evaluations.logging.logger")
     def test_process_workflow_activity__success_logs(
         self, mock_logger: mock.MagicMock, mock_evaluate_workflow_triggers: mock.MagicMock
     ) -> None:

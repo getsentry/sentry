@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+// eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
+import {size} from '@sentry/scraps/tokens';
 
 import * as Storybook from 'sentry/stories';
-// eslint-disable-next-line @sentry/scraps/no-token-import -- temporary until theme.borderWidth is exposed
-import {size} from 'sentry/utils/theme/scraps/tokens/size';
 
 interface ColorGroup {
   tokens: Record<string, string>;
@@ -178,7 +178,7 @@ export function LineHeight() {
           borderBottom="accent"
           style={{boxSizing: 'border-box'}}
         >
-          <Text size="md" density={token as any} variant="accent">
+          <Text size="md" density={token} variant="accent">
             Aa
           </Text>
         </Flex>

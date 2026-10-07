@@ -327,6 +327,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
         base_commit_comparisons_qs = CommitComparison.objects.filter(
             head_sha=self.commit_comparison.base_sha,
+            head_repo_name=self.commit_comparison.head_repo_name,
             organization_id=self.project.organization_id,
         ).order_by("date_added")
         base_commit_comparisons = list(base_commit_comparisons_qs)
@@ -360,7 +361,7 @@ class PreprodArtifact(DefaultFieldsModel):
             app_id=self.app_id,
             artifact_type=artifact_type if artifact_type is not None else self.artifact_type,
             build_configuration=self.build_configuration,
-        )
+        ).order_by("-date_added")
 
     @classmethod
     def get_base_artifacts_for_commit(

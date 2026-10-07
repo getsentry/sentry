@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
+from sentry_sdk import traces
 from usageaccountant import UsageUnit
 
 from sentry import features, nodestore
@@ -114,7 +115,9 @@ def process_event(
     # This code has been ripped from the old python store endpoint. We're
     # keeping it around because it does provide some protection against
     # reprocessing good events if a single consumer is in a restart loop.
-    with start_span(op="deduplication_check", name="deduplication_check"):
+    with traces.start_span(
+        name="deduplication_check", attributes={"sentry.op": "deduplication_check"}
+    ):
         deduplication_key = f"ev:{project_id}:{event_id}"
 
         try:
@@ -130,7 +133,10 @@ def process_event(
             )
             return  # message already processed do not reprocess
 
-    with start_span(op="killswitch_matches_context", name="store.load-shed-pipeline-projects"):
+    with traces.start_span(
+        name="store.load-shed-pipeline-projects",
+        attributes={"sentry.op": "killswitch_matches_context"},
+    ):
         if killswitch_matches_context(
             "store.load-shed-pipeline-projects",
             {
@@ -146,7 +152,7 @@ def process_event(
     # Parse the JSON payload. This is required to compute the cache key and
     # call process_event. The payload will be put into Kafka raw, to avoid
     # serializing it again.
-    with start_span(op="orjson.loads", name="orjson.loads"):
+    with traces.start_span(name="orjson.loads", attributes={"sentry.op": "orjson.loads"}):
         data = orjson.loads(payload)
 
     # We also need to check "type" as transactions are also sent to ingest-attachments
@@ -159,8 +165,9 @@ def process_event(
     sentry_sdk.set_extra("event_type", data.get("type"))
     sentry_sdk.set_attribute("event_type", data.get("type"))
 
-    with start_span(
-        op="killswitch_matches_context", name="store.load-shed-parsed-pipeline-projects"
+    with traces.start_span(
+        name="store.load-shed-parsed-pipeline-projects",
+        attributes={"sentry.op": "killswitch_matches_context"},
     ):
         if killswitch_matches_context(
             "store.load-shed-parsed-pipeline-projects",
@@ -181,8 +188,9 @@ def process_event(
         # `processing_store`. We only continue here if the event *is* present, as that will eventually
         # process and consume the event from the `processing_store`, whereby getting it "unstuck".
         if reprocess_only_stuck_events:
-            with start_span(
-                op="event_processing_store.exists", name="event_processing_store.exists"
+            with traces.start_span(
+                name="event_processing_store.exists",
+                attributes={"sentry.op": "event_processing_store.exists"},
             ):
                 if not processing_store.exists(data):
                     return
@@ -190,7 +198,9 @@ def process_event(
         # If we only want to reprocess events that never made it into `nodestore`, we check whether the event body has
         # already been persisted. We only continue here if the event is *not* present.
         if reprocess_only_events_not_in_nodestore:
-            with start_span(op="nodestore.exists", name="nodestore.exists"):
+            with traces.start_span(
+                name="nodestore.exists", attributes={"sentry.op": "nodestore.exists"}
+            ):
                 node_id = Event.generate_node_id(project_id, event_id)
                 if nodestore.backend.get(node_id) is not None:
                     return
@@ -289,9 +299,9 @@ def process_event(
             # Preprocess this event, which spawns either process_event or
             # save_event. Pass data explicitly to avoid fetching it again from the
             # cache.
-            with start_span(
-                op="ingest_consumer.process_event.preprocess_event",
+            with traces.start_span(
                 name="ingest_consumer.process_event.preprocess_event",
+                attributes={"sentry.op": "ingest_consumer.process_event.preprocess_event"},
             ):
                 preprocess_kwargs: dict[str, Any] = {
                     "cache_key": cache_key or "",
@@ -306,11 +316,14 @@ def process_event(
                 preprocess_event(**preprocess_kwargs)
 
         # remember for an 1 hour that we saved this event (deduplication protection)
-        with start_span(op="cache.set", name="cache.set"):
+        with traces.start_span(name="cache.set", attributes={"sentry.op": "cache.set"}):
             cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
         # emit event_accepted once everything is done
-        with start_span(op="event_accepted.send_robust", name="event_accepted.send_robust"):
+        with traces.start_span(
+            name="event_accepted.send_robust",
+            attributes={"sentry.op": "event_accepted.send_robust"},
+        ):
             event_accepted.send_robust(
                 ip=remote_addr, data=data, project=project, sender=process_event
             )
