@@ -27,6 +27,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 const DOCS_LINK =
@@ -190,17 +191,25 @@ export default function TeamNotificationSettings() {
   );
 
   if (isTeamPending || isIntegrationsPending) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Notifications')} />
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (isTeamError || isIntegrationsError) {
     return (
-      <LoadingError
-        onRetry={() => {
-          refetchTeam();
-          refetchIntegrations();
-        }}
-      />
+      <Fragment>
+        <BreadcrumbTitle title={t('Notifications')} />
+        <LoadingError
+          onRetry={() => {
+            refetchTeam();
+            refetchIntegrations();
+          }}
+        />
+      </Fragment>
     );
   }
 
@@ -232,6 +241,7 @@ export default function TeamNotificationSettings() {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Notifications')} />
       <SentryDocumentTitle
         title={t('%s Team Notification Settings', `#${params.teamId}`)}
       />

@@ -21,6 +21,7 @@ jest.mock('sentry/views/dashboards/utils/usePopulateLinkedDashboards', () => ({
 
 describe('PrebuiltDashboardRenderer', () => {
   const initialRouterConfig = {
+    route: '/insights/backend/',
     location: {
       pathname: '/insights/backend/',
       query: {

@@ -10,6 +10,7 @@ from slack_sdk.web.slack_response import SlackResponse
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.types import ExternalProviders
@@ -208,7 +209,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         with self.mock_msg_schedule_response("chan-id"):
             with self.mock_msg_delete_scheduled_response("chan-id"):
-                form = rule.get_form_instance()
+                form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
                 assert form.is_valid()
                 self.assert_form_valid(form, "chan-id", "#my-channel")
 
@@ -228,7 +229,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         with self.mock_msg_schedule_response("channel_not_found"):
             with self.mock_list("users", members["members"], "members"):
-                form = rule.get_form_instance()
+                form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
                 assert form.is_valid()
                 self.assert_form_valid(form, "morty-id", "@morty")
 
@@ -256,7 +257,7 @@ class SlackNotifyActionTest(RuleTestCase):
             body=orjson.dumps(members),
         )
 
-        form = rule.get_form_instance()
+        form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
 
         assert not form.is_valid()
         assert len(form.errors) == 1
@@ -289,7 +290,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 }
             )
 
-            form = rule.get_form_instance()
+            form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
             assert not form.is_valid()
             assert SLACK_RATE_LIMITED_MESSAGE in str(form.errors.values())
 
@@ -305,7 +306,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 }
             )
 
-            form = rule.get_form_instance()
+            form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
             assert form.is_valid()
 
     def test_invalid_channel_id_provided_sdk(self) -> None:
@@ -322,7 +323,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 }
             )
 
-            form = rule.get_form_instance()
+            form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
             assert not form.is_valid()
             assert "Channel not found. Invalid ID provided." in str(form.errors.values())
 
@@ -338,7 +339,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 }
             )
 
-            form = rule.get_form_instance()
+            form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
             assert not form.is_valid()
             assert "Slack: Slack channel name from ID does not match input channel name." in str(
                 form.errors.values()
@@ -349,7 +350,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"workspace": "unknown", "channel": "#my-channel", "tags": ""})
 
-        form = rule.get_form_instance()
+        form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
         assert not form.is_valid()
         assert ["Slack: Workspace is a required field."] in form.errors.values()
 
@@ -369,7 +370,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         with self.mock_msg_schedule_response("channel_not_found"):
             with self.mock_list("users", members["members"], "members"):
-                form = rule.get_form_instance()
+                form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
                 assert not form.is_valid()
                 assert [
                     "Slack: Multiple users were found with display name '@morty'. Please use your username, found at sentry.slack.com/account/settings#username."

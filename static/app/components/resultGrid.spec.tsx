@@ -83,7 +83,7 @@ describe('ResultGrid', () => {
 
     const {router} = render(<ExampleBasicResultGrid />);
 
-    await screen.findByTestId('pagination');
+    await screen.findByRole('button', {name: 'Next'});
 
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
@@ -109,7 +109,7 @@ describe('ResultGrid', () => {
       />
     );
 
-    await screen.findByTestId('pagination');
+    await screen.findByRole('button', {name: 'Next'});
     await userEvent.click(screen.getByRole('button', {name: /Status/}));
     await userEvent.click(await screen.findByRole('option', {name: 'Active'}));
     await waitFor(() => expect(router.location.query.status).toBe('active'));

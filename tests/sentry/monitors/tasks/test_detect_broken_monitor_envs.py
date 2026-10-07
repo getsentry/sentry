@@ -2,11 +2,15 @@ import uuid
 from datetime import timedelta
 from unittest.mock import MagicMock, Mock, call, patch
 
-from django.urls import reverse
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.utils import hash_from_values
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -18,18 +22,22 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.tasks.detect_broken_monitor_envs import detect_broken_monitor_envs
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
+from sentry.workflow_engine.models import DataSourceDetector
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.detector_ids: dict[str, int] = {}
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
 
@@ -45,9 +53,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         )
 
     def generate_cron_monitor_url(self, org_slug: str, project_slug: str, monitor_slug: str) -> str:
-        return "http://testserver" + reverse(
-            "sentry-organization-cron-monitor-details",
-            args=[org_slug, project_slug, monitor_slug],
+        return (
+            f"http://testserver/organizations/{org_slug}/monitors/"
+            f"{self.detector_ids[monitor_slug]}/"
         )
 
     def create_monitor_and_env(
@@ -72,6 +80,17 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                 "checkin_margin": None,
             },
         )
+        data_source = self.create_data_source(
+            organization=Organization.objects.get(id=monitor.organization_id),
+            source_id=str(monitor.id),
+            type=DATA_SOURCE_CRON_MONITOR,
+        )
+        detector = self.create_detector(
+            project=Project.objects.get(id=monitor.project_id),
+            type=MonitorIncidentType.slug,
+        )
+        self.create_data_source_detector(data_source=data_source, detector=detector)
+        self.detector_ids[monitor.slug] = detector.id
         return (monitor, self.create_monitor_env(monitor=monitor, environment_id=environment_id))
 
     def create_incident_for_monitor_env(self, monitor, monitor_environment):
@@ -118,6 +137,74 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 1
         assert builder.call_count == 1
+
+    @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
+    def test_preserves_environment_query_parameters(self, builder: MagicMock) -> None:
+        first_environment = self.create_environment(self.project, name="production & staging")
+        second_environment = self.create_environment(self.project, name="canary/us")
+        monitor, first_monitor_environment = self.create_monitor_and_env(
+            environment_id=first_environment.id
+        )
+        second_monitor_environment = self.create_monitor_env(monitor, second_environment.id)
+        self.create_incident_for_monitor_env(monitor, first_monitor_environment)
+        self.create_incident_for_monitor_env(monitor, second_monitor_environment)
+
+        detect_broken_monitor_envs()
+
+        monitor_url = builder.call_args.kwargs["context"]["broken_monitors"][0][2]
+        assert monitor_url == (
+            f"http://testserver/organizations/{self.organization.slug}/monitors/"
+            f"{self.detector_ids[monitor.slug]}/"
+            "?environment=production+%26+staging&environment=canary%2Fus"
+        )
+
+    @with_feature("system:multi-region")
+    @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
+    def test_uses_customer_domain_urls(self, builder: MagicMock) -> None:
+        monitor, monitor_environment = self.create_monitor_and_env()
+        self.create_incident_for_monitor_env(monitor, monitor_environment)
+
+        detect_broken_monitor_envs()
+
+        context = builder.call_args.kwargs["context"]
+        assert context["broken_monitors"][0][2] == (
+            f"http://{self.organization.slug}.testserver/monitors/"
+            f"{self.detector_ids[monitor.slug]}/?environment={self.environment.name}"
+        )
+        assert context["view_monitors_link"] == (
+            f"http://{self.organization.slug}.testserver/monitors/crons/"
+        )
+
+    @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
+    def test_missing_detector_falls_back_to_monitor_list(self, builder: MagicMock) -> None:
+        monitor, monitor_environment = self.create_monitor_and_env()
+        DataSourceDetector.objects.filter(detector_id=self.detector_ids[monitor.slug]).delete()
+        self.create_incident_for_monitor_env(monitor, monitor_environment)
+
+        detect_broken_monitor_envs()
+
+        monitor_url = builder.call_args.kwargs["context"]["broken_monitors"][0][2]
+        assert monitor_url == (
+            f"http://testserver/organizations/{self.organization.slug}/monitors/crons/"
+        )
+
+    @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
+    def test_queries_detectors_once_for_multiple_monitors(self, builder: MagicMock) -> None:
+        first_monitor, first_monitor_environment = self.create_monitor_and_env()
+        second_monitor, second_monitor_environment = self.create_monitor_and_env(name="second")
+        self.create_incident_for_monitor_env(first_monitor, first_monitor_environment)
+        self.create_incident_for_monitor_env(second_monitor, second_monitor_environment)
+
+        with CaptureQueriesContext(connection) as queries:
+            detect_broken_monitor_envs()
+
+        detector_queries = [
+            query
+            for query in queries.captured_queries
+            if "workflow_engine_datasourcedetector" in query["sql"]
+        ]
+        assert len(detector_queries) == 1
+        assert len(builder.call_args.kwargs["context"]["broken_monitors"]) == 2
 
     def test_does_not_create_broken_detection_insufficient_duration(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
@@ -239,7 +326,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/insights/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/monitors/crons/",
             },
             {
                 "broken_monitors": [
@@ -256,7 +343,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/monitors/crons/",
             },
             {
                 "broken_monitors": [
@@ -273,7 +360,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/monitors/crons/",
             },
         ]
         expected_subjects = [
@@ -380,7 +467,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/insights/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/monitors/crons/",
             },
             {
                 "muted_monitors": [
@@ -397,7 +484,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/monitors/crons/",
             },
             {
                 "muted_monitors": [
@@ -414,7 +501,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/monitors/crons/",
             },
         ]
         expected_subjects = [
@@ -503,7 +590,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/monitors/crons/",
             },
             {
                 "muted_monitors": [
@@ -514,7 +601,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/monitors/crons/",
             },
         ]
 

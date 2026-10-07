@@ -351,6 +351,45 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
 
+    def test_errors_top_events(self) -> None:
+        for message, minutes in [("very bad", 1), ("very bad", 2), ("oh my", 3)]:
+            self.store_event(
+                data={
+                    "message": message,
+                    "timestamp": (self.start + timedelta(minutes=minutes)).isoformat(),
+                    "fingerprint": [message],
+                },
+                project_id=self.project.id,
+            )
+
+        response = self.do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "groupBy": ["count()", "message"],
+                "orderby": ["-count()"],
+                "topEvents": 1,
+                "project": [self.project.id],
+                "dataset": "errors",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 2
+
+        other, top = response.data["timeSeries"]
+        assert top["groupBy"] == [{"key": "message", "value": "very bad"}]
+        assert top["meta"]["isOther"] is False
+        assert top["meta"]["order"] == 0
+        assert top["values"][0]["value"] == 2
+
+        assert other["groupBy"] is None
+        assert other["meta"]["isOther"] is True
+        assert other["meta"]["order"] == 1
+        assert other["values"][0]["value"] == 1
+
     def test_incomplete_bucket(self):
         with freeze_time(self.end):
             response = self.do_request(
@@ -608,12 +647,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def _do_request(
-        self,
-        features: dict[str, bool],
-        dataset: str = "spans",
-        ingestion_delay: bool = True,
-    ):
+    def _do_request(self, features: dict[str, bool], dataset: str = "spans"):
         data: dict[str, Any] = {
             "start": self.start,
             "end": self.end,
@@ -621,8 +655,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             "project": [self.project.id],
             "dataset": dataset,
         }
-        if ingestion_delay:
-            data["includeMeasuredIngestionDelayMetadata"] = "1"
         with self.feature(features):
             return self.client.get(self.url, data=data, format="json")
 
@@ -632,20 +664,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert response.status_code == 200, response.content
         assert "ingestion" not in response.data["meta"]
         # The measurement costs a snuba query, so it must not run when unflagged.
-        assert not mock_measure.called
-
-    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_with_flag_but_without_query_param(self, mock_measure) -> None:
-        # Flag on, but the endpoint must not enrich unless the caller opts in.
-        response = self._do_request(
-            {
-                "organizations:visibility-explore-view": True,
-                "organizations:measured-ingestion-delay-metadata": True,
-            },
-            ingestion_delay=False,
-        )
-        assert response.status_code == 200, response.content
-        assert "ingestion" not in response.data["meta"]
         assert not mock_measure.called
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")

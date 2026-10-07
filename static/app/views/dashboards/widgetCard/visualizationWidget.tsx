@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 
 import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';

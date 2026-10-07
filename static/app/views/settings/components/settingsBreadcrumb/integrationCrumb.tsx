@@ -1,7 +1,6 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
-import {Flex} from '@sentry/scraps/layout';
 
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -10,32 +9,32 @@ import {t} from 'sentry/locale';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
-import {BreadcrumbDropdown} from './breadcrumbDropdown';
-import type {RouteWithName, SettingsBreadcrumbProps} from './types';
-import {CrumbLink} from '.';
+import {SettingsBreadcrumbSelector} from './settingsBreadcrumbSelector';
+import type {SettingsBreadcrumbSelectorProps} from './types';
 
 type IntegrationProviderResponse = {
   providers: IntegrationProvider[];
 };
 
-export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
+export function IntegrationCrumb({
+  to,
+  switchTo,
+  children,
+  isSentryAppRoute = false,
+}: SettingsBreadcrumbSelectorProps & {isSentryAppRoute?: boolean}) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
   const params = useParams();
   const activeProviderKey = params.integrationSlug ?? params.providerKey;
-  const isSentryAppRoute = routes.some(
-    (item: RouteWithName) => item.path === 'sentry-apps/'
-  );
-  const hasFollowingTopBarTitle = routes.some(
-    (item: RouteWithName) => item.path === 'integrations/'
-  );
   const {data: sentryApp, isPending: isSentryAppPending} = useQuery(
     sentryAppApiOptions({
       appSlug: isSentryAppRoute ? (activeProviderKey ?? null) : null,
@@ -66,7 +65,7 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
   );
 
   if (!activeProviderKey) {
-    return null;
+    return children;
   }
 
   const providers = data?.providers ?? [];
@@ -78,37 +77,36 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
   const isIconPending =
     (isSentryAppRoute && isSentryAppPending) ||
     (configuredItemSelected && isIntegrationPending);
-  const activeProviderUrl = `/settings/${organization.slug}/${isSentryAppRoute ? 'sentry-apps' : 'integrations'}/${activeProviderKey}/`;
+  const activeProviderUrl = replaceRouterParams(to, params);
   const activeProviderHref = configuredItemSelected
     ? activeProviderUrl
     : `${activeProviderUrl}${location.search}`;
 
   return (
-    <BreadcrumbDropdown
-      name={
-        <CrumbLink to={activeProviderHref}>
-          <Flex align="center" gap="xs">
-            {isIconPending ? (
-              <Placeholder width="18px" height="18px" />
-            ) : sentryApp ? (
-              <SentryAppAvatar sentryApp={sentryApp} size={18} />
-            ) : integration ? (
-              <IntegrationIcon integration={integration} size={18} />
-            ) : (
-              <PluginIcon pluginId={activeProviderKey} size={18} />
-            )}
-            {isSentryAppRoute && isSentryAppPending ? (
-              <Placeholder width="64px" height="16px" />
-            ) : (
-              activeProviderName
-            )}
-          </Flex>
-        </CrumbLink>
+    <SettingsBreadcrumbSelector
+      label={activeProviderName}
+      leadingGraphic={
+        isIconPending ? (
+          <Placeholder width="16px" height="16px" />
+        ) : sentryApp ? (
+          <SentryAppAvatar sentryApp={sentryApp} size={16} />
+        ) : integration ? (
+          <IntegrationIcon integration={integration} size={16} />
+        ) : (
+          <PluginIcon pluginId={activeProviderKey} size={16} />
+        )
       }
+      to={activeProviderHref}
       onCrumbSelect={providerKey => {
         const {tab: _tab, ...queryWithoutTab} = location.query;
         navigate({
-          pathname: `/settings/${organization.slug}/integrations/${providerKey}/`,
+          pathname: normalizeUrl(
+            replaceRouterParams(switchTo, {
+              ...params,
+              providerKey,
+              integrationSlug: providerKey,
+            })
+          ),
           query: queryWithoutTab,
         });
       }}
@@ -118,7 +116,6 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
         }
       }}
       hasMenu={providers.length > 1}
-      route={route}
       value={activeProvider?.key ?? activeProviderKey}
       search={{placeholder: t('Search Integrations')}}
       options={providers.map(provider => ({
@@ -127,7 +124,8 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
         label: provider.name,
       }))}
       loading={isPending}
-      showDivider={hasFollowingTopBarTitle}
-    />
+    >
+      {children}
+    </SettingsBreadcrumbSelector>
   );
 }

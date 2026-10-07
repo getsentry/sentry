@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping, Sequence
+from unittest.mock import patch
 
 from sentry.digests.notifications import (
     Digest,
@@ -27,6 +28,7 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.actor import ActorType
 from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 
 def _get_records(project: Project, rules: Collection[RuleModel], event: Event) -> list[Record]:
@@ -127,8 +129,22 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
 
-        assert rendered_rule.id == rule.id
+        assert rendered_rule.legacy_rule_id == rule.id
+        assert rendered_rule.workflow_id == workflow_id
         assert rendered_rule.environment_id == production.id
+
+    def test_get_rules_from_workflows_uses_unset_workflow_environment(self) -> None:
+        project = self.create_project(fire_project_created=True)
+        environment = self.create_environment(project=project)
+        rule = self.create_project_rule(project=project, environment_id=environment.id)
+        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        Workflow.objects.filter(id=workflow_id).update(environment_id=None)
+
+        rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
+
+        assert rendered_rule.legacy_rule_id == rule.id
+        assert rendered_rule.workflow_id == workflow_id
+        assert rendered_rule.environment_id is None
 
     def test_get_rules_from_workflows_uses_workflow_environment_for_synthetic_rule(self) -> None:
         project = self.create_project(fire_project_created=True)
@@ -139,13 +155,14 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         rendered_rule = get_rules_from_workflows(project, {workflow.id})[workflow.id]
 
-        assert rendered_rule.id == workflow.id
+        assert rendered_rule.legacy_rule_id is None
+        assert rendered_rule.workflow_id == workflow.id
         assert rendered_rule.environment_id == environment.id
 
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]) -> None:
     for rule, groups in digest.items():
-        assert rule.id in expected_rule_ids
+        assert rule.legacy_rule_id in expected_rule_ids
 
 
 def assert_get_personalized_digests(
@@ -312,6 +329,33 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         assert_get_personalized_digests(self.project, digest, expected_result)
         assert_rule_ids(
             digest, [self.rule_with_legacy_rule_id.data["actions"][0]["legacy_rule_id"]]
+        )
+
+    def test_legacy_rule_id_records_include_workflow_id(self) -> None:
+        rule = self.rule_with_legacy_rule_id
+        workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
+        records = _get_records(self.project, (rule,), self.team1_events[0])
+
+        digest = build_digest(self.project, sort_records(records))[0]
+
+        [digest_rule] = digest.keys()
+        assert digest_rule.legacy_rule_id == rule.id
+        assert digest_rule.workflow_id == workflow_id
+
+    def test_legacy_rule_id_records_without_workflow(self) -> None:
+        rule = self.rule_with_legacy_rule_id
+        AlertRuleWorkflow.objects.filter(rule_id=rule.id).delete()
+        records = _get_records(self.project, (rule,), self.team1_events[0])
+
+        with patch("sentry.digests.notifications.logger") as mock_logger:
+            digest = build_digest(self.project, sort_records(records))[0]
+
+        [digest_rule] = digest.keys()
+        assert digest_rule.legacy_rule_id == rule.id
+        assert digest_rule.workflow_id is None
+        mock_logger.error.assert_called_once_with(
+            "digests.build_digest.rule_without_workflow",
+            extra={"rule_id": rule.id, "project_id": self.project.id},
         )
 
     def test_direct_email(self) -> None:

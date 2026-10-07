@@ -169,6 +169,10 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
 
     @mock.patch("sentry.api.endpoints.organization_spans_fields.snuba_rpc.attribute_names_rpc")
     def test_internal_sentry_convention_attributes_are_hidden(self, mock_attribute_names) -> None:
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.login_as(user=user)
+
         self.create_span(start_ts=before_now(days=0, minutes=10))
         mock_attribute_names.return_value = TraceItemAttributeNamesResponse(
             attributes=[
@@ -180,6 +184,18 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
                     name=ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
                     type=AttributeKey.Type.TYPE_STRING,
                 ),
+                TraceItemAttributeNamesResponse.Attribute(
+                    name="__sentry_internal_test",
+                    type=AttributeKey.Type.TYPE_STRING,
+                ),
+                TraceItemAttributeNamesResponse.Attribute(
+                    name="sentry._internal.received_at",
+                    type=AttributeKey.Type.TYPE_STRING,
+                ),
+                TraceItemAttributeNamesResponse.Attribute(
+                    name="sentry.organization_id",
+                    type=AttributeKey.Type.TYPE_STRING,
+                ),
             ]
         )
 
@@ -187,3 +203,21 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
 
         assert response.status_code == 200, response.data
         assert response.data == [{"key": "public.attribute", "name": "public.attribute"}]
+
+        for flags in ({"is_staff": True}, {"is_superuser": True}):
+            privileged_user = self.create_user(**flags)
+            self.create_member(
+                user=privileged_user, organization=self.organization, teams=[self.team]
+            )
+            self.login_as(user=privileged_user)
+
+            response = self.do_request()
+
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {"key": "public.attribute", "name": "public.attribute"},
+                {
+                    "key": "sentry.dsc.environment",
+                    "name": "sentry.dsc.environment",
+                },
+            ]

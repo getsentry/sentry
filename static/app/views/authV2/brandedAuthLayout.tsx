@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {useLocation, useOutlet} from 'react-router-dom';
+import {useLocation, useOutlet} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';

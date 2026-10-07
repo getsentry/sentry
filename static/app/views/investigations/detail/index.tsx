@@ -5,11 +5,9 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -56,6 +54,7 @@ import {updateInvestigationCache} from 'sentry/views/investigations/investigatio
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
@@ -299,24 +298,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Title>
-          <HeaderBreadcrumbs
-            align="center"
-            gap="sm"
-            minWidth={0}
-            data-test-id="investigation-breadcrumbs"
-            data-text-size="md"
-          >
-            <IconStack size="md" />
-            <HeaderBreadcrumbLink
-              to={`/organizations/${organization.slug}/explore/investigations/`}
-            >
-              {t('Investigations')}
-            </HeaderBreadcrumbLink>
-            <HeaderDivider>/</HeaderDivider>
-            <HeaderInvestigationTitle>{displayedTitle}</HeaderInvestigationTitle>
-            <DropdownMenu
-              items={[
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: displayedTitle,
+            trailingActions: {
+              type: 'menu',
+              items: [
                 {
                   key: 'copy-link',
                   label: t('Copy link'),
@@ -346,21 +335,20 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                       onConfirm: () => deleteMutation.mutate(investigation),
                     }),
                 },
-              ]}
-              trigger={triggerProps => (
-                <OverlayTrigger.IconButton
-                  {...triggerProps}
-                  size="sm"
-                  variant="transparent"
-                  icon={<IconEllipsis />}
-                  aria-label={t('Investigation actions')}
-                />
-              )}
-              position="bottom-end"
-              usePortal
-            />
-          </HeaderBreadcrumbs>
-        </Layout.Title>
+              ],
+              triggerLabel: t('Investigation actions'),
+              triggerIcon: <IconEllipsis />,
+            },
+          }}
+          items={[
+            {
+              type: 'link',
+              label: t('Investigations'),
+              to: `/organizations/${organization.slug}/explore/investigations/`,
+              leadingGraphic: <IconStack size="md" />,
+            },
+          ]}
+        />
         <Container as="header" width="100%" padding="xl xl 3xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid
@@ -540,40 +528,6 @@ function formatSourceType(sourceType: string) {
   }
   return sourceType.replaceAll('_', ' ');
 }
-
-const HeaderBreadcrumbs = styled(Flex)`
-  height: 32px;
-  overflow: hidden;
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  line-height: 32px;
-  white-space: nowrap;
-`;
-
-const HeaderBreadcrumbLink = styled(Link)`
-  overflow: hidden;
-  color: ${p => p.theme.tokens.content.secondary};
-  text-decoration-line: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.border.primary};
-  text-underline-offset: 5px;
-  text-overflow: ellipsis;
-`;
-
-const HeaderDivider = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const HeaderInvestigationTitle = styled('span')`
-  overflow: hidden;
-  color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-decoration-line: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.border.primary};
-  text-underline-offset: 5px;
-  text-overflow: ellipsis;
-`;
 
 const NotebookTitleInput = styled(Input)`
   width: 100%;

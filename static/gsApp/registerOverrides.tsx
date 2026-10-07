@@ -71,7 +71,6 @@ import {useMetricDetectorLimit} from 'getsentry/overrides/useMetricDetectorLimit
 import {useReplayForCriticalFlow} from 'getsentry/overrides/useReplayForCriticalFlow';
 import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
-import {trackMetric} from 'getsentry/utils/trackMetric';
 import SeerAutomationTrial from 'getsentry/views/seerAutomation/trial';
 
 import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
@@ -130,7 +129,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    */
   'analytics:raw-track-event': rawTrackAnalyticsEvent,
   'analytics:init-user': analyticsInitUser,
-  'metrics:event': trackMetric,
 
   /**
    * Sidebar augmentation

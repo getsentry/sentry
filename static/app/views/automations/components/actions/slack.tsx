@@ -11,7 +11,7 @@ import {DismissableInfoAlert} from 'sentry/components/workflowEngine/ui/dismissa
 import {t, tct} from 'sentry/locale';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
-import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
+import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
 import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
 import {TagsField} from 'sentry/views/automations/components/actions/tagsField';
 import {

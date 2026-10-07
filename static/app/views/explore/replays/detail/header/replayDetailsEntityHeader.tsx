@@ -1,4 +1,4 @@
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {PlatformIcon} from 'platformicons';
 
 import {Tag} from '@sentry/scraps/badge';

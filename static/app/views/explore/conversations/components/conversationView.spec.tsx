@@ -28,16 +28,20 @@ const CONVERSATION_BODY = [
     'span.name': 'first turn',
     'precise.start_ts': 1000,
     'precise.finish_ts': 1000.5,
-    'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'First?'}]),
-    'gen_ai.response.text': 'First answer',
+    'gen_ai.input.messages': JSON.stringify([{role: 'user', content: 'First?'}]),
+    'gen_ai.output.messages': JSON.stringify([
+      {role: 'assistant', content: 'First answer'},
+    ]),
   }),
   spanFixture({
     span_id: 'span-b',
     'span.name': 'second turn',
     'precise.start_ts': 2000,
     'precise.finish_ts': 2000.5,
-    'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Second?'}]),
-    'gen_ai.response.text': 'Second answer',
+    'gen_ai.input.messages': JSON.stringify([{role: 'user', content: 'Second?'}]),
+    'gen_ai.output.messages': JSON.stringify([
+      {role: 'assistant', content: 'Second answer'},
+    ]),
   }),
 ];
 
@@ -49,6 +53,10 @@ function mockConversation() {
   // The detail pane fetches full attributes per span; keep it empty.
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/projects/',
     body: [],
   });
 }
