@@ -36,6 +36,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
 from sentry.ingestion_delay.meta import IngestionMeta
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
@@ -87,6 +88,11 @@ SAVED_QUERY_DATASET_MAP = {
 # TODO: Adjust this once we make a decision in the DACI for global views restriction
 # Do not add more referrers to this list as it is a temporary solution
 GLOBAL_VIEW_ALLOWLIST = {Referrer.API_ISSUES_ISSUE_EVENTS.value}
+DATASET_TO_FORMULA_DATASET = {
+    Spans: ExploreSavedQueryDataset.SPANS,
+    OurLogs: ExploreSavedQueryDataset.OURLOGS,
+    TraceMetrics: ExploreSavedQueryDataset.METRICS,
+}
 
 
 class DiscoverDatasetSplitException(Exception):
@@ -184,7 +190,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             VisibilityParams.FIELD,
             VisibilityParams.PER_PAGE,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
             VisibilityParams.ALLOW_AGGREGATE_CONDITIONS,
@@ -599,6 +605,19 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     actor=request.user,
                 )
 
+                if scoped_dataset in DATASET_TO_FORMULA_DATASET and features.has(
+                    "organizations:explore-saved-formulas", organization, actor=request.user
+                ):
+                    saved_formulas = {
+                        formula.name: formula
+                        for formula in ExploreSavedFormula.objects.filter(
+                            organization=organization,
+                            dataset=DATASET_TO_FORMULA_DATASET[scoped_dataset],
+                        ).prefetch_related("variables")
+                    }
+                else:
+                    saved_formulas = None
+
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
@@ -609,6 +628,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
+                        saved_formulas=saved_formulas,
                     )
                 elif scoped_dataset == OurLogs:
                     return SearchResolverConfig(
@@ -616,6 +636,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
+                        saved_formulas=saved_formulas,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -628,6 +649,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
+                        saved_formulas=saved_formulas,
                     )
                 elif scoped_dataset == ProfileFunctions:
                     # profile_functions uses aggregate conditions

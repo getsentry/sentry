@@ -262,6 +262,7 @@ const config: Config.InitialOptions = {
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
+  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|avif|webp|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',

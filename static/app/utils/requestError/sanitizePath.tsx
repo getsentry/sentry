@@ -14,9 +14,11 @@ const TYPE_TO_PLACEHOLDER = {
   projects: '{projectSlug}',
   releases: '{releaseId}',
   replays: '{replayId}',
+  shortids: '{shortId}',
   subscriptions: '{orgSlug}',
   tags: '{tagName}',
   teams: '{teamSlug}',
+  users: '{userId}',
 };
 
 function getSlugPlaceholder(rawSlugType: string, slugValue: string): string {
@@ -74,6 +76,7 @@ export function sanitizePath(path: string) {
 
           let primarySlugPlaceholder = getSlugPlaceholder(type, primarySlug);
           let secondarySlugPlaceholder = getSlugPlaceholder(contentType, secondarySlug);
+          let contentSubtypePlaceholder = contentSubtype;
           const tertiarySlugPlaceholder = getSlugPlaceholder(
             contentSubtype,
             tertiarySlug
@@ -97,11 +100,33 @@ export function sanitizePath(path: string) {
                 // OrganizationPluginsConfigsEndpoint
                 secondarySlugPlaceholder = secondarySlug;
               }
+            } else if (contentType === 'seer/') {
+              if (secondarySlug === 'explorer-chat/' && contentSubtype) {
+                // OrganizationSeerAgentChatEndpoint
+                contentSubtypePlaceholder = '{runId}/';
+              }
             }
           }
 
-          return `${start}${type}/${primarySlugPlaceholder}${contentType}${secondarySlugPlaceholder}${contentSubtype}${tertiarySlugPlaceholder}${end}`;
+          if (isProjectLike) {
+            if (contentType === 'trace-items/' && secondarySlug) {
+              // ProjectTraceItemDetailsEndpoint (org-level trace-items/ only has
+              // static subpaths, so this is limited to projects)
+              secondarySlugPlaceholder = '{itemId}/';
+            } else if (
+              contentType === 'profiling/' &&
+              secondarySlug === 'profiles/' &&
+              contentSubtype
+            ) {
+              // ProjectProfilingProfileEndpoint
+              contentSubtypePlaceholder = '{profileId}/';
+            }
+          }
+
+          return `${start}${type}/${primarySlugPlaceholder}${contentType}${secondarySlugPlaceholder}${contentSubtypePlaceholder}${tertiarySlugPlaceholder}${end}`;
         }
       )
+      // SetupWizard
+      .replace(/\/wizard\/[^/]+(\/|$)/, '/wizard/{wizardHash}$1')
   );
 }
