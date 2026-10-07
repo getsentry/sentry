@@ -1,6 +1,4 @@
 import type {ESTree, Context, Visitor} from '@oxlint/plugins';
-
-import type {createImportTracker} from '../tracker/imports.ts';
 /**
  * @file Type definitions for the Style Declaration IR
  *
@@ -188,9 +186,6 @@ export interface ExtractorContext {
    * The collector to add declarations to.
    */
   collector: StyleCollector;
-
-  /** Resolves Emotion APIs against their lexical imports. */
-  importTracker: ReturnType<typeof createImportTracker>;
 
   /**
    * The ESLint rule context.
