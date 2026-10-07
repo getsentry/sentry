@@ -74,7 +74,7 @@ export type TimeSeriesItem = {
  * - `INGESTION_PENDING`: the window has elapsed, but events for it may still be arriving
  * - `OUTSIDE_RETENTION`: the bucket starts before the project's retention window
  */
-export type IncompleteReason = 'NOT_ELAPSED' | 'INGESTION_PENDING' | 'OUTSIDE_RETENTION';
+type IncompleteReason = 'NOT_ELAPSED' | 'INGESTION_PENDING' | 'OUTSIDE_RETENTION';
 
 /**
  * Shared base type for grouping information.
