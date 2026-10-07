@@ -111,6 +111,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -747,6 +748,18 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
         logger.exception("Failed to infer and set project platform")
 
 
+# How often each cache-fronted model lookup on the save path reached Postgres.
+# `data_access` is set by the model: cache_hit, db_read, db_create, or db_update.
+def _record_resolve_model(model: str, tags: dict[str, str]) -> None:
+    metrics.incr(
+        "save_event.resolve_model",
+        tags={
+            "model": model,
+            DATA_ACCESS_TAG: tags.get(DATA_ACCESS_TAG, DataAccessTagValues.UNKNOWN.value),
+        },
+    )
+
+
 @trace
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
@@ -760,12 +773,15 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
         create_release = should_auto_create_releases(project)
 
         try:
+            resolve_tags: dict[str, str] = {}
             release = Release.get_or_create(
                 project=project,
                 version=data["release"],
                 date_added=date,
                 create=create_release,
+                metrics_tags=resolve_tags,
             )
+            _record_resolve_model("release", resolve_tags)
         except ValidationError:
             logger.exception(
                 "Failed creating Release due to ValidationError",
@@ -923,9 +939,16 @@ def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
 @trace
 def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
+        resolve_tags: dict[str, str] = {}
+        envproj_tags: dict[str, str] = {}
         job["environment"] = Environment.get_or_create(
-            project=projects[job["project_id"]], name=job["environment"]
+            project=projects[job["project_id"]],
+            name=job["environment"],
+            metrics_tags=resolve_tags,
+            project_metrics_tags=envproj_tags,
         )
+        _record_resolve_model("environment", resolve_tags)
+        _record_resolve_model("environmentproject", envproj_tags)
 
 
 @trace
@@ -943,11 +966,14 @@ def _get_or_create_group_environment(
     event_datetime: datetime,
 ) -> None:
     for group_info in groups:
+        resolve_tags: dict[str, str] = {}
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
             defaults={"first_release": release or None, "first_seen": event_datetime},
+            metrics_tags=resolve_tags,
         )[1]
+        _record_resolve_model("groupenvironment", resolve_tags)
 
 
 def _get_or_create_release_associated_models(
@@ -965,13 +991,25 @@ def _get_or_create_release_associated_models(
         environment = job["environment"]
         date = job["event"].datetime
 
+        release_env_tags: dict[str, str] = {}
         ReleaseEnvironment.get_or_create(
-            project=project, release=release, environment=environment, datetime=date
+            project=project,
+            release=release,
+            environment=environment,
+            datetime=date,
+            metrics_tags=release_env_tags,
         )
+        _record_resolve_model("releaseenvironment", release_env_tags)
 
+        release_project_env_tags: dict[str, str] = {}
         ReleaseProjectEnvironment.get_or_create(
-            project=project, release=release, environment=environment, datetime=date
+            project=project,
+            release=release,
+            environment=environment,
+            datetime=date,
+            metrics_tags=release_project_env_tags,
         )
+        _record_resolve_model("releaseprojectenvironment", release_project_env_tags)
 
 
 def _increment_release_associated_counts_many(
@@ -1032,12 +1070,15 @@ def _get_or_create_group_release(
 ) -> None:
     if release:
         for group_info in groups:
+            resolve_tags: dict[str, str] = {}
             group_info.group_release = GroupRelease.get_or_create(
                 group=group_info.group,
                 release=release,
                 environment=environment,
                 datetime=event.datetime,
+                metrics_tags=resolve_tags,
             )
+            _record_resolve_model("grouprelease", resolve_tags)
 
 
 def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
@@ -2522,7 +2563,7 @@ def save_attachment(
         date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
 
-    if is_pending and features.has("projects:defer-attachment-storage", project):
+    if is_pending:
         if group_id is not None:
             logger.warning("group_id %s with is_pending=True", group_id)
 
@@ -2606,8 +2647,6 @@ def save_pending_attachments(
     exactly that reason: once when the event is saved, and again in post-processing.
     ``source`` tags the metric so the two can be told apart.
     """
-    if not features.has("projects:defer-attachment-storage", project):
-        return
 
     # This runs for every error event of a flagged project, and almost none of them have
     # a pending attachment. Probe outside a transaction so the common case stays a single

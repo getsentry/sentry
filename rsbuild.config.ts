@@ -3,10 +3,12 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 
+import {defineConfig} from '@rsbuild/core';
+import type {ProxyOptions, RsbuildConfig, ServerConfig} from '@rsbuild/core';
+import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
-  DevServer,
   OptimizationSplitChunksCacheGroup,
   SwcLoaderOptions,
 } from '@rspack/core';
@@ -17,6 +19,10 @@ import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
+import {
+  createHostCheckMiddleware,
+  createHostCheckUpgrade,
+} from './build-utils/dev-server-host-check.ts';
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
 import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
@@ -87,10 +93,6 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   githubOrg: env.NOW_GITHUB_COMMIT_ORG,
   githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
-
-// Silence proxy logs, they can be noisy and not interesting
-// eslint-disable-next-line no-console
-const proxyLoggerQuiet = {info: () => {}, warn: console.warn, error: console.error};
 
 const require = createRequire(import.meta.url);
 
@@ -279,7 +281,7 @@ const appConfig: Configuration = {
      * This generates a single "sentry.css" file that imports ALL component styles
      * for use on Django-powered pages.
      */
-    sentry: 'less/sentry.less',
+    sentry: './less/sentry.less',
   },
   context: staticPrefix,
   incremental: DEV_MODE,
@@ -513,9 +515,6 @@ const appConfig: Configuration = {
       'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
       admin: path.join(staticPrefix, 'gsAdmin'),
 
-      // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
-      // to be resolved
-      less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
       'ios-device-list': path.join(
@@ -665,60 +664,60 @@ if (IS_ACCEPTANCE_TEST) {
   workerConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
 }
 
+let serverConfig: ServerConfig = {
+  htmlFallback: false,
+  publicDir: false,
+};
+
 // Dev only! Hot module reloading
 if (
   FORCE_WEBPACK_DEV_SERVER ||
   (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER) ||
   IS_UI_DEV_ONLY
 ) {
+  const allowedHosts = [
+    '.sentry.dev',
+    '.dev.getsentry.net',
+    '.localhost',
+    '127.0.0.1',
+    '.docker.internal',
+    ...(SENTRY_WEBPACK_PROXY_HOST ? [SENTRY_WEBPACK_PROXY_HOST] : []),
+    ...(SENTRY_DEVSERVER_NGROK ? [`.${SENTRY_DEVSERVER_NGROK}`] : []),
+  ];
+  const setupHostCheck: ServerConfig['setup'] = ({server}) => {
+    server.middlewares.use(createHostCheckMiddleware(allowedHosts));
+    server.httpServer?.prependListener('upgrade', createHostCheckUpgrade(allowedHosts));
+  };
+
+  // Preserve the previous dev server's errors-only build diagnostics.
+  appConfig.stats = {warnings: false};
+  workerConfig.stats = {warnings: false};
+
   if (SHOULD_HOT_MODULE_RELOAD) {
     // Hot reload react components on save
     // We include the library here as to not break docker/google cloud builds
     // since we do not install devDeps there.
-    appConfig.plugins?.push(new ReactRefreshRspackPlugin());
+    // tools.rspack replaces Rsbuild's plugins, including its HMR plugin.
+    appConfig.plugins?.push(
+      new rspack.HotModuleReplacementPlugin(),
+      new ReactRefreshRspackPlugin()
+    );
 
     // TODO: figure out why defining output breaks hot reloading
     if (IS_UI_DEV_ONLY) {
-      appConfig.output = {};
+      // Rsbuild's dev server serves files from output.distPath.root.
+      appConfig.output = {path: distPath};
     }
   }
 
-  appConfig.devServer = {
+  serverConfig = {
+    ...serverConfig,
     headers: {
       'Document-Policy': 'js-profiling',
     },
-    // Cover the various environments we use (vercel, getsentry-dev, localhost)
-    allowedHosts: [
-      '.sentry.dev',
-      '.dev.getsentry.net',
-      '.localhost',
-      '127.0.0.1',
-      '.docker.internal',
-      // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
-      // since ngrok urls are public and can be accessed by anyone.
-      // '.ngrok.io',
-
-      // Needed if you want to use ngrok w/ backend
-      ...(SENTRY_DEVSERVER_NGROK ? [`.${SENTRY_DEVSERVER_NGROK}`] : []),
-    ],
-    static: {
-      directory: './src/sentry/static/sentry',
-      watch: true,
-    },
     host: SENTRY_WEBPACK_PROXY_HOST,
-    hot: SHOULD_HOT_MODULE_RELOAD ? 'only' : false,
-    liveReload: !SENTRY_DEVSERVER_NGROK,
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
-    devMiddleware: {
-      stats: 'errors-only',
-    },
-    client: {
-      overlay: false,
-      // When behind a reverse proxy (ngrok/Coder), the WebSocket client must
-      // derive its URL from window.location instead of the dev server's host.
-      // Without this, HMR tries ws://127.0.0.1:8000/ws which is unreachable.
-      ...(SENTRY_DEVSERVER_NGROK && {webSocketURL: 'auto://0.0.0.0:0/ws'}),
-    },
+    setup: setupHostCheck,
   };
 
   if (!IS_UI_DEV_ONLY) {
@@ -728,7 +727,7 @@ if (
 
     // If we're running siloed servers we also need to proxy
     // those requests to the right server.
-    let controlSiloProxy: Required<DevServer['proxy']> = [];
+    let controlSiloProxy: ProxyOptions[] = [];
     if (CONTROL_SILO_PORT) {
       // TODO(hybridcloud) We also need to use this URL pattern
       // list to select contro/region when making API requests in non-proxied
@@ -737,7 +736,7 @@ if (
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
       controlSiloProxy = [
         {
-          context: [
+          pathFilter: [
             '/auth/**',
             '/account/**',
             '/api/0/users/**',
@@ -755,33 +754,46 @@ if (
             '/api/0/assistant/**',
           ],
           target: controlSiloAddress,
-          logger: proxyLoggerQuiet,
+          changeOrigin: false,
         },
       ];
     }
 
-    appConfig.devServer = {
-      ...appConfig.devServer,
-      static: {
-        ...(appConfig.devServer.static as Record<PropertyKey, unknown>),
-        publicPath: '/_static/dist/sentry',
+    serverConfig = {
+      ...serverConfig,
+      publicDir: {
+        name: 'src/sentry/static/sentry',
+        watch: true,
+        copyOnBuild: false,
       },
+      // Preserve the static URL prefix, with compiled assets taking precedence.
+      setup: [
+        setupHostCheck,
+        ({server}) =>
+          async () => {
+            const {default: sirv} = await import('sirv');
+            server.middlewares.use(
+              '/_static/dist/sentry',
+              sirv(sentryDjangoAppPath, {dev: true, etag: true})
+            );
+          },
+      ],
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: [
         ...controlSiloProxy,
         {
-          context: [
+          pathFilter: [
             '/api/store/**',
             '/api/{1..9}*({0..9})/**',
             '/api/0/relays/outcomes/**',
           ],
           target: relayAddress,
-          logger: proxyLoggerQuiet,
+          changeOrigin: false,
         },
         {
-          context: ['!/_static/dist/sentry/**'],
+          pathFilter: ['!/_static/dist/sentry/**'],
           target: backendAddress,
-          logger: proxyLoggerQuiet,
+          changeOrigin: false,
         },
       ],
     };
@@ -825,28 +837,24 @@ if (IS_UI_DEV_ONLY) {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
       }
-    : // Will attempt to self sign via the selfsigned package
+    : // Rsbuild's basic SSL plugin generates a certificate when mkcert is absent.
       {};
 
-  appConfig.devServer = {
-    ...appConfig.devServer,
+  serverConfig = {
+    ...serverConfig,
+    // dev.getsentry.net resolves to IPv4; localhost can bind to IPv6 only.
+    host: SENTRY_WEBPACK_PROXY_HOST ?? '127.0.0.1',
     compress: true,
-    server: {
-      type: 'https',
-      options: httpsOptions,
-    },
+    https: httpsOptions,
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
       'Service-Worker-Allowed': '/',
     },
-    static: {
-      publicPath: '/_assets/',
-    },
     proxy: [
       {
-        context: [
+        pathFilter: [
           '/api/',
           '/avatar/',
           '/organization-avatar/',
@@ -862,10 +870,9 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
-        logger: proxyLoggerQuiet,
         router: req => {
-          const host = req.headers.host!.split(':')[0]!;
-          const orgSlug = extractSlug(host);
+          const host = req.headers.host?.split(':')[0];
+          const orgSlug = host ? extractSlug(host) : null;
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
       },
@@ -876,7 +883,7 @@ if (IS_UI_DEV_ONLY) {
         // directly to region servers. These requests would fail because of CORS.
         // Instead Client prefixes region requests with `/region/$name` which
         // we rewrite in the proxy.
-        context: ['/region/'],
+        pathFilter: ['/region/'],
         target: 'https://us.sentry.io',
         secure: false,
         changeOrigin: true,
@@ -886,7 +893,6 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
-        logger: proxyLoggerQuiet,
         pathRewrite: {
           '^/region/[^/]*': '',
         },
@@ -923,10 +929,6 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
    */
   appConfig.plugins?.push(
     new HtmlWebpackPlugin({
-      // Local dev vs vercel slightly differs...
-      ...(IS_UI_DEV_ONLY
-        ? {devServer: `https://127.0.0.1:${SENTRY_WEBPACK_PROXY_PORT}`}
-        : {}),
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
@@ -984,20 +986,25 @@ if (IS_PRODUCTION) {
   );
 }
 
-// Cache rspack builds
+// Cache rspack builds (CI and Vercel)
 if (env.WEBPACK_CACHE_PATH) {
-  appConfig.cache = true;
+  appConfig.experiments = {...appConfig.experiments, newCache: true};
   appConfig.cache = {
-    type: 'persistent',
-    // https://rspack.rs/config/cache
-    storage: {
-      type: 'filesystem',
-      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
-    },
+    type: 'filesystem',
+    // Keep clear of the old persistent cache's `app-production` directory,
+    // the new cache fails to open when both share a location
+    name: `app-${WEBPACK_MODE}-new`,
+    cacheDirectory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    // Read entries from disk instead of holding the whole cache in memory
+    maxMemoryGenerations: 0,
+    // Only master deploys write the cache, preview deploys restore it from
+    // master. Avoids growing the cache on every branch and the memory spike
+    // from writing it on Vercel's 8GB build machines.
+    readonly: IS_DEPLOY_PREVIEW && env.NOW_GITHUB_COMMIT_REF !== 'master',
   };
 }
 
-const configs = [appConfig, workerConfig];
+export const configs = [appConfig, workerConfig];
 
 // Configure JSON stats explicitly; the CLI defaults to errors and warnings.
 // Keep module detail for bundle analysis without embedding source text.
@@ -1022,4 +1029,64 @@ if (env.RSPACK_STATS) {
   }
 }
 
-export default configs;
+// Rsbuild owns the dev server and multi-environment lifecycle. Keep the compiler
+// customization here: Django's entrypoint names, asset layout, and the worker's
+// shared output directory are part of the contract with the backend.
+const rsbuildConfig: RsbuildConfig = {
+  root: import.meta.dirname,
+  mode: WEBPACK_MODE,
+  plugins:
+    IS_UI_DEV_ONLY &&
+    !fs.existsSync(path.join(import.meta.dirname, 'config', 'localhost.pem'))
+      ? [
+          pluginBasicSsl({
+            outputPath: path.join(import.meta.dirname, 'node_modules/.cache/basic-ssl'),
+          }),
+        ]
+      : [],
+  dev: {
+    assetPrefix:
+      typeof appConfig.output?.publicPath === 'string'
+        ? appConfig.output.publicPath
+        : '/',
+    hmr: SHOULD_HOT_MODULE_RELOAD,
+    liveReload: !SENTRY_DEVSERVER_NGROK,
+    // Rsbuild defaults the WebSocket host and port to window.location, which
+    // also works when ngrok/Coder terminates HTTPS in front of the dev server.
+    client: {overlay: false},
+  },
+  server: serverConfig,
+  environments: {
+    app: {
+      source: {
+        entry: {
+          app: {import: ['sentry/utils/setupStatics', 'sentry'], html: false},
+          gsAdmin: {
+            import: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
+            html: false,
+          },
+          sentry: {import: 'less/sentry.less', html: false},
+        },
+      },
+      output: {target: 'web', distPath: {root: distPath}, cleanDistPath: false},
+      tools: {
+        htmlPlugin: false,
+        rspack: config => ({...config, ...appConfig}),
+      },
+    },
+    'service-worker': {
+      source: {
+        entry: {
+          'service-worker': {import: 'sentry/serviceWorker/worker/worker', html: false},
+        },
+      },
+      output: {target: 'web-worker', distPath: {root: distPath}, cleanDistPath: false},
+      tools: {
+        htmlPlugin: false,
+        rspack: config => ({...config, ...workerConfig}),
+      },
+    },
+  },
+};
+
+export default defineConfig(rsbuildConfig);

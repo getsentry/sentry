@@ -26,6 +26,7 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -838,8 +839,8 @@ function GroupDetails() {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group);
-    const message = getMessage(group);
+    const title = stripAnsi(getTitle(group).title ?? '');
+    const message = stripAnsi(getMessage(group) ?? '');
 
     const eventDetails = `${organization.slug} — ${group.project.slug}`;
 

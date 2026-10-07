@@ -353,8 +353,8 @@ const config: Config.InitialOptions = {
         profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
-      // Applied to the isolation scope, so these land on error events as well as
-      // on the test suite and test transactions.
+      // Set as tags (for error events) and, via withTagsAsSpanAttributes, as span
+      // attributes, so every span in the trace can be filtered by them.
       tags: {
         ...optionalTags,
         'ci.branch': BRANCH,

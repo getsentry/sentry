@@ -94,6 +94,15 @@ export default Storybook.story('KeyValueTable', story => {
             <code>label</code> renders sans, medium-weight, primary-color keys in roomier
             rows, for prose labels such as "Duration Impact".
           </li>
+          <li>
+            <code>itemProps</code> - <code>KeyValueTableDataRow</code> props applied to
+            every row, overridden by anything a content item sets
+          </li>
+          <li>
+            <code>children</code> - free-form content rendered below the rows, spanning
+            the full card width. Use it for bodies that aren't key/value pairs, or for
+            loading and empty states.
+          </li>
         </ul>
         <KeyValueTableCardGrid>
           <KeyValueTableCard
@@ -130,6 +139,9 @@ export default Storybook.story('KeyValueTable', story => {
             contentItems={contentItems.slice(0, 3)}
             variant="label"
           />
+          <KeyValueTableCard title="Free-form Body">
+            <pre>{'{\n  "free": "form"\n}'}</pre>
+          </KeyValueTableCard>
         </KeyValueTableCardGrid>
       </Fragment>
     );
