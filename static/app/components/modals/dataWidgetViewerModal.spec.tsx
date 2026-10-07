@@ -931,6 +931,41 @@ describe('Modals -> DataWidgetViewerModal', () => {
       expect(await screen.findByText('Total Issues:')).toBeInTheDocument();
       expect(screen.getByText('15')).toBeInTheDocument();
     });
+
+    it('keeps the total issue count while the next page loads', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'GET',
+        match: [MockApiClient.matchData({cursor: undefined})],
+        headers: {
+          'X-Hits': '15',
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/issues/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/issues/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+        },
+        body: [],
+      });
+      let resolveNextPage!: () => void;
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'GET',
+        match: [MockApiClient.matchData({cursor: '0:10:0'})],
+        headers: {'X-Hits': '15'},
+        body: [],
+        asyncDelay: new Promise<void>(resolve => {
+          resolveNextPage = resolve;
+        }),
+      });
+
+      await renderModal({initialData, widget: mockWidget});
+      expect(await screen.findByText('Total Issues:')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      expect(screen.getByText('Total Issues:')).toBeInTheDocument();
+      expect(screen.getByText('15')).toBeInTheDocument();
+
+      resolveNextPage();
+    });
   });
 
   describe('Release Health Widgets', () => {

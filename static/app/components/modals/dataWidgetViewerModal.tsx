@@ -507,7 +507,11 @@ function DataWidgetViewerModal(props: Props) {
   }
 
   const onIssuesDataFetched = useCallback(({totalCount}: OnDataFetchedProps) => {
-    setTotalResults(totalCount);
+    // onDataFetched also fires without a count while the next page loads, so keep
+    // showing the last known total until a new one arrives
+    if (totalCount !== undefined) {
+      setTotalResults(totalCount);
+    }
   }, []);
 
   const renderIssuesTable = ({
