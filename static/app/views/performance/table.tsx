@@ -11,7 +11,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {GridTable} from 'sentry/components/tables/gridTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -481,7 +481,7 @@ export function Table({
                       }
                       isLoading={isLoading}
                     >
-                      <SimpleTable.FromColumns
+                      <GridTable
                         isLoading={isLoading}
                         data={tableData ? tableData.data : []}
                         columnOrder={columnOrder}

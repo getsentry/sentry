@@ -5,7 +5,7 @@ import type {
   ColumnAlign,
   GridColumnHeader,
   GridColumnSort,
-} from 'sentry/components/tables/simpleTable';
+} from 'sentry/components/tables/gridTable';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {

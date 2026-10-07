@@ -9,10 +9,10 @@ import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
+  GridTable,
   type GridColumnOrder,
   type GridColumnSortBy,
-  SimpleTable,
-} from 'sentry/components/tables/simpleTable';
+} from 'sentry/components/tables/gridTable';
 import {UserMisery} from 'sentry/components/userMisery';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -76,7 +76,7 @@ export function ProfileEventsTable<F extends FieldType>(
   );
 
   return (
-    <SimpleTable.FromColumns
+    <GridTable
       isLoading={props.isLoading}
       error={props.error}
       data={props.data?.data ?? []}

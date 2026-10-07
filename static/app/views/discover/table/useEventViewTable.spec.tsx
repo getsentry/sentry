@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {GridTable} from 'sentry/components/tables/gridTable';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -38,7 +38,7 @@ function TestTable({
   });
 
   return (
-    <SimpleTable.FromColumns
+    <GridTable
       data={tableData.data}
       columnOrder={columnOrder}
       grid={getGrid(tableData.meta)}

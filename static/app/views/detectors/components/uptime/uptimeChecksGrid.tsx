@@ -9,7 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {Placeholder} from 'sentry/components/placeholder';
-import {type GridColumnOrder, SimpleTable} from 'sentry/components/tables/simpleTable';
+import {GridTable, type GridColumnOrder} from 'sentry/components/tables/gridTable';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
@@ -77,7 +77,7 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
       );
 
   return (
-    <SimpleTable.FromColumns
+    <GridTable
       emptyMessage={t('No matching uptime checks found')}
       data={uptimeChecks}
       fit="max-content"

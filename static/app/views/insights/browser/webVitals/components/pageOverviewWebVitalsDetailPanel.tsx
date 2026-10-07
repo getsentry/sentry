@@ -10,11 +10,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import {
+  GridTable,
   type GridColumnHeader,
   type GridColumnOrder,
   type GridColumnSortBy,
-  SimpleTable,
-} from 'sentry/components/tables/simpleTable';
+} from 'sentry/components/tables/gridTable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -368,7 +368,7 @@ export function PageOverviewWebVitalsDetailPanel({
             )}
           </ChartContainer>
           <TableContainer>
-            <SimpleTable.FromColumns
+            <GridTable
               data={spansTableData}
               isLoading={isSpansLoading}
               columnOrder={

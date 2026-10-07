@@ -6,7 +6,7 @@ import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getNextSort} from 'sentry/components/tables/getNextSort';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {GridTable} from 'sentry/components/tables/gridTable';
 import {IconStar} from 'sentry/icons';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {defined} from 'sentry/utils/defined';
@@ -256,9 +256,9 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     }));
 
   return (
-    <SimpleTable.FromColumns
+    <GridTable
       data={data}
-      // SimpleTable.FromColumns needs name, but this functionality is replaced by aliases
+      // GridTable needs name, but this functionality is replaced by aliases
       columnOrder={columnOrder.map(column => ({...column, name: column.key}))}
       grid={{
         staticColumnWidths: getStaticColumnWidths(columnOrder, aliases),
@@ -401,7 +401,7 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 }) {
   const columnsWithName = columns?.map(column => ({...column, name: column.key})) ?? [];
   return (
-    <SimpleTable.FromColumns
+    <GridTable
       isLoading
       columnOrder={columnsWithName}
       data={[]}

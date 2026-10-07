@@ -4,7 +4,7 @@ import type {
   GridColumnOrder,
   GridColumnSort,
   GridColumnSortBy,
-} from 'sentry/components/tables/simpleTable';
+} from 'sentry/components/tables/gridTable';
 
 interface ColumnSortProps<K> {
   currentSort?: GridColumnSortBy<K> | null;

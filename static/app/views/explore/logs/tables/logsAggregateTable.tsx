@@ -9,7 +9,7 @@ import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {GridTable} from 'sentry/components/tables/gridTable';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -113,7 +113,7 @@ export function LogsAggregateTable({
 
   return (
     <Stack>
-      <SimpleTable.FromColumns
+      <GridTable
         aria-label={t('Aggregates')}
         isLoading={isLoading}
         error={error}

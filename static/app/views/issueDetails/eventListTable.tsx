@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 interface EventListTableProps {
   /**
-   * Should contain a <SimpleTable.FromColumns /> to apply the issue details styles
+   * Should contain a <GridTable /> to apply the issue details styles
    */
   children: React.ReactNode;
   pagination?: {

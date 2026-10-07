@@ -16,10 +16,10 @@ import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
-  SimpleTable,
+  GridTable,
   type GridColumnOrder,
   type GridColumnSort,
-} from 'sentry/components/tables/simpleTable';
+} from 'sentry/components/tables/gridTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -324,13 +324,13 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
   return (
     <Stack gap="lg">
       <FixedRowHeightGrid>
-        <SimpleTable.FromColumns
+        <GridTable
           isLoading={isFetching}
           error={error}
           data={data}
           columnOrder={displayedColumns}
           stickyHeader
-          // SimpleTable.FromColumns has a default bottom margin; drop it so
+          // GridTable has a default bottom margin; drop it so
           // the Stack's `lg` gap is the only spacing before the pagination.
           bodyStyle={{marginBottom: 0}}
           grid={{

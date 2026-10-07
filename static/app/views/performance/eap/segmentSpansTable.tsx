@@ -10,7 +10,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {GridTable} from 'sentry/components/tables/gridTable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -151,7 +151,7 @@ export function SegmentSpansTable({
         />
       </Header>
 
-      <SimpleTable.FromColumns
+      <GridTable
         isLoading={isLoading}
         error={error}
         data={consolidatedData}

@@ -8,11 +8,11 @@ import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import {
+  GridTable,
   type GridColumnHeader,
   type GridColumnOrder,
   type GridColumnSortBy,
-  SimpleTable,
-} from 'sentry/components/tables/simpleTable';
+} from 'sentry/components/tables/gridTable';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -289,7 +289,7 @@ export function WebVitalsDetailPanel({
           </ChartContainer>
 
           <TableContainer>
-            <SimpleTable.FromColumns
+            <GridTable
               data={dataByOpportunity}
               isLoading={isPending}
               columnOrder={columnOrder}

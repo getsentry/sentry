@@ -9,7 +9,7 @@ import {useFlagsInEventPaginated} from 'sentry/components/featureFlags/hooks/use
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
-import type {GridColumnOrder} from 'sentry/components/tables/simpleTable';
+import type {GridColumnOrder} from 'sentry/components/tables/gridTable';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';

@@ -11,7 +11,7 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {SimpleTable, type GridColumnOrder} from 'sentry/components/tables/simpleTable';
+import {GridTable, type GridColumnOrder} from 'sentry/components/tables/gridTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -176,7 +176,7 @@ export default function SeerRunsDemo() {
           <LoadingError onRetry={refetch} />
         ) : (
           <Container>
-            <SimpleTable.FromColumns
+            <GridTable
               isLoading={isPending}
               data={runs}
               columnOrder={columnOrder}

@@ -1,7 +1,4 @@
-import type {
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/tables/simpleTable';
+import type {GridColumnOrder, GridColumnSortBy} from 'sentry/components/tables/gridTable';
 import type {
   AggregateParameter,
   Column,

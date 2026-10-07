@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {type GridColumnOrder, SimpleTable} from 'sentry/components/tables/simpleTable';
+import {GridTable, type GridColumnOrder} from 'sentry/components/tables/gridTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {
@@ -135,7 +135,7 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('TitleCell', () => (
     <Fragment>
-      <SimpleTable.FromColumns
+      <GridTable
         data={data}
         columnOrder={TitleTable}
         grid={{
@@ -148,7 +148,7 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('ActionCell', () => (
     <Fragment>
-      <SimpleTable.FromColumns
+      <GridTable
         data={data}
         columnOrder={actionTable}
         grid={{
@@ -161,7 +161,7 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('TimeAgoCell', () => (
     <Fragment>
-      <SimpleTable.FromColumns
+      <GridTable
         data={data}
         columnOrder={timeAgoTable}
         grid={{
@@ -174,7 +174,7 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('ConnectionCell', () => (
     <Fragment>
-      <SimpleTable.FromColumns
+      <GridTable
         data={data}
         columnOrder={linkedGroupsTable}
         grid={{
@@ -187,7 +187,7 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('NumberCell', () => (
     <Fragment>
-      <SimpleTable.FromColumns
+      <GridTable
         data={data}
         columnOrder={openIssuesTable}
         grid={{
@@ -200,7 +200,7 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('UserCell', () => (
     <Fragment>
-      <SimpleTable.FromColumns
+      <GridTable
         data={data}
         columnOrder={userTable}
         grid={{

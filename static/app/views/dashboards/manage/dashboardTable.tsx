@@ -18,10 +18,10 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {
-  SimpleTable,
+  GridTable,
   type GridColumnOrder,
   type GridColumnSort,
-} from 'sentry/components/tables/simpleTable';
+} from 'sentry/components/tables/gridTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconCopy,
@@ -416,7 +416,7 @@ function DashboardTable({
   };
 
   return (
-    <SimpleTable.FromColumns
+    <GridTable
       data={dashboards ?? []}
       columnOrder={columnOrder}
       grid={{

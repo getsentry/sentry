@@ -24,7 +24,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {SimpleTable, type GridColumnOrder} from 'sentry/components/tables/simpleTable';
+import {GridTable, type GridColumnOrder} from 'sentry/components/tables/gridTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconStar} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
@@ -297,7 +297,7 @@ export function InvestigationsPage() {
                   />
                 </Grid>
                 <TableWrapper>
-                  <SimpleTable.FromColumns
+                  <GridTable
                     data={investigations}
                     columnOrder={COLUMNS}
                     grid={{

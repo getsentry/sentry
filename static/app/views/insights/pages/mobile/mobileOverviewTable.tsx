@@ -6,8 +6,8 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {type GridColumnHeader, SimpleTable} from 'sentry/components/tables/simpleTable';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/simpleTable/useQueryBasedColumnResize';
+import {GridTable, type GridColumnHeader} from 'sentry/components/tables/gridTable';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridTable/useQueryBasedColumnResize';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -150,7 +150,7 @@ export function MobileOverviewTable({response, sort}: Props) {
       hasData={data.length > 0}
       isLoading={isLoading}
     >
-      <SimpleTable.FromColumns
+      <GridTable
         aria-label={t('Domains')}
         isLoading={isLoading}
         error={response.error}

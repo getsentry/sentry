@@ -5,7 +5,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
-import {SimpleTable, type GridColumnOrder} from 'sentry/components/tables/simpleTable';
+import {GridTable, type GridColumnOrder} from 'sentry/components/tables/gridTable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
@@ -60,7 +60,7 @@ export function FeatureFlagsLogTable({
 
   return (
     <div>
-      <SimpleTable.FromColumns
+      <GridTable
         error={error}
         isLoading={isPending}
         data={flags ?? []}

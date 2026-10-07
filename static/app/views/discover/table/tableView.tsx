@@ -12,7 +12,7 @@ import {COL_WIDTH_MINIMUM} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {GridTable} from 'sentry/components/tables/gridTable';
 import {Truncate} from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -563,7 +563,7 @@ export function TableView(props: TableViewProps) {
           />
         </Grid>
       </Flex>
-      <SimpleTable.FromColumns
+      <GridTable
         isLoading={isLoading}
         error={error}
         data={tableData ? tableData.data : []}

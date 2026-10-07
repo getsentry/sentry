@@ -6,8 +6,8 @@ import type {ColumnKey} from 'sentry/components/featureFlags/featureFlagsLogTabl
 import {FeatureFlagsLogTable} from 'sentry/components/featureFlags/featureFlagsLogTable';
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
-import type {GridColumnOrder} from 'sentry/components/tables/simpleTable';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/simpleTable/useQueryBasedColumnResize';
+import type {GridColumnOrder} from 'sentry/components/tables/gridTable';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridTable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';

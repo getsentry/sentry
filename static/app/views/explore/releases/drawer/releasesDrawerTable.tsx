@@ -17,10 +17,10 @@ import {
   normalizeDateTimeParams,
 } from 'sentry/components/pageFilters/parse';
 import {
+  GridTable,
   type GridColumnHeader,
   type GridColumnOrder,
-  SimpleTable,
-} from 'sentry/components/tables/simpleTable';
+} from 'sentry/components/tables/gridTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -201,7 +201,7 @@ export function ReleasesDrawerTable({
 
   return (
     <div>
-      <SimpleTable.FromColumns
+      <GridTable
         error={isError}
         isLoading={isLoading}
         data={releaseData ?? []}

@@ -17,7 +17,7 @@ import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {SimpleTable, type GridColumnHeader} from 'sentry/components/tables/simpleTable';
+import {GridTable, type GridColumnHeader} from 'sentry/components/tables/gridTable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -223,7 +223,7 @@ export function SampledEventsTable({
 
   return (
     <Fragment>
-      <SimpleTable.FromColumns
+      <GridTable
         isLoading={isLoading || isMaxDurationLoading}
         error={error}
         data={consolidatedData}

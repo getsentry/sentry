@@ -17,7 +17,9 @@ import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import type {GridColumnOrder, GridData} from './types';
 
-export type FromColumnsProps<
+export type * from './types';
+
+export type GridTableProps<
   DataRow,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
 > = {
@@ -46,15 +48,15 @@ export type FromColumnsProps<
   stickyHeader?: boolean;
 };
 
-type FromColumnsHeadProps<DataRow, Order extends GridColumnOrder<unknown>> = {
+type GridTableHeadProps<DataRow, Order extends GridColumnOrder<unknown>> = {
   columnOrder: Order[];
   grid: GridData<DataRow, Order>;
 };
 
-function FromColumnsHead<DataRow, Order extends GridColumnOrder<unknown>>({
+function GridTableHead<DataRow, Order extends GridColumnOrder<unknown>>({
   columnOrder,
   grid,
-}: FromColumnsHeadProps<DataRow, Order>) {
+}: GridTableHeadProps<DataRow, Order>) {
   const prependColumns = grid.renderPrependColumns ? grid.renderPrependColumns(true) : [];
 
   return (
@@ -90,10 +92,10 @@ function FromColumnsHead<DataRow, Order extends GridColumnOrder<unknown>>({
   );
 }
 
-export function FromColumns<
+export function GridTable<
   DataRow extends Record<string, any>,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
->(props: FromColumnsProps<DataRow, Order>) {
+>(props: GridTableProps<DataRow, Order>) {
   const {
     'aria-label': ariaLabel,
     bodyStyle,
@@ -204,7 +206,7 @@ export function FromColumns<
   };
 
   return (
-    <Profiler id="SimpleTable.FromColumns" onRender={onRenderCallback}>
+    <Profiler id="GridTable" onRender={onRenderCallback}>
       <SimpleTable
         aria-label={ariaLabel}
         columns={columns}
@@ -219,7 +221,7 @@ export function FromColumns<
         style={bodyStyle}
       >
         <SimpleTable.Head sticky={stickyHeader}>
-          <FromColumnsHead columnOrder={props.columnOrder} grid={grid} />
+          <GridTableHead columnOrder={props.columnOrder} grid={grid} />
         </SimpleTable.Head>
         <SimpleTable.Body>{renderBody()}</SimpleTable.Body>
       </SimpleTable>
