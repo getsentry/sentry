@@ -102,20 +102,20 @@ function ActionsBarPriority({
       {columns.map(column => {
         if (column.key === 'select') {
           return (
-            <StreamGroupHeaderCell key={column.key} column={column}>
+            <SimpleTable.HeaderCell key={column.key} interactive>
               <Checkbox
                 onChange={toggleSelectAllVisible}
                 checked={pageSelected || (anySelected ? 'indeterminate' : false)}
                 aria-label={pageSelected ? t('Deselect all') : t('Select all')}
                 disabled={displayReprocessingActions}
               />
-            </StreamGroupHeaderCell>
+            </SimpleTable.HeaderCell>
           );
         }
 
         if (shouldDisplayActions) {
           return column.key === 'issue' ? (
-            <StreamGroupHeaderCell key={column.key} column={column} spanRemaining>
+            <SimpleTable.HeaderCell key={column.key} interactive variant="remaining">
               {displayReprocessingActions ? null : (
                 <Grid
                   width={{zero: 'auto', '4xl': '50%'}}
@@ -141,21 +141,23 @@ function ActionsBarPriority({
                   />
                 </Grid>
               )}
-            </StreamGroupHeaderCell>
+            </SimpleTable.HeaderCell>
           ) : null;
         }
 
-        return (
-          <StreamGroupHeaderCell key={column.key} column={column}>
-            {column.key === 'graph' ? (
+        if (column.key === 'graph') {
+          return (
+            <SimpleTable.HeaderCell key={column.key} interactive>
               <TrendHeader
                 onSelectStatsPeriod={onSelectStatsPeriod}
                 selection={selection}
                 statsPeriod={statsPeriod}
               />
-            ) : undefined}
-          </StreamGroupHeaderCell>
-        );
+            </SimpleTable.HeaderCell>
+          );
+        }
+
+        return <StreamGroupHeaderCell key={column.key} column={column} />;
       })}
     </SimpleTable.HeaderRow>
   );

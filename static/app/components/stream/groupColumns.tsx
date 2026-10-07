@@ -2,7 +2,7 @@ import type {HTMLAttributes, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, type FlexProps} from '@sentry/scraps/layout';
-import {COL_WIDTH_MINIMUM, Table, type TableColumnConfig} from '@sentry/scraps/table';
+import {COL_WIDTH_MINIMUM, type TableColumnConfig} from '@sentry/scraps/table';
 
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -113,7 +113,7 @@ function getStreamGroupColumns({
   if (withColumns.includes('assignee') || withColumns.includes('assigneeAvatar')) {
     columns.push({
       key: 'assignee',
-      width: COL_WIDTH_MINIMUM,
+      width: 100,
       visible: {[COLUMN_BREAKPOINTS.ASSIGNEE]: true},
     });
   }
@@ -161,32 +161,12 @@ const RIGHT_ALIGNED_COLUMNS = new Set<StreamGroupColumnKey>([
   'assignee',
 ]);
 
-interface StreamGroupHeaderCellProps {
-  column: StreamGroupColumn;
-  children?: ReactNode;
-  spanRemaining?: boolean;
-}
-
-export function StreamGroupHeaderCell({
-  children,
-  column,
-  spanRemaining,
-}: StreamGroupHeaderCellProps) {
-  const content = children ?? HEADER_LABELS[column.key];
-
-  if (column.key === 'select') {
-    return <SelectHeaderCell scope="col">{content}</SelectHeaderCell>;
-  }
-
-  if (column.key === 'issue' && spanRemaining) {
-    return <BulkActionsHeaderCell scope="colgroup">{content}</BulkActionsHeaderCell>;
-  }
-
+export function StreamGroupHeaderCell({column}: {column: StreamGroupColumn}) {
   return (
     <SimpleTable.HeaderCell
       align={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined}
     >
-      {content}
+      {HEADER_LABELS[column.key]}
     </SimpleTable.HeaderCell>
   );
 }
@@ -212,19 +192,6 @@ export function StreamGroupCell({column, ...props}: StreamGroupCellProps) {
     />
   );
 }
-
-// Interactive header content skips `SimpleTable.HeaderCell`, whose label
-// wrapper clips focus rings and echoes overflowing content into a tooltip.
-const SelectHeaderCell = styled(Table.HeadCell)`
-  align-items: center;
-  padding-left: ${p => p.theme.space.xl};
-`;
-
-const BulkActionsHeaderCell = styled(Table.HeadCell)`
-  grid-column: 2 / -1;
-  align-items: center;
-  padding: 0 ${p => p.theme.space.xl};
-`;
 
 interface StreamGroupTableProps extends Omit<
   HTMLAttributes<HTMLTableElement>,
