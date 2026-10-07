@@ -1,10 +1,10 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DroppedDataTooltip} from 'sentry/components/droppedData/droppedDataTooltip';
+import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {groupIntoBuckets} from 'sentry/components/droppedData/utils';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 const START = Date.UTC(2024, 0, 12, 15, 0);
 const END = Date.UTC(2024, 0, 12, 15, 5);
@@ -13,8 +13,8 @@ function ExampleDroppedDataTooltip({
   dropped,
   accepted = [],
 }: {
-  dropped: Annotation[];
-  accepted?: Annotation[];
+  dropped: DroppedEventsBucket[];
+  accepted?: DroppedEventsBucket[];
 }) {
   const [bucket] = groupIntoBuckets(dropped, accepted);
 
@@ -26,25 +26,25 @@ describe('DroppedDataTooltip', () => {
     render(
       <ExampleDroppedDataTooltip
         dropped={[
-          AnnotationFixture({
+          DroppedEventFixture({
             start: START,
             end: END,
             outcome: 'rate_limited',
-            eventCount: 40_000,
+            count: 40_000,
           }),
-          AnnotationFixture({
+          DroppedEventFixture({
             start: START,
             end: END,
             outcome: 'invalid',
-            eventCount: 20_000,
+            count: 20_000,
           }),
         ]}
         accepted={[
-          AnnotationFixture({
+          DroppedEventFixture({
             start: START,
             end: END,
             outcome: 'accepted',
-            eventCount: 180_000,
+            count: 180_000,
           }),
         ]}
       />
@@ -65,8 +65,8 @@ describe('DroppedDataTooltip', () => {
   it('shows <0.01% for a drop ratio at or below 0.01%', () => {
     render(
       <ExampleDroppedDataTooltip
-        dropped={[AnnotationFixture({start: START, end: END, eventCount: 1})]}
-        accepted={[AnnotationFixture({start: START, end: END, eventCount: 9_999})]}
+        dropped={[DroppedEventFixture({start: START, end: END, count: 1})]}
+        accepted={[DroppedEventFixture({start: START, end: END, count: 9_999})]}
       />
     );
 
@@ -77,7 +77,7 @@ describe('DroppedDataTooltip', () => {
   it('reads a drop with no accepted volume as the whole bucket', () => {
     render(
       <ExampleDroppedDataTooltip
-        dropped={[AnnotationFixture({start: START, end: END, eventCount: 10})]}
+        dropped={[DroppedEventFixture({start: START, end: END, count: 10})]}
       />
     );
 
@@ -89,12 +89,12 @@ describe('DroppedDataTooltip', () => {
     render(
       <ExampleDroppedDataTooltip
         dropped={[
-          AnnotationFixture({
+          DroppedEventFixture({
             start: START,
             end: END,
             outcome: 'client_discard',
             reason: 'queue_overflow',
-            eventCount: 10,
+            count: 10,
           }),
         ]}
       />
@@ -103,47 +103,15 @@ describe('DroppedDataTooltip', () => {
     expect(screen.getByText('SDK Data Dropped')).toBeInTheDocument();
   });
 
-  it('shares one byte unit between the payload row numbers', () => {
-    render(
-      <ExampleDroppedDataTooltip
-        dropped={[
-          AnnotationFixture({start: START, end: END, eventCount: 10, byteSize: 26e9}),
-        ]}
-        accepted={[
-          AnnotationFixture({
-            start: START,
-            end: END,
-            eventCount: 90,
-            byteSize: 224e9,
-          }),
-        ]}
-      />
-    );
-
-    expect(screen.getByText('Payloads Rejected')).toBeInTheDocument();
-    expect(screen.getByText('26')).toBeInTheDocument();
-    expect(screen.getByText('/250 GB')).toBeInTheDocument();
-  });
-
-  it('omits the payload row for datasets without a byte category', () => {
-    render(
-      <ExampleDroppedDataTooltip
-        dropped={[AnnotationFixture({start: START, end: END, eventCount: 10})]}
-      />
-    );
-
-    expect(screen.queryByText('Payloads Rejected')).not.toBeInTheDocument();
-  });
-
   it('falls back to a generic label for an unknown outcome', () => {
     render(
       <ExampleDroppedDataTooltip
         dropped={[
-          AnnotationFixture({
+          DroppedEventFixture({
             start: START,
             end: END,
             outcome: 'something_new',
-            eventCount: 10,
+            count: 10,
           }),
         ]}
       />

@@ -9,6 +9,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {makeDroppedDataQueryKeyPrefix} from 'sentry/components/droppedData/useDroppedData';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -372,6 +373,10 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       tableData.refetch(),
       queryClient.refetchQueries({
         queryKey: makeEventsTimeSeriesQueryKeyPrefix(organization.slug),
+        type: 'active',
+      }),
+      queryClient.refetchQueries({
+        queryKey: makeDroppedDataQueryKeyPrefix(organization.slug),
         type: 'active',
       }),
     ]);

@@ -22,6 +22,7 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
@@ -117,7 +118,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert event.title in blocks[0]["text"]["text"]
 
     @with_feature("organizations:slack-reinstall-nudge-on-issue-alert")
-    @patch("sentry.integrations.slack.utils.nudge.random.random", return_value=0.0)
+    @override_options({"slack.nudge-frequency": 1.0})
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch(
         "slack_sdk.web.client.WebClient._perform_urllib_http_request",
@@ -127,12 +128,10 @@ class SlackNotifyActionTest(RuleTestCase):
             "status": 200,
         },
     )
-    def test_test_send_skips_nudge(
-        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_random: MagicMock
-    ) -> None:
+    def test_test_send_skips_nudge(self, mock_api_call: MagicMock, mock_post: MagicMock) -> None:
         # Rule test sends use action_id -1. They are not real issue alerts, so they must
         # not append the reinstall nudge nor consume the per-channel weekly budget, even
-        # with the feature flag on and the random gate forced open.
+        # with the feature flag on and the sampling gate forced open.
         event = self.get_event()
 
         fake_rule = self.create_project_rule()

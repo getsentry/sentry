@@ -2505,7 +2505,7 @@ def save_attachment(
             category=DataCategory.ATTACHMENT,
         )
 
-        logger.exception("Missing chunks for cache_key=%s", cache_key)
+        logger.exception("Missing chunks for cache_key=%s", attachment.key)
         return
     # Rate limits protect against filestore write abuse. When stored_id is set,
     # the payload is already in objectstore and putfile will read from there —

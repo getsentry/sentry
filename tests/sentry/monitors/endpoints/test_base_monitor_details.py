@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 from uuid import UUID
 
 import pytest
@@ -145,6 +145,41 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         issue_alert_rule = resp.data["alertRule"]
         assert issue_alert_rule is not None
         assert issue_alert_rule["environment"] is not None
+
+    @patch("sentry.monitors.endpoints.base_monitor_details.logger")
+    @patch("sentry.utils.metrics.incr")
+    def test_expand_issue_alert_rule_metric(
+        self, mock_incr: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        monitor = self._create_monitor()
+
+        def expand_alert_rule_calls() -> list:
+            return [
+                c
+                for c in mock_incr.call_args_list
+                if c.args and c.args[0] == "monitors.serializer.expand_alert_rule"
+            ]
+
+        self.get_success_response(self.organization.slug, monitor.slug)
+        assert expand_alert_rule_calls() == []
+        mock_logger.info.assert_not_called()
+
+        self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
+        assert expand_alert_rule_calls() == [
+            call(
+                "monitors.serializer.expand_alert_rule",
+                tags={"endpoint": self.endpoint, "ui_request": True},
+                sample_rate=1.0,
+            )
+        ]
+        mock_logger.info.assert_called_once_with(
+            "monitors.serializer.expand_alert_rule",
+            extra={
+                "organization_id": self.organization.id,
+                "endpoint": self.endpoint,
+                "ui_request": True,
+            },
+        )
 
     def test_with_active_incident_and_detection(self) -> None:
         monitor = self._create_monitor()
@@ -501,6 +536,30 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert check_in.timeout_at == check_in.date_added.replace(
             second=0, microsecond=0
         ) + timedelta(minutes=TIMEOUT)
+
+    @patch("sentry.monitors.validators.logger")
+    def test_issue_alert_rule_logs_usage(self, mock_logger: MagicMock) -> None:
+        monitor = self._create_monitor()
+
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{
+                "alert_rule": {
+                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
+                },
+            },
+        )
+        mock_logger.info.assert_called_once_with(
+            "monitors.validator.alert_rule",
+            extra={
+                "organization_id": self.organization.id,
+                "operation": "update",
+                "endpoint": self.endpoint,
+                "ui_request": True,
+            },
+        )
 
     def test_existing_issue_alert_rule(self) -> None:
         monitor = self._create_monitor()

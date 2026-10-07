@@ -31,6 +31,7 @@ jobs:
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
       frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
+      frontend_lint: ${{ steps.changes.outputs.frontend_lint }}
       embed_widget_schema: ${{ steps.changes.outputs.embed_widget_schema }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -66,11 +67,14 @@ jobs:
         run: pnpm run typecheck
 
   oxlint:
-    if: needs.files-changed.outputs.frontend_all == 'true'
+    if: needs.files-changed.outputs.frontend_lint == 'true'
     needs: files-changed
     name: oxlint
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -78,10 +82,31 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
+      - name: Find verified lint baseline
+        if: github.event_name == 'pull_request'
+        id: lint-baseline
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const {findVerifiedLintBase} = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/find-verified-lint-base.js`);
+            core.setOutput('base', await findVerifiedLintBase({github, context, core}));
+
+      - name: Verify lint ratchet
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SENTRY_OXLINT_VERIFIED_BASE: ${{ steps.lint-baseline.outputs.base }}
+        run: |
+          if [ "$EVENT_NAME" = pull_request ]; then
+            pnpm run lint:js --ci --base HEAD^1
+          else
+            pnpm run lint:js --ci
+          fi
+
       # Decide whether to lint just the PR's impacted files or everything (see
       # frontend-changed-scope.sh): we scope to impacted files only when a merge base
-      # resolves and every changed file lives under static/, otherwise we lint everything —
-      # global config or dependency changes can't be traced from source files.
+      # resolves and changes are under static/ or to oxlint-suppressions.json.
+      # Global config or dependency changes require linting everything because
+      # their impact can't be traced from source files.
       - name: Compute lint strategy
         id: strategy
         run: ./.github/workflows/scripts/frontend-changed-scope.sh >> "$GITHUB_OUTPUT"
@@ -98,7 +123,7 @@ jobs:
       - name: oxlint (impacted files)
         id: oxlint-impacted
         if: steps.strategy.outputs.scope == 'scoped'
-        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- oxlint --no-error-on-unmatched-pattern
+        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- pnpm run lint:js --no-error-on-unmatched-pattern
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
