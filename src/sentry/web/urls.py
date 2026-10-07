@@ -24,7 +24,7 @@ from sentry.web import api
 from sentry.web.frontend import csrf_failure, generic
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
-from sentry.web.frontend.auth_login import AuthLoginView
+from sentry.web.frontend.auth_login import AuthPageView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
@@ -261,7 +261,7 @@ urlpatterns += [
             [
                 re_path(
                     r"^login/$",
-                    AuthLoginView.as_view(),
+                    AuthPageView.as_view(),
                     name="sentry-login",
                 ),
                 re_path(
@@ -306,7 +306,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^register/$",
-                    AuthLoginView.as_view(),
+                    AuthPageView.as_view(),
                     name="sentry-register",
                 ),
                 re_path(
