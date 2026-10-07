@@ -314,7 +314,7 @@ const StyledContainer = styled(Container)`
     * Prevent seeing content beneath in the uncovered strip above the sticky element.
     * Use a solid, zero-blur shadow so we don't paint over the border.
     */
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token -- The shadow fills the uncovered strip with the sticky element's background. */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The shadow fills the uncovered strip with the sticky element's background. */
   box-shadow: 0 -8px 0 0 ${p => p.theme.tokens.background.primary};
 `;
 

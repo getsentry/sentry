@@ -265,7 +265,7 @@ export function ReleaseCard({
                     ${cssTheme.tokens.background.primary}
                   );
                   background-repeat: repeat-x;
-                  /* eslint-disable-next-line @sentry/scraps/use-semantic-token -- The border extends the fade's background fill. */
+                  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The border extends the fade's background fill. */
                   border-bottom: ${cssTheme.space.md} solid
                     ${cssTheme.tokens.background.primary};
                   border-top: ${cssTheme.space.md} solid transparent;
