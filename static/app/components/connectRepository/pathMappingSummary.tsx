@@ -9,6 +9,7 @@ import {IconArrow, IconBranch, IconChevron, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {AccentPathSegment} from './accentPathSegment';
+import {AutomaticTag} from './automaticTag';
 import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import {PathMappingDeleteButton} from './pathMappingDeleteButton';
 import type {PathMappingValue} from './type';
@@ -53,6 +54,7 @@ export function PathMappingSummary({
   onExpandToggle,
   defaultBranch,
   warning,
+  automaticallyGenerated,
   hasCodeOwner,
 }: PathMappingSummaryProps) {
   const {
@@ -89,6 +91,12 @@ export function PathMappingSummary({
         <PathSegment value={normalizedSourceRoot} />
 
         <Container flex="1 0 0%" />
+
+        {automaticallyGenerated && (
+          <Container flexShrink={0}>
+            <AutomaticTag />
+          </Container>
+        )}
 
         <Flex
           align="center"

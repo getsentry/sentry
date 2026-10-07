@@ -23,6 +23,7 @@ export function RepositoryProjectPathConfigFixture(
     repoName: repo.name,
     integrationId: integration.id,
     provider: integration.provider,
+    automaticallyGenerated: false,
     hasCodeOwner: false,
     stackRoot: '',
     sourceRoot: '',

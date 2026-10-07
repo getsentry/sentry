@@ -7,8 +7,8 @@ import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 const MAPPINGS: PathMappingValue[] = [
-  {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
-  {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
+  {id: '1', stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
+  {id: '2', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
 ];
 
 /**
@@ -148,17 +148,31 @@ describe('PathMappingList', () => {
       );
     });
 
-    it('deletes an open mapping from the editor when another mapping exists', async () => {
+    it('shows an Automatic tag only on generated rows', () => {
+      renderList({
+        initialPathMappings: [
+          {
+            stackRoot: 'app/',
+            sourceRoot: 'static/app/',
+            branch: 'main',
+            automaticallyGenerated: true,
+          },
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
+        ],
+      });
+
+      expect(screen.getAllByText('Automatic')).toHaveLength(1);
+    });
+
+    it('keeps delete on the summary when an existing row is expanded', async () => {
       renderList({initialPathMappings: MAPPINGS});
 
       const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
       await userEvent.click(firstExpand!);
 
-      // The editor branch row now owns delete; the summary hides its own button
-      const [editorDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
-      await userEvent.click(editorDelete!);
-
-      expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
+      expect(screen.getAllByRole('button', {name: 'Delete path mapping'})).toHaveLength(
+        2
+      );
     });
 
     it('removes a mapping', async () => {
@@ -347,7 +361,9 @@ describe('PathMappingList', () => {
 
     it('shows warning icon and across-repos alert when an existing mapping on another repo has the same pair', async () => {
       renderList({
-        pathMappings: [{stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'}],
+        pathMappings: [
+          {id: '1', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
         existingMappings: [
           {
             repoName: 'getsentry/relay',
@@ -407,7 +423,13 @@ describe('PathMappingList', () => {
     it('shows the Code Owners alert on a Code Owners row with no duplicate', async () => {
       renderList({
         pathMappings: [
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+          {
+            id: '1',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+            branch: 'main',
+            hasCodeOwner: true,
+          },
         ],
       });
 
