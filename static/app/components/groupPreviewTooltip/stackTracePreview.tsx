@@ -1,6 +1,9 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
@@ -140,14 +143,14 @@ function StackTracePreviewBody({
 
   if (isPending) {
     return (
-      <NoStackTraceWrapper>
+      <NoStackTraceMessage>
         <LoadingIndicator size={32} />
-      </NoStackTraceWrapper>
+      </NoStackTraceMessage>
     );
   }
 
   if (isError) {
-    return <NoStackTraceWrapper>{t('Failed to load stack trace.')}</NoStackTraceWrapper>;
+    return <NoStackTraceMessage>{t('Failed to load stack trace.')}</NoStackTraceMessage>;
   }
 
   if (stacktrace && data) {
@@ -163,9 +166,9 @@ function StackTracePreviewBody({
   }
 
   return (
-    <NoStackTraceWrapper>
+    <NoStackTraceMessage>
       {t('There is no stack trace available for this issue.')}
-    </NoStackTraceWrapper>
+    </NoStackTraceMessage>
   );
 }
 
@@ -203,12 +206,12 @@ const StackTracePreviewWrapper = styled('div')`
   }
 `;
 
-const NoStackTraceWrapper = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: ${p => p.theme.space.lg};
-  font-size: ${p => p.theme.font.size.md};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 56px;
-`;
+function NoStackTraceMessage({children}: {children: React.ReactNode}) {
+  return (
+    <Flex align="center" justify="center" padding="lg" minHeight="56px">
+      <Text as="div" size="md" variant="muted">
+        {children}
+      </Text>
+    </Flex>
+  );
+}

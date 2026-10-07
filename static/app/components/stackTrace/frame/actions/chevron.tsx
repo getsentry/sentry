@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
-
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {
   useStackTraceContext,
@@ -9,7 +8,7 @@ import {
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-const CHEVRON_SLOT_SIZE = 24;
+const CHEVRON_SLOT_SIZE = '24px';
 
 export function ChevronAction() {
   const {hasAnyExpandableFrames} = useStackTraceContext();
@@ -21,7 +20,18 @@ export function ChevronAction() {
   }
 
   return (
-    <ChevronSlot data-test-id="core-stacktrace-chevron-slot">
+    <Flex
+      as="span"
+      display="inline-flex"
+      align="center"
+      justify="center"
+      width={CHEVRON_SLOT_SIZE}
+      height={CHEVRON_SLOT_SIZE}
+      minWidth={CHEVRON_SLOT_SIZE}
+      minHeight={CHEVRON_SLOT_SIZE}
+      flexShrink={0}
+      data-test-id="core-stacktrace-chevron-slot"
+    >
       {isExpandable ? (
         <Button
           aria-controls={frameContextId}
@@ -38,18 +48,6 @@ export function ChevronAction() {
           }}
         />
       ) : null}
-    </ChevronSlot>
+    </Flex>
   );
 }
-
-const ChevronSlot = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: ${CHEVRON_SLOT_SIZE}px;
-  height: ${CHEVRON_SLOT_SIZE}px;
-  min-width: ${CHEVRON_SLOT_SIZE}px;
-  min-height: ${CHEVRON_SLOT_SIZE}px;
-  color: inherit;
-  flex-shrink: 0;
-`;
