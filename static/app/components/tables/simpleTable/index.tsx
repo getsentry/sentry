@@ -27,7 +27,6 @@ type TableProps = Omit<HTMLAttributes<HTMLTableElement>, 'children'> &
     children?: ReactNode;
     columns?: TableColumnConfig[];
     minimumColumnWidth?: number;
-    /** Columns resize only when they set `resizable: true`. */
     onColumnResize?: (index: number, width: number) => void;
     prependColumnWidths?: string[];
     ref?: RefObject<HTMLTableElement | null>;
