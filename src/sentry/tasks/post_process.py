@@ -485,7 +485,11 @@ def update_existing_attachments(job: PostProcessJob) -> None:
             "sentry.tasks.post_process.change_group_id",
             amount=changed,
             sample_rate=1,
-            tags={"is_reprocessed": job["is_reprocessed"]},
+            tags={
+                "is_reprocessed": job["is_reprocessed"],
+                "issue_category": job["event"].group.issue_category,
+                "is_new": job["group_state"]["is_new"],
+            },
         )
 
     # `process_individual_attachment` decides whether an attachment is "pending" by asking
