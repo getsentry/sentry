@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import type {PlatformIcon} from 'platformicons';
 
 import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
@@ -7,6 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 /**
  * The variants a metadata item can take. Narrower than `ContentVariant`, so
@@ -31,9 +33,12 @@ export interface EntityHeaderMetadataItemProps {
    */
   values: [React.ReactNode, ...React.ReactNode[]];
   /**
-   * Decorative 16x16 graphic rendered before the values.
+   * Decorative 16x16 graphic rendered before the values: an icon from
+   * `sentry/icons`, or a `PlatformIcon` for a browser, OS or SDK.
    */
-  leadingGraphic?: React.ReactNode;
+  leadingGraphic?:
+    | React.ReactElement<SVGIconProps>
+    | React.ReactElement<React.ComponentProps<typeof PlatformIcon>>;
   /**
    * Width of the skeleton shown while loading.
    */
