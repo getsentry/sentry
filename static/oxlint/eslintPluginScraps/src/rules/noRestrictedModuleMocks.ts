@@ -45,7 +45,7 @@ export const noRestrictedModuleMocks = defineRule({
       return {};
     }
 
-    const importTracker = createImportTracker(context);
+    const importTracker = createImportTracker();
 
     return {
       ...importTracker.visitors,
@@ -95,7 +95,7 @@ export const noRestrictedModuleMocks = defineRule({
 
         let moduleSource: string | undefined;
         if (moduleObject.type === 'Identifier') {
-          const importedModule = importTracker.resolve(moduleObject);
+          const importedModule = importTracker.resolve(moduleObject.name);
           if (importedModule?.imported === '*') {
             moduleSource = importedModule.source;
           }

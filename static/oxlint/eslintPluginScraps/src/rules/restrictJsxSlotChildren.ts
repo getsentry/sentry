@@ -83,7 +83,7 @@ export interface Options {
  * Runtime state for a single slot, used to track allowed names.
  */
 interface State {
-  allowedImports: Array<{name: string; source: string; member?: string}>;
+  allowedNames: Set<string>;
   hint: string;
 }
 
@@ -191,23 +191,25 @@ export const restrictJsxSlotChildren = defineRule({
     const options = context.options[0] as Options | undefined;
     const slotsConfig = options?.slots ?? [];
 
+    /**
+     * Per-slot runtime state, keyed by individual prop name.
+     *
+     * processedAllowed: raw config entries used to resolve imports at runtime
+     * allowedNames:     Set of resolved local display names (e.g. "Flex", "MC.Alert")
+     * hint:             pre-computed error hint string
+     * componentNames:   optional set of component names that restrict which
+     *                   JSX elements this slot config applies to
+     */
     const slotState = new Map();
 
     for (const slot of slotsConfig) {
       const allowed = slot.allowed;
       const state = {
-        allowedImports: allowed.flatMap(entry =>
-          entry.names.map(name => {
-            const dot = name.indexOf('.');
-            return dot === -1
-              ? {source: entry.source, name}
-              : {
-                  source: entry.source,
-                  name: name.slice(0, dot),
-                  member: name.slice(dot + 1),
-                };
-          })
-        ),
+        processedAllowed: allowed.map(entry => ({
+          source: entry.source,
+          names: entry.names,
+        })),
+        allowedNames: new Set(),
         hint: buildAllowedHint(allowed),
         componentNames: new Set(slot.componentNames),
       };
@@ -221,6 +223,13 @@ export const restrictJsxSlotChildren = defineRule({
       }
     }
 
+    /**
+     * Recursively walks a JSXElement against a slot's allowed set.
+     *
+     * Every element is checked: if its display name is in `allowedNames` the
+     * rule recurses into direct JSX children; otherwise the element is reported
+     * as forbidden and recursion stops.
+     */
     function checkSlotTree(
       jsxElement: ESTree.JSXElement,
       propName: string,
@@ -232,15 +241,7 @@ export const restrictJsxSlotChildren = defineRule({
       // recurse directly into their children.
       if (!isReactFragment(nameNode)) {
         const displayName = getDisplayName(nameNode);
-        if (
-          !state.allowedImports.some(({source, name, member}) =>
-            member
-              ? nameNode.type === 'JSXMemberExpression' &&
-                nameNode.property.name === member &&
-                importTracker.is(nameNode.object, source, name)
-              : importTracker.is(nameNode, source, name)
-          )
-        ) {
+        if (!state.allowedNames.has(displayName)) {
           context.report({
             node: jsxElement,
             messageId: 'forbidden',
@@ -317,12 +318,48 @@ export const restrictJsxSlotChildren = defineRule({
       // null, false, string literals, identifiers, etc. — nothing to check
     }
 
-    const importTracker = createImportTracker(context);
+    const importTracker = createImportTracker();
+
+    /**
+     * Lazily resolve allowed names from import tracker data.
+     * Called once before the first JSXAttribute check, after all imports are visited.
+     */
+    let allowedNamesResolved = false;
+    function resolveAllowedNames() {
+      if (allowedNamesResolved) {
+        return;
+      }
+      allowedNamesResolved = true;
+
+      for (const [, state] of slotState) {
+        for (const entry of state.processedAllowed) {
+          for (const name of entry.names) {
+            const dot = name.indexOf('.');
+            if (dot === -1) {
+              // plain identifier: e.g. "Flex"
+              for (const localName of importTracker.findLocalNames(entry.source, name)) {
+                state.allowedNames.add(localName);
+              }
+            } else {
+              // member expression: e.g. "MenuComponents.Alert"
+              const obj = name.slice(0, dot);
+              const member = name.slice(dot + 1);
+              for (const localName of importTracker.findLocalNames(entry.source, obj)) {
+                state.allowedNames.add(`${localName}.${member}`);
+              }
+            }
+          }
+        }
+      }
+    }
 
     return {
       ...importTracker.visitors,
 
       JSXAttribute(node) {
+        // Safe to resolve here: ESLint visits top-level ImportDeclarations before
+        // any JSXAttribute nodes, so importTracker has all imports recorded.
+        resolveAllowedNames();
         const propName = node.name.type === 'JSXIdentifier' ? node.name.name : null;
         if (!propName) {
           return;
