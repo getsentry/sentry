@@ -22,6 +22,10 @@ import {
   EvaluationInputTab,
   EvaluationOutputTab,
 } from 'sentry/views/explore/conversations/components/evaluationSpanTabs';
+import {
+  MemoryInputTab,
+  MemoryOutputTab,
+} from 'sentry/views/explore/conversations/components/memorySpanTabs';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
@@ -32,6 +36,7 @@ import {
   getNodeEvaluation,
   type Evaluation,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {getNodeMemory} from 'sentry/views/insights/pages/agents/utils/memory';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
 import {
@@ -137,6 +142,11 @@ export function ConversationSpanDetail({
   );
   useInvalidEvaluationDetection(evaluation);
 
+  const memory = useMemo(
+    () => (node && !isAttributesLoading ? getNodeMemory(node, attributes) : null),
+    [node, attributes, isAttributesLoading]
+  );
+
   if (isLoading || !node) {
     return <SpanDetailSkeleton embedded={embedded} />;
   }
@@ -232,7 +242,9 @@ export function ConversationSpanDetail({
               `}
             >
               <TabPanels.Item key="input">
-                {evaluation?.rawInput ? (
+                {memory ? (
+                  <MemoryInputTab memory={memory} />
+                ) : evaluation?.rawInput ? (
                   <EvaluationInputTab
                     input={evaluation.input}
                     raw={evaluation.rawInput}
@@ -242,7 +254,9 @@ export function ConversationSpanDetail({
                 )}
               </TabPanels.Item>
               <TabPanels.Item key="output">
-                {evaluation?.rawOutput ? (
+                {memory ? (
+                  <MemoryOutputTab memory={memory} />
+                ) : evaluation?.rawOutput ? (
                   <EvaluationOutputTab
                     answers={evaluation.answers}
                     questions={evaluation.input?.questions}

@@ -24,6 +24,7 @@ import {
 } from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {TokenBreakdownTooltip} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {isMemoryOperation} from 'sentry/views/insights/pages/agents/utils/memory';
 import {
   getIsAiAgentSpan,
   getToolSpansFilter,
@@ -118,9 +119,16 @@ function getAISpanAttributes({
   attributes: Record<string, string | number | boolean>;
   spanId: string;
 }) {
-  const highlightedAttributes = [];
-
   const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
+
+  const operationName = attributes['gen_ai.operation.name'] as string | undefined;
+  // Memory spans carry none of the model/token/cost attributes below, so they
+  // get their own rows and skip the rest (including the missing-attr warning).
+  if (isMemoryOperation(operationName)) {
+    return getMemoryHighlightedAttributes(attributes);
+  }
+
+  const highlightedAttributes = [];
 
   const agentName = resolveAgentName(attributes);
   if (agentName) {
@@ -257,6 +265,40 @@ function getAISpanAttributes({
         span_id: spanId,
       },
     });
+  }
+
+  return highlightedAttributes;
+}
+
+function getMemoryHighlightedAttributes(
+  attributes: Record<string, string | number | boolean>
+): HighlightedAttribute[] {
+  // The operation name is already shown as the detail heading, so it isn't
+  // repeated here.
+  const highlightedAttributes: HighlightedAttribute[] = [];
+
+  const storeId = attributes[SpanFields.GEN_AI_MEMORY_STORE_ID];
+  if (storeId) {
+    highlightedAttributes.push({name: t('Memory Store'), value: storeId.toString()});
+  }
+
+  const recordCount = Number(attributes[SpanFields.GEN_AI_MEMORY_RECORD_COUNT]);
+  if (
+    attributes[SpanFields.GEN_AI_MEMORY_RECORD_COUNT] !== undefined &&
+    Number.isFinite(recordCount)
+  ) {
+    highlightedAttributes.push({
+      name: t('Records'),
+      value: recordCount.toLocaleString(),
+    });
+  }
+
+  // The query can be long, so it isn't surfaced here; it's shown in full in the
+  // Input tab for search_memory spans.
+
+  const recordId = attributes[SpanFields.GEN_AI_MEMORY_RECORD_ID];
+  if (recordId) {
+    highlightedAttributes.push({name: t('Record'), value: recordId.toString()});
   }
 
   return highlightedAttributes;
