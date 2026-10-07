@@ -16,14 +16,16 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 
 type Row = {
   dateCreated: string;
   id: string;
   name: string;
-  organization: Pick<Organization, 'name' | 'slug'>;
+  organization: {
+    name: string;
+    slug: string;
+  };
   slug: string;
   status: string;
 };
