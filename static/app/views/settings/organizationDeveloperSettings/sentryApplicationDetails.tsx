@@ -592,9 +592,7 @@ export default function SentryApplicationDetails() {
   const templateSlug = isInternalRoute
     ? decodeScalar(location.query.template)
     : undefined;
-  const template = getSentryAppTemplates(organization).find(
-    entry => entry.slug === templateSlug
-  );
+  const template = getSentryAppTemplates().find(entry => entry.slug === templateSlug);
   const templateFormSlug = template?.slug;
   const referrer = decodeScalar(location.query.referrer);
 

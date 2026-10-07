@@ -1,4 +1,7 @@
+from typing import Any, TypedDict
+
 from django.http import HttpResponse
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,6 +11,15 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
@@ -20,6 +32,34 @@ from sentry.utils.tracing import trace
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 
+class TraceLogsMeta(TypedDict, total=False):
+    fields: dict[str, str]
+    full_scan: bool
+    bytes_scanned: int | None
+    routingHint: str
+
+
+# Only used for api docs
+class TraceLogsResponse(TypedDict):
+    data: list[dict[str, Any]]
+    meta: TraceLogsMeta
+    confidence: list[dict[str, Any]]
+
+
+# The only columns trace logs can be sorted by; each may be prefixed with `-`.
+SORTABLE_COLUMNS = [
+    "id",
+    "project.id",
+    constants.TRACE_ALIAS,
+    "severity_number",
+    "severity",
+    constants.TIMESTAMP_ALIAS,
+    constants.TIMESTAMP_PRECISE_ALIAS,
+    "message",
+]
+
+
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
     """Replaces a call to events that isn't possible for team plans because of projects restrictions"""
@@ -63,16 +103,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
     ) -> EventsResponse:
         """Queries log data for a given trace"""
 
-        required_keys = [
-            "id",
-            "project.id",
-            constants.TRACE_ALIAS,
-            "severity_number",
-            "severity",
-            constants.TIMESTAMP_ALIAS,
-            constants.TIMESTAMP_PRECISE_ALIAS,
-            "message",
-        ]
+        required_keys = list(SORTABLE_COLUMNS)
         # Validate that orderby values are also in required_keys
         for column in orderby:
             stripped_orderby = column.lstrip("-")
@@ -120,7 +151,92 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
         )
         return results
 
+    @extend_schema(
+        operation_id="listOrganizationTraceLogs",
+        summary="List Logs for Traces or a Replay",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            OpenApiParameter(
+                name="traceId",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description=(
+                    "The 32-character ID of a trace to list logs for. Can be repeated. "
+                    "At least one `traceId` or a `replayId` is required."
+                ),
+            ),
+            OpenApiParameter(
+                name="replayId",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "The 32-character ID of a replay to list logs for. Logs matching either "
+                    "a `traceId` or the `replayId` are returned."
+                ),
+            ),
+            OpenApiParameter(
+                name="query",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "Additional [search query](https://docs.sentry.io/concepts/search/) "
+                    "to filter the logs."
+                ),
+            ),
+            OpenApiParameter(
+                name="sort",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description=(
+                    "Columns to sort by, prefixed with `-` for descending. Must be one of "
+                    f"{', '.join(f'`{column}`' for column in SORTABLE_COLUMNS)}. "
+                    "Defaults to `-timestamp` then `-timestamp_precise`."
+                ),
+            ),
+            OpenApiParameter(
+                name="timestamp",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "An ISO 8601 timestamp of an event in the trace. When passed, the query "
+                    "is narrowed to a window around this time, which is faster than "
+                    "searching the full time range."
+                ),
+            ),
+            OpenApiParameter(
+                name="per_page",
+                location="query",
+                required=False,
+                type=int,
+                description="The number of logs to return per page, up to 9999.",
+            ),
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("TraceLogsResponse", TraceLogsResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TraceItemAttributeExamples.LIST_TRACE_LOGS,
+    )
     def get(self, request: Request, organization: Organization) -> HttpResponse:
+        """
+        List the logs belonging to one or more traces, or to a replay, across all projects
+        in the organization the caller can access. A trace can span many projects, so the
+        `project` filter is ignored.
+        """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

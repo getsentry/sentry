@@ -12,6 +12,7 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import type {ComposerValue} from '@sentry/scraps/composer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
@@ -83,6 +84,8 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
+
+const EMPTY_INPUT: ComposerValue = {text: '', mentions: []};
 
 /**
  * Wraps the shared header content with the surface's chrome. The drawer passes
@@ -206,7 +209,7 @@ export function SeerExplorerContent({
   );
   const showThinking = hasCodeModeTools || showThinkingPreference;
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
@@ -214,7 +217,7 @@ export function SeerExplorerContent({
   const pendingComposerFocusRef = useRef(false);
 
   const focusInput = useCallback(() => {
-    textareaRef.current?.focus();
+    composerRef.current?.focus();
   }, []);
 
   // - Session data and mutators ----------------------------------------------
@@ -244,12 +247,21 @@ export function SeerExplorerContent({
   // Persist the input draft per-run so drawer closes / run switches
   // don't lose the user's in-progress text.
   const {
-    value: inputValue,
+    value: storedInputValue,
     setValue: setInputValue,
     reset: clearInput,
-  } = useDeferredSessionStorage(
+  } = useDeferredSessionStorage<ComposerValue | string>(
     runId === null ? null : `${INPUT_STORAGE_KEY_PREFIX}:${runId}`,
-    ''
+    EMPTY_INPUT
+  );
+
+  const inputValue = useMemo<ComposerValue>(
+    () => ({
+      text:
+        typeof storedInputValue === 'string' ? storedInputValue : storedInputValue.text,
+      mentions: [],
+    }),
+    [storedInputValue]
   );
 
   // Put a message that failed to send back in the composer, unless the user has
@@ -257,7 +269,12 @@ export function SeerExplorerContent({
   useEffect(() => {
     const failedQuery = requestError?.query;
     if (failedQuery) {
-      setInputValue(current => (current.trim() ? current : failedQuery));
+      setInputValue(current =>
+        // Backwards compatibility for drafts saved as a string in sessionStorage.
+        (typeof current === 'string' ? current : current.text).trim()
+          ? current
+          : {text: failedQuery, mentions: []}
+      );
     }
   }, [requestError, setInputValue]);
 
@@ -506,9 +523,9 @@ export function SeerExplorerContent({
   // Menu component
   const {menu, closeMenu, openPRWidget} = useExplorerMenu({
     clearInput,
-    inputValue,
+    inputValue: inputValue.text,
     focusInput,
-    composerRef: textareaRef,
+    composerRef,
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
@@ -521,7 +538,7 @@ export function SeerExplorerContent({
         ? setOverrideCodeModeEnable
         : undefined,
     },
-    inputAnchorRef: textareaRef,
+    inputAnchorRef: composerRef,
     prWidgetAnchorRef: prWidgetButtonRef,
     prWidgetItems,
     prWidgetFooter,
@@ -532,18 +549,19 @@ export function SeerExplorerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
-  const canSendMessage = !readOnly && !showLoadError && !isPolling && !!inputValue.trim();
+  const canSendMessage =
+    !readOnly && !showLoadError && !isPolling && !!inputValue.text.trim();
   const handleSend = useCallback(() => {
     if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.trim(), blocks.length);
+    sendMessage(inputValue.text.trim(), blocks.length);
     clearInput();
     userScrolledUpRef.current = false;
   }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.nativeEvent.isComposing) {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.defaultPrevented || e.nativeEvent.isComposing) {
       return;
     }
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -555,9 +573,9 @@ export function SeerExplorerContent({
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    textareaRef.current?.focus();
+  const handleInputChange = (value: ComposerValue) => {
+    setInputValue(value);
+    composerRef.current?.focus();
   };
 
   const handleInputClick = () => {
@@ -569,7 +587,7 @@ export function SeerExplorerContent({
     startNewSession();
     if (readOnly || showLoadError) {
       // Exactly when `InputSection` renders its disabled branch - a different
-      // textarea that never takes `textareaRef` - so focusing now would be a
+      // textarea that never takes `composerRef` - so focusing now would be a
       // no-op. Ask for it once the real composer is back. Starting a chat clears
       // both conditions, so the request cannot outlive the render after it.
       pendingComposerFocusRef.current = true;
@@ -600,7 +618,7 @@ export function SeerExplorerContent({
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
       }
-      textareaRef.current?.focus();
+      composerRef.current?.focus();
     }, 100);
   }, []);
 
@@ -623,7 +641,7 @@ export function SeerExplorerContent({
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
       }
-      textareaRef.current?.focus();
+      composerRef.current?.focus();
     },
   });
   useEffect(() => {
@@ -827,7 +845,7 @@ export function SeerExplorerContent({
           onPRWidgetClick={openPRWidget}
           prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
-          textAreaRef={textareaRef}
+          composerRef={composerRef}
           fileApprovalActions={
             isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
               ? {

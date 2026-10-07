@@ -7,11 +7,7 @@ import type {LocationDescriptor} from 'history';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
-import {
-  fullWidthCellStyle,
-  Table,
-  type TableColumnConfig,
-} from '@sentry/scraps/table';
+import {fullWidthCellStyle, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 import {
   type ColumnAlign,

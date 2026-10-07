@@ -1,19 +1,10 @@
 from collections import OrderedDict
 
-from django import forms
-
 from sentry.issues.grouptype import GroupCategory
 from sentry.rules.filters import EventFilter
 
 CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).lower()) for gc in GroupCategory])
 INCLUDE_CHOICES = OrderedDict([("true", "equal to"), ("false", "not equal to")])
-
-
-class IssueCategoryForm(forms.Form):
-    include = forms.ChoiceField(
-        choices=list(INCLUDE_CHOICES.items()), required=False, initial="true"
-    )
-    value = forms.ChoiceField(choices=list(CATEGORY_CHOICES.items()))
 
 
 class IssueCategoryFilter(EventFilter):
@@ -36,6 +27,3 @@ class IssueCategoryFilter(EventFilter):
         group_category_name = title.title() if title else ""
         include_label = INCLUDE_CHOICES.get(self.data.get("include", "true"), "equal to")
         return self.label.format(include=include_label, value=group_category_name)
-
-    def get_form_instance(self) -> IssueCategoryForm:
-        return IssueCategoryForm(self.data)

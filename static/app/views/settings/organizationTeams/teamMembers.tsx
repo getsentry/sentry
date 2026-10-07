@@ -40,6 +40,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import {
@@ -326,7 +327,12 @@ export default function TeamMembers() {
   });
 
   if (isTeamMembersError) {
-    return <LoadingError onRetry={refetchTeamMembers} />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Members')} />
+        <LoadingError onRetry={refetchTeamMembers} />
+      </Fragment>
+    );
   }
 
   const renderPageTextBlock = () => {
@@ -375,6 +381,7 @@ export default function TeamMembers() {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Members')} />
       <TextBlock>{renderPageTextBlock()}</TextBlock>
 
       <ProjectPermissionAlert

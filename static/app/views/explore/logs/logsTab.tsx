@@ -26,6 +26,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
+import {makeEventsTimeSeriesQueryKeyPrefix} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
@@ -355,7 +356,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     aggregateSortBys,
   });
 
-  const refreshTable = async () => {
+  const refreshData = async () => {
     setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     queryClient.setQueryData(tableData.queryKey, data => {
       if (data?.pages) {
@@ -367,7 +368,13 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       }
       return data;
     });
-    await tableData.refetch();
+    await Promise.all([
+      tableData.refetch(),
+      queryClient.refetchQueries({
+        queryKey: makeEventsTimeSeriesQueryKeyPrefix(organization.slug),
+        type: 'active',
+      }),
+    ]);
   };
 
   const openColumnEditor = () => {
@@ -424,7 +431,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       return {
         canManuallyRefresh: false,
         manualRefreshDisabledReason: t(
-          'Auto-refresh is enabled. Please disable auto-refresh to manually refresh the table.'
+          'Auto-refresh is enabled. Please disable auto-refresh to manually refresh.'
         ),
       };
     }
@@ -547,7 +554,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                       size="sm"
                       icon={<IconRefresh />}
                       disabled={!canManuallyRefresh}
-                      onClick={refreshTable}
+                      onClick={refreshData}
                       aria-label={t('Refresh')}
                     />
                   </Tooltip>

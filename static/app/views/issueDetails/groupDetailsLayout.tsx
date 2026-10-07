@@ -297,6 +297,7 @@ const NavigationSidebarWrapper = styled(Sticky, {
   shouldForwardProp: prop => prop !== 'hasToggleSidebar',
 })<{hasToggleSidebar: boolean}>`
   isolation: isolate;
+  background: ${p => p.theme.tokens.background.secondary};
   /* The tab list's overflow menu opens downward over the event title, a sibling
      sticky that otherwise carries the same z-index and so wins on DOM order.
      Isolating this context traps the menu inside it, and CompactSelect cannot

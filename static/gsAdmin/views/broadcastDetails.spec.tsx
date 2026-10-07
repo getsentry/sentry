@@ -1,5 +1,10 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
+
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {BroadcastDetails} from 'admin/views/broadcastDetails';
 
@@ -67,5 +72,183 @@ describe('Broadcast Details', () => {
     expect(
       screen.getByText(textWithMarkupMatcher('Early Adopter:Yes'))
     ).toBeInTheDocument();
+  });
+
+  it('updates targeting and omits a cleared optional URL', async () => {
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({permissions: new Set(['broadcasts.admin'])}),
+      })
+    );
+    MockApiClient.addMockResponse({
+      url: '/broadcasts/1359/',
+      body: {
+        id: '1359',
+        title: 'Original title',
+        message: 'Original message',
+        link: 'https://example.com',
+        isActive: true,
+        mediaUrl: 'https://example.com/image.png',
+        category: 'blog',
+        organizations: [123, 456],
+        roles: ['admin'],
+        plans: ['business'],
+        trialStatus: ['trialing'],
+        earlyAdopter: true,
+        region: 'de',
+        platform: ['bun'],
+        product: ['errors'],
+        dateExpires: null,
+      },
+    });
+    const update = MockApiClient.addMockResponse({
+      url: '/broadcasts/1359/',
+      method: 'PUT',
+      body: {id: '1359'},
+    });
+    render(<BroadcastDetails />, {
+      initialRouterConfig: {
+        location: {pathname: '/_admin/broadcasts/1359/'},
+        route: '/_admin/broadcasts/:broadcastId/',
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Broadcasts Actions'})
+    );
+    await userEvent.click(screen.getByText('Edit Broadcast'));
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'Updated title');
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Media URL'}));
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Organization IDs'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Organization IDs'}),
+      '321, 654'
+    );
+    await userEvent.click(screen.getByText('Early Adopter'));
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(update).toHaveBeenCalledWith(
+      '/broadcasts/1359/',
+      expect.objectContaining({
+        data: {
+          title: 'Updated title',
+          message: 'Original message',
+          link: 'https://example.com',
+          category: 'blog',
+          dateExpires: null,
+          isActive: true,
+          organizations: [321, 654],
+          roles: ['admin'],
+          plans: ['business'],
+          trialStatus: ['trialing'],
+          earlyAdopter: false,
+          region: 'de',
+          platform: ['bun'],
+          product: ['errors'],
+        },
+      })
+    );
+  });
+  it('omits unchanged empty optional fields when saving', async () => {
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({permissions: new Set(['broadcasts.admin'])}),
+      })
+    );
+    MockApiClient.addMockResponse({
+      url: '/broadcasts/1359/',
+      body: {
+        id: '1359',
+        title: 'Original title',
+        message: 'Original message',
+        link: 'https://example.com',
+        isActive: true,
+        mediaUrl: null,
+        category: null,
+        dateExpires: null,
+      },
+    });
+    const update = MockApiClient.addMockResponse({
+      url: '/broadcasts/1359/',
+      method: 'PUT',
+      body: {id: '1359'},
+    });
+    render(<BroadcastDetails />, {
+      initialRouterConfig: {
+        location: {pathname: '/_admin/broadcasts/1359/'},
+        route: '/_admin/broadcasts/:broadcastId/',
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Broadcasts Actions'})
+    );
+    await userEvent.click(screen.getByText('Edit Broadcast'));
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'Updated title');
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(update).toHaveBeenCalledWith(
+      '/broadcasts/1359/',
+      expect.objectContaining({
+        data: {
+          title: 'Updated title',
+          message: 'Original message',
+          link: 'https://example.com',
+          dateExpires: null,
+          isActive: true,
+          organizations: [],
+          roles: [],
+          plans: [],
+          trialStatus: [],
+          earlyAdopter: false,
+          platform: [],
+          product: [],
+        },
+      })
+    );
+  });
+
+  it('shows backend validation errors on the affected field', async () => {
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({permissions: new Set(['broadcasts.admin'])}),
+      })
+    );
+    MockApiClient.addMockResponse({
+      url: '/broadcasts/1359/',
+      body: {
+        id: '1359',
+        title: 'Original title',
+        message: 'Original message',
+        link: 'https://example.com',
+        isActive: true,
+        dateExpires: null,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/broadcasts/1359/',
+      method: 'PUT',
+      statusCode: 400,
+      body: {title: ['This title is already in use.']},
+    });
+
+    render(<BroadcastDetails />, {
+      initialRouterConfig: {
+        location: {pathname: '/_admin/broadcasts/1359/'},
+        route: '/_admin/broadcasts/:broadcastId/',
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Broadcasts Actions'})
+    );
+    await userEvent.click(screen.getByText('Edit Broadcast'));
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    expect(await screen.findByText('This title is already in use.')).toBeInTheDocument();
   });
 });

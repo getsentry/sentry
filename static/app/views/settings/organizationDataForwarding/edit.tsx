@@ -22,6 +22,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {ProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/components/projectOverrideForm';
 import {
   useDataForwarders,
@@ -47,11 +48,21 @@ export default function OrganizationDataForwardingEditWrapper() {
   const dataForwarder = dataForwarders?.find(df => df.id === dataForwarderId);
 
   if (isLoading) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Data Forwarding')} />
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (!dataForwarder) {
-    return <NotFound />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Data Forwarding')} />
+        <NotFound />
+      </Fragment>
+    );
   }
 
   return <OrganizationDataForwardingEdit dataForwarder={dataForwarder} />;
@@ -67,6 +78,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Data Forwarding')} />
       <SentryDocumentTitle
         title={t('Edit your %s forwarder', ProviderLabels[provider])}
       />
