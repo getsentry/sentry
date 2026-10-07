@@ -9,8 +9,8 @@ from sentry.integrations.opsgenie.client import (
     OpsgenieClient,
     format_feature_flags_detail,
 )
-from sentry.integrations.utils.feature_flags import EventFeatureFlag
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.feature_flags import EventFeatureFlag
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.testutils.asserts import (
