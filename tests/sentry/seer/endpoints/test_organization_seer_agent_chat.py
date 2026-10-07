@@ -163,10 +163,25 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "off"
 
-    @with_feature(["organizations:ask-seer-create-pr", "organizations:seer-explorer-chat-coding"])
+    @with_feature("organizations:ask-seer-create-pr")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_create_pr_flag_turns_off_chat_coding(self, mock_client_class: MagicMock):
+    def test_create_pr_flag_enables_pr_tools(self, mock_client_class: MagicMock):
         self.organization.update_option("sentry:enable_seer_coding", True)
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(self.url, {"query": "hi"}, format="json")
+
+        assert response.status_code == 200
+        assert mock_client_class.call_args.kwargs["enable_coding"] is True
+        assert mock_client_class.call_args.kwargs["enable_write_pull_request"] is True
+        assert mock_client_class.call_args.kwargs["enable_bash_mode"] is True
+
+    @with_feature("organizations:ask-seer-create-pr")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_create_pr_flag_respects_seer_coding_option(self, mock_client_class: MagicMock):
+        self.organization.update_option("sentry:enable_seer_coding", False)
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -194,6 +209,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             is_interactive=True,
             enable_bash_mode=False,
             enable_coding=False,
+            enable_write_pull_request=False,
             enable_code_mode_tools="off",
             reasoning_effort="medium",
         )
@@ -351,6 +367,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 is_interactive=True,
                 enable_bash_mode=False,
                 enable_coding=feature_enabled and option_enabled,
+                enable_write_pull_request=False,
                 enable_code_mode_tools="off",
                 reasoning_effort="medium",
             )
@@ -378,6 +395,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             is_interactive=True,
             enable_bash_mode=False,
             enable_coding=False,
+            enable_write_pull_request=False,
             enable_code_mode_tools="off",
             reasoning_effort="medium",
         )
@@ -578,6 +596,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 is_interactive=True,
                 enable_bash_mode=False,
                 enable_coding=feature_enabled and option_enabled,
+                enable_write_pull_request=False,
                 enable_code_mode_tools="off",
                 reasoning_effort="medium",
             )
