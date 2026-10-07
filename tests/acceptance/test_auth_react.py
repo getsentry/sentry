@@ -14,7 +14,6 @@ from selenium.webdriver.common.keys import Keys
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.testutils.cases import AcceptanceTestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.silo import no_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
@@ -26,6 +25,24 @@ PASSWORD = "correct-password"
 
 @no_silo_test
 class ReactAuthTest(AcceptanceTestCase):
+    def test_single_organization_registration(self) -> None:
+        organization = self.create_organization(slug="single-registration")
+
+        with (
+            self.options({"auth.allow-registration": True}),
+            self.feature("auth:register"),
+            self.settings(SENTRY_SINGLE_ORGANIZATION=True, SENTRY_ORGANIZATION=organization.id),
+        ):
+            self.browser.get("/auth/login/")
+            self.browser.click_when_visible(xpath="//a[normalize-space(.)='Create an account']")
+            self.browser.wait_until('input[name="name"]')
+            self.browser.element('input[name="name"]').send_keys("New User")
+            self.browser.element('input[name="email"]').send_keys("new.user@example.com")
+            self.browser.element('input[name="password"]').send_keys(PASSWORD)
+            self.browser.click_when_visible(xpath="//button[normalize-space(.)='Create account']")
+
+            self.wait_for_authenticated_organization(organization.slug)
+
     def open_password_reset(self, user: User) -> str:
         password_hash = LostPasswordHash.for_user(user)
         path = reverse("sentry-account-recover-confirm", args=[user.id, password_hash.hash])
@@ -43,7 +60,6 @@ class ReactAuthTest(AcceptanceTestCase):
         )
         self.browser.click_when_visible(xpath="//button[normalize-space(.)='Reset password']")
 
-    @override_options({"auth.v2.enabled": True})
     def test_password_reset_from_email(self) -> None:
         user = self.create_login_user()
         user_email = UserEmail.objects.get(user=user, email=user.email)
@@ -80,7 +96,6 @@ class ReactAuthTest(AcceptanceTestCase):
         self.submit_visible_credentials(user.email, "new-secure-password")
         self.wait_for_authenticated_organization(self.organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_password_reset_requires_two_factor_sign_in(self) -> None:
         user = self.create_login_user()
         totp = TotpInterface()
@@ -94,7 +109,6 @@ class ReactAuthTest(AcceptanceTestCase):
         self.submit_second_factor(totp.make_otp().generate_otp())
         self.wait_for_authenticated_organization(self.organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_password_reset_expired_link(self) -> None:
         user = self.create_login_user()
         password_hash = LostPasswordHash.for_user(user)
@@ -116,7 +130,6 @@ class ReactAuthTest(AcceptanceTestCase):
         self.browser.click_when_visible(xpath="//a[normalize-space(.)='Back to sign in']")
         self.browser.wait_until('[aria-label="Email"]')
 
-    @override_options({"auth.v2.enabled": True})
     def test_password_reset_invalid_link(self) -> None:
         user = self.create_login_user()
         previous_password = user.password
@@ -130,7 +143,6 @@ class ReactAuthTest(AcceptanceTestCase):
         user.refresh_from_db()
         assert user.password == previous_password
 
-    @override_options({"auth.v2.enabled": True})
     def test_password_reset_link_cannot_be_reused(self) -> None:
         user = self.create_login_user()
         reset_path = self.open_password_reset(user)
@@ -146,7 +158,6 @@ class ReactAuthTest(AcceptanceTestCase):
         user.refresh_from_db()
         assert user.check_password("new-secure-password")
 
-    @override_options({"auth.v2.enabled": True})
     @override_settings(
         AUTH_PASSWORD_VALIDATORS=[
             {
@@ -282,7 +293,6 @@ class ReactAuthTest(AcceptanceTestCase):
             f"return window.location.pathname === '{expected_path}'"
         )
 
-    @override_options({"auth.v2.enabled": True})
     def test_password_authentication(self) -> None:
         user = self.create_login_user()
 
@@ -290,7 +300,6 @@ class ReactAuthTest(AcceptanceTestCase):
 
         self.wait_for_authenticated_organization(self.organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_wrong_password(self) -> None:
         user = self.create_login_user()
 
@@ -301,7 +310,6 @@ class ReactAuthTest(AcceptanceTestCase):
         )
         assert self.browser.driver.current_url.endswith("/auth/login/")
 
-    @override_options({"auth.v2.enabled": True})
     def test_demo_authentication(self) -> None:
         demo_user = self.create_user(email="demo@example.com")
         demo_organization = self.create_organization(owner=demo_user, slug="demo")
@@ -322,7 +330,6 @@ class ReactAuthTest(AcceptanceTestCase):
             assert not self.browser.element_exists('[aria-label="Password"]')
             self.wait_for_authenticated_organization(demo_organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_totp_authentication(self) -> None:
         user = self.create_login_user()
         totp = TotpInterface()
@@ -333,7 +340,6 @@ class ReactAuthTest(AcceptanceTestCase):
 
         self.wait_for_authenticated_organization(self.organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_resumes_totp_authentication_after_refresh(self) -> None:
         user = self.create_login_user()
         totp = TotpInterface()
@@ -347,7 +353,6 @@ class ReactAuthTest(AcceptanceTestCase):
 
         self.wait_for_authenticated_organization(self.organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_wrong_totp(self) -> None:
         user = self.create_login_user()
         totp = TotpInterface()
@@ -363,7 +368,6 @@ class ReactAuthTest(AcceptanceTestCase):
         )
         assert self.browser.element_exists('[aria-label="One-time password"]')
 
-    @override_options({"auth.v2.enabled": True})
     def test_recovery_code_authentication(self) -> None:
         user = self.create_login_user()
         TotpInterface().enroll(user)
@@ -376,7 +380,6 @@ class ReactAuthTest(AcceptanceTestCase):
 
         self.wait_for_authenticated_organization(self.organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_multi_organization_login(self) -> None:
         user = self.create_login_user("org-a")
         org_a = self.organization
@@ -403,7 +406,6 @@ class ReactAuthTest(AcceptanceTestCase):
         self.submit_credentials(user.email, PASSWORD, org_b.slug)
         self.wait_for_authenticated_organization(org_b.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_organization_sso(self) -> None:
         user = self.create_login_user("sso-org")
         auth_provider = self.create_auth_provider(
@@ -418,7 +420,6 @@ class ReactAuthTest(AcceptanceTestCase):
         self.complete_dummy_sso(user.email)
         self.wait_for_authenticated_organization(self.organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_organization_sso_with_totp(self) -> None:
         user = self.create_login_user("sso-totp-org")
         totp = TotpInterface()
@@ -441,7 +442,6 @@ class ReactAuthTest(AcceptanceTestCase):
         self.submit_second_factor(totp.make_otp().generate_otp())
         self.wait_for_authenticated_organization(self.organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_organization_without_sso(self) -> None:
         user = self.create_login_user("password-only-org")
 
@@ -457,7 +457,6 @@ class ReactAuthTest(AcceptanceTestCase):
         self.submit_visible_credentials(user.email, PASSWORD)
         self.wait_for_authenticated_organization(self.organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_password_authentication_with_optional_organization_sso(self) -> None:
         user = self.create_login_user("optional-sso-org")
         auth_provider = self.create_auth_provider(
@@ -476,7 +475,6 @@ class ReactAuthTest(AcceptanceTestCase):
 
         self.wait_for_authenticated_organization(self.organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_password_login_cannot_access_sso_required_organization(self) -> None:
         user = self.create_user(email="sso-password@example.com")
         user.set_password(PASSWORD)
@@ -498,7 +496,6 @@ class ReactAuthTest(AcceptanceTestCase):
             xpath="//*[contains(normalize-space(.), 'Members sign in with Dummy')]"
         )
 
-    @override_options({"auth.v2.enabled": True})
     def test_password_login_uses_organization_without_sso(self) -> None:
         user = self.create_user(email="multi-org-password@example.com")
         user.set_password(PASSWORD)
@@ -516,7 +513,6 @@ class ReactAuthTest(AcceptanceTestCase):
         # The authenticated user lands in an accessible organization instead.
         self.wait_for_authenticated_organization(password_organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_sso_login_preserves_organization_destination(self) -> None:
         user = self.create_user(email="preserved-sso-destination@example.com")
         user.set_password(PASSWORD)
@@ -544,7 +540,6 @@ class ReactAuthTest(AcceptanceTestCase):
         self.complete_dummy_sso(user.email)
         self.wait_for_authenticated_organization(sso_organization.slug)
 
-    @override_options({"auth.v2.enabled": True})
     def test_switch_to_sso_required_organization(self) -> None:
         user = self.create_login_user("org-a")
         password_organization = self.organization

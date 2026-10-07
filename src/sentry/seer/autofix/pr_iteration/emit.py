@@ -82,6 +82,7 @@ class PrIterationOutcome(StrEnum):
     ERRORED = "errored"
     # The drain popped the batch but failed to hand it to the agent.
     DRAIN_FAILED = "drain_failed"
+    MISSING_GROUP_ID = "missing_group_id"
 
     # technically we can recover from this
     # but an iteration is stuck until then

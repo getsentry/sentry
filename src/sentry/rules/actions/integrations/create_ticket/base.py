@@ -7,7 +7,6 @@ from typing import Any
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.rule import Rule
 from sentry.rules.actions.integrations.base import IntegrationEventAction
-from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.rules.actions.integrations.create_ticket.utils import create_issue
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
@@ -96,6 +95,3 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
             integration_id=integration_id,
             provider=self.provider,
         )
-
-    def get_form_instance(self) -> IntegrationNotifyServiceForm:
-        return IntegrationNotifyServiceForm(self.data, integrations=self.get_integrations())

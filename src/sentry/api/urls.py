@@ -130,7 +130,17 @@ from sentry.core.endpoints.scim.members import (
     OrganizationSCIMMemberDetails,
     OrganizationSCIMMemberIndex,
 )
-from sentry.core.endpoints.scim.schemas import OrganizationSCIMSchemaIndex
+from sentry.core.endpoints.scim.resource_types import (
+    OrganizationSCIMResourceTypeDetails,
+    OrganizationSCIMResourceTypeIndex,
+)
+from sentry.core.endpoints.scim.schemas import (
+    OrganizationSCIMSchemaDetails,
+    OrganizationSCIMSchemaIndex,
+)
+from sentry.core.endpoints.scim.service_provider_config import (
+    OrganizationSCIMServiceProviderConfig,
+)
 from sentry.core.endpoints.scim.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 from sentry.core.endpoints.team_avatar import TeamAvatarEndpoint
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
@@ -185,9 +195,6 @@ from sentry.explore.endpoints.explore_saved_query_detail import (
     ExploreSavedQueryVisitEndpoint,
 )
 from sentry.explore.endpoints.explore_saved_query_starred import ExploreSavedQueryStarredEndpoint
-from sentry.explore.endpoints.explore_saved_query_starred_order import (
-    ExploreSavedQueryStarredOrderEndpoint,
-)
 from sentry.explore.endpoints.saved_queries import SavedQueriesEndpoint
 from sentry.explore.endpoints.saved_query_starred_order import SavedQueryStarredOrderEndpoint
 from sentry.feedback.endpoints.organization_feedback_categories import (
@@ -549,6 +556,7 @@ from sentry.replays.endpoints.project_replay_video_details import ProjectReplayV
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
 from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
+from sentry.seer.endpoints.admin_autofix_retry import SeerAdminAutofixRetryEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
@@ -790,7 +798,6 @@ from .endpoints.organization_events_histogram import OrganizationEventsHistogram
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
-    OrganizationSpansSamplesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_performance import (
@@ -843,9 +850,6 @@ from .endpoints.organization_sdk_updates import (
     OrganizationSdkUpdatesEndpoint,
 )
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
-from .endpoints.organization_spans_fields import (
-    OrganizationSpansFieldsEndpoint,
-)
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
@@ -1563,11 +1567,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-explore-saved-query-starred",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/starred/order/$",
-        ExploreSavedQueryStarredOrderEndpoint.as_view(),
-        name="sentry-api-0-explore-saved-query-starred-order",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/explore/all-queries/$",
         SavedQueriesEndpoint.as_view(),
         name="sentry-api-0-explore-all-queries",
@@ -1870,11 +1869,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace-item-stats",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/spans/fields/$",
-        OrganizationSpansFieldsEndpoint.as_view(),
-        name="sentry-api-0-organization-spans-fields",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics-estimation-stats/$",
         OrganizationOnDemandMetricsEstimationStatsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-estimation-stats",
@@ -1923,11 +1917,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-meta/$",
         OrganizationEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-events-meta",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/spans-samples/$",
-        OrganizationSpansSamplesEndpoint.as_view(),
-        name="sentry-api-0-organization-spans-samples",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics-compatibility/$",
@@ -2787,6 +2776,28 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
                     r"^Schemas$",
                     OrganizationSCIMSchemaIndex.as_view(),
                     name="sentry-api-0-organization-scim-schema-index",
+                ),
+                # .+ rather than [^/]+ so unknown URIs containing slashes
+                # still reach the endpoint and get a SCIM-format 404.
+                re_path(
+                    r"^Schemas/(?P<schema_uri>.+)$",
+                    OrganizationSCIMSchemaDetails.as_view(),
+                    name="sentry-api-0-organization-scim-schema-details",
+                ),
+                re_path(
+                    r"^ServiceProviderConfig$",
+                    OrganizationSCIMServiceProviderConfig.as_view(),
+                    name="sentry-api-0-organization-scim-service-provider-config",
+                ),
+                re_path(
+                    r"^ResourceTypes$",
+                    OrganizationSCIMResourceTypeIndex.as_view(),
+                    name="sentry-api-0-organization-scim-resource-type-index",
+                ),
+                re_path(
+                    r"^ResourceTypes/(?P<resource_type_name>.+)$",
+                    OrganizationSCIMResourceTypeDetails.as_view(),
+                    name="sentry-api-0-organization-scim-resource-type-details",
                 ),
             ]
         ),
@@ -3758,6 +3769,11 @@ INTERNAL_URLS = [
         r"^seer/night-shift/trigger/$",
         SeerAdminAgenticTriageTriggerEndpoint.as_view(),
         name="sentry-admin-seer-night-shift-trigger",
+    ),
+    re_path(
+        r"^seer/autofix/retry/$",
+        SeerAdminAutofixRetryEndpoint.as_view(),
+        name="sentry-admin-seer-autofix-retry",
     ),
 ]
 

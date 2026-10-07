@@ -81,6 +81,22 @@ const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
   ethernet: t('Device connected to ethernet'),
 };
 
+// Replay attaches every event to the replay as an issue frame, including
+// `captureMessage` and CaptureConsole events at non-error levels, so the level
+// decides how alarming the frame looks.
+function getIssueLevelStyle(level: string): Pick<Details, 'colorGraphicsToken' | 'icon'> {
+  switch (level) {
+    case 'warning':
+      return {colorGraphicsToken: 'warning', icon: <IconWarning size="xs" />};
+    case 'info':
+    case 'log':
+    case 'debug':
+      return {colorGraphicsToken: 'neutral', icon: <IconInfo size="xs" />};
+    default:
+      return {colorGraphicsToken: 'danger', icon: <IconFire size="xs" />};
+  }
+}
+
 const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
     colorGraphicsToken: 'neutral',
@@ -104,11 +120,10 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconMegaphone size="xs" />,
   }),
   issue: (frame: ErrorFrame) => ({
-    colorGraphicsToken: 'danger',
+    ...getIssueLevelStyle(frame.data.level),
     description: frame.message,
     tabKey: TabKey.ERRORS,
     title: <CrumbErrorTitle frame={frame} />,
-    icon: <IconFire size="xs" />,
   }),
   'ui.slowClickDetected': (frame: SlowClickFrame) => {
     const node = frame.data.node;
