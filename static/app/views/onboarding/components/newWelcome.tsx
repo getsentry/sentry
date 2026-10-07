@@ -229,7 +229,7 @@ export function NewWelcomeUI(props: StepProps) {
             ) : (
               <MotionStack key="products" gap="3xl" width="100%" {...ONBOARDING_STAGGER}>
                 <MotionGrid
-                  columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(2, 1fr)'}}
+                  columns={{zero: '1fr', xl: 'repeat(2, 1fr)'}}
                   gap="3xl"
                   width="100%"
                   {...ONBOARDING_ENTER}

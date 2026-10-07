@@ -8,7 +8,7 @@ AI_CONVERSATIONS_FIELDS = {
         "sum_if(`has:gen_ai.operation.type`,span.duration)",
         "duration",
     ),
-    "conversation.errors": ("failure_count()", "errors"),
+    "conversation.errors": CONVERSATION_AGGREGATE_DEFINITIONS["errors"],
     "conversation.generationDuration": CONVERSATION_AGGREGATE_DEFINITIONS["generationDuration"],
     "conversation.inputTokens": CONVERSATION_AGGREGATE_DEFINITIONS["inputTokens"],
     "conversation.llmCalls": CONVERSATION_AGGREGATE_DEFINITIONS["llmCalls"],

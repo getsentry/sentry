@@ -9,7 +9,6 @@ import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Access} from 'sentry/components/acl/access';
-import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {ScmAlertFrequencySection} from 'sentry/components/onboarding/scm/scmAlertFrequencySection';
@@ -39,6 +38,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
 import {
   WIZARD_STORAGE_KEY,
@@ -279,7 +279,10 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 radius="lg"
                 layout
               >
-                <Layout.Title>{t('Create a new project')}</Layout.Title>
+                <TopBar.Slot
+                  name="breadcrumbs"
+                  title={{type: 'page-title', label: t('Create a new project')}}
+                />
 
                 <MotionStack gap="md" paddingBottom="2xl" layout="position">
                   <Heading as="h1">{t('Create a project')}</Heading>

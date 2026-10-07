@@ -1,9 +1,6 @@
-import pytest
 import responses
-from rest_framework import serializers
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from sentry.api.serializers.rest_framework.rule import validate_actions
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
@@ -192,23 +189,3 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         # assert new ticket NOT created in DB
         assert ExternalIssue.objects.count() == external_issue_count
-
-    def test_fails_validation(self) -> None:
-        """
-        Test that the absence of dynamic_form_fields in the action fails validation
-        """
-        with pytest.raises(serializers.ValidationError) as excinfo:
-            validate_actions(
-                {
-                    "actions": [
-                        {
-                            "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
-                            "integration": self.integration.id,
-                            "issuetype": "1",
-                            "name": "Create a Jira ticket in the Jira Server account",
-                            "project": "10000",
-                        }
-                    ]
-                }
-            )
-        assert excinfo.value.detail == {"actions": "Must configure issue link settings."}

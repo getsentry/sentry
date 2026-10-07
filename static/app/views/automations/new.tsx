@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -6,7 +6,6 @@ import orderBy from 'lodash/orderBy';
 import {Observer} from 'mobx-react-lite';
 import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -48,35 +47,11 @@ import {
 import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
 import {hasAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
   return (
     <SentryDocumentTitle title={title ? t('%s - New Alert', title) : t('New Alert')} />
-  );
-}
-
-function AutomationBreadcrumbs() {
-  const organization = useOrganization();
-  return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Alerts'),
-              to: makeAutomationBasePathname(organization.slug),
-            },
-          ]}
-        />
-      </TopBar.Slot>
-
-      <TopBar.Slot name="title">
-        <EditableAutomationName />
-      </TopBar.Slot>
-    </Fragment>
   );
 }
 
@@ -251,7 +226,7 @@ export default function AutomationNewSettings() {
       <AutomationFormProvider>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <AutomationBreadcrumbs />
+          <EditableAutomationName />
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">
