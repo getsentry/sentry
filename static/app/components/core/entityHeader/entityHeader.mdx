@@ -19,19 +19,29 @@ export const documentation =
 
 `EntityHeader` is the detail-page header. You supply content — a title, some stats, some facts — and it owns the layout, the density, the responsive reflow, and the loading skeletons.
 
-It deliberately does **not** render breadcrumbs, the page `h1`, or global actions. Those belong to the TopBar and its slots (`TopBar.Slot name="breadcrumbs"` / `"title"`), which already own them. The title here is an `h2`.
+It deliberately does **not** render breadcrumbs, the page `h1`, or global actions. Those belong to the TopBar and its slots (`TopBar.Slot name="breadcrumbs"` / `"title"`). The title here is an `h2`.
 
-<Storybook.Demo>
+It reflows against **its container's** width, not the viewport's — on a routed page that is the content column, so it reacts when a side panel opens. Above the `lg` container breakpoint (640px) the stats sit beside the title; below it they move to their own row _beneath_ the metadata and left-align. That is a reorder rather than a wrap, which is why the layout is a grid. Resize the example below to watch it.
+
+## Usage
+
+Use `EntityHeader` on a detail page — a single issue, trace, replay, release, or build. Not on list or landing pages, which have no one entity to be about.
+
+<Storybook.Demo resizable align="start">
   <EntityHeader
     title={{
       label: 'Replay user',
       value: 'anonymous@example.com',
-      tags: [<Tag variant="success">Live</Tag>],
+      tags: [
+        <Tag key="live" variant="success">
+          Live
+        </Tag>,
+      ],
     }}
     stats={[
       {type: 'text', label: 'Dead Clicks', value: 0},
       {type: 'text', label: 'Rage Clicks', value: 2},
-      {type: 'text', label: 'Errors', value: 1},
+      {type: 'link', label: 'Errors', value: 1, to: '/replays/1/?t_main=errors'},
     ]}
     metadata={{
       label: 'Replay properties',
@@ -50,247 +60,33 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
 
 ```jsx
 <EntityHeader
-  title={{
-    label: 'Replay user',
-    value: 'anonymous@example.com',
-    tags: [<Tag variant="success">Live</Tag>],
-  }}
-  stats={[
-    {type: 'text', label: 'Dead Clicks', value: 0},
-    {type: 'text', label: 'Rage Clicks', value: 2},
-    {type: 'text', label: 'Errors', value: 1},
-  ]}
-  metadata={{
-    label: 'Replay properties',
-    items: [
-      {
-        label: 'Started at',
-        values: ['Feb 11, 2026 10:56 CET'],
-        leadingGraphic: <IconCalendar size="xs" />,
-      },
-      {label: 'Browser', values: ['Chrome', '144.0.0']},
-      {label: 'Operating system', values: ['Windows', '>=10']},
-    ],
-  }}
-/>
-```
-
-## Only the title is required
-
-Every other slot is optional, and the grid template is built from whichever you pass — so an omitted slot leaves no empty row behind.
-
-<Storybook.Demo>
-  <EntityHeader title={{label: 'Profile', value: 'Profile 8f2c1a'}} />
-</Storybook.Demo>
-
-```jsx
-<EntityHeader title={{label: 'Profile', value: 'Profile 8f2c1a'}} />
-```
-
-## Title
-
-A title is a `label` and a `value`, the same pairing a stat uses. The `value` is what renders — the entity's name. The `label` says what that name _is_, and is read before it by assistive technology.
-
-```jsx
-title={{label: t('Replay user'), value: replay.user.display_name}}
-```
-
-It is required, because a heading on its own is where the context runs out. A sighted reader knows `anonymous@example.com` is a person from the avatar beside it and the breadcrumb above; someone jumping straight to the heading hears an email address and nothing else. With the label they hear "Replay user, anonymous@example.com".
-
-The `label` is not rendered. That is the one place this pairing differs from a stat, where both halves are visible.
-
-## Leading graphic
-
-`title.leadingGraphic` is data, not a node, so the header controls the size and the slot cannot be used to smuggle in a component.
-
-The box is always 24px. A project or platform badge fills it; a user avatar is drawn at 20 and centred, because the avatars in the people slot are 24 with a 2px border and so show a 20px disc — a borderless 24 here would be the larger of the two circles in the same header.
-
-```jsx
-leadingGraphic={{type: 'user', user: replay.user}}
-leadingGraphic={{type: 'project', projects}}
-leadingGraphic={{type: 'platform', platform: 'javascript'}}
-```
-
-`project` and `platform` draw the same badge but take what the caller actually holds. A trace knows its projects and the header maps them to platforms; a build has only inferred a platform from a file type. A `project` graphic with no known platform renders nothing rather than falling back to an all-projects glyph, which belongs to a saved view.
-
-The graphic is decorative by default: a platform icon next to "ValueError" tells a screen reader nothing the title has not. Give it a `label` when it carries something the title does not — which projects a trace touched, say — and it becomes an image in its own right.
-
-It is deliberately not focusable, since a named image is announced without focus. That means `tooltip` is mouse-only: use it for elaboration, and keep anything a user actually needs in `label`. The type reflects that — `tooltip` is only reachable once there is a `label`, because without one it would be silently discarded.
-
-```jsx
-leadingGraphic={{
-  type: 'project',
-  projects,
-  label: t('%s projects', projects.length),
-  tooltip: <ProjectListTooltip projects={projects} />,
-}}
-```
-
-<Storybook.Demo>
-  <EntityHeader
-    title={{
-      label: 'Release',
-      value: 'javascript-sdk @ 8.42.0',
-      leadingGraphic: {type: 'platform', platform: 'javascript'},
-    }}
-  />
-</Storybook.Demo>
-
-## People
-
-People related to the entity get their own slot rather than being a labelled stat: they have no value to show, and they usually load on a different schedule from the entity itself. Pass the users and let the header render the stack.
-
-`label` is required, because a stack of faces says nothing on its own. A screen reader is read the people by name — "Viewed by: Alice, Bob" — and the avatars themselves are decorative, since most people have no uploaded avatar and a letter avatar reaches the accessibility tree as initials with an unreliable name.
-
-```jsx
-// Replay — who watched it
-<EntityHeader
   title={{label: t('Replay user'), value: replay.user.display_name}}
-  people={{users, label: t('Viewed by'), isLoading}}
-  stats={[{label: 'Errors', value: 2}]}
-/>
-
-// Issue — who is involved in it
-<EntityHeader
-  title={{label: 'Issue type', value: 'ValueError'}}
-  people={{users: participants, label: t('Participants')}}
-/>
-```
-
-The slot keeps its space while `isLoading`, which is what stops the stats sliding sideways when the avatars land. Once it resolves to nobody it renders nothing, and the divider before the first stat goes with it.
-
-## Metadata
-
-The metadata row is a list, and its `label` names it — "Replay properties". Without that, a screen reader meets a run of unrelated strings with nothing saying they belong together, or to what.
-
-Each item is one property: a `label` saying what it is, and one or more `values`. Two values rather than one joined string is the point — a browser is its name _and_ its version, and joining them at the call site loses that.
-
-```jsx
-metadata={{
-  label: t('Replay properties'),
-  items: [
-    {
-      label: t('Browser'),
-      values: [replay.browser.name, replay.browser.version].filter(Boolean),
-      leadingGraphic: <PlatformIcon platform={platform} size="16px" />,
-    },
-  ],
-}}
-```
-
-The label is not rendered by default — the graphic beside the values usually carries it, and a header has no room to name every property. `showLabel` renders it as text when it does not. Either way it is in the DOM, so what a screen reader reads is the same; showing it is only a question of visibility.
-
-## Conditional items
-
-`stats`, `metadata` and `tags` drop `null` entries, so you can inline a conditional instead of building the array ahead of time. Items are keyed by their position in the array you wrote, not in the filtered result, so an item appearing or disappearing never remounts its neighbours.
-
-```jsx
-<EntityHeader
-  title={{label: t('Replay user'), value: replay.user.display_name}}
-  stats={[
-    isVideoReplay
-      ? null
-      : {type: 'text', label: 'Dead Clicks', value: replay.count_dead_clicks},
-    {type: 'text', label: 'Errors', value: errors.length},
-  ]}
-/>
-```
-
-## Linking and tooltips
-
-A metadata item gains a dotted underline and a tooltip with `tooltip`. Use `variant` to call out a problem.
-
-<Storybook.Demo>
-  <EntityHeader
-    title={{label: 'Issue type', value: 'ValueError'}}
-    subtitle="Cannot parse the provided timestamp"
-    stats={[{type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'}]}
-    metadata={{
-      label: 'Issue properties',
-      items: [
-        {label: 'Handling', values: ['Unhandled'], variant: 'danger'},
-        {label: 'Metric', values: ['TTFB'], tooltip: 'Time to First Byte'},
-      ],
-    }}
-  />
-</Storybook.Demo>
-
-```jsx
-<EntityHeader
-  title={{label: 'Issue type', value: 'ValueError'}}
-  subtitle="Cannot parse the provided timestamp"
-  stats={[{type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'}]}
+  people={{users: viewers, label: t('Viewed by')}}
+  stats={[{type: 'link', label: t('Errors'), value: errors.length, to: errorsTab}]}
+  subtitle={replay.summary}
   metadata={{
-    label: 'Issue properties',
-    items: [
-      {label: 'Handling', values: ['Unhandled'], variant: 'danger'},
-      {label: 'Metric', values: ['TTFB'], tooltip: 'Time to First Byte'},
-    ],
+    label: t('Replay properties'),
+    items: [{label: t('Browser'), values: ['Chrome', '144.0.0']}],
   }}
 />
 ```
 
-## Stat types
+Only `title` is required. The grid template is built from whichever other slots you pass, so an omitted one leaves no empty row behind.
 
-A stat declares whether it is `text` or a `link`. That is not just documentation: a stat whose type depended on its data would render a different element once the data arrived, and swapping a span for an anchor mid-load moves the row. So a stat that links, links from the first render — including when its count is still zero.
-
-```jsx
-{type: 'text', label: t('Rage Clicks'), value: 2}
-{type: 'link', label: t('Errors'), value: errors.length, to: errorsTab}
-```
-
-On a `link` stat the label is what navigates — see below.
-
-The value may change as often as it likes. The type may not.
-
-## Stat tooltips
-
-A stat holds one number. Anything that explains it — what the label means, what the value is made of — belongs in a tooltip, not in the row.
-
-`labelTooltip` covers a label that is jargon on its own. `valueTooltip` carries a breakdown: a replay's errors can come from several projects, so the stat shows the total and the tooltip splits it by project. Both take structured content, so they can be built from `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
+`stats`, `metadata.items` and `title.tags` drop `null` entries, so a conditional can be written inline. Items are keyed by their position in the array you wrote rather than in the filtered result, so one appearing or disappearing never remounts its neighbours.
 
 ```jsx
 stats={[
-  {
-    type: 'text',
-    label: t('Dead Clicks'),
-    value: 4,
-    labelTooltip: t('A click that did not change anything on the page.'),
-  },
-  {
-    type: 'link',
-    label: t('Errors'),
-    value: errors.length,
-    to: errorsTab,
-    valueTooltip: (
-      <Fragment>
-        <Tooltip.Header>{t('Errors')}</Tooltip.Header>
-        <Tooltip.Grid columns="max-content 1fr max-content">
-          {byProject.map(([slug, count]) => (
-            <Tooltip.Row key={slug} leadingItems={<ProjectAvatar …/>} trailingItems={count}>
-              {slug}
-            </Tooltip.Row>
-          ))}
-        </Tooltip.Grid>
-      </Fragment>
-    ),
-  },
+  isVideoReplay ? null : {type: 'text', label: t('Dead Clicks'), value: deadClicks},
+  {type: 'text', label: t('Errors'), value: errors.length},
 ]}
 ```
 
-On a `link` stat it is the **label** that navigates, not the value. A link named by its own digits says nothing in a screen reader's links list.
+### Loading
 
-Colour says it navigates; an underline says it explains. A link label is accent-coloured, a tooltipped label is underlined, and one that does both is both. Using a single treatment for the two would mean a link that only navigates looked like one that explains — and an underline reads as "hover for more" to most people, so that is the meaning it keeps.
+Pass `isLoading` and every slot renders a skeleton sized from the typography it will hold. The skeleton comes from the same declarations as the loaded state, so the two cannot drift apart — there is no placeholder twin to maintain.
 
-The link is named from the value _and_ the label, so a screen reader moving element by element hears "4 Dead Clicks" in one go rather than "4", then "link, Dead Clicks". The value is hidden from assistive technology on a link stat, since it is already spoken as part of that name.
-
-That is why a `link` stat's `value` is text rather than a node: the name is composed from it. A graphic there would leave the link named by its label alone, silently dropping the half that says how many. A `text` stat keeps the wider type, since nothing is composed from it.
-
-## Loading
-
-Pass `isLoading` and each slot renders a skeleton sized from the typography it will hold. Because the skeleton comes from the same declarations as the loaded state, the two cannot drift apart — there is no placeholder twin to keep in sync.
-
-Each slot is replaced whole, stat labels included. A label is static and could be shown straight away, but a half-drawn stat next to a loading title reads as broken. Size `loadingWidth` to the content you expect so the row does not jump when the value lands.
+Each slot is replaced whole, stat labels included. A label is static and could be shown straight away, but a half-drawn stat next to a loading title reads as broken rather than as loading. Size `loadingWidth` to the content you expect, so the row does not jump when the value lands.
 
 <Storybook.Demo>
   <EntityHeader
@@ -310,48 +106,192 @@ Each slot is replaced whole, stat labels included. A label is static and could b
   />
 </Storybook.Demo>
 
+The header sets `aria-busy` while loading. Note that this is a state in the accessibility tree, not an announcement — no screen reader reads it. A page that needs the transition announced has to add its own live region.
+
+## Title
+
+A title is a `label` and a `value`. The `value` renders — it is the entity's name. The `label` says what that name _is_, and is not rendered.
+
 ```jsx
-<EntityHeader isLoading title={{label, value}} stats={stats} metadata={metadata} />
+title={{label: t('Replay user'), value: replay.user.display_name}}
 ```
 
-## Responsive behaviour
+### Accessibility
 
-The header reflows against **its container's** width, not the viewport's — on a routed page that is the content column, so it reacts correctly when a side panel opens.
+The title is an `h2`, named from both halves, so heading navigation lands on "Replay user, anonymous@example.com" rather than a bare string.
 
-Above the `lg` container breakpoint (640px) the stats sit to the right of the title. Below it they move to their own row _beneath_ the metadata and left-align. That is a reorder rather than a wrap, which is why the layout is a grid.
+That is why `label` is required. A sighted reader knows `anonymous@example.com` is a person from the avatar beside it and the breadcrumb above it; someone jumping straight to the heading has neither. The label is the text equivalent of what the avatar is doing visually — which is also why it is the one label in this component that is not rendered.
 
-640px is where a title and a typical stat row first fit side by side, which is wider than the nominal 500px band in the spec — below it the title gets squeezed by a stat row whose width the header cannot know in advance.
+The title is never a link. A heading that is wholly a link announces as both, and the breadcrumb above it already handles going up. While loading, the heading stays in the tree named by its `label` alone, so the page's structure does not change as data lands and no value is asserted before it is known.
 
-<Storybook.Demo resizable align="start">
+### Leading graphic
+
+`title.leadingGraphic` is data, not a node, so the header controls the size and the slot cannot be used to smuggle in a component.
+
+```jsx
+leadingGraphic={{type: 'user', user: replay.user}}
+leadingGraphic={{type: 'project', projects}}
+leadingGraphic={{type: 'platform', platform: 'javascript'}}
+```
+
+`project` and `platform` draw the same badge but take what the caller actually holds: a trace knows its projects and the header maps them to platforms, a build has only inferred a platform from a file type. A `project` graphic with no known platform renders nothing rather than falling back to an all-projects glyph, which belongs to a saved view.
+
+The box is always 24px. A project or platform badge fills it; a user avatar is drawn at 20 and centred, because the avatars in the people slot are 24 with a 2px border and so show a 20px disc — a borderless 24 here would be the larger of the two circles in the same header.
+
+<Storybook.Demo>
   <EntityHeader
-    title={{label: 'Replay user', value: 'anonymous@example.com'}}
+    title={{
+      label: 'Release',
+      value: 'javascript-sdk @ 8.42.0',
+      leadingGraphic: {type: 'platform', platform: 'javascript'},
+    }}
+  />
+</Storybook.Demo>
+
+The graphic is decorative by default — a platform icon next to "ValueError" tells a screen reader nothing the title has not. Give it a `label` when it carries something the title does not, such as which projects a trace touched, and it becomes an image in its own right.
+
+It is deliberately not focusable, since a named image is announced without focus. That makes `tooltip` mouse-only: use it for elaboration and keep anything a user needs in `label`. The type enforces the dependency — `tooltip` is only reachable once there is a `label`, because without one it would be silently discarded.
+
+```jsx
+leadingGraphic={{
+  type: 'project',
+  projects,
+  label: t('%s projects', projects.length),
+  tooltip: <ProjectListTooltip projects={projects} />,
+}}
+```
+
+### Tags
+
+`title.tags` takes `Tag` elements, rendered inline after the value. Use them for status that belongs to the entity itself — live, archived, pre-release.
+
+```jsx
+tags={[isLive ? <Tag key="live" variant="success">{t('Live')}</Tag> : null]}
+```
+
+They are siblings of the heading, not part of it, so a tag's text is not in the heading's accessible name. Someone navigating by heading hears the title and not the tag. Keep tags to state that is reinforced elsewhere on the page, and do not let one be the only place something is said.
+
+## Stats
+
+A stat is one measurement: a `label` naming it and a `value`. Both are rendered, on a shared baseline.
+
+```jsx
+stats={[{type: 'text', label: t('Rage Clicks'), value: 2}]}
+```
+
+Keep the value to the single number the label names. Anything that explains it belongs in a tooltip, not in the row — a stat that renders its own detail inline fights the density the row is built for.
+
+### Accessibility
+
+A stat is one fact split across two elements, which a screen reader moving element by element otherwise reads as two: "0", then "Dead Clicks".
+
+On a `link` stat the anchor is named from the value and the label together, so it reads "4 Dead Clicks" in one go, and the value is hidden since the name already speaks it. A `text` stat is still two elements — adjacent and read in order, but visited separately.
+
+That is why a `link` stat's `value` is text rather than a node: the name is composed from it. A graphic there would leave the link named by its label alone, silently dropping the half that says how many.
+
+### Types
+
+A stat declares whether it is `text` or a `link`. That is not only documentation. A stat whose type depended on its data would render a different element once that data arrived, and swapping a span for an anchor mid-load moves the row. So a stat that links, links from the first render — including when its count is still zero.
+
+```jsx
+{type: 'text', label: t('Rage Clicks'), value: 2}
+{type: 'link', label: t('Errors'), value: errors.length, to: errorsTab}
+```
+
+The value may change as often as it likes. The type may not.
+
+On a `link` stat it is the **label** that navigates, not the value: a link named by its own digits says nothing in a screen reader's links list.
+
+### Tooltips
+
+`labelTooltip` covers a label that is jargon on its own. `valueTooltip` carries a breakdown — a replay's errors can come from several projects, so the stat shows the total and the tooltip splits it by project. Both take structured content, so either can be built from `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
+
+`valueTooltip` is only available on a `text` stat. On a link the value is hidden, and a tooltip needs a visible, focusable trigger — put the breakdown in `labelTooltip`, where it attaches to the link.
+
+```jsx
+{
+  type: 'text',
+  label: t('Dead Clicks'),
+  value: 4,
+  labelTooltip: t('A click that did not change anything on the page.'),
+}
+```
+
+Colour says it navigates; an underline says it explains. A link label is accent-coloured, a tooltipped label is underlined, and one that does both is both. A single treatment for the two would mean a link that only navigates looked like one that explains — and an underline reads as "hover for more" to most people, so that is the meaning it keeps.
+
+<Storybook.Demo>
+  <EntityHeader
+    title={{label: 'Issue type', value: 'ValueError'}}
+    subtitle="Cannot parse the provided timestamp"
     stats={[
-      {type: 'text', label: 'Dead Clicks', value: 0},
-      {type: 'text', label: 'Errors', value: 1},
+      {type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'},
+      {type: 'text', label: 'Users', value: 22, labelTooltip: 'Affected in the last 90d'},
     ]}
+  />
+</Storybook.Demo>
+
+## People
+
+People related to the entity get their own slot rather than being a labelled stat: they have no value to show, and they usually load on a different schedule from the entity itself.
+
+```jsx
+// Replay — who watched it
+people={{users: viewers, label: t('Viewed by'), isLoading}}
+
+// Issue — who is involved in it
+people={{users: participants, label: t('Participants')}}
+```
+
+The slot keeps its space while `isLoading`, which is what stops the stats sliding sideways when the avatars land. Once it resolves to nobody it renders nothing, and the divider before the first stat goes with it.
+
+### Accessibility
+
+The people are read out by name — "Viewed by: Alice, Bob" — and the avatars themselves are decorative.
+
+A stack of faces says nothing on its own, which is why `label` is required. The avatars cannot carry the names either: most people have no uploaded avatar, and a letter avatar reaches the accessibility tree as initials with an unreliable name. They are also not focusable, so their hover tooltips never reach a keyboard user, and nor does the overflow chip. Naming everyone as text answers all three, and does not depend on a screen reader announcing a `group` role.
+
+## Metadata
+
+The metadata row is a list of properties. Each item is one property: a `label` saying what it is, and one or more `values`.
+
+```jsx
+metadata={{
+  label: t('Replay properties'),
+  items: [
+    {
+      label: t('Browser'),
+      values: [browser.name, browser.version],
+      leadingGraphic: <PlatformIcon platform={platform} size="16px" />,
+    },
+  ],
+}}
+```
+
+Two values rather than one joined string is the point: a browser is its name _and_ its version, and joining them at the call site loses that. An item needs at least one — a label followed by nothing reads as a property that failed to load.
+
+`tooltip` adds an explanation on hover, with an underline to signal it.
+
+### Accessibility
+
+The row's `label` names it. Without one a screen reader meets a run of unrelated strings with nothing saying they belong together, or to what.
+
+Each item's own label is in the DOM whether or not it is on screen, so a screen reader reads "Browser Chrome 144.0.0" rather than a bare version string. `showLabel` renders it as text too — the graphic beside the values usually carries it, and a header has no room to name every property, so it is hidden by default. Showing it is a question of visibility only; what is read does not change.
+
+### Variants
+
+`variant` colours the values. It defaults to `muted`; use a semantic variant to call out a problem, the way Issue Details renders "Unhandled" in `danger`.
+
+<Storybook.Demo>
+  <EntityHeader
+    title={{label: 'Issue type', value: 'ValueError'}}
     metadata={{
-      label: 'Replay properties',
+      label: 'Issue properties',
       items: [
-        {label: 'Started at', values: ['Feb 11, 2026 10:56 CET']},
-        {label: 'Browser', values: ['Chrome', '144.0.0']},
+        {label: 'Handling', values: ['Unhandled'], variant: 'danger'},
+        {label: 'Mechanism', values: ['generic']},
       ],
     }}
   />
 </Storybook.Demo>
 
-## When to use
-
-Use `EntityHeader` on a detail page — a single issue, trace, replay, release, or build. It is the shared replacement for hand-rolled header blocks built from `Layout.Header` or bespoke styled grids.
-
-Do not use it for list or landing pages, which carry no single entity.
-
-## Accessibility
-
-- The title renders as an `h2`, named from its `label` and `value` together so heading navigation lands on "Replay user, anonymous@example.com" rather than a bare string. It is never a link: a heading that is wholly a link announces as both, and the breadcrumb above it already handles going up. The page's `h1` is the TopBar title slot, so the two do not compete. The heading stays in the tree while loading, so the page's structure does not change as data lands.
-- The header sets `aria-busy` while loading. Be aware this is a state in the accessibility tree, not an announcement — no screen reader reads it. A page that needs the transition announced has to add its own live region.
-- A `leadingGraphic` is decorative and hidden until given a `label`, at which point it becomes a named `img`. It is deliberately not focusable — a named image is announced without focus, so a tab stop there would be one a keyboard user could not act on.
-- A `people` stack is read out by name. Its avatars are not focusable, so the per-avatar tooltips are mouse-only; the names are text instead, which also means it does not depend on a screen reader announcing a `group` role.
-- On a `link` stat the label navigates, and the link is named from the value and the label together, so the stat reads as one fact rather than two elements. A `text` stat is still two: its value and label are adjacent and read in order, but a screen reader moving element by element visits them separately.
-- The DOM order is title, then context, then stats. That matches the narrow layout, where the stats sit below the metadata. Above the `lg` breakpoint the stats move up beside the title, and the two disagree: they are read after the metadata but shown above it. One source order cannot satisfy both templates, so it follows the stacked one.
-- The metadata row is a named list and each item a listitem, carrying its own label as text so a screen reader reads "Browser, Chrome 144.0.0" rather than a bare version string.
-- The dividers between stats and metadata are decorative and hidden; a header has around five of them.
+The set is narrower than `ContentVariant` — `primary`, `muted`, `danger`, `success`, `warning` — because a tooltipped item also has to colour its underline, and `Tooltip` supports fewer. Keeping one list means the two cannot disagree.
