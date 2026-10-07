@@ -1112,17 +1112,23 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             project_id=self.proj1.id,
         )
 
-        result = self.ts.get_group_tag_value_paginator(
-            self.proj1group1,
-            [self.proj1env1.id],
-            "foo",
-            order_by="-times_seen",
-            tenant_ids={"organization_id": self.proj1.organization_id},
-        ).get_result(1)
+        def get_top_value():
+            result = self.ts.get_group_tag_value_paginator(
+                self.proj1group1,
+                [self.proj1env1.id],
+                "foo",
+                order_by="-times_seen",
+                tenant_ids={"organization_id": self.proj1.organization_id},
+            ).get_result(1)
+            assert len(result) == 1
+            return result[0]
 
-        assert len(result) == 1
-        assert result[0].value == "bar"
-        assert result[0].times_seen == 2
+        assert get_top_value().value == "quux"
+
+        with self.feature("organizations:tag-values-sort-before-limit"):
+            top_value = get_top_value()
+        assert top_value.value == "bar"
+        assert top_value.times_seen == 2
 
     # mock default value only for "limit" argument of get_group_tag_value_iter()
     # it is set to 1 to avoid creating 1000+ tags for the test
