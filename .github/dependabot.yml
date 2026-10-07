@@ -38,6 +38,7 @@ updates:
           - '@jest/*'
           - 'jest'
           - 'jest-*'
+          - 'jsdom'
       react-testing-library-dependencies:
         patterns:
           - '@testing-library/*'

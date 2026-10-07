@@ -91,6 +91,25 @@ function getEditor() {
 }
 
 describe('Composer', () => {
+  it.each(['br', 'div'])('restores the placeholder after clearing to a %s', tag => {
+    render(<ControlledComposer initialValue="Draft" />);
+    const textbox = getEditor();
+
+    act(() => {
+      const emptyLine = document.createElement(tag);
+      if (tag === 'div') {
+        emptyLine.append(document.createElement('br'));
+      }
+      textbox.replaceChildren(emptyLine);
+      textbox.dispatchEvent(
+        new InputEvent('input', {bubbles: true, inputType: 'deleteContentBackward'})
+      );
+    });
+
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent('|');
+    expect(textbox.matches(':empty')).toBe(true);
+  });
+
   it('keeps the editor aligned with a controlled value that rejects an edit', async () => {
     const onChange = jest.fn();
     render(
@@ -262,5 +281,131 @@ describe('Composer', () => {
     await userEvent.click(getEditor());
     await userEvent.keyboard('{End}');
     expect(await screen.findByText('No suggestions found')).toBeVisible();
+  });
+
+  it('does not send when the pointer leaves visible suggestions', async () => {
+    const onKeyDown = jest.fn();
+    render(
+      <Composer
+        aria-label="Comment"
+        plugins={[MENTION_PLUGIN]}
+        value={{text: '@al', mentions: []}}
+        onChange={() => {}}
+        onKeyDown={onKeyDown}
+      />
+    );
+
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    await userEvent.keyboard('{End}');
+    const option = await screen.findByRole('option', {name: 'Alice Example'});
+    await userEvent.hover(option);
+    await userEvent.unhover(option);
+    expect(textbox).not.toHaveAttribute('aria-activedescendant');
+    expect(option).toBeVisible();
+    onKeyDown.mockClear();
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(onKeyDown).not.toHaveBeenCalled();
+    expect(textbox).toHaveTextContent('@al');
+  });
+
+  it('does not trigger onKeyDown when Enter is pressed while popup is loading', async () => {
+    const onKeyDown = jest.fn();
+    const loadingSource: ComposerSource<PersonSuggestion> = {
+      id: 'slow',
+      label: 'Slow',
+      trigger: '@',
+      queryOptions: () => ({
+        queryKey: ['test', 'loading'],
+        queryFn: () => new Promise<readonly PersonSuggestion[]>(() => {}),
+      }),
+      getId: () => '',
+      getText: () => '',
+    };
+
+    render(
+      <Composer
+        aria-label="Comment"
+        plugins={makePlugins([loadingSource])}
+        value={{text: '@que', mentions: []}}
+        onChange={() => {}}
+        onKeyDown={onKeyDown}
+      />
+    );
+
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    await userEvent.keyboard('{End}');
+
+    expect(await screen.findByText('Loading suggestions…')).toBeVisible();
+    onKeyDown.mockClear();
+
+    await userEvent.keyboard('{Enter}');
+    expect(onKeyDown).not.toHaveBeenCalled();
+  });
+
+  it('blocks the IME confirming Enter after composition ends (Safari)', () => {
+    const onKeyDown = jest.fn();
+    render(
+      <Composer
+        aria-label="Comment"
+        plugins={[MENTION_PLUGIN]}
+        value={{text: '', mentions: []}}
+        onChange={() => {}}
+        onKeyDown={onKeyDown}
+      />
+    );
+
+    const textbox = getEditor();
+
+    act(() => {
+      textbox.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
+      textbox.textContent = '日本語';
+      textbox.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: '日本語',
+          inputType: 'insertCompositionText',
+          isComposing: true,
+        })
+      );
+    });
+
+    act(() => {
+      textbox.dispatchEvent(
+        new CompositionEvent('compositionend', {
+          bubbles: true,
+          data: '日本語',
+        })
+      );
+    });
+
+    act(() => {
+      textbox.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true,
+          isComposing: false,
+          keyCode: 229,
+        })
+      );
+    });
+
+    expect(onKeyDown).not.toHaveBeenCalled();
+
+    act(() => {
+      textbox.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    });
+
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
   });
 });

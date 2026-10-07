@@ -78,7 +78,7 @@ export function SortBySelectors({
   useEffect(() => {
     const isSortingByEquation = isEquation(trimStart(values.sortBy, '-'));
     if (isSortingByEquation) {
-      // oxlint-disable-next-line react/set-state-in-effect
+      // oxlint-disable-next-line react/set-state-in-effect, react-you-might-not-need-an-effect/no-derived-state
       setCustomEquation({
         sortBy: trimStart(values.sortBy, '-'),
         sortDirection: values.sortDirection,

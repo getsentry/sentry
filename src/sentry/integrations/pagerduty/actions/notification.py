@@ -6,7 +6,6 @@ from typing import Any, TypedDict, cast
 
 import sentry_sdk
 
-from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.client import (
     PAGERDUTY_DEFAULT_SEVERITY,
     PAGERDUTY_SUMMARY_MAX_LENGTH,
@@ -15,11 +14,11 @@ from sentry.integrations.pagerduty.client import (
 )
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.rule import Rule
+from sentry.notifications.types import RuleFuture
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.rules import RuleFuture
 from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
@@ -172,11 +171,4 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             account=self.get_integration_name(),
             service=service_name,
             severity=severity,
-        )
-
-    def get_form_instance(self) -> PagerDutyNotifyServiceForm:
-        return PagerDutyNotifyServiceForm(
-            self.data,
-            integrations=self.get_integrations(),
-            services=self.get_services(),
         )

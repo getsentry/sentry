@@ -28,6 +28,7 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
+    NotificationOrigin,
     NotificationSettingEnum,
 )
 from sentry.notifications.utils import (
@@ -131,7 +132,6 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
             notification_type_enum=self.notification_setting_type_enum,
             fallthrough_choice=self.fallthrough_choice,
-            rules=self.rules,
             notification_uuid=self.notification_uuid,
         )
 
@@ -296,7 +296,7 @@ class AlertRuleNotification(ProjectNotification):
         title_str = "Alert triggered"
 
         if self.rules:
-            key, value = get_rule_or_workflow_id(self.rules[0])
+            key, value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
 
             match key:
                 case "workflow_id":
@@ -353,10 +353,14 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
+        alert_id = None
+        if self.rules:
+            rule = self.rules[0]
+            alert_id = rule.link_id if isinstance(rule, NotificationOrigin) else rule.id
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "alert_id": self.rules[0].id if self.rules else None,
+            "alert_id": alert_id,
             **super().get_log_params(recipient),
         }
 

@@ -48,6 +48,30 @@ export function ActiveDemo() {
 </ThinkingBlock>
 ```
 
+## Overflowing title
+
+Long thinking titles truncate with an ellipsis when the block has limited space.
+
+export function OverflowingTitleDemo() {
+  const [start] = useState(() => new Date());
+  return (
+    <Container width="320px">
+      <ThinkingBlock
+        title="Searching every project for related errors and performance regressions..."
+        startTime={start}
+      >
+        <Text size="sm" monospace variant="muted">
+          Searching project data.
+        </Text>
+      </ThinkingBlock>
+    </Container>
+  );
+}
+
+<Storybook.Demo>
+  <OverflowingTitleDemo />
+</Storybook.Demo>
+
 ## Completed (collapsed)
 
 Once `endTime` is set the timer freezes, the title is replaced with a summary

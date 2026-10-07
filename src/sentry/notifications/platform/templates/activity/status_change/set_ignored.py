@@ -73,6 +73,8 @@ class SetIgnoredActivityTemplate(NotificationTemplate[ActivityNotificationData])
     def render(self, data: ActivityNotificationData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=get_status_change_subject(data),
+            email_headers=data.email_headers,
+            email_subject_prefix=data.email_subject_prefix,
             body=[
                 ParagraphSection(
                     blocks=[

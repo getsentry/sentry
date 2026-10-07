@@ -213,6 +213,7 @@ export function useScmProjectCreation({
       }
     },
     [
+      // oxlint-disable-next-line react/memo-dependencies
       createProjectAndRules,
       createdProject,
       onCreatedProjectChange,

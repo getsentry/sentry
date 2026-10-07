@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from dataclasses import replace
 from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
@@ -131,13 +132,9 @@ def _resolve_viewer_context(
         },
     )
 
-    return ViewerContext(
-        organization_id=org_id,
-        project_id=None if has_mismatch else (vc.project_id if vc else None),
-        user_id=user_id,
-        actor_type=vc.actor_type,
-        token=None if has_mismatch else vc.token,
-    )
+    if has_mismatch:
+        return replace(vc, organization_id=org_id, user_id=user_id, project_id=None, token=None)
+    return replace(vc, organization_id=org_id, user_id=user_id)
 
 
 @trace
@@ -152,7 +149,12 @@ def make_signed_seer_api_request(
     viewer_context: SeerViewerContext | None = None,
     metrics_endpoint: str | None = None,
 ) -> BaseHTTPResponse:
-    """Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies."""
+    """Send a signed request to Seer.
+
+    All outbound Sentry-to-Seer HTTP requests must go through this function so
+    ViewerContext propagation, signing, tracing, and metrics remain consistent.
+    Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies.
+    """
     host = connection_pool.host
     if connection_pool.port:
         host += ":" + str(connection_pool.port)
@@ -196,14 +198,17 @@ def make_signed_seer_api_request(
         "seer.request_to_seer",
         sample_rate=1.0,
         tags=timer_tags,
-    ):
-        return connection_pool.urlopen(
+    ) as tags:
+        tags["status_class"] = "error"
+        response = connection_pool.urlopen(
             method,
             request_target,
             body=body,
             headers=headers,
             **options,
         )
+        tags["status_class"] = f"{response.status // 100}xx"
+        return response
 
 
 class OrgProjectKnowledgeProjectData(TypedDict):
@@ -549,6 +554,8 @@ class TranslateAgenticRequest(TypedDict):
     project_ids: list[int]
     natural_language_query: str
     strategy: str
+    user_email: NotRequired[str]
+    timezone: NotRequired[str]
     options: NotRequired[dict[str, Any]]
 
 

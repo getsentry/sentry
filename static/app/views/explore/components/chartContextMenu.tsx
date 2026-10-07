@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -154,12 +155,15 @@ export function ChartContextMenu({
 
   return (
     <DropdownMenu
-      triggerProps={{
-        size: 'xs',
-        variant: 'transparent',
-        showChevron: false,
-        icon: <IconEllipsis />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          size="xs"
+          variant="transparent"
+          icon={<IconEllipsis />}
+          aria-label={t('Chart actions')}
+        />
+      )}
       position="bottom-end"
       items={items}
     />

@@ -34,7 +34,7 @@ import {
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {createErrorLogRow} from 'sentry/views/explore/logs/utils';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 jest.mock('@tanstack/react-virtual', () => {
   return {
@@ -196,6 +196,7 @@ describe('LogsInfiniteTable', () => {
       body: {
         data: mockLogsData,
         meta: {
+          routingHint: 'table-hint',
           fields: {
             [OurLogKnownFieldKey.ID]: 'string',
             [OurLogKnownFieldKey.PROJECT_ID]: 'string',
@@ -638,6 +639,7 @@ describe('LogsInfiniteTable', () => {
     // full details are fetched.
     expect(await screen.findByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
     await waitFor(() => expect(traceItemRequest).toHaveBeenCalled());
+    expect(traceItemRequest.mock.calls[0]![1].query.routing_hint).toBe('table-hint');
   });
 
   it('expands the linked row when navigation adds logsRowId', async () => {
@@ -786,6 +788,35 @@ describe('LogsInfiniteTable', () => {
 
     expect(router.location.pathname).toBe(
       `/organizations/${organization.slug}/issues/42/events/abc123def456/`
+    );
+  });
+
+  it('renders colored text without escape codes when an injected error row has an ANSI title', async () => {
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: \x1B[31mBoom\x1B[0m happened',
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    const colored = await screen.findByText('Boom');
+
+    expect(colored.style.color).toContain('color-mix(in srgb,');
+    expect(screen.getByTestId('log-table-cell-error')).toHaveTextContent(
+      /^TypeError: Boom happened$/
     );
   });
 
