@@ -304,7 +304,7 @@ function VisualizationWidgetContent({
     tableResults &&
     tableResults.length > 0;
 
-  // We only support one column for legend breakdown right now
+  // Linked dashboards and custom labels use the first grouping column.
   const firstColumn = columns[0];
   const linkedDashboard = findLinkedDashboardForField(firstWidgetQuery, firstColumn);
 
@@ -339,7 +339,8 @@ function VisualizationWidgetContent({
         if (
           organization.features.includes('visibility-explore-view') &&
           firstColumn &&
-          typeof firstColumnGroupByValue === 'string' &&
+          (firstColumnGroupByValue === null ||
+            typeof firstColumnGroupByValue === 'string') &&
           widget.queries.length === 1 &&
           widget.widgetType === WidgetType.SPANS
         ) {

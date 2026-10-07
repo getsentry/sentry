@@ -67,11 +67,19 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          conditions: `${MCP_SERVER_FILTER} has:${SpanFields.NETWORK_TRANSPORT}`,
-          fields: [SpanFields.NETWORK_TRANSPORT, 'count()'],
+          conditions: `${MCP_SERVER_FILTER} (has:${SpanFields.NETWORK_PROTOCOL_NAME} OR has:${SpanFields.NETWORK_TRANSPORT})`,
+          fields: [
+            SpanFields.NETWORK_PROTOCOL_NAME,
+            SpanFields.NETWORK_TRANSPORT,
+            'count()',
+          ],
           aggregates: ['count()'],
-          columns: [SpanFields.NETWORK_TRANSPORT],
-          fieldAliases: [t('Transport'), WIDGET_COLUMN_LABELS.count],
+          columns: [SpanFields.NETWORK_PROTOCOL_NAME, SpanFields.NETWORK_TRANSPORT],
+          fieldAliases: [
+            t('Protocol'),
+            t('Network transport'),
+            WIDGET_COLUMN_LABELS.count,
+          ],
           orderby: '-count()',
         },
       ],

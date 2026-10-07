@@ -132,6 +132,7 @@ export enum SpanFields {
   GEN_AI_MEMORY_RECORD_ID = 'gen_ai.memory.record.id',
   GEN_AI_MEMORY_RECORD_COUNT = 'gen_ai.memory.record.count',
   MCP_CLIENT_NAME = 'mcp.client.name',
+  NETWORK_PROTOCOL_NAME = 'network.protocol.name',
   NETWORK_TRANSPORT = 'network.transport',
   MCP_RESOURCE_URI = 'mcp.resource.uri',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
@@ -325,6 +326,7 @@ type NonNullableStringFields =
   | SpanFields.GEN_AI_RESPONSE_MODEL
   | SpanFields.GEN_AI_TOOL_NAME
   | SpanFields.MCP_CLIENT_NAME
+  | SpanFields.NETWORK_PROTOCOL_NAME
   | SpanFields.NETWORK_TRANSPORT
   | SpanFields.GEN_AI_PROMPT_NAME
   | SpanFields.MCP_RESOURCE_URI
