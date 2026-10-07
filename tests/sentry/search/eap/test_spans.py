@@ -1177,7 +1177,7 @@ class SearchResolverColumnTest(TestCase):
         formula = resolved_column.proto_definition
         assert isinstance(formula, Column.BinaryFormula)
         assert resolved_column.search_type == "number"
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert formula.op == Column.BinaryFormula.OP_SUBTRACT
         assert formula.left.conditional_aggregation.aggregate == Function.FUNCTION_MAX
         assert formula.right.conditional_aggregation.aggregate == Function.FUNCTION_MIN

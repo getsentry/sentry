@@ -1084,7 +1084,7 @@ export function CustomFilters({project}: {project: Project}) {
           <CustomFiltersTable
             columns={CUSTOM_FILTER_COLUMNS}
             header={
-              <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderRow sticky>
                 <SimpleTable.HeaderCell divider={false}>
                   {t('Active')}
                 </SimpleTable.HeaderCell>
@@ -1225,6 +1225,11 @@ const CUSTOM_FILTER_COLUMNS: TableColumnConfig[] = [
   {key: 'action', width: '110px'},
 ];
 
+// A fixed height keeps the search box and the sections below the table in place
+// while a search shrinks or grows the list. The grid would otherwise stretch its
+// rows to fill the spare height.
 const CustomFiltersTable = styled(SimpleTable)`
-  overflow-x: auto;
+  height: 480px;
+  overflow: auto;
+  align-content: start;
 `;
