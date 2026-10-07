@@ -159,6 +159,8 @@ export const LogTableBodyCell = styled(SimpleTable.RowCell)<{
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
+  /* The issue details logs section's first column is narrower than its icons. */
+  overflow: visible;
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};
