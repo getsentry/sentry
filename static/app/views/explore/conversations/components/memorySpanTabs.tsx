@@ -28,8 +28,10 @@ export function MemoryInputTab({memory}: {memory: Memory}) {
         <MemoryEmpty message={t('The search query was not captured.')} />
       );
     case MemoryOperation.DELETE:
-      // The record id is already in the header; only delete-all adds info here.
-      return memory.recordId ? (
+      // A specific record id, or a count of one, is a targeted delete already
+      // summarized in the header. Only a delete with no record scope is the
+      // store-wide case; an absent id alone can just mean it wasn't captured.
+      return memory.recordId || memory.recordCount === 1 ? (
         <MemoryEmpty message={t('No input for this span')} />
       ) : (
         <Section title={t('Target')}>
@@ -120,10 +122,10 @@ function MemoryRecordsSection({
     );
   }
 
-  // Records are opt-in: a null `records` with a positive count means the content
-  // wasn't captured, not that there were none (which would contradict the count
-  // in the header). An empty array is a genuine "none".
-  if (!records && (recordCount ?? 0) > 0) {
+  // A positive count with no renderable records means the content wasn't
+  // captured (records are opt-in, or an empty array disagrees with the count);
+  // showing "none" here would contradict the count in the header.
+  if ((recordCount ?? 0) > 0) {
     return <MemoryEmpty message={t('Record content was not captured.')} />;
   }
 

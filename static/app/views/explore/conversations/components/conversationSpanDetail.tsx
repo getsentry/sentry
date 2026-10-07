@@ -151,7 +151,9 @@ export function ConversationSpanDetail({
     return <SpanDetailSkeleton embedded={embedded} />;
   }
 
-  const title = node.op || node.description || t('Span');
+  // Memory spans share a generic span op in the trace waterfall, so name the
+  // heading after the operation to distinguish search, create, update, etc.
+  const title = memory?.operation || node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
   const comparison = getDurationComparison(
     avgDuration,

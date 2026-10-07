@@ -273,8 +273,7 @@ function getAISpanAttributes({
 function getMemoryHighlightedAttributes(
   attributes: Record<string, string | number | boolean>
 ): HighlightedAttribute[] {
-  // The operation name is already shown as the detail heading, so it isn't
-  // repeated here.
+  // The operation is shown as the detail heading, so it isn't repeated here.
   const highlightedAttributes: HighlightedAttribute[] = [];
 
   const storeId = attributes[SpanFields.GEN_AI_MEMORY_STORE_ID];

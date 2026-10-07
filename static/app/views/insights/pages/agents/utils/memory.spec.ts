@@ -112,6 +112,9 @@ describe('getMemoryResultText', () => {
       getMemoryResultText({...base, operation: 'create_memory', recordCount: 2})
     ).toBe('2 records created');
     expect(
+      getMemoryResultText({...base, operation: 'upsert_memory', recordCount: 2})
+    ).toBe('2 records written');
+    expect(
       getMemoryResultText({...base, operation: 'delete_memory', recordCount: 1})
     ).toBe('1 record deleted');
     expect(

@@ -159,10 +159,14 @@ export function getMemoryResultText(memory: Memory): string | undefined {
   const count = memory.recordCount;
   switch (memory.operation) {
     case MemoryOperation.CREATE:
-    case MemoryOperation.UPSERT:
       return count === undefined
         ? undefined
         : tn('%s record created', '%s records created', count);
+    case MemoryOperation.UPSERT:
+      // Upsert can create or update, so stay neutral about which happened.
+      return count === undefined
+        ? undefined
+        : tn('%s record written', '%s records written', count);
     case MemoryOperation.UPDATE:
       return count === undefined
         ? undefined
