@@ -214,7 +214,10 @@ from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
 )
-from sentry.insights.endpoints.starred_segments import InsightsStarredSegmentsEndpoint
+from sentry.insights.endpoints.starred_segments import (
+    InsightsStarredSegmentsEndpoint,
+    InsightsStarredTransactionsEndpoint,
+)
 from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
 from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
@@ -1534,6 +1537,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/insights/starred-segments/$",
         InsightsStarredSegmentsEndpoint.as_view(),
         name="sentry-api-0-insights-starred-segments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/insights/starred-transactions/$",
+        InsightsStarredTransactionsEndpoint.as_view(),
+        name="sentry-api-0-insights-starred-transactions",
     ),
     # Explore
     re_path(

@@ -1,3 +1,6 @@
+from collections.abc import Mapping
+from typing import Any
+
 from django.db import router
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
@@ -24,7 +27,7 @@ from sentry.utils.db import atomic_transaction
 
 
 class StarTransactionSerializer(serializers.Serializer):
-    segment_name = serializers.CharField(
+    transaction = serializers.CharField(
         required=True,
         help_text="The name of the transaction to star or unstar.",
     )
@@ -33,6 +36,13 @@ class StarTransactionSerializer(serializers.Serializer):
         min_value=1,
         help_text="The ID of the project the transaction belongs to.",
     )
+
+    def to_internal_value(self, data: Any) -> Any:
+        # `segment_name` is the undocumented legacy name for `transaction`.
+        if isinstance(data, Mapping) and "transaction" not in data and "segment_name" in data:
+            data = {key: data.get(key) for key in data}
+            data["transaction"] = data.pop("segment_name")
+        return super().to_internal_value(data)
 
 
 class MemberPermission(OrganizationPermission):
@@ -44,7 +54,7 @@ class MemberPermission(OrganizationPermission):
 
 @extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
-class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
+class InsightsStarredTransactionsEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
@@ -85,7 +95,7 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
-        segment_name = serializer.validated_data["segment_name"]
+        transaction_name = serializer.validated_data["transaction"]
         project_id = serializer.validated_data["project_id"]
         projects = self.get_projects(
             request=request,
@@ -98,7 +108,7 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
                 organization=organization,
                 project_id=project.id,
                 user_id=request.user.id,
-                segment_name=segment_name,
+                segment_name=transaction_name,
             )
 
             if not created:
@@ -112,7 +122,7 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
-                name="segment_name",
+                name="transaction",
                 location="query",
                 required=True,
                 type=str,
@@ -153,7 +163,7 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
-        segment_name = serializer.validated_data["segment_name"]
+        transaction_name = serializer.validated_data["transaction"]
         project_id = serializer.validated_data["project_id"]
         projects = self.get_projects(
             request=request,
@@ -166,7 +176,19 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
             organization=organization,
             user_id=request.user.id,
             project_id=project.id,
-            segment_name=segment_name,
+            segment_name=transaction_name,
         ).delete()
 
         return Response(status=status.HTTP_200_OK)
+
+
+@cell_silo_endpoint
+class InsightsStarredSegmentsEndpoint(InsightsStarredTransactionsEndpoint):
+    """
+    Legacy route for `InsightsStarredTransactionsEndpoint`, still called by the frontend.
+    """
+
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }

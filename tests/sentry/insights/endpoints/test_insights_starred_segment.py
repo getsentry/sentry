@@ -20,6 +20,10 @@ class InsightsStarredSegmentTest(APITestCase, SnubaTestCase):
             "sentry-api-0-insights-starred-segments",
             kwargs={"organization_id_or_slug": self.org.slug},
         )
+        self.transactions_url = reverse(
+            "sentry-api-0-insights-starred-transactions",
+            kwargs={"organization_id_or_slug": self.org.slug},
+        )
 
     def test_post_and_delete(self) -> None:
         with self.feature(self.feature_name):
@@ -141,3 +145,33 @@ class InsightsStarredSegmentTest(APITestCase, SnubaTestCase):
         with self.feature(self.feature_name):
             response = self.client.delete(self.url)
             assert response.status_code == 400
+
+    def test_transactions_route_post_and_delete(self) -> None:
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.transactions_url,
+                data={"transaction": "my_transaction", "project_id": self.project_ids[0]},
+            )
+            assert response.status_code == 200, response.content
+            assert InsightsStarredSegment.objects.filter(
+                segment_name="my_transaction",
+            ).exists()
+
+            response = self.client.delete(
+                f"{self.transactions_url}?transaction=my_transaction&project_id={self.project_ids[0]}"
+            )
+            assert response.status_code == 200, response.content
+            assert not InsightsStarredSegment.objects.filter(
+                segment_name="my_transaction",
+            ).exists()
+
+    def test_transactions_route_accepts_segment_name(self) -> None:
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.transactions_url,
+                data={"segment_name": "my_transaction", "project_id": self.project_ids[0]},
+            )
+            assert response.status_code == 200, response.content
+            assert InsightsStarredSegment.objects.filter(
+                segment_name="my_transaction",
+            ).exists()
