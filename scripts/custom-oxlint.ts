@@ -282,47 +282,37 @@ async function rawScan(directory: string, allowed: Set<string>, policy: string) 
     process.stderr.write(result.stderr);
   }
   assert(result.status === 0 || result.status === 1, `Oxlint failed: ${result.stderr}`);
-  const output: unknown = JSON.parse(result.stdout);
-  assert(
-    record(output) && Array.isArray(output.diagnostics),
-    'Invalid oxlint JSON diagnostics'
-  );
+  const output: {
+    diagnostics: Array<{
+      filename: string;
+      labels: Array<{span: {column: number; line: number}}>;
+      message: string;
+      severity: string;
+      code?: string | null;
+    }>;
+  } = JSON.parse(result.stdout);
   const counts: Suppressions = Object.create(null);
   const findings: Finding[] = [];
   for (const diagnostic of output.diagnostics) {
-    assert(record(diagnostic), 'Invalid oxlint diagnostic');
-    const match =
-      typeof diagnostic.code === 'string' && /^(.+)\(([^()]+)\)$/.exec(diagnostic.code);
+    const match = /^(.+)\(([^()]+)\)$/.exec(diagnostic.code ?? '');
     assert(
       match && diagnostic.severity === 'error',
       `Unclassified oxlint diagnostic: ${JSON.stringify(diagnostic)}`
     );
     const rule = canonicalRule(`${match[1]}/${match[2]}`);
     assert(allowed.has(rule), `Unexpected oxlint rule ${rule}`);
-    assert(
-      typeof diagnostic.filename === 'string' && typeof diagnostic.message === 'string'
-    );
     const file = path.isAbsolute(diagnostic.filename)
       ? path.relative(directory, diagnostic.filename)
       : diagnostic.filename;
     assert(validPath(file), `Invalid diagnostic path ${file}`);
-    assert(Array.isArray(diagnostic.labels) && diagnostic.labels.length > 0);
-    const span = diagnostic.labels[0]?.span;
-    assert(
-      record(span) &&
-        Number.isSafeInteger(span.line) &&
-        Number(span.line) > 0 &&
-        Number.isSafeInteger(span.column) &&
-        Number(span.column) > 0,
-      'Missing diagnostic location'
-    );
+    const {span} = diagnostic.labels[0]!;
     const rules = (counts[file] ??= Object.create(null));
     (rules[rule] ??= {count: 0}).count++;
     findings.push({
       file,
       rule,
-      line: Number(span.line),
-      column: Number(span.column),
+      line: span.line,
+      column: span.column,
       message: diagnostic.message,
     });
   }

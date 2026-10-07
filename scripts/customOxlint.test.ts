@@ -198,6 +198,20 @@ test('override-only rules are enrolled with editor warnings and scoped CLI error
   assert.equal(JSON.parse(backlog.stdout).findings.length, 1);
 });
 
+test('maintenance scans reject syntax errors instead of reporting clean debt', t => {
+  const {write, lint} = fixture(t);
+  write(
+    'oxlint.config.ts',
+    `export const incubator = {rules: {'no-debugger': 'error'}};
+     export default {categories: {correctness: 'off'}, ...incubator};`
+  );
+  write('source.js', 'const = ;');
+  const result = lint('--snapshot');
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Unclassified oxlint diagnostic/);
+  assert.equal(result.stdout, '');
+});
+
 test('base scans resolve installed dependencies and use base workspace source', t => {
   const {directory, write, lint, commit} = fixture(t);
   write('pnpm-workspace.yaml', "packages:\n  - 'packages/*'\n");
