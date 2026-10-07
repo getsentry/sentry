@@ -83,7 +83,9 @@ def build_test_message_blocks(
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
     if rule:
-        if legacy_rule_id:
+        if workflow_id:
+            title_link += f"&workflow_id={workflow_id}&alert_type=issue"
+        elif legacy_rule_id:
             title_link += f"&alert_rule_id={legacy_rule_id}&alert_type=issue"
         else:
             title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
@@ -216,7 +218,9 @@ def build_test_message_blocks(
         blocks.append(notes_section)
 
     if rule:
-        if legacy_rule_id:
+        if workflow_id:
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/monitors/alerts/{workflow_id}/|{rule.label}>    Short ID: {group.qualified_short_id}"
+        elif legacy_rule_id:
             context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{legacy_rule_id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
         else:
             context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{rule.id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"

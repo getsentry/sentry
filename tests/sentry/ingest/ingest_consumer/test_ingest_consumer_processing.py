@@ -793,16 +793,7 @@ def test_individual_attachments(
 ):
     retention_days = 66
 
-    # This patches `features.has` wholesale, which also switches on
-    # `projects:defer-attachment-storage` and would route the `without_group` cases into
-    # `PendingEventAttachment`. Force just that flag off so this test keeps covering the
-    # non-deferred path; `test_individual_attachment_before_event` covers the other one.
-    with patch(
-        "sentry.features.has",
-        side_effect=lambda name, *a, **kw: (
-            False if name == "projects:defer-attachment-storage" else feature_enabled
-        ),
-    ):
+    with patch("sentry.features.has", return_value=feature_enabled):
         event_id = uuid.uuid4().hex
         attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
         project_id = default_project.id
@@ -853,20 +844,23 @@ def test_individual_attachments(
             project=default_project,
         )
 
-    attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
+    model = EventAttachment if with_group else PendingEventAttachment
+
+    attachments = list(model.objects.filter(project_id=project_id, event_id=event_id))
 
     if not feature_enabled:
         assert not attachments
     else:
         (attachment,) = attachments
         assert attachment.name == "foo.txt"
-        assert attachment.group_id == group_id
+        if with_group:
+            assert attachment.group_id == group_id
         assert attachment.content_type == content_type
 
         with attachment.getfile() as file_contents:
             assert file_contents.read() == expected_content
 
-        delta = attachment.date_expires - (now + datetime.timedelta(days=retention_days))
+        delta = attachment.final_expiry_date() - (now + datetime.timedelta(days=retention_days))
         assert abs(delta.total_seconds()) < 3600
 
 
@@ -909,16 +903,10 @@ def test_userreport(django_cache, default_project) -> None:
 
 
 @django_db_all
-@pytest.mark.parametrize("deferred", [True, False], ids=["deferred", "not_deferred"])
-def test_individual_attachment_before_event(
-    django_cache, default_project, factories, deferred
-) -> None:
+def test_individual_attachment_before_event(django_cache, default_project, factories) -> None:
     """
     An attachment that is ingested before its event is parked in
     `PendingEventAttachment` and promoted once the event arrives.
-
-    Without `projects:defer-attachment-storage` the attachment is stored as an
-    `EventAttachment` right away and only has its `group_id` backfilled later.
     """
     from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -932,7 +920,6 @@ def test_individual_attachment_before_event(
         Feature(
             {
                 "organizations:event-attachments": True,
-                "projects:defer-attachment-storage": deferred,
             }
         ),
         mock_track_outcome as track,
@@ -959,23 +946,18 @@ def test_individual_attachment_before_event(
         pending = list(PendingEventAttachment.objects.filter(project_id=default_project.id))
         stored = list(EventAttachment.objects.filter(project_id=default_project.id))
 
-        if deferred:
-            # Parked, not stored, and not billed yet.
-            (pending_attachment,) = pending
-            assert not stored
-            assert pending_attachment.event_id == event_id
-            assert pending_attachment.name == "foo.txt"
-            # Short TTL so it gets reaped if the event never shows up, but the real
-            # retention date is kept around for the promoted row.
-            assert pending_attachment.date_expires < timezone.now() + datetime.timedelta(hours=2)
-            assert pending_attachment.date_expires_retention > timezone.now() + datetime.timedelta(
-                days=retention_days - 1
-            )
-            assert track.call_count == 0
-        else:
-            (attachment,) = stored
-            assert not pending
-            assert attachment.group_id is None
+        # Parked, not stored, and not billed yet.
+        (pending_attachment,) = pending
+        assert not stored
+        assert pending_attachment.event_id == event_id
+        assert pending_attachment.name == "foo.txt"
+        # Short TTL so it gets reaped if the event never shows up, but the real
+        # retention date is kept around for the promoted row.
+        assert pending_attachment.date_expires < timezone.now() + datetime.timedelta(hours=2)
+        assert pending_attachment.date_expires_retention > timezone.now() + datetime.timedelta(
+            days=retention_days - 1
+        )
+        assert track.call_count == 0
 
         # Now the event arrives.
         manager = EventManager({"event_id": event_id, "message": "existence is pain"})
@@ -995,22 +977,17 @@ def test_individual_attachment_before_event(
     delta = attachment.date_expires - (timezone.now() + datetime.timedelta(days=retention_days))
     assert abs(delta.total_seconds()) < 3600
 
-    if deferred:
-        # The promoted attachment is linked to the group and billed on promotion.
-        assert attachment.group_id == event.group_id
-        attachment_outcomes = [
-            call.kwargs
-            for call in track.mock_calls
-            if call.kwargs.get("category") == DataCategory.ATTACHMENT
-        ]
-        assert len(attachment_outcomes) == 1
-        assert attachment_outcomes[0]["outcome"] == Outcome.ACCEPTED
-        assert attachment_outcomes[0]["quantity"] == len(payload)
-        assert attachment_outcomes[0]["event_id"] == event_id
-    else:
-        # `group_id` is backfilled by `update_existing_attachments` in post-processing,
-        # which does not run here.
-        assert attachment.group_id is None
+    # The promoted attachment is linked to the group and billed on promotion.
+    assert attachment.group_id == event.group_id
+    attachment_outcomes = [
+        call.kwargs
+        for call in track.mock_calls
+        if call.kwargs.get("category") == DataCategory.ATTACHMENT
+    ]
+    assert len(attachment_outcomes) == 1
+    assert attachment_outcomes[0]["outcome"] == Outcome.ACCEPTED
+    assert attachment_outcomes[0]["quantity"] == len(payload)
+    assert attachment_outcomes[0]["event_id"] == event_id
 
 
 @django_db_all
@@ -1033,7 +1010,6 @@ def test_individual_attachment_before_transaction(django_cache, default_project)
         Feature(
             {
                 "organizations:event-attachments": True,
-                "projects:defer-attachment-storage": True,
             }
         ),
         patch("sentry.event_manager.track_outcome", wraps=track_outcome) as track,

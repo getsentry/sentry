@@ -1,0 +1,119 @@
+from sentry.testutils.cases import TestMigrations
+from sentry.testutils.cases import SnubaTestCase
+
+
+class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase):
+    migrate_from = "0015_add_dataset_to_formulas"
+    migrate_to = "0016_update_if_syntax_on_spans"
+    app = "explore"
+
+    def setup_before_migration(self, apps):
+        ExploreSavedQuery = apps.get_model("explore", "ExploreSavedQuery")
+        ExploreSavedQueryProject = apps.get_model("explore", "ExploreSavedQueryProject")
+
+        self.query_1 = ExploreSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="Query",
+            dataset=0,
+            query={
+                "name": "Query",
+                "projects": [-1],
+                "range": "7d",
+                "query": [
+                    {
+                        "fields": [],
+                        "query": "",
+                        "mode": "samples",
+                        "orderby": "-count_if(span.duration,greater,100)",
+                        "aggregateField": [
+                            {
+                                "groupBy": "span.op",
+                                "yAxes": ["count_if(span.duration,greater,100)"],
+                                "chartType": 0,
+                            },
+                            {
+                                "groupBy": "span.op",
+                                "yAxes": ["count_if(span.duration,notEquals,100)"],
+                                "chartType": 0,
+                            },
+                            {
+                                "groupBy": "span.op",
+                                "yAxes": ["count_if(span.duration,between,100,199)"],
+                                "chartType": 0,
+                            },
+                            {
+                                "groupBy": "span.op",
+                                "chartType": 0,
+                            },
+                            {
+                                "groupBy": "span.op",
+                                "yAxes": ["avg_if(span.duration,span.duration,lessOrEquals,100)"],
+                                "chartType": 0,
+                            },
+                            {
+                                "groupBy": "span.op",
+                                "yAxes": ["failure_count_if(span.duration,lessOrEquals,100)"],
+                                "chartType": 0,
+                            },
+                        ],
+                    }
+                ],
+                "interval": "1m",
+            },
+        )
+
+        ExploreSavedQueryProject.objects.create(
+            project_id=self.project.id, explore_saved_query_id=self.query_1.id
+        )
+
+        return super().setup_before_migration(apps)
+
+    def test_migration(self):
+        # Test state after migration
+        self.query_1.refresh_from_db()
+        assert self.query_1.query == {
+            "name": "Query",
+            "projects": [-1],
+            "range": "7d",
+            "query": [
+                {
+                    "fields": [],
+                    "query": "",
+                    "mode": "samples",
+                    "orderby": "-count_if(`span.duration:>100`)",
+                    "aggregateField": [
+                        {
+                            "groupBy": "span.op",
+                            "yAxes": ["count_if(`span.duration:>100`)"],
+                            "chartType": 0,
+                        },
+                        {
+                            "groupBy": "span.op",
+                            "yAxes": ["count_if(`!span.duration:100`)"],
+                            "chartType": 0,
+                        },
+                        {
+                            "groupBy": "span.op",
+                            "yAxes": ["count_if(`span.duration:>=100 and span.duration:<=199`)"],
+                            "chartType": 0,
+                        },
+                        {
+                            "groupBy": "span.op",
+                            "chartType": 0,
+                        },
+                        {
+                            "groupBy": "span.op",
+                            "yAxes": ["avg_if(`span.duration:<=100`,span.duration)"],
+                            "chartType": 0,
+                        },
+                        # Untouched
+                        {
+                            "groupBy": "span.op",
+                            "yAxes": ["failure_count_if(span.duration,lessOrEquals,100)"],
+                            "chartType": 0,
+                        },
+                    ],
+                }
+            ],
+            "interval": "1m",
+        }

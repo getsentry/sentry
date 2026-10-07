@@ -1,13 +1,12 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import {keepPreviousData} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -228,35 +227,50 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   }, [activeThreadId, event, group, autofixData, organization, autofixFormatted]);
 
   return (
-    <EventNavigationWrapper role="navigation" ref={navigationRef}>
+    <Flex
+      role="navigation"
+      ref={navigationRef}
+      flexGrow={1}
+      minWidth={0}
+      wrap="wrap"
+      gap="sm xl"
+      direction={{zero: 'column', lg: 'row'}}
+      justify="between"
+      align={{zero: 'stretch', lg: 'center'}}
+    >
       {showContentTabs ? (
-        <Tabs
-          size="sm"
-          value={selectedContentTab}
-          onChange={key => trackContentSelected(key as Tab)}
-        >
-          <TabList variant="floating">
-            {contentTabs.map(tab => (
-              <TabList.Item
-                key={tab.key}
-                hidden={tab.hidden}
-                to={contentLocation(tab.key)}
-                textValue={tab.name}
-              >
-                <Flex as="span" align="center" gap="xs">
-                  {tab.name}
-                  {tab.count === null ? null : (
-                    <Badge variant="muted">
-                      <Text tabular variant="inherit">
-                        {tab.count}
-                      </Text>
-                    </Badge>
-                  )}
-                </Flex>
-              </TabList.Item>
-            ))}
-          </TabList>
-        </Tabs>
+        <Container maxWidth="100%">
+          {props => (
+            <Tabs
+              {...props}
+              size="sm"
+              value={selectedContentTab}
+              onChange={key => trackContentSelected(key as Tab)}
+            >
+              <TabList variant="floating">
+                {contentTabs.map(tab => (
+                  <TabList.Item
+                    key={tab.key}
+                    hidden={tab.hidden}
+                    to={contentLocation(tab.key)}
+                    textValue={tab.name}
+                  >
+                    <Flex as="span" align="center" gap="xs">
+                      {tab.name}
+                      {tab.count === null ? null : (
+                        <Badge variant="muted">
+                          <Text tabular variant="inherit">
+                            {tab.count}
+                          </Text>
+                        </Badge>
+                      )}
+                    </Flex>
+                  </TabList.Item>
+                ))}
+              </TabList>
+            </Tabs>
+          )}
+        </Container>
       ) : (
         <Flex align="center" gap="2xs" flexShrink={0}>
           <DropdownMenu
@@ -266,9 +280,14 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             items={contentTabs.map(tab => ({
               key: tab.key,
               label: (
-                <DropdownCountWrapper isCurrentTab={currentTab === tab.key}>
-                  {tab.name} <MutedCount>{tab.count}</MutedCount>
-                </DropdownCountWrapper>
+                <Flex align="center" justify="between" gap="2xl">
+                  <Text tabular bold={currentTab === tab.key} variant="inherit">
+                    {tab.name}
+                  </Text>
+                  <Text tabular bold={currentTab === tab.key} variant="muted">
+                    {tab.count}
+                  </Text>
+                </Flex>
               ),
               textValue: tab.name,
               to: contentLocation(tab.key),
@@ -277,11 +296,13 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             offset={[-2, 1]}
             trigger={(triggerProps, isOpen) =>
               hideDropdownButton ? (
-                <NavigationLabel>
-                  {TabName[currentTab] ?? TabName[Tab.DETAILS]}
-                </NavigationLabel>
+                <Flex padding="0 2xs 0 lg">
+                  <Text size="lg" bold variant="inherit">
+                    {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+                  </Text>
+                </Flex>
               ) : (
-                <NavigationDropdownButton
+                <DropdownButton
                   {...triggerProps}
                   isOpen={isOpen}
                   variant="transparent"
@@ -292,12 +313,16 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   analyticsEventName="Issue Details: Issue Content Dropdown Opened"
                   analyticsEventKey="issue_details.issue_content_dropdown_opened"
                 >
-                  {TabName[currentTab] ?? TabName[Tab.DETAILS]}
-                </NavigationDropdownButton>
+                  <Text size="lg" bold variant="inherit">
+                    {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+                  </Text>
+                </DropdownButton>
               )
             }
           />
-          <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
+          <Text as="div" size="lg" bold variant="muted" density="compressed" aria-hidden>
+            {t('in this issue')}
+          </Text>
         </Flex>
       )}
       <TourElement<IssueDetailsTour>
@@ -309,8 +334,8 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
         )}
       >
         {tourProps => (
-          <div {...tourProps}>
-            <NavigationWrapper>
+          <Container {...tourProps} width={{zero: '100%', lg: 'auto'}} maxWidth="100%">
+            <Flex wrap="wrap" gap={{zero: 'sm', sm: 'xs'}}>
               {currentTab === Tab.AUTOFIX && autofixPanel && (
                 <SeerPanelActions
                   autofixState={autofixPanel.runState}
@@ -323,79 +348,85 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               )}
               {currentTab === Tab.DETAILS && (
                 <Fragment>
-                  <IssueDetailsEventNavigation
-                    event={event}
-                    group={group}
-                    isSmallNav={isSmallNav}
-                  />
-                  {issueTypeConfig.pages.events.enabled && (
-                    <Feature features="discover-basic" organization={organization}>
+                  <Flex align="center" wrap="wrap" gap="xs">
+                    <IssueDetailsEventNavigation
+                      event={event}
+                      group={group}
+                      isSmallNav={isSmallNav}
+                    />
+                  </Flex>
+                  <Flex align="center" wrap="wrap" gap="xs" marginLeft="auto">
+                    {issueTypeConfig.pages.events.enabled && (
+                      <Feature features="discover-basic" organization={organization}>
+                        <LinkButton
+                          to={{
+                            pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                            query: location.query,
+                          }}
+                          size="xs"
+                          analyticsEventKey="issue_details.all_events_clicked"
+                          analyticsEventName="Issue Details: All Events Clicked"
+                        >
+                          {isSmallNav
+                            ? t('More %s', issueTypeConfig.customCopy.eventUnits)
+                            : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                        </LinkButton>
+                      </Feature>
+                    )}
+                    <CopyAsDropdown
+                      usePortal
+                      size="xs"
+                      zIndex={theme.zIndex.stickyHeader + 1}
+                      items={CopyAsDropdown.makeDefaultCopyAsOptions({
+                        text: undefined,
+                        json: undefined,
+                        markdown: handleCopyMarkdown,
+                      })}
+                    />
+                    {issueTypeConfig.pages.openPeriods.enabled && (
                       <LinkButton
                         to={{
-                          pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                          pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
                           query: location.query,
                         }}
                         size="xs"
-                        analyticsEventKey="issue_details.all_events_clicked"
-                        analyticsEventName="Issue Details: All Events Clicked"
+                        analyticsEventKey="issue_details.all_open_periods_clicked"
+                        analyticsEventName="Issue Details: All Open Periods Clicked"
                       >
                         {isSmallNav
-                          ? t('More %s', issueTypeConfig.customCopy.eventUnits)
-                          : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                          ? t('More Open Periods')
+                          : t('View More Open Periods')}
                       </LinkButton>
-                    </Feature>
-                  )}
-                  <CopyAsDropdown
-                    usePortal
-                    size="xs"
-                    zIndex={theme.zIndex.stickyHeader + 1}
-                    items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                      text: undefined,
-                      json: undefined,
-                      markdown: handleCopyMarkdown,
-                    })}
-                  />
-                  {issueTypeConfig.pages.openPeriods.enabled && (
-                    <LinkButton
-                      to={{
-                        pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
-                        query: location.query,
-                      }}
-                      size="xs"
-                      analyticsEventKey="issue_details.all_open_periods_clicked"
-                      analyticsEventName="Issue Details: All Open Periods Clicked"
-                    >
-                      {isSmallNav ? t('More Open Periods') : t('View More Open Periods')}
-                    </LinkButton>
-                  )}
-                  {issueTypeConfig.pages.checkIns.enabled && (
-                    <LinkButton
-                      to={{
-                        pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
-                        query: location.query,
-                      }}
-                      size="xs"
-                      analyticsEventKey="issue_details.all_checks_ins_clicked"
-                      analyticsEventName="Issue Details: All Checks-Ins Clicked"
-                    >
-                      {isSmallNav ? t('More Check-Ins') : t('View More Check-Ins')}
-                    </LinkButton>
-                  )}
-                  {issueTypeConfig.pages.uptimeChecks.enabled && (
-                    <LinkButton
-                      to={{
-                        pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
-                        query: location.query,
-                      }}
-                      size="xs"
-                      analyticsEventKey="issue_details.all_uptime_checks_clicked"
-                      analyticsEventName="Issue Details: All Uptime Checks Clicked"
-                    >
-                      {isSmallNav
-                        ? t('More Uptime Checks')
-                        : t('View More Uptime Checks')}
-                    </LinkButton>
-                  )}
+                    )}
+                    {issueTypeConfig.pages.checkIns.enabled && (
+                      <LinkButton
+                        to={{
+                          pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
+                          query: location.query,
+                        }}
+                        size="xs"
+                        analyticsEventKey="issue_details.all_checks_ins_clicked"
+                        analyticsEventName="Issue Details: All Checks-Ins Clicked"
+                      >
+                        {isSmallNav ? t('More Check-Ins') : t('View More Check-Ins')}
+                      </LinkButton>
+                    )}
+                    {issueTypeConfig.pages.uptimeChecks.enabled && (
+                      <LinkButton
+                        to={{
+                          pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
+                          query: location.query,
+                        }}
+                        size="xs"
+                        analyticsEventKey="issue_details.all_uptime_checks_clicked"
+                        analyticsEventName="Issue Details: All Uptime Checks Clicked"
+                      >
+                        {isSmallNav
+                          ? t('More Uptime Checks')
+                          : t('View More Uptime Checks')}
+                      </LinkButton>
+                    )}
+                  </Flex>
                 </Fragment>
               )}
               {isListView && (
@@ -430,68 +461,10 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   </LinkButton>
                 </Grid>
               )}
-            </NavigationWrapper>
-          </div>
+            </Flex>
+          </Container>
         )}
       </TourElement>
-    </EventNavigationWrapper>
+    </Flex>
   );
 }
-
-const NavigationDropdownButton = styled(DropdownButton)`
-  font-size: ${p => p.theme.font.size.lg};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding-right: ${p => p.theme.space.xs};
-`;
-
-const NavigationLabel = styled('div')`
-  font-size: ${p => p.theme.font.size.lg};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding-right: ${p => p.theme.space['2xs']};
-  padding-left: ${p => p.theme.space.lg};
-`;
-
-const LargeInThisIssueText = styled('div')`
-  font-size: ${p => p.theme.font.size.lg};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.tokens.content.secondary};
-  line-height: 1;
-`;
-
-const EventNavigationWrapper = styled('div')`
-  flex-grow: 1;
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: column;
-  justify-content: space-between;
-  font-size: ${p => p.theme.font.size.sm};
-
-  @media (min-width: ${p => p.theme.breakpoints.xs}) {
-    flex-direction: row;
-    align-items: center;
-  }
-`;
-
-const NavigationWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space['2xs']};
-  justify-content: space-between;
-
-  @media (min-width: ${p => p.theme.breakpoints.xs}) {
-    gap: ${p => p.theme.space.xs};
-  }
-`;
-
-const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  font-variant-numeric: tabular-nums;
-  font-weight: ${p =>
-    p.isCurrentTab ? p.theme.font.weight.sans.medium : p.theme.font.weight.sans.regular};
-`;
-
-const MutedCount = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;

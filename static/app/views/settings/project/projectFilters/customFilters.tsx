@@ -7,7 +7,7 @@ import {z} from 'zod';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -1020,7 +1020,10 @@ export function CustomFilters({project}: {project: Project}) {
   const visibleFilters = filters.filter(filter => matchesQuery(filter, query));
 
   return (
-    <FieldGroup title={t('Filter Rules')}>
+    <Stack gap="lg">
+      <Heading as="h2" size="md">
+        {t('Filter Rules')}
+      </Heading>
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -1072,7 +1075,7 @@ export function CustomFilters({project}: {project: Project}) {
           <CustomFiltersTable
             columns={CUSTOM_FILTER_COLUMNS}
             header={
-              <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderRow sticky>
                 <SimpleTable.HeaderCell divider={false}>
                   {t('Active')}
                 </SimpleTable.HeaderCell>
@@ -1194,7 +1197,7 @@ export function CustomFilters({project}: {project: Project}) {
           </CustomFiltersTable>
         </Container>
       )}
-    </FieldGroup>
+    </Stack>
   );
 }
 
@@ -1208,11 +1211,16 @@ const CUSTOM_FILTER_COLUMNS: TableColumnConfig[] = [
   {key: 'conditions', width: 'minmax(240px, 2fr)'},
   {key: 'trend', visible: {'3xl': true}, width: '190px'},
   {key: 'filtered', visible: {'2xl': true}, width: '90px'},
-  {key: 'created', visible: {'4xl': true}, width: '90px'},
-  {key: 'edited', visible: {'4xl': true}, width: '90px'},
+  {key: 'created', visible: {'5xl': true}, width: '90px'},
+  {key: 'edited', visible: {'5xl': true}, width: '90px'},
   {key: 'action', width: '110px'},
 ];
 
+// A fixed height keeps the search box and the sections below the table in place
+// while a search shrinks or grows the list. The grid would otherwise stretch its
+// rows to fill the spare height.
 const CustomFiltersTable = styled(SimpleTable)`
-  overflow-x: auto;
+  height: 480px;
+  overflow: auto;
+  align-content: start;
 `;

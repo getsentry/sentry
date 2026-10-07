@@ -1,5 +1,5 @@
 import {useContext, useEffect} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import type {Scope} from '@sentry/core';
 import * as Sentry from '@sentry/react';
