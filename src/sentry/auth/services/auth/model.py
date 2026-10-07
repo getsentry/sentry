@@ -13,6 +13,7 @@ from pydantic.fields import Field
 
 from sentry.auth.scope_declaration import check_scope_declaration
 from sentry.hybridcloud.rpc import RpcModel
+from sentry.types.superuser import SuperuserAccess
 from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
@@ -66,7 +67,7 @@ class AuthenticatedToken(RpcModel):
     organization_id: int | None = None
     application_id: int | None = None  # only relevant for ApiToken
     project_id: int | None = None  # only relevant for ProjectKey
-    superuser_access_expires_at: int | None = Field(default=None, repr=False)
+    superuser: SuperuserAccess | None = Field(default=None, repr=False)
 
     def token_has_org_access(self, organization_id: int) -> bool:
         return self.kind == "api_token" and self.organization_id == organization_id

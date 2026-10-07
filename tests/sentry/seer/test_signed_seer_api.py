@@ -12,6 +12,7 @@ from sentry.seer.signed_seer_api import (
     make_delete_grouping_records_by_project_request,
     make_signed_seer_api_request,
 )
+from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
@@ -220,12 +221,12 @@ class TestResolveViewerContext:
         ctx = ViewerContext(
             organization_id=42,
             user_id=7,
-            superuser_access_expires_at=1234567890,
+            superuser=SuperuserAccess(expires_at=1234567890, read_only=True),
         )
         with viewer_context_scope(ctx):
             result = _resolve_viewer_context(SeerViewerContext(organization_id=43, user_id=7))
         assert result is not None
-        assert result.superuser_access_expires_at is None
+        assert result.superuser is None
 
     def test_both_none(self) -> None:
         assert _resolve_viewer_context(None) is None
