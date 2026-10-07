@@ -23,7 +23,6 @@ from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.ratelimits import backend as ratelimiter
 from sentry.services.eventstore.models import GroupEvent
-from sentry.snuba.models import QuerySubscription
 from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow
 from sentry.workflow_engine.types import ActionInvocation
@@ -95,16 +94,12 @@ def _variant(
             else "unassigned",
         ]
     else:
-        evidence_data, priority = IssueNotificationContext(invocation).evidence_data_and_priority
-        subscription = QuerySubscription.objects.select_related("snuba_query").get(
-            id=int(evidence_data.data_packet_source_id)
-        )
+        _, priority = IssueNotificationContext(invocation).evidence_data_and_priority
         parts = [
             INCIDENT_STATUS[MetricIssueContext._get_new_status(group, priority)].lower(),
             "activity" if isinstance(event, Activity) else "occurrence",
             notes,
             str(invocation.detector.config.get("detection_type")),
-            subscription.snuba_query.dataset,
         ]
     return ":".join([source.value, provider_key.value, *parts])
 

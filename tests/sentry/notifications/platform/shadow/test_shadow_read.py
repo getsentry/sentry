@@ -576,15 +576,15 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         cases = [
             (
                 self.invocation(with_notes),
-                "metric-alert:slack:critical:occurrence:notes:static:events",
+                "metric-alert:slack:critical:occurrence:notes:static",
             ),
             (
                 self.resolution_invocation(with_notes),
-                "metric-alert:slack:resolved:activity:notes:static:events",
+                "metric-alert:slack:resolved:activity:notes:static",
             ),
             (
                 self.invocation(without_notes),
-                "metric-alert:discord:critical:occurrence:no_notes:static:events",
+                "metric-alert:discord:critical:occurrence:no_notes:static",
             ),
         ]
         for invocation, expected in cases:
@@ -601,7 +601,7 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         variant = _variant(
             self.invocation(action), NotificationSource.METRIC_ALERT, NotificationProviderKey.SLACK
         )
-        assert variant == "metric-alert:slack:warning:occurrence:no_notes:percent:events"
+        assert variant == "metric-alert:slack:warning:occurrence:no_notes:percent"
 
     @contextmanager
     def occurrence_changed(self, **changes: Any) -> Generator[None]:
@@ -698,16 +698,16 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
                 )
 
         assert failures == []
-        for part in (
-            ":critical:",
-            ":warning:",
-            ":resolved:activity:",
-            ":notes:",
-            ":percent:",
-            ":dynamic:",
-            *(f":{dataset.value}" for dataset in datasets),
-        ):
-            assert any(part in variant for variant in variants), part
+        parts = {part for variant in variants for part in variant.split(":")}
+        assert {
+            "critical",
+            "warning",
+            "resolved",
+            "activity",
+            "notes",
+            "percent",
+            "dynamic",
+        } <= parts
 
     def test_slack_matches(self) -> None:
         action = self.create_shadow_action("slack", {"notes": "Check the runbook"})
