@@ -3,7 +3,6 @@ from sentry.notifications.platform.types import (
     CodeTextBlock,
     NotificationCategory,
     NotificationData,
-    NotificationLink,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSource,
@@ -52,7 +51,6 @@ class SentryAppWebhookDisabledTemplate(NotificationTemplate[SentryAppWebhookDisa
                 NotificationRenderedAction(
                     label="View Integration",
                     link=data.settings_url,
-                    tracked_as=NotificationLink.SENTRY_APP_SETTINGS,
                 )
             ],
         )

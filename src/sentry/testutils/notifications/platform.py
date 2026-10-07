@@ -8,7 +8,6 @@ from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationCategory,
     NotificationData,
-    NotificationLink,
     NotificationRenderedAction,
     NotificationRenderedImage,
     NotificationRenderedTemplate,
@@ -44,11 +43,7 @@ class MockNotificationTemplate(NotificationTemplate[MockNotification]):
                         PlainTextBlock(text=data.message),
                         BoldTextBlock(text="important"),
                         ItalicTextBlock(text="urgent"),
-                        LinkTextBlock(
-                            text="View Issue",
-                            url="https://sentry.io/issue/1",
-                            tracked_as=NotificationLink.ISSUE,
-                        ),
+                        LinkTextBlock(text="View Issue", url="https://sentry.io/issue/1"),
                     ]
                 ),
                 CodeSection(blocks=[PlainTextBlock(text="raise Exception('test')")]),

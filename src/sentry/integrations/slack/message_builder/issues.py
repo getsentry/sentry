@@ -53,7 +53,6 @@ from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
-from sentry.notifications.platform.types import NotificationLink
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -664,7 +663,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     notification_uuid=notification_uuid,
                 )
         if title_link is not None:
-            title_link = self.link_decorator.decorate(title_link, NotificationLink.ISSUE)
+            title_link = self.link_decorator.decorate(title_link)
 
         blocks = [self.get_title_block(event_or_group, has_action, title_link)]
 

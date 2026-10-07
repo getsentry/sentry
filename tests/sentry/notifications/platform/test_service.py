@@ -27,10 +27,9 @@ from sentry.notifications.platform.target import (
     serialize_target,
 )
 from sentry.notifications.platform.templates.data_export import DataExportFailure
-from sentry.notifications.platform.tracking import NotificationTrackingContext
+from sentry.notifications.platform.tracking import NotificationLink, NotificationTrackingContext
 from sentry.notifications.platform.types import (
     NotificationCategory,
-    NotificationLink,
     NotificationProviderKey,
     NotificationSource,
     NotificationTargetResourceType,
@@ -349,7 +348,9 @@ class NotificationServiceRecordSentTest(TestCase):
 
         mock_record_sent.assert_called_once_with(self.expected_context(), links=set())
 
-    @override_options({"notifications.tracking.sources": ["test"]})
+    @override_options(
+        {"notifications.tracking.sources": ["test"], "system.url-prefix": "https://sentry.io"}
+    )
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_tracked_send_decorates_and_records_links(
         self, mock_send: mock.MagicMock, mock_record_sent: mock.MagicMock
@@ -361,10 +362,10 @@ class NotificationServiceRecordSentTest(TestCase):
         email = mock_send.call_args.kwargs["renderable"]
         assert (
             "https://sentry.io/issue/1?referrer=test-email&amp;notification_uuid="
-            f"{self.data.notification_uuid}&amp;notification_link=issue"
+            f"{self.data.notification_uuid}"
         ) in email.alternatives[0][0]
         mock_record_sent.assert_called_once_with(
-            self.expected_context(), links={NotificationLink.ISSUE}
+            self.expected_context(), links={NotificationLink.OTHER}
         )
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")

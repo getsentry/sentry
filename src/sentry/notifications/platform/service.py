@@ -30,13 +30,13 @@ from sentry.notifications.platform.threading import (
     ThreadingService,
 )
 from sentry.notifications.platform.tracking import (
+    NotificationLink,
     NotificationLinkDecorator,
     NotificationTrackingContext,
     record_sent,
 )
 from sentry.notifications.platform.types import (
     NotificationData,
-    NotificationLink,
     NotificationProviderKey,
     NotificationSource,
     NotificationStrategy,

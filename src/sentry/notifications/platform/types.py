@@ -239,22 +239,6 @@ class NotificationData(BaseModel):
     """
 
 
-class NotificationLink(StrEnum):
-    """
-    Names a link to a Sentry page for engagement tracking. Names become metric tags and are added
-    to the link's URL, so they must come from this fixed set.
-    """
-
-    ISSUE = "issue"
-    PROJECT = "project"
-    ALERT = "alert"
-    RELEASE = "release"
-    DATA_EXPORT = "data_export"
-    CONNECT_REPOSITORY = "connect_repository"
-    NOTIFICATION_SETTINGS = "notification_settings"
-    SENTRY_APP_SETTINGS = "sentry_app_settings"
-
-
 @dataclass(frozen=True)
 class NotificationRenderedAction:
     """
@@ -269,10 +253,6 @@ class NotificationRenderedAction:
     link: str
     """
     The underlying link of the action.
-    """
-    tracked_as: NotificationLink | None = None
-    """
-    Set for links to Sentry pages, so clicks on them are tracked.
     """
 
 
@@ -500,10 +480,6 @@ class LinkTextBlock(NotificationTextBlock):
     text: str
     url: str
     type: Literal[NotificationTextBlockType.LINK] = NotificationTextBlockType.LINK
-    tracked_as: NotificationLink | None = None
-    """
-    Set for links to Sentry pages, so clicks on them are tracked.
-    """
 
 
 class NotificationTemplate[T: NotificationData](abc.ABC):

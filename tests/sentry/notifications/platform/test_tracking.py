@@ -1,14 +1,18 @@
 from dataclasses import replace
 from unittest import mock
 
+import pytest
+
 from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
     NotificationTrackingSentEvent,
 )
 from sentry.notifications.platform.tracking import (
     NotificationEngagementMechanism,
+    NotificationLink,
     NotificationLinkDecorator,
     NotificationTrackingContext,
+    classify_link,
     is_tracking_enabled,
     record_engagement,
     record_sent,
@@ -16,7 +20,6 @@ from sentry.notifications.platform.tracking import (
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationCategory,
-    NotificationLink,
     NotificationProviderKey,
     NotificationRenderedAction,
     NotificationRenderedImage,
@@ -214,11 +217,38 @@ class RecordEngagementTest(TestCase):
         mock_record.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("https://sentry.io/organizations/acme/issues/1/", NotificationLink.ISSUE),
+        ("https://acme.sentry.io/issues/1/?referrer=slack", NotificationLink.ISSUE),
+        ("https://acme.sentry.io/issues/1/events/latest/", NotificationLink.ISSUE),
+        ("https://acme.sentry.io/issues/1/?seerDrawer=true", NotificationLink.SEER),
+        ("https://acme.sentry.io/issues/inbox/?project=2&preview=1", NotificationLink.ISSUE),
+        ("https://sentry.io/organizations/acme/issues/?project=2", NotificationLink.ISSUE_LIST),
+        ("https://acme.sentry.io/monitors/alerts/3/", NotificationLink.ALERT),
+        ("https://acme.sentry.io/monitors/3/", NotificationLink.ALERT),
+        ("https://acme.sentry.io/alerts/rules/details/3/", NotificationLink.ALERT),
+        ("https://acme.sentry.io/releases/1.0.0/?project=2", NotificationLink.RELEASE),
+        ("https://acme.sentry.io/data-export/4/", NotificationLink.DATA_EXPORT),
+        ("https://sentry.io/settings/account/notifications/alerts/", NotificationLink.SETTINGS),
+        ("https://sentry.io/settings/acme/developer-settings/app/", NotificationLink.SETTINGS),
+        ("https://acme.sentry.io/repos/", NotificationLink.OTHER),
+    ],
+)
+def test_classify_link(url: str, expected: NotificationLink) -> None:
+    assert classify_link(url) == expected
+
+
 @override_options(ENABLED_OPTIONS)
 class DecorateLinksTest(TestCase):
     referrer = "activity-seer-rca-completed-email"
     notification_uuid = "0b1c3a4e-7d0f-4b8a-9b6e-0c7a2f3d5e61"
     tracking = f"referrer={referrer}&notification_uuid={notification_uuid}"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_options({"system.url-prefix": "https://sentry.io"}))
 
     def decorate(
         self, rendered_template: NotificationRenderedTemplate
@@ -230,29 +260,26 @@ class DecorateLinksTest(TestCase):
         )
         return decorator.decorate_template(rendered_template), decorator.links
 
-    def test_decorates_tracked_links(self) -> None:
+    def test_decorates_sentry_links(self) -> None:
         rendered_template = NotificationRenderedTemplate(
             subject=[
                 PlainTextBlock(text="Root cause for"),
                 LinkTextBlock(
                     text="ACME-1",
                     url="https://sentry.io/organizations/acme/issues/1/?referrer=activity_notification",
-                    tracked_as=NotificationLink.ISSUE,
                 ),
             ],
             body=[
                 ParagraphSection(
                     blocks=[
                         LinkTextBlock(text="PR", url="https://github.com/acme/repo/pull/1"),
-                        LinkTextBlock(text="Repos", url="https://acme.sentry.io/repos/"),
+                        LinkTextBlock(text="Jane", url="mailto:jane@example.com"),
                     ]
                 )
             ],
             actions=[
                 NotificationRenderedAction(
-                    label="View Release",
-                    link="https://acme.sentry.io/releases/1.0.0/?project=2",
-                    tracked_as=NotificationLink.RELEASE,
+                    label="Open Seer", link="https://acme.sentry.io/issues/1/?seerDrawer=true"
                 ),
                 NotificationRenderedAction(label="Docs", link="https://docs.sentry.io/"),
             ],
@@ -261,7 +288,6 @@ class DecorateLinksTest(TestCase):
                 LinkTextBlock(
                     text="Manage Preferences",
                     url="https://sentry.io/settings/account/notifications/alerts/",
-                    tracked_as=NotificationLink.NOTIFICATION_SETTINGS,
                 )
             ],
         )
@@ -274,44 +300,27 @@ class DecorateLinksTest(TestCase):
                 PlainTextBlock(text="Root cause for"),
                 LinkTextBlock(
                     text="ACME-1",
-                    url=(
-                        "https://sentry.io/organizations/acme/issues/1/"
-                        f"?{self.tracking}&notification_link=issue"
-                    ),
-                    tracked_as=NotificationLink.ISSUE,
+                    url=f"https://sentry.io/organizations/acme/issues/1/?{self.tracking}",
                 ),
             ],
             actions=[
                 NotificationRenderedAction(
-                    label="View Release",
-                    link=(
-                        "https://acme.sentry.io/releases/1.0.0/"
-                        f"?project=2&{self.tracking}&notification_link=release"
-                    ),
-                    tracked_as=NotificationLink.RELEASE,
+                    label="Open Seer",
+                    link=f"https://acme.sentry.io/issues/1/?seerDrawer=true&{self.tracking}",
                 ),
                 NotificationRenderedAction(label="Docs", link="https://docs.sentry.io/"),
             ],
             footer=[
                 LinkTextBlock(
                     text="Manage Preferences",
-                    url=(
-                        "https://sentry.io/settings/account/notifications/alerts/"
-                        f"?{self.tracking}&notification_link=notification_settings"
-                    ),
-                    tracked_as=NotificationLink.NOTIFICATION_SETTINGS,
+                    url=f"https://sentry.io/settings/account/notifications/alerts/?{self.tracking}",
                 )
             ],
         )
-        assert links == {
-            NotificationLink.ISSUE,
-            NotificationLink.RELEASE,
-            NotificationLink.NOTIFICATION_SETTINGS,
-        }
+        assert links == {NotificationLink.ISSUE, NotificationLink.SEER, NotificationLink.SETTINGS}
         assert rendered_template.subject[1] == LinkTextBlock(
             text="ACME-1",
             url="https://sentry.io/organizations/acme/issues/1/?referrer=activity_notification",
-            tracked_as=NotificationLink.ISSUE,
         )
 
     def test_idempotent(self) -> None:
@@ -321,28 +330,20 @@ class DecorateLinksTest(TestCase):
             actions=[
                 NotificationRenderedAction(
                     label="Download",
-                    link="https://sentry.io/data-export/1/",
-                    tracked_as=NotificationLink.DATA_EXPORT,
+                    link="https://sentry.io/data-export/1/?notification_link=data_export",
                 )
             ],
         )
 
         decorated, _ = self.decorate(rendered_template)
 
+        assert "notification_link" not in decorated.actions[0].link
         assert self.decorate(decorated) == (decorated, {NotificationLink.DATA_EXPORT})
 
     def test_plain_text_and_undecoratable_links_are_unchanged(self) -> None:
         rendered_template = NotificationRenderedTemplate(
             subject="Export ready",
-            body=[
-                ParagraphSection(
-                    blocks=[
-                        LinkTextBlock(
-                            text="Broken", url="https://[::1", tracked_as=NotificationLink.ISSUE
-                        )
-                    ]
-                )
-            ],
+            body=[ParagraphSection(blocks=[LinkTextBlock(text="Broken", url="https://[::1")])],
             footer="Sent by Sentry",
         )
 

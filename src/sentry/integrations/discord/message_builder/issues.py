@@ -26,7 +26,6 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
-from sentry.notifications.platform.types import NotificationLink
 from sentry.notifications.utils.rules import RuleIdType, get_rule_or_workflow_id
 from sentry.services.eventstore.models import GroupEvent
 
@@ -96,7 +95,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                     notification_uuid=notification_uuid,
                 )
         if url is not None:
-            url = self.link_decorator.decorate(url, NotificationLink.ISSUE)
+            url = self.link_decorator.decorate(url)
 
         embeds = [
             DiscordMessageEmbed(

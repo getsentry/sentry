@@ -8,7 +8,6 @@ from sentry.notifications.platform.templates.metric_alert import MetricAlertNoti
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
-    NotificationLink,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
@@ -47,7 +46,7 @@ class DiscordMetricAlertRenderer(NotificationRenderer[DiscordRenderable]):
         status = get_status_text(IncidentStatus(data.new_status))
         description = f"{data.text}{get_started_at(data.open_period_context.date_started)}"
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))
-        title_link = link_decorator.decorate(data.title_link, NotificationLink.ALERT)
+        title_link = link_decorator.decorate(data.title_link)
 
         embed = DiscordMessageEmbed(
             title=data.title,

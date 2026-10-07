@@ -8,7 +8,6 @@ from sentry.notifications.platform.templates.metric_alert import MetricAlertNoti
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
-    NotificationLink,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
@@ -51,7 +50,7 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
             )
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))
-        title_link = link_decorator.decorate(data.title_link, NotificationLink.ALERT)
+        title_link = link_decorator.decorate(data.title_link)
         fallback_text = f"<{title_link}|*{escape_slack_text(data.title)}*>"
         slack_body = BlockSlackMessageBuilder._build_blocks(
             *blocks, fallback_text=fallback_text, color=color

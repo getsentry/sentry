@@ -15,7 +15,6 @@ from sentry.notifications.platform.templates.activity.status_change.base import 
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationCategory,
-    NotificationLink,
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
@@ -57,7 +56,6 @@ class SetResolvedInReleaseActivityTemplate(
                     LinkTextBlock(
                         text=readable_version or raw_version,
                         url=data.release_url,
-                        tracked_as=NotificationLink.RELEASE,
                     ),
                 ]
 

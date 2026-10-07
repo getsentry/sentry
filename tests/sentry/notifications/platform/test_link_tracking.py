@@ -17,9 +17,9 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationTemplate,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.tracking import NotificationLink, classify_link
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationLink,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
@@ -30,13 +30,13 @@ from sentry.testutils.helpers.options import override_options
 
 def get_links(
     rendered_template: NotificationRenderedTemplate,
-) -> list[tuple[str, NotificationLink | None]]:
+) -> list[str]:
     blocks = [*rendered_template.subject_blocks, *rendered_template.footer_blocks]
     for section in rendered_template.body:
         blocks.extend(section.blocks)
-    return [
-        (block.url, block.tracked_as) for block in blocks if isinstance(block, LinkTextBlock)
-    ] + [(action.link, action.tracked_as) for action in rendered_template.actions]
+    return [block.url for block in blocks if isinstance(block, LinkTextBlock)] + [
+        action.link for action in rendered_template.actions
+    ]
 
 
 def is_sentry_page(url: str) -> bool:
@@ -100,16 +100,15 @@ class RenderTemplateLinkTrackingTest(TestCase):
                     text = "\n".join(get_strings(renderable))
 
                     tracked: set[NotificationLink] = set()
-                    for link, tracked_as in get_links(rendered_template):
-                        if tracked_as is None:
-                            assert not is_sentry_page(link), link
+                    for link in get_links(rendered_template):
+                        if not is_sentry_page(link):
                             continue
                         query = parse_qs(urlsplit(link).query)
                         assert query["referrer"] == [f"{source}-{provider.key}"], link
                         assert query["notification_uuid"] == [data.notification_uuid], link
-                        assert query["notification_link"] == [tracked_as], link
+                        assert "notification_link" not in query, link
                         assert link in text, link
-                        tracked.add(tracked_as)
+                        tracked.add(classify_link(link))
                         checked += 1
                     assert links == tracked
 
@@ -124,9 +123,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
 
             def render(**kwargs: Any) -> str:
                 link_decorator = kwargs["link_decorator"]
-                return link_decorator.decorate(
-                    "https://sentry.io/issues/1/", NotificationLink.ISSUE
-                )
+                return link_decorator.decorate("https://sentry.io/issues/1/")
 
             with (
                 self.subTest(source=source, provider=provider_key),
@@ -140,7 +137,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
                 query = parse_qs(urlsplit(renderable).query)
                 assert query["referrer"] == [f"{source}-{provider_key}"]
                 assert query["notification_uuid"] == [data.notification_uuid]
-                assert query["notification_link"] == [NotificationLink.ISSUE]
+                assert "notification_link" not in query
                 assert links == {NotificationLink.ISSUE}
 
     @override_options({"notifications.tracking.sources": []})
@@ -154,9 +151,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
         assert renderer is not None
 
         def render(**kwargs: Any) -> str:
-            return kwargs["link_decorator"].decorate(
-                "https://sentry.io/issues/1/", NotificationLink.ISSUE
-            )
+            return kwargs["link_decorator"].decorate("https://sentry.io/issues/1/")
 
         with mock.patch.object(renderer, "render", side_effect=render):
             renderable, links = NotificationService.render_template(
@@ -187,7 +182,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
 
                 assert f"referrer={NotificationSource.METRIC_ALERT}-{provider_key}" in text
                 assert f"notification_uuid={data.notification_uuid}" in text
-                assert "notification_link=alert" in text
+                assert "notification_link=" not in text
                 assert links == {NotificationLink.ALERT}
 
     def test_issue_custom_renderers_decorate_issue_link(self) -> None:
@@ -222,5 +217,5 @@ class RenderTemplateLinkTrackingTest(TestCase):
 
                 assert f"referrer={NotificationSource.ISSUE}-{provider_key}" in text
                 assert f"notification_uuid={data.notification_uuid}" in text
-                assert "notification_link=issue" in text
+                assert "notification_link=" not in text
                 assert links == {NotificationLink.ISSUE}
