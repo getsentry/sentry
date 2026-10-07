@@ -606,15 +606,6 @@ class SeerAgentOperator[CachePayloadT]:
             return run_id
 
 
-def has_seer_investigation_entrypoint_access(
-    *, organization: Organization, entrypoint_key: SeerEntrypointKey
-) -> bool:
-    if not features.has("organizations:investigations", organization):
-        return False
-    entrypoint_cls = investigation_entrypoint_registry.registrations.get(entrypoint_key)
-    return entrypoint_cls is not None and entrypoint_cls.has_access(organization)
-
-
 class SeerInvestigationOperator[CachePayloadT]:
     """
     Connects entrypoint implementations to investigations, so all entrypoints behave the same.
@@ -625,9 +616,10 @@ class SeerInvestigationOperator[CachePayloadT]:
 
     @classmethod
     def has_access(cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey) -> bool:
-        return has_seer_investigation_entrypoint_access(
-            organization=organization, entrypoint_key=entrypoint_key
-        )
+        if not features.has("organizations:investigations", organization):
+            return False
+        entrypoint_cls = investigation_entrypoint_registry.registrations.get(entrypoint_key)
+        return entrypoint_cls is not None and entrypoint_cls.has_access(organization)
 
     def trigger_investigation(
         self,
