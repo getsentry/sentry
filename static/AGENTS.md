@@ -6,7 +6,7 @@
 
 - **Language**: TypeScript
 - **Framework**: React 19
-- **Build Tool**: Rspack (Webpack alternative)
+- **Build Tool**: Rsbuild (powered by Rspack)
 - **Package management**: pnpm
 - **State Management**: Reflux, React Query (TanStack Query)
 - **Styling**: Emotion (CSS-in-JS), Less
@@ -15,7 +15,7 @@
 ## Important Files and Directories
 
 - `package.json`: Node.js dependencies and scripts
-- `rspack.config.ts`: Frontend build configuration
+- `rsbuild.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
 - `oxlint.config.ts`: Oxlint configuration
 - `stylelint.config.js`: CSS/styling linting
@@ -30,7 +30,13 @@
 ### Routing
 
 - Routes defined in `static/app/routes.tsx`
-- Use React Router v6 patterns
+- The app still runs React Router V6; follow V6 routing patterns and behavior.
+- Use V8 import paths: import router APIs and types from `react-router`, and
+  `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
+  runtime through `static/app/utils/reactRouterV6`.
+- Only the compatibility modules may import `react-router-dom` or
+  `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
+  Nuqs adapters and Sentry tracing integrations remain V6.
 - Lazy load route components when possible
 
 ### Frontend API Calls

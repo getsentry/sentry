@@ -15,9 +15,10 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.last_seen import try_bump_last_seen
+from sentry.utils.last_seen import BumpResult, try_bump_last_seen
 
 
 class ReleaseStages(str, Enum):
@@ -57,17 +58,21 @@ class ReleaseProjectEnvironment(Model):
         return f"releaseprojectenv:{release_id}:{project_id}:{environment_id}"
 
     @classmethod
-    def get_or_create(cls, release, project, environment, datetime, **kwargs):
-        with metrics.timer("models.releaseprojectenvironment.get_or_create") as metrics_tags:
-            return cls._get_or_create_impl(
-                release, project, environment, datetime, metrics_tags, **kwargs
+    def get_or_create(cls, release, project, environment, datetime, metrics_tags=None, **kwargs):
+        with metrics.timer("models.releaseprojectenvironment.get_or_create") as timer_tags:
+            instance = cls._get_or_create_impl(
+                release, project, environment, datetime, timer_tags, **kwargs
             )
+            if metrics_tags is not None:
+                metrics_tags.update(timer_tags)
+            return instance
 
     @classmethod
     def _get_or_create_impl(cls, release, project, environment, datetime, metrics_tags, **kwargs):
         cache_key = cls.get_cache_key(project.id, release.id, environment.id)
 
         instance = cache.get(cache_key)
+        cache_hit = instance is not None
         if instance is None:
             metrics_tags["cache_hit"] = "false"
             instance, created = cls.objects.get_or_create(
@@ -83,8 +88,9 @@ class ReleaseProjectEnvironment(Model):
 
         metrics_tags["created"] = "true" if created else "false"
 
+        bump = BumpResult.THROTTLED
         if not created:
-            try_bump_last_seen(
+            bump = try_bump_last_seen(
                 model_class=cls,
                 instance=instance,
                 datetime=datetime,
@@ -94,6 +100,15 @@ class ReleaseProjectEnvironment(Model):
             )
         else:
             metrics_tags["bumped"] = "false"
+
+        if bump in (BumpResult.BUMPED, BumpResult.ERROR):
+            metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_UPDATE.value
+        elif created:
+            metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_CREATE.value
+        elif cache_hit:
+            metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.CACHE_HIT.value
+        else:
+            metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_READ.value
 
         return instance
 

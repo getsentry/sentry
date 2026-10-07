@@ -100,10 +100,6 @@ function createMockEvaluationNode(overrides: {id: string; startTimestamp?: numbe
   };
 }
 
-// Mirrors the node `useConversation` produces for an embeddings span: the op
-// type stays "ai_client" (the ingestion-computed gen_ai.operation.type has no
-// embeddings bucket) and it's recognized by its span op. `input` may be absent
-// on older deploys, in which case the row falls back to the model.
 function createMockEmbeddingNode(overrides: {
   id: string;
   endTimestamp?: number;
@@ -130,7 +126,7 @@ function createMockEmbeddingNode(overrides: {
     value: {start_timestamp: startTimestamp, end_timestamp: end},
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
-      [SpanFields.SPAN_OP]: 'gen_ai.embeddings',
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'embeddings',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
       [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
       ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),

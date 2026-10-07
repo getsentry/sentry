@@ -286,7 +286,7 @@ register(
 register(
     "auth.v2.enabled",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1459,13 +1459,6 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "seer.smart_assignment.prefetch_rollout_rate",
-    type=Float,
-    default=0.5,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Spread child run_auto_transition_issues_* tasks across this many seconds
 # after each schedule tick, to smooth burst load (DB/signals/queues).
 register(
@@ -3577,6 +3570,25 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Number of alerts per variant per day whose legacy payload is compared with the notification
+# platform's render of it. A variant is the source, provider, and the alert attributes the legacy
+# renderers branch on. 0 disables the comparison. Independent of the platform-rollout options above.
+register(
+    "notifications.platform.shadow-render.variant-daily-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notification sources that record engagement tracking (sent and engagement events).
+# Sources become metric tags, so this list is also what keeps those tags bounded.
+register(
+    "notifications.tracking.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Options - End
 
 
@@ -3804,14 +3816,6 @@ register(
     "uptime.config-drift.cycle-hours",
     type=Int,
     default=24,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
-register(
-    "uptime.config-drift.repair",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4472,6 +4476,24 @@ register(
 register(
     "debug-files.objectstore-migration.enabled",
     default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Treat artifact bundles uploaded with the release name "undefined", "null" or "" as uploaded
+# without a release, when every file in the bundle can be found by debug ID. Build tooling sends
+# these names when no release was set or detected.
+register(
+    "sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# The same for release names that are an unexpanded environment variable, such as `$GITHUB_SHA`,
+# or the bare name of one, such as `VERCEL_GIT_COMMIT_SHA`.
+register(
+    "sourcemaps.artifact-bundles.assemble.ignore-env-var-releases",
+    default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -3,7 +3,15 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChat, IconChevron, IconCode, IconFire, IconFix, IconList} from 'sentry/icons';
+import {
+  IconChat,
+  IconChevron,
+  IconCode,
+  IconFire,
+  IconFix,
+  IconList,
+  IconStack,
+} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {
@@ -13,6 +21,7 @@ import {
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {isEvaluationNode} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {isMemoryNode} from 'sentry/views/insights/pages/agents/utils/memory';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
@@ -22,6 +31,10 @@ function operationTypeIcon(node: AITraceSpanNode) {
   // TODO: Replace with a dedicated evaluation icon once design provides one.
   if (isEvaluationNode(node)) {
     return <IconList size="md" />;
+  }
+  // TODO: Replace IconStack with a dedicated memory icon once design provides one.
+  if (isMemoryNode(node)) {
+    return <IconStack size="md" />;
   }
   switch (getGenAiOpType(node)) {
     case GenAiOperationType.AGENT:

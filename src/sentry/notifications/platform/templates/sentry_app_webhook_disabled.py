@@ -24,6 +24,7 @@ class SentryAppWebhookDisabled(NotificationData):
 class SentryAppWebhookDisabledTemplate(NotificationTemplate[SentryAppWebhookDisabled]):
     category = NotificationCategory.SENTRY_APP
     example_data = SentryAppWebhookDisabled(
+        organization_id=1,
         sentry_app_slug="example-app",
         sentry_app_name="Example App",
         webhook_url="https://example.com/webhook",

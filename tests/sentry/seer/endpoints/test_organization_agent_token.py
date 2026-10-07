@@ -287,6 +287,10 @@ USER_GLOBAL_GET_ENDPOINTS = (
 OUTER_BOUNDARY_GET_STATUSES = {
     "OrganizationSCIMMemberDetails": 403,
     "OrganizationSCIMMemberIndex": 403,
+    "OrganizationSCIMResourceTypeDetails": 403,
+    "OrganizationSCIMResourceTypeIndex": 403,
+    "OrganizationSCIMSchemaDetails": 403,
+    "OrganizationSCIMServiceProviderConfig": 403,
     "OrganizationSCIMTeamDetails": 403,
     "OrganizationSCIMTeamIndex": 403,
 }
@@ -1187,6 +1191,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if placeholder == "image_identifier":
             self._resource("preprod_snapshot")
             return "permission-matrix.png"
+        if placeholder == "resource_type_name":
+            return "User"
+        if placeholder == "schema_uri":
+            return "urn:ietf:params:scim:schemas:core:2.0:User"
 
         # These resources live in external storage or require a specialized service.
         # A well-formed nonexistent identifier still exercises authentication, endpoint
@@ -1219,6 +1227,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "field": ["id", "project"],
                 "project": [self.project.id],
                 "statsPeriod": "1h",
+            }
+        if endpoint.endpoint_name == "OrganizationEventsDroppedEndpoint":
+            return {
+                "dataset": "spans",
+                "project": [self.project.id],
+                "statsPeriod": "1h",
+                "interval": "1h",
             }
         if endpoint.endpoint_name == "OrganizationPreprodLatestBaseSnapshotEndpoint":
             self._resource("preprod_snapshot")

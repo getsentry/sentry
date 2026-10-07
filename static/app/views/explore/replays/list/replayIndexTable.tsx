@@ -58,7 +58,7 @@ export function ReplayIndexTable({
 
   const {onSortClick, sortType} = useReplayTableSort();
 
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
   const columns = useReplayIndexTableColumns({allMobileProj, tableDimensions});
 
   const endpointOptions = safeParseQueryKey(queryKey)?.options;
