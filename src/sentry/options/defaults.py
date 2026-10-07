@@ -284,12 +284,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
-    "auth.v2.enabled",
-    type=Bool,
-    default=True,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -1711,6 +1705,21 @@ register(
     type=Any,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "store.enable-inline-payloads",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Suppresses working-cache keys only for events entering in the inline cohort.
+# Keyless events remain inline after rollout changes; keyed events keep writing.
+# Unprocessed backups and cleanup remain in Redis.
+register(
+    "store.disable-processing-store",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "post_process.get-autoassign-owners",

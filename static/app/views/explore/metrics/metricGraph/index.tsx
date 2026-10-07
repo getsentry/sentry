@@ -162,7 +162,7 @@ function Graph({
       : createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
-  const {droppedAnnotations, acceptedAnnotations} = useDroppedData({
+  const {droppedEvents, acceptedEvents} = useDroppedData({
     dataset: DiscoverDatasets.TRACEMETRICS,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
@@ -225,8 +225,7 @@ function Graph({
 
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
   const showChart = visualize.visible && !isMetricOptionsEmpty;
-  const canShowDroppedData =
-    showChart && hasDroppedData(droppedAnnotations, acceptedAnnotations);
+  const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 
@@ -265,8 +264,8 @@ function Graph({
               droppedData={
                 showDroppedDataBand
                   ? {
-                      droppedAnnotations,
-                      acceptedAnnotations,
+                      droppedEvents,
+                      acceptedEvents,
                       onClick: openDroppedDataDrawer,
                     }
                   : undefined

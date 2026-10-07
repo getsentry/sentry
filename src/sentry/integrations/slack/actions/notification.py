@@ -67,14 +67,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "notes": {"type": "string", "placeholder": "e.g., @jane, @on-call-team"},
         }
 
-    def _should_send_nudge(self, channel_id: str | None) -> bool:
-        return bool(
-            channel_id
-            and should_send_nudge_block(
-                channel_id=channel_id, organization=self.project.organization
-            )
-        )
-
     def _build_notification_blocks(
         self,
         event: GroupEvent,
@@ -320,7 +312,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             save_notification_method=NotificationActionThreadUtils._save_notification_action_message,
             thread_ts=thread_ts,
             # Only real issue alerts should send nudges
-            send_nudge=self._should_send_nudge(channel),
+            send_nudge=should_send_nudge_block(
+                organization=self.project.organization, notification_uuid=notification_uuid
+            ),
         )
         self.record_notification_sent(event, channel, rule, notification_uuid)
 
