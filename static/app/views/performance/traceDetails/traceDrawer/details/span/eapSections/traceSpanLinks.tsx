@@ -1,4 +1,6 @@
+import {SEARCH_SENTRY__LINK__TYPE} from '@sentry/conventions/attributes/search';
 import type {Location} from 'history';
+import countBy from 'lodash/countBy';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -19,6 +21,7 @@ import {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {getSpanLinkType} from 'sentry/views/performance/traceDetails/getSpanLinkType';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
@@ -35,6 +38,30 @@ interface TraceSpanLinksProps {
   theme: Theme;
   traceId: string;
   tree?: TraceTree;
+}
+
+const UNTYPED_LINK_NAME = 'link';
+
+/**
+ * Names each link's tree group after its link type, or `link` without a type.
+ * The tree merges groups with the same name, so repeats get a counter: `cache_origin (2)`.
+ */
+function getNamedLinks(
+  links: TraceItemResponseLink[]
+): Array<{groupName: string; link: TraceItemResponseLink}> {
+  const getName = (link: TraceItemResponseLink) =>
+    getSpanLinkType(link) ?? UNTYPED_LINK_NAME;
+  const totals = countBy(links, getName);
+  const seen: Record<string, number> = {};
+
+  return links.map(link => {
+    const name = getName(link);
+    if (totals[name] === 1) {
+      return {link, groupName: name};
+    }
+    seen[name] = (seen[name] ?? 0) + 1;
+    return {link, groupName: `${name} (${seen[name]})`};
+  });
 }
 
 export function TraceSpanLinks({
@@ -57,14 +84,9 @@ export function TraceSpanLinks({
     });
   }
 
-  // Render the span links an a single attribute tree. For each link, give it a
-  // serial integer prefix. For each of those prefixes, create a custom renderer
-  // for that unique trace ID and span ID field. e.g., for the first link the
-  // prefix is `"span_link_1"`. Create a renderer for the field
-  // `"span_link_1.trace_id"` and `span_link_1.span_id"`. This is somewhat of a
-  // hack, and a cleaner approach would be to render a separate little section
-  // and separate attribute tree for each link, rather than giving them this
-  // awkward prefix just to render them all in a single tree.
+  // All links share one attribute tree, so each link's fields get its group name as
+  // prefix, with custom renderers per prefix (e.g. `previous_trace.trace_id`).
+  // A separate tree per link would be cleaner.
   const customRenderers: AttributesFieldRender<RenderFunctionBaggage>['renderers'] = {};
 
   const traceIdRenderer = getFieldRenderer('trace', {});
@@ -77,10 +99,8 @@ export function TraceSpanLinks({
     theme,
   };
 
-  const linksAsAttributes: TraceItemResponseAttribute[] = links.flatMap(
-    (link, linkIndex) => {
-      const prefix = `span_link_${linkIndex + 1}`;
-
+  const linksAsAttributes: TraceItemResponseAttribute[] = getNamedLinks(links).flatMap(
+    ({link, groupName: prefix}) => {
       customRenderers[`${prefix}.trace_id`] = () => {
         const traceTarget = generateLinkToEventInTraceView({
           organization,
@@ -149,10 +169,16 @@ export function TraceSpanLinks({
           type: 'str',
           value: link.itemId,
         },
-        ...(link.attributes || []).map(attribute => ({
-          ...attribute,
-          name: `${prefix}.attributes.${attribute.name}`,
-        })),
+        ...(link.sampled === undefined
+          ? []
+          : [{name: `${prefix}.sampled`, type: 'bool' as const, value: link.sampled}]),
+        // The link type is the group name already.
+        ...(link.attributes || [])
+          .filter(attribute => attribute.name !== SEARCH_SENTRY__LINK__TYPE)
+          .map(attribute => ({
+            ...attribute,
+            name: `${prefix}.attributes.${attribute.name}`,
+          })),
       ];
     }
   );

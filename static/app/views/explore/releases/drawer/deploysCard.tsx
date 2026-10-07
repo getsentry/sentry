@@ -1,14 +1,8 @@
-import {Container} from '@sentry/scraps/layout';
-
 import {DateTime} from 'sentry/components/dateTime';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
-import {
-  KeyValueTableCard,
-  KeyValueTableCardPanel,
-  KeyValueTableCardTitle,
-} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import {useReleaseDeploys} from 'sentry/views/explore/releases/utils/useReleaseDeploys';
 
@@ -31,18 +25,15 @@ export function DeploysCard({release, projectSlug}: DeploysCardProps) {
 
   if (isLoading || !deploys?.length) {
     return (
-      <KeyValueTableCardPanel>
-        <KeyValueTableCardTitle>{t('Deploys')}</KeyValueTableCardTitle>
-        <Container column="span 2">
-          {isLoading ? (
-            <Placeholder height="20px" />
-          ) : (
-            <EmptyStateWarning small withIcon={false}>
-              {t('No deploys found')}
-            </EmptyStateWarning>
-          )}
-        </Container>
-      </KeyValueTableCardPanel>
+      <KeyValueTableCard title={t('Deploys')}>
+        {isLoading ? (
+          <Placeholder height="20px" />
+        ) : (
+          <EmptyStateWarning small withIcon={false}>
+            {t('No deploys found')}
+          </EmptyStateWarning>
+        )}
+      </KeyValueTableCard>
     );
   }
 
@@ -59,5 +50,3 @@ export function DeploysCard({release, projectSlug}: DeploysCardProps) {
     />
   );
 }
-
-// Needed to make width 100%, because of CardPanel's grid

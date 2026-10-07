@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import pick from 'lodash/pick';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -194,38 +193,33 @@ export function ProjectDetail() {
       >
         <Stack flex={1}>
           <NoProjectMessage organization={organization}>
-            <TopBar.Slot name="breadcrumbs">
-              <BreadcrumbList
-                items={[
-                  {
-                    type: 'link',
-                    label: t('Projects'),
-                    to: makeProjectsPathname({path: '/', organization}),
-                  },
-                ]}
-              />
-            </TopBar.Slot>
-            <TopBar.Slot name="title">
-              <BreadcrumbList.Title
-                item={{
-                  type: 'page-title',
-                  label: project?.slug ?? params.projectId,
-                  leadingGraphic: project ? (
-                    <ProjectsBadge
-                      projectPlatforms={project.platform ? [project.platform] : []}
-                    />
-                  ) : (
-                    <Placeholder width="16px" height="16px" />
-                  ),
-                  trailingActions: {
-                    type: 'menu',
-                    items: projectActions,
-                    triggerLabel: t('Project Actions'),
-                    triggerIcon: <IconEllipsis />,
-                  },
-                }}
-              />
-            </TopBar.Slot>
+            <TopBar.Slot
+              name="breadcrumbs"
+              title={{
+                type: 'page-title',
+                label: project?.slug ?? params.projectId,
+                leadingGraphic: project ? (
+                  <ProjectsBadge
+                    projectPlatforms={project.platform ? [project.platform] : []}
+                  />
+                ) : (
+                  <Placeholder width="16px" height="16px" />
+                ),
+                trailingActions: {
+                  type: 'menu',
+                  items: projectActions,
+                  triggerLabel: t('Project Actions'),
+                  triggerIcon: <IconEllipsis />,
+                },
+              }}
+              items={[
+                {
+                  type: 'link',
+                  label: t('Projects'),
+                  to: makeProjectsPathname({path: '/', organization}),
+                },
+              ]}
+            />
 
             <Layout.Body noRowGap>
               <Layout.Main>
