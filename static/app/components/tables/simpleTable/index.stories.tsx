@@ -2,6 +2,8 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -409,6 +411,78 @@ export default Storybook.story('SimpleTable', story => {
       </Fragment>
     );
   });
+
+  story('Interactive headers', () => {
+    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const allSelected = selected.size === data.length;
+
+    const toggleRow = (name: string) => {
+      setSelected(current => {
+        const next = new Set(current);
+        if (next.has(name)) {
+          next.delete(name);
+        } else {
+          next.add(name);
+        }
+        return next;
+      });
+    };
+
+    return (
+      <Fragment>
+        <p>
+          Header cells put their children in a label that truncates overflowing text and
+          repeats it in a tooltip. That label would clip the focus ring of a checkbox,
+          button, or select, so set <Storybook.JSXProperty name="interactive" value /> on
+          header cells that hold controls to render them directly. Interactive header
+          cells can't be sortable.
+        </p>
+
+        <SimpleTable
+          columns={selectableColumns}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell interactive>
+                <Checkbox
+                  aria-label={allSelected ? t('Deselect all') : t('Select all')}
+                  checked={allSelected || (selected.size > 0 ? 'indeterminate' : false)}
+                  onChange={() =>
+                    setSelected(
+                      allSelected ? new Set() : new Set(data.map(row => row.name))
+                    )
+                  }
+                />
+              </SimpleTable.HeaderCell>
+              {selected.size > 0 ? (
+                <SimpleTable.HeaderCell interactive variant="remaining">
+                  <Button size="xs">{t('Mute %s', selected.size)}</Button>
+                </SimpleTable.HeaderCell>
+              ) : (
+                <Fragment>
+                  <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
+                </Fragment>
+              )}
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {data.map(row => (
+            <SimpleTable.Row key={row.name}>
+              <SimpleTable.RowCell>
+                <Checkbox
+                  aria-label={t('Select %s', row.name)}
+                  checked={selected.has(row.name)}
+                  onChange={() => toggleRow(row.name)}
+                />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
+              <SimpleTable.RowCell>{row.action}</SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))}
+        </SimpleTable>
+      </Fragment>
+    );
+  });
 });
 
 const DENSITIES = ['compressed', 'default', 'comfortable'] as const;
@@ -416,6 +490,12 @@ const DENSITIES = ['compressed', 'default', 'comfortable'] as const;
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 1fr 1fr 1fr;
 `;
+
+const selectableColumns: TableColumnConfig[] = [
+  {key: 'select', width: 'min-content'},
+  {key: 'name', width: '1fr'},
+  {key: 'action', width: '1fr'},
+];
 
 const responsiveColumns: TableColumnConfig[] = [
   {key: 'name', width: '2fr'},
