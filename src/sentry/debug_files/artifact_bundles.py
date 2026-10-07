@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 
+import psycopg2.errors
 import sentry_sdk
 from django.conf import settings
-from django.db import router
+from django.db import OperationalError, router
 from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
 from sentry_redis_tools.clients import RedisCluster
@@ -24,6 +26,8 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
+
+logger = logging.getLogger(__name__)
 
 # The number of Artifact Bundles that we return in case of incomplete indexes.
 MAX_BUNDLES_QUERY = 5
@@ -311,8 +315,23 @@ def query_artifact_bundles_containing_file(
 
     # Then, we are matching by `url`:
     if url:
-        bundles = get_artifact_bundles_containing_url(project, release, dist, url)
-        update_bundles(bundles, "index")
+        try:
+            bundles = get_artifact_bundles_containing_url(project, release, dist, url)
+        except OperationalError as e:
+            # The `url__icontains` lookup can be very expensive for some orgs, and gets
+            # canceled when it runs into a (possibly per-org lowered) statement timeout.
+            # In that case we degrade to whatever bundles we already found.
+            if not isinstance(e.__cause__, psycopg2.errors.QueryCanceled):
+                raise
+            logger.warning(
+                "artifact_bundles.url_lookup_canceled",
+                extra={
+                    "organization_id": project.organization_id,
+                    "project_id": project.id,
+                },
+            )
+        else:
+            update_bundles(bundles, "index")
 
     return _maybe_renew_and_return_bundles(artifact_bundles)
 
