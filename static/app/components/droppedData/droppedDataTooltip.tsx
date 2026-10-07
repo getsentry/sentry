@@ -13,12 +13,7 @@ import {
 } from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
 import {getFormat} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
-
-const BYTE_UNITS = ['B', 'kB', 'MB', 'GB', 'TB', 'PB'];
-const BYTE_THRESHOLD = 1000;
 
 interface Ratio {
   total: string;
@@ -49,21 +44,6 @@ function formatCountRatio(value: number, total: number): Ratio {
   };
 }
 
-function formatByteRatio(value: number, total: number): Ratio {
-  let unitIndex = 0;
-  let scale = 1;
-
-  while (total / scale >= BYTE_THRESHOLD && unitIndex < BYTE_UNITS.length - 1) {
-    scale *= BYTE_THRESHOLD;
-    unitIndex += 1;
-  }
-
-  return {
-    value: formatNumberWithDynamicDecimalPoints(value / scale),
-    total: `${formatNumberWithDynamicDecimalPoints(total / scale)} ${BYTE_UNITS[unitIndex]}`,
-  };
-}
-
 function formatBucketRange(start: number, end: number, timezone: string): string {
   const startMoment = moment.tz(start, timezone);
   const endMoment = moment.tz(end, timezone);
@@ -78,16 +58,6 @@ function formatBucketRange(start: number, end: number, timezone: string): string
 
 function totalEventCount(bucket: AnnotationBucket): number {
   return bucket.dropped.eventCount + bucket.accepted.eventCount;
-}
-
-function byteTotals(bucket: AnnotationBucket): {dropped: number; total: number} | null {
-  const dropped = bucket.dropped.byteSize;
-  if (!defined(dropped)) {
-    return null;
-  }
-  const total = dropped + (bucket.accepted.byteSize ?? 0);
-
-  return {dropped, total};
 }
 
 function VolumeRow({label, value, total}: Ratio & {label: string}) {
@@ -109,7 +79,6 @@ interface DroppedDataTooltipProps {
 
 export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) {
   const totalEvents = totalEventCount(bucket);
-  const bytes = byteTotals(bucket);
 
   return (
     <Fragment>
@@ -129,12 +98,6 @@ export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) 
               {...formatCountRatio(outcome.eventCount, totalEvents)}
             />
           ))}
-          {bytes && (
-            <VolumeRow
-              label={t('Payloads Rejected')}
-              {...formatByteRatio(bytes.dropped, bytes.total)}
-            />
-          )}
         </Stack>
       </TooltipBody>
       <Container className="tooltip-footer tooltip-footer-centered">

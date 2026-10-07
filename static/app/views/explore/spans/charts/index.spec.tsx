@@ -16,6 +16,11 @@ import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
+function toDroppedEvent(annotation: Annotation) {
+  const {eventCount, ...bucket} = annotation;
+  return {...bucket, count: eventCount};
+}
+
 function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
   const base: Partial<SortedTimeSeries> = {
     data: {},
@@ -135,8 +140,12 @@ describe('ExploreCharts', () => {
       organizationFeatures?: string[];
     }) {
       const request = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-timeseries/',
-        body: {timeSeries: [], meta: {droppedAnnotations, acceptedAnnotations}},
+        url: '/organizations/org-slug/events-dropped/',
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+          droppedEvents: droppedAnnotations.map(toDroppedEvent),
+          acceptedEvents: acceptedAnnotations.map(toDroppedEvent),
+        },
       });
 
       render(
