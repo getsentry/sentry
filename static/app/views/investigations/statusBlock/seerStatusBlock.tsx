@@ -1,6 +1,11 @@
 import type {ReactNode} from 'react';
 
-import {ToolCall, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
+import {
+  getToolCallStatusLabel,
+  ToolCall,
+  ToolCallIndicator,
+  type ToolCallStatus,
+} from '@sentry/scraps/chat';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -74,9 +79,12 @@ function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
 }
 
 /**
- * The shared chat glyph for each tool-call status, so a call here reads the same
- * as it does in the Seer agent. A status Seer adds before this code knows the
- * name is shown as waiting: the call exists but nothing has come of it yet.
+ * An investigation call's status in the chat's tool-call vocabulary, so it gets
+ * the same glyph and label as a call in the Seer agent. The agent works its
+ * statuses out from its own blocks and call records, so this projection's
+ * statuses have no other mapping to reuse. A queued call, or a status Seer adds
+ * before this code knows the name, is shown as waiting: the call exists but
+ * nothing has come of it yet.
  */
 function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCallStatus {
   switch (status) {
@@ -88,26 +96,6 @@ function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCal
       return 'failure';
     default:
       return 'pending';
-  }
-}
-
-/**
- * What the latest call's bare glyph announces. Without a label the shared
- * indicator falls back to describing a pending call as waiting for approval,
- * which is not what a queued call means here.
- */
-function getToolCallLabel(status: InvestigationToolActivity['status']): string {
-  switch (status) {
-    case 'queued':
-      return t('Queued');
-    case 'running':
-      return t('Running');
-    case 'completed':
-      return t('Succeeded');
-    case 'failed':
-      return t('Failed');
-    default:
-      return t('Waiting');
   }
 }
 
@@ -124,12 +112,13 @@ function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivi
   if (!latest) {
     return null;
   }
+  const latestStatus = getToolCallStatus(latest.status);
   const earlier = toolActivity.slice(0, -1).reverse();
 
   if (!earlier.length) {
     return (
       <Container data-test-id="seer-status-block-tool-activity">
-        <ToolCall title={latest.title} status={getToolCallStatus(latest.status)} />
+        <ToolCall title={latest.title} status={latestStatus} />
       </Container>
     );
   }
@@ -139,9 +128,11 @@ function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivi
       <Disclosure size="xs">
         <Disclosure.Title
           leadingItems={
+            // A bare glyph, so it borrows `ToolCall`'s label: the indicator's
+            // default would announce a waiting call as awaiting approval.
             <ToolCallIndicator
-              status={getToolCallStatus(latest.status)}
-              aria-label={getToolCallLabel(latest.status)}
+              status={latestStatus}
+              aria-label={getToolCallStatusLabel(latestStatus, t)}
             />
           }
         >

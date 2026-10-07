@@ -58,7 +58,7 @@ describe('SeerStatusBlock', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('announces a queued latest call as queued, not as awaiting approval', () => {
+  it('announces a queued latest call as waiting, not as awaiting approval', () => {
     render(
       <SeerStatusBlock
         variant="running"
@@ -70,7 +70,7 @@ describe('SeerStatusBlock', () => {
       />
     );
 
-    expect(screen.getByRole('status', {name: 'Queued'})).toBeInTheDocument();
+    expect(screen.getByRole('status', {name: 'Waiting'})).toBeInTheDocument();
     expect(screen.queryByLabelText('Waiting for approval')).not.toBeInTheDocument();
   });
 
