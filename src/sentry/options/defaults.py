@@ -1193,6 +1193,22 @@ register(
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Rollout for passing the unprocessed copy of an event inline through the pipeline
+# instead of backing it up to `event_processing_store`.
+register(
+    "store.reprocessing-inline-backup.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Whether events in the above rollout are still backed up to `event_processing_store`.
+register(
+    "store.reprocessing-inline-backup.legacy",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "store.ingest-events-raw-task.inline-save-event",
     type=Bool,

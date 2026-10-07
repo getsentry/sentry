@@ -73,6 +73,17 @@ def inline_payload_options(request):
         yield
 
 
+@pytest.fixture(params=[0.0, 1.0], ids=["redis_backup", "inline_backup"])
+def unprocessed_backup_options(request):
+    with override_options(
+        {
+            "store.reprocessing-inline-backup.rollout": request.param,
+            "store.reprocessing-inline-backup.legacy": False,
+        }
+    ):
+        yield
+
+
 @pytest.fixture
 def process_and_save(default_project, task_runner):
     def inner(data, seconds_ago=1):
@@ -123,6 +134,7 @@ def test_basic(
     register_event_preprocessor,
     django_cache,
     inline_payload_options,
+    unprocessed_backup_options,
 ):
     from sentry import eventstream
 
