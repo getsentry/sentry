@@ -1723,7 +1723,7 @@ const config = defineConfig({
       // Re-enable these rules when Scraps has its own stricter lint config.
       rules: {
         'boundaries/no-unknown-files': 'off',
-        'eslint/no-shadow': 'off',
+        'no-shadow': 'off',
       },
     },
     {
@@ -1952,7 +1952,7 @@ const enrolledRules = new Set(
         const severity = Array.isArray(options) ? options[0] : options;
         return severity !== 'off' && severity !== 0;
       })
-      .map(([rule]) => rule.replace(/^eslint\//, ''))
+      .map(([rule]) => rule)
   )
 );
 function setIncubatorSeverity(rules: OxlintConfig['rules']) {
@@ -1960,11 +1960,7 @@ function setIncubatorSeverity(rules: OxlintConfig['rules']) {
   const severity = process.env.SENTRY_OXLINT_ENFORCE === 'true' ? 'error' : 'warn';
   for (const [rule, options] of Object.entries(configured)) {
     const current = Array.isArray(options) ? options[0] : options;
-    if (
-      !enrolledRules.has(rule.replace(/^eslint\//, '')) ||
-      current === 'off' ||
-      current === 0
-    ) {
+    if (!enrolledRules.has(rule) || current === 'off' || current === 0) {
       continue;
     }
     const next = typeof current === 'number' ? (severity === 'error' ? 2 : 1) : severity;
@@ -1982,9 +1978,7 @@ export default defineConfig({
   ...config,
   rules: setIncubatorSeverity({
     ...Object.fromEntries(
-      Object.entries(config.rules).filter(
-        ([rule]) => !enrolledRules.has(rule.replace(/^eslint\//, ''))
-      )
+      Object.entries(config.rules).filter(([rule]) => !enrolledRules.has(rule))
     ),
     ...incubator.rules,
   }),

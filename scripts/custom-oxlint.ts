@@ -575,7 +575,7 @@ Native oxlint options:
       JSON.stringify(config.rules?.[rule]) === JSON.stringify(options),
       `Enable ${rule} in the main lint configuration`
     );
-    allowed.add(canonicalRule(rule));
+    allowed.add(rule);
   }
   for (const override of incubator.overrides ?? []) {
     for (const [rule, options] of Object.entries(override.rules ?? {})) {
@@ -587,7 +587,7 @@ Native oxlint options:
         severity === 'error' || severity === 2,
         `Incubator rule ${rule} must be an error`
       );
-      allowed.add(canonicalRule(rule));
+      allowed.add(rule);
     }
   }
   if (!command) {
@@ -663,9 +663,7 @@ Native oxlint options:
         overrides: config.overrides?.map(({rules, ...context}) => ({
           ...context,
           rules: Object.fromEntries(
-            Object.entries(rules ?? {}).filter(([rule]) =>
-              allowed.has(canonicalRule(rule))
-            )
+            Object.entries(rules ?? {}).filter(([rule]) => allowed.has(rule))
           ),
         })),
         jsPlugins: config.jsPlugins?.map(plugin =>
