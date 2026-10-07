@@ -1,4 +1,4 @@
-import type {UIMatch} from 'react-router-dom';
+import type {UIMatch} from 'react-router';
 import type {Location} from 'history';
 
 import type {TrackingProps} from '@sentry/scraps/trackingContext';
@@ -237,7 +237,6 @@ type CustomizationOverrides = {
 type AnalyticsOverrides = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:raw-track-event': AnalyticsRawTrackEvent;
-  'metrics:event': MetricsEvent;
 };
 
 /**
@@ -403,7 +402,7 @@ type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 /**
  * Called when the app is mounted.
  */
-type AnalyticsInitUser = (user: User | null) => void;
+type AnalyticsInitUser = (user: User) => void;
 
 /**
  * Trigger analytics tracking in the override registry.
@@ -446,24 +445,6 @@ type AnalyticsRawTrackEvent = (
      */
     time?: number;
   }
-) => void;
-
-/**
- * Trigger recording a metric in the override registry.
- */
-type MetricsEvent = (
-  /**
-   * Metric name
-   */
-  name: string,
-  /**
-   * Value to record for this metric
-   */
-  value: number,
-  /**
-   * An additional tags object
-   */
-  tags?: Record<PropertyKey, unknown>
 ) => void;
 
 /**

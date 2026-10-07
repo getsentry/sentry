@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/core';

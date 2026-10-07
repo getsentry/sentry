@@ -117,7 +117,9 @@ export default function AdminUsers() {
                 <SimpleTable.RowCell>
                   <Stack>
                     <Link to={`/manage/users/${user.id}/`}>
-                      <Text bold>{user.username}</Text>
+                      <Text bold variant="accent">
+                        {user.username}
+                      </Text>
                     </Link>
                     {user.email !== user.username && (
                       <Text size="sm" variant="muted">

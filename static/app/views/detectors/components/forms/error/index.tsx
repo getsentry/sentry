@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {z} from 'zod';
 
@@ -37,7 +37,7 @@ function StaticSections({project}: {project: Project}) {
   return (
     <Fragment>
       <Container>
-        <FormSection step={1} title={t('Detect')}>
+        <FormSection title={t('Detect')}>
           <Text as="p">
             {tct(
               'An error issue will be created when a new issue group is detected. [link:Manage Grouping Rules]',
@@ -53,7 +53,7 @@ function StaticSections({project}: {project: Project}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection step={2} title={t('Assign')}>
+        <FormSection title={t('Assign')}>
           <Text as="p">
             {tct(
               'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
@@ -69,7 +69,7 @@ function StaticSections({project}: {project: Project}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection step={3} title={t('Prioritize')}>
+        <FormSection title={t('Prioritize')}>
           <Text as="p">
             {tct(
               'New error issues are prioritized based on log level. [link:Learn more about Issue Priority]',
@@ -83,7 +83,7 @@ function StaticSections({project}: {project: Project}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection step={4} title={t('Resolve')}>
+        <FormSection title={t('Resolve')}>
           <Text as="p">
             {tct(
               'Issues may be automatically resolved based on [link:Auto Resolve Settings].',
@@ -180,7 +180,6 @@ export function EditExistingErrorDetectorForm({
             <AutomateSection
               form={form}
               fields={{workflowIds: 'workflowIds'}}
-              step={5}
               project={project}
             />
           </Stack>

@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 
 import {useBreadcrumbTitleEffect} from './context';
 
