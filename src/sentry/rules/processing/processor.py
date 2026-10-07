@@ -43,10 +43,12 @@ def activate_downstream_actions(
     event: GroupEvent,
     notification_uuid: str | None = None,
 ) -> MutableMapping[
-    str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+    str | Callable[[GroupEvent, Sequence[RuleFuture]], None],
+    tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]],
 ]:
     grouped_futures: MutableMapping[
-        str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+        str | Callable[[GroupEvent, Sequence[RuleFuture]], None],
+        tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]],
     ] = {}
 
     for action in actions:
