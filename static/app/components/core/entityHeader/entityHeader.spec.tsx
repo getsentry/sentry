@@ -349,10 +349,15 @@ describe('EntityHeader', () => {
               : {type: 'text' as const, label: 'Dead Clicks', value: 4},
             {type: 'text', label: 'Errors', value: 2},
           ]}
-          metadata={[
-            {label: 'Chrome 144'},
-            isVideoReplay ? null : {label: 'Windows >=10'},
-          ]}
+          metadata={{
+            label: 'Replay properties',
+            items: [
+              {label: 'Browser', values: ['Chrome 144']},
+              isVideoReplay
+                ? null
+                : {label: 'Operating system', values: ['Windows >=10']},
+            ],
+          }}
         />
       );
 
@@ -469,11 +474,85 @@ describe('EntityHeader', () => {
       expect(screen.getByRole('banner').querySelectorAll('hr')).toHaveLength(0);
     });
 
+    it('names each metadata item, and the row they belong to', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          metadata={{
+            label: 'Replay properties',
+            items: [
+              {label: 'Browser', values: ['Chrome', '144.0.0']},
+              {label: 'Operating system', values: ['Windows', '>=10']},
+            ],
+          }}
+        />
+      );
+
+      // The row says what these strings have to do with each other, and each
+      // item says what it is — otherwise a screen reader meets "Chrome 144.0.0"
+      // with nothing to tie it to a browser, or to the replay.
+      const row = screen.getByRole('list', {name: 'Replay properties'});
+      const items = within(row).getAllByRole('listitem');
+
+      // A listitem takes no name from its content — a screen reader reads the
+      // content as it traverses — so the label has to be text inside it, and it
+      // has to come first.
+      expect(items).toHaveLength(2);
+
+      const readsLabelFirst = (item: HTMLElement, label: string, values: string) => {
+        const labelNode = within(item).getByText(label);
+        const valueNode = within(item).getByText(values);
+        return Boolean(
+          labelNode.compareDocumentPosition(valueNode) & Node.DOCUMENT_POSITION_FOLLOWING
+        );
+      };
+
+      expect(readsLabelFirst(items[0]!, 'Browser', 'Chrome 144.0.0')).toBe(true);
+      expect(readsLabelFirst(items[1]!, 'Operating system', 'Windows >=10')).toBe(true);
+    });
+
+    it('renders several values as one run, and hides the label unless asked', () => {
+      const {rerender} = render(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          metadata={{
+            label: 'Replay properties',
+            items: [{label: 'Browser', values: ['Chrome', '144.0.0']}],
+          }}
+        />
+      );
+
+      // A browser is a name and a version. They read as one phrase, but they are
+      // two values rather than a string the caller joined.
+      expect(screen.getByText('Chrome 144.0.0')).toBeVisible();
+      // Present for a screen reader, clipped out of the visual layout.
+      expect(screen.getByText('Browser')).toHaveStyle({clipPath: 'inset(50%)'});
+
+      rerender(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          metadata={{
+            label: 'Replay properties',
+            items: [{label: 'Browser', values: ['Chrome', '144.0.0'], showLabel: true}],
+          }}
+        />
+      );
+
+      // Showing it is a question of visibility only — what is read is unchanged.
+      const item = screen.getByRole('listitem');
+      expect(screen.getByText('Browser')).not.toHaveStyle({clipPath: 'inset(50%)'});
+      expect(within(item).getByText('Browser')).toBeInTheDocument();
+      expect(within(item).getByText('Chrome 144.0.0')).toBeInTheDocument();
+    });
+
     it('renders a tooltip on a metadata item', async () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          metadata={[{label: 'TTFB', tooltip: 'Time to First Byte'}]}
+          metadata={{
+            label: 'Page properties',
+            items: [{label: 'Metric', values: ['TTFB'], tooltip: 'Time to First Byte'}],
+          }}
         />
       );
 
@@ -493,7 +572,13 @@ describe('EntityHeader', () => {
             {type: 'text', label: 'Dead Clicks', value: 4},
             {type: 'text', label: 'Errors', value: 2},
           ]}
-          metadata={[{label: 'Chrome 144'}, {label: 'Windows >=10'}]}
+          metadata={{
+            label: 'Replay properties',
+            items: [
+              {label: 'Browser', values: ['Chrome 144']},
+              {label: 'Operating system', values: ['Windows >=10']},
+            ],
+          }}
         />
       );
 
@@ -556,7 +641,12 @@ describe('EntityHeader', () => {
           stats={[
             {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
           ]}
-          metadata={[{label: 'Chrome 144', tooltip: 'Browser'}]}
+          metadata={{
+            label: 'Replay properties',
+            items: [
+              {label: 'Browser', values: ['Chrome 144'], tooltip: 'The browser used'},
+            ],
+          }}
         />
       );
 
@@ -583,7 +673,10 @@ describe('EntityHeader', () => {
           isLoading
           title={{label: 'Replay user', value: 'Session'}}
           stats={[{type: 'text', label: 'Seen By', value: null}]}
-          metadata={[{label: 'Chrome 144'}]}
+          metadata={{
+            label: 'Replay properties',
+            items: [{label: 'Browser', values: ['Chrome 144']}],
+          }}
         />
       );
 
@@ -605,7 +698,10 @@ describe('EntityHeader', () => {
               value: <img alt="" height={25} width={50} />,
             },
           ]}
-          metadata={[{label: 'Chrome 144'}]}
+          metadata={{
+            label: 'Replay properties',
+            items: [{label: 'Browser', values: ['Chrome 144']}],
+          }}
         />
       );
 
@@ -620,7 +716,10 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
           stats={[{type: 'text', label: 'Errors', value: 2}]}
-          metadata={[{label: 'Chrome 144'}]}
+          metadata={{
+            label: 'Replay properties',
+            items: [{label: 'Browser', values: ['Chrome 144']}],
+          }}
         />
       );
 
@@ -669,7 +768,10 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          metadata={[{label: 'Chrome 144'}]}
+          metadata={{
+            label: 'Replay properties',
+            items: [{label: 'Browser', values: ['Chrome 144']}],
+          }}
         />
       );
 

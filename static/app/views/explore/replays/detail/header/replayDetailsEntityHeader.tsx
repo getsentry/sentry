@@ -144,52 +144,65 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
           loadingWidth: '64px',
         },
       ],
-      metadata: [
-        {
-          icon: <IconCalendar size="sm" variant="muted" />,
-          label:
-            replayRecord && !replayRecord.is_archived ? (
-              prefs.timestampType === 'absolute' ? (
-                <DateTime year timeZone date={replayRecord.started_at} />
-              ) : (
-                <TimeSince date={replayRecord.started_at} />
-              )
-            ) : null,
-          loadingWidth: '150px',
-        },
-        replayRecord?.browser.name
-          ? {
-              icon: (
-                <PlatformIcon
-                  platform={generatePlatformIconName(
-                    replayRecord.browser.name,
-                    replayRecord.browser.version ?? undefined
-                  )}
-                  size="16px"
-                />
-              ),
-              label: [replayRecord.browser.name, replayRecord.browser.version]
-                .filter(Boolean)
-                .join(' '),
-            }
-          : null,
-        replayRecord?.os.name
-          ? {
-              icon: (
-                <PlatformIcon
-                  platform={generatePlatformIconName(
-                    replayRecord.os.name,
-                    replayRecord.os.version ?? undefined
-                  )}
-                  size="16px"
-                />
-              ),
-              label: [replayRecord.os.name, replayRecord.os.version]
-                .filter(Boolean)
-                .join(' '),
-            }
-          : null,
-      ],
+      metadata: {
+        label: t('Replay properties'),
+        items: [
+          {
+            leadingGraphic: <IconCalendar size="sm" variant="muted" />,
+            label: t('Started at'),
+            values:
+              replayRecord && !replayRecord.is_archived
+                ? [
+                    prefs.timestampType === 'absolute' ? (
+                      <DateTime
+                        key="started"
+                        year
+                        timeZone
+                        date={replayRecord.started_at}
+                      />
+                    ) : (
+                      <TimeSince key="started" date={replayRecord.started_at} />
+                    ),
+                  ]
+                : [],
+            loadingWidth: '150px',
+          },
+          replayRecord?.browser.name
+            ? {
+                leadingGraphic: (
+                  <PlatformIcon
+                    platform={generatePlatformIconName(
+                      replayRecord.browser.name,
+                      replayRecord.browser.version ?? undefined
+                    )}
+                    size="16px"
+                  />
+                ),
+                label: t('Browser'),
+                // Two values, not one string the caller joined: the name and the
+                // version are separate properties of the replay.
+                values: [replayRecord.browser.name, replayRecord.browser.version].filter(
+                  Boolean
+                ),
+              }
+            : null,
+          replayRecord?.os.name
+            ? {
+                leadingGraphic: (
+                  <PlatformIcon
+                    platform={generatePlatformIconName(
+                      replayRecord.os.name,
+                      replayRecord.os.version ?? undefined
+                    )}
+                    size="16px"
+                  />
+                ),
+                label: t('Operating system'),
+                values: [replayRecord.os.name, replayRecord.os.version].filter(Boolean),
+              }
+            : null,
+        ],
+      },
     };
   }
 

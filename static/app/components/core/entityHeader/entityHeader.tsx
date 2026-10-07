@@ -36,9 +36,17 @@ export interface EntityHeaderProps {
   isLoading?: boolean;
   /**
    * Supporting facts, rendered as a wrapping row beneath the title.
-   * `null` entries are dropped so callers can inline conditionals.
+   *
+   * The row is a list, and `label` names it — "Replay properties". Without it a
+   * screen reader meets a run of unrelated strings with nothing saying they
+   * belong together or to what.
+   *
+   * `null` items are dropped so callers can inline conditionals.
    */
-  metadata?: Array<EntityHeaderMetadataItemProps | null>;
+  metadata?: {
+    items: Array<EntityHeaderMetadataItemProps | null>;
+    label: string;
+  };
   /**
    * People related to this entity — who viewed it, who is participating in it.
    * Rendered as an avatar stack at the head of the stats row, which is where
@@ -148,7 +156,7 @@ export function EntityHeader({
     .filter((entry): entry is {index: number; stat: EntityHeaderStatProps} =>
       Boolean(entry.stat)
     );
-  const visibleMetadata = (metadata ?? [])
+  const visibleMetadata = (metadata?.items ?? [])
     .map((item, index) => ({item, index}))
     .filter((entry): entry is {index: number; item: EntityHeaderMetadataItemProps} =>
       Boolean(entry.item)
@@ -196,8 +204,10 @@ export function EntityHeader({
               </Flex>
             )}
 
-            {hasMetadata && (
+            {hasMetadata && metadata && (
               <Flex
+                role="list"
+                aria-label={metadata.label}
                 align="center"
                 gap="md"
                 wrap="wrap"

@@ -33,11 +33,18 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
       {type: 'text', label: 'Rage Clicks', value: 2},
       {type: 'text', label: 'Errors', value: 1},
     ]}
-    metadata={[
-      {label: 'Feb 11, 2026 10:56 CET', icon: <IconCalendar size="xs" />},
-      {label: 'Chrome 144.0.0'},
-      {label: 'Windows >=10'},
-    ]}
+    metadata={{
+      label: 'Replay properties',
+      items: [
+        {
+          label: 'Started at',
+          values: ['Feb 11, 2026 10:56 CET'],
+          leadingGraphic: <IconCalendar size="xs" />,
+        },
+        {label: 'Browser', values: ['Chrome', '144.0.0']},
+        {label: 'Operating system', values: ['Windows', '>=10']},
+      ],
+    }}
   />
 </Storybook.Demo>
 
@@ -53,11 +60,18 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
     {type: 'text', label: 'Rage Clicks', value: 2},
     {type: 'text', label: 'Errors', value: 1},
   ]}
-  metadata={[
-    {label: 'Feb 11, 2026 10:56 CET', icon: <IconCalendar size="xs" />},
-    {label: 'Chrome 144.0.0'},
-    {label: 'Windows >=10'},
-  ]}
+  metadata={{
+    label: 'Replay properties',
+    items: [
+      {
+        label: 'Started at',
+        values: ['Feb 11, 2026 10:56 CET'],
+        leadingGraphic: <IconCalendar size="xs" />,
+      },
+      {label: 'Browser', values: ['Chrome', '144.0.0']},
+      {label: 'Operating system', values: ['Windows', '>=10']},
+    ],
+  }}
 />
 ```
 
@@ -143,6 +157,27 @@ People related to the entity get their own slot rather than being a labelled sta
 
 The slot keeps its space while `isLoading`, which is what stops the stats sliding sideways when the avatars land. Once it resolves to nobody it renders nothing, and the divider before the first stat goes with it.
 
+## Metadata
+
+The metadata row is a list, and its `label` names it — "Replay properties". Without that, a screen reader meets a run of unrelated strings with nothing saying they belong together, or to what.
+
+Each item is one property: a `label` saying what it is, and one or more `values`. Two values rather than one joined string is the point — a browser is its name _and_ its version, and joining them at the call site loses that.
+
+```jsx
+metadata={{
+  label: t('Replay properties'),
+  items: [
+    {
+      label: t('Browser'),
+      values: [replay.browser.name, replay.browser.version].filter(Boolean),
+      leadingGraphic: <PlatformIcon platform={platform} size="16px" />,
+    },
+  ],
+}}
+```
+
+The label is not rendered by default — the graphic beside the values usually carries it, and a header has no room to name every property. `showLabel` renders it as text when it does not. Either way it is in the DOM, so what a screen reader reads is the same; showing it is only a question of visibility.
+
 ## Conditional items
 
 `stats`, `metadata` and `tags` drop `null` entries, so you can inline a conditional instead of building the array ahead of time. Items are keyed by their position in the array you wrote, not in the filtered result, so an item appearing or disappearing never remounts its neighbours.
@@ -168,10 +203,13 @@ A metadata item gains a dotted underline and a tooltip with `tooltip`. Use `vari
     title={{label: 'Issue type', value: 'ValueError'}}
     subtitle="Cannot parse the provided timestamp"
     stats={[{type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'}]}
-    metadata={[
-      {label: 'Unhandled', variant: 'danger'},
-      {label: 'TTFB', tooltip: 'Time to First Byte'},
-    ]}
+    metadata={{
+      label: 'Issue properties',
+      items: [
+        {label: 'Handling', values: ['Unhandled'], variant: 'danger'},
+        {label: 'Metric', values: ['TTFB'], tooltip: 'Time to First Byte'},
+      ],
+    }}
   />
 </Storybook.Demo>
 
@@ -180,10 +218,13 @@ A metadata item gains a dotted underline and a tooltip with `tooltip`. Use `vari
   title={{label: 'Issue type', value: 'ValueError'}}
   subtitle="Cannot parse the provided timestamp"
   stats={[{type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'}]}
-  metadata={[
-    {label: 'Unhandled', variant: 'danger'},
-    {label: 'TTFB', tooltip: 'Time to First Byte'},
-  ]}
+  metadata={{
+    label: 'Issue properties',
+    items: [
+      {label: 'Handling', values: ['Unhandled'], variant: 'danger'},
+      {label: 'Metric', values: ['TTFB'], tooltip: 'Time to First Byte'},
+    ],
+  }}
 />
 ```
 
@@ -253,7 +294,13 @@ Each slot is replaced whole, stat labels included. A label is static and could b
       {type: 'text', label: 'Dead Clicks', value: 0},
       {type: 'text', label: 'Errors', value: 1},
     ]}
-    metadata={[{label: 'Feb 11, 2026 10:56 CET'}, {label: 'Chrome 144.0.0'}]}
+    metadata={{
+      label: 'Replay properties',
+      items: [
+        {label: 'Started at', values: ['Feb 11, 2026 10:56 CET']},
+        {label: 'Browser', values: ['Chrome', '144.0.0']},
+      ],
+    }}
   />
 </Storybook.Demo>
 
@@ -276,7 +323,13 @@ Above the `lg` container breakpoint (640px) the stats sit to the right of the ti
       {type: 'text', label: 'Dead Clicks', value: 0},
       {type: 'text', label: 'Errors', value: 1},
     ]}
-    metadata={[{label: 'Feb 11, 2026 10:56 CET'}, {label: 'Chrome 144.0.0'}]}
+    metadata={{
+      label: 'Replay properties',
+      items: [
+        {label: 'Started at', values: ['Feb 11, 2026 10:56 CET']},
+        {label: 'Browser', values: ['Chrome', '144.0.0']},
+      ],
+    }}
   />
 </Storybook.Demo>
 
@@ -294,4 +347,5 @@ Do not use it for list or landing pages, which carry no single entity.
 - A `people` stack is a named `group`. Its avatars are not focusable, so the per-avatar tooltips are mouse-only and the group name is what carries the meaning.
 - On a `link` stat the label navigates, and the link is named from the value and the label together, so the stat reads as one fact rather than two elements. A `text` stat is still two: its value and label are adjacent and read in order, but a screen reader moving element by element visits them separately.
 - Stats and metadata read in the order the narrow layout shows them, so reading order and focus order follow the eye at every width.
+- The metadata row is a named list and each item a listitem, carrying its own label as text so a screen reader reads "Browser, Chrome 144.0.0" rather than a bare version string.
 - The dividers between stats and metadata are decorative and hidden; a header has around five of them.
