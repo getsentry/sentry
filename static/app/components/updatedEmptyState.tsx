@@ -206,7 +206,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             marginTop="0"
             marginBottom="0"
           />
-          <Grid autoColumns="minmax(0, 1fr)" flow="column">
+          <Grid columns={{zero: 'minmax(0, 1fr)', xl: 'repeat(2, minmax(0, 1fr))'}}>
             <Container padding="3xl">
               <SetupTitle project={project} />
               <GuidedSteps
@@ -250,8 +250,6 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                         <GuidedSteps.NextButton size="md" />
                         {isLastStep && <WaitingIndicator project={project} />}
                       </GuidedSteps.ButtonWrapper>
-                      {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
-                      {isLastStep && <Container height="32px" />}
                     </GuidedSteps.Step>
                   );
                 })}
@@ -262,7 +260,11 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 top="19%"
                 height="78%"
                 borderRight="primary"
+                display={{zero: 'none', xl: 'block'}}
               />
+            </Container>
+            <Container padding="0 3xl" display={{zero: 'block', xl: 'none'}}>
+              <Container as="hr" border="none" borderTop="primary" margin="0" />
             </Container>
             <Container padding="3xl">
               <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
