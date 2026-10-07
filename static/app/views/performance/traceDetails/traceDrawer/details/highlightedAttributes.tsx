@@ -121,10 +121,10 @@ function getAISpanAttributes({
 }) {
   const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
 
-  const operationName = attributes['gen_ai.operation.name'] as string | undefined;
+  const operationName = attributes['gen_ai.operation.name'];
   // Memory spans carry none of the model/token/cost attributes below, so they
   // get their own rows and skip the rest (including the missing-attr warning).
-  if (isMemoryOperation(operationName)) {
+  if (typeof operationName === 'string' && isMemoryOperation(operationName)) {
     return getMemoryHighlightedAttributes(attributes);
   }
 
