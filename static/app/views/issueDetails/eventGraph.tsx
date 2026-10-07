@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {mergeRefs, useResizeObserver} from '@react-aria/utils';
+import {mergeProps, mergeRefs, useResizeObserver} from '@react-aria/utils';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
@@ -600,8 +600,7 @@ function GraphButton({
       {layoutProps => (
         <Button
           aria-label={`${t('Toggle graph series')} - ${label}`}
-          {...props}
-          className={`${layoutProps.className} ${props.className ?? ''}`}
+          {...mergeProps(props, layoutProps)}
         >
           <Stack gap="xs">
             <Text size="sm" variant={textVariant}>
