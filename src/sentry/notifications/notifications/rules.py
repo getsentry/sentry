@@ -100,10 +100,11 @@ class AlertRuleNotification(ProjectNotification):
         self.target_identifier = target_identifier
         self.fallthrough_choice = fallthrough_choice
         first_rule = notification.rules[0] if notification.rules else None
+        self.log_alert_id: int | None
         if isinstance(first_rule, NotificationOrigin):
-            self.alert_id = first_rule.link_id
+            self.log_alert_id = first_rule.link_id
         else:
-            self.alert_id = first_rule.id if first_rule is not None else None
+            self.log_alert_id = first_rule.id if first_rule is not None else None
         self.rules = [
             rule
             if isinstance(rule, NotificationOrigin)
@@ -365,7 +366,7 @@ class AlertRuleNotification(ProjectNotification):
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "alert_id": self.alert_id,
+            "alert_id": self.log_alert_id,
             **super().get_log_params(recipient),
         }
 
