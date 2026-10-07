@@ -43,10 +43,10 @@ export type EntityHeaderStatProps =
   | ({
       type: 'text';
       /**
-       * The measurement itself. Keep it to the single number the label names,
-       * and put any breakdown in `valueTooltip`.
+       * The measurement itself. Text, not a node: the row is built for single
+       * numbers, and any breakdown belongs in `valueTooltip`.
        */
-      value: React.ReactNode;
+      value: number | string;
       /**
        * What the value is made of — the projects behind an error count, say.
        * Takes structured content, which is how a breakdown stays out of the row.

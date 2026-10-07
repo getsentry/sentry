@@ -380,20 +380,14 @@ describe('EntityHeader', () => {
       expect(screen.queryByText('Windows >=10')).not.toBeInTheDocument();
     });
 
-    it('keeps a later stat mounted when an earlier conditional stat appears', async () => {
+    it('keeps a later stat mounted when an earlier conditional stat appears', () => {
       function TestHeader({showViewers}: {showViewers: boolean}) {
         return (
           <EntityHeader
             title={{label: 'Replay user', value: 'Session'}}
             stats={[
-              showViewers
-                ? {type: 'text' as const, label: 'Seen By', value: <span>2 viewers</span>}
-                : null,
-              {
-                type: 'text',
-                label: 'Note',
-                value: <input aria-label="Scratch note" defaultValue="" />,
-              },
+              showViewers ? {type: 'text' as const, label: 'Seen By', value: 2} : null,
+              {type: 'text', label: 'Note', value: 7},
             ]}
           />
         );
@@ -401,13 +395,15 @@ describe('EntityHeader', () => {
 
       const {rerender} = render(<TestHeader showViewers={false} />);
 
-      await userEvent.type(screen.getByRole('textbox', {name: 'Scratch note'}), 'kept');
-      expect(screen.getByRole('textbox', {name: 'Scratch note'})).toHaveValue('kept');
+      // Keyed by position in the filtered array, the later stat's key would
+      // shift from 0 to 1 when the earlier one appears, and React would
+      // replace its node rather than move it.
+      const noteBefore = screen.getByText('Note');
 
       rerender(<TestHeader showViewers />);
 
-      expect(screen.getByText('2 viewers')).toBeInTheDocument();
-      expect(screen.getByRole('textbox', {name: 'Scratch note'})).toHaveValue('kept');
+      expect(screen.getByText('Seen By')).toBeInTheDocument();
+      expect(screen.getByText('Note')).toBe(noteBefore);
     });
 
     it('holds space for people while they load, then renders the avatars', () => {
@@ -742,7 +738,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           isLoading
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[{type: 'text', label: 'Seen By', value: null}]}
+          stats={[{type: 'text', label: 'Seen By', value: 0}]}
           metadata={{
             label: 'Replay properties',
             items: [{label: 'Browser', values: ['Chrome 144']}],
@@ -761,13 +757,8 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {
-              type: 'text',
-              label: 'Seen By',
-              value: <img alt="" height={25} width={50} />,
-            },
-          ]}
+          people={{users: [UserFixture({id: '1', name: 'Alice'})], label: 'Viewed by'}}
+          stats={[{type: 'text', label: 'Seen By', value: 2}]}
           metadata={{
             label: 'Replay properties',
             items: [{label: 'Browser', values: ['Chrome 144']}],
