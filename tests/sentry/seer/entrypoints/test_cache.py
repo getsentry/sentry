@@ -5,10 +5,12 @@ from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.seer.entrypoints.cache import (
     AGENT_CACHE_TIMEOUT_SECONDS,
     AUTOFIX_CACHE_TIMEOUT_SECONDS,
+    INVESTIGATION_CACHE_TIMEOUT_SECONDS,
     PENDING_MENTION_CACHE_TIMEOUT_SECONDS,
     CacheHaltReason,
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
+    SeerOperatorInvestigationCache,
     SeerOperatorPendingMentionCache,
 )
 from sentry.seer.entrypoints.types import SeerEntrypointKey
@@ -337,3 +339,34 @@ class SeerOperatorPendingMentionCacheTest(TestCase):
         assert result is None
         mock_cache_delete.assert_not_called()
         mock_record_halt.assert_called_once_with(halt_reason=CacheHaltReason.CACHE_MISS)
+
+
+class SeerOperatorInvestigationCacheTest(TestCase):
+    @patch("sentry.seer.entrypoints.cache.cache.set")
+    def test_set_uses_investigation_key_and_ttl(self, mock_cache_set):
+        payload = MockCachePayload(thread_id="thread")
+
+        SeerOperatorInvestigationCache.set(
+            entrypoint_key="slack", investigation_id=123, cache_payload=payload
+        )
+
+        mock_cache_set.assert_called_once_with(
+            "seer:investigation:slack:123",
+            payload,
+            timeout=INVESTIGATION_CACHE_TIMEOUT_SECONDS,
+        )
+        assert INVESTIGATION_CACHE_TIMEOUT_SECONDS == 60 * 60 * 24
+
+    def test_get_round_trip(self) -> None:
+        payload = MockCachePayload(thread_id="thread")
+        SeerOperatorInvestigationCache.set(
+            entrypoint_key="slack", investigation_id=123, cache_payload=payload
+        )
+
+        assert (
+            SeerOperatorInvestigationCache.get(entrypoint_key="slack", investigation_id=123)
+            == payload
+        )
+        assert (
+            SeerOperatorInvestigationCache.get(entrypoint_key="slack", investigation_id=456) is None
+        )

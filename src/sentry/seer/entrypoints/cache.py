@@ -21,6 +21,7 @@ class CacheHaltReason(StrEnum):
 AUTOFIX_CACHE_TIMEOUT_SECONDS = 60 * 60 * 12  # 12 hours
 AGENT_CACHE_TIMEOUT_SECONDS = 60 * 60  # 1 hour
 PENDING_MENTION_CACHE_TIMEOUT_SECONDS = 15 * 60  # 15 minutes
+INVESTIGATION_CACHE_TIMEOUT_SECONDS = 60 * 60 * 24  # 24 hours
 
 
 class SeerOperatorAutofixCache[CachePayloadT]:
@@ -300,4 +301,40 @@ class SeerOperatorPendingMentionCache[CachePayloadT]:
                 lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
                 return None
             cache.delete(cache_key)
+            return cache_payload
+
+
+class SeerOperatorInvestigationCache[CachePayloadT]:
+    @classmethod
+    def _get_cache_key(cls, *, entrypoint_key: str, investigation_id: int) -> str:
+        return f"seer:investigation:{entrypoint_key}:{investigation_id}"
+
+    @classmethod
+    def set(
+        cls, *, entrypoint_key: str, investigation_id: int, cache_payload: CachePayloadT
+    ) -> None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_SET_INVESTIGATION,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls._get_cache_key(
+                entrypoint_key=entrypoint_key, investigation_id=investigation_id
+            )
+            lifecycle.add_extras({"investigation_id": investigation_id, "cache_key": cache_key})
+            cache.set(cache_key, cache_payload, timeout=INVESTIGATION_CACHE_TIMEOUT_SECONDS)
+
+    @classmethod
+    def get(cls, *, entrypoint_key: str, investigation_id: int) -> CachePayloadT | None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_GET_INVESTIGATION,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls._get_cache_key(
+                entrypoint_key=entrypoint_key, investigation_id=investigation_id
+            )
+            lifecycle.add_extras({"investigation_id": investigation_id, "cache_key": cache_key})
+            cache_payload = cache.get(cache_key)
+            if not cache_payload:
+                lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
+                return None
             return cache_payload

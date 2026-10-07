@@ -32,6 +32,11 @@ class SeerOperatorInteractionType(StrEnum):
     OPERATOR_CACHE_GET_AGENT = "cache_get_agent"
     OPERATOR_CACHE_SET_PENDING_MENTION = "cache_set_pending_mention"
     OPERATOR_CACHE_POP_PENDING_MENTION = "cache_pop_pending_mention"
+    OPERATOR_TRIGGER_INVESTIGATION = "trigger_investigation"
+    OPERATOR_CACHE_SET_INVESTIGATION = "cache_set_investigation"
+    OPERATOR_CACHE_GET_INVESTIGATION = "cache_get_investigation"
+    ENTRYPOINT_ON_TRIGGER_INVESTIGATION = "entrypoint_on_trigger_investigation"
+    ENTRYPOINT_CREATE_INVESTIGATION_CACHE_PAYLOAD = "entrypoint_create_investigation_cache_payload"
 
 
 @dataclass
@@ -57,6 +62,7 @@ class SlackEntrypointInteractionType(StrEnum):
     UPDATE_EXISTING_MESSAGE = "update_existing_message"
     PROCESS_MENTION = "process_mention"
     PROCESS_REACTION = "process_reaction"
+    SEND_INVESTIGATION_STATUS = "send_investigation_status"
 
 
 @dataclass
