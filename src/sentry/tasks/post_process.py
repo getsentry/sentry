@@ -487,7 +487,7 @@ def update_existing_attachments(job: PostProcessJob) -> None:
             sample_rate=1,
             tags={
                 "is_reprocessed": job["is_reprocessed"],
-                "issue_category": job["event"].group.issue_category,
+                "issue_category": job["event"].group.issue_category.name.lower(),
                 "is_new": job["group_state"]["is_new"],
             },
         )
