@@ -98,7 +98,7 @@ describe('ReplayDetails', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${ReplayRecordFixture().project_id}/replays/test-replay-id/viewed-by/`,
+      url: `/projects/org-slug/${ProjectFixture().slug}/replays/test-replay-id/viewed-by/`,
       body: {data: {viewed_by: []}},
     });
   });
