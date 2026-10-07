@@ -21,7 +21,11 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
-from sentry.reprocessing2 import is_group_finished, start_group_reprocessing
+from sentry.reprocessing2 import (
+    get_unprocessed_backup,
+    is_group_finished,
+    start_group_reprocessing,
+)
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
@@ -68,6 +72,17 @@ def inline_payload_options(request):
         {
             "store.enable-inline-payloads": float(request.param),
             "store.disable-processing-store": request.param,
+        }
+    ):
+        yield
+
+
+@pytest.fixture(params=[0.0, 1.0], ids=["redis_backup", "nodestore_backup"])
+def unprocessed_backup_options(request):
+    with override_options(
+        {
+            "store.reprocessing-nodestore-backup.rollout": request.param,
+            "store.reprocessing-nodestore-backup.legacy": False,
         }
     ):
         yield
@@ -123,6 +138,7 @@ def test_basic(
     register_event_preprocessor,
     django_cache,
     inline_payload_options,
+    unprocessed_backup_options,
 ):
     from sentry import eventstream
 
@@ -173,6 +189,8 @@ def test_basic(
         assert event is not None
         assert event.get_tag("processing_counter") == "x0"
         assert not event.data.get("errors")
+
+        assert get_unprocessed_backup(default_project.id, event_id) is None
 
         assert get_event_by_processing_counter("x0")[0].event_id == event.event_id
 

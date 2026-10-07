@@ -1193,6 +1193,23 @@ register(
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Rollout for backing up the unprocessed copy of an event to nodestore from the first
+# symbolication task instead of to `event_processing_store` from the ingest consumer.
+register(
+    "store.reprocessing-nodestore-backup.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Whether events in the above rollout are still backed up to `event_processing_store`
+# as well.
+register(
+    "store.reprocessing-nodestore-backup.legacy",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "store.ingest-events-raw-task.inline-save-event",
     type=Bool,

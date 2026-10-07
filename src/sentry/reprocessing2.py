@@ -145,6 +145,10 @@ EVENT_MODELS_TO_MIGRATE = (EventAttachment, models.UserReport)
 # and after which we just give up and mark the group as finished.
 REPROCESSING_TIMEOUT = 20 * 60
 
+# How long the unprocessed copy is kept in its own nodestore row until `save_event`
+# moves it into a subkey of the event.
+UNPROCESSED_COPY_TTL = timedelta(hours=24)
+
 
 # Note: This list of reasons is exposed in the EventReprocessableEndpoint to
 # the frontend.
@@ -164,10 +168,15 @@ class CannotReprocess(Exception):
         Exception.__init__(self, reason)
 
 
-def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
+# Where the unprocessed copy of an event in the nodestore backup rollout is: "pending"
+# until the first symbolication task writes it to nodestore, then "nodestore".
+UnprocessedBackupState = Literal["pending", "nodestore"]
+
+
+def backup_unprocessed_event(data: Mapping[str, Any], to_nodestore: bool = False) -> None:
     """
-    Backup unprocessed event payload into redis. Only call if event should be
-    able to be reprocessed.
+    Backup unprocessed event payload into redis, or nodestore if `to_nodestore`. Only
+    call if event should be able to be reprocessed.
     """
 
     if options.get("store.reprocessing-force-disable"):
@@ -184,7 +193,19 @@ def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
     except Exception:
         logger.warning("reprocessing2.unprocessed_size_metric_failed", exc_info=True)
 
-    event_processing_store.store(data, unprocessed=True)
+    if to_nodestore:
+        node_id = Event.generate_unprocessed_node_id(data["project"], data["event_id"])
+        nodestore.backend.set(node_id, data, ttl=UNPROCESSED_COPY_TTL)
+    else:
+        event_processing_store.store(data, unprocessed=True)
+
+
+def get_unprocessed_backup(project_id: int, event_id: str) -> Any | None:
+    return nodestore.backend.get(Event.generate_unprocessed_node_id(project_id, event_id))
+
+
+def delete_unprocessed_backup(project_id: int, event_id: str) -> None:
+    nodestore.backend.delete(Event.generate_unprocessed_node_id(project_id, event_id))
 
 
 @dataclass
