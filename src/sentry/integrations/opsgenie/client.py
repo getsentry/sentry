@@ -25,6 +25,38 @@ OpsgeniePriority = Literal["P1", "P2", "P3", "P4", "P5"]
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
+# Opsgenie/JSM caps the total size of `details`, so keep the flags entry bounded.
+MAX_FEATURE_FLAGS_DETAIL_LENGTH = 4000
+
+
+def get_feature_flags_detail(event: Event | GroupEvent) -> str | None:
+    """
+    Format the feature flags evaluated before the event (as recorded by the SDK
+    feature flag integrations in `contexts.flags.values`) for the alert details.
+    """
+    contexts = event.data.get("contexts") or {}
+    flags_context = contexts.get("flags") or {}
+    values = flags_context.get("values") or []
+    if not isinstance(values, list):
+        return None
+
+    formatted = []
+    for item in values:
+        if not isinstance(item, dict) or item.get("flag") is None:
+            continue
+        result = item.get("result")
+        if isinstance(result, bool):
+            result = "true" if result else "false"
+        formatted.append(f"{item['flag']}: {result}")
+
+    if not formatted:
+        return None
+
+    detail = "\n".join(formatted)
+    if len(detail) > MAX_FEATURE_FLAGS_DETAIL_LENGTH:
+        detail = detail[: MAX_FEATURE_FLAGS_DETAIL_LENGTH - 3] + "..."
+    return detail
+
 
 class OpsgenieClient(ApiClient):
     integration_name = IntegrationProviderSlug.OPSGENIE.value
@@ -88,6 +120,9 @@ class OpsgenieClient(ApiClient):
         priority: OpsgeniePriority | None = "P3",
         notification_uuid: str | None = None,
     ):
+        feature_flags = get_feature_flags_detail(event)
+        feature_flags_context = {"Feature Flags": feature_flags} if feature_flags else {}
+
         payload = {
             "message": event.message or event.title,
             "source": "Sentry",
@@ -95,6 +130,7 @@ class OpsgenieClient(ApiClient):
             "details": {
                 "Triggering Rules": ", ".join([rule.label for rule in rules]),
                 "Release": data.release,
+                **feature_flags_context,
             },
             "tags": [f"{str(x).replace(',', '')}:{str(y).replace(',', '')}" for x, y in event.tags],
         }
@@ -123,6 +159,7 @@ class OpsgenieClient(ApiClient):
                 "Issue URL": group.get_absolute_url(params=group_params),
                 "Release": data.release,
                 **rule_workflow_context,
+                **feature_flags_context,
             }
         return payload
 
