@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 
 import {InlineCode} from '@sentry/scraps/code';
+import {Link} from '@sentry/scraps/link';
 
 import {GridTable, type GridColumnOrder} from 'sentry/components/tables/gridTable';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridTable/useQueryBasedColumnResize';
@@ -24,7 +25,21 @@ export default Storybook.story('GridTable', story => {
   ];
 
   story('Minimal', () => {
-    return <GridTable data={[]} columnOrder={columns} grid={{}} />;
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="GridTable" /> builds a{' '}
+          <Link to="/scraps/product/components/tables/simpletable/simpletable/">
+            <Storybook.JSXNode name="SimpleTable" />
+          </Link>{' '}
+          from a list of columns and a few render functions, instead of you writing out
+          each row and cell. Reach for it when your columns come from data, like a saved
+          query, or need sorting and resizing. For a table you lay out by hand, use{' '}
+          <Storybook.JSXNode name="SimpleTable" /> directly.
+        </p>
+        <GridTable data={[]} columnOrder={columns} grid={{}} />
+      </Fragment>
+    );
   });
 
   const columnsWithWidth: Array<GridColumnOrder<keyof ExampleDataItem | 'other'>> =
