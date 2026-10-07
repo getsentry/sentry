@@ -10,6 +10,7 @@ export type PreloadRequestName = 'organization' | 'projects' | 'teams';
 export interface PreloadRequestResult {
   durationMs: number;
   outcome: 'success' | 'error';
+  error?: unknown;
   errorName?: string;
   status?: number;
 }

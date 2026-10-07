@@ -132,6 +132,7 @@ function preloadOrganizationData(config: Config) {
       (error: Error): PreloadRequestResult => ({
         outcome: 'error',
         status: error instanceof PreloadRequestError ? error.status : undefined,
+        error,
         errorName: error.name,
         durationMs: performance.now() - startTime,
       })
