@@ -2253,7 +2253,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
 
     logger_data["payload"] = payload
 
-    with traces.start_span(name=op, attributes=({"sentry.op": op} if op is not None else {})):
+    with traces.start_span(name=op, attributes=({"sentry.op": op})):
         try:
             with metrics.timer(op):
                 timeout = options.get(
