@@ -2,14 +2,11 @@ import {Fragment, useCallback, useState, type ReactNode} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  COL_WIDTH_UNDEFINED,
-  type GridColumn,
-  type GridColumnSort,
-} from 'sentry/components/tables/gridEditable';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import type {GridColumn, GridColumnSort} from 'sentry/components/tables/simpleTable';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/simpleTable/useQueryBasedColumnResize';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {

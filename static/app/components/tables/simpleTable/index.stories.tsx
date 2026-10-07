@@ -64,10 +64,9 @@ export default Storybook.story('SimpleTable', story => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="SimpleTable" /> component is a simplified variant
-          of the
-          <Storybook.JSXNode name="GridEditable" /> component. It does not support
-          adjustable column widths and provides a simplified API surface.
+          The <Storybook.JSXNode name="SimpleTable" /> component composes tables out of
+          rows and cells. To configure one from a list of columns and renderers instead,
+          use <Storybook.JSXNode name="SimpleTable.FromColumns" />.
         </p>
 
         <p>

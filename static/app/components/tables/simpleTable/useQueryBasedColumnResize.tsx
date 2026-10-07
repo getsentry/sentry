@@ -1,8 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import dropRightWhile from 'lodash/dropRightWhile';
 
-import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
+
+import type {GridColumnOrder} from 'sentry/components/tables/simpleTable';
 import {decodeInteger, decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

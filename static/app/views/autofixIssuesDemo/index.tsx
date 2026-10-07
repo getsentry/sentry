@@ -4,17 +4,14 @@ import {Tag} from '@sentry/scraps/badge';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 import type {TagVariant} from '@sentry/scraps/theme';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
+import {SimpleTable, type GridColumnOrder} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -166,7 +163,7 @@ export default function AutofixIssuesDemo() {
           <LoadingError onRetry={refetch} />
         ) : (
           <Container>
-            <GridEditable
+            <SimpleTable.FromColumns
               isLoading={isPending}
               data={issues}
               columnOrder={columnOrder}

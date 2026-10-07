@@ -16,11 +16,11 @@ import {
   extractSelectionParameters,
   normalizeDateTimeParams,
 } from 'sentry/components/pageFilters/parse';
-import type {
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  type GridColumnHeader,
+  type GridColumnOrder,
+  SimpleTable,
+} from 'sentry/components/tables/simpleTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -201,7 +201,7 @@ export function ReleasesDrawerTable({
 
   return (
     <div>
-      <GridEditable
+      <SimpleTable.FromColumns
         error={isError}
         isLoading={isLoading}
         data={releaseData ?? []}

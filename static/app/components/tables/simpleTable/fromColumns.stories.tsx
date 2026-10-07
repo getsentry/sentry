@@ -1,11 +1,9 @@
 import {Fragment, useState} from 'react';
 
-import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 
-import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {type GridColumnOrder, SimpleTable} from 'sentry/components/tables/simpleTable';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/simpleTable/useQueryBasedColumnResize';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import * as Storybook from 'sentry/stories';
 
@@ -14,7 +12,7 @@ interface ExampleDataItem {
   name: string;
 }
 
-export default Storybook.story('GridEditable', story => {
+export default Storybook.story('SimpleTable.FromColumns', story => {
   const columns: Array<GridColumnOrder<keyof ExampleDataItem>> = [
     {key: 'category', name: 'Platform Category'},
     {key: 'name', name: 'Platform Name'},
@@ -26,7 +24,7 @@ export default Storybook.story('GridEditable', story => {
   ];
 
   story('Minimal', () => {
-    return <GridEditable data={[]} columnOrder={columns} grid={{}} />;
+    return <SimpleTable.FromColumns data={[]} columnOrder={columns} grid={{}} />;
   });
 
   const columnsWithWidth: Array<GridColumnOrder<keyof ExampleDataItem | 'other'>> =
@@ -57,7 +55,7 @@ export default Storybook.story('GridEditable', story => {
           By default the column widths are resizable, but will reset frequently unless you
           persist them somehow.
         </p>
-        <GridEditable
+        <SimpleTable.FromColumns
           data={data}
           columnOrder={columnsWithWidth}
           grid={{
@@ -73,9 +71,9 @@ export default Storybook.story('GridEditable', story => {
     <Storybook.SideBySide>
       <div>
         <p>
-          <Storybook.JSXNode name="GridEditable" props={{error: String}} />
+          <Storybook.JSXNode name="SimpleTable.FromColumns" props={{error: String}} />
         </p>
-        <GridEditable
+        <SimpleTable.FromColumns
           error="An error happened"
           data={data}
           columnOrder={columns}
@@ -84,9 +82,9 @@ export default Storybook.story('GridEditable', story => {
       </div>
       <div>
         <p>
-          <Storybook.JSXNode name="GridEditable" props={{isLoading: true}} />
+          <Storybook.JSXNode name="SimpleTable.FromColumns" props={{isLoading: true}} />
         </p>
-        <GridEditable isLoading data={data} columnOrder={columns} grid={{}} />
+        <SimpleTable.FromColumns isLoading data={data} columnOrder={columns} grid={{}} />
       </div>
     </Storybook.SideBySide>
   ));
@@ -108,7 +106,7 @@ export default Storybook.story('GridEditable', story => {
         <p>
           Hovered Row: {activeRow?.category} {activeRow?.name}
         </p>
-        <GridEditable
+        <SimpleTable.FromColumns
           data={data}
           columnOrder={columns}
           grid={{}}
@@ -142,7 +140,7 @@ export default Storybook.story('GridEditable', story => {
               In this example no callback is passed, so the table keeps the resized widths
               itself.
             </p>
-            <GridEditable
+            <SimpleTable.FromColumns
               data={data}
               columnOrder={columnsWithWidth}
               grid={{
@@ -157,7 +155,7 @@ export default Storybook.story('GridEditable', story => {
               <InlineCode>useQueryBasedColumnResize</InlineCode>. Notice how the url
               updates after you drag columns.
             </p>
-            <GridEditable
+            <SimpleTable.FromColumns
               data={data}
               columnOrder={queryBasedColumnResize.columns}
               grid={{
@@ -173,7 +171,7 @@ export default Storybook.story('GridEditable', story => {
   });
 
   story('Fixed Height', () => (
-    <GridEditable
+    <SimpleTable.FromColumns
       data={data}
       columnOrder={columns}
       grid={{
@@ -182,20 +180,6 @@ export default Storybook.story('GridEditable', story => {
       }}
       height="200px"
       stickyHeader
-    />
-  ));
-
-  story('Header Augmentations', () => (
-    <Storybook.PropMatrix
-      render={GridEditable<ExampleDataItem, GridColumnOrder<keyof ExampleDataItem>>}
-      propMatrix={{
-        data: [data],
-        columnOrder: [columns],
-        grid: [{}],
-        headerButtons: [undefined, () => <Button>Take Action</Button>],
-        title: [undefined, 'GridEditable Title'],
-      }}
-      selectedProps={['title', 'headerButtons']}
     />
   ));
 
@@ -209,7 +193,7 @@ export default Storybook.story('GridEditable', story => {
         <Storybook.SideBySide>
           <div>
             <div>No sticky headers</div>
-            <GridEditable
+            <SimpleTable.FromColumns
               data={data}
               columnOrder={columns}
               grid={{
@@ -221,7 +205,7 @@ export default Storybook.story('GridEditable', story => {
           </div>
           <div>
             <div>With sticky headers</div>
-            <GridEditable
+            <SimpleTable.FromColumns
               data={data}
               columnOrder={columns}
               grid={{
@@ -254,11 +238,11 @@ export default Storybook.story('GridEditable', story => {
           the grid to fit around the content.
         </p>
         <p>
-          <Storybook.JSXNode name="GridEditable" /> will by default resize the columns to
-          fit within it's container. So columns of long width may take up multiple lines
-          or be cut off, which might not be desired (ex. when the table has many columns
-          or is placed into a small container). One way to control column width this is to
-          provide
+          <Storybook.JSXNode name="SimpleTable.FromColumns" /> will by default resize the
+          columns to fit within it's container. So columns of long width may take up
+          multiple lines or be cut off, which might not be desired (ex. when the table has
+          many columns or is placed into a small container). One way to control column
+          width this is to provide
           <Storybook.JSXProperty name="minColumnWidth" value="number" />, which applies
           the same width to all columns. However, this does not account for varying widths
           between columns, unlike this prop does.
@@ -266,7 +250,7 @@ export default Storybook.story('GridEditable', story => {
         <Storybook.SideBySide>
           <div style={{width: 400}}>
             <div>Without fit content is forced in multiple lines or cut off</div>
-            <GridEditable
+            <SimpleTable.FromColumns
               data={newData}
               columnOrder={columns}
               grid={{
@@ -277,7 +261,7 @@ export default Storybook.story('GridEditable', story => {
           </div>
           <div style={{width: 400}}>
             <div>With fit the content forces the table to expand (scroll)</div>
-            <GridEditable
+            <SimpleTable.FromColumns
               data={newData}
               columnOrder={columns}
               grid={{

@@ -2,16 +2,17 @@ import {useCallback} from 'react';
 import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
-import type {
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  type GridColumnOrder,
+  type GridColumnSortBy,
+  SimpleTable,
+} from 'sentry/components/tables/simpleTable';
 import {UserMisery} from 'sentry/components/userMisery';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -75,7 +76,7 @@ export function ProfileEventsTable<F extends FieldType>(
   );
 
   return (
-    <GridEditable
+    <SimpleTable.FromColumns
       isLoading={props.isLoading}
       error={props.error}
       data={props.data?.data ?? []}

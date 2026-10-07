@@ -4,13 +4,10 @@ import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
 import {Flex} from '@sentry/scraps/layout';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
+import {SimpleTable, type GridColumnOrder} from 'sentry/components/tables/simpleTable';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
@@ -170,7 +167,7 @@ function IssueOpenPeriodsList() {
         tableUnits: t('open periods'),
       }}
     >
-      <GridEditable
+      <SimpleTable.FromColumns
         isLoading={isPending}
         data={data}
         error={error}

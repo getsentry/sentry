@@ -15,7 +15,7 @@ export const documentation = import('!!type-loader!@sentry/scraps/table');
 
 The `Table` component renders a `<table>` with `display: grid` and `grid-template-columns: subgrid`, so that every row shares one set of column tracks.
 It provides table geometry and column resizing only, without borders, padding, or empty and loading states.
-Higher level components like `SimpleTable` and `GridEditable` add those on top of it.
+Higher level components like `SimpleTable` add those on top of it.
 
 ## Basic Usage
 
@@ -77,7 +77,7 @@ Omit it to size the column with `minmax(minimumColumnWidth, auto)`, and set `res
 ```
 
 Widths are uncontrolled by default, and the component tracks them per column key.
-Pass `onColumnResize` to control them instead, which is how `GridEditable` persists widths to the URL.
+Pass `onColumnResize` to control them instead, which is how `SimpleTable.FromColumns` persists widths to the URL.
 
 ## Responsive Columns
 

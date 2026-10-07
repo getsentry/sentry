@@ -1,4 +1,4 @@
-// For GridEditable, there are 2 generic types for the component, T and K
+// For SimpleTable.FromColumns, there are 2 generic types for the component, T and K
 //
 // - T is an element/object that represents the data to be displayed
 // - K is a key of T/

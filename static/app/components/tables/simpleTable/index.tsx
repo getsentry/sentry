@@ -19,6 +19,11 @@ import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/sta
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
+import {FromColumns} from './fromColumns';
+
+export type * from './types';
+export type {FromColumnsProps} from './fromColumns';
+
 const HEADER_ROW_HEIGHT = 40;
 
 type TableSectionsProps =
@@ -311,3 +316,4 @@ SimpleTable.Error = TableError;
 SimpleTable.Loading = TableLoading;
 SimpleTable.FullWidthCell = FullWidthCell;
 SimpleTable.FullWidthRow = FullWidthRow;
+SimpleTable.FromColumns = FromColumns;

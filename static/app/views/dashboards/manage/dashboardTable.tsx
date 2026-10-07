@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -17,11 +18,10 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
+  SimpleTable,
   type GridColumnOrder,
   type GridColumnSort,
-} from 'sentry/components/tables/gridEditable';
+} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconCopy,
@@ -416,7 +416,7 @@ function DashboardTable({
   };
 
   return (
-    <GridEditable
+    <SimpleTable.FromColumns
       data={dashboards ?? []}
       columnOrder={columnOrder}
       grid={{

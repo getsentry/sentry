@@ -4,14 +4,15 @@ import styled from '@emotion/styled';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import type {
-  GridColumnHeader,
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  type GridColumnHeader,
+  type GridColumnOrder,
+  type GridColumnSortBy,
+  SimpleTable,
+} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -288,7 +289,7 @@ export function WebVitalsDetailPanel({
           </ChartContainer>
 
           <TableContainer>
-            <GridEditable
+            <SimpleTable.FromColumns
               data={dataByOpportunity}
               isLoading={isPending}
               columnOrder={columnOrder}
