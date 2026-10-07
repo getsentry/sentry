@@ -58,6 +58,7 @@ class ChatSuggestionsResult(BaseModel):
 class ProjectInfoSerializer(serializers.Serializer):
     slug = serializers.CharField()
     platform = serializers.CharField(required=False, allow_null=True, default=None)
+    # Does the project send insights, replays, logs, profiles, etc.?
     sends = serializers.ListField(child=serializers.CharField(), required=False, default=list)
 
 
@@ -84,7 +85,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             "POST": {
                 RateLimitCategory.IP: RateLimit(limit=30, window=60),
                 RateLimitCategory.USER: RateLimit(limit=30, window=60),
-                RateLimitCategory.ORGANIZATION: RateLimit(limit=1000, window=60 * 60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
             },
         }
     )
