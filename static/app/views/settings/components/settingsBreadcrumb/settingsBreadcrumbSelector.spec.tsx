@@ -19,7 +19,7 @@ const options = [
 ];
 
 describe('SettingsBreadcrumbSelector', () => {
-  it('opens the parent menu from its icon button without a navigation link', async () => {
+  it('renders a label link and opens the parent menu from its separate icon button', async () => {
     const onCrumbSelect = jest.fn();
     const onSearch = jest.fn();
     const {rerender} = render(
@@ -37,10 +37,14 @@ describe('SettingsBreadcrumbSelector', () => {
     );
 
     expect(screen.getAllByRole('link').map(link => link.textContent)).toEqual([
+      'javascript',
       'Settings',
       'Keys',
     ]);
-    expect(screen.queryByRole('link', {name: 'javascript'})).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'javascript'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/projects/javascript/'
+    );
     expect(screen.getByRole('heading', {name: 'Details', level: 1})).toBeInTheDocument();
     const label = screen.getByText('javascript');
     const trigger = screen.getByRole('button', {name: 'Switch javascript'});

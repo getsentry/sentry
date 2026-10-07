@@ -30,6 +30,7 @@ export function SettingsBreadcrumbSelector({
               type: 'select',
               label,
               leadingGraphic,
+              to,
               ...selectProps,
               onChange: selected => onCrumbSelect(selected.value),
             }

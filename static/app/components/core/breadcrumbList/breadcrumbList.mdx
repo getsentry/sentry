@@ -221,7 +221,8 @@ tab, including when shown in the overflow menu.
 Use this item only for a parent selector in the breadcrumb trail.
 Pass `options`, `value`, and `onChange`. Settings also uses this item for team
 and integration selection. The separate icon button opens the menu on click.
-Selector labels are plain text, not navigation links. `label` keeps the current name visible when search results omit
+Pass `to` to make the label a navigation link. Without `to`, it is plain text.
+`label` keeps the current name visible when search results omit
 the selected option; `leadingGraphic` decorates the label. The item also forwards
 `search`, `loading`, and `onOpenChange` to `CompactSelect`. The current page title
 must use `page-title` or `editable-title`.

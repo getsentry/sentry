@@ -93,7 +93,7 @@ function getRedirectTarget(routes: RouteObject[], url: string): string | undefin
 
 describe('buildRoutes()', () => {
   it.each([false, true])(
-    'declares full settings destinations on both route trees (customer domain: %s)',
+    'composes settings breadcrumbs from matched routes (customer domain: %s)',
     customerDomain => {
       jest
         .spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get')

@@ -1,12 +1,14 @@
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SingleSelectProps} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconChevron} from 'sentry/icons';
 
+import {BreadcrumbItemLink} from './breadcrumbItemLink';
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
 export type BreadcrumbItemSelectProps<Value extends SelectKey = string> = Pick<
@@ -16,6 +18,7 @@ export type BreadcrumbItemSelectProps<Value extends SelectKey = string> = Pick<
   /** Keeps the current label visible when search results omit the selected option. */
   label?: string;
   leadingGraphic?: React.ReactNode;
+  to?: LinkProps['to'];
 };
 
 export function BreadcrumbItemSelect<Value extends SelectKey = string>({
@@ -24,6 +27,7 @@ export function BreadcrumbItemSelect<Value extends SelectKey = string>({
   onChange,
   label,
   leadingGraphic,
+  to,
   ...props
 }: BreadcrumbItemSelectProps<Value>) {
   const {t} = useTranslation();
@@ -35,16 +39,24 @@ export function BreadcrumbItemSelect<Value extends SelectKey = string>({
 
   return (
     <Flex as="span" align="center" gap="xs" flexShrink={0}>
-      <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
-        {leadingGraphic && (
-          <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>
-        )}
-        <Container minWidth={0}>
-          <Text ellipsis variant="muted">
-            {selectedLabel}
-          </Text>
-        </Container>
-      </Flex>
+      {to === undefined ? (
+        <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
+          {leadingGraphic && (
+            <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>
+          )}
+          <Container minWidth={0}>
+            <Text ellipsis variant="muted">
+              {selectedLabel}
+            </Text>
+          </Container>
+        </Flex>
+      ) : (
+        <BreadcrumbItemLink
+          label={selectedLabel}
+          leadingGraphic={leadingGraphic}
+          to={to}
+        />
+      )}
       <CompactSelect
         {...props}
         options={options}

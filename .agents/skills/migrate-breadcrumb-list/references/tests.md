@@ -73,4 +73,4 @@ Preserve meaningful existing tests for enrollment, saving, navigation, and analy
 
 jsdom does not evaluate container queries. The component's own tests cover emitted collapse rules. Do not duplicate generated-CSS assertions in page tests; verify their item content and use a browser resize check when the responsive layout changes.
 
-Parent selectors use a separate `Switch <label>` icon button. Test opening it with a click and selecting an option. The label is plain text and does not navigate or open the menu on hover. The final Settings crumb remains a plain title even when alternatives exist.
+Parent selectors use a separate `Switch <label>` icon button. Test opening it with a click and selecting an option. When `to` is supplied, check the label link's destination; otherwise the label is plain text. Hovering the label does not open the menu. The final Settings crumb remains a plain title even when alternatives exist.

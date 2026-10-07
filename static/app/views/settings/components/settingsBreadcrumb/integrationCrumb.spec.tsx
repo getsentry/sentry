@@ -86,7 +86,10 @@ describe('IntegrationCrumb', () => {
     );
 
     const integrationButton = await screen.findByRole('button', {name: 'Switch GitHub'});
-    expect(screen.queryByRole('link', {name: 'GitHub'})).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'GitHub'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/integrations/github/`
+    );
     expect(integrationButton.closest('li')?.querySelector('img')).toHaveAttribute(
       'src',
       'https://example.com/custom-integration.png'
@@ -147,7 +150,10 @@ describe('IntegrationCrumb', () => {
     const integrationButton = await screen.findByRole('button', {
       name: 'Switch Shortcut',
     });
-    expect(screen.queryByRole('link', {name: 'Shortcut'})).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Shortcut'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/sentry-apps/shortcut/`
+    );
     expect(integrationButton.closest('li')?.querySelector('img')).toHaveAttribute(
       'src',
       'https://example.com/shortcut.png?s=120'
