@@ -30,6 +30,7 @@ LOG_AGGREGATE_DEFINITIONS = {
             )
         ],
         attribute_resolver=count_argument_resolver_optimized(LOGS_ALWAYS_PRESENT_ATTRIBUTES),
+        valid_arithmetic=True,
     ),
     "count_unique": count_unique_aggregate_definition(),
     "sum": AggregateDefinition(
@@ -47,6 +48,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "avg": AggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
@@ -64,6 +66,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "p50": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
@@ -81,6 +84,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "p75": AggregateDefinition(
         internal_function=Function.FUNCTION_P75,
@@ -98,6 +102,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "p90": AggregateDefinition(
         internal_function=Function.FUNCTION_P90,
@@ -115,6 +120,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "p95": AggregateDefinition(
         internal_function=Function.FUNCTION_P95,
@@ -132,6 +138,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "p99": AggregateDefinition(
         internal_function=Function.FUNCTION_P99,
@@ -149,6 +156,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "max": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
@@ -166,6 +174,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "min": AggregateDefinition(
         internal_function=Function.FUNCTION_MIN,
@@ -183,5 +192,6 @@ LOG_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
 }

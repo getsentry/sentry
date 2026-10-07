@@ -2,7 +2,7 @@ import math
 import re
 from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime
-from typing import Callable, Literal, Protocol
+from typing import Literal, Protocol
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_conventions.attributes import ATTRIBUTE_METADATA as ATTRIBUTE_METADATA
@@ -57,6 +57,7 @@ from sentry.search.eap.profile_functions.attributes import (
     PROFILE_FUNCTIONS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.profile_functions.definitions import PROFILE_FUNCTIONS_DEFINITIONS
+from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import (
     SPAN_ATTRIBUTE_DEFINITIONS,
     SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
@@ -532,7 +533,7 @@ class FormulaTerm(Protocol):
 def resolve_and_parse_formula(
     saved_formula: ExploreSavedFormula,
     arguments: list[str],
-    resolve_column: Callable[[str], object],
+    resolver: SearchResolver,
 ) -> str:
     """Given a formula, parse its parameters and create its rpc definition"""
     saved_variables = sorted(
@@ -552,7 +553,7 @@ def resolve_and_parse_formula(
         saved_args,
         saved_calculations,
         saved_references,
-        resolve_column,
+        resolver,
     )
 
 
@@ -562,7 +563,7 @@ def parse_formula(
     saved_args: Iterable[FormulaParam],
     saved_calculations: Iterable[FormulaTerm],
     saved_references: Iterable[FormulaTerm],
-    resolve_column: Callable[[str], object],
+    resolver: SearchResolver,
 ) -> str:
     # Create a dict of param name -> the arg the user passed
     variables = {}
@@ -586,7 +587,7 @@ def parse_formula(
                 )
         elif saved_arg.param_type == ParamItemTypes.COLUMN:
             try:
-                resolve_column(arg)
+                resolver.resolve_column(arg)
             except InvalidSearchQuery:
                 raise InvalidSearchQuery(
                     f"{saved_arg.name} expected a valid column but got '{arg}'"
@@ -604,7 +605,7 @@ def parse_formula(
                 f"Missing parameters for {calculation.name}; {', '.join(unmatched)}"
             )
         try:
-            parsed, _, _ = parse_arithmetic(value)
+            parsed, _, _ = parse_arithmetic(value, definitions=resolver.definitions)
         except ArithmeticError as e:
             raise InvalidSearchQuery(e)
         calculations[calculation.name] = resolve_arithmetic(parsed)
@@ -629,5 +630,9 @@ def parse_formula(
         final_equation = final_equation.replace(f"{{{param_name}}}", str(user_arg))
     if unmatched := re.findall(FORMAT_RE, final_equation):
         raise InvalidSearchQuery(f"Missing parameters for formula; {', '.join(unmatched)}")
+    try:
+        _, _, _ = parse_arithmetic(final_equation, definitions=resolver.definitions)
+    except ArithmeticError as e:
+        raise InvalidSearchQuery(e)
 
     return f"{final_equation}"

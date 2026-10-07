@@ -46,6 +46,7 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
                 attribute_types=COMMON_COUNTABLE_ATTRIBUTE_TYPES,
             )
         ],
+        valid_arithmetic=True,
     ),
     "count": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -59,6 +60,7 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
             )
         ],
         attribute_resolver=count_argument_resolver_optimized(OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES),
+        valid_arithmetic=True,
     ),
     "count_if": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -99,6 +101,7 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
             ),  # Second value is only for between, so it must be a number
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
+        valid_arithmetic=True,
     ),
     "min": AggregateDefinition(
         internal_function=Function.FUNCTION_MIN,

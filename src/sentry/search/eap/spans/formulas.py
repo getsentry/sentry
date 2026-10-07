@@ -1102,6 +1102,7 @@ SPAN_FORMULA_DEFINITIONS = {
         arguments=[],
         formula_resolver=failure_rate,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "failure_rate_if": FormulaDefinition(
         default_search_type="percentage",
@@ -1142,6 +1143,7 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=opportunity_score,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "performance_score": FormulaDefinition(
         default_search_type="percentage",
@@ -1157,6 +1159,7 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=performance_score,
         processor=none_if_zero_processor,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
@@ -1274,15 +1277,21 @@ SPAN_FORMULA_DEFINITIONS = {
         arguments=[],
         formula_resolver=make_epm(_SPAN_COUNT_KEY),
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "tpm": FormulaDefinition(
-        default_search_type="rate", arguments=[], formula_resolver=tpm, is_aggregate=True
+        default_search_type="rate",
+        arguments=[],
+        formula_resolver=tpm,
+        is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "failure_count": FormulaDefinition(
         default_search_type="integer",
         arguments=[],
         formula_resolver=failure_count,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "failure_count_if": FormulaDefinition(
         default_search_type="integer",
@@ -1303,6 +1312,7 @@ SPAN_FORMULA_DEFINITIONS = {
         arguments=[],
         formula_resolver=make_eps(_SPAN_COUNT_KEY),
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "apdex": FormulaDefinition(
         default_search_type="number",
@@ -1318,6 +1328,7 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=apdex,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "user_misery": FormulaDefinition(
         default_search_type="number",
@@ -1333,5 +1344,6 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=user_misery,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
 }
