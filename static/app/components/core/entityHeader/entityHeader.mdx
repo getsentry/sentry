@@ -21,13 +21,13 @@ export const documentation =
 
 It deliberately does **not** render breadcrumbs, the page `h1`, or global actions. Those belong to the TopBar and its slots (`TopBar.Slot name="breadcrumbs"` / `"title"`). The title here is an `h2`.
 
-It reflows against **its container's** width, not the viewport's — on a routed page that is the content column, so it reacts when a side panel opens. Above the `lg` container breakpoint (640px) the stats sit beside the title; below it they move to their own row _beneath_ the metadata and left-align. That is a reorder rather than a wrap, which is why the layout is a grid. Resize the example below to watch it.
+It reflows against **its container's** width, not the viewport's — on a routed page that is the content column, so it reacts when a side panel opens. Above the `lg` container breakpoint (640px) the stats sit beside the title; below it they move to their own row _beneath_ the metadata and left-align. That is a reorder rather than a wrap, which is why the layout is a grid. Every example on this page sits in a resizable window, so you can drag any of them past the breakpoint to watch it.
 
 ## Usage
 
 Use `EntityHeader` on a detail page — a single issue, trace, replay, release, or build. Not on list or landing pages, which have no one entity to be about.
 
-<Storybook.Demo resizable align="start">
+<Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
     title={{
       label: 'Replay user',
@@ -88,7 +88,7 @@ Pass `isLoading` and every slot renders a skeleton sized from the typography it 
 
 Each slot is replaced whole, stat labels included. A label is static and could be shown straight away, but a half-drawn stat next to a loading title reads as broken rather than as loading. Size `loadingWidth` to the content you expect, so the row does not jump when the value lands.
 
-<Storybook.Demo>
+<Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
     isLoading
     title={{label: 'Replay user', value: 'anonymous@example.com'}}
@@ -136,7 +136,7 @@ The title is never a link. A heading that is wholly a link announces as both, an
 
 `title.leadingGraphic` is data, not a node, so the header controls the size and the slot cannot be used to smuggle in a component.
 
-<Storybook.Demo direction="column" align="stretch" gap="xl">
+<Storybook.Demo resizable direction="column" align="stretch" gap="xl">
   <EntityHeader
     title={{
       label: 'Replay user',
@@ -246,7 +246,7 @@ On a `link` stat it is the **label** that navigates, not the value: a link named
 
 Colour says it navigates; an underline says it explains. A link label is accent-coloured, a tooltipped label is underlined, and one that does both is both — as the three stats below are, in order. A single treatment would mean a link that only navigates looked like one that explains, and an underline reads as "hover for more" to most people, so that is the meaning it keeps.
 
-<Storybook.Demo>
+<Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
     title={{label: 'Issue type', value: 'ValueError'}}
     stats={[
@@ -338,7 +338,7 @@ Each item's own label is in the DOM whether or not it is on screen, so a screen 
 
 `variant` colours the values. It defaults to `muted`; use a semantic variant to call out a problem, the way Issue Details renders "Unhandled" in `danger`.
 
-<Storybook.Demo>
+<Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
     title={{label: 'Issue type', value: 'ValueError'}}
     metadata={{
