@@ -40,12 +40,6 @@ export type OnSentryInitConfiguration =
 declare global {
   interface Window {
     /**
-     * Primary entrypoint for rendering the sentry app. This is typically
-     * called in the django templates, or in the case of the EXPERIMENTAL_SPA,
-     * after config hydration.
-     */
-    SentryRenderApp: () => void;
-    /**
      * Used to close tooltips for testing purposes.
      */
     __closeAllTooltips: () => void;
