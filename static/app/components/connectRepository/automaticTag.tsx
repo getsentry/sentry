@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 
 export function AutomaticTag() {
   const tooltip = t(
-    "We created this path from your stack traces and routinely keep it up to date, so it can't be edited. If it doesn't match your setup, add another path below."
+    "We created this path from your stack traces and routinely keep it up to date. If it doesn't match your setup, add another path below."
   );
 
   return (
