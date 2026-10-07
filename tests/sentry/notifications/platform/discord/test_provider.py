@@ -18,6 +18,7 @@ from sentry.notifications.platform.discord.provider import (
     DiscordRenderer,
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.tracking import NotificationLink, NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedAction,
@@ -28,6 +29,7 @@ from sentry.notifications.platform.types import (
     PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
 
@@ -200,6 +202,67 @@ class DiscordNotificationProviderTest(TestCase):
     def test_is_available(self) -> None:
         assert DiscordNotificationProvider.is_available() is False
         assert DiscordNotificationProvider.is_available(organization=self.organization) is False
+
+    @override_options({"system.url-prefix": "https://sentry.io"})
+    def test_decorate_links(self) -> None:
+        renderable: DiscordRenderable = {
+            "content": "[Settings](https://sentry.io/settings/account/)",
+            "embeds": [
+                {
+                    "url": "https://sentry.io/issues/1/",
+                    "description": "[Docs](https://docs.sentry.io/product/issues/)",
+                    "image": {"url": "https://sentry.io/chart.png"},
+                    "thumbnail": {"url": "https://sentry.io/avatar.png"},
+                }
+            ],
+            "components": [
+                {
+                    "type": 1,
+                    "components": [
+                        {
+                            "type": 2,
+                            "style": DiscordButtonStyle.LINK,
+                            "label": "Release",
+                            "url": "https://sentry.io/releases/1.0/",
+                        }
+                    ],
+                }
+            ],
+        }
+        decorator = NotificationLinkDecorator(
+            referrer="test-discord",
+            notification_uuid="notification-id",
+        )
+
+        decorated = DiscordNotificationProvider.decorate_links(
+            renderable=renderable,
+            decorator=decorator,
+        )
+
+        assert (
+            decorated["content"]
+            == "[Settings](https://sentry.io/settings/account/?referrer=test-discord"
+            "&notification_uuid=notification-id)"
+        )
+        embed = decorated["embeds"][0]
+        assert (
+            embed["url"] == "https://sentry.io/issues/1/?referrer=test-discord"
+            "&notification_uuid=notification-id"
+        )
+        assert embed["description"] == "[Docs](https://docs.sentry.io/product/issues/)"
+        assert embed["image"]["url"] == "https://sentry.io/chart.png"
+        assert embed["thumbnail"]["url"] == "https://sentry.io/avatar.png"
+        assert (
+            decorated["components"][0]["components"][0]["url"]
+            == "https://sentry.io/releases/1.0/?referrer=test-discord"
+            "&notification_uuid=notification-id"
+        )
+        assert renderable["embeds"][0]["url"] == "https://sentry.io/issues/1/"
+        assert decorator.links == {
+            NotificationLink.ISSUE,
+            NotificationLink.RELEASE,
+            NotificationLink.SETTINGS,
+        }
 
 
 class DiscordNotificationProviderSendTest(TestCase):

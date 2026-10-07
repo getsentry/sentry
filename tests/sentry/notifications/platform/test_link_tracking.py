@@ -1,4 +1,5 @@
 import html
+import re
 from collections.abc import Iterator, Mapping
 from typing import Any
 from unittest import mock
@@ -6,25 +7,18 @@ from urllib.parse import parse_qs, urlsplit
 
 from django.core.mail import EmailMultiAlternatives
 
+from sentry.notifications.platform.email.provider import EmailNotificationProvider
 from sentry.notifications.platform.registry import (
     provider_registry,
     renderer_registry,
     template_registry,
 )
 from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.tracking import classify_link
-from sentry.notifications.platform.types import LinkTextBlock, NotificationRenderedTemplate
+from sentry.notifications.platform.tracking import NotificationLink, classify_link
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-
-
-def get_links(rendered_template: NotificationRenderedTemplate) -> list[str]:
-    blocks = [*rendered_template.subject_blocks, *rendered_template.footer_blocks]
-    for section in rendered_template.body:
-        blocks.extend(section.blocks)
-    return [block.url for block in blocks if isinstance(block, LinkTextBlock)] + [
-        action.link for action in rendered_template.actions
-    ]
+from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
 
 def get_strings(value: Any) -> Iterator[str]:
@@ -46,6 +40,14 @@ def get_strings(value: Any) -> Iterator[str]:
         yield from get_strings(vars(value))
 
 
+def get_urls(value: Any) -> list[str]:
+    return [
+        match.group(0)
+        for text in get_strings(value)
+        for match in re.finditer(r"https?://[^\s<>'\"\]\)\|]+", text)
+    ]
+
+
 class RenderTemplateLinkTrackingTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -58,7 +60,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
             )
         )
 
-    def test_default_renderers_track_every_sentry_link(self) -> None:
+    def test_default_renderer_payload_links_are_tracked(self) -> None:
         checked = 0
         for source, template_cls in template_registry.registrations.items():
             template = template_cls()
@@ -67,47 +69,78 @@ class RenderTemplateLinkTrackingTest(TestCase):
                 if provider.get_renderer(data=data) is not provider.default_renderer:
                     continue
 
-                with (
-                    self.subTest(source=source, provider=provider.key),
-                    mock.patch.object(
-                        provider.default_renderer, "render", wraps=provider.default_renderer.render
-                    ) as render,
-                ):
-                    renderable, links = NotificationService.render_template(
+                with self.subTest(source=source, provider=provider.key):
+                    renderable, links = NotificationService.render_for_send(
                         data=data, template=template, provider=provider
                     )
-                    rendered_template = render.call_args.kwargs["rendered_template"]
-                    text = "\n".join(get_strings(renderable))
+                    urls = get_urls(renderable)
 
-                    sentry_links = [
-                        link
-                        for link in get_links(rendered_template)
-                        if (urlsplit(link).hostname or "").endswith("sentry.io")
+                    tracked_urls = [
+                        url
+                        for url in urls
+                        if parse_qs(urlsplit(url).query).get("referrer")
+                        == [f"{source}-{provider.key}"]
+                        and parse_qs(urlsplit(url).query).get("notification_uuid")
+                        == [data.notification_uuid]
                     ]
-                    for link in sentry_links:
-                        query = parse_qs(urlsplit(link).query)
-                        assert query["referrer"] == [f"{source}-{provider.key}"], link
-                        assert query["notification_uuid"] == [data.notification_uuid], link
-                        assert link in text, link
-                        checked += 1
-                    assert links == {classify_link(link) for link in sentry_links}
+                    assert links == {classify_link(url) for url in tracked_urls}
+                    checked += len(tracked_urls)
 
         assert checked
 
-    def test_custom_renderers_get_the_undecorated_template(self) -> None:
+    def test_custom_renderer_payloads_are_decorated(self) -> None:
+        renderables: dict[NotificationProviderKey, Any] = {
+            NotificationProviderKey.SLACK: {
+                "blocks": [],
+                "text": "<https://sentry.io/issues/1/|Issue>",
+            },
+            NotificationProviderKey.DISCORD: {
+                "content": "[Issue](https://sentry.io/issues/1/)",
+                "embeds": [],
+                "components": [],
+            },
+            NotificationProviderKey.MSTEAMS: {
+                "type": "AdaptiveCard",
+                "body": [
+                    {
+                        "type": "TextBlock",
+                        "text": "[Issue](https://sentry.io/issues/1/)",
+                    }
+                ],
+                "version": "1.5",
+            },
+        }
+
         for (provider_key, source), renderer in renderer_registry.registrations.items():
             if source not in template_registry.registrations:
                 continue
             template = template_registry.get(source)()
             data = template.example_data
+            renderable = renderables[provider_key]
             with (
                 self.subTest(source=source, provider=provider_key),
-                mock.patch.object(renderer, "render") as render,
+                mock.patch.object(renderer, "render", return_value=renderable) as render,
             ):
-                NotificationService.render_template(
+                decorated, links = NotificationService.render_for_send(
                     data=data, template=template, provider=provider_registry.get(provider_key)
                 )
 
                 render.assert_called_once_with(
                     data=data, rendered_template=template.render(data=data)
                 )
+                text = "\n".join(get_strings(decorated))
+                assert f"referrer={source}-{provider_key}" in text
+                assert f"notification_uuid={data.notification_uuid}" in text
+                assert links == {NotificationLink.ISSUE}
+
+    @override_options({"notifications.tracking.sources": ["test"]})
+    def test_render_template_does_not_decorate_preview_payload(self) -> None:
+        data = MockNotification(message="test")
+
+        renderable = NotificationService.render_template(
+            data=data,
+            template=MockNotificationTemplate(),
+            provider=EmailNotificationProvider,
+        )
+
+        assert "notification_uuid=" not in "\n".join(get_strings(renderable))

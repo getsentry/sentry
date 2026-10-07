@@ -1,5 +1,9 @@
+import html
+import re
+from typing import Any
+
 from django.core.mail import EmailMultiAlternatives
-from django.core.mail.message import make_msgid
+from django.core.mail.message import EmailAlternative, make_msgid
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
@@ -13,6 +17,7 @@ from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -35,6 +40,10 @@ DEFAULT_EMAIL_HTML_PATH = "sentry/emails/platform/default.html"
 DEFAULT_EMAIL_TEXT_PATH = "sentry/emails/platform/default.txt"
 
 type EmailRenderable = EmailMultiAlternatives
+
+_HTML_LINK_RE = re.compile(
+    r"(?P<prefix>\bhref\s*=\s*)(?P<quote>['\"])(?P<url>.*?)(?P=quote)", re.IGNORECASE
+)
 
 
 class EmailRenderer(NotificationRenderer[EmailRenderable]):
@@ -173,6 +182,33 @@ class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         return True
+
+    @classmethod
+    def decorate_links(
+        cls, *, renderable: EmailRenderable, decorator: NotificationLinkDecorator
+    ) -> EmailRenderable:
+        def decorate_html(match: re.Match[str]) -> str:
+            url = html.unescape(match.group("url"))
+            decorated = decorator.decorate(url)
+            if decorated == url:
+                return match.group(0)
+            return (
+                f"{match.group('prefix')}{match.group('quote')}"
+                f"{html.escape(decorated, quote=True)}{match.group('quote')}"
+            )
+
+        renderable.body = decorator.decorate_text(str(renderable.body))
+        alternatives: list[tuple[Any, str]] = []
+        for content, mimetype in renderable.alternatives:
+            if isinstance(content, str):
+                content = (
+                    _HTML_LINK_RE.sub(decorate_html, content)
+                    if mimetype == "text/html"
+                    else decorator.decorate_text(content)
+                )
+            alternatives.append(EmailAlternative(content=content, mimetype=mimetype))
+        renderable.alternatives = alternatives
+        return renderable
 
     @classmethod
     def send(

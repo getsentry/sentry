@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import copy
+import re
+from typing import TYPE_CHECKING, Any
 
 from sentry.notifications.platform.provider import (
     NotificationProvider,
@@ -16,6 +18,7 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -36,6 +39,44 @@ if TYPE_CHECKING:
 
 # TODO(ecosystem): Proper typing - https://discord.com/developers/docs/resources/message#create-message
 type DiscordRenderable = DiscordMessage
+
+_DISCORD_LINK_RE = re.compile(r"(?P<prefix>\[[^\]]*\]\()(?P<url>https?://[^)\s]+)\)")
+_DISCORD_MEDIA_KEYS = frozenset({"image", "thumbnail", "video"})
+
+
+def _decorate_discord_value(
+    value: Any,
+    decorator: NotificationLinkDecorator,
+    *,
+    container_key: str | None = None,
+) -> Any:
+    if isinstance(value, str):
+
+        def decorate_match(match: re.Match[str]) -> str:
+            return f"{match.group('prefix')}{decorator.decorate(match.group('url'))})"
+
+        return _DISCORD_LINK_RE.sub(decorate_match, value)
+    if isinstance(value, list):
+        return [
+            _decorate_discord_value(item, decorator, container_key=container_key) for item in value
+        ]
+    if isinstance(value, dict):
+        decorated: dict[str, Any] = {}
+        for key, item in value.items():
+            if isinstance(item, str) and key == "url":
+                decorated[key] = (
+                    item if container_key in _DISCORD_MEDIA_KEYS else decorator.decorate(item)
+                )
+            elif isinstance(item, str) and key.endswith("_url"):
+                decorated[key] = item
+            else:
+                decorated[key] = _decorate_discord_value(
+                    item,
+                    decorator,
+                    container_key=key,
+                )
+        return decorated
+    return value
 
 
 class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
@@ -148,6 +189,12 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
+
+    @classmethod
+    def decorate_links(
+        cls, *, renderable: DiscordRenderable, decorator: NotificationLinkDecorator
+    ) -> DiscordRenderable:
+        return _decorate_discord_value(copy.deepcopy(renderable), decorator)
 
     @classmethod
     def send(

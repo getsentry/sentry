@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import re
+from typing import TYPE_CHECKING, Any
 
 from sentry.notifications.platform.provider import (
     NotificationProvider,
@@ -16,6 +17,7 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -35,6 +37,32 @@ if TYPE_CHECKING:
     from sentry.integrations.msteams.card_builder.block import AdaptiveCard, Block, TextSize
 
 type MSTeamsRenderable = AdaptiveCard
+
+_MSTEAMS_LINK_RE = re.compile(r"(?P<prefix>\[[^\]]*\]\()(?P<url>https?://[^)\s]+)\)")
+
+
+def _decorate_msteams_value(value: Any, decorator: NotificationLinkDecorator) -> Any:
+    if isinstance(value, str):
+
+        def decorate_match(match: re.Match[str]) -> str:
+            return f"{match.group('prefix')}{decorator.decorate(match.group('url'))})"
+
+        return _MSTEAMS_LINK_RE.sub(decorate_match, value)
+    if isinstance(value, list):
+        return [_decorate_msteams_value(item, decorator) for item in value]
+    if isinstance(value, dict):
+        is_open_url_action = value.get("type") == "Action.OpenUrl"
+        return {
+            key: (
+                decorator.decorate(item)
+                if is_open_url_action and key == "url" and isinstance(item, str)
+                else item
+                if key == "url" and isinstance(item, str)
+                else _decorate_msteams_value(item, decorator)
+            )
+            for key, item in value.items()
+        }
+    return value
 
 
 class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
@@ -164,6 +192,12 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
+
+    @classmethod
+    def decorate_links(
+        cls, *, renderable: MSTeamsRenderable, decorator: NotificationLinkDecorator
+    ) -> MSTeamsRenderable:
+        return _decorate_msteams_value(renderable, decorator)
 
     @classmethod
     def send(

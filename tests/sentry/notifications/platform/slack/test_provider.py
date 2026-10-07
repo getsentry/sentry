@@ -4,7 +4,10 @@ from unittest.mock import Mock, patch
 import pytest
 from slack_sdk.errors import SlackApiError
 from slack_sdk.models.blocks import (
+    ActionsBlock,
+    ButtonElement,
     HeaderBlock,
+    ImageBlock,
     MarkdownTextObject,
     PlainTextObject,
     SectionBlock,
@@ -34,12 +37,14 @@ from sentry.notifications.platform.target import (
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.threading import ThreadContext, ThreadKey
+from sentry.notifications.platform.tracking import NotificationLink, NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationSource,
     NotificationTargetResourceType,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
 
@@ -115,6 +120,80 @@ class SlackNotificationProviderTest(TestCase):
     def test_is_available(self) -> None:
         assert SlackNotificationProvider.is_available() is False
         assert SlackNotificationProvider.is_available(organization=self.organization) is False
+
+    @override_options({"system.url-prefix": "https://sentry.io"})
+    def test_decorate_links(self) -> None:
+        renderable = SlackRenderable(
+            blocks=[
+                SectionBlock(
+                    text=MarkdownTextObject(
+                        text="<https://sentry.io/issues/1/|Issue> and "
+                        "<https://docs.sentry.io/product/issues/|Docs>"
+                    )
+                ),
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="Settings",
+                            url="https://sentry.io/settings/account/",
+                            value="settings",
+                        )
+                    ]
+                ),
+                ImageBlock(image_url="https://sentry.io/chart.png", alt_text="Chart"),
+            ],
+            attachments=[
+                {
+                    "blocks": [
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": "<https://sentry.io/releases/1.0/|Release>",
+                            },
+                        }
+                    ]
+                }
+            ],
+            text="Notification",
+        )
+        decorator = NotificationLinkDecorator(
+            referrer="test-slack",
+            notification_uuid="notification-id",
+        )
+
+        decorated = SlackNotificationProvider.decorate_links(
+            renderable=renderable,
+            decorator=decorator,
+        )
+        blocks = [block.to_dict() for block in decorated["blocks"]]
+
+        assert (
+            "<https://sentry.io/issues/1/?referrer=test-slack"
+            "&notification_uuid=notification-id|Issue>" in blocks[0]["text"]["text"]
+        )
+        assert "<https://docs.sentry.io/product/issues/|Docs>" in blocks[0]["text"]["text"]
+        assert (
+            blocks[1]["elements"][0]["url"]
+            == "https://sentry.io/settings/account/?referrer=test-slack"
+            "&notification_uuid=notification-id"
+        )
+        assert blocks[2]["image_url"] == "https://sentry.io/chart.png"
+        assert (
+            decorated["attachments"][0]["blocks"][0]["text"]["text"]
+            == "<https://sentry.io/releases/1.0/?referrer=test-slack"
+            "&notification_uuid=notification-id|Release>"
+        )
+        assert (
+            renderable["blocks"][0]
+            .to_dict()["text"]["text"]
+            .startswith("<https://sentry.io/issues/1/|Issue>")
+        )
+        assert decorator.links == {
+            NotificationLink.ISSUE,
+            NotificationLink.RELEASE,
+            NotificationLink.SETTINGS,
+        }
 
     def test_staging_resolves_slack_renderers(self) -> None:
         data = MetricAlertNotificationData(

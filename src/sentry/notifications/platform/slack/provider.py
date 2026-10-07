@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import copy
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
+from slack_sdk.models.basic_objects import JsonObject
 from slack_sdk.models.blocks import (
     ActionsBlock,
     Block,
@@ -30,6 +33,7 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -60,6 +64,39 @@ class SlackRenderable(TypedDict):
     blocks: list[Block]
     attachments: NotRequired[list[dict[str, Any]]]
     text: str
+
+
+_SLACK_LINK_RE = re.compile(r"<(?P<url>https?://[^|>]+)(?P<label>\|[^>]*)?>")
+
+
+def _decorate_slack_value(
+    value: Any, decorator: NotificationLinkDecorator, *, key: str | None = None
+) -> Any:
+    if isinstance(value, str):
+        if key in ("url", "author_link", "title_link"):
+            return decorator.decorate(value)
+        if key is not None and (key.endswith("_url") or key.endswith("_icon")):
+            return value
+
+        def decorate_match(match: re.Match[str]) -> str:
+            return f"<{decorator.decorate(match.group('url'))}{match.group('label') or ''}>"
+
+        return _SLACK_LINK_RE.sub(decorate_match, value)
+    if isinstance(value, list):
+        return [_decorate_slack_value(item, decorator) for item in value]
+    if isinstance(value, dict):
+        return {
+            item_key: _decorate_slack_value(item, decorator, key=item_key)
+            for item_key, item in value.items()
+        }
+    if isinstance(value, JsonObject):
+        for attribute, item in vars(value).items():
+            setattr(
+                value,
+                attribute,
+                _decorate_slack_value(item, decorator, key=attribute),
+            )
+    return value
 
 
 class SlackRenderer(NotificationRenderer[SlackRenderable]):
@@ -139,6 +176,12 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         # I currently view this as akin to a rollout or feature flag for the registry
         return False
+
+    @classmethod
+    def decorate_links(
+        cls, *, renderable: SlackRenderable, decorator: NotificationLinkDecorator
+    ) -> SlackRenderable:
+        return _decorate_slack_value(copy.deepcopy(renderable), decorator)
 
     @classmethod
     def send(

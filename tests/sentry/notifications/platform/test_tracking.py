@@ -10,23 +10,17 @@ from sentry.analytics.events.notification_tracking import (
 from sentry.notifications.platform.tracking import (
     NotificationEngagementMechanism,
     NotificationLink,
+    NotificationLinkDecorator,
     NotificationTrackingContext,
     classify_link,
-    decorate_links,
     is_tracking_enabled,
     record_engagement,
     record_sent,
 )
 from sentry.notifications.platform.types import (
-    LinkTextBlock,
     NotificationCategory,
     NotificationProviderKey,
-    NotificationRenderedAction,
-    NotificationRenderedImage,
-    NotificationRenderedTemplate,
     NotificationSource,
-    ParagraphSection,
-    PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import (
@@ -239,7 +233,7 @@ def test_classify_link(url: str, expected: NotificationLink) -> None:
     assert classify_link(url) == expected
 
 
-class DecorateLinksTest(TestCase):
+class NotificationLinkDecoratorTest(TestCase):
     referrer = "activity-seer-rca-completed-email"
     notification_uuid = "0b1c3a4e-7d0f-4b8a-9b6e-0c7a2f3d5e61"
     tracking = f"referrer={referrer}&notification_uuid={notification_uuid}"
@@ -248,95 +242,53 @@ class DecorateLinksTest(TestCase):
         super().setUp()
         self.enterContext(override_options({"system.url-prefix": "https://sentry.io"}))
 
-    def decorate(
-        self, rendered_template: NotificationRenderedTemplate
-    ) -> tuple[NotificationRenderedTemplate, set[NotificationLink]]:
-        return decorate_links(
-            rendered_template, referrer=self.referrer, notification_uuid=self.notification_uuid
+    def decorator(self) -> NotificationLinkDecorator:
+        return NotificationLinkDecorator(
+            referrer=self.referrer,
+            notification_uuid=self.notification_uuid,
         )
 
     def test_decorates_sentry_links(self) -> None:
-        rendered_template = NotificationRenderedTemplate(
-            subject=[
-                PlainTextBlock(text="Root cause for"),
-                LinkTextBlock(
-                    text="ACME-1",
-                    url="https://sentry.io/organizations/acme/issues/1/?referrer=activity_notification",
-                ),
-            ],
-            body=[
-                ParagraphSection(
-                    blocks=[
-                        LinkTextBlock(text="PR", url="https://github.com/acme/repo/pull/1"),
-                        LinkTextBlock(text="Jane", url="mailto:jane@example.com"),
-                    ]
-                )
-            ],
-            actions=[
-                NotificationRenderedAction(
-                    label="Open Seer", link="https://acme.sentry.io/issues/1/?seerDrawer=true"
-                )
-            ],
-            chart=NotificationRenderedImage(url="https://sentry.io/chart.png", alt_text="Chart"),
-            footer=[
-                LinkTextBlock(
-                    text="Manage Preferences",
-                    url="https://sentry.io/settings/account/notifications/alerts/",
-                )
-            ],
-        )
+        decorator = self.decorator()
 
-        decorated, links = self.decorate(rendered_template)
+        issue = decorator.decorate(
+            "https://sentry.io/organizations/acme/issues/1/?referrer=activity_notification"
+        )
+        seer = decorator.decorate("https://acme.sentry.io/issues/1/?seerDrawer=true")
+        settings = decorator.decorate("https://sentry.io/settings/account/notifications/alerts/")
 
-        assert decorated == replace(
-            rendered_template,
-            subject=[
-                PlainTextBlock(text="Root cause for"),
-                LinkTextBlock(
-                    text="ACME-1",
-                    url=f"https://sentry.io/organizations/acme/issues/1/?{self.tracking}",
-                ),
-            ],
-            actions=[
-                NotificationRenderedAction(
-                    label="Open Seer",
-                    link=f"https://acme.sentry.io/issues/1/?seerDrawer=true&{self.tracking}",
-                )
-            ],
-            footer=[
-                LinkTextBlock(
-                    text="Manage Preferences",
-                    url=f"https://sentry.io/settings/account/notifications/alerts/?{self.tracking}",
-                )
-            ],
+        assert issue == f"https://sentry.io/organizations/acme/issues/1/?{self.tracking}"
+        assert seer == f"https://acme.sentry.io/issues/1/?seerDrawer=true&{self.tracking}"
+        assert (
+            settings == f"https://sentry.io/settings/account/notifications/alerts/?{self.tracking}"
         )
-        assert links == {NotificationLink.ISSUE, NotificationLink.SEER, NotificationLink.SETTINGS}
-        assert rendered_template.subject[1] == LinkTextBlock(
-            text="ACME-1",
-            url="https://sentry.io/organizations/acme/issues/1/?referrer=activity_notification",
-        )
+        assert decorator.links == {
+            NotificationLink.ISSUE,
+            NotificationLink.SEER,
+            NotificationLink.SETTINGS,
+        }
 
     def test_idempotent(self) -> None:
-        rendered_template = NotificationRenderedTemplate(
-            subject="Export ready",
-            body=[],
-            actions=[NotificationRenderedAction(label="Download", link="https://sentry.io/x/")],
-        )
+        decorator = self.decorator()
+        url = "https://sentry.io/x/"
 
-        decorated, _ = self.decorate(rendered_template)
+        decorated = decorator.decorate(url)
 
-        assert self.decorate(decorated) == (decorated, {NotificationLink.OTHER})
+        assert decorator.decorate(decorated) == decorated
+        assert decorator.links == {NotificationLink.OTHER}
 
-    def test_plain_text_and_undecoratable_links_are_unchanged(self) -> None:
-        rendered_template = NotificationRenderedTemplate(
-            subject="Export ready",
-            body=[ParagraphSection(blocks=[LinkTextBlock(text="Broken", url="https://[::1")])],
-            footer="Sent by Sentry",
-        )
+    def test_external_and_undecoratable_links_are_unchanged(self) -> None:
+        decorator = self.decorator()
 
         with mock.patch("sentry.notifications.platform.tracking.logger") as mock_logger:
-            decorated, links = self.decorate(rendered_template)
+            external = decorator.decorate("https://github.com/acme/repo/pull/1")
+            docs = decorator.decorate("https://docs.sentry.io/product/")
+            marketing = decorator.decorate("https://www.sentry.io/pricing/")
+            malformed = decorator.decorate("https://[::1")
 
-        assert decorated == rendered_template
-        assert links == set()
+        assert external == "https://github.com/acme/repo/pull/1"
+        assert docs == "https://docs.sentry.io/product/"
+        assert marketing == "https://www.sentry.io/pricing/"
+        assert malformed == "https://[::1"
+        assert decorator.links == set()
         mock_logger.exception.assert_called_once()

@@ -1,8 +1,7 @@
 import logging
 import re
 from collections.abc import Collection, Mapping
-from copy import copy
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import NotRequired, TypedDict, cast
 from urllib.parse import SplitResult, parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
@@ -13,17 +12,15 @@ from sentry.analytics.events.notification_tracking import (
     NotificationTrackingSentEvent,
 )
 from sentry.notifications.platform.types import (
-    LinkTextBlock,
     NotificationCategory,
     NotificationProviderKey,
-    NotificationRenderedTemplate,
-    NotificationSection,
     NotificationSource,
-    NotificationTextBlock,
 )
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+_URL_RE = re.compile(r"https?://[^\s<>'\"\]\)\|]+")
 
 
 class NotificationLink(StrEnum):
@@ -102,7 +99,7 @@ def classify_link(url: str) -> NotificationLink:
         )
     if path.startswith("/issues/"):
         return NotificationLink.ISSUE if "preview" in query else NotificationLink.ISSUE_LIST
-    if path.startswith(("/monitors/alerts/", "/alerts/")):
+    if path.startswith(("/monitors/", "/alerts/")):
         return NotificationLink.ALERT
     if path.startswith("/releases/"):
         return NotificationLink.RELEASE
@@ -113,17 +110,16 @@ def classify_link(url: str) -> NotificationLink:
     return NotificationLink.OTHER
 
 
-def decorate_links(
-    rendered_template: NotificationRenderedTemplate, *, referrer: str, notification_uuid: str
-) -> tuple[NotificationRenderedTemplate, set[NotificationLink]]:
-    """
-    Adds `referrer` and `notification_uuid` to every Sentry link in the rendered template, replacing
-    any values already there. Returns the decorated template and the kinds of link it contains.
-    Other links and images are left alone, and a link that can't be decorated is kept as it was.
-    """
-    links: set[NotificationLink] = set()
+@dataclass
+class NotificationLinkDecorator:
+    referrer: str
+    notification_uuid: str
+    links: set[NotificationLink] = field(default_factory=set, init=False)
 
-    def decorate(url: str) -> str:
+    def decorate_text(self, text: str) -> str:
+        return _URL_RE.sub(lambda match: self.decorate(match.group(0)), text)
+
+    def decorate(self, url: str) -> str:
         try:
             parsed = urlsplit(url)
             if not _is_sentry_url(parsed):
@@ -133,42 +129,16 @@ def decorate_links(
                 for key, value in parse_qsl(parsed.query, keep_blank_values=True)
                 if key not in ("referrer", "notification_uuid")
             ]
-            query += [("referrer", referrer), ("notification_uuid", notification_uuid)]
+            query += [
+                ("referrer", self.referrer),
+                ("notification_uuid", self.notification_uuid),
+            ]
             decorated = urlunsplit(parsed._replace(query=urlencode(query)))
-            links.add(classify_link(url))
+            self.links.add(classify_link(url))
             return decorated
         except Exception:
             logger.exception("notifications.tracking.decorate_link.failed", extra={"url": url})
             return url
-
-    def decorate_blocks(blocks: list[NotificationTextBlock]) -> list[NotificationTextBlock]:
-        return [
-            replace(block, url=decorate(block.url)) if isinstance(block, LinkTextBlock) else block
-            for block in blocks
-        ]
-
-    def decorate_text(
-        text: str | list[NotificationTextBlock],
-    ) -> str | list[NotificationTextBlock]:
-        return text if isinstance(text, str) else decorate_blocks(text)
-
-    def decorate_section(section: NotificationSection) -> NotificationSection:
-        decorated_section = copy(section)
-        decorated_section.blocks = decorate_blocks(section.blocks)
-        return decorated_section
-
-    decorated = replace(
-        rendered_template,
-        subject=decorate_text(rendered_template.subject),
-        body=[decorate_section(section) for section in rendered_template.body],
-        actions=[
-            replace(action, link=decorate(action.link)) for action in rendered_template.actions
-        ],
-        footer=(
-            None if rendered_template.footer is None else decorate_text(rendered_template.footer)
-        ),
-    )
-    return decorated, links
 
 
 def _is_sentry_url(parsed: SplitResult) -> bool:
@@ -179,6 +149,7 @@ def _is_sentry_url(parsed: SplitResult) -> bool:
         and host is not None
         and sentry_host is not None
         and (host == sentry_host or host.endswith(f".{sentry_host}"))
+        and host not in (f"docs.{sentry_host}", f"www.{sentry_host}")
     )
 
 

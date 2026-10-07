@@ -17,6 +17,7 @@ from sentry.notifications.platform.templates.activity.base import (
     AssignedNotificationData,
     build_activity_notification_data,
 )
+from sentry.notifications.platform.tracking import NotificationLink, NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     BoldTextBlock,
     LinkTextBlock,
@@ -31,6 +32,7 @@ from sentry.notifications.platform.types import (
     PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 from sentry.types.activity import ActivityType
 
@@ -216,6 +218,40 @@ class EmailNotificationProviderTest(TestCase):
         assert self.provider.target_resource_types == [NotificationTargetResourceType.EMAIL]
         assert EmailNotificationProvider.is_available() is True
         assert EmailNotificationProvider.is_available(organization=self.organization) is True
+
+    @override_options({"system.url-prefix": "https://sentry.io"})
+    def test_decorate_links(self) -> None:
+        email = EmailMultiAlternatives(
+            subject="Test",
+            body=("Issue https://sentry.io/issues/1/ Docs https://docs.sentry.io/product/issues/"),
+        )
+        email.attach_alternative(
+            '<a href="https://sentry.io/settings/account/">Settings</a>'
+            '<img src="https://sentry.io/chart.png">',
+            "text/html",
+        )
+        decorator = NotificationLinkDecorator(
+            referrer="test-email",
+            notification_uuid="notification-id",
+        )
+
+        decorated = EmailNotificationProvider.decorate_links(
+            renderable=email,
+            decorator=decorator,
+        )
+
+        assert (
+            "https://sentry.io/issues/1/?referrer=test-email"
+            "&notification_uuid=notification-id" in decorated.body
+        )
+        assert "https://docs.sentry.io/product/issues/" in decorated.body
+        html_body = str(decorated.alternatives[0].content)
+        assert (
+            'href="https://sentry.io/settings/account/?referrer=test-email'
+            '&amp;notification_uuid=notification-id"' in html_body
+        )
+        assert 'src="https://sentry.io/chart.png"' in html_body
+        assert decorator.links == {NotificationLink.ISSUE, NotificationLink.SETTINGS}
 
     @mock.patch("sentry.notifications.platform.email.provider.send_messages")
     def test_send(self, mock_send_messages: mock.MagicMock) -> None:

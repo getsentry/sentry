@@ -7,6 +7,7 @@ from typing import Any, Protocol
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -132,6 +133,11 @@ class NotificationProvider[RenderableT](Protocol):
                 f"Supported resource types: {', '.join(t.value for t in cls.target_resource_types)}"
             )
         return
+
+    @classmethod
+    def decorate_links(
+        cls, *, renderable: RenderableT, decorator: NotificationLinkDecorator
+    ) -> RenderableT: ...
 
     @classmethod
     def get_renderer(cls, *, data: NotificationData) -> type[NotificationRenderer[RenderableT]]:

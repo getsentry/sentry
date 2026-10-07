@@ -16,6 +16,7 @@ from sentry.notifications.platform.msteams.provider import (
 )
 from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
 from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.tracking import NotificationLink, NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedAction,
@@ -23,6 +24,7 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 from tests.sentry.integrations.msteams.test_message_builder import _is_open_url_action
 
@@ -225,6 +227,59 @@ class MSTeamsNotificationProviderTest(TestCase):
     def test_is_available(self) -> None:
         assert MSTeamsNotificationProvider.is_available() is False
         assert MSTeamsNotificationProvider.is_available(organization=self.organization) is False
+
+    @override_options({"system.url-prefix": "https://sentry.io"})
+    def test_decorate_links(self) -> None:
+        renderable: MSTeamsRenderable = {
+            "type": "AdaptiveCard",
+            "body": [
+                {
+                    "type": "TextBlock",
+                    "text": "[Issue](https://sentry.io/issues/1/) and "
+                    "[Docs](https://docs.sentry.io/product/issues/)",
+                },
+                {
+                    "type": "ActionSet",
+                    "actions": [
+                        {
+                            "type": "Action.OpenUrl",
+                            "title": "Settings",
+                            "url": "https://sentry.io/settings/account/",
+                        }
+                    ],
+                },
+                {
+                    "type": "Image",
+                    "url": "https://sentry.io/chart.png",
+                },
+            ],
+            "version": CURRENT_CARD_VERSION,
+            "$schema": ADAPTIVE_CARD_SCHEMA_URL,
+        }
+        decorator = NotificationLinkDecorator(
+            referrer="test-msteams",
+            notification_uuid="notification-id",
+        )
+
+        decorated = MSTeamsNotificationProvider.decorate_links(
+            renderable=renderable,
+            decorator=decorator,
+        )
+
+        assert (
+            decorated["body"][0]["text"]
+            == "[Issue](https://sentry.io/issues/1/?referrer=test-msteams"
+            "&notification_uuid=notification-id) and "
+            "[Docs](https://docs.sentry.io/product/issues/)"
+        )
+        assert (
+            decorated["body"][1]["actions"][0]["url"]
+            == "https://sentry.io/settings/account/?referrer=test-msteams"
+            "&notification_uuid=notification-id"
+        )
+        assert decorated["body"][2]["url"] == "https://sentry.io/chart.png"
+        assert renderable["body"][0]["text"].startswith("[Issue](https://sentry.io/issues/1/)")
+        assert decorator.links == {NotificationLink.ISSUE, NotificationLink.SETTINGS}
 
 
 class MSTeamsNotificationProviderSendTest(TestCase):
