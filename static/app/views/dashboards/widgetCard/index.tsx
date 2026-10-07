@@ -180,28 +180,6 @@ function WidgetCard(props: Props) {
     organization.features.includes('seer-explorer-chat-prompts') &&
     isSeerExplorerEnabled(organization);
 
-  const propsOnDataFetched = props.onDataFetched;
-  const onDataFetched = useCallback(
-    (newData: Data) => {
-      if (propsOnDataFetched) {
-        propsOnDataFetched({
-          tableResults: newData.tableResults,
-          timeseriesResultsTypes: newData.timeseriesResultsTypes,
-          timeseriesResultsUnits: newData.timeseriesResultsUnits,
-        });
-      }
-
-      setData(prevData => ({...prevData, ...newData}));
-
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      setIsLoadingTextVisible(false);
-    },
-    [propsOnDataFetched]
-  );
-
   const {
     api,
     selection,
@@ -223,7 +201,29 @@ function WidgetCard(props: Props) {
     onWidgetTableResizeColumn,
     disableTableActions,
     widgetInterval,
+    onDataFetched,
   } = props;
+
+  const handleDataFetched = useCallback(
+    (newData: Data) => {
+      if (onDataFetched) {
+        onDataFetched({
+          tableResults: newData.tableResults,
+          timeseriesResultsTypes: newData.timeseriesResultsTypes,
+          timeseriesResultsUnits: newData.timeseriesResultsUnits,
+        });
+      }
+
+      setData(prevData => ({...prevData, ...newData}));
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setIsLoadingTextVisible(false);
+    },
+    [onDataFetched]
+  );
 
   if (widget.displayType === DisplayType.TOP_N) {
     // oxlint-disable-next-line react/immutability
@@ -413,7 +413,7 @@ function WidgetCard(props: Props) {
               widget={widget}
               selection={selection}
               dashboardFilters={dashboardFilters}
-              onDataFetched={onDataFetched}
+              onDataFetched={handleDataFetched}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
@@ -459,7 +459,7 @@ function WidgetCard(props: Props) {
             isMobile={isMobile}
             tableItemLimit={tableItemLimit}
             windowWidth={windowWidth}
-            onDataFetched={onDataFetched}
+            onDataFetched={handleDataFetched}
             dashboardFilters={dashboardFilters}
             chartGroup={DASHBOARD_CHART_GROUP}
             shouldResize={shouldResize}
