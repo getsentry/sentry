@@ -99,7 +99,17 @@ class AlertRuleNotification(ProjectNotification):
         self.target_type = target_type
         self.target_identifier = target_identifier
         self.fallthrough_choice = fallthrough_choice
-        self.rules = notification.rules
+        first_rule = notification.rules[0] if notification.rules else None
+        if isinstance(first_rule, NotificationOrigin):
+            self.alert_id = first_rule.link_id
+        else:
+            self.alert_id = first_rule.id if first_rule is not None else None
+        self.rules = [
+            rule
+            if isinstance(rule, NotificationOrigin)
+            else NotificationOrigin.from_legacy_rule(rule)
+            for rule in notification.rules
+        ]
 
         if group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL or group.issue_type.type_id in (
             PerformanceP95EndpointRegressionGroupType.type_id,
@@ -352,14 +362,10 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
-        alert_id = None
-        if self.rules:
-            rule = self.rules[0]
-            alert_id = rule.link_id if isinstance(rule, NotificationOrigin) else rule.id
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "alert_id": alert_id,
+            "alert_id": self.alert_id,
             **super().get_log_params(recipient),
         }
 
