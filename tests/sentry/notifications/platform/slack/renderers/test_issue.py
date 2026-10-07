@@ -75,6 +75,35 @@ class IssueAlertInvocationMixin(TestCase):
 
 
 class IssueNotificationDataTest(IssueAlertInvocationMixin):
+    def test_deserializes_legacy_rule_proxy(self) -> None:
+        proxy = SerializableRuleProxy.parse_obj(
+            {
+                "id": 1,
+                "label": "Legacy payload",
+                "data": {"actions": [{"workflow_id": "2"}]},
+                "project_id": self.project.id,
+            }
+        )
+
+        origin = proxy.to_notification_origin()
+
+        assert origin.label == "Legacy payload"
+        assert origin.workflow_id == 2
+        assert origin.legacy_rule_id is None
+
+    def test_deserializes_legacy_rule_proxy_without_action_identity(self) -> None:
+        proxy = SerializableRuleProxy(
+            id=1,
+            label="Legacy payload",
+            data={},
+            project_id=self.project.id,
+        )
+
+        origin = proxy.to_notification_origin()
+
+        assert origin.workflow_id is None
+        assert origin.legacy_rule_id == 1
+
     def test_source(self) -> None:
         data = IssueNotificationData(
             organization_id=1,
@@ -100,6 +129,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert isinstance(result.rule, SerializableRuleProxy)
         assert result.rule.id == invocation.action.id
         assert result.rule.label == "Test Workflow"
+        assert result.rule.workflow_id == invocation.workflow_id
         assert result.tags == ["environment", "level"]
         assert result.notes == "test note"
         assert len(result.rule.data["actions"]) == 1
@@ -162,7 +192,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         *,
         group: Group,
         workflow_id: int,
-        event_id: str,
+        notification_uuid: str,
         title: str = "test event",
         rule_label: str = "Test Workflow",
         notes: str | None = None,
@@ -178,8 +208,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
         issue_url = (
             f"http://testserver/organizations/{org_slug}/issues/{group_id}/"
-            f"events/{event_id}/"
-            f"?referrer=slack"
+            f"?referrer=slack&notification_uuid={notification_uuid}"
             f"&workflow_id={workflow_id}&alert_type=issue"
         )
         alert_url = f"http://testserver/organizations/{org_slug}/monitors/alerts/{workflow_id}/"
@@ -289,7 +318,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
             workflow_id=invocation.workflow_id,
-            event_id=invocation.event_data.event.event_id,
+            notification_uuid=invocation.notification_uuid,
         )
 
     def test_render_with_notes(self) -> None:
@@ -306,7 +335,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
             workflow_id=invocation.workflow_id,
-            event_id=invocation.event_data.event.event_id,
+            notification_uuid=invocation.notification_uuid,
             notes="important note",
         )
 
@@ -327,7 +356,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
             workflow_id=invocation.workflow_id,
-            event_id=invocation.event_data.event.event_id,
+            notification_uuid=invocation.notification_uuid,
             title="tagged event",
             tags=["level: `error`  "],
         )

@@ -1604,7 +1604,7 @@ export default function ResultsContainer() {
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
     >
-      <AiQueryProvider>
+      <AiQueryProvider strategy="Errors">
         <SavedQueryAPI
           addAlert={addAlert}
           api={api}

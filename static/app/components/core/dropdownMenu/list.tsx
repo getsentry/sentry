@@ -18,6 +18,7 @@ import type {MenuItemProps} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
 import {DropdownSubmenu} from './submenu';
+import {useSafetyTriangle} from './useSafetyTriangle';
 
 type OverlayState = ReturnType<typeof useOverlay>['state'];
 
@@ -32,6 +33,7 @@ interface DropdownMenuContextValue {
    * close the entire menu system.
    */
   rootOverlayState?: OverlayState;
+  safetyTriangle?: ReturnType<typeof useSafetyTriangle>;
 }
 
 export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
@@ -196,6 +198,7 @@ export function DropdownMenuList({
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
+  const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
 
@@ -257,8 +260,9 @@ export function DropdownMenuList({
     () => ({
       rootOverlayState: rootOverlayState ?? overlayState,
       parentMenuState: state,
+      safetyTriangle,
     }),
-    [rootOverlayState, overlayState, state]
+    [rootOverlayState, overlayState, state, safetyTriangle]
   );
   return (
     <FocusScope restoreFocus autoFocus>

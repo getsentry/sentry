@@ -13,6 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTemplate,
 )
+from sentry.notifications.types import NotificationOrigin
 
 
 class SerializableRuleProxy(BaseModel):
@@ -27,32 +28,39 @@ class SerializableRuleProxy(BaseModel):
     data: dict[str, Any]
     environment_id: int | None = None
     project_id: int
+    workflow_id: int | None = None
+    legacy_rule_id: int | None = None
 
     @classmethod
     def from_rule(cls, rule: Rule) -> SerializableRuleProxy:
-        """
-        Temporary method to convert a Rule to a NotificationRuleInfo. This will
-        be removed once we no longer rely on the Rule ORM model.
-        """
+        origin = NotificationOrigin.from_legacy_rule(rule)
         return cls(
             id=rule.id,
             label=rule.label,
             data=rule.data,
             environment_id=rule.environment_id,
             project_id=rule.project.id,
+            workflow_id=origin.workflow_id,
+            legacy_rule_id=origin.legacy_rule_id,
         )
 
-    def to_rule(self) -> Rule:
-        """
-        Temporary method to convert a NotificationRuleInfo to a Rule. This will
-        be removed once we no longer rely on the Rule ORM model.
-        """
-        return Rule(
-            id=self.id,
+    def to_notification_origin(self) -> NotificationOrigin:
+        workflow_id = self.workflow_id
+        legacy_rule_id = self.legacy_rule_id
+        if workflow_id is None and legacy_rule_id is None:
+            # Compatibility for payloads serialized before identities became top-level fields.
+            return NotificationOrigin.from_legacy_data(
+                label=self.label,
+                environment_id=self.environment_id,
+                data=self.data,
+                fallback_legacy_rule_id=self.id,
+            )
+
+        return NotificationOrigin(
             label=self.label,
-            data=self.data,
             environment_id=self.environment_id,
-            project_id=self.project_id,
+            workflow_id=workflow_id,
+            legacy_rule_id=legacy_rule_id,
         )
 
 
@@ -60,7 +68,9 @@ class IssueNotificationData(NotificationData):
     source: NotificationSource = NotificationSource.ISSUE
 
     group_id: int
+    integration_id: int | None = None
     event_id: str | None = None
+    occurrence_id: str | None = None
     tags: list[str] | None = None
     notes: str | None = None
     rule: SerializableRuleProxy
@@ -84,6 +94,7 @@ class IssueNotificationTemplate(NotificationTemplate[IssueNotificationData]):
             data={
                 "actions": [{"workflow_id": 3}],
             },
+            workflow_id=3,
         ),
     )
     hide_from_debugger = True

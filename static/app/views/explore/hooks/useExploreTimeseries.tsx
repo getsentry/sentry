@@ -32,7 +32,6 @@ import {
 interface UseExploreTimeseriesOptions {
   enabled: boolean;
   query: string;
-  includeAnnotations?: boolean;
   queryExtras?: RPCQueryExtras;
 }
 
@@ -44,7 +43,6 @@ export const useExploreTimeseries = ({
   query,
   enabled,
   queryExtras,
-  includeAnnotations,
 }: UseExploreTimeseriesOptions) => {
   const visualizes = useQueryParamsVisualizes();
   const extrapolate = useQueryParamsExtrapolate();
@@ -60,7 +58,7 @@ export const useExploreTimeseries = ({
 
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
     queryHookImplementation: useExploreTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {query, enabled, queryExtras, includeAnnotations},
+    queryHookArgs: {query, enabled, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,
@@ -72,7 +70,6 @@ function useExploreTimeseriesImpl({
   enabled,
   query,
   queryExtras,
-  includeAnnotations,
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
   const dataset = useSpansDataset();
   const groupBys = useQueryParamsGroupBys();
@@ -134,7 +131,6 @@ function useExploreTimeseriesImpl({
       fields,
       orderby,
       topEvents,
-      includeAnnotations,
       // Skip only when every series failed an `_if` filter. Invalid equations still
       // query with DEFAULT_VISUALIZATION as a fallback (prior behavior).
       enabled: enabled && !skippedForInvalidConditionalFilter,
@@ -147,7 +143,6 @@ function useExploreTimeseriesImpl({
     enabled,
     fields,
     hasMeasuredIngestionDelayUi,
-    includeAnnotations,
     interval,
     orderby,
     query,

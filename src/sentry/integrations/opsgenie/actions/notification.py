@@ -6,7 +6,6 @@ from typing import cast
 
 import sentry_sdk
 
-from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import (
     OPSGENIE_DEFAULT_PRIORITY,
     OpsgenieClient,
@@ -138,12 +137,4 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
 
         return self.label.format(
             account=self.get_integration_name(), team=team_name, priority=priority
-        )
-
-    def get_form_instance(self) -> OpsgenieNotifyTeamForm:
-        return OpsgenieNotifyTeamForm(
-            self.data,
-            org_id=self.project.organization_id,
-            integrations=self.get_integrations(),
-            teams=self.get_teams(),
         )

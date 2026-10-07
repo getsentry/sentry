@@ -2,10 +2,8 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from rest_framework import serializers
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from sentry.api.serializers.rest_framework.rule import validate_actions
 from sentry.integrations.github_enterprise import client
 from sentry.integrations.github_enterprise.actions.create_ticket import (
     GitHubEnterpriseCreateTicketAction,
@@ -186,24 +184,3 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
             ).count()
             == 1
         )
-
-    @responses.activate()
-    def test_fails_validation(self) -> None:
-        """
-        Test that the absence of dynamic_form_fields in the action fails validation
-        """
-        with pytest.raises(serializers.ValidationError) as excinfo:
-            validate_actions(
-                {
-                    "actions": [
-                        {
-                            "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                            "integration": self.integration.id,
-                            "repo": self.repo,
-                            "assignee": self.assignee,
-                            "labels": self.labels,
-                        }
-                    ]
-                }
-            )
-        assert excinfo.value.detail == {"actions": "Must configure issue link settings."}

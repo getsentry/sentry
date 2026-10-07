@@ -128,7 +128,7 @@ repos:
       - id: python-check-blanket-type-ignore
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.29.3
+    rev: 0.38.2
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
@@ -142,6 +142,7 @@ repos:
       - id: check-merge-conflict
       - id: check-symlinks
       - id: check-yaml
+        args: ['--allow-multiple-documents']
       - id: end-of-file-fixer
         exclude_types: [svg]
         exclude: ^fixtures/

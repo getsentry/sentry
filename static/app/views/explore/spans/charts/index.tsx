@@ -174,10 +174,10 @@ function Chart({
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const {droppedAnnotations, acceptedAnnotations} = useDroppedData({dataset});
+  const {droppedEvents, acceptedEvents} = useDroppedData({dataset});
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer(dataset);
-  const canShowDroppedData = hasDroppedData(droppedAnnotations, acceptedAnnotations);
+  const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
 
   const {
@@ -354,8 +354,8 @@ function Chart({
               droppedData={
                 showDroppedDataBand
                   ? {
-                      droppedAnnotations,
-                      acceptedAnnotations,
+                      droppedEvents,
+                      acceptedEvents,
                       onClick: openDroppedDataDrawer,
                     }
                   : undefined
