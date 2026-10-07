@@ -72,7 +72,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
         rules = [data.rule.to_rule()] if data.rule else []
         issue_url = cls.build_issue_url(group=group, notification_uuid=data.notification_uuid)
-        issue_url = link_decorator.decorate(issue_url)
+        issue_url = link_decorator.decorate_url(issue_url)
 
         fields: list[Block | None] = [
             cls.build_description(group=group, event=event),

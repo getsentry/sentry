@@ -79,6 +79,17 @@ def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) 
     return response
 
 
+def _preview_link_decorator(
+    data: NotificationData, provider: NotificationProviderKey
+) -> NotificationLinkDecorator:
+    return NotificationLinkDecorator(
+        source=data.source,
+        provider=provider,
+        notification_uuid=data.notification_uuid,
+        enabled=False,
+    )
+
+
 def serialize_email_preview[T: NotificationData](
     template: NotificationTemplate[T],
 ) -> dict[str, Any]:
@@ -87,11 +98,7 @@ def serialize_email_preview[T: NotificationData](
     email = EmailRenderer.render(
         data=data,
         rendered_template=rendered_template,
-        link_decorator=NotificationLinkDecorator(
-            source=data.source,
-            provider=NotificationProviderKey.EMAIL,
-            notification_uuid=data.notification_uuid,
-        ),
+        link_decorator=_preview_link_decorator(data, NotificationProviderKey.EMAIL),
     )
     return {
         "subject": email.subject,
@@ -108,11 +115,7 @@ def serialize_msteams_preview[T: NotificationData](
     return MSTeamsRenderer.render(
         data=data,
         rendered_template=rendered_template,
-        link_decorator=NotificationLinkDecorator(
-            source=data.source,
-            provider=NotificationProviderKey.MSTEAMS,
-            notification_uuid=data.notification_uuid,
-        ),
+        link_decorator=_preview_link_decorator(data, NotificationProviderKey.MSTEAMS),
     )
 
 
@@ -125,11 +128,7 @@ def serialize_slack_preview[T: NotificationData](
     message = renderer.render(
         data=data,
         rendered_template=rendered_template,
-        link_decorator=NotificationLinkDecorator(
-            source=data.source,
-            provider=NotificationProviderKey.SLACK,
-            notification_uuid=data.notification_uuid,
-        ),
+        link_decorator=_preview_link_decorator(data, NotificationProviderKey.SLACK),
     )
 
     serialized_blocks = []
@@ -147,11 +146,7 @@ def serialize_discord_preview[T: NotificationData](
     return DiscordRenderer.render(
         data=data,
         rendered_template=rendered_template,
-        link_decorator=NotificationLinkDecorator(
-            source=data.source,
-            provider=NotificationProviderKey.DISCORD,
-            notification_uuid=data.notification_uuid,
-        ),
+        link_decorator=_preview_link_decorator(data, NotificationProviderKey.DISCORD),
     )
 
 

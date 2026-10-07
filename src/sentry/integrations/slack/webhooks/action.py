@@ -58,8 +58,6 @@ from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
-from sentry.notifications.platform.tracking import NotificationLinkDecorator
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
@@ -451,11 +449,6 @@ class SlackActionEndpoint(Endpoint):
                     workflow_id=workflow_id,
                     issue_details=True,
                     skip_fallback=True,
-                    link_decorator=NotificationLinkDecorator(
-                        source=NotificationSource.ISSUE,
-                        provider=NotificationProviderKey.SLACK,
-                        notification_uuid=None,
-                    ),
                 ).build()
 
                 # use the original response_url to update the link attachment
@@ -542,11 +535,6 @@ class SlackActionEndpoint(Endpoint):
             tags=original_tags_from_request,
             rules=[rule] if rule else None,
             workflow_id=workflow_id,
-            link_decorator=NotificationLinkDecorator(
-                source=NotificationSource.ISSUE,
-                provider=NotificationProviderKey.SLACK,
-                notification_uuid=None,
-            ),
         ).build()
         # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
         # response so the unfurling endpoint understands the payload

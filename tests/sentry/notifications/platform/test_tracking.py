@@ -241,7 +241,7 @@ def test_classify_link(url: str, expected: NotificationLink) -> None:
 
 
 @override_options(ENABLED_OPTIONS)
-class DecorateLinksTest(TestCase):
+class DecorateRenderedTemplateTest(TestCase):
     referrer = "activity-seer-rca-completed-email"
     notification_uuid = "0b1c3a4e-7d0f-4b8a-9b6e-0c7a2f3d5e61"
     tracking = f"referrer={referrer}&notification_uuid={notification_uuid}"
@@ -250,7 +250,7 @@ class DecorateLinksTest(TestCase):
         super().setUp()
         self.enterContext(override_options({"system.url-prefix": "https://sentry.io"}))
 
-    def decorate(
+    def decorate_rendered_template(
         self, rendered_template: NotificationRenderedTemplate
     ) -> tuple[NotificationRenderedTemplate, set[NotificationLink]]:
         decorator = NotificationLinkDecorator(
@@ -258,7 +258,7 @@ class DecorateLinksTest(TestCase):
             provider=NotificationProviderKey.EMAIL,
             notification_uuid=self.notification_uuid,
         )
-        return decorator.decorate_template(rendered_template), decorator.links
+        return decorator.decorate_rendered_template(rendered_template), decorator.links
 
     def test_decorates_sentry_links(self) -> None:
         rendered_template = NotificationRenderedTemplate(
@@ -292,7 +292,7 @@ class DecorateLinksTest(TestCase):
             ],
         )
 
-        decorated, links = self.decorate(rendered_template)
+        decorated, links = self.decorate_rendered_template(rendered_template)
 
         assert decorated == replace(
             rendered_template,
@@ -335,10 +335,13 @@ class DecorateLinksTest(TestCase):
             ],
         )
 
-        decorated, _ = self.decorate(rendered_template)
+        decorated, _ = self.decorate_rendered_template(rendered_template)
 
         assert "notification_link" not in decorated.actions[0].link
-        assert self.decorate(decorated) == (decorated, {NotificationLink.DATA_EXPORT})
+        assert self.decorate_rendered_template(decorated) == (
+            decorated,
+            {NotificationLink.DATA_EXPORT},
+        )
 
     def test_plain_text_and_undecoratable_links_are_unchanged(self) -> None:
         rendered_template = NotificationRenderedTemplate(
@@ -348,7 +351,7 @@ class DecorateLinksTest(TestCase):
         )
 
         with mock.patch("sentry.notifications.platform.tracking.logger") as mock_logger:
-            decorated, links = self.decorate(rendered_template)
+            decorated, links = self.decorate_rendered_template(rendered_template)
 
         assert decorated == rendered_template
         assert links == set()

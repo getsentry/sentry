@@ -9,8 +9,6 @@ from sentry.digests.utils import get_groups
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.notifications.notifications.digest import DigestNotification
-from sentry.notifications.platform.tracking import NotificationLinkDecorator
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.types.actor import Actor
 
 from .base import SlackNotificationsMessageBuilder
@@ -44,11 +42,6 @@ class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
                 issue_details=True,
                 notification=self.notification,
                 recipient=self.recipient,
-                link_decorator=NotificationLinkDecorator(
-                    source=NotificationSource.ISSUE,
-                    provider=NotificationProviderKey.SLACK,
-                    notification_uuid=self.notification.notification_uuid,
-                ),
             ).build()
 
             # Check if adding this issue would exceed 48 blocks

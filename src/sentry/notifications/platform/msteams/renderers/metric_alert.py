@@ -47,7 +47,7 @@ class MSTeamsMetricAlertRenderer(NotificationRenderer[MSTeamsRenderable]):
         footer_text = "Sentry Incident | {}".format(
             data.open_period_context.date_started.strftime("%b %d")
         )
-        title_link = link_decorator.decorate(data.title_link)
+        title_link = link_decorator.decorate_url(data.title_link)
 
         return {
             "type": "AdaptiveCard",

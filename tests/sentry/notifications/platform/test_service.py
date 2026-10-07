@@ -123,12 +123,11 @@ class NotificationServiceTest(TestCase):
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
 
-        result, links = NotificationService.render_template(
+        result = NotificationService.render_template(
             data=data, template=template, provider=EmailNotificationProvider
         )
 
         assert isinstance(result, EmailMultiAlternatives)
-        assert links == set()
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_basic_notify_target_async(self, mock_record: mock.MagicMock) -> None:

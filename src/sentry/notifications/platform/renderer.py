@@ -31,7 +31,8 @@ class NotificationRenderer[RenderableT](Protocol):
 
         We pass in the data as well since custom renderers may use raw data to modify the output
         for the provider where the template cannot. For example, custom markdown formatting,
-        provider-specific features like modals, etc. Custom renderers can use `link_decorator` to
-        decorate links they create outside the rendered template.
+        provider-specific features like modals, etc. Custom renderers must use
+        `link_decorator.decorate_url` for navigational links they create outside the rendered
+        template. The decorator is disabled for renders that won't be sent.
         """
         ...

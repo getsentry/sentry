@@ -90,16 +90,17 @@ def is_tracking_enabled(
 class NotificationLinkDecorator:
     source: NotificationSource | str
     provider: NotificationProviderKey | str
-    notification_uuid: str | None
+    notification_uuid: str
+    enabled: bool = True
     links: set[NotificationLink] = field(default_factory=set, init=False)
 
-    def decorate(self, url: str) -> str:
+    def decorate_url(self, url: str) -> str:
         """
         Add tracking parameters to a Sentry URL and include its inferred kind in the set of links
         present in the notification. Other URLs and URLs that can't be decorated are returned
         unchanged and aren't included.
         """
-        if self.notification_uuid is None or not is_tracking_enabled(self.source, self.provider):
+        if not self.enabled or not is_tracking_enabled(self.source, self.provider):
             return url
 
         try:
@@ -122,15 +123,15 @@ class NotificationLinkDecorator:
         self.links.add(classify_link(url))
         return decorated
 
-    def decorate_template(
+    def decorate_rendered_template(
         self, rendered_template: NotificationRenderedTemplate
     ) -> NotificationRenderedTemplate:
-        if self.notification_uuid is None or not is_tracking_enabled(self.source, self.provider):
+        if not self.enabled or not is_tracking_enabled(self.source, self.provider):
             return rendered_template
 
         def decorate_blocks(blocks: list[NotificationTextBlock]) -> list[NotificationTextBlock]:
             return [
-                replace(block, url=self.decorate(block.url))
+                replace(block, url=self.decorate_url(block.url))
                 if isinstance(block, LinkTextBlock)
                 else block
                 for block in blocks
@@ -151,7 +152,7 @@ class NotificationLinkDecorator:
             subject=decorate_text(rendered_template.subject),
             body=[decorate_section(section) for section in rendered_template.body],
             actions=[
-                replace(action, link=self.decorate(action.link))
+                replace(action, link=self.decorate_url(action.link))
                 for action in rendered_template.actions
             ],
             footer=(
