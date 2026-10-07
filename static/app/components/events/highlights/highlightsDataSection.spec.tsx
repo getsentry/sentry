@@ -89,14 +89,12 @@ describe('HighlightsDataSection', () => {
     });
     expect(await screen.findByText('Highlights')).toBeInTheDocument();
     // Wait for the project detail API data to load and render tags
-    expect(
-      await screen.findByText('environment', {ignore: '[aria-hidden="true"]'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('environment', {selector: 'div'})).toBeInTheDocument();
     for (const tagKey of highlightTags) {
       // https://github.com/typescript-eslint/typescript-eslint/issues/10722
       // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
       const row = screen
-        .getByText(tagKey, {ignore: '[aria-hidden="true"]'})
+        .getByText(tagKey, {selector: 'div'})
         .closest('div[data-test-id=highlight-tag-row]') as HTMLElement;
       // If highlight is present on the event...
       if (Object.hasOwn(eventTagMap, tagKey)) {
@@ -123,23 +121,5 @@ describe('HighlightsDataSection', () => {
     highlightContextTitles.forEach(title => {
       expect(screen.getByText(title)).toBeInTheDocument();
     });
-  });
-
-  it('describes a highlighted context key when hovering it', async () => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      body: {...project, highlightTags: [], highlightContext},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays/undefined/`,
-      body: {},
-    });
-
-    render(<HighlightsDataSection event={event} project={project} />, {organization});
-    await userEvent.hover(await screen.findByText('User: email'));
-
-    expect(await screen.findByText('user.email')).toBeInTheDocument();
-    expect(screen.getByText('Email address of the user')).toBeInTheDocument();
-    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
   });
 });

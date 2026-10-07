@@ -157,7 +157,6 @@ explicit_tag_key        = "tags" open_bracket escaped_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
 explicit_boolean_tag_key = "tags" open_bracket escaped_key spaces comma spaces "boolean" closed_bracket
-explicit_array_tag_key =   "tags" open_bracket escaped_key spaces comma spaces "array" closed_bracket
 
 aggregate_key                    = key open_paren spaces function_args? spaces closed_paren
 function_args                    = aggregate_param (spaces comma spaces !comma aggregate_param?)*
@@ -184,7 +183,7 @@ has_in_list            = open_bracket has_item (spaces comma spaces !comma has_i
 
 # TODO: Wildcard will be special index syntax for array.
 array_includes_suffix = open_bracket "*" closed_bracket
-array_includes_tag_key = explicit_array_tag_key array_includes_suffix
+array_includes_tag_key = "tags" open_bracket escaped_key array_includes_suffix spaces comma spaces "array" closed_bracket
 array_includes_attr_key = (key/ quoted_key) array_includes_suffix
 
 array_includes_key = array_includes_attr_key / array_includes_tag_key
@@ -1992,13 +1991,17 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
                 tokens.append(joining_operator)
         return ParenExpression(tokens)
 
-    def visit_explicit_array_tag_key(
+    def visit_array_includes_suffix(self, node: Node, children: object) -> str:
+        return "[*]"
+
+    def visit_array_includes_tag_key(
         self,
         node: Node,
         children: tuple[
             Node,  # "tags"
             str,  # '['
             str,  # escaped_key
+            str,  # "[*]" (array_includes_suffix)
             str,  # ' '
             Node,  # ','
             str,  # ' '
@@ -2007,17 +2010,6 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchKey:
         return SearchKey(f"tags[{children[2]},array]")
-
-    def visit_array_includes_suffix(self, node: Node, children: object) -> str:
-        return "[*]"
-
-    def visit_array_includes_tag_key(
-        self,
-        node: Node,
-        children: tuple[SearchKey, str],  #  "[*]")
-    ) -> SearchKey:
-        inner, _ = children
-        return SearchKey(f"{inner.name}")
 
     def visit_array_includes_attr_key(
         self,

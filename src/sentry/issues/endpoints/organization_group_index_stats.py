@@ -11,7 +11,7 @@ from sentry.api.helpers.group_index import build_query_params_from_request, calc
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
-from sentry.api.utils import get_date_range_from_stats_period
+from sentry.api.utils import get_date_range_from_stats_period, handle_query_errors
 from sentry.issues.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -116,26 +116,27 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
             )
         except ValidationError:
             return Response({"detail": "Invalid request parameters."}, status=400)
-        context = serialize(
-            groups,
-            request.user,
-            StreamGroupSerializerSnuba(
-                environment_ids=[env.id for env in environments],
-                stats_period=stats_period,
-                stats_period_start=stats_period_start,
-                stats_period_end=stats_period_end,
-                collapse=collapse,
-                expand=expand,
-                start=start,
-                end=end,
-                search_filters=(
-                    query_kwargs["search_filters"] if "search_filters" in query_kwargs else None
+        with handle_query_errors():
+            context = serialize(
+                groups,
+                request.user,
+                StreamGroupSerializerSnuba(
+                    environment_ids=[env.id for env in environments],
+                    stats_period=stats_period,
+                    stats_period_start=stats_period_start,
+                    stats_period_end=stats_period_end,
+                    collapse=collapse,
+                    expand=expand,
+                    start=start,
+                    end=end,
+                    search_filters=(
+                        query_kwargs["search_filters"] if "search_filters" in query_kwargs else None
+                    ),
+                    organization_id=organization.id,
+                    project_ids=project_ids,
                 ),
-                organization_id=organization.id,
-                project_ids=project_ids,
-            ),
-            request=request,
-        )
+                request=request,
+            )
 
         response = Response(context)
         return response

@@ -2,7 +2,6 @@ import {useState} from 'react';
 
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {getKnownData} from 'sentry/components/events/contexts/utils';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
@@ -13,7 +12,7 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
-import type {EventExtraDataType, EventExtraData as TEventExtraData} from './types';
+import {EventExtraDataType} from './types';
 
 type Props = {
   event: Event;
@@ -21,17 +20,19 @@ type Props = {
 
 export function EventExtraData({event}: Props) {
   const [raw, setRaw] = useState(false);
+  const data = event.context;
 
-  if (!defined(event.context) || isEmptyObject(event.context)) {
+  if (!defined(data) || isEmptyObject(data)) {
     return null;
   }
 
   const meta = event._meta?.context;
-  const knownData = getKnownData<TEventExtraData, EventExtraDataType>({
-    data: event.context,
-    knownDataTypes: Object.keys(event.context),
-    meta,
-    onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
+  const knownData = Object.keys(data).map(key => {
+    if (key === EventExtraDataType.CRASHED_PROCESS) {
+      return {key, ...getEventExtraDataKnownDataDetails({data, type: key})};
+    }
+
+    return {key, subject: key, value: data[key]};
   });
 
   const contentItems = knownData.map(item => ({

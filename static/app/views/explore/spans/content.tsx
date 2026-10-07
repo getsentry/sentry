@@ -133,7 +133,7 @@ function ExploreContentInner() {
         maxDateRange={datePageFilterProps.maxDateRange}
       >
         <AnalyticsArea name="explore.spans">
-          <AiQueryProvider>
+          <AiQueryProvider strategy="Traces">
             <Stack flex={1}>
               <SpansTabWrapper>
                 <SpansTabHeader />

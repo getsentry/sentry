@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 import tempfile
 import uuid
 from datetime import datetime
@@ -13,8 +14,9 @@ from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Q
 from django.utils import timezone
+from sentry_sdk import traces
 
-from sentry import features
+from sentry import features, options
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.debug_files.artifact_bundles import (
@@ -43,7 +45,6 @@ from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
 from sentry.utils.sdk import bind_organization_context
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +139,7 @@ def _get_assemble_file_blob_ids(task, org_or_project, name, checksum, chunks) ->
     return [ids_by_checksum[c] for c in chunks]
 
 
-@trace
+@traces.trace
 def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
     """
     Verifies and assembles a file model from chunks.
@@ -172,7 +173,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
     return AssembleResult(bundle=file, bundle_temp_file=temp_file)
 
 
-@trace
+@traces.trace
 def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[bytes] | None:
     """Assembles uploaded chunks into a temporary file without creating a ``File``."""
     from sentry.models.files.fileblob import FileBlob
@@ -244,7 +245,7 @@ def _get_redis_cluster_for_assemble() -> RedisCluster:
     return redis.redis_clusters.get(cluster_key)
 
 
-@trace
+@traces.trace
 def get_assemble_status(task, scope, checksum):
     """
     Checks the current status of an assembling task.
@@ -264,7 +265,7 @@ def get_assemble_status(task, scope, checksum):
     return tuple(orjson.loads(rv))
 
 
-@trace
+@traces.trace
 def set_assemble_status(task, scope, checksum, state, detail=None):
     """
     Updates the status of an assembling task. It is cached for 10 minutes.
@@ -274,7 +275,7 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
     redis_client.set(name=cache_key, value=orjson.dumps([state, detail]), ex=600)
 
 
-@trace
+@traces.trace
 def delete_assemble_status(task, scope, checksum):
     """
     Deletes the status of an assembling task.
@@ -383,6 +384,36 @@ class AssembleArtifactsTooLargeError(AssembleArtifactsError):
     pass
 
 
+# An environment variable reference that was never expanded, such as `$GITHUB_SHA`, `${GITHUB_SHA}`,
+# `$(Build.SourceVersion)` or `%BUILD_ID%`.
+UNEXPANDED_ENV_VAR_RE = re.compile(
+    r"\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\}|\([A-Za-z_][A-Za-z0-9_.]*\))"
+    r"|%[A-Za-z_][A-Za-z0-9_]*%"
+)
+# The bare name of an environment variable, such as `VERCEL_GIT_COMMIT_SHA`: upper case words joined
+# by underscores. Names with digits, such as `RELEASE_1_2` or `APP_V2`, do not match, as those are
+# more likely to be real release names.
+ENV_VAR_NAME_RE = re.compile(r"[A-Z]+(?:_[A-Z]+)+")
+
+
+def get_placeholder_release_kind(release: str) -> str | None:
+    """
+    Returns which kind of placeholder build tooling sent as the release name when no release was set
+    or detected, or None for a real release name: "undefined", "null" or "empty" for those names,
+    such as JavaScript's `String(undefined)`, and "env_var" for an environment variable that was
+    never expanded or its bare name.
+    """
+    stripped = release.strip()
+    name = stripped.lower()
+    if name in ("undefined", "null"):
+        return name
+    if not name:
+        return "empty"
+    if UNEXPANDED_ENV_VAR_RE.fullmatch(stripped) or ENV_VAR_NAME_RE.fullmatch(stripped):
+        return "env_var"
+    return None
+
+
 class ArtifactBundlePostAssembler:
     def __init__(
         self,
@@ -453,12 +484,14 @@ class ArtifactBundlePostAssembler:
         with metrics.timer("tasks.assemble.artifact_bundle"):
             self._create_artifact_bundle()
 
-    @trace
+    @traces.trace
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
         # contents.
         self.release = self.release or self.archive.manifest.get("release")
         self.dist = self.dist or self.archive.manifest.get("dist")
+        if isinstance(self.release, str) and not self.is_release_bundle_migration:
+            self._ignore_placeholder_release(self.release)
 
         # In case we have a release bundle migration, we are fetching *all* the projects associated with a release,
         # which can be quite a lot. We rather use the `project` of the bundle manifest instead, but ONLY if that
@@ -576,7 +609,38 @@ class ArtifactBundlePostAssembler:
                 dist=(self.dist or NULL_STRING),
             )
 
-    @trace
+    def _ignore_placeholder_release(self, release: str) -> None:
+        """
+        Some build tooling sends a placeholder such as "undefined" as the release name when no
+        release was set, and that release then collects the bundles of every such build in the
+        organization. Drop the placeholder, and the dist with it, so that the bundle is only found
+        by debug ID. A bundle with any file that has no debug ID keeps it, as the release is the
+        only way to find that file. Bundles uploaded before are left as they are.
+        """
+        kind = get_placeholder_release_kind(release)
+        if kind is None:
+            return
+
+        option = (
+            "sourcemaps.artifact-bundles.assemble.ignore-env-var-releases"
+            if kind == "env_var"
+            else "sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases"
+        )
+        if not options.get(option):
+            outcome = "kept"
+        elif not self.archive.has_debug_ids_for_all_files():
+            outcome = "kept_files_without_debug_ids"
+        else:
+            self.release = None
+            self.dist = None
+            outcome = "ignored"
+
+        metrics.incr(
+            "tasks.assemble.artifact_bundle.placeholder_release",
+            tags={"kind": kind, "outcome": outcome},
+        )
+
+    @traces.trace
     def _create_or_update_artifact_bundle(
         self, bundle_id: str, date_added: datetime
     ) -> tuple[ArtifactBundle, bool]:
@@ -668,7 +732,7 @@ class ArtifactBundlePostAssembler:
         # fire the on_delete signal.
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
-    @trace
+    @traces.trace
     def _index_bundle_if_needed(self, artifact_bundle: ArtifactBundle, release: str, dist: str):
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")

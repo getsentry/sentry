@@ -75,8 +75,38 @@ class IssueAlertInvocationMixin(TestCase):
 
 
 class IssueNotificationDataTest(IssueAlertInvocationMixin):
+    def test_deserializes_legacy_rule_proxy(self) -> None:
+        proxy = SerializableRuleProxy.parse_obj(
+            {
+                "id": 1,
+                "label": "Legacy payload",
+                "data": {"actions": [{"workflow_id": "2"}]},
+                "project_id": self.project.id,
+            }
+        )
+
+        origin = proxy.to_notification_origin()
+
+        assert origin.label == "Legacy payload"
+        assert origin.workflow_id == 2
+        assert origin.legacy_rule_id is None
+
+    def test_deserializes_legacy_rule_proxy_without_action_identity(self) -> None:
+        proxy = SerializableRuleProxy(
+            id=1,
+            label="Legacy payload",
+            data={},
+            project_id=self.project.id,
+        )
+
+        origin = proxy.to_notification_origin()
+
+        assert origin.workflow_id is None
+        assert origin.legacy_rule_id == 1
+
     def test_source(self) -> None:
         data = IssueNotificationData(
+            organization_id=1,
             group_id=self.group.id,
             rule=SerializableRuleProxy(
                 id=1, label="Test Detector", data={}, project_id=self.project.id
@@ -99,6 +129,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert isinstance(result.rule, SerializableRuleProxy)
         assert result.rule.id == invocation.action.id
         assert result.rule.label == "Test Workflow"
+        assert result.rule.workflow_id == invocation.workflow_id
         assert result.tags == ["environment", "level"]
         assert result.notes == "test note"
         assert len(result.rule.data["actions"]) == 1
@@ -147,7 +178,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
     def test_render_raises_on_invalid_data(self) -> None:
         from sentry.notifications.platform.templates.seer import SeerAutofixError
 
-        invalid_data = SeerAutofixError(error_message="test")
+        invalid_data = SeerAutofixError(organization_id=1, error_message="test")
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
@@ -335,6 +366,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 class IssueAlertProviderDispatchTest(TestCase):
     def test_provider_returns_issue_renderer(self) -> None:
         data = IssueNotificationData(
+            organization_id=1,
             group_id=self.group.id,
             rule=SerializableRuleProxy(
                 id=1, label="Test Detector", data={}, project_id=self.project.id

@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {LogAttributesView} from 'sentry/components/seer/markdown/embeds/components/log/logAttributesView';
@@ -336,7 +337,7 @@ export default function LogBlock(props: LogData) {
               </Text>
             </Flex>
             <Text monospace size="sm">
-              {String(message ?? '')}
+              <AnsiText>{String(message ?? '')}</AnsiText>
             </Text>
           </Flex>
           <LogBlockContent
