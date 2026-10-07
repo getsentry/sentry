@@ -43,8 +43,6 @@ export function createPlottableFromTimeSeriesAndWidget(
     alias,
     name,
     color,
-    // Any shared id stacks the series; it's scoped to this chart, so it doesn't need
-    // to be unique, and keying it off the title would redraw the chart on rename
     stack: shouldStack ? 'widgetStack' : undefined,
   });
 }
