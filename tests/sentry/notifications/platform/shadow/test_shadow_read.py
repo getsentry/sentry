@@ -234,23 +234,45 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
 
     @with_feature("organizations:slack-reinstall-nudge-on-issue-alert")
     @override_options({"slack.nudge-frequency": 1.0})
-    def test_slack_nudge_block_is_missing_from_platform(self) -> None:
+    def test_slack_nudge_matches(self) -> None:
         action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
 
         observation, client = self.send(self.invocation(action))
 
         sent_blocks = orjson.loads(client.return_value.chat_postMessage.call_args.kwargs["blocks"])
-        nudge = sent_blocks[-1]
-        assert nudge["type"] == "context"
-        assert observation.outcome == ShadowOutcome.MISMATCH
-        log = observation.mismatch
-        assert log is not None
-        assert log["diff"] == [f"blocks count: old={len(sent_blocks)}, new={len(sent_blocks) - 1}"]
-        legacy, platform = observation.payloads
-        assert legacy["blocks"][-1] == nudge
-        assert nudge not in platform["blocks"]
+        assert "reinstall Sentry Slack app" in str(sent_blocks[-1])
+        self.assert_match(observation)
 
-    def test_slack_additional_attachment_is_missing_from_platform(self) -> None:
+    @with_feature("organizations:slack-reinstall-nudge-on-issue-alert")
+    @override_options({"slack.nudge-frequency": 1.0})
+    def test_slack_mentions_read_scope_nudge_matches(self) -> None:
+        action = self.create_shadow_action(
+            "slack", {"tags": "", "notes": ""}, metadata={"scopes": ["app_mentions:read"]}
+        )
+
+        observation, _ = self.send(self.invocation(action))
+
+        legacy, _ = observation.payloads
+        assert "Mention or tag Sentry" in str(legacy["blocks"][-1])
+        self.assert_match(observation)
+
+    @with_feature("organizations:slack-reinstall-nudge-on-issue-alert")
+    @override_options({"slack.nudge-frequency": 0.5})
+    def test_slack_sampled_nudge_matches(self) -> None:
+        action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
+        nudged = set()
+
+        for i in range(8):
+            invocation = replace(self.invocation(action), notification_uuid=f"{i:032x}")
+            observation, _ = self.send(invocation)
+
+            assert observation.outcome == ShadowOutcome.MATCH, observation.mismatch
+            legacy, _ = observation.payloads
+            nudged.add("reinstall Sentry Slack app" in str(legacy["blocks"][-1]))
+
+        assert nudged == {True, False}
+
+    def test_slack_additional_attachment_matches(self) -> None:
         attachment = {"type": "section", "text": {"type": "mrkdwn", "text": "extra"}}
         action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
 
@@ -260,14 +282,9 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         ):
             observation, _ = self.send(self.invocation(action))
 
-        assert observation.outcome == ShadowOutcome.MISMATCH
-        log = observation.mismatch
-        assert log is not None
-        legacy, platform = observation.payloads
-        legacy_count = len(legacy["blocks"])
-        assert log["diff"] == [f"blocks count: old={legacy_count}, new={legacy_count - 1}"]
+        self.assert_match(observation)
+        legacy, _ = observation.payloads
         assert legacy["blocks"][-1] == attachment
-        assert attachment not in platform["blocks"]
 
     def test_slack_staging_matches(self) -> None:
         action = self.create_shadow_action("slack_staging", {"tags": "level", "notes": ""})
