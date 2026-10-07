@@ -63,13 +63,13 @@ export interface EntityHeaderProps {
 }
 
 function getGridTemplate({
-  hasStats,
+  hasStatsRow,
   hasContext,
 }: {
   hasContext: boolean;
-  hasStats: boolean;
+  hasStatsRow: boolean;
 }) {
-  if (!hasStats) {
+  if (!hasStatsRow) {
     return {
       columns: 'minmax(0, 1fr)',
       areas: hasContext ? `"title" "context"` : `"title"`,
@@ -145,12 +145,15 @@ export function EntityHeader({
     peopleLoading ||
     visibleStats.some(({stat}) => Boolean(stat.isLoading));
   const hasPeople = Boolean(people) && (peopleLoading || (people?.users.length ?? 0) > 0);
-  const hasStats = visibleStats.length > 0 || hasPeople;
+  const hasStats = visibleStats.length > 0;
+  // People and stats share the trailing row, but neither needs the other: the
+  // row is there if either one is.
+  const hasStatsRow = hasStats || hasPeople;
   const hasSubtitle = Boolean(subtitle);
   const hasMetadata = visibleMetadata.length > 0;
   const hasContext = hasSubtitle || hasMetadata;
 
-  const {columns, areas} = getGridTemplate({hasStats, hasContext});
+  const {columns, areas} = getGridTemplate({hasStatsRow, hasContext});
 
   const header = (
     <Container
@@ -202,7 +205,7 @@ export function EntityHeader({
             )}
           </Stack>
         )}
-        {hasStats && (
+        {hasStatsRow && (
           <Flex
             area="stats"
             align="center"

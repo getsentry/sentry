@@ -475,6 +475,31 @@ describe('EntityHeader', () => {
       expect(stack).toBeInTheDocument();
     });
 
+    it('renders people with no stats, and stats with no people', () => {
+      const users = [UserFixture({id: '1', name: 'Alice', email: 'alice@example.com'})];
+
+      const {rerender} = render(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          people={{users, label: 'Viewed by'}}
+        />
+      );
+
+      expect(screen.getByText('Viewed by: Alice')).toBeInTheDocument();
+      // Nobody to separate from, so the row opens with the avatars.
+      expect(document.querySelectorAll('[aria-hidden="true"] hr')).toHaveLength(0);
+
+      rerender(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          stats={[{type: 'text', label: 'Errors', value: 2}]}
+        />
+      );
+
+      expect(screen.queryByText(/Viewed by/)).not.toBeInTheDocument();
+      expect(screen.getByText('Errors')).toBeInTheDocument();
+    });
+
     it('renders nothing for people once they resolve to nobody', () => {
       render(
         <EntityHeader
