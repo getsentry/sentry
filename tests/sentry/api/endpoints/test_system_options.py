@@ -1,11 +1,37 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.request import Request
 
 from sentry import options
+from sentry.api.endpoints.system_options import SystemOptionsEndpoint
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+
+
+@pytest.mark.parametrize("key", ["system.admin-email", "mail.host", "api.rate-limit.org-create"])
+@pytest.mark.parametrize("value", ["updated", "", None])
+def test_saas_rejects_mutations_before_transaction(key: str, value) -> None:
+    request = MagicMock(spec=Request)
+    request.data = {key: value}
+    endpoint = SystemOptionsEndpoint()
+    with (
+        override_settings(SENTRY_SELF_HOSTED=False),
+        patch.object(endpoint, "has_permission", return_value=True),
+        patch(
+            "sentry.api.endpoints.system_options.transaction.atomic",
+            side_effect=AssertionError("option transaction opened"),
+        ),
+        patch.object(options.default_store, "set", side_effect=AssertionError("store write")),
+        patch.object(options.default_store, "delete", side_effect=AssertionError("store delete")),
+    ):
+        response = endpoint.put(request)
+    assert response.status_code == 400
+    assert response.data["error"] == "immutable_option"
+    assert response.data["errorDetail"]["option"] == key
+    assert "cannot be changed at runtime" in response.data["errorDetail"]["message"]
 
 
 class SystemOptionsTest(APITestCase):

@@ -20,7 +20,8 @@ if TYPE_CHECKING:
 
     # A read hook receives the key and its resolved registry entry and returns
     # either a value to serve or READ_HOOK_FALLBACK to defer to the normal
-    # store/disk/default resolution.
+    # disk/default resolution for SaaS runtime configuration, or the legacy
+    # store/disk/default chain for other options.
     ReadHook = Callable[[str, Key], object]
 
 # Prevent ourselves from clobbering the builtin
@@ -120,7 +121,7 @@ FLAG_ADMIN_MODIFIABLE = 1 << 8
 FLAG_RATE = 1 << 9
 # Values that are bools
 FLAG_BOOL = 1 << 10
-# Value can be dynamically updated by automator
+# Runtime configuration served by sentry-options in SaaS.
 FLAG_AUTOMATOR_MODIFIABLE = 1 << 11
 # Values that are scalar numeric integer values
 FLAG_SCALAR = 1 << 12
@@ -163,6 +164,25 @@ WRITE_REQUIRED_FLAGS = {
     UpdateChannel.AUTOMATOR: FLAG_AUTOMATOR_MODIFIABLE,
 }
 
+# Self-hosted setup and admin settings remain database-backed. SaaS serves
+# these from deployment configuration and must never use a legacy stored value.
+SAAS_WIZARD_OPTIONS = frozenset(
+    {
+        "system.url-prefix",
+        "system.admin-email",
+        "auth.allow-registration",
+        "beacon.anonymous",
+        "beacon.record_cpu_ram_usage",
+        "mail.from",
+        "mail.host",
+        "mail.port",
+        "mail.username",
+        "mail.password",
+        "mail.use-tls",
+        "mail.use-ssl",
+    }
+)
+
 
 def _make_cache_key(key: str) -> str:
     return "o:%s" % md5_text(key).hexdigest()
@@ -172,34 +192,29 @@ class OptionsManager:
     """
     A backend for storing generic configuration within Sentry.
 
-    Legacy Django configuration should be deprioritized in favor of more dynamic
-    configuration through the options backend, which is backed by a cache and a
-    database.
+    SaaS runtime configuration resolves from a read hook or local configuration,
+    independently of the database and cache. Self-hosted configuration and
+    application state retain the database-backed store.
 
-    You **always** will receive a response to ``get()``. The response is eventually
-    consistent with the accuracy window depending on the queue workload and you
-    should treat all values as temporary as given a dual connection failure on both
-    the cache and the database the system will fall back to hardcoded defaults.
-
-    Overall this is a very loose consistency model which is designed to give simple
-    dynamic configuration with maximum uptime, where defaults are always taken from
-    constants in the global configuration.
+    Store-backed reads are eventually consistent and fall back to local defaults
+    when storage is unavailable. Unexpected read-hook errors propagate.
     """
 
     def __init__(self, store: OptionsStore):
         self.store = store
         self.registry: dict[str, Key] = {}
         # Optional hook consulted at the start of get(). Open-source Sentry leaves
-        # this unset; getsentry installs one to dual-read FLAG_AUTOMATOR_MODIFIABLE
+        # this unset; getsentry installs one to read FLAG_AUTOMATOR_MODIFIABLE
         # options from sentry-options.
         self._read_hook: ReadHook | None = None
 
     def set_read_hook(self, hook: ReadHook | None) -> None:
-        """Install (or clear) a hook consulted at the start of every get().
+        """Install (or clear) a hook consulted before local option resolution.
 
         Because the hook is consulted inside get() itself, every caller observes
         it regardless of how they imported get — including references captured via
         ``from sentry.options import get`` before the hook was installed.
+        SaaS wizard keys always resolve from local configuration.
         """
         self._read_hook = hook
 
@@ -214,6 +229,11 @@ class OptionsManager:
         >>> from sentry import options
         >>> options.set('option', 'value')
         """
+        # This policy must also hold when Python assertions are disabled.
+        opt = self.lookup_key(key)
+        if self._is_saas_runtime_option(opt):
+            raise AssertionError("%r cannot be changed at runtime" % key)
+
         not_writable_reason = self.can_update(key, value, channel)
 
         # If an option isn't able to exist in the store or is immutable, we can't set it at runtime
@@ -231,7 +251,6 @@ class OptionsManager:
             f"Option {key} has drifted. Cannot overwrite"
         )
 
-        opt = self.lookup_key(key)
         if coerce:
             value = opt.type(value)
         elif not opt.type.test(value):
@@ -286,14 +305,21 @@ class OptionsManager:
 
         Keep in mind that if an option is deleted, any new calls to options.get()
         will repopulate the cache, resulting in this method to return true.
+        SaaS runtime configuration never consults or populates the store; only
+        an explicit hook or disk value counts as set, including null values.
         """
         opt = self.lookup_key(key)
+        authoritative = self._is_saas_runtime_option(opt)
 
         # Keep parity with get(): a value served by the read hook counts as set.
-        if self._read_hook is not None and self._read_hook(key, opt) is not READ_HOOK_FALLBACK:
+        if (
+            self._read_hook is not None
+            and not (authoritative and key in SAAS_WIZARD_OPTIONS)
+            and self._read_hook(key, opt) is not READ_HOOK_FALLBACK
+        ):
             return True
 
-        if not opt.has_any_flag({FLAG_NOSTORE}):
+        if not authoritative and not opt.has_any_flag({FLAG_NOSTORE}):
             result = self.store.get(opt, silent=True)
             if result is not None:
                 return True
@@ -305,6 +331,21 @@ class OptionsManager:
         Check if a key is set on disk.
         """
         return key in settings.SENTRY_OPTIONS
+
+    def is_saas_runtime_option(self, key: str) -> bool:
+        """Whether this option uses authoritative SaaS configuration.
+
+        Such options never access legacy storage for reads, presence checks,
+        metadata or rejected mutations. The automator flag and wizard key list
+        determine this policy; a key's prefix does not classify its purpose.
+        """
+        return self._is_saas_runtime_option(self.lookup_key(key))
+
+    def _is_saas_runtime_option(self, opt: Key) -> bool:
+        return (
+            not settings.SENTRY_SELF_HOSTED
+            and (bool(opt.flags & FLAG_AUTOMATOR_MODIFIABLE) or opt.name in SAAS_WIZARD_OPTIONS)
+        )
 
     def get(self, key: str, silent=False):
         """
@@ -329,8 +370,9 @@ class OptionsManager:
             sample_rate=0.01,
         ) as tags:
             opt = self.lookup_key(key)
+            authoritative = self._is_saas_runtime_option(opt)
 
-            if self._read_hook is not None:
+            if self._read_hook is not None and not (authoritative and key in SAAS_WIZARD_OPTIONS):
                 result = self._read_hook(key, opt)
                 if result is not READ_HOOK_FALLBACK:
                     tags["source"] = "hook"
@@ -340,18 +382,18 @@ class OptionsManager:
             # First check if the option should exist on disk, and if it actually
             # has a value set, let's use that one instead without even attempting
             # to fetch from network storage.
-            if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
+            if authoritative or opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
                 try:
                     result = settings.SENTRY_OPTIONS[key]
                 except KeyError:
                     pass
                 else:
-                    if result is not None:
+                    if authoritative or result is not None:
                         tags["source"] = "disk"
                         record_option(key, result)
                         return result
 
-            if not (opt.flags & FLAG_NOSTORE):
+            if not authoritative and not (opt.flags & FLAG_NOSTORE):
                 result = self.store.get(opt, silent=silent)
                 if result is not None:
                     tags["source"] = "store"
@@ -368,7 +410,8 @@ class OptionsManager:
                     optval = opt.default()
             # options already present in store are cached by store
             # caching here to avoid database queries
-            self.store.set_cache(opt, optval)
+            if not authoritative:
+                self.store.set_cache(opt, optval)
             tags["source"] = "default"
             record_option(key, optval)
             return optval
@@ -384,6 +427,9 @@ class OptionsManager:
         >>> options.delete('option')
         """
         opt = self.lookup_key(key)
+
+        if self._is_saas_runtime_option(opt):
+            raise AssertionError("%r cannot be changed at runtime" % key)
 
         # If an option isn't able to exist in the store, we can't set it at runtime
         assert not (opt.flags & FLAG_NOSTORE), "%r cannot be changed at runtime" % key
@@ -507,11 +553,14 @@ class OptionsManager:
     def get_last_update_channel(self, key: str) -> UpdateChannel | None:
         """
         Checks how the given key was last changed
-        (by automator, legacy, or CLI)
+        (by automator, legacy, or CLI). SaaS runtime configuration has no legacy
+        update channel and returns None without reading storage.
         """
         # TODO: Replace with a method that checks whether an update can
         # be applied evaluating all the possible drift cases.
         opt = self.lookup_key(key)
+        if self._is_saas_runtime_option(opt):
+            return None
         return self.store.get_last_update_channel(opt)
 
     def can_update(
@@ -529,6 +578,8 @@ class OptionsManager:
 
         required_flag = WRITE_REQUIRED_FLAGS.get(channel)
         opt = self.lookup_key(key)
+        if self._is_saas_runtime_option(opt):
+            return NotWritableReason.READONLY
         if opt.has_any_flag({FLAG_NOSTORE, FLAG_IMMUTABLE}):
             return NotWritableReason.READONLY
         if opt.has_any_flag({FLAG_PRIORITIZE_DISK}) and key in settings.SENTRY_OPTIONS:

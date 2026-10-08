@@ -1,12 +1,13 @@
 from collections.abc import Generator
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 from django.test import override_settings
 
+from sentry import options
 from sentry.options.manager import (
     DEFAULT_FLAGS,
     FLAG_ADMIN_MODIFIABLE,
@@ -26,6 +27,224 @@ from sentry.options.store import OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
 from sentry.utils.types import Int, String
+
+
+class TestSaasAuthoritativeOptions:
+    @pytest.fixture
+    def manager(self) -> Generator[OptionsManager]:
+        store = Mock(spec=OptionsStore)
+        for method in ("get", "set", "delete", "set_cache", "get_last_update_channel"):
+            getattr(store, method).side_effect = AssertionError("legacy store accessed")
+        with override_settings(
+            SENTRY_SELF_HOSTED=False, SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}
+        ):
+            manager = OptionsManager(store=store)
+            manager.register("runtime", default="registered", flags=FLAG_AUTOMATOR_MODIFIABLE)
+            manager.register("legacy", default="registered")
+            yield manager
+
+    @pytest.mark.parametrize("hook", [None, lambda key, opt: READ_HOOK_FALLBACK])
+    @all_silo_test
+    def test_unset_without_hook_value(self, manager: OptionsManager, hook) -> None:
+        manager.set_read_hook(hook)
+        assert manager.is_saas_runtime_option("runtime") is True
+        assert manager.get("runtime") == "registered"
+        assert manager.isset("runtime") is False
+        assert manager.get_last_update_channel("runtime") is None
+
+    @pytest.mark.parametrize("value", ["disk", "", None])
+    def test_disk_value_preserved(self, manager: OptionsManager, value) -> None:
+        with override_settings(SENTRY_OPTIONS={"runtime": value}):
+            assert manager.get("runtime") == value
+            assert manager.isset("runtime") is True
+
+    def test_default_precedence_and_callable(self, manager: OptionsManager) -> None:
+        with override_settings(SENTRY_DEFAULT_OPTIONS={"runtime": "configured-default"}):
+            assert manager.get("runtime") == "configured-default"
+            assert manager.isset("runtime") is False
+            with override_settings(SENTRY_OPTIONS={"runtime": "disk"}):
+                assert manager.get("runtime") == "disk"
+        manager.register(
+            "callable", default=lambda: "callable-default", flags=FLAG_AUTOMATOR_MODIFIABLE
+        )
+        with override_settings(SENTRY_DEFAULT_OPTIONS={}):
+            assert manager.get("callable") == "callable-default"
+
+    def test_null_configured_default_preserved(self, manager: OptionsManager) -> None:
+        with override_settings(SENTRY_DEFAULT_OPTIONS={"runtime": None}):
+            assert manager.get("runtime") is None
+            assert manager.isset("runtime") is False
+
+    @pytest.mark.parametrize("value", ["hook", "", False, 0, None])
+    def test_hook_value_preserved(self, manager: OptionsManager, value) -> None:
+        hook = Mock(return_value=value)
+        manager.set_read_hook(hook)
+        with override_settings(SENTRY_OPTIONS={"runtime": "disk"}):
+            assert manager.get("runtime") == value
+            assert manager.isset("runtime") is True
+        hook.assert_called_with("runtime", manager.lookup_key("runtime"))
+
+    def test_hook_failure_propagates(self, manager: OptionsManager) -> None:
+        manager.set_read_hook(Mock(side_effect=RuntimeError("hook failed")))
+        with pytest.raises(RuntimeError, match="hook failed"):
+            manager.get("runtime")
+        with pytest.raises(RuntimeError, match="hook failed"):
+            manager.isset("runtime")
+        assert manager.get_last_update_channel("runtime") is None
+
+    def test_public_get_captured_before_hook_install(self, manager: OptionsManager) -> None:
+        captured_get = options.get
+        key = "test.authoritative-runtime"
+        with (
+            patch.object(options.default_manager, "store", manager.store),
+            patch.object(options.default_manager, "_read_hook", None),
+        ):
+            options.register(key, default="registered", flags=FLAG_AUTOMATOR_MODIFIABLE)
+            try:
+                assert options.is_saas_runtime_option(key) is True
+                assert captured_get(key) == "registered"
+                assert options.isset(key) is False
+                hook = Mock(return_value="hook-value")
+                options.default_manager.set_read_hook(hook)
+                assert captured_get(key) == "hook-value"
+                assert options.isset(key) is True
+                hook.assert_called_with(key, options.lookup_key(key))
+                assert options.get_last_update_channel(key) is None
+            finally:
+                options.unregister(key)
+
+    def test_registered_prefixed_runtime_uses_authoritative_reads(
+        self, manager: OptionsManager
+    ) -> None:
+        key = "sentry:skip-record-onboarding-tasks-if-complete"
+        manager.registry[key] = options.lookup_key(key)
+        assert manager.get(key) is False
+        assert manager.isset(key) is False
+        assert manager.get_last_update_channel(key) is None
+        assert manager.is_saas_runtime_option(key) is True
+        assert manager.can_update(key, True, UpdateChannel.APPLICATION) == NotWritableReason.READONLY
+        with pytest.raises(AssertionError, match="cannot be changed at runtime"):
+            manager.set(key, True)
+        with pytest.raises(AssertionError, match="cannot be changed at runtime"):
+            manager.delete(key)
+        manager.set_read_hook(Mock(return_value=True))
+        assert manager.get(key) is True
+        assert manager.isset(key) is True
+
+    @pytest.mark.parametrize("channel", list(UpdateChannel))
+    @pytest.mark.parametrize("include_drift", [True, False])
+    def test_all_write_channels_rejected(
+        self, manager: OptionsManager, channel: UpdateChannel, include_drift: bool
+    ) -> None:
+        assert (
+            manager.can_update("runtime", "registered", channel, include_drift=include_drift)
+            == NotWritableReason.READONLY
+        )
+        with pytest.raises(AssertionError, match="cannot be changed at runtime"):
+            manager.set("runtime", "registered", channel=channel)
+        with pytest.raises(AssertionError, match="cannot be changed at runtime"):
+            manager.delete("runtime")
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "system.url-prefix",
+            "system.admin-email",
+            "auth.allow-registration",
+            "beacon.anonymous",
+            "beacon.record_cpu_ram_usage",
+            "mail.from",
+            "mail.host",
+            "mail.port",
+            "mail.username",
+            "mail.password",
+            "mail.use-tls",
+            "mail.use-ssl",
+        ],
+    )
+    def test_wizard_uses_disk_default_only(self, manager: OptionsManager, key: str) -> None:
+        manager.register(key, default="registered")
+        manager.set_read_hook(Mock(side_effect=AssertionError("wizard hook accessed")))
+        assert manager.is_saas_runtime_option(key) is True
+        assert manager.get(key) == "registered"
+        assert manager.isset(key) is False
+        assert manager.get_last_update_channel(key) is None
+        with override_settings(SENTRY_OPTIONS={key: "disk"}):
+            assert manager.get(key) == "disk"
+            assert manager.isset(key) is True
+        assert manager.can_update(key, "new", UpdateChannel.APPLICATION) == NotWritableReason.READONLY
+        with pytest.raises(AssertionError, match="cannot be changed at runtime"):
+            manager.set(key, "new")
+        with pytest.raises(AssertionError, match="cannot be changed at runtime"):
+            manager.delete(key)
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "sentry:system-token",
+            "sentry:install-id",
+            "sentry:latest_version",
+            "sentry:last_worker_ping",
+            "sentry:last_worker_version",
+            "sentry:version-configured",
+            "getsentry:state",
+            "legacy",
+        ],
+    )
+    def test_application_state_keeps_store(self, manager: OptionsManager, key: str) -> None:
+        assert manager.is_saas_runtime_option(key) is False
+        manager.store.get.side_effect = None
+        manager.store.get.return_value = "stored"
+        manager.store.get_last_update_channel.side_effect = None
+        manager.store.get_last_update_channel.return_value = UpdateChannel.APPLICATION
+        manager.store.set.side_effect = None
+        manager.store.delete.side_effect = None
+        assert manager.get(key) == "stored"
+        assert manager.isset(key) is True
+        assert manager.get_last_update_channel(key) == UpdateChannel.APPLICATION
+        manager.set(key, "stored", channel=UpdateChannel.APPLICATION)
+        manager.delete(key)
+        manager.store.set.assert_called_once()
+        manager.store.delete.assert_called_once()
+
+    def test_self_hosted_keeps_store(self, manager: OptionsManager) -> None:
+        with override_settings(SENTRY_SELF_HOSTED=True):
+            assert manager.is_saas_runtime_option("runtime") is False
+            manager.store.get.side_effect = None
+            manager.store.get.return_value = "stored"
+            manager.store.get_last_update_channel.side_effect = None
+            manager.store.get_last_update_channel.return_value = UpdateChannel.CLI
+            manager.store.set.side_effect = None
+            manager.store.delete.side_effect = None
+            assert manager.get("runtime") == "stored"
+            assert manager.isset("runtime") is True
+            assert manager.get_last_update_channel("runtime") == UpdateChannel.CLI
+            manager.set("runtime", "stored", channel=UpdateChannel.CLI)
+            manager.delete("runtime")
+            manager.store.set.assert_called_once()
+            manager.store.delete.assert_called_once()
+
+    def test_self_hosted_wizard_keeps_store(self, manager: OptionsManager) -> None:
+        manager.register("system.admin-email", default="registered")
+        with override_settings(SENTRY_SELF_HOSTED=True):
+            assert manager.is_saas_runtime_option("system.admin-email") is False
+            manager.store.get.side_effect = None
+            manager.store.get.return_value = "stored"
+            manager.store.get_last_update_channel.side_effect = None
+            manager.store.get_last_update_channel.return_value = UpdateChannel.ADMIN
+            manager.store.set.side_effect = None
+            manager.store.delete.side_effect = None
+            assert manager.get("system.admin-email") == "stored"
+            assert manager.isset("system.admin-email") is True
+            assert manager.get_last_update_channel("system.admin-email") == UpdateChannel.ADMIN
+            manager.set("system.admin-email", "stored", channel=UpdateChannel.APPLICATION)
+            manager.delete("system.admin-email")
+            manager.store.set.assert_called_once()
+            manager.store.delete.assert_called_once()
+
+    def test_unknown_key_stays_unknown(self, manager: OptionsManager) -> None:
+        with pytest.raises(UnknownOption):
+            manager.is_saas_runtime_option("unregistered")
 
 
 @all_silo_test
