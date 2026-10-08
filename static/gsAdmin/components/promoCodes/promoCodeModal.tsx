@@ -22,49 +22,23 @@ type Props = ModalRenderProps & {
   promoCode?: PromoCode;
 };
 
-const promoCodeSchema = z
-  .object({
-    code: z.string().min(5, 'Code must be at least 5 characters'),
-    campaign: z.string(),
-    isTrialPromo: z.boolean(),
-    duration: z.string(),
-    amount: z.number().nullable(),
-    trialDays: z.number().nullable(),
-    maxClaims: z
-      .number()
-      .int('Max claims must be a whole number')
-      .positive('Max claims must be greater than zero')
-      .nullable()
-      .refine(value => value !== null, 'Max claims is required'),
-    newOnly: z.boolean(),
-    setExpiration: z.boolean(),
-    dateExpires: z.string(),
-  })
-  .superRefine((values, context) => {
-    if (values.isTrialPromo) {
-      if (values.trialDays === null) {
-        context.addIssue({
-          code: 'custom',
-          path: ['trialDays'],
-          message: 'Trial Days is required',
-        });
-      } else if (!Number.isInteger(values.trialDays) || values.trialDays <= 0) {
-        context.addIssue({
-          code: 'custom',
-          path: ['trialDays'],
-          message: 'Trial Days must be a positive whole number',
-        });
-      }
-    } else if (values.amount === null) {
-      context.addIssue({code: 'custom', path: ['amount'], message: 'Amount is required'});
-    } else if (values.amount <= 0) {
-      context.addIssue({
-        code: 'custom',
-        path: ['amount'],
-        message: 'Amount must be greater than zero',
-      });
-    }
-  });
+const promoCodeSchema = z.object({
+  code: z.string().min(5, 'Code must be at least 5 characters'),
+  campaign: z.string(),
+  isTrialPromo: z.boolean(),
+  duration: z.string(),
+  amount: z.number().nullable(),
+  trialDays: z.number().nullable(),
+  maxClaims: z
+    .number()
+    .int('Max claims must be a whole number')
+    .positive('Max claims must be greater than zero')
+    .nullable()
+    .refine(value => value !== null, 'Max claims is required'),
+  newOnly: z.boolean(),
+  setExpiration: z.boolean(),
+  dateExpires: z.string(),
+});
 
 const apiDurationValues = [
   'once',
@@ -217,7 +191,17 @@ export function AddPromoCodeModal({
           <form.Subscribe selector={state => state.values.isTrialPromo}>
             {isTrialPromo =>
               isTrialPromo ? (
-                <form.AppField name="trialDays">
+                <form.AppField
+                  name="trialDays"
+                  validators={{
+                    onDynamic: z
+                      .number()
+                      .int('Trial Days must be a positive whole number')
+                      .positive('Trial Days must be a positive whole number')
+                      .nullable()
+                      .refine(value => value !== null, 'Trial Days is required'),
+                  }}
+                >
                   {field => (
                     <field.Layout.Stack label="Trial Days" required>
                       <field.Number
@@ -247,7 +231,16 @@ export function AddPromoCodeModal({
                       </field.Layout.Stack>
                     )}
                   </form.AppField>
-                  <form.AppField name="amount">
+                  <form.AppField
+                    name="amount"
+                    validators={{
+                      onDynamic: z
+                        .number()
+                        .positive('Amount must be greater than zero')
+                        .nullable()
+                        .refine(value => value !== null, 'Amount is required'),
+                    }}
+                  >
                     {field => (
                       <field.Layout.Stack label="Amount" required>
                         <field.Number
