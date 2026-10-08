@@ -4,7 +4,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -26,7 +26,7 @@ const promoCodeSchema = z.object({
   campaign: z.string(),
   isTrialPromo: z.boolean(),
   duration: z.string(),
-  amount: z.string(),
+  amount: z.number().nonnegative('Amount must be zero or greater').nullable(),
   trialDays: z.string(),
   maxClaims: z.string().min(1, 'Max claims is required'),
   newOnly: z.boolean(),
@@ -55,7 +55,7 @@ export function AddPromoCodeModal({
           ? getApiUrl('/promocodes/$code/', {path: {code: promoCode.code}})
           : getApiUrl('/promocodes/'),
         method: promoCode ? 'PUT' : 'POST',
-        data: values,
+        data: {...values, amount: values.amount === null ? '' : String(values.amount)},
       }),
     onSuccess: newCode => {
       onSubmit?.(newCode);
@@ -78,7 +78,7 @@ export function AddPromoCodeModal({
       campaign: promoCode?.campaign ?? '',
       isTrialPromo: false,
       duration: promoCode?.duration ?? '1',
-      amount: promoCode?.amount ?? '',
+      amount: promoCode?.amount ? Number(promoCode.amount) : null,
       trialDays: String(promoCode?.trialDays ?? ''),
       maxClaims: String(promoCode?.maxClaims ?? ''),
       newOnly: promoCode?.newOnly ?? false,
@@ -169,7 +169,8 @@ export function AddPromoCodeModal({
                   <form.AppField name="amount">
                     {field => (
                       <field.Layout.Stack label="Amount">
-                        <field.Input
+                        <field.Number
+                          step="any"
                           value={field.state.value}
                           onChange={field.handleChange}
                           placeholder="e.g. 29 or 99.99"
@@ -229,8 +230,10 @@ export function AddPromoCodeModal({
         </Stack>
       </Body>
       <Footer>
-        <Button onClick={closeModal}>Cancel</Button>
-        <form.SubmitButton>{promoCode ? 'Update' : 'Create'}</form.SubmitButton>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>{promoCode ? 'Update' : 'Create'}</form.SubmitButton>
+        </Flex>
       </Footer>
     </form.AppForm>
   );

@@ -85,4 +85,35 @@ describe('PromoCodes', () => {
       })
     );
   });
+
+  it('accepts a decimal amount and rejects negative amounts', async () => {
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
+    const create = MockApiClient.addMockResponse({
+      url: '/promocodes/',
+      method: 'POST',
+      body: PromoCodeFixture({amount: '24.30'}),
+    });
+    render(<PromoCodes />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Max claims'}), '10');
+    const amount = screen.getByRole('spinbutton', {name: 'Amount'});
+    await userEvent.type(amount, '-1');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    expect(await screen.findByText('Amount must be zero or greater')).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+
+    await userEvent.clear(amount);
+    await userEvent.type(amount, '24.30');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      '/promocodes/',
+      expect.objectContaining({data: expect.objectContaining({amount: '24.3'})})
+    );
+  });
 });
