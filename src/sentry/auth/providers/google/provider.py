@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from django.conf import settings
 from django.http import HttpRequest
 
-from sentry import options
 from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.auth.services.auth.model import RpcAuthProvider
@@ -65,10 +65,10 @@ class GoogleOAuth2Provider(OAuth2Provider):
         super().__init__(**config)
 
     def get_client_id(self) -> str:
-        return options.get("auth-google.client-id")
+        return settings.SENTRY_AUTH_GOOGLE_CLIENT_ID
 
     def get_client_secret(self) -> str:
-        return options.get("auth-google.client-secret")
+        return settings.SENTRY_AUTH_GOOGLE_CLIENT_SECRET
 
     def get_configure_view(
         self,

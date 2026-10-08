@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 import orjson
 from cryptography.exceptions import InvalidKey, InvalidSignature
+from django.conf import settings
 from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils.functional import classproperty
@@ -92,7 +93,7 @@ class U2fInterface(AuthenticatorInterface):
 
     @classproperty
     def u2f_facets(cls) -> list[str]:
-        facets = options.get("u2f.facets")
+        facets = settings.SENTRY_U2F_FACETS
         if not facets:
             return [_get_url_prefix()]
         return [x.rstrip("/") for x in facets]

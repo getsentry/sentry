@@ -72,7 +72,6 @@ def get_asset_version(settings: Any) -> str:
 options_mapper = {
     # 'cache.backend': 'SENTRY_CACHE',
     # 'cache.options': 'SENTRY_CACHE_OPTIONS',
-    # 'system.databases': 'DATABASES',
     # 'system.debug': 'DEBUG',
     "system.secret-key": "SECRET_KEY",
     "mail.backend": "EMAIL_BACKEND",
@@ -115,6 +114,88 @@ self_hosted_options_mapper = {
     "filestore.profiles-options": "SENTRY_PROFILES_FILE_STORAGE_CONFIG",
     "filestore.control.backend": "SENTRY_CONTROL_FILE_STORAGE_BACKEND",
     "filestore.control.options": "SENTRY_CONTROL_FILE_STORAGE_CONFIG",
+    "auth-fly.client-secret": "SENTRY_AUTH_FLY_CLIENT_SECRET",
+    "auth-google.client-secret": "SENTRY_AUTH_GOOGLE_CLIENT_SECRET",
+    "aws-lambda.secret-access-key": "SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY",
+    "codecov.signing_secret": "SENTRY_CODECOV_SIGNING_SECRET",
+    "cursor-origin-app.private-key": "SENTRY_CURSOR_ORIGIN_APP_PRIVATE_KEY",
+    "discord.bot-token": "SENTRY_DISCORD_BOT_TOKEN",
+    "discord.client-secret": "SENTRY_DISCORD_CLIENT_SECRET",
+    "gcp.client-secret": "SENTRY_GCP_CLIENT_SECRET",
+    "github-app.client-secret": "SENTRY_GITHUB_APP_CLIENT_SECRET",
+    "github-app.private-key": "SENTRY_GITHUB_APP_PRIVATE_KEY",
+    "github-app.webhook-secret": "SENTRY_GITHUB_APP_WEBHOOK_SECRET",
+    "mail.mailgun-api-key": "SENTRY_MAILGUN_API_KEY",
+    "msteams.client-secret": "SENTRY_MSTEAMS_CLIENT_SECRET",
+    "slack.client-secret": "SENTRY_SLACK_CLIENT_SECRET",
+    "slack.signing-secret": "SENTRY_SLACK_SIGNING_SECRET",
+    "slack-staging.client-secret": "SENTRY_SLACK_STAGING_CLIENT_SECRET",
+    "slack-staging.signing-secret": "SENTRY_SLACK_STAGING_SIGNING_SECRET",
+    "slack.verification-token": "SENTRY_SLACK_VERIFICATION_TOKEN",
+    "sms.twilio-token": "SENTRY_SMS_TWILIO_TOKEN",
+    "vercel.client-secret": "SENTRY_VERCEL_CLIENT_SECRET",
+    "vsts.client-secret": "SENTRY_VSTS_CLIENT_SECRET",
+    "vsts-limited.client-secret": "SENTRY_VSTS_LIMITED_CLIENT_SECRET",
+    "vsts_new.client-secret": "SENTRY_VSTS_NEW_CLIENT_SECRET",
+    "auth-fly.client-id": "SENTRY_AUTH_FLY_CLIENT_ID",
+    "auth-google.client-id": "SENTRY_AUTH_GOOGLE_CLIENT_ID",
+    "msteams.app-id": "SENTRY_MSTEAMS_APP_ID",
+    "sms.backend": "SENTRY_SMS_BACKEND",
+    "github-app.id": "SENTRY_GITHUB_APP_ID",
+    "github-app.name": "SENTRY_GITHUB_APP_NAME",
+    "github-app.client-id": "SENTRY_GITHUB_APP_CLIENT_ID",
+    "github-console-sdk-app.id": "SENTRY_GITHUB_CONSOLE_SDK_APP_ID",
+    "slack.client-id": "SENTRY_SLACK_CLIENT_ID",
+    "slack-staging.client-id": "SENTRY_SLACK_STAGING_CLIENT_ID",
+    "msteams.client-id": "SENTRY_MSTEAMS_CLIENT_ID",
+    "msteams.tenant-id": "SENTRY_MSTEAMS_TENANT_ID",
+    "vercel.client-id": "SENTRY_VERCEL_CLIENT_ID",
+    "discord.application-id": "SENTRY_DISCORD_APPLICATION_ID",
+    "discord.public-key": "SENTRY_DISCORD_PUBLIC_KEY",
+    "gcp.client-id": "SENTRY_GCP_CLIENT_ID",
+    "vsts.client-id": "SENTRY_VSTS_CLIENT_ID",
+    "vsts-limited.client-id": "SENTRY_VSTS_LIMITED_CLIENT_ID",
+    "vsts_new.client-id": "SENTRY_VSTS_NEW_CLIENT_ID",
+    "aws-lambda.access-key-id": "SENTRY_AWS_LAMBDA_ACCESS_KEY_ID",
+    "aws-lambda.account-number": "SENTRY_AWS_LAMBDA_ACCOUNT_NUMBER",
+    "aws-lambda.cloudformation-url": "SENTRY_AWS_LAMBDA_CLOUDFORMATION_URL",
+    "pagerduty.app-id": "SENTRY_PAGERDUTY_APP_ID",
+    "cursor-origin-app.id": "SENTRY_CURSOR_ORIGIN_APP_ID",
+    "system.internal-url-prefix": "SENTRY_SYSTEM_INTERNAL_URL_PREFIX",
+    "symbolicator.enabled": "SENTRY_SYMBOLICATOR_ENABLED",
+    "symbolicator.options": "SENTRY_SYMBOLICATOR_OPTIONS",
+    "symbolserver.enabled": "SENTRY_SYMBOLSERVER_ENABLED",
+    "symbolserver.options": "SENTRY_SYMBOLSERVER_OPTIONS",
+    "replay.storage.backend": "SENTRY_REPLAY_STORAGE_BACKEND",
+    "replay.storage.options": "SENTRY_REPLAY_STORAGE_OPTIONS",
+    "chart-rendering.enabled": "SENTRY_CHART_RENDERING_ENABLED",
+    "chart-rendering.chartcuterie": "SENTRY_CHART_RENDERING_CHARTCUTERIE",
+    "chart-rendering.storage.backend": "SENTRY_CHART_RENDERING_STORAGE_BACKEND",
+    "chart-rendering.storage.options": "SENTRY_CHART_RENDERING_STORAGE_OPTIONS",
+    "dsym.cache-path": "SENTRY_DSYM_CACHE_PATH",
+    "releasefile.cache-path": "SENTRY_RELEASEFILE_CACHE_PATH",
+    "mail.enable-replies": "SENTRY_MAIL_ENABLE_REPLIES",
+    "mail.reply-hostname": "SENTRY_MAIL_REPLY_HOSTNAME",
+    "system.support-email": "SENTRY_SYSTEM_SUPPORT_EMAIL",
+    "system.security-email": "SENTRY_SYSTEM_SECURITY_EMAIL",
+    "u2f.facets": "SENTRY_U2F_FACETS",
+    "sms.twilio-account": "SENTRY_SMS_TWILIO_ACCOUNT",
+    "sms.twilio-number": "SENTRY_SMS_TWILIO_NUMBER",
+}
+
+# Existing mapped settings used registered defaults during bootstrap. Initialize
+# them only after copying explicitly configured settings back into option keys,
+# so defaults never create synthetic login keys that override app credentials.
+legacy_mapped_settings_defaults: dict[str, str | bool | list[str]] = {
+    "EMAIL_BACKEND": "smtp",
+    "EMAIL_SUBJECT_PREFIX": "[Sentry]",
+    "GITHUB_APP_ID": "",
+    "GITHUB_API_SECRET": "",
+    "GITHUB_REQUIRE_VERIFIED_EMAIL": False,
+    "GITHUB_BASE_DOMAIN": "github.com",
+    "GITHUB_API_DOMAIN": "api.github.com",
+    "GITHUB_EXTENDED_PERMISSIONS": [],
+    "GITHUB_ORGANIZATION": "",
 }
 
 
@@ -158,6 +239,27 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
 
     # First move options from settings into options
     for k, v in options_mapper.items():
+        if (
+            settings.SENTRY_SINGLE_ORGANIZATION
+            and not settings.SENTRY_SELF_HOSTED
+            and k in ("github-app.client-id", "github-app.client-secret")
+        ):
+            continue
+        # A modern credential pair owns empty partners. Explicit app option
+        # keys also take precedence over synthesized legacy login values.
+        if (
+            settings.SENTRY_SINGLE_ORGANIZATION
+            and k in ("github-app.client-id", "github-app.client-secret")
+            and k not in options
+            and (
+                k in settings.SENTRY_OPTIONS
+                or {"SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"}
+                & settings.SENTRY_CONFIGURED_OPTION_SETTINGS
+                or settings.SENTRY_GITHUB_APP_CLIENT_ID
+                or settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+            )
+        ):
+            continue
         if getattr(settings, v, DEAD) is not DEAD and k not in options:
             warnings.warn(DeprecatedSettingWarning(options_mapper[k], "SENTRY_OPTIONS['%s']" % k))
             options[k] = getattr(settings, v)
@@ -170,11 +272,13 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
-    effective_mapper = (
-        {**options_mapper, **self_hosted_options_mapper}
-        if settings.SENTRY_SELF_HOSTED
-        else options_mapper
-    )
+    for setting_name, default in legacy_mapped_settings_defaults.items():
+        if getattr(settings, setting_name, DEAD) is DEAD:
+            if setting_name == "EMAIL_BACKEND":
+                default = settings.SENTRY_EMAIL_BACKEND_ALIASES.get(default, default)
+            setattr(settings, setting_name, default)
+
+    effective_mapper = options_mapper
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
         for k, v in o.items():
             if k in effective_mapper:
@@ -186,6 +290,33 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
                         pass
                 # Escalate the few needed to actually get the app bootstrapped into settings
                 setattr(settings, effective_mapper[k], v)
+
+    if settings.SENTRY_SELF_HOSTED:
+        for k, v in settings.SENTRY_OPTIONS.items():
+            if k in self_hosted_options_mapper and v is not None:
+                setattr(settings, self_hosted_options_mapper[k], v)
+
+    # Single organization mode reuses the GitHub integration app for SSO. The
+    # remap in initialize_app handles the option key; this handles the setting.
+    if settings.SENTRY_SINGLE_ORGANIZATION:
+        if (
+            not settings.SENTRY_SELF_HOSTED
+            or {"SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"}
+            & settings.SENTRY_CONFIGURED_OPTION_SETTINGS
+        ):
+            settings.GITHUB_APP_ID = settings.SENTRY_GITHUB_APP_CLIENT_ID
+            settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+        else:
+            if (
+                "github-app.client-secret" not in settings.SENTRY_OPTIONS
+                and settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+            ):
+                settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+            if (
+                "github-app.client-id" not in settings.SENTRY_OPTIONS
+                and settings.SENTRY_GITHUB_APP_CLIENT_ID
+            ):
+                settings.GITHUB_APP_ID = settings.SENTRY_GITHUB_APP_CLIENT_ID
 
 
 def configure_structlog() -> None:
@@ -286,7 +417,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and
     # integration.
-    if settings.SENTRY_SINGLE_ORGANIZATION:
+    if settings.SENTRY_SINGLE_ORGANIZATION and settings.SENTRY_SELF_HOSTED:
         options_mapper.update(
             {
                 "github-app.client-id": "GITHUB_APP_ID",
@@ -457,12 +588,12 @@ def setup_services(validate: bool = True) -> None:
 def validate_options(settings: Any) -> None:
     from sentry.options import default_manager
 
-    if settings.SENTRY_SELF_HOSTED:
-        opts = {
-            k: v for k, v in settings.SENTRY_OPTIONS.items() if k not in self_hosted_options_mapper
-        }
-    else:
-        opts = settings.SENTRY_OPTIONS
+    opts = {
+        k: v
+        for k, v in settings.SENTRY_OPTIONS.items()
+        if not (settings.SENTRY_SELF_HOSTED and k in self_hosted_options_mapper)
+        and not (k in options_mapper and options_mapper[k] in legacy_mapped_settings_defaults)
+    }
     default_manager.validate(opts, warn=True)
 
 
@@ -545,6 +676,12 @@ def bind_cache_to_option_store() -> None:
 def apply_legacy_settings(settings: Any) -> None:
     from sentry import options
 
+    effective_mapper = (
+        {**options_mapper, **self_hosted_options_mapper}
+        if settings.SENTRY_SELF_HOSTED
+        else options_mapper
+    )
+
     for old, new in (
         ("SENTRY_ADMIN_EMAIL", "system.admin-email"),
         ("SENTRY_ENABLE_EMAIL_REPLIES", "mail.enable-replies"),
@@ -560,6 +697,13 @@ def apply_legacy_settings(settings: Any) -> None:
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
+            # SaaS consumers use direct settings; retired keys must not be
+            # recreated by a deprecated deployment alias.
+            if not settings.SENTRY_SELF_HOSTED and new in self_hosted_options_mapper:
+                continue
+            # An explicit deployment assignment owns even an empty secret.
+            if effective_mapper.get(new) in settings.SENTRY_CONFIGURED_OPTION_SETTINGS:
+                continue
             warnings.warn(DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
             value = getattr(settings, old)
             settings.SENTRY_OPTIONS[new] = value
@@ -567,12 +711,9 @@ def apply_legacy_settings(settings: Any) -> None:
             # Django settings, so writing SENTRY_OPTIONS here is too late for any key
             # whose consumers read the setting (e.g. filestore.* -> SENTRY_FILE_STORAGE_*).
             # Re-promote the legacy value so the override actually takes effect.
-            effective_mapper = (
-                {**options_mapper, **self_hosted_options_mapper}
-                if settings.SENTRY_SELF_HOSTED
-                else options_mapper
-            )
-            if new in effective_mapper:
+            if new in effective_mapper and (
+                new not in self_hosted_options_mapper or value is not None
+            ):
                 setattr(settings, effective_mapper[new], value)
 
     if hasattr(settings, "SENTRY_REDIS_OPTIONS"):

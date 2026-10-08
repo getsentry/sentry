@@ -7,7 +7,6 @@ import orjson
 import requests
 from django.conf import settings
 
-from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.models.file import get_storage
 from sentry.utils.http import absolute_uri
@@ -27,12 +26,12 @@ class Chartcuterie(ChartRenderer):
 
     @property
     def service_url(self) -> str | None:
-        return options.get("chart-rendering.chartcuterie", {}).get("url")
+        return settings.SENTRY_CHART_RENDERING_CHARTCUTERIE.get("url")
 
     @property
     def storage_options(self) -> dict[str, Any] | None:
-        backend = options.get("chart-rendering.storage.backend")
-        opts = options.get("chart-rendering.storage.options")
+        backend = settings.SENTRY_CHART_RENDERING_STORAGE_BACKEND
+        opts = settings.SENTRY_CHART_RENDERING_STORAGE_OPTIONS
 
         # No custom storage driver configured, let get_storage fallback to default
         if not backend:

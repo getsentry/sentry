@@ -6,10 +6,10 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from django.test import override_settings
 from django.urls import reverse
 from responses.matchers import header_matcher
 
-from sentry import options
 from sentry.integrations.discord.client import (
     APPLICATION_COMMANDS_URL,
     DISCORD_BASE_URL,
@@ -40,6 +40,12 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@override_settings(
+    SENTRY_DISCORD_BOT_TOKEN="bot-token",
+    SENTRY_DISCORD_CLIENT_SECRET="client-secret",
+    SENTRY_DISCORD_APPLICATION_ID="application-id",
+    SENTRY_DISCORD_PUBLIC_KEY="public-key",
+)
 class DiscordIntegrationTest(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 
@@ -49,10 +55,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
         self.public_key = "public-key"
         self.bot_token = "bot-token"
         self.client_secret = "client-secret"
-        options.set("discord.application-id", self.application_id)
-        options.set("discord.public-key", self.public_key)
-        options.set("discord.bot-token", self.bot_token)
-        options.set("discord.client-secret", self.client_secret)
         self.token_url = f"{DISCORD_BASE_URL}/oauth2/token"
         self.user_id = "user1234"
         self.guild_id = "12345"
@@ -337,6 +339,12 @@ class DiscordIntegrationSendNotificationTest(TestCase):
 
 
 @control_silo_test
+@override_settings(
+    SENTRY_DISCORD_BOT_TOKEN="bot-token",
+    SENTRY_DISCORD_CLIENT_SECRET="client-secret",
+    SENTRY_DISCORD_APPLICATION_ID="application-id",
+    SENTRY_DISCORD_PUBLIC_KEY="public-key",
+)
 class DiscordApiPipelineTest(APITestCase):
     endpoint = "sentry-api-0-organization-pipeline"
     method = "post"
@@ -351,10 +359,6 @@ class DiscordApiPipelineTest(APITestCase):
         self.public_key = "public-key"
         self.bot_token = "bot-token"
         self.client_secret = "client-secret"
-        options.set("discord.application-id", self.application_id)
-        options.set("discord.public-key", self.public_key)
-        options.set("discord.bot-token", self.bot_token)
-        options.set("discord.client-secret", self.client_secret)
 
     def tearDown(self) -> None:
         responses.reset()
