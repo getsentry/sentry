@@ -181,6 +181,26 @@ describe('useHotkeys', () => {
     expect(callback).toHaveBeenCalled();
   });
 
+  it.each([false, true])(
+    'only handles shortcuts in editable content when includeInputs is %s',
+    includeInputs => {
+      const callback = jest.fn();
+      const target = document.createElement('div');
+      target.contentEditable = 'plaintext-only';
+      // jsdom does not implement the browser's isContentEditable property.
+      Object.defineProperty(target, 'isContentEditable', {value: true});
+      renderHook(p => useHotkeys(p), {
+        initialProps: [{match: '/', callback, includeInputs}],
+      });
+      const evt = makeKeyEventFixture('/', {target});
+
+      events.keydown!(evt);
+
+      expect(callback).toHaveBeenCalledTimes(includeInputs ? 1 : 0);
+      expect(evt.preventDefault).toHaveBeenCalledTimes(includeInputs ? 1 : 0);
+    }
+  );
+
   it('skips preventDefault', () => {
     const callback = jest.fn();
 

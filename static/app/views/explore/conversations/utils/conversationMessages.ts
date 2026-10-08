@@ -27,7 +27,7 @@ const FILTERED = '[Filtered]';
 
 /**
  * Placeholder for message content the SDK didn't record, used when a
- * conversation's inference spans captured no inputs or outputs at all.
+ * conversation's generation spans captured no inputs or outputs at all.
  */
 export const NOT_REPORTED = '<not reported>';
 
@@ -100,7 +100,7 @@ interface ConversationTurn {
 export function extractMessagesFromNodes(
   nodes: AITraceSpanNode[]
 ): ConversationMessage[] {
-  const enrichedNodes = enrichAnthropicAgentMessages(nodes);
+  const enrichedNodes = enrichAgentMessages(nodes);
   const {generationSpans, toolSpans, embeddingSpans, evaluationSpans} =
     partitionSpansByType(enrichedNodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
@@ -114,25 +114,6 @@ export function extractMessagesFromNodes(
   ];
   messages.sort((a, b) => a.timestamp - b.timestamp);
   return messages;
-}
-
-const ANTHROPIC_OTEL_ORIGIN = 'auto.otlp.spans';
-const ANTHROPIC_SPAN_NAME_PREFIX = 'anthropic.';
-
-function getSpanName(node: AITraceSpanNode): string | undefined {
-  return 'name' in node.value && typeof node.value.name === 'string'
-    ? node.value.name
-    : undefined;
-}
-
-// OTLP ingest origin plus an `anthropic.` span name only co-occur for OTel spans
-// from Anthropic, which is the one source that records messages on the agent
-// span instead of its generation spans (see enrichAnthropicAgentMessages).
-function getIsAnthropicOtelNode(node: AITraceSpanNode): boolean {
-  return (
-    getStringAttr(node, SpanFields.SENTRY_ORIGIN) === ANTHROPIC_OTEL_ORIGIN &&
-    (getSpanName(node)?.startsWith(ANTHROPIC_SPAN_NAME_PREFIX) ?? false)
-  );
 }
 
 function nodeHasOwnMessages(node: AITraceSpanNode): boolean {
@@ -237,19 +218,15 @@ function buildAgentChildOverrides(
 }
 
 /**
- * Anthropic's OTel SDK records a turn's messages on the `invoke_agent` span and
- * leaves its `ai_client` children empty. Backfilling each child from the agent
- * span lets the unchanged turn-building pipeline render these conversations like
- * any fully instrumented agent, so inference stays the default source elsewhere.
+ * Some SDKs put messages on the agent span instead of its generation spans.
+ * Backfill empty generation children so the standard transcript flow can use them.
  */
-export function enrichAnthropicAgentMessages(
-  nodes: AITraceSpanNode[]
-): AITraceSpanNode[] {
+export function enrichAgentMessages(nodes: AITraceSpanNode[]): AITraceSpanNode[] {
   const childrenByAgentId = groupGenerationChildrenByAgent(nodes);
   const overridesById = new Map<string, Record<string, string>>();
 
   for (const node of nodes) {
-    if (getGenAiOpType(node) !== 'agent' || !getIsAnthropicOtelNode(node)) {
+    if (getGenAiOpType(node) !== 'agent') {
       continue;
     }
 
@@ -259,8 +236,7 @@ export function enrichAnthropicAgentMessages(
     }
 
     const children = childrenByAgentId.get(node.id) ?? [];
-    // Keep inference the default: only reconstruct when every generation child
-    // is missing its own messages.
+    // Keep generation spans as the source when they have their own messages.
     if (children.length === 0 || children.some(nodeHasOwnMessages)) {
       continue;
     }
@@ -301,19 +277,14 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
-    // Evaluations report gen_ai.operation.type "ai_client" like LLM calls, so
-    // they're recognized by gen_ai.operation.name before they'd fall through
-    // to generationSpans as empty turns.
+    // Evaluations and embeddings report gen_ai.operation.type "ai_client" like
+    // LLM calls, so they're recognized by gen_ai.operation.name before they'd
+    // fall through to generationSpans as empty turns.
     if (isEvaluationNode(node)) {
       evaluationSpans.push(node);
       continue;
     }
-    // Embeddings are checked first: they don't get a dedicated
-    // gen_ai.operation.type (it reports "ai_client"), so they're recognized by
-    // their span op — or, once available, the embeddings-only input attribute.
-    // Either way they must not fall through to generationSpans, where they'd be
-    // dropped for having no chat content.
-    if (getIsEmbeddingsNode(node)) {
+    if (isEmbeddingsNode(node)) {
       embeddingSpans.push(node);
     } else if (getIsAiGenerationSpan(opType)) {
       generationSpans.push(node);
@@ -791,16 +762,8 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
-/**
- * Embeddings spans don't get a dedicated `gen_ai.operation.type` (it reports
- * `ai_client`), so they're recognized by their span op instead — falling back to
- * the embeddings-only input attribute when it's present.
- */
-function getIsEmbeddingsNode(node: AITraceSpanNode): boolean {
-  return (
-    getStringAttr(node, SpanFields.SPAN_OP) === 'gen_ai.embeddings' ||
-    Boolean(getStringAttr(node, SpanFields.GEN_AI_EMBEDDINGS_INPUT))
-  );
+function isEmbeddingsNode(node: AITraceSpanNode): boolean {
+  return getStringAttr(node, SpanFields.GEN_AI_OPERATION_NAME) === 'embeddings';
 }
 
 // Prefix every line with `> ` so multi-line content forms one blockquote.
@@ -825,16 +788,6 @@ function evaluationToMarkdown(evaluation: Evaluation | undefined): string[] {
     lines.push(answers.join('\n'));
   }
   return lines;
-}
-
-/**
- * One-line result for the transcript row, e.g. `authIssue: Yes, urgency: high`,
- * in the style of a tool call's arguments.
- */
-export function getEvaluationPreview(evaluation: Evaluation | undefined): string {
-  return getAnswerLabels(evaluation?.answers ?? [], evaluation?.input?.questions)
-    .map(([key, label]) => `${key}: ${label}`)
-    .join(', ');
 }
 
 export function messagesToMarkdown(messages: ConversationMessage[]): string {

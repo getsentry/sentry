@@ -1,4 +1,4 @@
-import {type Fix, type Fixer, defineRule, type ESTree} from '@oxlint/plugins';
+import {type Fix, type Fixer, defineRule, type ESTree, type Scope} from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
 
@@ -72,6 +72,31 @@ export const preferInfoText = defineRule({
     let resolved = false;
     let tooltipNames: string[] = [];
     let textNames: string[] = [];
+    const resolvingConstants = new Set<ESTree.VariableDeclarator>();
+
+    function getConstantDeclarator(node: ESTree.IdentifierReference) {
+      let scope: Scope | null = context.sourceCode.getScope(node);
+      while (scope) {
+        const variable = scope.set.get(node.name);
+        if (variable) {
+          const definition = variable.defs[0];
+          if (
+            variable.defs.length !== 1 ||
+            definition?.type !== 'Variable' ||
+            definition.parent?.type !== 'VariableDeclaration' ||
+            definition.parent.kind !== 'const' ||
+            definition.node.type !== 'VariableDeclarator' ||
+            definition.node.id.type !== 'Identifier' ||
+            variable.references.some(reference => reference.isWrite() && !reference.init)
+          ) {
+            return null;
+          }
+          return definition.node;
+        }
+        scope = scope.upper;
+      }
+      return null;
+    }
 
     function isLocaleCall(node: ESTree.Expression): boolean {
       return (
@@ -90,8 +115,29 @@ export const preferInfoText = defineRule({
       textNames = importTracker.findLocalNames(TEXT_SOURCE, 'Text');
     }
 
-    function isTextLikeExpression(expr: ESTree.Expression): boolean {
+    function isTextLikeExpression(
+      expr: ESTree.Expression,
+      resolveConstants = true
+    ): boolean {
       switch (expr.type) {
+        case 'Identifier': {
+          if (!resolveConstants) {
+            return false;
+          }
+          const declarator = getConstantDeclarator(expr);
+          if (!declarator?.init || resolvingConstants.has(declarator)) {
+            return false;
+          }
+          resolvingConstants.add(declarator);
+          try {
+            return isTextLikeExpression(declarator.init);
+          } finally {
+            resolvingConstants.delete(declarator);
+          }
+        }
+        case 'JSXElement':
+        case 'JSXFragment':
+          return resolveConstants && isTextLikeChild(expr);
         case 'Literal':
           return typeof expr.value === 'string';
         case 'TemplateLiteral':
@@ -100,19 +146,23 @@ export const preferInfoText = defineRule({
           return isLocaleCall(expr);
         case 'ConditionalExpression':
           return (
-            isTextLikeExpression(expr.consequent) && isTextLikeExpression(expr.alternate)
+            isTextLikeExpression(expr.consequent, resolveConstants) &&
+            isTextLikeExpression(expr.alternate, resolveConstants)
           );
         case 'LogicalExpression':
           if (expr.operator === '&&') {
-            return isTextLikeExpression(expr.right);
+            return isTextLikeExpression(expr.right, resolveConstants);
           }
-          return isTextLikeExpression(expr.left) && isTextLikeExpression(expr.right);
+          return (
+            isTextLikeExpression(expr.left, resolveConstants) &&
+            isTextLikeExpression(expr.right, resolveConstants)
+          );
         default:
           return false;
       }
     }
 
-    function isTextLikeChild(child: ESTree.JSXChild): boolean {
+    function isTextLikeChild(child: ESTree.JSXChild, resolveConstants = true): boolean {
       switch (child.type) {
         case 'JSXText':
           return child.value.trim().length > 0;
@@ -120,7 +170,7 @@ export const preferInfoText = defineRule({
           if (child.expression.type === 'JSXEmptyExpression') {
             return false;
           }
-          return isTextLikeExpression(child.expression);
+          return isTextLikeExpression(child.expression, resolveConstants);
         case 'JSXElement': {
           const name = getElementName(child.openingElement.name);
           // Text is intended to render text content, so do not require the
@@ -129,22 +179,28 @@ export const preferInfoText = defineRule({
             return true;
           }
           if (TEXT_LIKE_INTRINSICS.has(name)) {
-            return allChildrenAreTextLike(child.children);
+            return allChildrenAreTextLike(child.children, resolveConstants);
           }
           return false;
         }
         case 'JSXFragment':
-          return allChildrenAreTextLike(child.children);
+          return allChildrenAreTextLike(child.children, resolveConstants);
         default:
           return false;
       }
     }
 
-    function allChildrenAreTextLike(children: ESTree.JSXChild[]): boolean {
+    function allChildrenAreTextLike(
+      children: ESTree.JSXChild[],
+      resolveConstants = true
+    ): boolean {
       const meaningful = children.filter(
         c => !(c.type === 'JSXText' && c.value.trim() === '')
       );
-      return meaningful.length > 0 && meaningful.every(isTextLikeChild);
+      return (
+        meaningful.length > 0 &&
+        meaningful.every(child => isTextLikeChild(child, resolveConstants))
+      );
     }
 
     function getMeaningfulChildren(children: ESTree.JSXChild[]) {
@@ -177,7 +233,9 @@ export const preferInfoText = defineRule({
         return false;
       }
 
-      if (!allChildrenAreTextLike(node.children)) {
+      // Keep suggestions limited to content directly inside the Tooltip.
+      // A referenced element can also be used elsewhere and needs a manual change.
+      if (!allChildrenAreTextLike(node.children, false)) {
         return false;
       }
 

@@ -1379,22 +1379,26 @@ const TraceStylingWrapper = styled('div')`
 
     .TraceIconGroupStart {
       transform-origin: left center;
-      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale))
+        translateX(${p => p.theme.space['2xs']}) translateZ(0);
     }
 
     .TraceIconGroupEnd {
       transform-origin: right center;
-      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale))
+        translateX(calc(-1 * ${p => p.theme.space['2xs']})) translateZ(0);
     }
 
     .TraceIconStart {
       transform-origin: left center;
-      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale))
+        translateX(${p => p.theme.space['2xs']}) translateZ(0);
     }
 
     .TraceIconEnd {
       transform-origin: right center;
-      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale))
+        translateX(calc(-1 * ${p => p.theme.space['2xs']})) translateZ(0);
     }
 
     .TraceIconCount {

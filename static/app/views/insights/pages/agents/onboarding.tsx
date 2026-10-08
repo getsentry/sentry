@@ -48,6 +48,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {
+  AI_AGENTS_GETTING_STARTED_DOCS_LINK,
+  AI_INSTRUMENTATION_DOCS_LINKS,
+} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {useAgentOnboardingOptions} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingOptions';
@@ -326,7 +330,7 @@ export function Onboarding() {
               {
                 code: <code />,
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
+                  <ExternalLink href="https://docs.sentry.io/product/agents/conversations/" />
                 ),
               }
             )}
@@ -420,8 +424,8 @@ export function UnsupportedPlatformOnboarding({
                 <ExternalLink
                   href={
                     project.platform?.startsWith('javascript')
-                      ? 'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
-                      : 'https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/'
+                      ? `${AI_INSTRUMENTATION_DOCS_LINKS.javascript}manual-instrumentation/`
+                      : `${AI_INSTRUMENTATION_DOCS_LINKS.python}manual-instrumentation/`
                   }
                 />
               ),
@@ -449,9 +453,7 @@ export function NoDocsOnboarding({project}: {project: Project}) {
           {tct(
             'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-              ),
+              link: <ExternalLink href={AI_AGENTS_GETTING_STARTED_DOCS_LINK} />,
               bold: <strong />,
             }
           )}

@@ -1,9 +1,8 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -50,13 +49,10 @@ import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
-import {
-  makeAutomationBasePathname,
-  makeAutomationDetailsPathname,
-} from 'sentry/views/automations/pathnames';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {dataConditionGroupToLLMContext} from 'sentry/views/automations/utils/automationLLMContext';
+import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -118,29 +114,6 @@ function AlertBuilderNodeInner({
  */
 const AlertBuilderNode = registerLLMContext('alert-builder', AlertBuilderNodeInner);
 
-function AutomationBreadcrumbs() {
-  const organization = useOrganization();
-  return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Alerts'),
-              to: makeAutomationBasePathname(organization.slug),
-            },
-          ]}
-        />
-      </TopBar.Slot>
-
-      <TopBar.Slot name="title">
-        <EditableAutomationName />
-      </TopBar.Slot>
-    </Fragment>
-  );
-}
-
 export default function AutomationEdit() {
   const params = useParams<{automationId: string}>();
 
@@ -186,7 +159,9 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     removeError,
   } = useAutomationBuilderErrors();
 
-  const {mutateAsync: updateAutomation, error} = useUpdateAutomation();
+  const {mutateAsync: updateAutomation, error} = useUpdateAutomation({
+    suppressErrorMessage: true,
+  });
 
   const handleFormSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
@@ -273,6 +248,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       hideFooter
       model={model}
       initialData={initialData}
+      mapFormErrors={mapAutomationFormErrors}
       onSubmit={handleFormSubmit}
     >
       <AutomationFormProvider automation={automation}>
@@ -283,7 +259,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
         />
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <AutomationBreadcrumbs />
+          <EditableAutomationName />
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">

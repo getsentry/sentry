@@ -1,4 +1,21 @@
-import {defineConfig} from 'oxlint';
+import {defineConfig, type OxlintConfig} from 'oxlint';
+
+const coreComponentFiles = [
+  'static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}',
+  'static/packages/scraps/src/**/*.{ts,tsx}',
+];
+
+// incubator rules disallow new violations from being introduced
+// but suppress pre-existing violations on `master`
+export const incubator = defineConfig({
+  rules: {'@sentry/scraps/prefer-primitives': 'error'},
+  overrides: [
+    {
+      files: coreComponentFiles,
+      rules: {'@sentry/scraps/prefer-primitives': 'off'},
+    },
+  ],
+});
 
 const IS_PRECOMMIT =
   process.env.SENTRY_PRECOMMIT !== undefined &&
@@ -189,7 +206,6 @@ const storyFilesPolicy = {
 };
 
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
-const coreComponentFiles = ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'];
 
 /**
  * Import linting uses two complementary approaches:
@@ -275,7 +291,7 @@ const config = defineConfig({
       // Keep core stories inside Scraps; story-files still classifies them as stories.
       {
         type: 'scraps',
-        pattern: 'static/app/components/core',
+        pattern: ['static/app/components/core', 'static/packages/scraps/src'],
         partialMatch: false,
       },
       {
@@ -289,7 +305,7 @@ const config = defineConfig({
       },
       {
         type: 'test',
-        pattern: 'tests/js',
+        pattern: ['tests/js', 'static/packages/scraps/test'],
       },
       // Sentry application and assets.
       {
@@ -362,6 +378,7 @@ const config = defineConfig({
         pattern: [
           'tests/js/fixtures/**/*',
           'tests/js/sentry-test/**/*',
+          'static/packages/scraps/test/**/*',
           'tests/js/getsentry-test/**/*',
           'static/gsApp/__fixtures__/**/*',
           'static/**/*{t,T}estUtils*.{js,jsx,mjs,ts,tsx}',
@@ -544,13 +561,15 @@ const config = defineConfig({
     '@sentry/no-digits-in-tn': 'error',
     '@sentry/no-dynamic-translations': 'error',
     '@sentry/no-flag-comments': 'error',
+    '@sentry/no-legacy-router-imports': 'error',
     '@sentry/no-query-data-type-parameters': 'error',
+    '@sentry/no-raw-css-in-styled': 'error',
     '@sentry/no-redundant-default-argument': 'error',
     '@sentry/no-static-translations': 'error',
-    '@sentry/no-raw-css-in-styled': 'error',
     '@sentry/no-styled-shortcut': 'error',
-    '@sentry/no-useless-css-interpolation-semicolon': 'error',
     '@sentry/no-unnecessary-use-callback': 'error',
+    '@sentry/no-useless-css-interpolation-semicolon': 'error',
+    '@sentry/prefer-react-component': 'error',
     '@sentry/scraps/no-core-import': 'error',
     '@sentry/scraps/no-double-dollar-interpolation': 'error',
     '@sentry/scraps/no-restricted-module-mocks': 'error',
@@ -742,6 +761,7 @@ const config = defineConfig({
           'analyze-styled\\.ts$',
           'type-coverage\\.ts$',
           'type-coverage-diff\\.ts$',
+          '^custom-oxlint\\.ts$',
           'AiSetupDataConsent\\.tsx$',
           'CredentialRow\\.tsx$',
           'DevKitSettings\\.tsx$',
@@ -1458,6 +1478,22 @@ const config = defineConfig({
   },
   overrides: [
     {
+      files: [
+        'tests/js/jestReactRouterResolver.cjs',
+        'tests/js/jestReactRouterResolver.spec.ts',
+      ],
+      env: {node: true},
+      rules: {'import/no-nodejs-modules': 'off'},
+    },
+    {
+      files: [
+        'static/app/utils/reactRouterV6/index.ts',
+        'static/app/utils/reactRouterV6/dom.ts',
+        'static/app/utils/reactRouterV6/types.d.ts',
+      ],
+      rules: {'@sentry/no-legacy-router-imports': 'off'},
+    },
+    {
       files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
       rules: {
         'constructor-super': 'off',
@@ -1676,7 +1712,7 @@ const config = defineConfig({
     // Scraps is its own component library rather than ordinary app code, and a
     // handful of its internal imports are deliberately parent-relative.
     {
-      files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+      files: coreComponentFiles,
       rules: {
         'import/no-relative-parent-imports': 'off',
       },
@@ -1687,6 +1723,30 @@ const config = defineConfig({
       files: ['scripts/**/*.{js,mjs,ts,jsx,tsx}'],
       rules: {
         'import/no-relative-parent-imports': 'off',
+      },
+    },
+    {
+      files: ['static/packages/scraps/*.config.mjs'],
+      rules: {'boundaries/no-unknown-files': 'off'},
+    },
+    {
+      files: ['static/packages/scraps/scripts/*.mjs'],
+      rules: {
+        'boundaries/no-unknown-files': 'off',
+        'import-js/no-extraneous-dependencies': 'off',
+        'import/no-nodejs-modules': 'off',
+        'no-console': 'off',
+      },
+      env: {
+        node: true,
+      },
+    },
+    {
+      files: ['static/packages/scraps/src/**/*.{ts,tsx}'],
+      // Re-enable these rules when Scraps has its own stricter lint config.
+      rules: {
+        'boundaries/no-unknown-files': 'off',
+        'no-shadow': 'off',
       },
     },
     {
@@ -1708,6 +1768,7 @@ const config = defineConfig({
         'tests/js/jest-pegjs-transform.js',
         'tests/js/sentry-test/jest-environment.js',
         'tests/js/sentry-test/jest-environment-node.js',
+        'tests/js/sentry-test/withTagsAsSpanAttributes.js',
         'tests/js/sentry-test/wrapWithStructuredClone.js',
         'tests/js/sentry-test/mocks/*',
         'tests/js/sentry-test/loadFixtures.ts',
@@ -1782,6 +1843,7 @@ const config = defineConfig({
       rules: {
         // Tests sometimes contain intentionally unusual hard-coded numbers.
         'no-loss-of-precision': 'off',
+        '@sentry/prefer-react-component': 'off',
         'no-restricted-imports': [
           'error',
           {
@@ -1793,6 +1855,31 @@ const config = defineConfig({
                 message: 'Translations are not needed in tests.',
               },
             ],
+          },
+        ],
+      },
+    },
+    {
+      files: [
+        'static/packages/scraps/src/**/*.spec.tsx',
+        'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
+      ],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+        'import/no-nodejs-modules': 'off',
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              ...restrictedImportPatterns,
+              {
+                group: ['sentry/*', 'sentry-test/*', 'sentry-fixture/*'],
+                message: 'Scraps tests must be independent of the Sentry application.',
+              },
+            ],
+            paths: restrictedImportPaths.filter(
+              ({name}) => !name.startsWith('@testing-library/')
+            ),
           },
         ],
       },
@@ -1877,8 +1964,49 @@ const config = defineConfig({
       },
       excludeFiles: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
     },
+    ...incubator.overrides,
   ],
 });
 
-export const oxlintIgnorePatterns = config.ignorePatterns ?? [];
-export default config;
+const enrolledRules = new Set(
+  [incubator, ...incubator.overrides].flatMap(({rules}) =>
+    Object.entries(rules ?? {})
+      .filter(([, options]) => {
+        const severity = Array.isArray(options) ? options[0] : options;
+        return severity !== 'off' && severity !== 0;
+      })
+      .map(([rule]) => rule)
+  )
+);
+function setIncubatorSeverity(rules: OxlintConfig['rules']) {
+  const configured = {...rules};
+  const severity = process.env.SENTRY_OXLINT_ENFORCE === 'true' ? 'error' : 'warn';
+  for (const [rule, options] of Object.entries(configured)) {
+    const current = Array.isArray(options) ? options[0] : options;
+    if (!enrolledRules.has(rule) || current === 'off' || current === 0) {
+      continue;
+    }
+    const next = typeof current === 'number' ? (severity === 'error' ? 2 : 1) : severity;
+    if (Array.isArray(options)) {
+      const updated = structuredClone(options);
+      updated[0] = next;
+      configured[rule] = updated;
+    } else {
+      configured[rule] = next;
+    }
+  }
+  return configured;
+}
+export default defineConfig({
+  ...config,
+  rules: setIncubatorSeverity({
+    ...Object.fromEntries(
+      Object.entries(config.rules).filter(([rule]) => !enrolledRules.has(rule))
+    ),
+    ...incubator.rules,
+  }),
+  overrides: config.overrides.map(override => ({
+    ...override,
+    rules: setIncubatorSeverity(override.rules),
+  })),
+});

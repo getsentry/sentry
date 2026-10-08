@@ -3,6 +3,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -44,6 +45,7 @@ import {
 } from 'sentry/views/investigations/api';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import type {InvestigationListItem} from 'sentry/views/investigations/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
 enum ColumnKey {
@@ -266,7 +268,14 @@ export function InvestigationsPage() {
           </Stack>
         ) : (
           <Stack flex={1}>
-            <Layout.Title>{t('Investigations')}</Layout.Title>
+            <TopBar.Slot
+              name="breadcrumbs"
+              title={{
+                type: 'page-title',
+                label: t('Investigations'),
+                trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+              }}
+            />
             <Layout.Body>
               <Layout.Main width="full">
                 <Grid
@@ -295,7 +304,6 @@ export function InvestigationsPage() {
                     data={investigations}
                     columnOrder={COLUMNS}
                     grid={{
-                      renderHeadCell: column => column.name,
                       renderBodyCell,
                       renderPrependColumns: (isHeader, investigation) => {
                         if (isHeader) {

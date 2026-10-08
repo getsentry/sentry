@@ -1,11 +1,15 @@
 import io
 import os
 import uuid
+import zipfile
 from datetime import UTC, datetime, timedelta
 from hashlib import sha1
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+import orjson
+import pytest
 from django.core.files.base import ContentFile
 
 from sentry.models.artifactbundle import (
@@ -31,10 +35,13 @@ from sentry.tasks.assemble import (
     assemble_file,
     delete_assemble_status,
     get_assemble_status,
+    get_placeholder_release_kind,
+    get_url_extension,
     set_assemble_status,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.testutils.objectstore import debug_files_test_both_backends
 
@@ -790,6 +797,249 @@ class AssembleArtifactsTest(BaseAssembleTest):
             AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
+
+
+def make_artifact_bundle(files: dict[str, dict[str, Any]], release: str | None = None) -> bytes:
+    """
+    Builds an artifact bundle whose manifest lists `files`, keyed by path in the bundle, each with
+    its `content` and the manifest fields `url`, `type` and `headers`.
+    """
+    manifest: dict[str, Any] = {"files": {}}
+    if release is not None:
+        manifest["release"] = release
+    bundle = io.BytesIO()
+    with zipfile.ZipFile(bundle, "w") as zip_file:
+        for path, info in files.items():
+            zip_file.writestr(path, info["content"])
+            manifest["files"][path] = {
+                key: value for key, value in info.items() if key != "content"
+            }
+        zip_file.writestr("manifest.json", orjson.dumps(manifest))
+    return bundle.getvalue()
+
+
+def make_debug_id_files(debug_id: str) -> dict[str, dict[str, Any]]:
+    """
+    A minified file and its source map, both with a debug ID, named the way the bundler plugins name
+    them.
+    """
+    return {
+        f"files/_/_/{debug_id}-0.js": {
+            "url": f"~/{debug_id}-0.js",
+            "type": "minified_source",
+            "headers": {"debug-id": debug_id, "sourcemap": f"{debug_id}-0.js.map"},
+            "content": f"//# debugId={debug_id}",
+        },
+        f"files/_/_/{debug_id}-0.js.map": {
+            "url": f"~/{debug_id}-0.js.map",
+            "type": "source_map",
+            "headers": {"debug-id": debug_id},
+            "content": f'{{"debug_id": "{debug_id}"}}',
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    ("release", "kind"),
+    [
+        ("undefined", "undefined"),
+        ("Undefined", "undefined"),
+        ("null", "null"),
+        ("", "empty"),
+        ("  ", "empty"),
+        ("$GITHUB_SHA", "env_var"),
+        (" $GITHUB_SHA ", "env_var"),
+        ("${VERCEL_GIT_COMMIT_SHA}", "env_var"),
+        ("$(Build.SourceVersion)", "env_var"),
+        ("%BUILD_ID%", "env_var"),
+        ("VERCEL_GIT_COMMIT_SHA", "env_var"),
+        ("CIRCLE_SHA1", None),
+        ("1.0.0", None),
+        ("my-app@1.2.3+456", None),
+        ("6a6e0b9c4f2d1e8a7b3c5d9f0e1a2b3c4d5e6f7a", None),
+        ("RELEASE_1_2", None),
+        ("APP_V2", None),
+        ("PRODUCTION", None),
+        ("undefined-1.0", None),
+    ],
+)
+def test_get_placeholder_release_kind(release: str, kind: str | None) -> None:
+    assert get_placeholder_release_kind(release) == kind
+
+
+@pytest.mark.parametrize(
+    ("url", "extension"),
+    [
+        ("~/static/js/main.js", ".js"),
+        ("~/static/js/main.js.map", ".map"),
+        ("~/index.HTML", ".html"),
+        ("app:///index.android.bundle", ".bundle"),
+        ("~/app.js?v=1#top", ".js"),
+        ("~/LICENSE", ""),
+        ("~/.hidden", ""),
+        ("~/file.averyveryverylongextension", "other"),
+    ],
+)
+def test_get_url_extension(url: str, extension: str) -> None:
+    assert get_url_extension(url) == extension
+
+
+class AssemblePlaceholderReleaseTest(BaseAssembleTest):
+    debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+    def assemble(self, bundle_file: bytes, version: str | None, dist: str | None = None) -> None:
+        blob = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        checksum = sha1(bundle_file).hexdigest()
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=version,
+            dist=dist,
+            checksum=checksum,
+            chunks=[blob.checksum],
+        )
+        status, details = get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, checksum
+        )
+        assert status == ChunkFileState.OK, details
+
+    def release_names(self) -> list[tuple[str, str]]:
+        return list(
+            ReleaseArtifactBundle.objects.filter(organization_id=self.organization.id).values_list(
+                "release_name", "dist_name"
+            )
+        )
+
+    def placeholder_release_logs(self, logger: MagicMock) -> list[dict[str, Any]]:
+        return [
+            call.kwargs["extra"]
+            for call in logger.info.call_args_list
+            if call.args == ("assemble.artifact_bundle.placeholder_release",)
+        ]
+
+    def test_placeholder_release_kept_by_default(self) -> None:
+        self.assemble(make_artifact_bundle(make_debug_id_files(self.debug_id)), version="undefined")
+
+        assert self.release_names() == [("undefined", "")]
+
+    @override_options({"sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases": True})
+    def test_placeholder_release_ignored(self) -> None:
+        self.assemble(
+            make_artifact_bundle(make_debug_id_files(self.debug_id)),
+            version="undefined",
+            dist="android",
+        )
+
+        assert self.release_names() == []
+        artifact_bundle = ArtifactBundle.objects.get(organization_id=self.organization.id)
+        assert (
+            DebugIdArtifactBundle.objects.filter(
+                debug_id=self.debug_id, artifact_bundle=artifact_bundle
+            ).count()
+            == 2
+        )
+        assert ProjectArtifactBundle.objects.filter(
+            project_id=self.project.id, artifact_bundle=artifact_bundle
+        ).exists()
+
+    @override_options({"sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases": True})
+    def test_placeholder_release_from_manifest_ignored(self) -> None:
+        self.assemble(
+            make_artifact_bundle(make_debug_id_files(self.debug_id), release="null"),
+            version=None,
+        )
+
+        assert self.release_names() == []
+        assert ArtifactBundle.objects.filter(organization_id=self.organization.id).exists()
+
+    @override_options({"sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases": True})
+    def test_placeholder_release_kept_for_file_without_debug_id(self) -> None:
+        files = make_debug_id_files(self.debug_id)
+        files["files/_/_/app.js"] = {"url": "~/app.js", "type": "minified_source", "content": "1"}
+
+        self.assemble(make_artifact_bundle(files), version="undefined")
+
+        assert self.release_names() == [("undefined", "")]
+
+    @override_options({"sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases": True})
+    def test_placeholder_release_logged_with_files_without_debug_ids(self) -> None:
+        files = make_debug_id_files(self.debug_id)
+        files["files/_/_/app.js"] = {"url": "~/app.js", "type": "minified_source", "content": "1"}
+        files["files/_/_/app.js.map"] = {
+            "url": "~/app.js.map",
+            "type": "source_map",
+            "content": "{}",
+        }
+
+        with patch("sentry.tasks.assemble.logger") as logger:
+            self.assemble(make_artifact_bundle(files), version="undefined")
+
+        assert self.placeholder_release_logs(logger) == [
+            {
+                "organization_id": self.organization.id,
+                "project_ids": [self.project.id],
+                "kind": "undefined",
+                "outcome": "kept_files_without_debug_ids",
+                "artifact_count": 4,
+                "has_debug_ids": True,
+                "files_without_debug_ids": 2,
+                "types_without_debug_ids": {"minified_source": 1, "source_map": 1},
+                "extensions_without_debug_ids": {".js": 1, ".map": 1},
+            }
+        ]
+
+    def test_placeholder_release_logged_when_kept_by_default(self) -> None:
+        with patch("sentry.tasks.assemble.logger") as logger:
+            self.assemble(make_artifact_bundle(make_debug_id_files(self.debug_id)), version="null")
+
+        (log,) = self.placeholder_release_logs(logger)
+        assert log["kind"] == "null"
+        assert log["outcome"] == "kept"
+        assert log["files_without_debug_ids"] == 0
+        assert log["types_without_debug_ids"] == {}
+
+    def test_real_release_not_logged(self) -> None:
+        with patch("sentry.tasks.assemble.logger") as logger:
+            self.assemble(make_artifact_bundle(make_debug_id_files(self.debug_id)), version="1.0.0")
+
+        assert self.placeholder_release_logs(logger) == []
+
+    @override_options({"sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases": True})
+    def test_env_var_release_needs_its_own_option(self) -> None:
+        self.assemble(
+            make_artifact_bundle(make_debug_id_files(self.debug_id)),
+            version="VERCEL_GIT_COMMIT_SHA",
+        )
+
+        assert self.release_names() == [("VERCEL_GIT_COMMIT_SHA", "")]
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases": True,
+            "sourcemaps.artifact-bundles.assemble.ignore-env-var-releases": True,
+        }
+    )
+    def test_env_var_release_ignored(self) -> None:
+        self.assemble(
+            make_artifact_bundle(make_debug_id_files(self.debug_id)), version="$GITHUB_SHA"
+        )
+
+        assert self.release_names() == []
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases": True,
+            "sourcemaps.artifact-bundles.assemble.ignore-env-var-releases": True,
+        }
+    )
+    def test_real_release_kept(self) -> None:
+        self.assemble(
+            make_artifact_bundle(make_debug_id_files(self.debug_id)),
+            version="my-app@1.2.3",
+            dist="android",
+        )
+
+        assert self.release_names() == [("my-app@1.2.3", "android")]
 
 
 @freeze_time("2023-05-31T10:00:00")

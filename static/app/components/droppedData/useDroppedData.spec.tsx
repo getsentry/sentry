@@ -1,4 +1,4 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
@@ -12,8 +12,16 @@ const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
 });
 
-const droppedAnnotations = [AnnotationFixture({eventCount: 10})];
-const acceptedAnnotations = [AnnotationFixture({outcome: 'accepted', eventCount: 90})];
+const droppedEvents = [DroppedEventFixture({count: 10})];
+const acceptedEvents = [DroppedEventFixture({outcome: 'accepted', count: 90})];
+
+function droppedEventsBody() {
+  return {
+    meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+    droppedEvents,
+    acceptedEvents,
+  };
+}
 
 describe('useDroppedData', () => {
   beforeEach(() => {
@@ -24,13 +32,10 @@ describe('useDroppedData', () => {
     PageFiltersStore.reset();
   });
 
-  it('requests annotations and returns them', async () => {
+  it('requests dropped events and returns them', async () => {
     const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {
-        timeSeries: [],
-        meta: {droppedAnnotations, acceptedAnnotations},
-      },
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
     });
 
     const {result} = renderHookWithProviders(
@@ -41,23 +46,49 @@ describe('useDroppedData', () => {
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(request).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-timeseries/`,
+      `/organizations/${organization.slug}/events-dropped/`,
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: DiscoverDatasets.SPANS,
-          includeAnnotations: 1,
           referrer: 'api.explore.dropped-data-annotations',
         }),
       })
     );
-    expect(result.current.droppedAnnotations).toEqual(droppedAnnotations);
-    expect(result.current.acceptedAnnotations).toEqual(acceptedAnnotations);
+    expect(request.mock.calls[0][1].query).not.toHaveProperty('yAxis');
+    expect(result.current.droppedEvents).toEqual(droppedEvents);
+    expect(result.current.acceptedEvents).toEqual(acceptedEvents);
   });
 
-  it('does not request annotations without the feature flag', () => {
+  it('requests trace metrics without a chart aggregate', async () => {
     const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {timeSeries: [], meta: {}},
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useDroppedData({dataset: DiscoverDatasets.TRACEMETRICS}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-dropped/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: DiscoverDatasets.TRACEMETRICS,
+          referrer: 'api.explore.dropped-data-annotations',
+        }),
+      })
+    );
+    expect(request.mock.calls[0][1].query).not.toHaveProperty('yAxis');
+    expect(result.current.droppedEvents).toEqual(droppedEvents);
+  });
+
+  it('does not request dropped events without the feature flag', () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
     });
 
     const {result} = renderHookWithProviders(
@@ -66,6 +97,6 @@ describe('useDroppedData', () => {
     );
 
     expect(request).not.toHaveBeenCalled();
-    expect(result.current.droppedAnnotations).toBeUndefined();
+    expect(result.current.droppedEvents).toBeUndefined();
   });
 });
