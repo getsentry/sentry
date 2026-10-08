@@ -1364,7 +1364,7 @@ describe('ProjectFilters', () => {
     expect(screen.getByRole('button', {name: 'Delete filter'})).toBeDisabled();
   });
 
-  it('disables filter writes when the plan lacks custom inbound filters', async () => {
+  it('lists filters as not applied when the plan lacks custom inbound filters', async () => {
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
@@ -1375,7 +1375,11 @@ describe('ProjectFilters', () => {
       initialRouterConfig,
     });
 
-    expect(await screen.findByRole('checkbox', {name: 'Disable filter'})).toBeDisabled();
+    expect(await screen.findByText('A filter')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Saved filters are kept but not applied/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'Disable filter'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Add Filter'})).toHaveAttribute(
       'aria-disabled',
       'true'

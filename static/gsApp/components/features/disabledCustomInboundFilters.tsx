@@ -26,12 +26,12 @@ function DisabledAlert({organization, features}: Props) {
           <Container>
             {plan === null ? (
               t(
-                'Custom Release and Error Message filtering is not available on your plan.'
+                'Custom inbound filters are not available on your plan. Saved filters are kept but not applied.'
               )
             ) : (
               <span>
                 {tct(
-                  'Custom Release and Error Message filtering is available to [planRequirement] and above.',
+                  'Custom inbound filters are available to [planRequirement] and above. Saved filters are kept but not applied.',
                   {
                     planRequirement: (
                       <strong>{t('%s plans', displayPlanName(plan))}</strong>
