@@ -315,9 +315,59 @@ test('CI scans head once and rejects increased or stale budgets', t => {
   assert.match(stale.stderr, /Suppression budgets are stale/);
   assert.match(stale.stderr, /pnpm run lint:js --prune/);
   assert.match(stale.stderr, /commit the updated oxlint-suppressions.json/);
+  assert.match(stale.stderr, /source.js no-debugger: budget 2, 0 violations/);
   assert.doesNotMatch(stale.stderr, /fix:oxlint|--enroll|New incubator violations/);
   write('oxlint-suppressions.json', '{}');
   assert.equal(ci(1).status, 0);
+});
+
+test('CI only warns about stale budgets inherited from the base', t => {
+  const {write, commit, lint, ci} = ciFixture(t);
+  write('source.js', '');
+  write('other.js', 'debugger;\n');
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({
+      'source.js': {'no-debugger': {count: 1}},
+      'other.js': {'no-debugger': {count: 1}},
+    })
+  );
+  commit();
+  const master = lint('--ci');
+  assert.equal(master.status, 0, master.stderr);
+  assert.match(master.stderr, /Ignoring stale suppression budgets/);
+  assert.match(master.stderr, /source.js no-debugger: budget 1, 0 violations/);
+  assert.match(master.stdout, /Incubator ratchet passed/);
+  write('unrelated.js', 'void 0;\n');
+  const unrelated = ci(1);
+  assert.equal(unrelated.status, 0, unrelated.stderr);
+  assert.match(unrelated.stderr, /Ignoring stale suppression budgets/);
+  assert.doesNotMatch(unrelated.stderr, /other.js/);
+  write('other.js', '');
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({'source.js': {'no-debugger': {count: 1}}})
+  );
+  const pruned = ci(1);
+  assert.equal(pruned.status, 0, pruned.stderr);
+  assert.match(pruned.stderr, /source.js no-debugger: budget 1, 0 violations/);
+  write('source.js', 'void 0;\n');
+  const touched = ci(1);
+  assert.equal(touched.status, 1, touched.stderr);
+  assert.match(touched.stderr, /Suppression budgets are stale/);
+  assert.match(touched.stderr, /source.js no-debugger: budget 1, 0 violations/);
+  write('source.js', '');
+  write('other.js', 'debugger;\n');
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({
+      'source.js': {'no-debugger': {count: 2}},
+      'other.js': {'no-debugger': {count: 1}},
+    })
+  );
+  const edited = ci(1);
+  assert.equal(edited.status, 1, edited.stderr);
+  assert.match(edited.stderr, /source.js no-debugger: budget 2, 0 violations/);
 });
 
 test('CI and prune report violations exceeding committed budgets', t => {
