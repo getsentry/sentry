@@ -100,7 +100,6 @@ jobs:
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('rsbuild.config.ts', 'pnpm-lock.yaml', 'package.json') }}
-          restore-keys: ${{ runner.os }}-v2-webpack-cache-
 
       - uses: ./.github/actions/setup-node-pnpm
 
