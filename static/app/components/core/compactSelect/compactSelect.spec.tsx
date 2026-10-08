@@ -283,9 +283,14 @@ describe('CompactSelect', () => {
     expect(screen.getByText('Menu title')).toBeInTheDocument();
   });
 
-  it.each([true, false])(
-    'preserves nested menu focus when opening autofocus runs (search=%s)',
-    async search => {
+  it.each([
+    {search: true, usePortal: true},
+    {search: false, usePortal: true},
+    {search: true, usePortal: false},
+    {search: false, usePortal: false},
+  ])(
+    'preserves nested menu focus when opening autofocus runs (search=$search, portal=$usePortal)',
+    async ({search, usePortal}) => {
       const onAction = jest.fn();
       render(
         <CompactSelect
@@ -295,7 +300,7 @@ describe('CompactSelect', () => {
           options={[{value: 'opt_one', label: 'Option One'}]}
           menuTitle={
             <DropdownMenu
-              usePortal
+              usePortal={usePortal}
               triggerLabel="Operator"
               items={[{key: 'is', label: 'is', onAction}]}
             />
@@ -315,15 +320,15 @@ describe('CompactSelect', () => {
         await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
         frameMock.mockRestore();
         await userEvent.click(screen.getByRole('button', {name: 'Operator'}));
-        expect(screen.getByRole('menuitemradio', {name: 'is'})).toBeInTheDocument();
-        const focusedControl = document.activeElement;
+        const menuItem = screen.getByRole('menuitemradio', {name: 'is'});
+        expect(menuItem).toHaveFocus();
 
         act(() => {
           openingFrames.forEach(callback => callback(0));
         });
 
-        expect(focusedControl).toHaveFocus();
-        await userEvent.click(screen.getByRole('menuitemradio', {name: 'is'}));
+        expect(menuItem).toHaveFocus();
+        await userEvent.keyboard('{Enter}');
         expect(onAction).toHaveBeenCalledTimes(1);
       } finally {
         frameMock.mockRestore();
