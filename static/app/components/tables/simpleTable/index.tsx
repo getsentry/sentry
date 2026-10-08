@@ -1,4 +1,4 @@
-import type {HTMLAttributes, MouseEvent, ReactNode, RefObject} from 'react';
+import type {HTMLAttributes, MouseEvent, ReactNode, Ref, RefObject} from 'react';
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
@@ -19,7 +19,7 @@ import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/sta
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
-const HEADER_ROW_HEIGHT = 40;
+export const SIMPLE_TABLE_HEADER_ROW_HEIGHT = 40;
 
 type TableSectionsProps =
   | {
@@ -61,7 +61,7 @@ interface HeaderCellProps extends HTMLAttributes<HTMLTableCellElement> {
 }
 
 interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
-  ref?: RefObject<HTMLTableRowElement | null>;
+  ref?: Ref<HTMLTableRowElement>;
   variant?: 'default' | 'faded';
 }
 
@@ -164,11 +164,11 @@ const StyledTable = styled(Table, {
     (p.scrollable || p.maxHeight) &&
     css`
       &:has(> thead + tbody) {
-        grid-template-rows: ${HEADER_ROW_HEIGHT}px auto;
+        grid-template-rows: ${SIMPLE_TABLE_HEADER_ROW_HEIGHT}px auto;
       }
 
       &:has(> thead + tbody + tbody) {
-        grid-template-rows: ${HEADER_ROW_HEIGHT}px fit-content(100%) auto;
+        grid-template-rows: ${SIMPLE_TABLE_HEADER_ROW_HEIGHT}px fit-content(100%) auto;
       }
     `}
 `;
@@ -181,7 +181,7 @@ const StyledHeaderRow = styled(Table.Row)`
   text-transform: none;
   justify-content: left;
   padding: 0;
-  min-height: ${HEADER_ROW_HEIGHT}px;
+  min-height: ${SIMPLE_TABLE_HEADER_ROW_HEIGHT}px;
   align-items: center;
 `;
 

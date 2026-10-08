@@ -1089,11 +1089,6 @@
       "count": 2
     }
   },
-  "static/app/components/replays/virtualizedGrid/bodyCell.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/components/replays/virtualizedGrid/detailsSplitDivider.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2079,11 +2074,6 @@
       "count": 2
     }
   },
-  "static/app/views/explore/replays/detail/errorList/index.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/replays/detail/layout/replayLayout.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -2110,11 +2100,6 @@
     }
   },
   "static/app/views/explore/replays/detail/timestampButton.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/replays/detail/virtualizedTableLayout.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }

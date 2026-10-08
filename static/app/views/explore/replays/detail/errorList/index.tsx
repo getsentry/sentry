@@ -1,42 +1,30 @@
-import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useCallback} from 'react';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {
-  useJumpButtons,
-  type VisibleRange,
-} from 'sentry/components/replays/useJumpButtons';
+  SIMPLE_TABLE_HEADER_ROW_HEIGHT,
+  SimpleTable,
+} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {ErrorFilters} from 'sentry/views/explore/replays/detail/errorList/errorFilters';
 import {
-  COLUMN_COUNT,
-  ErrorHeaderCell,
-} from 'sentry/views/explore/replays/detail/errorList/errorHeaderCell';
-import {ErrorTableCell} from 'sentry/views/explore/replays/detail/errorList/errorTableCell';
+  ERROR_TABLE_COLUMNS,
+  ErrorTableHeader,
+} from 'sentry/views/explore/replays/detail/errorList/errorTableHeader';
+import {ErrorTableRow} from 'sentry/views/explore/replays/detail/errorList/errorTableRow';
 import {useErrorFilters} from 'sentry/views/explore/replays/detail/errorList/useErrorFilters';
 import {useSortErrors} from 'sentry/views/explore/replays/detail/errorList/useSortErrors';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
-import {useVirtualizedGrid} from 'sentry/views/explore/replays/detail/useVirtualizedGrid';
-import {VirtualTable} from 'sentry/views/explore/replays/detail/virtualizedTableLayout';
-import {
-  getTimelineRowClassName,
-  getVisibleRangeFromVirtualRows,
-} from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
-
-const HEADER_HEIGHT = 25;
-const BODY_HEIGHT = 25;
-const DEFAULT_COLUMN_WIDTH = 100;
-const DYNAMIC_COLUMN_INDEX = 1;
-const MIN_DYNAMIC_COLUMN_WIDTH = 200;
-const OVERSCAN = 20;
-const STATIC_COLUMN_WIDTHS = [100, 0, 140, 96, 116];
+import {useVirtualizedTable} from 'sentry/views/explore/replays/detail/useVirtualizedTable';
+import {getTimelineRowClassName} from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
 
 export function ErrorList() {
   const replay = useReplayReader();
@@ -52,23 +40,8 @@ export function ErrorList() {
   const clearSearchTerm = () => setSearchTerm('');
   const {handleSort, items, sortConfig} = useSortErrors({items: filteredItems});
 
-  const {
-    gridTemplateColumns,
-    scrollContainerRef,
-    totalColumnWidth,
-    totalSize,
-    virtualRows,
-    virtualizer,
-    wrapperRef,
-  } = useVirtualizedGrid({
-    defaultColumnWidth: DEFAULT_COLUMN_WIDTH,
-    dynamicColumnIndex: DYNAMIC_COLUMN_INDEX,
-    minDynamicColumnWidth: MIN_DYNAMIC_COLUMN_WIDTH,
-    overscan: OVERSCAN,
-    rowCount: items.length,
-    rowHeight: BODY_HEIGHT,
-    staticColumnWidths: STATIC_COLUMN_WIDTHS,
-  });
+  const {paddingBottom, paddingTop, tableRef, virtualRows, virtualizer, visibleRange} =
+    useVirtualizedTable({rowCount: items.length});
 
   const handleScrollToTableRow = useCallback(
     (row: number) => {
@@ -76,15 +49,6 @@ export function ErrorList() {
     },
     [virtualizer]
   );
-
-  const visibleRange = useMemo<VisibleRange>(() => {
-    return getVisibleRangeFromVirtualRows({
-      indexOffset: 1,
-      scrollOffset: virtualizer.scrollOffset ?? 0,
-      viewportHeight: virtualizer.scrollRect?.height ?? 0,
-      virtualRows,
-    });
-  }, [virtualRows, virtualizer.scrollOffset, virtualizer.scrollRect?.height]);
 
   const {
     handleClick: onClickToJump,
@@ -99,124 +63,82 @@ export function ErrorList() {
   });
 
   return (
-    <Stack wrap="nowrap">
+    <Stack minHeight="0" minWidth="0" wrap="nowrap">
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
-      <ErrorTable data-test-id="replay-details-errors-tab">
+      <Container
+        flexGrow={1}
+        minHeight="0"
+        position="relative"
+        data-test-id="replay-details-errors-tab"
+      >
         {errorFrames ? (
-          <VirtualTable ref={wrapperRef}>
-            <VirtualTable.BodyScrollContainer ref={scrollContainerRef}>
-              <VirtualTable.HeaderViewport style={{width: totalColumnWidth}}>
-                <VirtualTable.HeaderRow
-                  style={{
-                    gridTemplateColumns,
-                  }}
-                >
-                  {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
-                    <ErrorHeaderCell
-                      key={columnIndex}
-                      handleSort={handleSort}
-                      index={columnIndex}
-                      sortConfig={sortConfig}
-                      style={{height: HEADER_HEIGHT}}
-                    />
-                  ))}
-                </VirtualTable.HeaderRow>
-              </VirtualTable.HeaderViewport>
-              {items.length === 0 ? (
-                <VirtualTable.NoRowsContainer>
+          <SimpleTable
+            aria-label={t('Errors')}
+            columns={ERROR_TABLE_COLUMNS}
+            customSections
+            maxHeight="100%"
+            ref={tableRef}
+            scrollable
+          >
+            <ErrorTableHeader handleSort={handleSort} sortConfig={sortConfig} />
+            {items.length === 0 ? (
+              <SimpleTable.Body>
+                <SimpleTable.Empty>
                   <NoRowRenderer
                     unfilteredItems={errorFrames}
                     clearSearchTerm={clearSearchTerm}
                   >
                     {t('No errors! Go make some.')}
                   </NoRowRenderer>
-                </VirtualTable.NoRowsContainer>
-              ) : (
-                <VirtualTable.Content
-                  style={{
-                    height: totalSize,
-                    width: totalColumnWidth,
-                  }}
-                >
-                  <VirtualTable.Offset
-                    offset={virtualRows[0]?.start ?? 0}
-                    style={{width: totalColumnWidth}}
-                  >
-                    {virtualRows.map(virtualRow => {
-                      const error = items[virtualRow.index];
-                      if (!error) {
-                        return null;
-                      }
+                </SimpleTable.Empty>
+              </SimpleTable.Body>
+            ) : (
+              <SimpleTable.Body style={{paddingBottom, paddingTop}}>
+                {virtualRows.map(virtualRow => {
+                  const error = items[virtualRow.index];
+                  if (!error) {
+                    return null;
+                  }
 
-                      const isByTimestamp = sortConfig.by === 'timestamp';
-                      const hasOccurred = currentTime >= error.offsetMs;
-                      const isBeforeHover =
-                        currentHoverTime === undefined ||
-                        currentHoverTime >= error.offsetMs;
-                      const isAsc = isByTimestamp ? sortConfig.asc : false;
+                  const isByTimestamp = sortConfig.by === 'timestamp';
 
-                      const rowClassName = getTimelineRowClassName({
+                  return (
+                    <ErrorTableRow
+                      key={virtualRow.key}
+                      ref={virtualizer.measureElement}
+                      className={getTimelineRowClassName({
                         hasHoverTime: currentHoverTime !== undefined,
-                        hasOccurred,
-                        isAsc,
-                        isBeforeHover,
+                        hasOccurred: currentTime >= error.offsetMs,
+                        isAsc: isByTimestamp ? sortConfig.asc : false,
+                        isBeforeHover:
+                          currentHoverTime === undefined ||
+                          currentHoverTime >= error.offsetMs,
                         isByTimestamp,
                         isLastDataRow: virtualRow.index === items.length - 1,
-                      });
-
-                      return (
-                        <VirtualTable.BodyRow
-                          key={virtualRow.key}
-                          className={rowClassName}
-                          data-index={virtualRow.index}
-                          style={{
-                            gridTemplateColumns,
-                            height: BODY_HEIGHT,
-                          }}
-                        >
-                          {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
-                            <ErrorTableCell
-                              key={`${virtualRow.key}-${columnIndex}`}
-                              columnIndex={columnIndex}
-                              frame={error}
-                              onMouseEnter={onMouseEnter}
-                              onMouseLeave={onMouseLeave}
-                              onClickTimestamp={onClickTimestamp}
-                              startTimestampMs={startTimestampMs}
-                              style={{height: BODY_HEIGHT}}
-                            />
-                          ))}
-                        </VirtualTable.BodyRow>
-                      );
-                    })}
-                  </VirtualTable.Offset>
-                </VirtualTable.Content>
-              )}
-            </VirtualTable.BodyScrollContainer>
-            {sortConfig.by === 'timestamp' && items.length ? (
-              <JumpButtons
-                jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
-                onClick={onClickToJump}
-                tableHeaderHeight={HEADER_HEIGHT}
-              />
-            ) : null}
-          </VirtualTable>
+                      })}
+                      dataIndex={virtualRow.index}
+                      frame={error}
+                      onMouseEnter={onMouseEnter}
+                      onMouseLeave={onMouseLeave}
+                      onClickTimestamp={onClickTimestamp}
+                      startTimestampMs={startTimestampMs}
+                    />
+                  );
+                })}
+              </SimpleTable.Body>
+            )}
+          </SimpleTable>
         ) : (
           <Placeholder height="100%" />
         )}
-      </ErrorTable>
+        {errorFrames && sortConfig.by === 'timestamp' && items.length ? (
+          <JumpButtons
+            jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+            onClick={onClickToJump}
+            tableHeaderHeight={SIMPLE_TABLE_HEADER_ROW_HEIGHT}
+          />
+        ) : null}
+      </Container>
     </Stack>
   );
 }
-
-const ErrorTable = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-  overflow: hidden;
-  height: 100%;
-
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-`;
