@@ -54,6 +54,7 @@
 # then beats a frame in a shared component. GitHub review routing only depends on order
 # when patterns overlap, and the one overlap here is intended: more specific settings
 # sub-paths declared by other teams further down now take precedence.
+/static/packages/scraps/                              @getsentry/design-engineering
 /static/app/utils/theme/                              @getsentry/design-engineering
 /static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/components/core/                          @getsentry/design-engineering
@@ -198,10 +199,10 @@ tsconfig.*                                               @getsentry/owners-js-bu
 package.json                                             @getsentry/owners-js-deps
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
-## Design
-/static/fonts/                                           @getsentry/design
-/static/images/                                          @getsentry/design
-/src/sentry/static/                                      @getsentry/design
+## Product Design
+/static/fonts/                                           @getsentry/product-design
+/static/images/                                          @getsentry/product-design
+/src/sentry/static/                                      @getsentry/product-design
 
 # Owners by product feature
 #
@@ -357,8 +358,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
 
 
-/src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
-/tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_explore_formulas.py                          @getsentry/data-browsing
 /tests/sentry/api/endpoints/test_organization_explore_formulas.py                   @getsentry/data-browsing
 
@@ -863,7 +862,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity; shared code that appears in stack traces lives in the block near the top)
-/static/packages/scraps/                              @getsentry/design-engineering
 /static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering

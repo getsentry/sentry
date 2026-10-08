@@ -24,6 +24,7 @@ import {
   useMonitorsScheduleSamples,
   type UseMonitorsScheduleSamplesOptions,
 } from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
+import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 
 interface SchedulePreviewProps extends UseMonitorsScheduleSamplesOptions {
   statusToText: Record<SchedulePreviewStatus, string>;
@@ -307,7 +308,7 @@ const OpenPeriodCountLabel = styled('div')`
 `;
 
 const StyledContainer = styled(Container)`
-  top: 8px;
+  top: calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + 8px);
   z-index: ${p => p.theme.zIndex.header};
   /*
     * Prevent seeing content beneath in the uncovered strip above the sticky element.

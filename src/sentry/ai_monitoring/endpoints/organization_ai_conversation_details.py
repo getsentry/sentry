@@ -119,6 +119,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.memory.query.text",
     "gen_ai.memory.record.id",
     "gen_ai.memory.record.count",
+    "gen_ai.memory.records",
     "gen_ai.input.messages",
     "gen_ai.output.messages",
     "gen_ai.system_instructions",
