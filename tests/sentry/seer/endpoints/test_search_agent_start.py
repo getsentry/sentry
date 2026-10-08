@@ -256,23 +256,33 @@ class SearchAgentStartEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
-    def test_unknown_referrer_is_dropped(self, mock_send_request: MagicMock) -> None:
+    def test_unknown_referrer_falls_back_to_api(self, mock_send_request: MagicMock) -> None:
         mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
 
-        response = self._post(referrer="not-a-real-referrer")
+        response = self._post_with_token(referrer="not-a-real-referrer")
 
         assert response.status_code == status.HTTP_200_OK
-        assert mock_send_request.call_args.kwargs["referrer"] is None
+        assert mock_send_request.call_args.kwargs["referrer"] == SearchAgentReferrer.API
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
-    def test_missing_referrer_is_none(self, mock_send_request: MagicMock) -> None:
+    def test_missing_referrer_from_ui_is_search_bar(self, mock_send_request: MagicMock) -> None:
         mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
 
         response = self._post()
 
         assert response.status_code == status.HTTP_200_OK
-        assert mock_send_request.call_args.kwargs["referrer"] is None
+        assert mock_send_request.call_args.kwargs["referrer"] == SearchAgentReferrer.SEARCH_BAR
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_missing_referrer_from_api_token_is_api(self, mock_send_request: MagicMock) -> None:
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post_with_token()
+
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_send_request.call_args.kwargs["referrer"] == SearchAgentReferrer.API
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")

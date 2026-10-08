@@ -38,31 +38,37 @@ class SearchAgentResultTarget(StrEnum):
 class SearchAgentReferrer(StrEnum):
     """Allowlist of callers that may start a search agent run.
 
-    Forwarded to Seer, which combines it with the strategy to pick the RPC referrer
-    (e.g. `assisted_query.mcp.traces`). Add a value here before a client sends it.
+    Forwarded to Seer as the run's source; every caller gets its own
+    `assisted_query.<source>.<strategy>` RPC referrer there. To add a caller, add a
+    value here and register its referrers in Seer's `RpcReferrer`.
     """
 
     SEARCH_BAR = "search_bar"
     MCP = "mcp"
+    # Any other non-UI caller (API tokens, scripts, CLI) that didn't declare a referrer
+    API = "api"
 
 
-def resolve_referrer(request: Request, raw: str | None) -> SearchAgentReferrer | None:
-    """Pick the referrer to forward to Seer.
+def resolve_referrer(request: Request, raw: str | None) -> SearchAgentReferrer:
+    """Pick the referrer to forward to Seer. Every run gets one.
 
     The Sentry MCP server is derived from the request (its user agent) and wins over
     whatever the client declared. Otherwise a declared referrer is used if it is on the
-    allowlist; unknown values are dropped rather than rejected, so an outdated client
-    keeps working and Seer falls back to its default referrer.
+    allowlist; unknown values are logged and dropped rather than rejected, so an
+    outdated client keeps working. Undeclared callers fall back to `search_bar` for the
+    web UI (its only caller today) and `api` for everything else, so a new API caller
+    never lands in the search bar's bucket.
     """
     if get_client_kind(request) == ClientKind.MCP:
         return SearchAgentReferrer.MCP
-    if not raw:
-        return None
-    try:
-        return SearchAgentReferrer(raw)
-    except ValueError:
-        logger.warning("search_agent.unknown_referrer", extra={"referrer": raw})
-        return None
+    if raw:
+        try:
+            return SearchAgentReferrer(raw)
+        except ValueError:
+            logger.warning("search_agent.unknown_referrer", extra={"referrer": raw})
+    if is_frontend_request(request):
+        return SearchAgentReferrer.SEARCH_BAR
+    return SearchAgentReferrer.API
 
 
 def infer_result_target(request: Request) -> SearchAgentResultTarget:
@@ -201,7 +207,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         result_target = infer_result_target(request)
         sentry_sdk.set_tag("search_agent.result_target", result_target.value)
         referrer = resolve_referrer(request, validated_data.get("referrer"))
-        sentry_sdk.set_tag("search_agent.referrer", referrer.value if referrer else None)
+        sentry_sdk.set_tag("search_agent.referrer", referrer.value)
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
