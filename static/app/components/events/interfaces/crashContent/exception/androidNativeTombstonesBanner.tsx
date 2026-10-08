@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';

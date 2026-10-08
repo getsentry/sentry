@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';

@@ -1,14 +1,14 @@
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconReceipt} from '@sentry/icons/iconReceipt';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconThumb} from '@sentry/icons/iconThumb';
-import {IconTimer} from '@sentry/icons/iconTimer';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconInfo} from '@sentry/icons/info';
+import {IconOpen} from '@sentry/icons/open';
+import {IconReceipt} from '@sentry/icons/receipt';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconThumb} from '@sentry/icons/thumb';
+import {IconTimer} from '@sentry/icons/timer';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';

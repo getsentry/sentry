@@ -1,6 +1,6 @@
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';

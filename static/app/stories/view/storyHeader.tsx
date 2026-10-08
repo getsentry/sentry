@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconLink} from '@sentry/icons/iconLink';
+import {IconGithub} from '@sentry/icons/github';
+import {IconLink} from '@sentry/icons/link';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

@@ -1,4 +1,4 @@
-import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconIssues} from '@sentry/icons/issues';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Grid} from '@sentry/scraps/layout';

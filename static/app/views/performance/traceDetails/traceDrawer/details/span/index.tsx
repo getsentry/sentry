@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
-import {IconBroadcast} from '@sentry/icons/iconBroadcast';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 import type {Location} from 'history';
 
 import {Tooltip} from '@sentry/scraps/tooltip';

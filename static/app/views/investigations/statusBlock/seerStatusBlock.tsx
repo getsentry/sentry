@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
-import {IconCircleCheckmark} from '@sentry/icons/iconCircleCheckmark';
-import {IconCircleDashed} from '@sentry/icons/iconCircleDashed';
-import {IconFatal} from '@sentry/icons/iconFatal';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
+import {IconCircleDashed} from '@sentry/icons/circleDashed';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

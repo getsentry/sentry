@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconCursorArrow} from '@sentry/icons/iconCursorArrow';
-import {IconDashboard} from '@sentry/icons/iconDashboard';
-import {IconFire} from '@sentry/icons/iconFire';
-import {IconSentry} from '@sentry/icons/iconSentry';
-import {IconSort} from '@sentry/icons/iconSort';
+import {IconClock} from '@sentry/icons/clock';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconDashboard} from '@sentry/icons/dashboard';
+import {IconFire} from '@sentry/icons/fire';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconSort} from '@sentry/icons/sort';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';

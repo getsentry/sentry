@@ -1,4 +1,4 @@
-import {IconDocs} from '@sentry/icons/iconDocs';
+import {IconDocs} from '@sentry/icons/docs';
 
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';

@@ -1,10 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconFilter} from '@sentry/icons/iconFilter';
-import {IconSearch} from '@sentry/icons/iconSearch';
-import {IconSort} from '@sentry/icons/iconSort';
-import {IconTimer} from '@sentry/icons/iconTimer';
+import {IconClock} from '@sentry/icons/clock';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSort} from '@sentry/icons/sort';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';

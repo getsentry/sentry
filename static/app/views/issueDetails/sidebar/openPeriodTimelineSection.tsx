@@ -1,6 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconFire} from '@sentry/icons/iconFire';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconFire} from '@sentry/icons/fire';
 import orderBy from 'lodash/orderBy';
 
 import {Flex} from '@sentry/scraps/layout';

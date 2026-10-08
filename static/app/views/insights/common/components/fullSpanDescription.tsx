@@ -1,6 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconOpen} from '@sentry/icons/open';
 
 import {CodeBlock} from '@sentry/scraps/code';
 

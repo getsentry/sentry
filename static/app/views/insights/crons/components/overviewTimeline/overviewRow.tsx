@@ -1,9 +1,9 @@
 import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconTimer} from '@sentry/icons/iconTimer';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconUser} from '@sentry/icons/user';
 import pick from 'lodash/pick';
 
 import {Tag} from '@sentry/scraps/badge';

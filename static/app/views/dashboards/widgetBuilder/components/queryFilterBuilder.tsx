@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconDelete} from '@sentry/icons/delete';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';

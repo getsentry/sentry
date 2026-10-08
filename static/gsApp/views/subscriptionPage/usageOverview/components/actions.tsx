@@ -1,6 +1,6 @@
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconTable} from '@sentry/icons/iconTable';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconTable} from '@sentry/icons/table';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';

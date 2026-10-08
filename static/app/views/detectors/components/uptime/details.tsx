@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';

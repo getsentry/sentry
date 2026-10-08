@@ -7,6 +7,7 @@ import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -16,7 +17,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PickProjectToContinue} from 'sentry/components/pickProjectToContinue';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

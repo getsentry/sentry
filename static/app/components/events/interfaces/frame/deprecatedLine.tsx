@@ -1,8 +1,8 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconFix} from '@sentry/icons/iconFix';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconFix} from '@sentry/icons/fix';
+import {IconRefresh} from '@sentry/icons/refresh';
 import classNames from 'classnames';
 
 import {Tag} from '@sentry/scraps/badge';

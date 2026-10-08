@@ -1,4 +1,4 @@
-import {IconNot} from '@sentry/icons/iconNot';
+import {IconNot} from '@sentry/icons/not';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';

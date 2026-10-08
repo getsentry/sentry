@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconSliders} from '@sentry/icons/iconSliders';
-import {IconTag} from '@sentry/icons/iconTag';
+import {IconDownload} from '@sentry/icons/download';
+import {IconSliders} from '@sentry/icons/sliders';
+import {IconTag} from '@sentry/icons/tag';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';

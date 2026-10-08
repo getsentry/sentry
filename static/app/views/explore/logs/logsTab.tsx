@@ -1,8 +1,8 @@
 import {memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconEdit} from '@sentry/icons/iconEdit';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

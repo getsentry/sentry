@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconChat} from '@sentry/icons/iconChat';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconChat} from '@sentry/icons/chat';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';

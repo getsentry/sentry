@@ -1,6 +1,6 @@
 import type {MouseEvent, ReactNode} from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 

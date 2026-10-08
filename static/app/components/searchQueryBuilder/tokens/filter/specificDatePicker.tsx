@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';

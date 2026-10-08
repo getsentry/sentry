@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconCopyId} from '@sentry/icons/iconCopyId';
-import {IconGlobe} from '@sentry/icons/iconGlobe';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconGlobe} from '@sentry/icons/globe';
 
 import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';

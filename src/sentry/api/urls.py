@@ -55,6 +55,9 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributeValidateEndpoint,
     OrganizationTraceItemAttributeValuesEndpoint,
 )
+from sentry.api.endpoints.organization_trace_item_attributes_merged import (
+    OrganizationTraceItemAttributesMergedEndpoint,
+)
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
     OrganizationTraceItemsAttributesRankedEndpoint,
 )
@@ -357,6 +360,7 @@ from sentry.issues.endpoints import (
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
     GroupTombstoneEndpoint,
+    OrganizationCodeMappingRepoPrefixesEndpoint,
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
@@ -368,6 +372,7 @@ from sentry.issues.endpoints import (
     OrganizationIssuesCountEndpoint,
     OrganizationIssuesWithSupergroupsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
+    ProjectCodeMappingStackPrefixesEndpoint,
     ProjectEventDetailsEndpoint,
     ProjectEventsEndpoint,
     ProjectGroupIndexEndpoint,
@@ -1455,6 +1460,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-derive-code-mappings",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/code-mapping-prefixes/repo/$",
+        OrganizationCodeMappingRepoPrefixesEndpoint.as_view(),
+        name="sentry-api-0-organization-code-mapping-repo-prefixes",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/code-mappings/(?P<config_id>[^/]+)/$",
         OrganizationCodeMappingDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-code-mapping-details",
@@ -1830,6 +1840,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/$",
         OrganizationTraceItemAttributesEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attributes",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/merged/$",
+        OrganizationTraceItemAttributesMergedEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attributes-merged",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/validate/$",
@@ -3346,6 +3361,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-link/$",
         ProjectStacktraceLinkEndpoint.as_view(),
         name="sentry-api-0-project-stacktrace-link",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/code-mapping-prefixes/stack/$",
+        ProjectCodeMappingStackPrefixesEndpoint.as_view(),
+        name="sentry-api-0-project-code-mapping-stack-prefixes",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-source-context/$",

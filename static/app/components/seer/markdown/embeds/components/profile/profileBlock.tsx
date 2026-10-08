@@ -1,5 +1,5 @@
 import {useMemo, useState, type ReactNode} from 'react';
-import {IconProfiling} from '@sentry/icons/iconProfiling';
+import {IconProfiling} from '@sentry/icons/profiling';
 import {useQuery} from '@tanstack/react-query';
 import queryString from 'query-string';
 

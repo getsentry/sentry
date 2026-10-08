@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconTimer} from '@sentry/icons/iconTimer';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconTimer} from '@sentry/icons/timer';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
+import {IconUser} from '@sentry/icons/user';
 import pick from 'lodash/pick';
 
 import {Tag} from '@sentry/scraps/badge';

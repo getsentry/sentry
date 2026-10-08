@@ -1,10 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconCommit} from '@sentry/icons/iconCommit';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconGithub} from '@sentry/icons/github';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';

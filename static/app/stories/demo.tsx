@@ -1,8 +1,8 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconContract} from '@sentry/icons/iconContract';
-import {IconExpand} from '@sentry/icons/iconExpand';
+import {IconContract} from '@sentry/icons/contract';
+import {IconExpand} from '@sentry/icons/expand';
 import screenfull from 'screenfull';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';

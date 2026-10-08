@@ -1,8 +1,8 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';

@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconInput} from '@sentry/icons/iconInput';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconInput} from '@sentry/icons/input';
+import {IconStar} from '@sentry/icons/star';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';
 import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';

@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconBusiness} from '@sentry/icons/iconBusiness';
+import {IconBusiness} from '@sentry/icons/business';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {ProgressRing} from 'sentry/components/progressRing';

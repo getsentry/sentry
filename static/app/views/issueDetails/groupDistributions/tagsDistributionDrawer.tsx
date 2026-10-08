@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {IconSort} from '@sentry/icons/iconSort';
+import {IconSort} from '@sentry/icons/sort';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';

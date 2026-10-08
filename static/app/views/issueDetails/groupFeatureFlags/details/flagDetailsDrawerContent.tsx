@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';

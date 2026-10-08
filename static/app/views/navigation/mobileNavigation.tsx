@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
-import {IconMenu} from '@sentry/icons/iconMenu';
+import {IconMenu} from '@sentry/icons/menu';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';

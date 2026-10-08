@@ -1,7 +1,7 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconSettings} from '@sentry/icons/settings';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';

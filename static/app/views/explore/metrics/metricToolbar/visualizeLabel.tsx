@@ -1,6 +1,6 @@
 import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

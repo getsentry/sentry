@@ -1,12 +1,12 @@
 import {useContext, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconContract} from '@sentry/icons/iconContract';
-import {IconExpand} from '@sentry/icons/iconExpand';
-import {IconFix} from '@sentry/icons/iconFix';
-import {IconLightning} from '@sentry/icons/iconLightning';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconClose} from '@sentry/icons/close';
+import {IconContract} from '@sentry/icons/contract';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconFix} from '@sentry/icons/fix';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconSearch} from '@sentry/icons/search';
 import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import {Alert} from '@sentry/scraps/alert';

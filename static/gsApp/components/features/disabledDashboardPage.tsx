@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {IconBusiness} from '@sentry/icons/iconBusiness';
+import {IconBusiness} from '@sentry/icons/business';
 
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';

@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

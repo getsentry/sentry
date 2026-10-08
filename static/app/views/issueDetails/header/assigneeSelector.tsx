@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconUser} from '@sentry/icons/user';
 import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';

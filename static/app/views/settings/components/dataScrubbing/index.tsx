@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';

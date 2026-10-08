@@ -11,7 +11,6 @@ class AuthView(BaseView):
     """
 
     auth_required = False
-    sudo_required = False
 
 
 __all__ = ("AuthView",)

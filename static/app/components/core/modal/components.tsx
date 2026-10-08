@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';

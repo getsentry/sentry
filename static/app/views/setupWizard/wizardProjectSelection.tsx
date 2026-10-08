@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';

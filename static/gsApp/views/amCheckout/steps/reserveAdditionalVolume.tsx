@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSubtract} from '@sentry/icons/subtract';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';

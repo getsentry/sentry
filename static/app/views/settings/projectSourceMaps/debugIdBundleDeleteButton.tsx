@@ -1,4 +1,4 @@
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconDelete} from '@sentry/icons/delete';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';

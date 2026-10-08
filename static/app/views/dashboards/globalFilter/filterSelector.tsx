@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 import * as Sentry from '@sentry/react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';

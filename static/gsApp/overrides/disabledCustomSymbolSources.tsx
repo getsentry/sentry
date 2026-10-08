@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {IconBusiness} from '@sentry/icons/iconBusiness';
-import {IconLock} from '@sentry/icons/iconLock';
+import {IconBusiness} from '@sentry/icons/business';
+import {IconLock} from '@sentry/icons/lock';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';

@@ -1,9 +1,9 @@
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconCircle} from '@sentry/icons/iconCircle';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconMerge} from '@sentry/icons/iconMerge';
-import {IconPullRequest} from '@sentry/icons/iconPullRequest';
-import {IconPullRequestClosed} from '@sentry/icons/iconPullRequestClosed';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconCircle} from '@sentry/icons/circle';
+import {IconClose} from '@sentry/icons/close';
+import {IconMerge} from '@sentry/icons/merge';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconPullRequestClosed} from '@sentry/icons/pullRequestClosed';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Badge} from '@sentry/scraps/badge';

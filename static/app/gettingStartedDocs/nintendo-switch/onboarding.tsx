@@ -1,4 +1,4 @@
-import {IconLock} from '@sentry/icons/iconLock';
+import {IconLock} from '@sentry/icons/lock';
 
 import {ExternalLink} from '@sentry/scraps/link';
 

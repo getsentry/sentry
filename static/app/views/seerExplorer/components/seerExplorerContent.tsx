@@ -8,8 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconClose} from '@sentry/icons/close';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconGithub} from '@sentry/icons/github';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';

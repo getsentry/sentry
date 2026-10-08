@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -51,11 +51,6 @@ function OnboardingSkipModal({
       value: 'docs',
       label: t("I'll read the docs myself"),
       description: t('I prefer to set things up at my own pace.'),
-    },
-    {
-      value: 'marketing',
-      label: t('I thought the onboarding was marketing junk'),
-      description: t("I didn't realize this was where I connect my code."),
     },
     {
       value: 'just_skip',

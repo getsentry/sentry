@@ -9,7 +9,7 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconGrabbable} from '@sentry/icons/iconGrabbable';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';

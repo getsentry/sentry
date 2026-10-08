@@ -1,6 +1,7 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconMail} from '@sentry/icons/iconMail';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconMail} from '@sentry/icons/mail';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -9,7 +10,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {t, tct} from 'sentry/locale';
-import type {Action} from 'sentry/types/workflowEngine/actions';
+import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {
   DataConditionGroupLogicType,
   DataConditionHandlerGroupType,
@@ -87,6 +88,19 @@ export function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   const actionFilterActions = actionFilter.actions || [];
   const {sendTestNotification, isPending} = useSendTestNotification(actionFilterActions);
   const numActionFilters = state.actionFilters.length;
+  const addAction = useCallback(
+    (handler: ActionHandler) => actions.addIfAction(actionFilter.id, handler),
+    [actions, actionFilter.id]
+  );
+  const removeAction = useCallback(
+    (id: string) => actions.removeIfAction(actionFilter.id, id),
+    [actions, actionFilter.id]
+  );
+  const updateAction = useCallback(
+    (id: string, data: Record<string, any>) =>
+      actions.updateIfAction(actionFilter.id, id, data),
+    [actions, actionFilter.id]
+  );
 
   return (
     <IfThenWrapper>
@@ -159,9 +173,9 @@ export function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
           placeholder={t('Select an action')}
           conditionGroupId={actionFilter.id}
           actions={actionFilter?.actions || []}
-          onAddRow={handler => actions.addIfAction(actionFilter.id, handler)}
-          onDeleteRow={id => actions.removeIfAction(actionFilter.id, id)}
-          updateAction={(id, data) => actions.updateIfAction(actionFilter.id, id, data)}
+          onAddRow={addAction}
+          onDeleteRow={removeAction}
+          updateAction={updateAction}
         />
       </Step>
       <span>

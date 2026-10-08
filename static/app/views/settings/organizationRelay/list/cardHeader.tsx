@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
-import {IconCopyId} from '@sentry/icons/iconCopyId';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';

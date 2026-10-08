@@ -1,7 +1,7 @@
 import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 

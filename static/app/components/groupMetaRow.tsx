@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconChat} from '@sentry/icons/iconChat';
+import {IconChat} from '@sentry/icons/chat';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 

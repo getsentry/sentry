@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import {Button} from '@sentry/scraps/button';

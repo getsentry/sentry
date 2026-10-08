@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';

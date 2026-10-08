@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';

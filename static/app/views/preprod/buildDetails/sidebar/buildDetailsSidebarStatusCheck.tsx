@@ -1,5 +1,5 @@
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack} from '@sentry/scraps/layout';

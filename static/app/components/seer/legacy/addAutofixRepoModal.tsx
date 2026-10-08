@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSearch} from '@sentry/icons/search';
 import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';

@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconSettings} from '@sentry/icons/settings';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';

@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 import moment from 'moment-timezone';
 
 import {Flex} from '@sentry/scraps/layout';

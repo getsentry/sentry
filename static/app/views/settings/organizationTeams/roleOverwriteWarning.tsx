@@ -1,4 +1,4 @@
-import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 

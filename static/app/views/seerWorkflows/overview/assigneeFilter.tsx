@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';

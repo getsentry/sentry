@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';

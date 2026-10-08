@@ -1,4 +1,4 @@
-import {IconStack} from '@sentry/icons/iconStack';
+import {IconStack} from '@sentry/icons/stack';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';

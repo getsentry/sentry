@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import type {Placement} from '@popperjs/core';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {
   CompactSelect,

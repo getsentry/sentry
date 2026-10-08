@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSearch} from '@sentry/icons/search';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 

@@ -1,8 +1,8 @@
 import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconAdd} from '@sentry/icons/add';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 

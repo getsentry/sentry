@@ -1,5 +1,5 @@
 import {createContext, use} from 'react';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';

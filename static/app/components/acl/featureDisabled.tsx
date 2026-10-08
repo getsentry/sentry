@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCopy} from '@sentry/icons/copy';
 
 import type {AlertProps} from '@sentry/scraps/alert';
 import {Alert} from '@sentry/scraps/alert';

@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconMarkdown} from '@sentry/icons/iconMarkdown';
+import {IconMarkdown} from '@sentry/icons/markdown';
 
 import {Container} from '@sentry/scraps/layout';
 import type {TextAreaProps} from '@sentry/scraps/textarea';

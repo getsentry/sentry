@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 import {useQuery} from '@tanstack/react-query';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';

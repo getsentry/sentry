@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconGitlab} from '@sentry/icons/iconGitlab';
-import {IconSentry} from '@sentry/icons/iconSentry';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGitlab} from '@sentry/icons/gitlab';
+import {IconSentry} from '@sentry/icons/sentry';
 
 import {Flex} from '@sentry/scraps/layout';
 import {TextArea} from '@sentry/scraps/textarea';

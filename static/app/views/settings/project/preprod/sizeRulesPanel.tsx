@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 
 import seerConfigBugSvg from 'sentry-images/spot/seer-config-bug-1.svg';
 

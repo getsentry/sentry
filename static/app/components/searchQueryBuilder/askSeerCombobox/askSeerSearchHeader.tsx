@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {IconExclamation} from '@sentry/icons/iconExclamation';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconExclamation} from '@sentry/icons/exclamation';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

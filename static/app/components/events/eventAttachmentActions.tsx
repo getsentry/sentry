@@ -1,6 +1,6 @@
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconShow} from '@sentry/icons/iconShow';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconShow} from '@sentry/icons/show';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';

@@ -1,5 +1,5 @@
 import {type RefObject, useCallback, useEffect, useMemo, useState} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';

@@ -1,4 +1,4 @@
-import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconDownload} from '@sentry/icons/download';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';

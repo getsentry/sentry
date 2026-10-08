@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconBroadcast} from '@sentry/icons/iconBroadcast';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
 

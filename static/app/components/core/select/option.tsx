@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconAdd} from '@sentry/icons/add';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {MenuListItem} from '@sentry/scraps/menuListItem';
 import {CheckWrap} from '@sentry/scraps/select';

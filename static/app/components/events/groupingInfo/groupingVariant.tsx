@@ -1,6 +1,6 @@
 import {isValidElement} from 'react';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
 
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';

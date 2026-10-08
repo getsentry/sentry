@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';

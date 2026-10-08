@@ -5,7 +5,7 @@ import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Badge} from '@sentry/scraps/badge';
 import {ListBox} from '@sentry/scraps/compactSelect';

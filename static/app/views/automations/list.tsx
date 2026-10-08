@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';

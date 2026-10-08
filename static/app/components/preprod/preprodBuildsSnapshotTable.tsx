@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {IconCommit} from '@sentry/icons/iconCommit';
+import {IconCommit} from '@sentry/icons/commit';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';

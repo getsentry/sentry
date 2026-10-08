@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconLock} from '@sentry/icons/iconLock';
+import {IconLock} from '@sentry/icons/lock';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';

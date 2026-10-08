@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

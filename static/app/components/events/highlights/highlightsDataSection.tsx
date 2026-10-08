@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';

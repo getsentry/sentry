@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconList} from '@sentry/icons/iconList';
+import {IconList} from '@sentry/icons/list';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';

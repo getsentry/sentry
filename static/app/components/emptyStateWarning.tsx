@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSearch} from '@sentry/icons/search';
 import type {IconVariant} from '@sentry/icons/svgIcon';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';

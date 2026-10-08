@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconLink} from '@sentry/icons/iconLink';
+import {IconLink} from '@sentry/icons/link';
 import type {LocationDescriptor} from 'history';
 
 import {FeatureBadge} from '@sentry/scraps/badge';

@@ -6,7 +6,7 @@ import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconResize} from '@sentry/icons/iconResize';
+import {IconResize} from '@sentry/icons/resize';
 import * as Sentry from '@sentry/react';
 import {connect} from 'echarts/core';
 import cloneDeep from 'lodash/cloneDeep';

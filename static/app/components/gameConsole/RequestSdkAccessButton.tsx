@@ -1,4 +1,4 @@
-import {IconLock} from '@sentry/icons/iconLock';
+import {IconLock} from '@sentry/icons/lock';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 

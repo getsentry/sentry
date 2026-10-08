@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';

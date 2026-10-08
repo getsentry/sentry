@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {useMatches} from 'react-router';
 import {isAppleDevice} from '@react-aria/utils';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconAllProjects} from '@sentry/icons/iconAllProjects';
-import {IconMyProjects} from '@sentry/icons/iconMyProjects';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconAdd} from '@sentry/icons/add';
+import {IconAllProjects} from '@sentry/icons/allProjects';
+import {IconMyProjects} from '@sentry/icons/myProjects';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSettings} from '@sentry/icons/settings';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
 

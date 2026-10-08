@@ -1,6 +1,6 @@
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconBusiness} from '@sentry/icons/iconBusiness';
+import {IconBusiness} from '@sentry/icons/business';
 
 import Feature from 'sentry/components/acl/feature';
 

@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
-import {IconGlobe} from '@sentry/icons/iconGlobe';
-import {IconTerminal} from '@sentry/icons/iconTerminal';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconTerminal} from '@sentry/icons/terminal';
 import partition from 'lodash/partition';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';

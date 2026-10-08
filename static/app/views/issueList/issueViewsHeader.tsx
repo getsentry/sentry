@@ -1,8 +1,8 @@
 import {Fragment, type ReactNode} from 'react';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconPause} from '@sentry/icons/iconPause';
-import {IconPlay} from '@sentry/icons/iconPlay';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconPause} from '@sentry/icons/pause';
+import {IconPlay} from '@sentry/icons/play';
+import {IconStar} from '@sentry/icons/star';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';

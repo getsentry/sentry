@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 

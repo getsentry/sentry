@@ -1,6 +1,6 @@
-import {IconIssues} from '@sentry/icons/iconIssues';
-import {IconJira} from '@sentry/icons/iconJira';
-import {IconLinear} from '@sentry/icons/iconLinear';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconJira} from '@sentry/icons/jira';
+import {IconLinear} from '@sentry/icons/linear';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Link} from '@sentry/scraps/link';

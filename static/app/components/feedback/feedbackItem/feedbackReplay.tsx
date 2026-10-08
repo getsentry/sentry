@@ -1,4 +1,4 @@
-import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconPlay} from '@sentry/icons/play';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';

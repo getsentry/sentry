@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconPrint} from '@sentry/icons/iconPrint';
+import {IconDownload} from '@sentry/icons/download';
+import {IconPrint} from '@sentry/icons/print';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';

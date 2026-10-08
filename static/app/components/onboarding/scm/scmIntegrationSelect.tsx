@@ -1,4 +1,4 @@
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';

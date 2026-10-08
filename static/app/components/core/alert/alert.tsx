@@ -1,11 +1,11 @@
 import {useRef, useState} from 'react';
 import {css, type SerializedStyles, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconNot} from '@sentry/icons/iconNot';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconInfo} from '@sentry/icons/info';
+import {IconNot} from '@sentry/icons/not';
+import {IconWarning} from '@sentry/icons/warning';
 import classNames from 'classnames';
 import type {DistributedOmit} from 'type-fest';
 

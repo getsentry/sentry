@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconSad} from '@sentry/icons/iconSad';
+import {IconSad} from '@sentry/icons/sad';
 
 import {Stack} from '@sentry/scraps/layout';
 

@@ -1,9 +1,9 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconDownload} from '@sentry/icons/download';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSearch} from '@sentry/icons/search';
 import {useMutation} from '@tanstack/react-query';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 

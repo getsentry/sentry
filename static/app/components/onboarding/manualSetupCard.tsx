@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconSliders} from '@sentry/icons/iconSliders';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSliders} from '@sentry/icons/sliders';
 
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

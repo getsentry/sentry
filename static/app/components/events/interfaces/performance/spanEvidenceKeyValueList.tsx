@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {Fragment, isValidElement, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconGraph} from '@sentry/icons/graph';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';

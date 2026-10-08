@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconIssues} from '@sentry/icons/iconIssues';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconSiren} from '@sentry/icons/iconSiren';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconSiren} from '@sentry/icons/siren';
 import pick from 'lodash/pick';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';

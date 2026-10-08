@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSeer} from '@sentry/icons/seer';
 import {useReducedMotion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';

@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {CompactSelect, type SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';

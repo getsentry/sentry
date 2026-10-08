@@ -1,20 +1,20 @@
 import {useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconCursorArrow} from '@sentry/icons/iconCursorArrow';
-import {IconFire} from '@sentry/icons/iconFire';
-import {IconFix} from '@sentry/icons/iconFix';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconLocation} from '@sentry/icons/iconLocation';
-import {IconMobile} from '@sentry/icons/iconMobile';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconSort} from '@sentry/icons/iconSort';
-import {IconSpan} from '@sentry/icons/iconSpan';
-import {IconStack} from '@sentry/icons/iconStack';
-import {IconUser} from '@sentry/icons/iconUser';
-import {IconWarning} from '@sentry/icons/iconWarning';
-import {IconWifi} from '@sentry/icons/iconWifi';
+import {IconCode} from '@sentry/icons/code';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconFire} from '@sentry/icons/fire';
+import {IconFix} from '@sentry/icons/fix';
+import {IconInfo} from '@sentry/icons/info';
+import {IconLocation} from '@sentry/icons/location';
+import {IconMobile} from '@sentry/icons/mobile';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSort} from '@sentry/icons/sort';
+import {IconSpan} from '@sentry/icons/span';
+import {IconStack} from '@sentry/icons/stack';
+import {IconUser} from '@sentry/icons/user';
+import {IconWarning} from '@sentry/icons/warning';
+import {IconWifi} from '@sentry/icons/wifi';
 
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 

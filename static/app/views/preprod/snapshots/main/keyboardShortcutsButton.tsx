@@ -1,6 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
 import {css} from '@emotion/react';
-import {IconCommand} from '@sentry/icons/iconCommand';
+import {IconCommand} from '@sentry/icons/command';
 
 import {Button} from '@sentry/scraps/button';
 import {Hotkey, Kbd} from '@sentry/scraps/hotkey';

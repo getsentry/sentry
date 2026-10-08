@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import orderBy from 'lodash/orderBy';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -277,7 +277,7 @@ const StepWrapper = styled('div')`
     position: absolute;
     height: calc(100% + ${p => p.theme.space.xl});
     width: 1px;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     left: 17px;
   }

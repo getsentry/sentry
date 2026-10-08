@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 

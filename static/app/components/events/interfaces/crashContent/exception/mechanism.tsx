@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconOpen} from '@sentry/icons/open';
 import forOwn from 'lodash/forOwn';
 
 import {ExternalLink} from '@sentry/scraps/link';

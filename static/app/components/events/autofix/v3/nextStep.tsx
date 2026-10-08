@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconAdd} from '@sentry/icons/add';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';

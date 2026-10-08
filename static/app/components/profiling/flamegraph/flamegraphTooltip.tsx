@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconLightning} from '@sentry/icons/iconLightning';
+import {IconLightning} from '@sentry/icons/lightning';
 import type {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';

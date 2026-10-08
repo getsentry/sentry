@@ -2,10 +2,10 @@ import {useEffect, useId, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconExclamation} from '@sentry/icons/iconExclamation';
-import {IconHide} from '@sentry/icons/iconHide';
-import {IconShow} from '@sentry/icons/iconShow';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconExclamation} from '@sentry/icons/exclamation';
+import {IconHide} from '@sentry/icons/hide';
+import {IconShow} from '@sentry/icons/show';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';

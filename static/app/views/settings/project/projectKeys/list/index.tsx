@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconFlag} from '@sentry/icons/iconFlag';
+import {IconAdd} from '@sentry/icons/add';
+import {IconFlag} from '@sentry/icons/flag';
 import {useQuery, useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

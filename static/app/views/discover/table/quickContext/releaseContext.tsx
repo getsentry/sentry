@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconNot} from '@sentry/icons/iconNot';
+import {IconNot} from '@sentry/icons/not';
 import {useQuery} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';

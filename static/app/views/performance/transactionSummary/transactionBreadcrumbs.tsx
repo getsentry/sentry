@@ -1,7 +1,7 @@
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 
 import {TeamAvatar} from '@sentry/scraps/avatar';

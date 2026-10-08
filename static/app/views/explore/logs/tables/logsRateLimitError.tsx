@@ -1,5 +1,5 @@
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';

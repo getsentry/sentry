@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconOpen} from '@sentry/icons/open';
 import isEmpty from 'lodash/isEmpty';
 import startCase from 'lodash/startCase';
 

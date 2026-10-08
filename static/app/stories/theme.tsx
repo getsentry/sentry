@@ -1,4 +1,4 @@
-import {IconMoon} from '@sentry/icons/iconMoon';
+import {IconMoon} from '@sentry/icons/moon';
 
 import {Button} from '@sentry/scraps/button';
 

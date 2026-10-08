@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Button} from '@sentry/scraps/button';
 

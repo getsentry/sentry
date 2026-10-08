@@ -1,5 +1,5 @@
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';

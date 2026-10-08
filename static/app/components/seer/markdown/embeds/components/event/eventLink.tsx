@@ -1,4 +1,4 @@
-import {IconFire} from '@sentry/icons/iconFire';
+import {IconFire} from '@sentry/icons/fire';
 
 import {
   ResourceLink,

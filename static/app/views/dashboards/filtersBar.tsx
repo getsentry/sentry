@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
-import {IconClock} from '@sentry/icons/iconClock';
+import {IconClock} from '@sentry/icons/clock';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 

@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
-import {IconList} from '@sentry/icons/iconList';
+import {IconList} from '@sentry/icons/list';
 import {z} from 'zod';
 
 import sentryLogo from 'sentry-images/logo.png';

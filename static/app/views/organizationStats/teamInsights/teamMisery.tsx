@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';

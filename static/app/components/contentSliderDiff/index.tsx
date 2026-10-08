@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
-import {IconGrabbable} from '@sentry/icons/iconGrabbable';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container} from '@sentry/scraps/layout';

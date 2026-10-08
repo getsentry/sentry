@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconFix} from '@sentry/icons/iconFix';
+import {IconFix} from '@sentry/icons/fix';
 
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';

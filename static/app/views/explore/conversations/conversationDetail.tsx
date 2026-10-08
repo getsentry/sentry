@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
-import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconCopy} from '@sentry/icons/copy';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';

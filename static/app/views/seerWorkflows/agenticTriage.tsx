@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import {IconMerge} from '@sentry/icons/iconMerge';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconPullRequest} from '@sentry/icons/iconPullRequest';
-import {IconPullRequestClosed} from '@sentry/icons/iconPullRequestClosed';
+import {IconMerge} from '@sentry/icons/merge';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconPullRequestClosed} from '@sentry/icons/pullRequestClosed';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';

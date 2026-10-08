@@ -1,5 +1,5 @@
 import {isValidElement} from 'react';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconRefresh} from '@sentry/icons/refresh';
 import * as Sentry from '@sentry/react';
 
 import {toast, type ToastOptions} from '@sentry/scraps/toast';

@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';

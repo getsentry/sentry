@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import {
   useQuery,
   useQueryClient,

@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 
 import {Avatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';

@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSearch} from '@sentry/icons/search';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';

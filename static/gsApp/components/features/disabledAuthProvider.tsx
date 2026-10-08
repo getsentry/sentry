@@ -1,4 +1,4 @@
-import {IconBusiness} from '@sentry/icons/iconBusiness';
+import {IconBusiness} from '@sentry/icons/business';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';

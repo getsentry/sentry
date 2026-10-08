@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconBroadcast} from '@sentry/icons/iconBroadcast';
+import {IconAdd} from '@sentry/icons/add';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';

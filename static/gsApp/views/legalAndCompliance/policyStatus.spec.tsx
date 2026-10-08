@@ -1,4 +1,4 @@
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

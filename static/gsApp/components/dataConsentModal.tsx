@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconFix} from '@sentry/icons/iconFix';
-import {IconGraphBar} from '@sentry/icons/iconGraphBar';
-import {IconLock} from '@sentry/icons/iconLock';
+import {IconClose} from '@sentry/icons/close';
+import {IconFix} from '@sentry/icons/fix';
+import {IconGraphBar} from '@sentry/icons/graphBar';
+import {IconLock} from '@sentry/icons/lock';
 import {useMutation} from '@tanstack/react-query';
 import missionControl from 'getsentry-images/missionControl.jpg';
 
@@ -209,7 +209,7 @@ const LearnMore = styled(ExternalLink)`
 
   &:hover {
     text-decoration: underline;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     text-decoration-color: ${p => p.theme.tokens.border.accent.moderate};
   }
 `;

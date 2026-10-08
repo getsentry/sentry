@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import {IconBot} from '@sentry/icons/iconBot';
+import {IconBot} from '@sentry/icons/bot';
 
 import {Tag} from '@sentry/scraps/badge';
 import {CodeBlock} from '@sentry/scraps/code';

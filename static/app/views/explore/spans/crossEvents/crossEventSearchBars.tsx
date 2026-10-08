@@ -1,5 +1,5 @@
 import {useEffect, useEffectEvent} from 'react';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';

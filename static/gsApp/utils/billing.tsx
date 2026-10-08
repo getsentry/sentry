@@ -1,7 +1,7 @@
-import {IconBuilding} from '@sentry/icons/iconBuilding';
-import {IconGroup} from '@sentry/icons/iconGroup';
-import {IconSeer} from '@sentry/icons/iconSeer';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconBuilding} from '@sentry/icons/building';
+import {IconGroup} from '@sentry/icons/group';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconUser} from '@sentry/icons/user';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {DataCategory} from 'sentry/types/core';

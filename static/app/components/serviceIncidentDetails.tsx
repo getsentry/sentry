@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconFatal} from '@sentry/icons/iconFatal';
-import {IconFire} from '@sentry/icons/iconFire';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconFire} from '@sentry/icons/fire';
+import {IconInfo} from '@sentry/icons/info';
+import {IconOpen} from '@sentry/icons/open';
+import {IconWarning} from '@sentry/icons/warning';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 

@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import {IconBroadcast} from '@sentry/icons/iconBroadcast';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';

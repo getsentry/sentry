@@ -1,9 +1,9 @@
 /** Various shared components for diff tables */
 
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconFix} from '@sentry/icons/iconFix';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconAdd} from '@sentry/icons/add';
+import {IconFix} from '@sentry/icons/fix';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';

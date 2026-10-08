@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useLocation, useOutlet} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconSentry} from '@sentry/icons/iconSentry';
+import {IconSentry} from '@sentry/icons/sentry';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';

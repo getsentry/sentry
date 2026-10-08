@@ -1,6 +1,6 @@
 import {lazy, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconIssues} from '@sentry/icons/issues';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {

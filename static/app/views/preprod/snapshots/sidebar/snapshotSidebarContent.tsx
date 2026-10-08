@@ -1,8 +1,8 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconSearch} from '@sentry/icons/iconSearch';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconClose} from '@sentry/icons/close';
+import {IconSearch} from '@sentry/icons/search';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';

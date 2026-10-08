@@ -1,4 +1,4 @@
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';

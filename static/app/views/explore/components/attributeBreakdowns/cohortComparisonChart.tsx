@@ -1,6 +1,6 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
-import {IconExpand} from '@sentry/icons/iconExpand';
+import {IconExpand} from '@sentry/icons/expand';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

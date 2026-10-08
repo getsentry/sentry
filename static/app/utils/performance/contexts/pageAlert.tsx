@@ -1,6 +1,6 @@
 import type React from 'react';
 import {createContext, Fragment, useCallback, useContext, useState} from 'react';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 

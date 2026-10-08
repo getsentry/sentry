@@ -1,6 +1,6 @@
 import {type CSSProperties, Fragment} from 'react';
-import {IconCopyId} from '@sentry/icons/iconCopyId';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';

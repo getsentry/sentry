@@ -1,8 +1,8 @@
 import type {ComponentType} from 'react';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconGlobe} from '@sentry/icons/iconGlobe';
-import {IconGraph} from '@sentry/icons/iconGraph';
-import {IconSiren} from '@sentry/icons/iconSiren';
+import {IconClock} from '@sentry/icons/clock';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconSiren} from '@sentry/icons/siren';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {useQuery} from '@tanstack/react-query';
 

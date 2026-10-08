@@ -1,16 +1,16 @@
 import {Fragment, useEffect} from 'react';
-import {IconBroadcast} from '@sentry/icons/iconBroadcast';
-import {IconBuilding} from '@sentry/icons/iconBuilding';
-import {IconDiscord} from '@sentry/icons/iconDiscord';
-import {IconDocs} from '@sentry/icons/iconDocs';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconGroup} from '@sentry/icons/iconGroup';
-import {IconMegaphone} from '@sentry/icons/iconMegaphone';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconQuestion} from '@sentry/icons/iconQuestion';
-import {IconSentry} from '@sentry/icons/iconSentry';
-import {IconSupport} from '@sentry/icons/iconSupport';
+import {IconBroadcast} from '@sentry/icons/broadcast';
+import {IconBuilding} from '@sentry/icons/building';
+import {IconDiscord} from '@sentry/icons/discord';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGroup} from '@sentry/icons/group';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconOpen} from '@sentry/icons/open';
+import {IconQuestion} from '@sentry/icons/question';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconSupport} from '@sentry/icons/support';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';

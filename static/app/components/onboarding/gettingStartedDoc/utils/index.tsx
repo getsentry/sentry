@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconCopyId} from '@sentry/icons/iconCopyId';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconCopyId} from '@sentry/icons/copyId';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';

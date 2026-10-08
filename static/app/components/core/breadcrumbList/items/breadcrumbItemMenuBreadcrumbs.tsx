@@ -1,4 +1,4 @@
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';

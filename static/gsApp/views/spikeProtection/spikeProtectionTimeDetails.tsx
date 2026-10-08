@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconCalendar} from '@sentry/icons/iconCalendar';
+import {IconCalendar} from '@sentry/icons/calendar';
 
 import {AlertBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';

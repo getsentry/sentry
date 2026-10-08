@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';

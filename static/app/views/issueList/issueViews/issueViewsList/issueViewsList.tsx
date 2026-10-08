@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconSort} from '@sentry/icons/iconSort';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSort} from '@sentry/icons/sort';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

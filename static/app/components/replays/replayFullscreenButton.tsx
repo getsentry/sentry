@@ -1,5 +1,5 @@
-import {IconContract} from '@sentry/icons/iconContract';
-import {IconExpand} from '@sentry/icons/iconExpand';
+import {IconContract} from '@sentry/icons/contract';
+import {IconExpand} from '@sentry/icons/expand';
 import screenfull from 'screenfull';
 
 import {Button} from '@sentry/scraps/button';

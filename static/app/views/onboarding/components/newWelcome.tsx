@@ -1,12 +1,12 @@
 import {useEffect} from 'react';
-import {IconBot} from '@sentry/icons/iconBot';
-import {IconGraph} from '@sentry/icons/iconGraph';
-import {IconProfiling} from '@sentry/icons/iconProfiling';
-import {IconSeer} from '@sentry/icons/iconSeer';
-import {IconSpan} from '@sentry/icons/iconSpan';
-import {IconTerminal} from '@sentry/icons/iconTerminal';
-import {IconTimer} from '@sentry/icons/iconTimer';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconBot} from '@sentry/icons/bot';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconProfiling} from '@sentry/icons/profiling';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconSpan} from '@sentry/icons/span';
+import {IconTerminal} from '@sentry/icons/terminal';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconWarning} from '@sentry/icons/warning';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';

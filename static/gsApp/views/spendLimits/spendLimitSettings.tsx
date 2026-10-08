@@ -1,6 +1,6 @@
 import type React from 'react';
 import {Fragment} from 'react';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 import upperFirst from 'lodash/upperFirst';
 
 import {InfoTip} from '@sentry/scraps/info';

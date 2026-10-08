@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconCommit} from '@sentry/icons/iconCommit';
-import {IconFocus} from '@sentry/icons/iconFocus';
-import {IconLock} from '@sentry/icons/iconLock';
-import {IconTelescope} from '@sentry/icons/iconTelescope';
+import {IconClose} from '@sentry/icons/close';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconFocus} from '@sentry/icons/focus';
+import {IconLock} from '@sentry/icons/lock';
+import {IconTelescope} from '@sentry/icons/telescope';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';

@@ -1,7 +1,7 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {IconGlobe} from '@sentry/icons/iconGlobe';
-import {IconTerminal} from '@sentry/icons/iconTerminal';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconTerminal} from '@sentry/icons/terminal';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {PlatformIcon} from 'platformicons';
 

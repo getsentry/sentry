@@ -1,8 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconGraph} from '@sentry/icons/iconGraph';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';

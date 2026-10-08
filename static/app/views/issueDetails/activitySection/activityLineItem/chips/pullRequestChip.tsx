@@ -1,4 +1,4 @@
-import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
 
 import {ExternalLink} from '@sentry/scraps/link';
 

@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 

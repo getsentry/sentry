@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';

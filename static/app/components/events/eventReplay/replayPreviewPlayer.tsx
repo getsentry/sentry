@@ -2,8 +2,8 @@ import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
 import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
-import {IconNext} from '@sentry/icons/iconNext';
-import {IconPrevious} from '@sentry/icons/iconPrevious';
+import {IconNext} from '@sentry/icons/next';
+import {IconPrevious} from '@sentry/icons/previous';
 import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';

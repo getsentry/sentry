@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconLink} from '@sentry/icons/iconLink';
+import {IconLink} from '@sentry/icons/link';
 
 import {Button} from '@sentry/scraps/button';
 import {Kbd} from '@sentry/scraps/hotkey';

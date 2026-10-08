@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconLock} from '@sentry/icons/iconLock';
-import {IconPlay} from '@sentry/icons/iconPlay';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconClock} from '@sentry/icons/clock';
+import {IconLock} from '@sentry/icons/lock';
+import {IconPlay} from '@sentry/icons/play';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';

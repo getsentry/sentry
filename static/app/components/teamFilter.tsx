@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconUser} from '@sentry/icons/user';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import partition from 'lodash/partition';
 

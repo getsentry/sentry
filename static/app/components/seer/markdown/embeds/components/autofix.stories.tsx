@@ -1,5 +1,5 @@
 import {useMemo, useState, type ReactNode} from 'react';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

@@ -1,6 +1,6 @@
 import {Fragment, useRef, useState} from 'react';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconClock} from '@sentry/icons/clock';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';

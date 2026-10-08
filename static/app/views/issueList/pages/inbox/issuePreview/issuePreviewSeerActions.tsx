@@ -1,13 +1,13 @@
 import {Fragment, useState, type ReactNode} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconBug} from '@sentry/icons/iconBug';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconList} from '@sentry/icons/iconList';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconPullRequest} from '@sentry/icons/iconPullRequest';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconAdd} from '@sentry/icons/add';
+import {IconBug} from '@sentry/icons/bug';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
+import {IconList} from '@sentry/icons/list';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';

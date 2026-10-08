@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconAdd} from '@sentry/icons/add';
+import {IconUser} from '@sentry/icons/user';
 import {withProfiler} from '@sentry/react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import uniqBy from 'lodash/uniqBy';

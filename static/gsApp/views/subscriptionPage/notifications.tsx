@@ -1,4 +1,4 @@
-import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconInfo} from '@sentry/icons/info';
 import {useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 

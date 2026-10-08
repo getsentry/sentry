@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 import clamp from 'lodash/clamp';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';

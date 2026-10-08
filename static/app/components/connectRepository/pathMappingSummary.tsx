@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconBranch} from '@sentry/icons/iconBranch';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconBranch} from '@sentry/icons/branch';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';

@@ -1,4 +1,4 @@
-import {IconSort} from '@sentry/icons/iconSort';
+import {IconSort} from '@sentry/icons/sort';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {DropdownButtonProps} from '@sentry/scraps/dropdownMenu';

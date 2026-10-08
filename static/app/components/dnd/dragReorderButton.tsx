@@ -1,4 +1,4 @@
-import {IconGrabbable} from '@sentry/icons/iconGrabbable';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 

@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconCode} from '@sentry/icons/code';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';

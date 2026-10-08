@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';

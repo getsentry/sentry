@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconUpload} from '@sentry/icons/iconUpload';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconUpload} from '@sentry/icons/upload';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';

@@ -2,8 +2,8 @@ import {useState} from 'react';
 import {DragOverlay, useDraggable} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {CompositeSelect, type SelectOption} from '@sentry/scraps/compactSelect';

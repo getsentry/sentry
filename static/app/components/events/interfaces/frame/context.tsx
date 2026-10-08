@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconFlag} from '@sentry/icons/iconFlag';
+import {IconFlag} from '@sentry/icons/flag';
 
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

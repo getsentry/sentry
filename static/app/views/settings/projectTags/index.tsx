@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

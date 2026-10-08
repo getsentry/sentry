@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
-import {IconBot} from '@sentry/icons/iconBot';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconFilter} from '@sentry/icons/iconFilter';
-import {IconUser} from '@sentry/icons/iconUser';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconBot} from '@sentry/icons/bot';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconUser} from '@sentry/icons/user';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 

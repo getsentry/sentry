@@ -1,5 +1,5 @@
 import {useTheme} from '@emotion/react';
-import {IconGithub} from '@sentry/icons/iconGithub';
+import {IconGithub} from '@sentry/icons/github';
 
 import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';

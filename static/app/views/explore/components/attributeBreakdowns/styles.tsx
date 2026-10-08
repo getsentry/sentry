@@ -1,10 +1,10 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconMegaphone} from '@sentry/icons/iconMegaphone';
-import {IconSearch} from '@sentry/icons/iconSearch';
-import {IconTimer} from '@sentry/icons/iconTimer';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconSearch} from '@sentry/icons/search';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconWarning} from '@sentry/icons/warning';
 import type {BarSeriesOption} from 'echarts';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';

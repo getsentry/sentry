@@ -1,7 +1,7 @@
 import {useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconExclamation} from '@sentry/icons/iconExclamation';
+import {IconClose} from '@sentry/icons/close';
+import {IconExclamation} from '@sentry/icons/exclamation';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';

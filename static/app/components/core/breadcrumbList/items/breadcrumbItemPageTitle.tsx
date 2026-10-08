@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';

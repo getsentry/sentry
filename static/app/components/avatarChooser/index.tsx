@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import {IconUpload} from '@sentry/icons/iconUpload';
+import {IconUpload} from '@sentry/icons/upload';
 
 import {
   DocIntegrationAvatar,

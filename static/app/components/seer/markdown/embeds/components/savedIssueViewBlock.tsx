@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconStar} from '@sentry/icons/star';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';

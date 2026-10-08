@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 

@@ -1,6 +1,6 @@
 import {useState, type ReactNode} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueries, useQuery} from '@tanstack/react-query';
 import type {DistributedPick} from 'type-fest';

@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconMail} from '@sentry/icons/iconMail';
+import {IconMail} from '@sentry/icons/mail';
 
 import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';

@@ -1,7 +1,7 @@
 import type {ReactElement} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconOpen} from '@sentry/icons/open';
 
 import {ExternalLink} from '@sentry/scraps/link';
 

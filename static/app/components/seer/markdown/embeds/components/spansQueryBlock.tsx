@@ -1,4 +1,4 @@
-import {IconSpan} from '@sentry/icons/iconSpan';
+import {IconSpan} from '@sentry/icons/span';
 
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {

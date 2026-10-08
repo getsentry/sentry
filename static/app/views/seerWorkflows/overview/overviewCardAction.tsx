@@ -1,9 +1,9 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconAdd} from '@sentry/icons/add';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';

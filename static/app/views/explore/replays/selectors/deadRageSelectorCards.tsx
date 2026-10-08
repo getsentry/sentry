@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconCursorArrow} from '@sentry/icons/iconCursorArrow';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconSearch} from '@sentry/icons/search';
 
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';

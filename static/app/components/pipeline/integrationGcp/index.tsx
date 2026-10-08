@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 

@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconExpand} from '@sentry/icons/iconExpand';
+import {IconExpand} from '@sentry/icons/expand';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

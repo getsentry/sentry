@@ -1,6 +1,6 @@
 import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconStar} from '@sentry/icons/star';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 

@@ -1,6 +1,6 @@
 import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
-import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconPlay} from '@sentry/icons/play';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 

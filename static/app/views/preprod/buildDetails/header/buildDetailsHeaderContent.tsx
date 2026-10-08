@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconTelescope} from '@sentry/icons/iconTelescope';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconTelescope} from '@sentry/icons/telescope';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';

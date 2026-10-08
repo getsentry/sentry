@@ -1,4 +1,4 @@
-import {IconUpload} from '@sentry/icons/iconUpload';
+import {IconUpload} from '@sentry/icons/upload';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';

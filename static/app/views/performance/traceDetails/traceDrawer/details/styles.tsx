@@ -2,12 +2,12 @@ import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
-import {IconCircleFill} from '@sentry/icons/iconCircleFill';
-import {IconFocus} from '@sentry/icons/iconFocus';
-import {IconJson} from '@sentry/icons/iconJson';
-import {IconPanel} from '@sentry/icons/iconPanel';
-import {IconProfiling} from '@sentry/icons/iconProfiling';
-import {IconTerminal} from '@sentry/icons/iconTerminal';
+import {IconCircleFill} from '@sentry/icons/circleFill';
+import {IconFocus} from '@sentry/icons/focus';
+import {IconJson} from '@sentry/icons/json';
+import {IconPanel} from '@sentry/icons/panel';
+import {IconProfiling} from '@sentry/icons/profiling';
+import {IconTerminal} from '@sentry/icons/terminal';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';

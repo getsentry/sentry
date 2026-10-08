@@ -2,7 +2,7 @@ import type {HTMLAttributes, MouseEvent, ReactNode} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 import type {LocationDescriptor} from 'history';
 
 import {FLEX_JUSTIFY_CONTENT, type FlexJustify} from '@sentry/scraps/layout';

@@ -1,4 +1,4 @@
-import {IconGithub} from '@sentry/icons/iconGithub';
+import {IconGithub} from '@sentry/icons/github';
 
 import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 

@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconReleases} from '@sentry/icons/iconReleases';
+import {IconReleases} from '@sentry/icons/releases';
 import {useDebouncer} from '@tanstack/react-pacer';
 import isEqual from 'lodash/isEqual';
 

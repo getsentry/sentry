@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
-import {IconBug} from '@sentry/icons/iconBug';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconBug} from '@sentry/icons/bug';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';

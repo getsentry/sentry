@@ -1,5 +1,5 @@
 import type {MouseEvent} from 'react';
-import {IconMegaphone} from '@sentry/icons/iconMegaphone';
+import {IconMegaphone} from '@sentry/icons/megaphone';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 

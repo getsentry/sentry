@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import {IconSync} from '@sentry/icons/iconSync';
+import {IconSync} from '@sentry/icons/sync';
 import moment from 'moment-timezone';
 
 import {

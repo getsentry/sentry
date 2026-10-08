@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

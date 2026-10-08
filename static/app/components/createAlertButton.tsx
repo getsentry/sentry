@@ -1,4 +1,4 @@
-import {IconSiren} from '@sentry/icons/iconSiren';
+import {IconSiren} from '@sentry/icons/siren';
 import type {LocationDescriptor} from 'history';
 
 import type {LinkButtonProps} from '@sentry/scraps/button';

@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {IconQuestion} from '@sentry/icons/iconQuestion';
+import {IconQuestion} from '@sentry/icons/question';
 import * as Sentry from '@sentry/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';

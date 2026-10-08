@@ -1,7 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconExclamation} from '@sentry/icons/iconExclamation';
+import {IconExclamation} from '@sentry/icons/exclamation';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import moment, {type Moment} from 'moment-timezone';

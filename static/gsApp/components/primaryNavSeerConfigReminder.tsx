@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';

@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconStack} from '@sentry/icons/iconStack';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconStack} from '@sentry/icons/stack';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 

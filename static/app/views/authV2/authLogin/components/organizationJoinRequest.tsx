@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconMegaphone} from '@sentry/icons/iconMegaphone';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconMegaphone} from '@sentry/icons/megaphone';
 import {useMutation} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 import {z} from 'zod';

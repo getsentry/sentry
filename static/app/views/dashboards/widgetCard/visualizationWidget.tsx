@@ -1,6 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, memo} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
+import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -84,7 +86,7 @@ interface VisualizationWidgetProps {
   widgetInterval?: string;
 }
 
-export function VisualizationWidget({
+function VisualizationWidgetComponent({
   widget,
   selection,
   dashboardFilters,
@@ -177,6 +179,24 @@ export function VisualizationWidget({
     </WidgetCardDataLoader>
   );
 }
+
+function shouldMemoizeVisualizationWidget(
+  prevProps: VisualizationWidgetProps,
+  props: VisualizationWidgetProps
+) {
+  // Title and description are rendered by the surrounding frame, so editing them
+  // (e.g. typing a name in the widget builder) shouldn't re-run the series
+  // transforms and redraw the chart
+  return isEqual(
+    {...prevProps, widget: omit(prevProps.widget, ['title', 'description'])},
+    {...props, widget: omit(props.widget, ['title', 'description'])}
+  );
+}
+
+export const VisualizationWidget = memo(
+  VisualizationWidgetComponent,
+  shouldMemoizeVisualizationWidget
+);
 
 interface VisualizationWidgetContentProps {
   loading: boolean;

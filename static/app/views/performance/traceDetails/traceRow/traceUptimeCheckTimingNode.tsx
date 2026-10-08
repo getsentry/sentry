@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconTimer} from '@sentry/icons/iconTimer';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';

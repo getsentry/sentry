@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQueryClient} from '@tanstack/react-query';
 import {parseAsInteger, parseAsNativeArrayOf, useQueryState} from 'nuqs';
 

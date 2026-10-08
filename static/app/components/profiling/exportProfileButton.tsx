@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconDownload} from '@sentry/icons/download';
 
 import type {LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';

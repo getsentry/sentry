@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';

@@ -1,5 +1,5 @@
 import type {MouseEvent} from 'react';
-import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconDownload} from '@sentry/icons/download';
 
 import {Button} from '@sentry/scraps/button';
 

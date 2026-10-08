@@ -1,6 +1,6 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconUser} from '@sentry/icons/user';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -9,6 +9,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {markdownToPlainText} from '@sentry/scraps/markdown';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Separator} from '@sentry/scraps/separator';
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -16,12 +17,10 @@ import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
-  COL_WIDTH_MINIMUM,
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
+  DataGrid,
   type GridColumnOrder,
   type GridColumnSort,
-} from 'sentry/components/tables/gridEditable';
+} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -325,13 +324,13 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
   return (
     <Stack gap="lg">
       <FixedRowHeightGrid>
-        <GridEditable
+        <DataGrid
           isLoading={isFetching}
           error={error}
           data={data}
           columnOrder={displayedColumns}
           stickyHeader
-          // GridEditable has a default bottom margin; drop it so
+          // DataGrid has a default bottom margin; drop it so
           // the Stack's `lg` gap is the only spacing before the pagination.
           bodyStyle={{marginBottom: 0}}
           grid={{

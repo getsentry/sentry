@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
-import {IconEdit} from '@sentry/icons/iconEdit';
-import {IconSentry} from '@sentry/icons/iconSentry';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';

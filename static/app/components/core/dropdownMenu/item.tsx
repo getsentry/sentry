@@ -4,7 +4,7 @@ import {useMenuItem} from '@react-aria/menu';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';

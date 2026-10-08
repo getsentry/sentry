@@ -1,5 +1,5 @@
 import type {Key} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';

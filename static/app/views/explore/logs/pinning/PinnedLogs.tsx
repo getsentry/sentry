@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

@@ -1,9 +1,9 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCircleFill} from '@sentry/icons/iconCircleFill';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconPin} from '@sentry/icons/iconPin';
+import {IconCircleFill} from '@sentry/icons/circleFill';
+import {IconClose} from '@sentry/icons/close';
+import {IconPin} from '@sentry/icons/pin';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -566,7 +566,7 @@ const TabSeparator = styled('span')`
   margin-right: ${p => p.theme.space.xs};
   height: 16px;
   width: 1px;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
   transform: translateY(3px);
 `;
@@ -601,7 +601,7 @@ const Tab = styled('li')`
       transform: translateY(-50%);
       height: 16px;
       width: 1px;
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.primary};
     }
   }

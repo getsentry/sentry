@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconSentry} from '@sentry/icons/iconSentry';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconWarning} from '@sentry/icons/warning';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 

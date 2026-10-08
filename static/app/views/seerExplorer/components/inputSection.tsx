@@ -1,7 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconPause} from '@sentry/icons/iconPause';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconPause} from '@sentry/icons/pause';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';

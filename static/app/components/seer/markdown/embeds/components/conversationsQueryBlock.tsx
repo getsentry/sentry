@@ -1,4 +1,4 @@
-import {IconChat} from '@sentry/icons/iconChat';
+import {IconChat} from '@sentry/icons/chat';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';

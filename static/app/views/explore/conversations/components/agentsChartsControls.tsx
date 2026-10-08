@@ -1,4 +1,4 @@
-import {IconClock} from '@sentry/icons/iconClock';
+import {IconClock} from '@sentry/icons/clock';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';

@@ -8,9 +8,9 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryStates} from 'nuqs';
@@ -749,7 +749,7 @@ function InboxIssueCard({
       >
         <InteractionStateLayer />
         <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">
-          <Flex align="center">
+          <Flex align="center" height="16px">
             {!group.hasSeen && (
               <StatusIndicator
                 variant="accent"

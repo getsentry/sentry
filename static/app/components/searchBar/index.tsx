@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconClose} from '@sentry/icons/close';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
 import type {InputProps} from '@sentry/scraps/input';

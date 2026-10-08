@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconCircle} from '@sentry/icons/iconCircle';
-import {IconCircleCheckmark} from '@sentry/icons/iconCircleCheckmark';
-import {IconCircleDashed} from '@sentry/icons/iconCircleDashed';
-import {IconFatal} from '@sentry/icons/iconFatal';
-import {IconNot} from '@sentry/icons/iconNot';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCircle} from '@sentry/icons/circle';
+import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
+import {IconCircleDashed} from '@sentry/icons/circleDashed';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconNot} from '@sentry/icons/not';
+import {IconWarning} from '@sentry/icons/warning';
 import {AnimatePresence, motion, type MotionProps} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';

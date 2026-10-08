@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';

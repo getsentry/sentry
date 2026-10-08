@@ -1,9 +1,9 @@
 import {Fragment, useState} from 'react';
-import {IconLightning} from '@sentry/icons/iconLightning';
-import {IconLock} from '@sentry/icons/iconLock';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconSeer} from '@sentry/icons/iconSeer';
-import {IconUpload} from '@sentry/icons/iconUpload';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconLock} from '@sentry/icons/lock';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconUpload} from '@sentry/icons/upload';
 
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';

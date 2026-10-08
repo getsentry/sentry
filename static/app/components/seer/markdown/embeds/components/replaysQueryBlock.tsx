@@ -1,4 +1,4 @@
-import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconPlay} from '@sentry/icons/play';
 import {useQuery} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';

@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {Location} from 'history';
@@ -265,6 +265,7 @@ export function ReleaseCard({
                     ${cssTheme.tokens.background.primary}
                   );
                   background-repeat: repeat-x;
+                  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The border extends the fade's background fill. */
                   border-bottom: ${cssTheme.space.md} solid
                     ${cssTheme.tokens.background.primary};
                   border-top: ${cssTheme.space.md} solid transparent;

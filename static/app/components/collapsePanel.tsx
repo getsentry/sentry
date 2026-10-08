@@ -1,8 +1,8 @@
 import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconList} from '@sentry/icons/iconList';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconList} from '@sentry/icons/list';
 
 import {Flex} from '@sentry/scraps/layout';
 

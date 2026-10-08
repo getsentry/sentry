@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import type {LocationDescriptor} from 'history';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';

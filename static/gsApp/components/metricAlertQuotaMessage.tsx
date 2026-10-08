@@ -1,4 +1,4 @@
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';

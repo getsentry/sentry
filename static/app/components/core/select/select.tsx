@@ -7,8 +7,8 @@ import type {CreatableProps} from 'react-select/src/Creatable';
 import {css, useTheme} from '@emotion/react';
 import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectValue} from '@sentry/scraps/select';

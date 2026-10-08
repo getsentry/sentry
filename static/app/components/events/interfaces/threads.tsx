@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconLock} from '@sentry/icons/iconLock';
-import {IconPlay} from '@sentry/icons/iconPlay';
-import {IconTimer} from '@sentry/icons/iconTimer';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClock} from '@sentry/icons/clock';
+import {IconInfo} from '@sentry/icons/info';
+import {IconLock} from '@sentry/icons/lock';
+import {IconPlay} from '@sentry/icons/play';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';

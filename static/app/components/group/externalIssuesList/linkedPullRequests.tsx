@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconBot} from '@sentry/icons/iconBot';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconBot} from '@sentry/icons/bot';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Avatar, UserAvatar} from '@sentry/scraps/avatar';

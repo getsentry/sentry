@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {type Theme} from '@emotion/react';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconInfo} from '@sentry/icons/info';
+import {IconWarning} from '@sentry/icons/warning';
 import type {YAXisComponentOption} from 'echarts';
 
 import {Alert} from '@sentry/scraps/alert';

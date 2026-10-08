@@ -1,5 +1,5 @@
-import {IconBug} from '@sentry/icons/iconBug';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconBug} from '@sentry/icons/bug';
+import {IconOpen} from '@sentry/icons/open';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';

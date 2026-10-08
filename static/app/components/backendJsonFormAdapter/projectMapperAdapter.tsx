@@ -1,10 +1,10 @@
 import {useState} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconGeneric} from '@sentry/icons/iconGeneric';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconVercel} from '@sentry/icons/iconVercel';
+import {IconAdd} from '@sentry/icons/add';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconGeneric} from '@sentry/icons/generic';
+import {IconOpen} from '@sentry/icons/open';
+import {IconVercel} from '@sentry/icons/vercel';
 import * as Sentry from '@sentry/react';
 import {parseAsString, useQueryState} from 'nuqs';
 

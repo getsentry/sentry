@@ -1,4 +1,4 @@
-import {IconThumb} from '@sentry/icons/iconThumb';
+import {IconThumb} from '@sentry/icons/thumb';
 
 import {Button, ButtonBar, type ButtonBarProps} from '@sentry/scraps/button';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';

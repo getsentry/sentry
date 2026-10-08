@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconGraph} from '@sentry/icons/graph';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 

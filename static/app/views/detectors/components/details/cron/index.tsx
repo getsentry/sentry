@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import {IconJson} from '@sentry/icons/iconJson';
+import {IconJson} from '@sentry/icons/json';
 import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 

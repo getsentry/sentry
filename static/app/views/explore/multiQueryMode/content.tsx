@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -25,9 +25,8 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';

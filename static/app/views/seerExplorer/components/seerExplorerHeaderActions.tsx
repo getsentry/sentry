@@ -1,11 +1,11 @@
 import type {ReactNode} from 'react';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconLink} from '@sentry/icons/iconLink';
-import {IconPanel} from '@sentry/icons/iconPanel';
-import {IconWindow} from '@sentry/icons/iconWindow';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconLink} from '@sentry/icons/link';
+import {IconPanel} from '@sentry/icons/panel';
+import {IconWindow} from '@sentry/icons/window';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';

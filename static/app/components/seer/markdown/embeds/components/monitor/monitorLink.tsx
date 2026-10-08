@@ -1,4 +1,4 @@
-import {IconTimer} from '@sentry/icons/iconTimer';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {
   ResourceLink,

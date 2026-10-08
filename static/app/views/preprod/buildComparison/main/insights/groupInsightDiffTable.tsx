@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';

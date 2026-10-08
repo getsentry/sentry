@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';

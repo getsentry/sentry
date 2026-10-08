@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container, Grid} from '@sentry/scraps/layout';
 

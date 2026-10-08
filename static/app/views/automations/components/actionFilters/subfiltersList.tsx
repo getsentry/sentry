@@ -1,8 +1,8 @@
 import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectValue} from '@sentry/scraps/select';

@@ -1,4 +1,4 @@
-import {IconBusiness} from '@sentry/icons/iconBusiness';
+import {IconBusiness} from '@sentry/icons/business';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 

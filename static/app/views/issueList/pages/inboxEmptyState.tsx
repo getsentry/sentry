@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconClock} from '@sentry/icons/iconClock';
+import {IconClock} from '@sentry/icons/clock';
 
 import starryVoidImg from 'sentry-images/spot/starry-void.png';
 

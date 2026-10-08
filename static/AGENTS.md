@@ -99,7 +99,7 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 
 - **Avatars**: use `<UserAvatar/>`/`<TeamAvatar/>`/`<ProjectAvatar/>`/etc. from `static/app/components/core/avatar` (and `<AvatarList>` for lists) — never raw `<img>`.
 - **Disclosure**: use the core `<Disclosure>` component — don't hand-roll expand/collapse.
-- **Icons**: import SVG icons from explicit `@sentry/icons` subpaths (for example, `@sentry/icons/iconAdd`). Keep SvgIcon-based icons in `static/packages/icons/src`; keep app asset wrappers in `static/app/icons`. The icons package must not depend on scraps or app code. Never inline SVGs. Optimize with svgo/svgomg.
+- **Icons**: import SVG icons from explicit `@sentry/icons` subpaths (for example, `@sentry/icons/add`). Keep SvgIcon-based icons in `static/packages/icons/src`; keep app asset wrappers in `static/app/icons`. The icons package must not depend on scraps or app code. Never inline SVGs. Optimize with svgo/svgomg.
 - **Images**: import via the `sentry-images` alias (webpack loader); keep them in `static/app/images`, never reference by static path.
 
 For worked examples of all of the above, use the **`design-system`** skill.

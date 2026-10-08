@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconMegaphone} from '@sentry/icons/iconMegaphone';
+import {IconMegaphone} from '@sentry/icons/megaphone';
 
 import {LinkButton} from '@sentry/scraps/button';
 

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconLightning} from '@sentry/icons/iconLightning';
-import {IconQuestion} from '@sentry/icons/iconQuestion';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconQuestion} from '@sentry/icons/question';
 
 import {Stack} from '@sentry/scraps/layout';
 

@@ -1,10 +1,10 @@
 import {useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconSearch} from '@sentry/icons/iconSearch';
-import {IconTimer} from '@sentry/icons/iconTimer';
+import {IconClock} from '@sentry/icons/clock';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSearch} from '@sentry/icons/search';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -211,7 +211,7 @@ const ViewAllContainer = styled('div')`
     width: 1px;
     top: -${p => p.theme.space.md};
     height: ${p => p.theme.space.md};
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;

@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Alert} from '@sentry/scraps/alert';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';

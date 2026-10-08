@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconOpen} from '@sentry/icons/open';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';

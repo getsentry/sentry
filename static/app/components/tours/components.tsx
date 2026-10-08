@@ -3,7 +3,7 @@ import {Fragment, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';

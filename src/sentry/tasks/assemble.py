@@ -623,7 +623,8 @@ class ArtifactBundlePostAssembler:
             elif not date_only_on_bundle:
                 self._redate_debug_ids(artifact_bundle, date_snapshot)
 
-        metrics.incr("sourcemaps.upload.artifact_bundle")
+        # `created:false` marks re-uploads of an existing bundle, the only uploads that re-date its debug-ID rows.
+        metrics.incr("sourcemaps.upload.artifact_bundle", tags={"created": str(created).lower()})
 
         # If we don't have a release set, we don't want to run indexing, since we need at least the release for
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since

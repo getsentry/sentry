@@ -1,4 +1,4 @@
-import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {
   ResourceLink,

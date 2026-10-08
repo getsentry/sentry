@@ -1,4 +1,4 @@
-import {IconTerminal} from '@sentry/icons/iconTerminal';
+import {IconTerminal} from '@sentry/icons/terminal';
 import {motion} from 'framer-motion';
 
 import {CodeBlock} from '@sentry/scraps/code';

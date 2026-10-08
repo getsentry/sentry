@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconSliders} from '@sentry/icons/iconSliders';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSliders} from '@sentry/icons/sliders';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';

@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect} from 'react';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconBranch} from '@sentry/icons/iconBranch';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconBranch} from '@sentry/icons/branch';
+import {IconDelete} from '@sentry/icons/delete';
 import {useInfiniteQuery, useQuery, type InfiniteData} from '@tanstack/react-query';
 import {z} from 'zod';
 

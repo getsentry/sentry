@@ -1,9 +1,9 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {IconChat} from '@sentry/icons/iconChat';
-import {IconFire} from '@sentry/icons/iconFire';
-import {IconSpan} from '@sentry/icons/iconSpan';
-import {IconTag} from '@sentry/icons/iconTag';
+import {IconChat} from '@sentry/icons/chat';
+import {IconFire} from '@sentry/icons/fire';
+import {IconSpan} from '@sentry/icons/span';
+import {IconTag} from '@sentry/icons/tag';
 
 import {InfoTip} from '@sentry/scraps/info';
 

@@ -1,10 +1,10 @@
 import type React from 'react';
 import {useMemo} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconLightning} from '@sentry/icons/iconLightning';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconAdd} from '@sentry/icons/add';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';

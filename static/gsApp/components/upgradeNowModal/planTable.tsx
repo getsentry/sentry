@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {t, tct} from 'sentry/locale';

@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';

@@ -1,4 +1,4 @@
-import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconIssues} from '@sentry/icons/issues';
 
 import {ActionLink} from 'sentry/components/actions/actionLink';
 import {t} from 'sentry/locale';

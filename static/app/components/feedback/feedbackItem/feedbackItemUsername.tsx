@@ -1,6 +1,6 @@
 import {type CSSProperties, Fragment, useId} from 'react';
 import styled from '@emotion/styled';
-import {IconMail} from '@sentry/icons/iconMail';
+import {IconMail} from '@sentry/icons/mail';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

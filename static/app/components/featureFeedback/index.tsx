@@ -1,4 +1,4 @@
-import {IconMegaphone} from '@sentry/icons/iconMegaphone';
+import {IconMegaphone} from '@sentry/icons/megaphone';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';

@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
 
 import type {SelectValue} from '@sentry/scraps/select';

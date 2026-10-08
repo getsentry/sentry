@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconPlay} from '@sentry/icons/iconPlay';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconPlay} from '@sentry/icons/play';
+import {IconUser} from '@sentry/icons/user';
 import type {Location, Query} from 'history';
 
 import {Button} from '@sentry/scraps/button';

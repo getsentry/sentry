@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconEdit} from '@sentry/icons/iconEdit';
-import {IconGrabbable} from '@sentry/icons/iconGrabbable';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 

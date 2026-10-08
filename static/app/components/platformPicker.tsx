@@ -1,8 +1,8 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconProject} from '@sentry/icons/iconProject';
+import {IconClose} from '@sentry/icons/close';
+import {IconProject} from '@sentry/icons/project';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 

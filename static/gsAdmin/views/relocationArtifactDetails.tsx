@@ -1,4 +1,4 @@
-import {IconFile} from '@sentry/icons/iconFile';
+import {IconFile} from '@sentry/icons/file';
 
 import {CodeBlock} from '@sentry/scraps/code';
 

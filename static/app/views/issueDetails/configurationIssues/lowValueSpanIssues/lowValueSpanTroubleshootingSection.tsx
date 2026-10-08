@@ -1,4 +1,4 @@
-import {IconDocs} from '@sentry/icons/iconDocs';
+import {IconDocs} from '@sentry/icons/docs';
 
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';

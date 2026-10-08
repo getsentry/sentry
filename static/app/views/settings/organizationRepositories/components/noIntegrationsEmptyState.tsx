@@ -1,5 +1,5 @@
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';

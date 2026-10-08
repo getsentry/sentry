@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Flex} from '@sentry/scraps/layout';
 

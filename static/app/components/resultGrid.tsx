@@ -9,9 +9,9 @@ import {
 } from 'react';
 import {css, keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconList} from '@sentry/icons/iconList';
-import {IconSearch} from '@sentry/icons/iconSearch';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconList} from '@sentry/icons/list';
+import {IconSearch} from '@sentry/icons/search';
+import {IconWarning} from '@sentry/icons/warning';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';

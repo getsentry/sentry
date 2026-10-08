@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
-import {IconList} from '@sentry/icons/iconList';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconList} from '@sentry/icons/list';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';

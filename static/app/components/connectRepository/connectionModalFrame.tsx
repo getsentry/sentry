@@ -1,6 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconLock} from '@sentry/icons/iconLock';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconLock} from '@sentry/icons/lock';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';

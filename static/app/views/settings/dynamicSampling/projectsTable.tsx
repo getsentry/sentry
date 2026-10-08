@@ -1,9 +1,9 @@
 import type React from 'react';
 import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';

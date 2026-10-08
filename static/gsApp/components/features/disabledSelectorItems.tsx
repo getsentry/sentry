@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconBusiness} from '@sentry/icons/iconBusiness';
+import {IconBusiness} from '@sentry/icons/business';
 import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';

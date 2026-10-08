@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconHide} from '@sentry/icons/iconHide';
-import {IconShow} from '@sentry/icons/iconShow';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconHide} from '@sentry/icons/hide';
+import {IconShow} from '@sentry/icons/show';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 

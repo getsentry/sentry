@@ -1,7 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconFlag} from '@sentry/icons/iconFlag';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconFlag} from '@sentry/icons/flag';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';

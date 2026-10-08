@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconFlag} from '@sentry/icons/iconFlag';
+import {IconFlag} from '@sentry/icons/flag';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';

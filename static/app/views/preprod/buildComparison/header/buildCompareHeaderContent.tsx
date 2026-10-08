@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconJson} from '@sentry/icons/iconJson';
-import {IconMobile} from '@sentry/icons/iconMobile';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconCode} from '@sentry/icons/code';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconJson} from '@sentry/icons/json';
+import {IconMobile} from '@sentry/icons/mobile';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {PlatformIcon} from 'platformicons';
 
 import {FeatureBadge} from '@sentry/scraps/badge';

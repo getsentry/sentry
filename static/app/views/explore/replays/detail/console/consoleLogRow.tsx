@@ -1,8 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconClose} from '@sentry/icons/close';
+import {IconInfo} from '@sentry/icons/info';
+import {IconWarning} from '@sentry/icons/warning';
 import classNames from 'classnames';
 
 import {Tooltip} from '@sentry/scraps/tooltip';

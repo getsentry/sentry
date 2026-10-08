@@ -2,8 +2,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -31,7 +31,6 @@ import {
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
@@ -418,11 +417,6 @@ function AggregateSelector({
   visualize,
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
-  const organization = useOrganization();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
-
   // The dropdowns operate on the base aggregate, with the `_if` combinator and its
   // filter argument stripped off.
   const parsedFunction = useMemo(() => parseConditionalAggregate(yAxis), [yAxis]);
@@ -431,9 +425,7 @@ function AggregateSelector({
     ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
 
-  // Filters only survive a swap to another aggregate that supports them, and are dropped
-  // entirely while the feature is off so that toggling it never leaves a stale filter.
-  const filter = hasConditionalAggregates ? (parsedFunction?.filter ?? '') : '';
+  const filter = parsedFunction?.filter ?? '';
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -502,9 +494,9 @@ function AggregateSelector({
     [onChange, parsedFunction, visualize]
   );
 
-  const showFilterSearchBar =
-    hasConditionalAggregates &&
-    supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
+  );
 
   return (
     <Stack flex="3" minWidth="0" gap="sm">

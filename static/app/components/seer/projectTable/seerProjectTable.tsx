@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSearch} from '@sentry/icons/search';
 import {
   infiniteQueryOptions,
   useInfiniteQuery,

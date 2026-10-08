@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconGraphCircle} from '@sentry/icons/iconGraphCircle';
-import {IconGrid} from '@sentry/icons/iconGrid';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconClose} from '@sentry/icons/close';
+import {IconGraphCircle} from '@sentry/icons/graphCircle';
+import {IconGrid} from '@sentry/icons/grid';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSearch} from '@sentry/icons/search';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';

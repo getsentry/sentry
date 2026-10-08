@@ -3,10 +3,10 @@ import {useEffect, useState} from 'react';
 import {Outlet, useLocation} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconMenu} from '@sentry/icons/iconMenu';
-import {IconSentry} from '@sentry/icons/iconSentry';
-import {IconSliders} from '@sentry/icons/iconSliders';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconMenu} from '@sentry/icons/menu';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconSliders} from '@sentry/icons/sliders';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';

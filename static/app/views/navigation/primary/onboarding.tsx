@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';

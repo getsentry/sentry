@@ -111,8 +111,8 @@ import documentation from '!!type-loader!@sentry/scraps/<component>';
 import {ComponentName} from '@sentry/scraps/<component>';
 
 // 2. Sentry internals used in examples (icons, utils)
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 // 4. Stories namespace (always last before type-loader)
 import * as Storybook from 'sentry/stories';
 

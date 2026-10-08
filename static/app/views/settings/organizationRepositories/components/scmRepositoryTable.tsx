@@ -8,12 +8,12 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconSliders} from '@sentry/icons/iconSliders';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconInfo} from '@sentry/icons/info';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSliders} from '@sentry/icons/sliders';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';

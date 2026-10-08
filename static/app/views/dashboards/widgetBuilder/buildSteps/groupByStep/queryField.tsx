@@ -1,7 +1,7 @@
 import {Fragment, useMemo, type ReactNode} from 'react';
 import type {DraggableAttributes, DraggableSyntheticListeners} from '@dnd-kit/core';
 import styled from '@emotion/styled';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';

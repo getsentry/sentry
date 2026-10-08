@@ -1,6 +1,6 @@
 import type {Key} from '@react-types/shared';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSettings} from '@sentry/icons/settings';
 import * as Sentry from '@sentry/react';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';

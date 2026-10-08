@@ -1,5 +1,5 @@
 import {useMemo, useState} from 'react';
-import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconCopy} from '@sentry/icons/copy';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';

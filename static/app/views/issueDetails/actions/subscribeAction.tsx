@@ -1,4 +1,4 @@
-import {IconSubscribed} from '@sentry/icons/iconSubscribed';
+import {IconSubscribed} from '@sentry/icons/subscribed';
 
 import {Button} from '@sentry/scraps/button';
 

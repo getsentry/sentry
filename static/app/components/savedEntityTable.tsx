@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconStar} from '@sentry/icons/star';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -140,7 +140,7 @@ SavedEntityTable.CellStar = function CellStar({
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   text-decoration-color: ${p => p.theme.tokens.border.primary};
   display: block;
   width: 100%;

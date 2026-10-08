@@ -1,4 +1,4 @@
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';

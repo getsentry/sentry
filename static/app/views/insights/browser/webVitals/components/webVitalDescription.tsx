@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';

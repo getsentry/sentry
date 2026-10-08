@@ -1,6 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import pick from 'lodash/pick';

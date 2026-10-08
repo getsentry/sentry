@@ -1,6 +1,6 @@
-import {IconBot} from '@sentry/icons/iconBot';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconBot} from '@sentry/icons/bot';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

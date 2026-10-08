@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconSettings} from '@sentry/icons/settings';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';

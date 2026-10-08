@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconDivide} from '@sentry/icons/iconDivide';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconAdd} from '@sentry/icons/add';
+import {IconClose} from '@sentry/icons/close';
+import {IconDivide} from '@sentry/icons/divide';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import type {
   SelectOptionWithKey,

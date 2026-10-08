@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
-import {IconFilter} from '@sentry/icons/iconFilter';
-import {IconSpan} from '@sentry/icons/iconSpan';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconSpan} from '@sentry/icons/span';
 import orderBy from 'lodash/orderBy';
 
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';

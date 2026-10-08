@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSearch} from '@sentry/icons/search';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 import {debounce, parseAsString, useQueryState} from 'nuqs';

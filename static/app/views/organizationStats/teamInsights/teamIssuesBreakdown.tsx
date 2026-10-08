@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';

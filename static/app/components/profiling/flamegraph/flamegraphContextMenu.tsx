@@ -3,10 +3,10 @@ import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconProfiling} from '@sentry/icons/iconProfiling';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconGithub} from '@sentry/icons/github';
+import {IconProfiling} from '@sentry/icons/profiling';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';

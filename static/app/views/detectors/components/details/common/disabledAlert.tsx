@@ -1,4 +1,4 @@
-import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconPlay} from '@sentry/icons/play';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';

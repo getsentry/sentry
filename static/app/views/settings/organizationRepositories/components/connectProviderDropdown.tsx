@@ -1,4 +1,4 @@
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Tag} from '@sentry/scraps/badge';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';

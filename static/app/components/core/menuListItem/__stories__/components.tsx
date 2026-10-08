@@ -1,5 +1,5 @@
-import {IconCircle} from '@sentry/icons/iconCircle';
-import {IconCircleCheckmark} from '@sentry/icons/iconCircleCheckmark';
+import {IconCircle} from '@sentry/icons/circle';
+import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
 
 import {Container} from '@sentry/scraps/layout';
 import {MenuListItem} from '@sentry/scraps/menuListItem';

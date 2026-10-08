@@ -3,7 +3,7 @@ import * as React from 'react';
 import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SingleSelectProps} from '@sentry/scraps/compactSelect';

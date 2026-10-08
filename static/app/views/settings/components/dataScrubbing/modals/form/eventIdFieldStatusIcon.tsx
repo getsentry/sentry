@@ -1,4 +1,4 @@
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';

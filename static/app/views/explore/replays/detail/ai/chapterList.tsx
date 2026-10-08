@@ -1,8 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconFire} from '@sentry/icons/iconFire';
-import {IconMegaphone} from '@sentry/icons/iconMegaphone';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconFire} from '@sentry/icons/fire';
+import {IconMegaphone} from '@sentry/icons/megaphone';
 import classNames from 'classnames';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -266,7 +266,7 @@ const ChapterWrapper = styled('details')`
     width: 1px;
     top: 1px;
     bottom: -9px;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.secondary};
   }
 

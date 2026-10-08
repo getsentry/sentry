@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 

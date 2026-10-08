@@ -1,12 +1,12 @@
 import {useTheme} from '@emotion/react';
-import {IconBot} from '@sentry/icons/iconBot';
-import {IconChat} from '@sentry/icons/iconChat';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconFire} from '@sentry/icons/iconFire';
-import {IconFix} from '@sentry/icons/iconFix';
-import {IconList} from '@sentry/icons/iconList';
-import {IconStack} from '@sentry/icons/iconStack';
+import {IconBot} from '@sentry/icons/bot';
+import {IconChat} from '@sentry/icons/chat';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
+import {IconFire} from '@sentry/icons/fire';
+import {IconFix} from '@sentry/icons/fix';
+import {IconList} from '@sentry/icons/list';
+import {IconStack} from '@sentry/icons/stack';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';

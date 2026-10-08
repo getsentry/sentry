@@ -1,5 +1,5 @@
 import type {KeyboardEvent, Ref} from 'react';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button} from '@sentry/scraps/button';
 

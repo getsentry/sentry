@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconFire} from '@sentry/icons/iconFire';
-import {IconFix} from '@sentry/icons/iconFix';
-import {IconMute} from '@sentry/icons/iconMute';
-import {IconTimer} from '@sentry/icons/iconTimer';
-import {IconUnsubscribed} from '@sentry/icons/iconUnsubscribed';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconFire} from '@sentry/icons/fire';
+import {IconFix} from '@sentry/icons/fix';
+import {IconMute} from '@sentry/icons/mute';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
 
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';

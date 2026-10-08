@@ -1,4 +1,4 @@
-import {IconSliders} from '@sentry/icons/iconSliders';
+import {IconSliders} from '@sentry/icons/sliders';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompositeSelect} from '@sentry/scraps/compactSelect';

@@ -1,5 +1,5 @@
 import {Fragment, useRef, useState, type ReactNode, type RefObject} from 'react';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';

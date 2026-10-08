@@ -1,7 +1,7 @@
 import type {ComponentType} from 'react';
 import {createRef} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import type {IconGraphProps} from '@sentry/icons/iconGraph';
+import type {IconGraphProps} from '@sentry/icons/graph';
 import {render, screen} from '@testing-library/react';
 import {expectTypeOf} from 'expect-type';
 

@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import partition from 'lodash/partition';
 

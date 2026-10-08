@@ -2,10 +2,10 @@ import type {MouseEvent} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconFileBroken} from '@sentry/icons/iconFileBroken';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconFileBroken} from '@sentry/icons/fileBroken';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';

@@ -3,13 +3,13 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconExpand} from '@sentry/icons/iconExpand';
-import {IconHide} from '@sentry/icons/iconHide';
-import {IconInput} from '@sentry/icons/iconInput';
-import {IconList} from '@sentry/icons/iconList';
-import {IconPause} from '@sentry/icons/iconPause';
-import {IconShow} from '@sentry/icons/iconShow';
-import {IconStack} from '@sentry/icons/iconStack';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconHide} from '@sentry/icons/hide';
+import {IconInput} from '@sentry/icons/input';
+import {IconList} from '@sentry/icons/list';
+import {IconPause} from '@sentry/icons/pause';
+import {IconShow} from '@sentry/icons/show';
+import {IconStack} from '@sentry/icons/stack';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -30,7 +30,7 @@ const TRANSPARENT_COLOR = 'transparent';
 // Diagonal slash drawn across an empty/transparent swatch. `halfWidth` is the
 // half-thickness of the line in px, so larger swatches can use a bolder slash.
 const slashGradient = (theme: Theme, halfWidth: number) => css`
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background-image: linear-gradient(
     to top right,
     transparent calc(50% - ${halfWidth + 1}px),

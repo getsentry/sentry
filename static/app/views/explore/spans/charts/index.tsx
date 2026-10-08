@@ -1,9 +1,9 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconContract} from '@sentry/icons/iconContract';
-import {IconExpand} from '@sentry/icons/iconExpand';
-import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconClock} from '@sentry/icons/clock';
+import {IconContract} from '@sentry/icons/contract';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -177,9 +177,9 @@ function Chart({
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const {droppedEvents, acceptedEvents} = useDroppedData({dataset});
+  const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval});
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(dataset);
+  const openDroppedDataDrawer = useDroppedDataDrawer({dataset});
   const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
 

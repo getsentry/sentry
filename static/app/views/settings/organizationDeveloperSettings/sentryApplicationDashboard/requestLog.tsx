@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 import memoize from 'lodash/memoize';
 

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
 import groupBy from 'lodash/groupBy';
 
 import {Alert} from '@sentry/scraps/alert';

@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Input} from '@sentry/scraps/input';
 

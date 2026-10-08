@@ -1,4 +1,4 @@
-import {IconReleases} from '@sentry/icons/iconReleases';
+import {IconReleases} from '@sentry/icons/releases';
 import queryString from 'query-string';
 
 import {

@@ -1,6 +1,6 @@
 import {createContext, useContext, useState, type ReactNode} from 'react';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';

@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import {useInfiniteQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 

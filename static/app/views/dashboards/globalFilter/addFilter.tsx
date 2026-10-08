@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconAdd} from '@sentry/icons/add';
+import {IconArrow} from '@sentry/icons/arrow';
 import pick from 'lodash/pick';
 
 import {Tag as TagBadge} from '@sentry/scraps/badge';
