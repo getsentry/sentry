@@ -689,7 +689,7 @@ This pattern is necessary whenever a required field has no meaningful initial va
 
 ## Conditionally Required Fields
 
-When migrating a legacy field that is required only while another value makes it visible, keep its form-level schema permissive and validate it on the rendered `AppField`. A form-level `.superRefine()` can block submission after the field is hidden.
+When migrating a legacy field that is required only while another value makes it visible, keep its form-level schema permissive and validate it on the rendered `AppField`. **AVOID form-level `.superRefine()` for this conditional requirement:** form-level validation still runs when the field is hidden, so a required-field error can block submission even though the user cannot see or fix that field.
 
 ```tsx
 const schema = z.object({
