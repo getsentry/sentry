@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from sentry import tagstore
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import (
@@ -44,6 +42,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
+        link_decorator: NotificationLinkDecorator | None = None,
     ) -> None:
         self.group = group
         self.event = event
@@ -52,8 +51,15 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         self.link_to_event = link_to_event
         self.issue_details = issue_details
         self.notification = notification
+        self.link_decorator = link_decorator
 
-    def _build_title_link(self, notification_uuid: str | None) -> str | None:
+    def build(self, notification_uuid: str | None = None) -> DiscordMessage:
+        project = Project.objects.get_from_cache(id=self.group.project_id)
+        event_for_tags = self.event or self.group.get_latest_event()
+        timestamp = (
+            max(self.group.last_seen, self.event.datetime) if self.event else self.group.last_seen
+        )
+        obj: Group | GroupEvent = self.event if self.event is not None else self.group
         rule_id = None
         rule_environment_id = None
         key: RuleIdType = "legacy_rule_id"
@@ -61,9 +67,10 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
             rule_environment_id = self.rules[0].environment_id
             key, rule_id = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
 
+        url = None
         match key:
             case "workflow_id":
-                return get_title_link_workflow_engine_ui(
+                url = get_title_link_workflow_engine_ui(
                     self.group,
                     self.event,
                     self.link_to_event,
@@ -75,7 +82,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                     notification_uuid=notification_uuid,
                 )
             case "legacy_rule_id":
-                return get_title_link(
+                url = get_title_link(
                     self.group,
                     self.event,
                     self.link_to_event,
@@ -86,15 +93,8 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                     rule_environment_id,
                     notification_uuid=notification_uuid,
                 )
-
-    def build(self, notification_uuid: str | None = None) -> DiscordMessage:
-        project = Project.objects.get_from_cache(id=self.group.project_id)
-        event_for_tags = self.event or self.group.get_latest_event()
-        timestamp = (
-            max(self.group.last_seen, self.event.datetime) if self.event else self.group.last_seen
-        )
-        obj: Group | GroupEvent = self.event if self.event is not None else self.group
-        url = self._build_title_link(notification_uuid)
+        if url is not None and self.link_decorator is not None:
+            url = self.link_decorator.decorate_url(url)
 
         embeds = [
             DiscordMessageEmbed(
@@ -119,21 +119,6 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         components = build_components(self.group, project)
 
         return self._build(embeds=embeds, components=components)
-
-
-class NotificationPlatformDiscordIssuesMessageBuilder(DiscordIssuesMessageBuilder):
-    def __init__(
-        self,
-        *args: Any,
-        link_decorator: NotificationLinkDecorator,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.link_decorator = link_decorator
-
-    def _build_title_link(self, notification_uuid: str | None) -> str | None:
-        title_link = super()._build_title_link(notification_uuid)
-        return None if title_link is None else self.link_decorator.decorate_url(title_link)
 
 
 def build_tag_fields(

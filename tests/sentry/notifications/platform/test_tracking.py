@@ -327,21 +327,12 @@ class DecorateRenderedTemplateTest(TestCase):
         rendered_template = NotificationRenderedTemplate(
             subject="Export ready",
             body=[],
-            actions=[
-                NotificationRenderedAction(
-                    label="Download",
-                    link="https://sentry.io/data-export/1/?notification_link=data_export",
-                )
-            ],
+            actions=[NotificationRenderedAction(label="Download", link="https://sentry.io/x/")],
         )
 
         decorated, _ = self.decorate_rendered_template(rendered_template)
 
-        assert "notification_link" not in decorated.actions[0].link
-        assert self.decorate_rendered_template(decorated) == (
-            decorated,
-            {NotificationLink.DATA_EXPORT},
-        )
+        assert self.decorate_rendered_template(decorated) == (decorated, {NotificationLink.OTHER})
 
     def test_plain_text_and_undecoratable_links_are_unchanged(self) -> None:
         rendered_template = NotificationRenderedTemplate(

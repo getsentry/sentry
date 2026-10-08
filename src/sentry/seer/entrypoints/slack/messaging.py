@@ -99,16 +99,17 @@ def send_thread_update(
                     renderable=renderable,
                 )
                 message_ts = response.get("ts") if response else None
-            record_sent(
-                NotificationTrackingContext(
-                    source=data.source,
-                    provider=NotificationProviderKey.SLACK,
-                    category=template_cls.category,
-                    notification_uuid=data.notification_uuid,
-                    organization_id=data.organization_id,
-                ),
-                links=links,
-            )
+            if response is not None:
+                record_sent(
+                    NotificationTrackingContext(
+                        source=data.source,
+                        provider=NotificationProviderKey.SLACK,
+                        category=template_cls.category,
+                        notification_uuid=data.notification_uuid,
+                        organization_id=data.organization_id,
+                    ),
+                    links=links,
+                )
             run_id = getattr(data, "run_id", None)
             if (
                 message_ts
@@ -320,17 +321,6 @@ def update_existing_message(
         try:
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
-            )
-            template_cls = template_registry.get(data.source)
-            record_sent(
-                NotificationTrackingContext(
-                    source=data.source,
-                    provider=NotificationProviderKey.SLACK,
-                    category=template_cls.category,
-                    notification_uuid=data.notification_uuid,
-                    organization_id=data.organization_id,
-                ),
-                links=link_decorator.links,
             )
 
         except (IntegrationError, IntegrationConfigurationError) as e:

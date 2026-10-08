@@ -31,6 +31,7 @@ class NotificationLink(StrEnum):
 
     ISSUE = "issue"
     SEER = "seer"
+    """An issue opened with the Seer drawer."""
     ISSUE_LIST = "issue_list"
     ALERT = "alert"
     RELEASE = "release"
@@ -91,7 +92,6 @@ class NotificationLinkDecorator:
     source: NotificationSource | str
     provider: NotificationProviderKey | str
     notification_uuid: str
-    enabled: bool = True
     links: set[NotificationLink] = field(default_factory=set, init=False)
 
     def decorate_url(self, url: str) -> str:
@@ -100,7 +100,7 @@ class NotificationLinkDecorator:
         present in the notification. Other URLs and URLs that can't be decorated are returned
         unchanged and aren't included.
         """
-        if not self.enabled or not is_tracking_enabled(self.source, self.provider):
+        if not is_tracking_enabled(self.source, self.provider):
             return url
 
         try:
@@ -110,7 +110,7 @@ class NotificationLinkDecorator:
             query = [
                 (key, value)
                 for key, value in parse_qsl(parsed.query, keep_blank_values=True)
-                if key not in ("referrer", "notification_uuid", "notification_link")
+                if key not in ("referrer", "notification_uuid")
             ]
             query += [
                 ("referrer", f"{self.source}-{self.provider}"),
@@ -126,7 +126,7 @@ class NotificationLinkDecorator:
     def decorate_rendered_template(
         self, rendered_template: NotificationRenderedTemplate
     ) -> NotificationRenderedTemplate:
-        if not self.enabled or not is_tracking_enabled(self.source, self.provider):
+        if not is_tracking_enabled(self.source, self.provider):
             return rendered_template
 
         def decorate_blocks(blocks: list[NotificationTextBlock]) -> list[NotificationTextBlock]:
@@ -203,8 +203,8 @@ def _is_sentry_url(parsed: SplitResult) -> bool:
 
 def record_sent(context: NotificationTrackingContext, *, links: Collection[str] = ()) -> None:
     """
-    Record that a notification was delivered. `links` holds the names of the tracked links and
-    buttons in the message, which provides the per-link denominator for click-through. A name that
+    Record that a notification was delivered. `links` names each kind of tracked link or button
+    present in the message, which provides the per-link denominator for click-through. A link that
     appears more than once is counted once.
     """
     try:

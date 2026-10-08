@@ -188,10 +188,9 @@ class NotificationService[T: NotificationData]:
         provider: type[NotificationProvider[RenderableT]],
     ) -> RenderableT:
         link_decorator = NotificationLinkDecorator(
-            source=data.source,
+            source="preview",
             provider=provider.key,
             notification_uuid=data.notification_uuid,
-            enabled=False,
         )
         return cls._render_with_link_decorator(
             data=data,
