@@ -1455,7 +1455,7 @@ register(
     "seer.similarity.token_count_metrics_enabled",
     type=Bool,
     default=True,
-    flags=FLAG_MODIFIABLE_BOOL,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Maximum token count for stacktraces sent to Seer for similarity analysis

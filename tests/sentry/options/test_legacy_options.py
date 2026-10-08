@@ -55,8 +55,6 @@ LEGACY_OPTIONS = frozenset(
         "system.url-prefix",
         # Backs the options cache itself.
         "redis.clusters",
-        # Admin-only; awaiting an owner decision.
-        "seer.similarity.token_count_metrics_enabled",
     }
 )
 
@@ -75,3 +73,12 @@ def test_no_new_legacy_options() -> None:
 
     removed = sorted(LEGACY_OPTIONS - legacy)
     assert not removed, f"Remove these from LEGACY_OPTIONS: {removed}"
+
+
+def test_seer_token_metrics_remains_admin_modifiable_and_accepts_automator() -> None:
+    from sentry.options import UpdateChannel
+
+    key = "seer.similarity.token_count_metrics_enabled"
+    assert options.can_update(key, False, UpdateChannel.ADMIN, include_drift=False) is None
+    assert options.can_update(key, False, UpdateChannel.AUTOMATOR, include_drift=False) is None
+    assert options.lookup_key(key).default() is True
