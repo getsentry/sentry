@@ -13,9 +13,9 @@ import psycopg2.errors
 import pytest
 from django.core.files.base import ContentFile
 from django.db import OperationalError, connections, router
+from django.db.models.query import QuerySet
 from django.test.utils import CaptureQueriesContext
 
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleIndexingState,
@@ -620,16 +620,18 @@ class AssembleArtifactsTest(BaseAssembleTest):
         cancelled.__cause__ = psycopg2.errors.QueryCanceled(
             "canceling statement due to user request"
         )
-        original_update = BaseQuerySet.update
+        # The silo-limited manager of `DebugIdArtifactBundle` keeps its own reference to
+        # `BaseQuerySet.update`, so we patch Django's `QuerySet.update`, which that one calls.
+        real_update = QuerySet.update
 
-        def update(queryset: BaseQuerySet[Any, Any], **kwargs: Any) -> int:
+        def cancel_debug_id_update(queryset: QuerySet[Any, Any], **kwargs: Any) -> int:
             if queryset.model is DebugIdArtifactBundle:
                 raise cancelled
-            return original_update(queryset, **kwargs)
+            return real_update(queryset, **kwargs)
 
         with (
             freeze_time("2023-05-31T11:00:00"),
-            patch.object(BaseQuerySet, "update", autospec=True, side_effect=update),
+            patch.object(QuerySet, "update", cancel_debug_id_update),
         ):
             assemble_artifacts(
                 org_id=self.organization.id,
