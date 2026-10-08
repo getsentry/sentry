@@ -1,10 +1,5 @@
 import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
-import {
-  parseAsIsoDateTime,
-  parseAsString,
-  parseAsStringLiteral,
-  useQueryStates,
-} from 'nuqs';
+import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -13,6 +8,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -35,8 +31,8 @@ function useConversationDetailQueryState() {
     {
       spanId: parseAsString,
       focusedTool: parseAsString,
-      start: parseAsIsoDateTime,
-      end: parseAsIsoDateTime,
+      start: parseAsUtcDateTime,
+      end: parseAsUtcDateTime,
       tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS).withDefault('transcript'),
     },
     {history: 'replace'}
@@ -59,7 +55,7 @@ function ConversationDetailPage() {
     [conversationId, startTimestamp, endTimestamp]
   );
 
-  const {nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
+  const {stats, nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
@@ -99,6 +95,7 @@ function ConversationDetailPage() {
       <ConversationsBreadcrumbs conversationId={conversationId} />
       <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummary
+          stats={stats}
           nodes={nodes}
           nodeTraceMap={nodeTraceMap}
           conversationId={conversationId}

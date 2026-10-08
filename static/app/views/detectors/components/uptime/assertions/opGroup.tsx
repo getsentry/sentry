@@ -209,8 +209,15 @@ export function AssertionOpGroup({
           {opList}
           <div>
             <AddOpButton
-              triggerProps={{icon: <IconAdd />}}
-              triggerLabel={t('Add Assertion')}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={<IconAdd />}
+                  showChevron={false}
+                >
+                  {t('Add Assertion')}
+                </OverlayTrigger.Button>
+              )}
               onAddOp={handleAddOp}
             />
           </div>
@@ -284,14 +291,18 @@ export function AssertionOpGroup({
         <Container paddingTop="md">
           <AddOpButton
             size="xs"
-            triggerProps={{
-              variant: 'transparent',
-              size: 'zero',
-              icon: <IconAdd size="xs" />,
-              tooltipProps: {title: t('Add assertion to group')},
-              'aria-label': t('Add assertion to group'),
-            }}
-            triggerLabel={t('Add Assertion')}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                variant="transparent"
+                size="zero"
+                icon={<IconAdd size="xs" />}
+                showChevron={false}
+                tooltipProps={{title: t('Add assertion to group')}}
+              >
+                {t('Add Assertion')}
+              </OverlayTrigger.Button>
+            )}
             onAddOp={handleAddOp}
           />
         </Container>

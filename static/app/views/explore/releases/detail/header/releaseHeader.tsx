@@ -4,7 +4,6 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
@@ -169,77 +168,72 @@ export function ReleaseHeader({
 
   return (
     <Layout.Header>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: formatVersion(version),
+          leadingGraphic: (
+            <IdBadge project={project} disableLink avatarSize={16} hideName />
+          ),
+          pagination: {
+            previous: {
+              ariaLabel: t('Older'),
+              tooltip: prevReleaseVersion
+                ? t('Older release')
+                : t('This is the oldest release'),
+              to: prevReleaseVersion
+                ? makeSiblingReleaseTarget(prevReleaseVersion)
+                : undefined,
+              onClick: () => trackPaginationClick('older'),
+            },
+            next: {
+              ariaLabel: t('Newer'),
+              tooltip: nextReleaseVersion
+                ? t('Newer release')
+                : t('This is the newest release'),
+              to: nextReleaseVersion
+                ? makeSiblingReleaseTarget(nextReleaseVersion)
+                : undefined,
+              onClick: () => trackPaginationClick('newer'),
+            },
+          },
+          trailingActions: [
+            url
+              ? {
+                  type: 'button',
+                  element: (
+                    <LinkButton
+                      href={url}
+                      external
+                      size="zero"
+                      variant="transparent"
+                      tooltipProps={{title: url}}
+                      icon={<IconOpen />}
+                      aria-label={t('Open release URL')}
+                    />
+                  ),
+                }
+              : null,
             {
-              type: 'link',
-              label: t('Releases'),
-              to: {
-                pathname: makeReleasesPathname({organization, path: '/'}),
-                query: extractSelectionParameters(location.query),
-              },
+              type: 'menu',
+              triggerLabel: t('Release Actions'),
+              triggerIcon: <IconEllipsis />,
+              items: menuItems,
             },
-          ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: formatVersion(version),
-            leadingGraphic: (
-              <IdBadge project={project} disableLink avatarSize={16} hideName />
-            ),
-            pagination: {
-              previous: {
-                ariaLabel: t('Older'),
-                tooltip: prevReleaseVersion
-                  ? t('Older release')
-                  : t('This is the oldest release'),
-                to: prevReleaseVersion
-                  ? makeSiblingReleaseTarget(prevReleaseVersion)
-                  : undefined,
-                onClick: () => trackPaginationClick('older'),
-              },
-              next: {
-                ariaLabel: t('Newer'),
-                tooltip: nextReleaseVersion
-                  ? t('Newer release')
-                  : t('This is the newest release'),
-                to: nextReleaseVersion
-                  ? makeSiblingReleaseTarget(nextReleaseVersion)
-                  : undefined,
-                onClick: () => trackPaginationClick('newer'),
-              },
+          ],
+        }}
+        items={[
+          {
+            type: 'link',
+            label: t('Releases'),
+            to: {
+              pathname: makeReleasesPathname({organization, path: '/'}),
+              query: extractSelectionParameters(location.query),
             },
-            trailingActions: [
-              url
-                ? {
-                    type: 'button',
-                    element: (
-                      <LinkButton
-                        href={url}
-                        external
-                        size="zero"
-                        variant="transparent"
-                        tooltipProps={{title: url}}
-                        icon={<IconOpen />}
-                        aria-label={t('Open release URL')}
-                      />
-                    ),
-                  }
-                : null,
-              {
-                type: 'menu',
-                triggerLabel: t('Release Actions'),
-                triggerIcon: <IconEllipsis />,
-                items: menuItems,
-              },
-            ],
-          }}
-        />
-      </TopBar.Slot>
+          },
+        ]}
+      />
       <TopBar.Slot name="feedback">
         <FeedbackButton
           feedbackOptions={releaseFeedbackOptions}

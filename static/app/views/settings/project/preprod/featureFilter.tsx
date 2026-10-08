@@ -1,11 +1,12 @@
 import {useCallback, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -106,9 +107,14 @@ export function FeatureFilter({
       <PanelHeader>
         <Flex align="center" gap="xs">
           {t('%s - Configuration', title)}
-          <PageHeadingQuestionTooltip
-            docsUrl={docsUrl}
-            title={t('Learn more about configuring build filters.')}
+          <InfoTip
+            title={
+              <DocumentationHint docsUrl={docsUrl}>
+                {t('Learn more about configuring build filters.')}
+              </DocumentationHint>
+            }
+            size="sm"
+            position="right"
           />
         </Flex>
       </PanelHeader>

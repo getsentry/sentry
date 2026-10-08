@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useParams as useReactRouter6Params} from 'react-router-dom';
+import {useParams as useReactRouter6Params} from 'react-router';
 
 import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 

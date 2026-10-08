@@ -151,7 +151,7 @@ function FilterToken({
     <Tooltip
       disabled={!showTooltip}
       title={filter.invalid?.reason ?? filter.warning}
-      overlayStyle={{maxWidth: '350px'}}
+      maxWidth={350}
       forceVisible
       skipWrapper
     >
@@ -187,7 +187,7 @@ function FreeTextToken({
     <Tooltip
       disabled={!showTooltip}
       title={token.invalid?.reason}
-      overlayStyle={{maxWidth: '350px'}}
+      maxWidth={350}
       forceVisible
       skipWrapper
     >
@@ -211,7 +211,7 @@ function LogicalBooleanToken({
     <Tooltip
       disabled={!showTooltip}
       title={token.invalid?.reason}
-      overlayStyle={{maxWidth: '350px'}}
+      maxWidth={350}
       forceVisible
       skipWrapper
     >

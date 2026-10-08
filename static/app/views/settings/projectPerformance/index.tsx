@@ -116,7 +116,6 @@ export function ProjectPerformance() {
     hasAIIssueDetection,
     hasWebVitalsSeerSuggestions,
     isResetting: isResettingDetectorSettings,
-    organization,
     performanceIssueSettings,
     projectSlug,
     resetVersion: detectorResetVersion,

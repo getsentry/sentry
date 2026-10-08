@@ -69,12 +69,10 @@ from sentry.tasks.seer.pr_iteration import (
     ALREADY_PAUSED_PR_ITERATION_COMMENT,
     STOP_PR_ITERATION_FAILED_COMMENT,
     STOPPED_PR_ITERATION_COMMENT,
-    UnsupportedProviderError,
     _build_review_feedback,
     _delete_own_comment_eyes_reaction,
     _dropped_drain_reason,
     _ineligible_pr_iteration_comment_body,
-    _resolve_review_comment_threads,
     consume_queued_autofix_feedback,
     pause_pr_iteration_from_comment,
     sweep_pr_iteration_details,
@@ -163,7 +161,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             key="7",
         )
         if external_id is not None:
-            pr.update(external_id_str=external_id)
+            pr.update(external_id=external_id)
         return pr
 
     def _call(self) -> None:
@@ -254,8 +252,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         pr.refresh_from_db()
-        assert pr.external_id_str == "555"
-        assert pr.external_id == 555
+        assert pr.external_id == "555"
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_looks_up_a_non_numeric_provider_id(
@@ -272,8 +269,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             self.organization.id, "integrations:github", "pr_01abc"
         )
         pr.refresh_from_db()
-        assert pr.external_id_str == "pr_01abc"
-        assert pr.external_id is None
+        assert pr.external_id == "pr_01abc"
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_returns_when_get_pull_request_fails(
@@ -2860,145 +2856,6 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
         )
 
         mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
-
-
-class _ResolveThreadScmProtocols:
-    """Method surface matching the resolve protocols so ``spec`` MagicMocks
-    satisfy the ``@runtime_checkable`` ``isinstance`` guards."""
-
-    def get_thread_id_from_review_comment_unique_id(self, *args: Any, **kwargs: Any) -> Any: ...
-
-    def resolve_review_thread(self, *args: Any, **kwargs: Any) -> Any: ...
-
-    def get_pull_request_review_threads(self, *args: Any, **kwargs: Any) -> Any: ...
-
-
-class ResolveReviewCommentThreadsTest(TestCase):
-    def _scm(self) -> MagicMock:
-        return MagicMock(spec=_ResolveThreadScmProtocols)
-
-    def _thread(
-        self,
-        thread_id: str,
-        comment_unique_ids: list[str],
-        *,
-        is_resolved: bool = False,
-    ) -> dict[str, Any]:
-        return {
-            "id": thread_id,
-            "is_resolved": is_resolved,
-            "comments": [{"unique_id": uid} for uid in comment_unique_ids],
-        }
-
-    def _page(
-        self, threads: list[dict[str, Any]], next_cursor: str | None = None
-    ) -> dict[str, Any]:
-        return {"data": threads, "meta": {"next_cursor": next_cursor}}
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_resolves_matching_threads(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
-            [self._thread("PRRT_1", ["PRRC_a"]), self._thread("PRRT_2", ["PRRC_b"])]
-        )
-
-        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
-
-        assert result.resolved == 1
-        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_1")
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_dedupes_shared_thread(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
-            [self._thread("PRRT_1", ["PRRC_a", "PRRC_b"])]
-        )
-
-        result = _resolve_review_comment_threads(
-            scm, pr_number=7, comment_unique_ids=["PRRC_a", "PRRC_b"]
-        )
-
-        assert result.resolved == 1
-        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_1")
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_skips_already_resolved(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
-            [self._thread("PRRT_1", ["PRRC_a"], is_resolved=True)]
-        )
-
-        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
-
-        assert result.resolved == 0
-        assert result.already_resolved == 1
-        mock_scm_actions.resolve_review_thread.assert_not_called()
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_unknown_unique_id_not_found(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
-            [self._thread("PRRT_1", ["PRRC_a"])]
-        )
-
-        result = _resolve_review_comment_threads(
-            scm, pr_number=7, comment_unique_ids=["PRRC_missing"]
-        )
-
-        assert result.resolved == 0
-        assert result.not_found == 1
-        mock_scm_actions.resolve_review_thread.assert_not_called()
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_pages_until_exhausted(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        pages = [
-            self._page([self._thread("PRRT_1", ["PRRC_a"])], next_cursor="page-2"),
-            self._page([self._thread("PRRT_2", ["PRRC_b"])]),
-        ]
-
-        # Assert the cursor is threaded across pages, not ignored: the first page
-        # must start at ``after: null`` (empty cursor) and the second at page-1's
-        # next_cursor.
-        def get_threads(scm_arg: Any, pr_number_str: str, pagination: Any) -> dict[str, Any]:
-            if mock_scm_actions.get_pull_request_review_threads.call_count == 1:
-                assert pagination["cursor"] == ""
-                assert pagination["per_page"] == 100
-            else:
-                assert pagination["cursor"] == "page-2"
-            return pages[mock_scm_actions.get_pull_request_review_threads.call_count - 1]
-
-        mock_scm_actions.get_pull_request_review_threads.side_effect = get_threads
-
-        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_b"])
-
-        assert result.resolved == 1
-        assert mock_scm_actions.get_pull_request_review_threads.call_count == 2
-        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_2")
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_raises_for_unsupported_provider(self, mock_scm_actions: MagicMock) -> None:
-        # A mock missing one protocol method fails the isinstance guard.
-        scm = MagicMock(
-            spec=["resolve_review_thread", "get_thread_id_from_review_comment_unique_id"]
-        )
-
-        with pytest.raises(UnsupportedProviderError):
-            _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
-
-        mock_scm_actions.get_pull_request_review_threads.assert_not_called()
-        mock_scm_actions.resolve_review_thread.assert_not_called()
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_propagates_exceptions(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
-            [self._thread("PRRT_1", ["PRRC_a"])]
-        )
-        mock_scm_actions.resolve_review_thread.side_effect = RuntimeError("boom")
-
-        with pytest.raises(RuntimeError):
-            _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
 
 
 class BuildReviewFeedbackTest(TestCase):

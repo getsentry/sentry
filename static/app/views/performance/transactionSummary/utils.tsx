@@ -1,4 +1,4 @@
-import type {UIMatch} from 'react-router-dom';
+import type {UIMatch} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, Query} from 'history';
 

@@ -1591,7 +1591,6 @@ class RpcGetReplaySummaryLogsTestCase(
         # Create a trace connected error event
         connected_event_id = uuid.uuid4().hex
         connected_error_timestamp = (now - timedelta(minutes=3)).timestamp()
-        project_2 = self.create_project()
         self.store_event(
             data={
                 "event_id": connected_event_id,
@@ -1612,7 +1611,7 @@ class RpcGetReplaySummaryLogsTestCase(
                     }
                 },
             },
-            project_id=project_2.id,
+            project_id=self.project.id,
         )
 
         # Store the replay with both error IDs and trace IDs in the time range
@@ -1706,8 +1705,6 @@ class RpcGetReplaySummaryLogsTestCase(
         """Test that trace connected error snuba query works correctly with both datasets."""
 
         now = datetime.now(UTC)
-        project_1 = self.create_project()
-        project_2 = self.create_project()
 
         # Create regular error event - errors dataset
         event_id_1 = uuid.uuid4().hex
@@ -1733,7 +1730,7 @@ class RpcGetReplaySummaryLogsTestCase(
                     }
                 },
             },
-            project_id=project_1.id,
+            project_id=self.project.id,
         )
 
         # Create feedback event - issuePlatform dataset
@@ -1762,7 +1759,7 @@ class RpcGetReplaySummaryLogsTestCase(
         }
 
         create_feedback_issue(
-            feedback_data, project_2, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            feedback_data, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
 
         # Store the replay with all trace IDs
@@ -1800,6 +1797,86 @@ class RpcGetReplaySummaryLogsTestCase(
         # Verify that feedback event is included
         assert "Great website" in logs[2]
         assert "User submitted feedback" in logs[2]
+
+    def test_rpc_excludes_trace_connected_events_from_other_projects(self) -> None:
+        """Trace-connected errors and issue platform events from projects other than the
+        replay's project must not be included in the summary logs."""
+        now = datetime.now(UTC)
+        other_project = self.create_project()
+        trace_id = uuid.uuid4().hex
+        dt = now - timedelta(minutes=3)
+
+        self.store_event(
+            data={
+                "event_id": uuid.uuid4().hex,
+                "timestamp": dt.timestamp(),
+                "exception": {"values": [{"type": "SameProjectError", "value": "visible"}]},
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": "1" + uuid.uuid4().hex[:15],
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid.uuid4().hex,
+                "timestamp": dt.timestamp(),
+                "exception": {"values": [{"type": "OtherProjectError", "value": "restricted"}]},
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": "1" + uuid.uuid4().hex[:15],
+                    }
+                },
+            },
+            project_id=other_project.id,
+        )
+        create_feedback_issue(
+            {
+                "type": "feedback",
+                "event_id": uuid.uuid4().hex,
+                "timestamp": dt.timestamp(),
+                "contexts": {
+                    "feedback": {
+                        "contact_email": "test@example.com",
+                        "name": "Test User",
+                        "message": "Other project feedback",
+                        "url": "https://example.com",
+                    },
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": "2" + uuid.uuid4().hex[:15],
+                    },
+                },
+            },
+            other_project,
+            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        )
+
+        self.store_replay(dt=now - timedelta(minutes=10), segment_id=0, trace_ids=[trace_id])
+        self.store_replay(dt=now - timedelta(minutes=1), segment_id=1, trace_ids=[trace_id])
+        self.save_recording_segment(0, json.dumps([]).encode())
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+        )
+
+        logs = response["logs"]
+        assert len(logs) == 1
+        assert "SameProjectError" in logs[0]
+        assert "visible" in logs[0]
+        all_logs = "\n".join(logs)
+        assert "OtherProjectError" not in all_logs
+        assert "restricted" not in all_logs
+        assert "Other project feedback" not in all_logs
 
     @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
     def test_rpc_with_trace_errors_duplicate_feedback(
