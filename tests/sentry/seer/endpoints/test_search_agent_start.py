@@ -5,6 +5,7 @@ import pytest
 from django.test import override_settings
 from rest_framework import status
 
+from sentry.api.client_kind import ClientKind
 from sentry.models.apitoken import ApiToken
 from sentry.seer.endpoints.search_agent_start import (
     SearchAgentResultTarget,
@@ -90,6 +91,7 @@ class SendSearchAgentStartRequestTest(TestCase):
         for flag in ["cross_event", "reflection_step", "code_mode"]:
             assert sent_options[flag] is False
         assert "result_target" not in sent_options
+        assert "client_kind" not in sent_options
 
     @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
     def test_flag_options_are_sent_to_seer(self, mock_request: Mock) -> None:
@@ -105,6 +107,7 @@ class SendSearchAgentStartRequestTest(TestCase):
             reflection_step=True,
             code_mode=True,
             result_target=SearchAgentResultTarget.AGENT_SEARCH,
+            client_kind=ClientKind.MCP,
         )
 
         sent_options = mock_request.call_args[0][0]["options"]
@@ -112,6 +115,7 @@ class SendSearchAgentStartRequestTest(TestCase):
             assert sent_options[flag] is True
         assert sent_options["model_name"] == "gpt-5"
         assert sent_options["result_target"] == "agent_search"
+        assert sent_options["client_kind"] == "mcp"
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -239,3 +243,26 @@ class SearchAgentStartEndpointTest(APITestCase):
             mock_send_request.call_args.kwargs["result_target"]
             == SearchAgentResultTarget.AGENT_SEARCH
         )
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_session_request_forwards_frontend_client_kind(
+        self, mock_send_request: MagicMock
+    ) -> None:
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post()
+
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_send_request.call_args.kwargs["client_kind"] == ClientKind.FRONTEND
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_mcp_request_forwards_mcp_client_kind(self, mock_send_request: MagicMock) -> None:
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+        self.client.defaults["HTTP_USER_AGENT"] = "sentry-mcp/1.2.3 (https://mcp.sentry.dev)"
+
+        response = self._post_with_token()
+
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_send_request.call_args.kwargs["client_kind"] == ClientKind.MCP

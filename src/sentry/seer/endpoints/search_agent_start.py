@@ -15,6 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.client_kind import ClientKind, get_client_kind
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
@@ -87,6 +88,7 @@ def send_search_agent_start_request(
     reflection_step: bool = False,
     code_mode: bool = False,
     result_target: SearchAgentResultTarget | None = None,
+    client_kind: ClientKind | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -112,6 +114,9 @@ def send_search_agent_start_request(
         options["metric_context"] = metric_context
     if result_target is not None:
         options["result_target"] = result_target.value
+    if client_kind is not None:
+        # Lets Seer pick a caller-specific referrer (e.g. MCP vs. search bar).
+        options["client_kind"] = client_kind.value
     body["options"] = options
 
     return enqueue_seer_run(
@@ -159,6 +164,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         metric_context = options.get("metric_context")
         result_target = infer_result_target(request)
         sentry_sdk.set_tag("search_agent.result_target", result_target.value)
+        client_kind = get_client_kind(request)
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -223,6 +229,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                     actor=request.user,
                 ),
                 result_target=result_target,
+                client_kind=client_kind,
             )
             return Response(
                 {
