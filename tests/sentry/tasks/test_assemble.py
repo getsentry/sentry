@@ -9,8 +9,12 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import orjson
+import psycopg2.errors
 import pytest
 from django.core.files.base import ContentFile
+from django.db import OperationalError, connections, router
+from django.db.models.query import QuerySet
+from django.test.utils import CaptureQueriesContext
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -477,6 +481,184 @@ class AssembleArtifactsTest(BaseAssembleTest):
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
         assert project_artifact_bundle[0].date_added == expected_updated_date
+
+    @override_options({"sourcemaps.artifact-bundles.date-only-on-bundle": True})
+    def test_upload_same_bundle_id_with_date_only_on_bundle(self) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+        bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
+        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+        for time in ("2023-05-31T10:00:00", "2023-05-31T11:00:00", "2023-05-31T12:00:00"):
+            with freeze_time(time):
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    version="1.0",
+                    dist="android",
+                    checksum=total_checksum,
+                    chunks=[blob1.checksum],
+                )
+
+        first_upload = datetime.fromisoformat("2023-05-31T10:00:00+00:00")
+        last_upload = datetime.fromisoformat("2023-05-31T12:00:00+00:00")
+
+        # Every upload re-dates the bundle itself.
+        artifact_bundle = ArtifactBundle.objects.get(bundle_id=bundle_id)
+        assert artifact_bundle.date_added == last_upload
+        assert artifact_bundle.date_last_modified == last_upload
+
+        # The rows linked to it keep the date of the first upload.
+        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        assert len(debug_id_artifact_bundles) == 2
+        assert {row.date_added for row in debug_id_artifact_bundles} == {first_upload}
+        release_artifact_bundle = ReleaseArtifactBundle.objects.get(
+            release_name="1.0", dist_name="android"
+        )
+        assert release_artifact_bundle.date_added == first_upload
+        project_artifact_bundle = ProjectArtifactBundle.objects.get(project_id=self.project.id)
+        assert project_artifact_bundle.date_added == first_upload
+
+    @override_options({"sourcemaps.artifact-bundles.date-only-on-bundle": True})
+    def test_upload_same_bundle_id_to_new_release_with_date_only_on_bundle(self) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        for time, version in (("2023-05-31T10:00:00", "1.0"), ("2023-05-31T11:00:00", "2.0")):
+            with freeze_time(time):
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    version=version,
+                    dist="android",
+                    checksum=total_checksum,
+                    chunks=[blob1.checksum],
+                )
+
+        # A link the second upload creates still gets that upload's date.
+        assert ReleaseArtifactBundle.objects.get(
+            release_name="1.0", dist_name="android"
+        ).date_added == datetime.fromisoformat("2023-05-31T10:00:00+00:00")
+        assert ReleaseArtifactBundle.objects.get(
+            release_name="2.0", dist_name="android"
+        ).date_added == datetime.fromisoformat("2023-05-31T11:00:00+00:00")
+
+    @override_options({"sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle": True})
+    def test_upload_same_bundle_id_redates_debug_ids_by_bundle(self) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+        with freeze_time("2023-05-31T10:00:00"):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+        with (
+            freeze_time("2023-05-31T11:00:00"),
+            CaptureQueriesContext(
+                connections[router.db_for_write(DebugIdArtifactBundle)]
+            ) as queries,
+        ):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+
+        updates = [
+            query["sql"]
+            for query in queries.captured_queries
+            if 'UPDATE "sentry_debugidartifactbundle"' in query["sql"]
+        ]
+        assert len(updates) == 1
+        assert '"organization_id"' not in updates[0]
+
+        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        assert len(debug_id_artifact_bundles) == 2
+        assert {row.date_added for row in debug_id_artifact_bundles} == {
+            datetime.fromisoformat("2023-05-31T11:00:00+00:00")
+        }
+
+    def test_upload_same_bundle_id_to_new_release_when_redating_debug_ids_is_cancelled(
+        self,
+    ) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+        with freeze_time("2023-05-31T10:00:00"):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+
+        cancelled = OperationalError("canceling statement due to user request")
+        cancelled.__cause__ = psycopg2.errors.QueryCanceled(
+            "canceling statement due to user request"
+        )
+        # The silo-limited manager of `DebugIdArtifactBundle` keeps its own reference to
+        # `BaseQuerySet.update`, so we patch Django's `QuerySet.update`, which that one calls.
+        real_update = QuerySet.update
+
+        def cancel_debug_id_update(queryset: QuerySet[Any, Any], **kwargs: Any) -> int:
+            if queryset.model is DebugIdArtifactBundle:
+                raise cancelled
+            return real_update(queryset, **kwargs)
+
+        with (
+            freeze_time("2023-05-31T11:00:00"),
+            patch.object(QuerySet, "update", cancel_debug_id_update),
+        ):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="2.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+
+        status, details = get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+        )
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # The rest of the upload still commits: the bundle is re-dated and linked to the new release.
+        artifact_bundle = ArtifactBundle.objects.get()
+        assert artifact_bundle.date_added == datetime.fromisoformat("2023-05-31T11:00:00+00:00")
+        assert ReleaseArtifactBundle.objects.filter(
+            artifact_bundle=artifact_bundle, release_name="2.0", dist_name="android"
+        ).exists()
+        # Only the debug-ID rows keep their first date.
+        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        assert {row.date_added for row in debug_id_artifact_bundles} == {
+            datetime.fromisoformat("2023-05-31T10:00:00+00:00")
+        }
 
     def test_upload_multiple_artifacts_with_same_bundle_id_and_no_release_dist_pair(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(

@@ -1188,6 +1188,25 @@ register(
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Keep `date_added` up to date on `ArtifactBundle` only. Re-uploading or renewing a bundle then
+# no longer rewrites its debug-ID, release, project and URL index rows, whose `date_added`
+# nothing reads.
+register(
+    "sourcemaps.artifact-bundles.date-only-on-bundle",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When a bundle is uploaded again, update its debug-ID rows by bundle alone instead of by bundle
+# and organization, so that Postgres doesn't also read the organization's slice of that table's
+# organization index. Has no effect with `sourcemaps.artifact-bundles.date-only-on-bundle`,
+# which skips the update.
+register(
+    "sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # Killswitch to stop storing any reprocessing payloads.
