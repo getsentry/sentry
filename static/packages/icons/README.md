@@ -21,5 +21,5 @@ matching the icon variants; `muted` uses `secondary`. The `warning` variant uses
 This package must not import scraps, application code, or application assets.
 React and Emotion are peer dependencies. Seer animation uses framer-motion.
 
-Run `pnpm --filter @sentry/icons typecheck`, `pnpm --filter @sentry/icons test`,
-and `pnpm --filter @sentry/icons verify` to check the package independently.
+Run `pnpm --filter @sentry/icons typecheck` and `pnpm --filter @sentry/icons test`
+to check the package independently.

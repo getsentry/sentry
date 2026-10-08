@@ -998,9 +998,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.0
         version: 19.3.0(@types/react@19.3.0)
-      esbuild:
-        specifier: 0.28.1
-        version: 0.28.1
       expect-type:
         specifier: 1.4.0
         version: 1.4.0

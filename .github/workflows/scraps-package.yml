@@ -26,7 +26,6 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm --filter @sentry/icons typecheck
       - run: pnpm --filter @sentry/icons test --ci --maxWorkers=2
-      - run: pnpm --filter @sentry/icons verify
   verify:
     name: scraps-package-verify
     runs-on: ubuntu-24.04

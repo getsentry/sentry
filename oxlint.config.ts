@@ -1779,10 +1779,7 @@ const config = defineConfig({
       rules: {'boundaries/no-unknown-files': 'off'},
     },
     {
-      files: [
-        'static/packages/scraps/scripts/*.mjs',
-        'static/packages/icons/scripts/*.mjs',
-      ],
+      files: ['static/packages/scraps/scripts/*.mjs'],
       rules: {
         'boundaries/no-unknown-files': 'off',
         'import-js/no-extraneous-dependencies': 'off',
