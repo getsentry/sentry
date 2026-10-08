@@ -10,6 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {
   AskSeerPollingResponse,
+  AskSeerReferrer,
   AskSeerStartResponse,
   AskSeerStrategy,
   QueryTokensProps,
@@ -64,6 +65,10 @@ interface UseAskSeerPollingOptions {
   strategy: AskSeerStrategy;
   onError?: (error: Error) => void;
   options?: Record<string, unknown>;
+  /**
+   * Which surface started the run, used to pick the Seer referrer. Defaults to `search_bar`.
+   */
+  referrer?: AskSeerReferrer;
 }
 
 /**
@@ -130,6 +135,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
               natural_language_query: query,
               project_ids: options.projectIds,
               strategy: options.strategy,
+              referrer: options.referrer ?? 'search_bar',
               options: {
                 ...options.options,
                 code_mode: codeModeToggle,
