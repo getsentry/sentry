@@ -10,12 +10,21 @@ import {act, render, renderHook, screen} from '../../test/env';
 
 import {
   getBorder,
+  getSignedMargin,
   rc,
   useActiveBreakpoint,
   useContainerBreakpoint,
   useResponsivePropValue,
   type Responsive,
 } from './styles';
+
+it('resolves negative margin tokens in responsive props', () => {
+  const output = rc('margin-left', {zero: '-2xl', '3xl': '-3xl'}, theme, getSignedMargin);
+
+  expect(output).toContain('margin-left: -24px;');
+  expect(output).toContain('margin-left: -32px;');
+  expect(output).toContain(`@container (min-width: ${theme.container['3xl']})`);
+});
 
 const normalizeCss = (value: string) =>
   value

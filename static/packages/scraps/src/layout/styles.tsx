@@ -130,7 +130,8 @@ const VIEWPORT_ORDER: ReadonlyArray<{key: ScreenBreakpoint; token: BreakpointSiz
   {key: 'screen:2xl', token: '2xl'},
 ];
 
-type Margin = SpaceSize | 'auto' | '0';
+export type Margin = SpaceSize | 'auto';
+export type SignedMargin = Margin | `-${Exclude<SpaceSize, '0'>}`;
 
 /**
  * The `justify` vocabulary a flex container accepts, and its mapping onto CSS
@@ -209,7 +210,7 @@ function resolveSpacing(sizeComponent: SpaceSize, theme: Theme) {
   return theme.space[sizeComponent] ?? theme.space['0'];
 }
 
-function resolveMargin(sizeComponent: Margin, theme: Theme) {
+function resolveMargin(sizeComponent: SignedMargin, theme: Theme) {
   if (sizeComponent === 'auto') {
     return 'auto';
   }
@@ -218,7 +219,19 @@ function resolveMargin(sizeComponent: Margin, theme: Theme) {
     return '0';
   }
 
-  return theme.space[sizeComponent] ?? theme.space['0'];
+  if (sizeComponent.startsWith('-')) {
+    return `-${resolveSpacing(sizeComponent.slice(1) as SpaceSize, theme)}`;
+  }
+
+  return resolveSpacing(sizeComponent as SpaceSize, theme);
+}
+
+export function getSignedMargin(
+  margin: SignedMargin | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+) {
+  return margin === undefined ? undefined : resolveMargin(margin, theme);
 }
 
 function borderValue(key: Exclude<BorderVariant, 'none'>, theme: Theme): string {

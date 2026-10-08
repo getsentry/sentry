@@ -1,28 +1,14 @@
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconClose} from 'sentry/icons/iconClose';
 
-const ModalHeader = styled('header')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  position: relative;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']};
-  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space.xl}
-    ${p => p.theme.space['2xl']} -${p => p.theme.space['2xl']};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
-    margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
-      ${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']};
-  }
-
+const modalHeaderCss = (theme: Theme) => css`
   h1,
   h2,
   h3,
@@ -30,7 +16,7 @@ const ModalHeader = styled('header')`
   h5,
   h6 {
     font-size: 20px;
-    font-weight: ${p => p.theme.font.weight.sans.medium};
+    font-weight: ${theme.font.weight.sans.medium};
     margin-bottom: 0;
     line-height: 1.1;
   }
@@ -62,20 +48,21 @@ const ModalBody = styled('section')`
   }
 `;
 
-const ModalFooter = styled('footer')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  display: flex;
-  justify-content: flex-end;
-  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
-  margin: ${p => p.theme.space['2xl']} -${p => p.theme.space['2xl']} -${p =>
-      p.theme.space['3xl']};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
-    margin: ${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']} -${p =>
-        p.theme.space['3xl']};
-  }
-`;
+const ModalFooter = styled((props: React.HTMLAttributes<HTMLElement>) => {
+  return (
+    <Flex
+      {...props}
+      as="footer"
+      justify="end"
+      borderTop="primary"
+      padding={{zero: '2xl xl', '3xl': '2xl 3xl'}}
+      marginTop="2xl"
+      marginBottom="-3xl"
+      marginLeft={{zero: '-2xl', '3xl': '-3xl'}}
+      marginRight={{zero: '-2xl', '3xl': '-3xl'}}
+    />
+  );
+})``;
 
 interface ClosableHeaderProps extends React.HTMLAttributes<HTMLHeadingElement> {
   /**
@@ -89,10 +76,24 @@ interface ClosableHeaderProps extends React.HTMLAttributes<HTMLHeadingElement> {
 const makeClosableHeader = (closeModal: () => void) => {
   function ClosableHeader({closeButton, children, ...props}: ClosableHeaderProps) {
     return (
-      <ModalHeader {...props}>
+      <Flex
+        {...props}
+        as="header"
+        css={modalHeaderCss}
+        justify="between"
+        align="center"
+        gap="md"
+        position="relative"
+        borderBottom="primary"
+        padding={{zero: '2xl', '3xl': '2xl 3xl'}}
+        marginTop="-3xl"
+        marginBottom="2xl"
+        marginLeft={{zero: '-2xl', '3xl': '-3xl'}}
+        marginRight={{zero: '-xl', '3xl': '-3xl'}}
+      >
         {children}
         {closeButton ? <CloseButton onClick={closeModal} /> : null}
-      </ModalHeader>
+      </Flex>
     );
   }
 

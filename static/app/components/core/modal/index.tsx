@@ -1,13 +1,12 @@
 import {useCallback, useEffect, useRef, type ComponentProps} from 'react';
 import {createPortal} from 'react-dom';
 import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
-import {ContainerQueryProvider, Surface} from '@sentry/scraps/layout';
+import {Container, ContainerQueryProvider, Flex, Surface} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
@@ -19,6 +18,8 @@ import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender'
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
+
+const MotionContainer = motion.create(Container);
 
 type ModalOptions = {
   /**
@@ -229,9 +230,18 @@ export function GlobalModal() {
           />
         )}
       </AnimatePresence>
-      <ModalContainer
+      <Flex
         data-test-id="modal-backdrop"
         ref={containerRef}
+        position="fixed"
+        top="0"
+        bottom="0"
+        left="0"
+        right="var(--scrollbar-size, 0)"
+        justify="center"
+        align="start"
+        overflowY="auto"
+        zIndex={theme.zIndex.modal}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
       >
@@ -244,10 +254,14 @@ export function GlobalModal() {
         >
           <AnimatePresence>
             {visible && (
-              <ModalDialog
+              <MotionContainer
                 role="dialog"
                 aria-modal
-                css={options.modalCss}
+                width="640px"
+                maxWidth="100%"
+                pointerEvents="auto"
+                padding={{zero: 'xl lg', '3xl': '3xl xl'}}
+                css={[modalDialogCss, options.modalCss]}
                 initial={{opacity: 0, scale: 0.98}}
                 animate={{opacity: 1, scale: 1}}
                 exit={{
@@ -259,16 +273,21 @@ export function GlobalModal() {
               >
                 <Surface variant="overlay" elevation="high">
                   {p => (
-                    <ModalContent role="document" {...p}>
+                    <Container
+                      role="document"
+                      position="relative"
+                      padding={{zero: '3xl 2xl', '3xl': '3xl'}}
+                      {...p}
+                    >
                       {renderedChild}
-                    </ModalContent>
+                    </Container>
                   )}
                 </Surface>
-              </ModalDialog>
+              </MotionContainer>
             )}
           </AnimatePresence>
         </TooltipContext>
-      </ModalContainer>
+      </Flex>
     </ContainerQueryProvider>,
     portal
   );
@@ -334,42 +353,9 @@ export function useModal(): UseModalReturn {
 /** @internal only used in tests & stories */
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
-const fullPageCss = css`
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-`;
-
-const ModalContainer = styled('div')`
-  ${fullPageCss};
-  right: var(--scrollbar-size, 0);
-  z-index: ${p => p.theme.zIndex.modal};
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  overflow-y: auto;
-`;
-
-const ModalDialog = styled(motion.div)`
-  max-width: 100%;
-  width: 640px;
-  pointer-events: auto;
+const modalDialogCss = (theme: Theme) => css`
   margin-top: 64px;
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.lg};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${theme.container['3xl']}) {
     margin-top: 50px;
-    padding: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl};
-  }
-`;
-
-const ModalContent = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space['3xl']};
   }
 `;

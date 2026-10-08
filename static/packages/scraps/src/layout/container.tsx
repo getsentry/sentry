@@ -15,14 +15,15 @@ import {
   ContainerQueryProvider,
   getBorder,
   getMargin,
+  getSignedMargin,
   getRadius,
   getSpacing,
   rc,
+  type Margin,
   type Responsive,
+  type SignedMargin,
   type Shorthand,
 } from './styles';
-
-type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable @sentry/sort-interface-keys */
 interface ContainerLayoutProps {
@@ -36,6 +37,7 @@ interface ContainerLayoutProps {
   paddingRight?: Responsive<SpaceSize>;
 
   position?: Responsive<CSS['position']>;
+  zIndex?: Responsive<number | 'auto'>;
 
   inset?: Responsive<CSS['inset']>;
   top?: Responsive<CSS['inset']>;
@@ -114,19 +116,19 @@ interface ContainerLayoutProps {
   /**
    * @deprecated Use the `gap` prop on `Flex` or `Grid` instead.
    */
-  marginTop?: Responsive<Margin>;
+  marginTop?: Responsive<SignedMargin>;
   /**
    * @deprecated Use the `gap` prop on `Flex` or `Grid` instead.
    */
-  marginBottom?: Responsive<Margin>;
+  marginBottom?: Responsive<SignedMargin>;
   /**
    * @deprecated Use the `gap` prop on `Flex` or `Grid` instead.
    */
-  marginLeft?: Responsive<Margin>;
+  marginLeft?: Responsive<SignedMargin>;
   /**
    * @deprecated Use the `gap` prop on `Flex` or `Grid` instead.
    */
-  marginRight?: Responsive<Margin>;
+  marginRight?: Responsive<SignedMargin>;
 }
 
 /* eslint-enable @sentry/sort-interface-keys */
@@ -252,6 +254,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'visibility',
   'width',
   'whiteSpace',
+  'zIndex',
 ]);
 
 export const Container = styled(
@@ -310,6 +313,7 @@ export const Container = styled(
 
   ${p => rc('display', p.display, p.theme)};
   ${p => rc('position', p.position, p.theme)};
+  ${p => rc('z-index', p.zIndex, p.theme)};
 
   ${p => rc('inset', p.inset, p.theme)};
   ${p => rc('top', p.top, p.theme)};
@@ -335,10 +339,10 @@ export const Container = styled(
   ${p => rc('padding-right', p.paddingRight, p.theme, getSpacing)};
 
   ${p => rc('margin', p.margin, p.theme, getMargin)};
-  ${p => rc('margin-top', p.marginTop, p.theme, getMargin)};
-  ${p => rc('margin-bottom', p.marginBottom, p.theme, getMargin)};
-  ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
-  ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
+  ${p => rc('margin-top', p.marginTop, p.theme, getSignedMargin)};
+  ${p => rc('margin-bottom', p.marginBottom, p.theme, getSignedMargin)};
+  ${p => rc('margin-left', p.marginLeft, p.theme, getSignedMargin)};
+  ${p => rc('margin-right', p.marginRight, p.theme, getSignedMargin)};
 
   ${p =>
     rc('background', p.background, p.theme, v =>
