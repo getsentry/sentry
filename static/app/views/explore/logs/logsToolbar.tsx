@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {AggregationKey} from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -230,11 +229,6 @@ function VisualizeDropdown({
   numberTags,
   stringTags,
 }: VisualizeDropdownProps) {
-  const organization = useOrganization();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
-
   const firstNumberKey = useMemo(
     () => Object.keys(numberTags).sort()[0] ?? null,
     [numberTags]
@@ -253,10 +247,7 @@ function VisualizeDropdown({
     [visualize.yAxis]
   );
 
-  const filter = useMemo(
-    () => (hasConditionalAggregates ? (parsedFunction?.filter ?? '') : ''),
-    [hasConditionalAggregates, parsedFunction?.filter]
-  );
+  const filter = parsedFunction?.filter ?? '';
 
   const fieldOptions = useVisualizeFields({
     numberTags,
@@ -328,9 +319,9 @@ function VisualizeDropdown({
     [onReplace, parsedFunction, visualize]
   );
 
-  const showFilterSearchBar =
-    hasConditionalAggregates &&
-    supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
+  );
 
   return (
     <ToolbarVisualizeDropdown
