@@ -11,7 +11,7 @@ import {
 import {getBootstrapProjectsQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {apiFetch, useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -22,6 +22,7 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
+import {enqueueReplaySegmentsRequest} from 'sentry/utils/replays/replaySegmentsQueue';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
@@ -62,7 +63,7 @@ export function replayAttachmentsApiOptions({
   replayId: string;
   query?: {cursor: string; download: boolean; per_page: number};
 }) {
-  return apiOptions.as<unknown>()(
+  const options = apiOptions.as<unknown>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
     {
       path: {
@@ -74,6 +75,11 @@ export function replayAttachmentsApiOptions({
       staleTime: Infinity,
     }
   );
+  return queryOptions({
+    ...options,
+    queryFn: context =>
+      enqueueReplaySegmentsRequest(() => apiFetch(context), context.signal),
+  });
 }
 
 type Options = {
