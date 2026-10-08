@@ -174,7 +174,7 @@ function Chart({
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const {droppedEvents, acceptedEvents} = useDroppedData({dataset});
+  const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval});
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer(dataset);
   const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);

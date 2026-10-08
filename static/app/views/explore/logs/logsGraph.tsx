@@ -145,6 +145,7 @@ function Graph({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const {droppedEvents, acceptedEvents} = useDroppedData({
     dataset: DiscoverDatasets.OURLOGS,
+    interval,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.OURLOGS);
