@@ -405,10 +405,10 @@ importers:
         version: 5.4.1(encoding@0.1.13)(supports-color@8.1.1)
       '@stripe/react-stripe-js':
         specifier: ^3.9.2
-        version: 3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 3.9.2(@stripe/stripe-js@7.10.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@stripe/stripe-js':
-        specifier: ^5.10.0
-        version: 5.10.0
+        specifier: ^7.10.0
+        version: 7.10.0
       '@swc/plugin-emotion':
         specifier: 19.0.0
         version: 19.0.0
@@ -3981,8 +3981,8 @@ packages:
       react: '>=16.8.0 <20.0.0'
       react-dom: '>=16.8.0 <20.0.0'
 
-  '@stripe/stripe-js@5.10.0':
-    resolution: {integrity: sha512-PTigkxMdMUP6B5ISS7jMqJAKhgrhZwjprDqR1eATtFfh0OpKVNp110xiH+goeVdrJ29/4LeZJR4FaHHWstsu0A==}
+  '@stripe/stripe-js@7.10.0':
+    resolution: {integrity: sha512-LKrDpCop593iWnPxOHgjYmZGngOdgzPYLjyVzUdQ7f7bSnAEKkBMEwsOmWRrq40TR8KG96woms5xPUmffZkJ0Q==}
     engines: {node: '>=12.16'}
 
   '@swc-contrib/mut-cjs-exports@19.0.0':
@@ -8603,11 +8603,6 @@ packages:
   resolve-pkg-maps@1.0.0:
     resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
 
-  resolve@1.22.10:
-    resolution: {integrity: sha512-NPRy+/ncIMeDlTAsuqwKIiferiawhefFJtkNSW0qZJEqMEb+qBt/77B/jGeeek+F0uOeN05CDa6HXbbIgtVX4w==}
-    engines: {node: '>= 0.4'}
-    hasBin: true
-
   resolve@1.22.11:
     resolution: {integrity: sha512-RfqAvLnMl313r7c9oclB1HhUEAezcpLjz95wFH4LVuhk9JF/r22qmVP9AMmOU4vMX7Q8pN8jwNg/CSpdFnMjTQ==}
     engines: {node: '>= 0.4'}
@@ -12575,14 +12570,14 @@ snapshots:
 
   '@standard-schema/spec@1.0.0': {}
 
-  '@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@7.10.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@stripe/stripe-js': 5.10.0
+      '@stripe/stripe-js': 7.10.0
       prop-types: 15.8.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
-  '@stripe/stripe-js@5.10.0': {}
+  '@stripe/stripe-js@7.10.0': {}
 
   '@swc-contrib/mut-cjs-exports@19.0.0(@swc/core@1.16.13(@swc/helpers@0.5.23))(@swc/jest@0.2.39(@swc/core@1.16.13(@swc/helpers@0.5.23)))':
     dependencies:
@@ -13713,9 +13708,9 @@ snapshots:
 
   babel-plugin-macros@3.1.0:
     dependencies:
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.6
       cosmiconfig: 7.1.0
-      resolve: 1.22.10
+      resolve: 1.22.11
 
   babel-preset-current-node-syntax@1.2.0(@babel/core@7.29.7(supports-color@8.1.1)):
     dependencies:
@@ -18171,12 +18166,6 @@ snapshots:
   resolve-from@5.0.0: {}
 
   resolve-pkg-maps@1.0.0: {}
-
-  resolve@1.22.10:
-    dependencies:
-      is-core-module: 2.16.1
-      path-parse: 1.0.7
-      supports-preserve-symlinks-flag: 1.0.0
 
   resolve@1.22.11:
     dependencies:
