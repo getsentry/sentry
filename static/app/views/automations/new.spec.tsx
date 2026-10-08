@@ -357,8 +357,6 @@ describe('AutomationNewSettings', () => {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), label);
     };
 
-    // Paste rather than type: every keystroke re-renders the whole form, so
-    // typing character by character dominated this test's runtime.
     await addAction('Slack');
     await userEvent.click(screen.getByRole('textbox', {name: 'Target'}));
     await userEvent.paste('#alerts');
