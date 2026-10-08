@@ -91,6 +91,27 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
+    def test_rebroadcast_preserves_original_seed(self, mock_installations, mock_send_webhook):
+        mock_installations.return_value = [self.installation_1]
+        seed = "1234567890ab4def8901123456789abc"
+        payload = {"test": "data"}
+
+        for _ in range(2):
+            broadcast_webhooks_for_organization(
+                resource_name="issue",
+                event_name="created",
+                organization_id=self.organization.id,
+                payload=payload,
+                idempotency_seed=seed,
+            )
+
+        assert mock_send_webhook.delay.call_count == 2
+        for call in mock_send_webhook.delay.call_args_list:
+            assert call.args == (self.installation_1.id, "issue.created", payload)
+            assert call.kwargs == {"idempotency_seed": seed}
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_sends_to_multiple_relevant_installations(
         self, mock_installations, mock_send_webhook
     ):

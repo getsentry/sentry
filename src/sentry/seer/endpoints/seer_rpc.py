@@ -679,11 +679,14 @@ def send_seer_webhook(
             }
         )
 
+    from sentry.sentry_apps.utils.idempotency import new_webhook_seed
+
     broadcast_webhooks_for_organization.delay(
         resource_name="seer",
         event_name=event_name,
         organization_id=organization_id,
         payload=payload,
+        idempotency_seed=new_webhook_seed(),
     )
 
     return SendSeerWebhookSuccessResponse()

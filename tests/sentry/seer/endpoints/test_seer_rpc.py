@@ -501,11 +501,14 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result.dict() == {"success": True}
+        from unittest.mock import ANY
+
         mock_delay.assert_called_once_with(
             resource_name="seer",
             event_name="root_cause_started",
             organization_id=self.organization.id,
             payload={"test": "data"},
+            idempotency_seed=ANY,
         )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")

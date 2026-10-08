@@ -4292,7 +4292,8 @@ class PostProcessGroupFeedbackTest(
         )
 
         mock_delay.assert_called_once_with(
-            action="created", sender="Group", instance_id=str(event.group.id)
+            action="created", sender="Group", instance_id=str(event.group.id),
+            idempotency_seed=ANY,
         )
 
 

@@ -1267,6 +1267,7 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
         return
 
     from sentry.sentry_apps.tasks.sentry_apps import process_resource_change_bound
+    from sentry.sentry_apps.utils.idempotency import new_webhook_seed
 
     event, is_new = job["event"], job["group_state"]["is_new"]
 
@@ -1277,10 +1278,12 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
             instance_id=event.event_id,
             project_id=event.project_id,
             group_id=event.group_id,
+            idempotency_seed=new_webhook_seed(),
         )
     if is_new:
         process_resource_change_bound.delay(
-            action="created", sender="Group", instance_id=str(event.group_id)
+            action="created", sender="Group", instance_id=str(event.group_id),
+            idempotency_seed=new_webhook_seed(),
         )
 
 

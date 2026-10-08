@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from requests import Response
 
 from sentry.sentry_apps.services.legacy_webhook.service import LegacyWebhookPayload
@@ -14,11 +16,12 @@ class LegacyWebhookClient(BaseApiClient):
         self.data = data
         super().__init__(verify_ssl=False)
 
-    def request(self, url: str) -> Response:
+    def request(self, url: str, headers: Mapping[str, str] | None = None) -> Response:
         return self._request(
             path=url,
             method="post",
             data=self.data,
+            headers=headers,
             json=True,
             timeout=5,
             allow_text=True,

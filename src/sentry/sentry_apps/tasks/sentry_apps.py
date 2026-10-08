@@ -68,6 +68,7 @@ from sentry.sentry_apps.services.app.service import (
 )
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.sentry_apps.utils.idempotency import derive_idempotency_key, new_webhook_seed
 from sentry.sentry_apps.utils.webhooks import (
     ActivityAlertActionType,
     IssueAlertActionType,
@@ -290,6 +291,9 @@ def send_alert_webhook_v2(
             action=IssueAlertActionType.TRIGGERED,
             install=install,
             data=data,
+            idempotency_key=derive_idempotency_key(
+                kwargs.get("idempotency_seed"), "installation", install.id
+            ),
         )
 
     send_and_save_webhook_request(sentry_app, request_data)
@@ -386,8 +390,16 @@ def _process_resource_change(
             for installation in installations:
                 if _is_project_allowed(installation, instance.project_id):
                     # Trigger a new task for each webhook
+                    delivery_kwargs = (
+                        {"idempotency_seed": kwargs["idempotency_seed"]}
+                        if kwargs.get("idempotency_seed") is not None
+                        else {}
+                    )
                     send_resource_change_webhook.delay(
-                        installation_id=installation.id, event=str(event), data=data
+                        installation_id=installation.id,
+                        event=str(event),
+                        data=data,
+                        **delivery_kwargs,
                     )
 
 
@@ -547,7 +559,11 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_USER)
 
     SentryAppInstallationNotifier(
-        sentry_app_installation=install, user=user, action="created"
+        sentry_app_installation=install,
+        user=user,
+        action="created",
+        idempotency_seed=kwargs.get("idempotency_seed"),
+        queued_delivery=True,
     ).run()
 
 
@@ -624,7 +640,13 @@ def workflow_notification(
         data = kwargs.get("data", {})
         data.update({"issue": _webhook_issue_data(group=issue, serialized_group=serialize(issue))})
 
-    send_webhooks(installation=install, event=event, data=data, actor=user)
+    send_webhooks(
+        installation=install,
+        event=event,
+        data=data,
+        actor=user,
+        idempotency_seed=kwargs.get("idempotency_seed"),
+    )
 
     analytics_event: analytics.Event | None = None
     if event == SentryAppEventType.ISSUE_ASSIGNED:
@@ -700,7 +722,13 @@ def build_comment_webhook(
             "comment": data.get("comment"),
         }
 
-    send_webhooks(installation=install, event=event, data=payload, actor=user)
+    send_webhooks(
+        installation=install,
+        event=event,
+        data=payload,
+        actor=user,
+        idempotency_seed=kwargs.get("idempotency_seed"),
+    )
     # `event` is comment.created, comment.updated, or comment.deleted
     analytics_event: CommentEvent | None = None
     if event == SentryAppEventType.COMMENT_CREATED:
@@ -787,7 +815,9 @@ def send_resource_change_webhook(
                 message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
             )
 
-    send_webhooks(installation, event, data=data)
+    send_webhooks(
+        installation, event, data=data, idempotency_seed=kwargs.get("idempotency_seed")
+    )
 
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
@@ -831,6 +861,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
             rule_label=f.rule.label,
             sentry_app_id=f.kwargs["sentry_app"].id,
+            idempotency_seed=new_webhook_seed(),
             **extra_kwargs,
         )
 
@@ -900,6 +931,9 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         kwargs["resource"] = resource
         kwargs["action"] = action
         kwargs["install"] = installation
+        kwargs["idempotency_key"] = derive_idempotency_key(
+            kwargs.pop("idempotency_seed", None), "installation", installation.id
+        )
 
         request_data = AppPlatformEvent(**kwargs)
 
@@ -1085,6 +1119,9 @@ def send_metric_alert_webhook(
             action=MetricAlertActionType(new_status_str),
             install=installations[0],
             data=json.loads(incident_attachment_json),
+            idempotency_key=derive_idempotency_key(
+                kwargs.get("idempotency_seed"), "installation", installations[0].id
+            ),
         )
 
     send_and_save_webhook_request(sentry_app, app_platform_event)
@@ -1146,6 +1183,9 @@ def send_activity_alert_webhook(
             action=ActivityAlertActionType.TRIGGERED,
             install=installations[0],
             data=json.loads(payload_json),
+            idempotency_key=derive_idempotency_key(
+                kwargs.get("idempotency_seed"), "installation", installations[0].id
+            ),
         )
 
     send_and_save_webhook_request(sentry_app, app_platform_event)
@@ -1218,7 +1258,14 @@ def broadcast_webhooks_for_organization(
         # Send the webhook to each relevant installation
         for installation in relevant_installations:
             if installation:
-                send_resource_change_webhook.delay(installation.id, event_type, payload)
+                delivery_kwargs = (
+                    {"idempotency_seed": kwargs["idempotency_seed"]}
+                    if kwargs.get("idempotency_seed") is not None
+                    else {}
+                )
+                send_resource_change_webhook.delay(
+                    installation.id, event_type, payload, **delivery_kwargs
+                )
 
                 logger.info(
                     "sentry_app.webhook_queued",

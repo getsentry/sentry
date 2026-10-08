@@ -51,12 +51,14 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         install: RpcSentryAppInstallation | SentryAppInstallation,
         data: T,
         actor: RpcUser | User | None = None,
+        idempotency_key: str | None = None,
     ):
         self.resource = resource
         self.action = action
         self.install = install
         self.data = data
         self.actor = actor
+        self.idempotency_key = idempotency_key
         self.include_text_summary = False
 
     def get_actor(self) -> AppPlatformEventActor:
@@ -116,18 +118,28 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         """
         request_uuid = uuid4().hex
 
-        return {
+        headers = {
             "Content-Type": "application/json",
             "Request-ID": request_uuid,
             "Sentry-Hook-Resource": self.resource,
             "Sentry-Hook-Timestamp": str(int(time())),
             "Sentry-Hook-Signature": self.install.sentry_app.build_signature(self.body),
         }
+        if self.idempotency_key is not None:
+            headers["Idempotency-Key"] = self.idempotency_key
+        return headers
 
     @property
     def custom_headers(self) -> dict[str, str]:
         """User-configured headers parsed from the SentryApp's webhook_headers."""
-        return parse_custom_headers(self.install.sentry_app.webhook_headers)
+        headers = parse_custom_headers(self.install.sentry_app.webhook_headers)
+        if self.idempotency_key is not None:
+            return {
+                name: value
+                for name, value in headers.items()
+                if name.lower() != "idempotency-key"
+            }
+        return headers
 
     @property
     def headers(self) -> dict[str, str]:

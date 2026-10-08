@@ -76,6 +76,7 @@ class TestInstallationNotifier(TestCase):
             "Sentry-Hook-Resource",
             "Sentry-Hook-Timestamp",
             "Sentry-Hook-Signature",
+            "Idempotency-Key",
         }
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
@@ -113,6 +114,7 @@ class TestInstallationNotifier(TestCase):
             "Sentry-Hook-Resource",
             "Sentry-Hook-Timestamp",
             "Sentry-Hook-Signature",
+            "Idempotency-Key",
         }
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")

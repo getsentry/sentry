@@ -19,6 +19,7 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.tasks.sentry_apps import WebhookGroupResponse, _webhook_issue_data
+from sentry.sentry_apps.utils.idempotency import new_webhook_seed
 from sentry.types.activity import SEER_ACTIVITY_TYPES, STATUS_CHANGE_ACTIVITY_TYPES
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
@@ -227,4 +228,5 @@ class SentryAppActivityHandler(ActivityHandler):
             sentry_app_id=install.sentry_app.id,
             organization_id=organization.id,
             payload_json=json.dumps(payload),
+            idempotency_seed=new_webhook_seed(),
         )

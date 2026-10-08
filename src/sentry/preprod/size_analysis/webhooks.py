@@ -9,6 +9,7 @@ from sentry.preprod.api.models.public.size_analysis import (
 )
 from sentry.preprod.models import PreprodArtifact
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.sentry_apps.utils.idempotency import new_webhook_seed
 from sentry.sentry_apps.utils.webhooks import PreprodArtifactActionType
 
 logger = logging.getLogger(__name__)
@@ -84,6 +85,7 @@ def send_size_analysis_webhook(
             event_name=PreprodArtifactActionType.SIZE_ANALYSIS_COMPLETED.value,
             organization_id=organization_id,
             payload=dict(payload),
+            idempotency_seed=new_webhook_seed(),
         )
     except Exception:
         logger.exception(

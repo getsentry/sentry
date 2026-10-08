@@ -11,6 +11,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.sentry_apps.tasks.sentry_apps import build_comment_webhook, workflow_notification
+from sentry.sentry_apps.utils.idempotency import new_webhook_seed
 from sentry.sentry_apps.utils.webhooks import is_subscribed
 from sentry.signals import (
     comment_created,
@@ -118,6 +119,7 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
     if "timestamp" in data:
         data["timestamp"] = data["timestamp"].isoformat()
 
+    seed = new_webhook_seed()
     for install in installations_to_notify(organization, event):
         build_comment_webhook.delay(
             installation_id=install.id,
@@ -125,6 +127,7 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
             type=event,
             user_id=coerce_id_from(user),
             data=data,
+            idempotency_seed=seed,
         )
 
 
@@ -136,6 +139,7 @@ def send_workflow_webhooks(
     data: Mapping[str, Any] | None = None,
 ) -> None:
     data = data or {}
+    seed = new_webhook_seed()
     for install in installations_to_notify(organization, event):
         event_type = backwards_compatible_event_name(install=install, event=event).split(".")[-1]
         workflow_notification.delay(
@@ -144,6 +148,7 @@ def send_workflow_webhooks(
             type=event_type,
             user_id=coerce_id_from(user),
             data=data,
+            idempotency_seed=seed,
         )
 
 

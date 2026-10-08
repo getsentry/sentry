@@ -6,6 +6,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.utils.idempotency import new_webhook_seed
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
 
@@ -90,6 +91,7 @@ def emit_pr_ready_for_review(
             event_name=SeerActionType.PR_READY_FOR_REVIEW.value,
             organization_id=organization.id,
             payload=payload,
+            idempotency_seed=new_webhook_seed(),
         )
     except Exception:
         logger.exception("autofix.pr_ready_for_review.webhook_failed", extra=log_extra)

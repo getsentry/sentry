@@ -434,6 +434,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             "eventType": "issue.assigned",
             "responseCode": 500,
             "requestId": None,
+            "idempotencyKey": None,
             "subjectId": None,
             "subjectType": None,
             "durationMs": None,
@@ -461,6 +462,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
                 event="issue.assigned",
                 url=self.published_app.webhook_url,
                 request_id="req-success",
+                idempotency_key="1" * 32,
                 subject_id="123",
                 subject_type="group",
                 duration_ms=137,
@@ -472,6 +474,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
                 event="issue.assigned",
                 url=self.published_app.webhook_url,
                 request_id="req-error",
+                idempotency_key="2" * 32,
                 subject_id="456",
                 subject_type="group",
                 duration_ms=8000,
@@ -486,11 +489,13 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         error_row, success_row = response.data[0], response.data[1]
         assert error_row["responseCode"] == 500
         assert error_row["requestId"] == "req-error"
+        assert error_row["idempotencyKey"] == "2" * 32
         assert error_row["subjectId"] == "456"
         assert error_row["subjectType"] == "group"
         assert error_row["durationMs"] == 8000
         assert success_row["responseCode"] == 200
         assert success_row["requestId"] == "req-success"
+        assert success_row["idempotencyKey"] == "1" * 32
         assert success_row["subjectId"] == "123"
         assert success_row["subjectType"] == "group"
         assert success_row["durationMs"] == 137

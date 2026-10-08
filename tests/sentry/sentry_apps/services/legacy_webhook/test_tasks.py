@@ -42,3 +42,38 @@ class TestSendLegacyWebhookTask(BaseWorkflowTest):
         body = json.loads(responses.calls[0].request.body)
         assert body["id"] == str(self.group.id)
         assert body["message"] == self.group_event.message
+
+    @responses.activate
+    def test_replayed_delivery_reuses_idempotency_key(self) -> None:
+        responses.add(responses.POST, "http://example.com/hook")
+        payload = build_legacy_webhook_payload(self.invocation)
+        seed = uuid.uuid4().hex
+
+        for _ in range(2):
+            send_legacy_webhook_task(
+                url="http://example.com/hook",
+                payload=payload,
+                idempotency_seed=seed,
+                destination_index=0,
+            )
+
+        assert len(responses.calls) == 2
+        first = responses.calls[0].request.headers["Idempotency-Key"]
+        second = responses.calls[1].request.headers["Idempotency-Key"]
+        assert first == second
+        assert len(first) == 32
+
+    @responses.activate
+    def test_seed_without_destination_index_still_sends_key(self) -> None:
+        responses.add(responses.POST, "http://example.com/hook")
+        payload = build_legacy_webhook_payload(self.invocation)
+        seed = uuid.uuid4().hex
+
+        for _ in range(2):
+            send_legacy_webhook_task(
+                url="http://example.com/hook", payload=payload, idempotency_seed=seed
+            )
+
+        assert len(responses.calls) == 2
+        first = responses.calls[0].request.headers["Idempotency-Key"]
+        assert first == responses.calls[1].request.headers["Idempotency-Key"]

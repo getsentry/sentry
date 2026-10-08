@@ -10,6 +10,7 @@ from taskbroker_client.retry import Retry
 from sentry.exceptions import RestrictedIPAddress
 from sentry.sentry_apps.services.legacy_webhook.client import LegacyWebhookClient
 from sentry.sentry_apps.services.legacy_webhook.service import LegacyWebhookPayload
+from sentry.sentry_apps.utils.idempotency import derive_idempotency_key
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -37,10 +38,23 @@ logger = logging.getLogger("sentry.legacy_webhook")
     silenced_exceptions=(RestrictedIPAddress, ConnectionError, ReadTimeout, ApiError),
     silo_mode=SiloMode.CELL,
 )
-def send_legacy_webhook_task(url: str, payload: LegacyWebhookPayload, **kwargs: Any) -> None:
+def send_legacy_webhook_task(
+    url: str,
+    payload: LegacyWebhookPayload,
+    idempotency_seed: str | None = None,
+    destination_index: int | None = None,
+    **kwargs: Any,
+) -> None:
     client = LegacyWebhookClient(payload)
+    # Configured URL entries have indexes, so duplicate entries remain distinct.
+    # For a reconstructed delivery without the index, the URL is a stable fallback.
+    destination_id = destination_index if destination_index is not None else url
+    key = derive_idempotency_key(idempotency_seed, "legacy-url", destination_id)
     try:
-        client.request(url)
+        if key is not None:
+            client.request(url, headers={"Idempotency-Key": key})
+        else:
+            client.request(url)
     except (RestrictedIPAddress, ConnectionError, ReadTimeout, ApiError):
         metrics.incr(
             "legacy_webhook.task.result",

@@ -51,6 +51,7 @@ class SentryAppRequest(TypedDict):
     request_headers: NotRequired[Mapping[str, str] | None]  # Headers sent with the webhook
     response_body: NotRequired[str | None]  # Response body from the webhook (potentially truncated)
     request_id: NotRequired[str | None]  # Maps to requestId header on webhook
+    idempotency_key: NotRequired[str | None]
     subject_id: NotRequired[str | None]  # ID for the resource denoted in subjectType
     subject_type: NotRequired[str | None]  # Resource type (e.g. Group, Event, Seer Run)
     duration_ms: NotRequired[int | None]  # Time taken to send the request
@@ -164,6 +165,7 @@ class SentryAppWebhookRequestsBuffer:
         response: Response | None = None,
         headers: Mapping[str, str] | None = None,
         request_id: str | None = None,
+        idempotency_key: str | None = None,
         subject_id: str | None = None,
         subject_type: str | None = None,
         duration_ms: int | None = None,
@@ -185,6 +187,8 @@ class SentryAppWebhookRequestsBuffer:
 
         if request_id is not None:
             request_data["request_id"] = request_id
+        if idempotency_key is not None:
+            request_data["idempotency_key"] = idempotency_key
         if subject_id is not None and subject_type is not None:
             request_data["subject_id"] = subject_id
             request_data["subject_type"] = subject_type

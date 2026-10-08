@@ -163,6 +163,36 @@ class AppPlatformEventSerializerTest(TestCase):
 
         assert result.loggable_headers["Content-Type"] == "application/json"
 
+    def test_idempotency_header_is_logged_and_overrides_custom_header(self) -> None:
+        _, event = self._event_for_app_with_headers(["Idempotency-Key: user-value"])
+        event.idempotency_key = "1234567890abcdef1234567890abcdef"
+        assert event.headers["Idempotency-Key"] == event.idempotency_key
+        assert event.loggable_headers["Idempotency-Key"] == event.idempotency_key
+        assert event.sentry_headers["Idempotency-Key"] == event.idempotency_key
+
+        _, lower_case = self._event_for_app_with_headers(["idempotency-key: spoofed"])
+        lower_case.idempotency_key = event.idempotency_key
+        assert "idempotency-key" not in lower_case.headers
+        assert "idempotency-key" not in lower_case.loggable_headers
+        assert lower_case.headers["Idempotency-Key"] == event.idempotency_key
+
+    def test_missing_idempotency_key_does_not_add_sentry_header(self) -> None:
+        result = self._issue_event()
+        assert "Idempotency-Key" not in result.sentry_headers
+
+    def test_same_delivery_reuses_key_but_not_request_id(self) -> None:
+        kwargs = {
+            "resource": SentryAppResourceType.ISSUE,
+            "action": IssueActionType.ASSIGNED,
+            "install": self.install,
+            "data": {},
+            "idempotency_key": "1234567890abcdef1234567890abcdef",
+        }
+        first = AppPlatformEvent[dict[str, Any]](**kwargs)
+        retry = AppPlatformEvent[dict[str, Any]](**kwargs)
+        assert first.headers["Idempotency-Key"] == retry.headers["Idempotency-Key"]
+        assert first.headers["Request-ID"] != retry.headers["Request-ID"]
+
     def test_sentry_headers_are_stable_across_calls(self) -> None:
         # The Request-ID/timestamp logged to the buffer must match what was sent,
         # so sentry_headers is computed once per event rather than per access.

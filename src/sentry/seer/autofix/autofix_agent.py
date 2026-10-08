@@ -87,6 +87,7 @@ from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPer
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.sentry_apps.utils.idempotency import new_webhook_seed
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import json, metrics
 
@@ -290,6 +291,7 @@ def _handle_step_started_events(
             event_name=event_name,
             organization_id=group.organization.id,
             payload=payload,
+            idempotency_seed=new_webhook_seed(),
         )
     except Exception:
         logger.exception(

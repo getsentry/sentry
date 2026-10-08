@@ -37,6 +37,7 @@ from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppIns
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.tasks.sentry_apps import installation_webhook
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.sentry_apps.utils.idempotency import derive_idempotency_key, new_webhook_seed
 from sentry.sentry_apps.utils.webhooks import InstallationActionType, SentryAppResourceType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -129,7 +130,9 @@ class SentryAppInstallationCreator:
             install.is_new = True
 
             if self.notify:
-                installation_webhook.delay(install.id, user.id)
+                installation_webhook.delay(
+                    install.id, user.id, idempotency_seed=new_webhook_seed()
+                )
 
             self.record_analytics(user=user)
             return install
@@ -199,6 +202,8 @@ class SentryAppInstallationNotifier:
     sentry_app_installation: SentryAppInstallation
     user: User | RpcUser
     action: str
+    idempotency_seed: str | None = None
+    queued_delivery: bool = False
 
     def run(self) -> None:
         if self.action not in VALID_ACTIONS:
@@ -206,6 +211,10 @@ class SentryAppInstallationNotifier:
                 f"Invalid action '{self.action} for installation notifier for {self.sentry_app}"
             )
 
+        # Direct notifications (created or deleted) always get a key. Old queued
+        # installation.created jobs remain backward-compatible without a seed.
+        if not self.queued_delivery and self.idempotency_seed is None:
+            self.idempotency_seed = new_webhook_seed()
         send_and_save_webhook_request(self.sentry_app, self.request)
 
     @property
@@ -223,6 +232,9 @@ class SentryAppInstallationNotifier:
             install=self.sentry_app_installation,
             data=SentryAppInstallationWebhookData(installation=data),
             actor=self.user,
+            idempotency_key=derive_idempotency_key(
+                self.idempotency_seed, "installation", self.sentry_app_installation.id
+            ),
         )
 
     @cached_property

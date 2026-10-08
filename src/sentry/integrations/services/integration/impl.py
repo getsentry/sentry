@@ -55,6 +55,7 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.idempotency import derive_idempotency_key, new_webhook_seed
 from sentry.sentry_apps.utils.webhooks import (
     MetricAlertActionType,
     SentryAppResourceType,
@@ -505,6 +506,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 action=MetricAlertActionType(new_status_str),
                 install=install,
                 data=json.loads(incident_attachment_json),
+                idempotency_key=derive_idempotency_key(
+                    new_webhook_seed(), "installation", install.id
+                ),
             )
 
         # Can raise errors if client returns >= 400

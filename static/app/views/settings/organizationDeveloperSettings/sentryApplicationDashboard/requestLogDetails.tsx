@@ -132,6 +132,25 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
         ),
       },
     },
+    {
+      item: {
+        key: 'idempotencyKey',
+        subject: t('Idempotency Key'),
+        value: defined(request.idempotencyKey) ? (
+          <Flex align="center" gap="sm">
+            <Text>{request.idempotencyKey}</Text>
+            <CopyToClipboardButton
+              variant="transparent"
+              size="zero"
+              text={request.idempotencyKey}
+              aria-label={t('Copy Idempotency Key')}
+            />
+          </Flex>
+        ) : (
+          EMPTY_VALUE
+        ),
+      },
+    },
     defined(request.error_id)
       ? {
           item: {

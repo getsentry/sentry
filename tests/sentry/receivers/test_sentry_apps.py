@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.issues.escalating.escalating import manage_issue_states
@@ -112,6 +112,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "now"},
+            idempotency_seed=ANY,
         )
 
     def test_notify_after_resolve_in_commit(self, delay: MagicMock) -> None:
@@ -128,6 +129,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "in_commit"},
+            idempotency_seed=ANY,
         )
 
     def test_notify_after_resolve_in_specific_release(self, delay: MagicMock) -> None:
@@ -141,6 +143,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "in_release"},
+            idempotency_seed=ANY,
         )
 
     def test_notify_after_resolve_in_latest_release(self, delay: MagicMock) -> None:
@@ -154,6 +157,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "in_release"},
+            idempotency_seed=ANY,
         )
 
     def test_notify_after_resolve_in_next_release(self, delay: MagicMock) -> None:
@@ -167,6 +171,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "in_next_release"},
+            idempotency_seed=ANY,
         )
 
     def test_notify_after_resolve_from_set_commits(self, delay: MagicMock) -> None:
@@ -204,6 +209,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=None,
             data={"resolution_type": "with_commit"},
+            idempotency_seed=ANY,
         )
 
     def test_notify_after_issue_ignored(self, delay: MagicMock) -> None:
@@ -215,6 +221,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="ignored",
             user_id=self.user.id,
             data={},
+            idempotency_seed=ANY,
         )
 
     def test_notify_pending_installation(self, delay: MagicMock) -> None:
@@ -255,6 +262,7 @@ class TestIssueAssigned(APITestCase):
                     "id": self.assignee.id,
                 }
             },
+            idempotency_seed=ANY,
         )
 
     def test_after_issue_reassigned(self, delay: MagicMock) -> None:
@@ -294,6 +302,7 @@ class TestIssueAssigned(APITestCase):
                 # Excludes email address
                 "assignee": {"type": "user", "name": self.assignee.name, "id": self.assignee.id}
             },
+            idempotency_seed=ANY,
         )
 
 
@@ -329,6 +338,7 @@ class TestComments(APITestCase):
             type="comment.created",
             user_id=self.user.id,
             data=comment_data,
+            idempotency_seed=ANY,
         )
 
     def test_comment_updated(self, delay: MagicMock) -> None:
@@ -348,6 +358,7 @@ class TestComments(APITestCase):
             type="comment.updated",
             user_id=self.user.id,
             data=data,
+            idempotency_seed=ANY,
         )
 
     def test_comment_deleted(self, delay: MagicMock) -> None:
@@ -366,6 +377,7 @@ class TestComments(APITestCase):
             type="comment.deleted",
             user_id=self.user.id,
             data=data,
+            idempotency_seed=ANY,
         )
 
 
@@ -396,4 +408,5 @@ class TestIssueWorkflowNotificationsForExactSubscription(APITestCase):
             type="ignored",
             user_id=self.user.id,
             data={},
+            idempotency_seed=ANY,
         )

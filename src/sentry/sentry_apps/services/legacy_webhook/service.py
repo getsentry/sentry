@@ -10,6 +10,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.tasks.sentry_apps import send_alert_webhook_v2
+from sentry.sentry_apps.utils.idempotency import new_webhook_seed
 from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -127,6 +128,7 @@ def send_sentry_app_webhook(
         instance_id=group_event.event_id,
         group_id=group_event.group_id,
         occurrence_id=getattr(group_event, "occurrence_id", None),
+        idempotency_seed=new_webhook_seed(),
     )
 
 
@@ -145,5 +147,8 @@ def send_legacy_webhooks_for_invocation(invocation: ActionInvocation) -> None:
         return
 
     payload = build_legacy_webhook_payload(invocation)
-    for url in urls:
-        send_legacy_webhook_task.delay(url=url, payload=payload)
+    seed = new_webhook_seed()
+    for index, url in enumerate(urls):
+        send_legacy_webhook_task.delay(
+            url=url, payload=payload, idempotency_seed=seed, destination_index=index
+        )

@@ -18,6 +18,7 @@ from sentry.rules.actions.base import EventAction
 from sentry.rules.base import CallbackFuture
 from sentry.sentry_apps.services.app import RpcSentryAppService, app_service
 from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app, send_metric_alert_webhook
+from sentry.sentry_apps.utils.idempotency import new_webhook_seed
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json, metrics
 from sentry.utils.forms import set_field_choices
@@ -89,6 +90,7 @@ def send_incident_alert_notification(
         project_id=project_id,
         alert_id=alert_context.action_identifier_id,
         notification_uuid=notification_uuid,
+        idempotency_seed=new_webhook_seed(),
     )
 
 

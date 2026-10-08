@@ -15,6 +15,7 @@ def serialize_rpc_sentry_app_request(request: SentryAppRequest) -> RpcSentryAppR
         request_headers=request.get("request_headers"),
         response_body=request.get("response_body"),
         request_id=request.get("request_id"),
+        idempotency_key=request.get("idempotency_key"),
         subject_id=request.get("subject_id"),
         subject_type=request.get("subject_type"),
         duration_ms=request.get("duration_ms"),

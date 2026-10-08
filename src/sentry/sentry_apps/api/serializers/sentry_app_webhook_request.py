@@ -40,6 +40,7 @@ class SentryAppWebhookRequestSerializerResponse(TypedDict):
     request_headers: NotRequired[Mapping[str, str] | None]
     response_body: NotRequired[str | None]
     requestId: NotRequired[str | None]
+    idempotencyKey: NotRequired[str | None]
     subjectId: NotRequired[str | None]
     subjectType: NotRequired[str | None]
     durationMs: NotRequired[int | None]
@@ -87,6 +88,7 @@ class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerial
             "date": obj.data.date,
             "responseCode": response_code,
             "requestId": obj.data.request_id,
+            "idempotencyKey": obj.data.idempotency_key,
             "subjectId": obj.data.subject_id,
             "subjectType": obj.data.subject_type,
             "durationMs": obj.data.duration_ms,

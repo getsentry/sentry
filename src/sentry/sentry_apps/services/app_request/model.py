@@ -23,6 +23,7 @@ class RpcSentryAppRequest(RpcModel):
     request_headers: Mapping[str, str] | None = Field(repr=False, default=None)
     response_body: str | None = None
     request_id: str | None = None
+    idempotency_key: str | None = None
     subject_id: str | None = None
     subject_type: str | None = None
     duration_ms: int | None = None

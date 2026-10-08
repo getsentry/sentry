@@ -358,6 +358,7 @@ export type SentryAppWebhookRequest = {
   };
   project_id?: number | null;
   requestId?: string | null;
+  idempotencyKey?: string | null;
   request_body?: string | null;
   /**
    * Values of custom headers are masked before they reach the buffer, so only

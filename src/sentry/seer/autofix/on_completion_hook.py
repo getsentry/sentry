@@ -72,6 +72,7 @@ from sentry.seer.models import (
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.sentry_apps.utils.idempotency import new_webhook_seed
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
 from sentry.viewer_context import get_viewer_context
@@ -425,6 +426,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 event_name=event_name,
                 organization_id=organization.id,
                 payload=webhook_payload,
+                idempotency_seed=new_webhook_seed(),
             )
         except Exception:
             logger.exception(
