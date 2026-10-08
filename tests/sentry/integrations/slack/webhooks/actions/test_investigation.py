@@ -247,6 +247,9 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert post_kwargs["channel"] == CHANNEL_ID
         assert post_kwargs["thread_ts"] == MESSAGE_TS
         assert link in str(post_kwargs["blocks"])
+        assert post_kwargs["text"] == (
+            f"<@{self.external_id}> started a Seer investigation for this alert."
+        )
 
         assert SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
             entrypoint_key="slack", investigation_id=investigation.id

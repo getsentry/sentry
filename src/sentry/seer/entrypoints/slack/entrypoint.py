@@ -772,7 +772,7 @@ class SlackInvestigationEntrypoint(
             organization_id=self.organization.id,
         ).capture() as lifecycle:
             lifecycle.add_extras({"channel_id": self.channel_id, "thread_ts": self.thread_ts})
-            text = "Seer started investigating this alert."
+            text = f"<@{self.slack_user_id}> started a Seer investigation for this alert."
             try:
                 response = self.install.send_threaded_message(
                     channel_id=self.channel_id,
