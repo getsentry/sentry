@@ -5,6 +5,7 @@ import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -618,6 +619,14 @@ describe('ProjectFilters', () => {
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.queryByText('99')).not.toBeInTheDocument();
 
+    // The chart is a canvas, so the cell describes the trend for assistive technology.
+    expect(
+      screen.getByRole('img', {name: 'Filtered volume trend, peak 10'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {name: 'Filtered volume trend, peak 0'})
+    ).toBeInTheDocument();
+
     // Byte categories report the same data a second time, in bytes, so the request
     // has to ask for the counting categories alone.
     expect(statsMock).toHaveBeenCalledWith(
@@ -699,6 +708,12 @@ describe('ProjectFilters', () => {
     expect(screen.queryByText('4.*')).not.toBeInTheDocument();
     expect(screen.getByText('2 more')).toBeInTheDocument();
     expect(screen.getAllByText('or')).toHaveLength(3);
+
+    // The folded values open from the keyboard, not only on hover.
+    expect(screen.getByText('2 more')).toHaveAttribute('tabindex', '0');
+    act(() => screen.getByText('2 more').focus());
+    expect(await screen.findByText('4.*')).toBeInTheDocument();
+    expect(screen.getByText('5.*')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
     expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
