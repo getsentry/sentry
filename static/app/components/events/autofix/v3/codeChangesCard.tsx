@@ -276,6 +276,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
               <FileDiffViewer
                 key={index}
                 patch={patch.patch}
+                fileUrl={patch.code_url}
                 showBorder
                 collapsible
                 defaultExpanded={shouldExpandDiffs}
