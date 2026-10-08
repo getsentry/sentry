@@ -386,7 +386,7 @@ function IntegrationSummary({installation}: {installation: ScmInstallation}) {
   const {integration} = installation;
   return (
     <Fragment>
-      {getIntegrationIcon(integration.provider.key, 'sm')}
+      {getIntegrationIcon(integration.provider?.key, 'sm')}
       <Text bold>{integration.name}</Text>
       {integration.status === 'disabled' && <Tag variant="warning">{t('Disabled')}</Tag>}
     </Fragment>
