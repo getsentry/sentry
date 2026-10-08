@@ -278,6 +278,50 @@ describe('IssueListActions', () => {
           })
         );
       });
+
+      it('shows the validation message returned by the API when the update fails', async () => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+          statusCode: 400,
+          body: {
+            statusDetails: {
+              inNextRelease: [
+                "No release data present in the system to form a basis for 'Next Release'",
+              ],
+            },
+          },
+        });
+
+        render(
+          <WrappedComponent groupIds={['1', '2', '3', '6', '9']} selectedIds={['1']} />
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+        expect(
+          await screen.findByText(
+            "Unable to update issues: No release data present in the system to form a basis for 'Next Release'"
+          )
+        ).toBeInTheDocument();
+      });
+
+      it('shows a generic message when the failed update has no error details', async () => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+          statusCode: 500,
+          body: {},
+        });
+
+        render(
+          <WrappedComponent groupIds={['1', '2', '3', '6', '9']} selectedIds={['1']} />
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+        expect(await screen.findByText('Unable to update issues')).toBeInTheDocument();
+      });
     });
   });
 
