@@ -145,7 +145,7 @@ jobs:
       contents: read
     uses: ./.github/workflows/prune-oxlint-suppressions.yml
     secrets:
-      SENTRY_RELEASE_BOT_PRIVATE_KEY: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+      SENTRY_INTERNAL_APP_PRIVATE_KEY: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
