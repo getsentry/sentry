@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
@@ -112,32 +112,34 @@ function getIsLive(
 }
 
 export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
-  // `Date.now()` is impure and can't be read while rendering
-  // (pure-render-functions), so we use a lazy initializer here.
-  const [isLive, setIsLive] = useState(() => getIsLive(startedAt, finishedAt));
-
-  const {start: startTimeout} = useTimeout({
-    timeMs: 0,
-    onTimeout: () => {
-      setIsLive(false);
-    },
-  });
-
-  // `getLiveDurationMs` calls `Date.now()` internally, so it must not be
-  // called during render (pure-render-functions). Compute it inside the
-  // effect and pass the result to `startTimeout`.
+  // Whether a replay is live is not this component's state: it is the wall
+  // clock read against the replay's times, and it changes on its own at a
+  // moment nothing renders. Subscribing schedules that moment, and the
+  // snapshot reads `Date.now()` outside render, where it is allowed
+  // (pure-render-functions).
   //
-  // The initializer only ran on mount, so a caller that renders before its
-  // replay record has loaded would otherwise keep the answer it got from the
-  // empty times it passed then, and never go live.
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    setIsLive(getIsLive(startedAt, finishedAt));
-    startTimeout(getLiveDurationMs(finishedAt));
-  }, [startTimeout, startedAt, finishedAt]);
+  // Holding it in `useState` instead meant the answer was fixed when the hook
+  // mounted, so a caller that rendered before its replay record loaded passed
+  // empty times once and never went live.
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const remainingMs = getLiveDurationMs(finishedAt);
+      if (remainingMs <= 0) {
+        return () => {};
+      }
+      const timeout = setTimeout(onStoreChange, remainingMs);
+      return () => clearTimeout(timeout);
+    },
+    [finishedAt]
+  );
+
+  const getSnapshot = useCallback(
+    () => getIsLive(startedAt, finishedAt),
+    [startedAt, finishedAt]
+  );
 
   return {
-    isLive,
+    isLive: useSyncExternalStore(subscribe, getSnapshot, getSnapshot),
   };
 }
 
