@@ -1,10 +1,15 @@
 from unittest.mock import MagicMock, patch
 
+import orjson
+from django.test import override_settings
+from urllib3.response import HTTPResponse
+
 from sentry.api.endpoints.project_custom_inbound_filters import (
     MAX_CONDITION_VALUE_CHARS_PER_FILTER,
 )
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 SEER_PATH = "sentry.api.endpoints.project_custom_inbound_filter_validate.run_oneshot"
 
@@ -25,8 +30,13 @@ class CustomInboundFilterValidateTest(APITestCase):
         self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.login_as(user=self.user)
 
-    @patch(SEER_PATH, return_value={"name": "Flaky connection errors"})
-    def test_valid_definition_gets_a_name(self, mock_request: MagicMock) -> None:
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_valid_definition_gets_a_name(self, mock_urlopen: MagicMock) -> None:
+        mock_urlopen.return_value = HTTPResponse(
+            orjson.dumps({"result": {"name": "Flaky connection errors"}}), status=200
+        )
+
         with self.feature(self.features):
             response = self.get_success_response(
                 self.organization.slug,
@@ -39,18 +49,25 @@ class CustomInboundFilterValidateTest(APITestCase):
             )
 
         assert response.data == {"errors": {}, "suggestedName": "Flaky connection errors"}
-        mock_request.assert_called_once_with(
-            "inbound_filter_name",
-            {
+        assert orjson.loads(mock_urlopen.call_args.kwargs["body"]) == {
+            "oneshot_id": "inbound_filter_name",
+            "payload": {
                 "data_type": "error",
                 "conditions": [
                     {"type": "error_message", "value": ["*ConnectionReset*", "*ETIMEDOUT*"]},
                     {"type": "release", "value": ["3.*"]},
                 ],
             },
-            self.organization,
+        }
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
             user_id=self.user.id,
-            timeout=10,
+            actor_type=ActorType.USER,
         )
 
     @patch(SEER_PATH, return_value={"name": "  Padded name  "})

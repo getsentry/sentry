@@ -216,7 +216,6 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^auth/signup/verify-email/sso/[^/]+/$'),
   new RegExp('^auth/close/$'),
   new RegExp('^login-redirect/$'),
-  new RegExp('^account/sudo/$'),
   new RegExp('^account/confirm-email/$'),
   new RegExp('^account/confirm-email/[^/]+/[^/]+/$'),
   new RegExp('^account/confirm-signed-email/[^/]+/$'),
