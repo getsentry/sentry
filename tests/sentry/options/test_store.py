@@ -269,7 +269,7 @@ class ApplicationStateTest(TestCase):
         ]
         for invalid_name in invalid_names:
             # Exercise runtime validation with names outside the typed contract.
-            name = cast(application_state.StateKey, invalid_name)
+            name = cast(application_state.StringStateKey, invalid_name)
             with self.subTest(name=name):
                 with pytest.raises(ValueError, match="Unknown application state key"):
                     application_state.get(name)
