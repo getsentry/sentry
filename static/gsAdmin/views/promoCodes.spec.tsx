@@ -7,9 +7,13 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+
 import type {PromoCode as PromoCodeType} from 'admin/types';
 import {PromoCodeDetails} from 'admin/views/promoCodeDetails';
 import {PromoCodes} from 'admin/views/promoCodes';
+
+jest.mock('sentry/actionCreators/indicator');
 
 function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
   return {
@@ -132,6 +136,7 @@ describe('PromoCodes', () => {
     expect(screen.getByRole('heading', {name: 'Add New Promo Code'})).toBeInTheDocument();
     await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
     await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
     await waitFor(() => expect(create).toHaveBeenCalled());
@@ -145,6 +150,55 @@ describe('PromoCodes', () => {
         }),
       })
     );
+    expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('trialDays');
+  });
+
+  it('shows non-field API errors when saving fails', async () => {
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
+    MockApiClient.addMockResponse({
+      url: '/promocodes/',
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        non_field_errors: ['You must specify one and only one of Amount or Trial Days'],
+      },
+    });
+    render(<PromoCodes />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    await waitFor(() =>
+      expect(addErrorMessage).toHaveBeenCalledWith(
+        'You must specify one and only one of Amount or Trial Days'
+      )
+    );
+  });
+
+  it('shows field API errors beside the relevant field', async () => {
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
+    MockApiClient.addMockResponse({
+      url: '/promocodes/',
+      method: 'POST',
+      statusCode: 400,
+      body: {amount: ['Amount exceeds the allowed limit']},
+    });
+    render(<PromoCodes />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    expect(
+      await screen.findByText('Amount exceeds the allowed limit')
+    ).toBeInTheDocument();
   });
 
   it('submits the selected expiration date', async () => {
@@ -160,6 +214,7 @@ describe('PromoCodes', () => {
     renderGlobalModal();
     await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
     await userEvent.click(
       screen.getByLabelText('Set an expiration date for the promo code?')
     );
@@ -190,6 +245,7 @@ describe('PromoCodes', () => {
     renderGlobalModal();
     await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
     await userEvent.click(
       screen.getByLabelText('Set an expiration date for the promo code?')
     );
@@ -214,6 +270,7 @@ describe('PromoCodes', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
     renderGlobalModal();
     await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
     const maxClaims = screen.getByRole('spinbutton', {name: 'Max claims'});
     await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
@@ -252,13 +309,19 @@ describe('PromoCodes', () => {
     renderGlobalModal();
     await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
     await userEvent.click(screen.getByLabelText('Create trial promo code?'));
     const trialDays = screen.getByRole('spinbutton', {name: 'Trial Days'});
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    expect(await screen.findByText('Trial Days is required')).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+
     await userEvent.type(trialDays, '1.5');
     await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
     expect(
-      await screen.findByText('Trial Days must be a whole number')
+      await screen.findByText('Trial Days must be a positive whole number')
     ).toBeInTheDocument();
     expect(create).not.toHaveBeenCalled();
 
@@ -271,6 +334,7 @@ describe('PromoCodes', () => {
       '/promocodes/',
       expect.objectContaining({data: expect.objectContaining({trialDays: '30'})})
     );
+    expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('amount');
   });
 
   it('accepts a decimal amount and rejects negative amounts', async () => {
@@ -287,10 +351,17 @@ describe('PromoCodes', () => {
     await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
     const amount = screen.getByRole('spinbutton', {name: 'Amount'});
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    expect(await screen.findByText('Amount is required')).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+
     await userEvent.type(amount, '-1');
     await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
-    expect(await screen.findByText('Amount must be zero or greater')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Amount must be greater than zero')
+    ).toBeInTheDocument();
     expect(create).not.toHaveBeenCalled();
 
     await userEvent.clear(amount);

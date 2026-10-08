@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
@@ -12,6 +12,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {PromoCode} from 'admin/types';
@@ -21,27 +22,49 @@ type Props = ModalRenderProps & {
   promoCode?: PromoCode;
 };
 
-const promoCodeSchema = z.object({
-  code: z.string().min(5, 'Code must be at least 5 characters'),
-  campaign: z.string(),
-  isTrialPromo: z.boolean(),
-  duration: z.string(),
-  amount: z.number().nonnegative('Amount must be zero or greater').nullable(),
-  trialDays: z
-    .number()
-    .int('Trial Days must be a whole number')
-    .positive('Trial Days must be greater than zero')
-    .nullable(),
-  maxClaims: z
-    .number()
-    .int('Max claims must be a whole number')
-    .positive('Max claims must be greater than zero')
-    .nullable()
-    .refine(value => value !== null, 'Max claims is required'),
-  newOnly: z.boolean(),
-  setExpiration: z.boolean(),
-  dateExpires: z.string(),
-});
+const promoCodeSchema = z
+  .object({
+    code: z.string().min(5, 'Code must be at least 5 characters'),
+    campaign: z.string(),
+    isTrialPromo: z.boolean(),
+    duration: z.string(),
+    amount: z.number().nullable(),
+    trialDays: z.number().nullable(),
+    maxClaims: z
+      .number()
+      .int('Max claims must be a whole number')
+      .positive('Max claims must be greater than zero')
+      .nullable()
+      .refine(value => value !== null, 'Max claims is required'),
+    newOnly: z.boolean(),
+    setExpiration: z.boolean(),
+    dateExpires: z.string(),
+  })
+  .superRefine((values, context) => {
+    if (values.isTrialPromo) {
+      if (values.trialDays === null) {
+        context.addIssue({
+          code: 'custom',
+          path: ['trialDays'],
+          message: 'Trial Days is required',
+        });
+      } else if (!Number.isInteger(values.trialDays) || values.trialDays <= 0) {
+        context.addIssue({
+          code: 'custom',
+          path: ['trialDays'],
+          message: 'Trial Days must be a positive whole number',
+        });
+      }
+    } else if (values.amount === null) {
+      context.addIssue({code: 'custom', path: ['amount'], message: 'Amount is required'});
+    } else if (values.amount <= 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['amount'],
+        message: 'Amount must be greater than zero',
+      });
+    }
+  });
 
 const durationOptions = Array.from({length: 12}, (_, index) => ({
   value: String(index + 1),
@@ -58,21 +81,24 @@ export function AddPromoCodeModal({
 }: Props) {
   const navigate = useNavigate();
   const mutation = useMutation({
-    mutationFn: (values: z.infer<typeof promoCodeSchema>) =>
-      fetchMutation<PromoCode>({
+    mutationFn: (values: z.infer<typeof promoCodeSchema>) => {
+      const {amount, trialDays, ...otherValues} = values;
+      return fetchMutation<PromoCode>({
         url: promoCode
           ? getApiUrl('/promocodes/$code/', {path: {code: promoCode.code}})
           : getApiUrl('/promocodes/'),
         method: promoCode ? 'PUT' : 'POST',
         data: {
-          ...values,
-          amount: values.amount === null ? '' : String(values.amount),
-          trialDays: values.trialDays === null ? '' : String(values.trialDays),
+          ...otherValues,
+          ...(values.isTrialPromo
+            ? {trialDays: String(trialDays)}
+            : {amount: String(amount)}),
           maxClaims: String(values.maxClaims),
           dateExpires:
             values.setExpiration && values.dateExpires ? values.dateExpires : null,
         },
-      }),
+      });
+    },
     onSuccess: newCode => {
       onSubmit?.(newCode);
       if (promoCode) {
@@ -82,9 +108,26 @@ export function AddPromoCodeModal({
       }
     },
     onError: error => {
-      const detail =
-        error instanceof RequestError ? error.responseJSON?.detail : undefined;
-      addErrorMessage(typeof detail === 'string' ? detail : 'Unable to save promo code.');
+      if (error instanceof RequestError) {
+        const hasFieldErrors = setFieldErrors(
+          form,
+          requestErrorToFieldErrors(error, form.state.values)
+        );
+        const response = error.responseJSON;
+        const nonFieldErrors = response?.non_field_errors ?? response?.nonFieldErrors;
+        if (Array.isArray(nonFieldErrors) && nonFieldErrors.length > 0) {
+          addErrorMessage(nonFieldErrors.join(' '));
+          return;
+        }
+        if (hasFieldErrors) {
+          return;
+        }
+        if (typeof response?.detail === 'string') {
+          addErrorMessage(response.detail);
+          return;
+        }
+      }
+      addErrorMessage('Unable to save promo code.');
     },
   });
   const form = useScrapsForm({
@@ -157,7 +200,7 @@ export function AddPromoCodeModal({
               isTrialPromo ? (
                 <form.AppField name="trialDays">
                   {field => (
-                    <field.Layout.Stack label="Trial Days">
+                    <field.Layout.Stack label="Trial Days" required>
                       <field.Number
                         min={1}
                         step={1}
@@ -187,7 +230,7 @@ export function AddPromoCodeModal({
                   </form.AppField>
                   <form.AppField name="amount">
                     {field => (
-                      <field.Layout.Stack label="Amount">
+                      <field.Layout.Stack label="Amount" required>
                         <field.Number
                           step="any"
                           value={field.state.value}
