@@ -418,15 +418,12 @@ describe('PromoCodes', () => {
     expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('duration');
   });
 
-  it('omits blank trial days and shows the API requirement', async () => {
+  it('requires trial days before submitting a trial promo', async () => {
     MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
     const create = MockApiClient.addMockResponse({
       url: '/promocodes/',
       method: 'POST',
-      statusCode: 400,
-      body: {
-        non_field_errors: ['You must specify one and only one of Amount or Trial Days'],
-      },
+      body: PromoCodeFixture({amount: '0.00', trialDays: 30}),
     });
     render(<PromoCodes />);
 
@@ -437,14 +434,8 @@ describe('PromoCodes', () => {
     await userEvent.click(screen.getByLabelText('Create trial promo code?'));
     await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
-    await waitFor(() => expect(create).toHaveBeenCalled());
-    expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('amount');
-    expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('trialDays');
-    await waitFor(() =>
-      expect(addErrorMessage).toHaveBeenCalledWith(
-        'You must specify one and only one of Amount or Trial Days'
-      )
-    );
+    expect(await screen.findByText('Trial Days is required')).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
   });
 
   it('accepts a decimal amount and rejects negative amounts', async () => {
