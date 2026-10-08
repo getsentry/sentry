@@ -42,7 +42,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CustomFilters} from './customFilters';
-import {ErrorMessageFilterWarning} from './errorMessageFilterWarning';
 
 const filterDescriptions = {
   'browser-extensions': {
@@ -501,7 +500,11 @@ function CustomFiltersForm({
                 )}
 
                 {hasFeature && project.options?.['filters:error_messages'] && (
-                  <ErrorMessageFilterWarning project={project} />
+                  <PanelAlert variant="warning" data-test-id="error-message-disclaimer">
+                    {t(
+                      "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
+                    )}
+                  </PanelAlert>
                 )}
               </Fragment>
             )}
