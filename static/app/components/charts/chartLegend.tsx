@@ -44,10 +44,12 @@ interface ChartLegendProps {
  * ## Layout
  *
  * All legend items are always rendered in the DOM. Items that overflow are
- * hidden with `visibility: hidden` so they still contribute to width
- * measurement. A `ResizeObserver` (via `useDimensions`) on the wrapper
- * re-measures whenever available space changes, and overflowed items are
- * shown in a dropdown trigger instead.
+ * hidden and positioned absolutely, so they can still be measured without
+ * taking up room in the row. The items container shrinks to the visible
+ * items, which keeps the trigger right next to the last one. A
+ * `ResizeObserver` (via `useDimensions`) on the wrapper re-measures whenever
+ * available space changes, and overflowed items are shown in a dropdown
+ * trigger instead.
  *
  * The overflow trigger button is also always in the DOM — when there's no
  * overflow, it's positioned absolutely and hidden so it doesn't affect
@@ -203,7 +205,10 @@ export function ChartLegend({
         gap={INNER_GAP}
         wrap="nowrap"
         data-test-id="legend-items"
-        style={{overflow: 'hidden', minWidth: 0, flex: 1}}
+        // Sized to the visible items rather than the full row, so the `+N more`
+        // trigger sits right after the last visible item instead of at the far
+        // end of the legend.
+        style={{overflow: 'hidden', minWidth: 0, flex: '0 1 auto', position: 'relative'}}
       >
         {items.map(item => (
           <LegendItemButton
@@ -211,9 +216,7 @@ export function ChartLegend({
             align="center"
             gap="xs"
             flexShrink={0}
-            style={{
-              visibility: overflowSet.has(item.name) ? 'hidden' : 'visible',
-            }}
+            style={overflowSet.has(item.name) ? HIDDEN_ITEM_STYLE : undefined}
             onClick={() => toggleItem(item.name)}
             role="button"
             aria-label={t('Toggle %s', item.label)}
@@ -293,6 +296,21 @@ const MAX_LABEL_WIDTH = 180;
  * extra digit so the reserved space is always sufficient.
  */
 const TRIGGER_WIDTH_BUFFER = 10;
+
+/**
+ * Overflowed items stay in the DOM so they can still be measured, but are
+ * taken out of the flow so they don't push the trigger away from the visible
+ * items. `max-content` keeps their measured width independent of how narrow
+ * the items container has become.
+ */
+const HIDDEN_ITEM_STYLE: React.CSSProperties = {
+  visibility: 'hidden',
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: 'max-content',
+  pointerEvents: 'none',
+};
 
 const HIDDEN_TRIGGER_STYLE: React.CSSProperties = {
   visibility: 'hidden',

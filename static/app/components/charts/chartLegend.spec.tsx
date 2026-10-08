@@ -194,6 +194,23 @@ describe('ChartLegend', () => {
     expect(screen.getByText('+1 more')).toBeVisible();
   });
 
+  it('takes overflowed items out of the row so the trigger sits next to the visible items', () => {
+    mockDimensions(258);
+    jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        return {width: this.tagName === 'BUTTON' ? 60 : 80} as DOMRect;
+      });
+
+    render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
+
+    expect(screen.getByTestId('legend-items')).not.toHaveStyle({flexGrow: '1'});
+    expect(screen.getByLabelText('Toggle Series C')).toHaveStyle({position: 'absolute'});
+    expect(screen.getByLabelText('Toggle Series A')).not.toHaveStyle({
+      position: 'absolute',
+    });
+  });
+
   it('does not crash at exact boundary conditions', () => {
     // Width that barely fits 2 items (80 + 8 + 80 = 168) but not with trigger
     // space for the third. This is the boundary where oscillation used to occur.
