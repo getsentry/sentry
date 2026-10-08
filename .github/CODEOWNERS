@@ -185,11 +185,11 @@ requirements*.txt                                        @getsentry/owners-pytho
 pyproject.toml                                           @getsentry/owners-python-build
 .oxfmtrc.json                                            @getsentry/owners-js-build
 vercel.json                                              @getsentry/owners-js-build
-/.github/workflows/frontend.yml                          @getsentry/owners-js-build
+/.github/workflows/frontend.yml                          @getsentry/design-engineering
 /.github/file-filters.yml                                @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 oxlint.config.ts                                         @getsentry/owners-js-build
-oxlint-suppressions.json                                 @getsentry/owners-js-build
+oxlint-suppressions.json                                 @getsentry/design-engineering
 /scripts/custom-oxlint.ts                                @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build

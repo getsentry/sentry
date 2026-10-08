@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {
+  appendFileSync,
   cpSync,
   existsSync,
   linkSync,
@@ -393,9 +394,14 @@ function committedBudgets(base: string, allowed?: Set<string>) {
 }
 
 // Merges that are not up to date with master can each prune budgets independently,
-// so master can carry budgets above live debt. That slack is never a new violation,
-// so only a change that touched the stale file or budget has to prune it.
-function staleBudgets(committed: Suppressions, counts: Suppressions, base?: string) {
+// so master can carry budgets above live debt. That inherited slack is not new debt.
+// A change must prune only budgets it edited and reductions in live debt since the
+// base, including reductions caused indirectly by edits to other files.
+function staleBudgets(
+  committed: Suppressions,
+  counts: Suppressions,
+  base?: {counts: Suppressions; ref: string}
+) {
   const stale: Array<{count: number; file: string; rule: string}> = [];
   for (const [file, rules] of Object.entries(committed)) {
     for (const [rule, {count}] of Object.entries(rules)) {
@@ -404,17 +410,19 @@ function staleBudgets(committed: Suppressions, counts: Suppressions, base?: stri
       }
     }
   }
-  const changes = base ? new Set(changedFiles(base)) : undefined;
-  const baseBudgets = base ? committedBudgets(base) : undefined;
-  const describe = ({file, rule, count}: (typeof stale)[number]) =>
-    `${file} ${rule}: budget ${count}, ${counts[file]?.[rule]?.count ?? 0} violations`;
+  const live = (file: string, rule: string) => counts[file]?.[rule]?.count ?? 0;
+  const baseBudgets = base && stale.length > 0 ? committedBudgets(base.ref) : undefined;
+  if (base && baseBudgets) {
+    transferRenames(base.ref, baseBudgets);
+  }
   const owned = stale.filter(
     ({file, rule, count}) =>
-      changes !== undefined &&
-      (baseBudgets === undefined ||
-        changes.has(file) ||
-        baseBudgets[file]?.[rule]?.count !== count)
+      base !== undefined &&
+      (baseBudgets?.[file]?.[rule]?.count !== count ||
+        live(file, rule) < (base.counts[file]?.[rule]?.count ?? 0))
   );
+  const describe = ({file, rule, count}: (typeof stale)[number]) =>
+    `${file} ${rule}: budget ${count}, ${live(file, rule)} violations`;
   return {
     owned: owned.map(describe),
     inherited: stale.filter(entry => !owned.includes(entry)).map(describe),
@@ -557,8 +565,8 @@ Put a maintenance flag first. Maintenance always scans all files.
                           Defaults to the merge base of HEAD and origin/master.
   --ci [--base REF]        Verify committed budgets match live debt and fit REF.
                           Reuse verified REF budgets unless lint policy changed.
-                          Stale budgets fail only for files or budgets changed
-                          since REF, and only warn without --base.
+                          Stale budgets fail only for edited budgets or debt
+                          reduced since REF, and only warn without --base.
   --enroll --base REF      Enroll rules using trusted source at REF.
   --prune                 Reduce remaining budgets with a full type-aware scan.
   --backlog [--rule RULE] [--file PATH] [--json]
@@ -755,20 +763,20 @@ Native oxlint options:
         fits(current.counts, reduced, current.findings);
         replacement = reduced;
       } else {
-        let base: string | undefined;
+        let base: {counts: Suppressions; ref: string} | undefined;
         if (command !== 'ci' || values.base) {
           let ref = values.base;
           if (!ref) {
             ref = git(root, ['merge-base', 'HEAD', revision('origin/master')]);
           }
-          base = revision(ref);
-          fits(
-            current.counts,
-            await (command === 'ci'
-              ? ciBaseline(base, allowed, policy)
-              : baseScan(base, allowed, policy)),
-            current.findings
-          );
+          ref = revision(ref);
+          base = {
+            ref,
+            counts: await (command === 'ci'
+              ? ciBaseline(ref, allowed, policy)
+              : baseScan(ref, allowed, policy)),
+          };
+          fits(current.counts, base.counts, current.findings);
         }
         if (command === 'enroll') {
           replacement = current.counts;
@@ -787,8 +795,16 @@ Native oxlint options:
           }
           if (inherited.length > 0) {
             warn(
-              'Ignoring stale suppression budgets this change did not touch. Prune them separately with pnpm run lint:js --prune.',
+              'Ignoring stale suppression budgets inherited from the base. Prune them separately with pnpm run lint:js --prune.',
               inherited
+            );
+          }
+          // Only exact budgets equal live debt, so only they may be reused as a verified
+          // baseline by find-verified-lint-base.js.
+          if (process.env.GITHUB_OUTPUT) {
+            appendFileSync(
+              process.env.GITHUB_OUTPUT,
+              `budgets=${inherited.length > 0 ? 'stale' : 'exact'}\n`
             );
           }
         }

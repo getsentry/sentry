@@ -37,7 +37,7 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
   );
   const git = (...args: string[]) =>
     execFileSync('git', ['-C', directory, ...args], {encoding: 'utf8'}).trim();
-  const env = {...process.env, SENTRY_OXLINT_VERIFIED_BASE: ''};
+  const env = {...process.env, GITHUB_OUTPUT: '', SENTRY_OXLINT_VERIFIED_BASE: ''};
   const lint = (...args: string[]) =>
     spawnSync(process.execPath, [runner, ...args], {
       cwd: directory,
@@ -322,52 +322,86 @@ test('CI scans head once and rejects increased or stale budgets', t => {
 });
 
 test('CI only warns about stale budgets inherited from the base', t => {
-  const {write, commit, lint, ci} = ciFixture(t);
+  const {directory, write, commit, lint, ci, env} = ciFixture(t);
+  const output = '.artifacts/github-output';
+  const budgets = () => readFileSync(path.join(directory, output), 'utf8').trim();
+  env.GITHUB_OUTPUT = path.join(directory, output);
   write('source.js', '');
-  write('other.js', 'debugger;\n');
-  write(
-    'oxlint-suppressions.json',
-    JSON.stringify({
-      'source.js': {'no-debugger': {count: 1}},
-      'other.js': {'no-debugger': {count: 1}},
-    })
-  );
   commit();
+  write(output, '');
   const master = lint('--ci');
   assert.equal(master.status, 0, master.stderr);
   assert.match(master.stderr, /Ignoring stale suppression budgets/);
   assert.match(master.stderr, /source.js no-debugger: budget 1, 0 violations/);
   assert.match(master.stdout, /Incubator ratchet passed/);
-  write('unrelated.js', 'void 0;\n');
-  const unrelated = ci(1);
-  assert.equal(unrelated.status, 0, unrelated.stderr);
-  assert.match(unrelated.stderr, /Ignoring stale suppression budgets/);
-  assert.doesNotMatch(unrelated.stderr, /other.js/);
-  write('other.js', '');
-  write(
-    'oxlint-suppressions.json',
-    JSON.stringify({'source.js': {'no-debugger': {count: 1}}})
-  );
-  const pruned = ci(1);
-  assert.equal(pruned.status, 0, pruned.stderr);
-  assert.match(pruned.stderr, /source.js no-debugger: budget 1, 0 violations/);
+  assert.equal(budgets(), 'budgets=stale');
+  // A stale base cannot be verified, so each PR check scans the base.
   write('source.js', 'void 0;\n');
-  const touched = ci(1);
-  assert.equal(touched.status, 1, touched.stderr);
-  assert.match(touched.stderr, /Suppression budgets are stale/);
-  assert.match(touched.stderr, /source.js no-debugger: budget 1, 0 violations/);
+  write(output, '');
+  const unrelated = ci(2, '');
+  assert.equal(unrelated.status, 0, unrelated.stderr);
+  assert.match(unrelated.stderr, /source.js no-debugger: budget 1, 0 violations/);
+  assert.equal(budgets(), 'budgets=stale');
+  write('source.js', 'debugger;\n');
+  const refill = ci(2, '');
+  assert.equal(refill.status, 1, refill.stderr);
+  assert.match(refill.stderr, /source.js no-debugger: 1 violations, budget 0/);
   write('source.js', '');
-  write('other.js', 'debugger;\n');
   write(
     'oxlint-suppressions.json',
+    JSON.stringify({'source.js': {'no-debugger': {count: 2}}})
+  );
+  const edited = ci(2, '');
+  assert.equal(edited.status, 1, edited.stderr);
+  assert.match(edited.stderr, /Suppression budgets are stale/);
+  assert.match(edited.stderr, /source.js no-debugger: budget 2, 0 violations/);
+  write('oxlint-suppressions.json', '{}');
+  write(output, '');
+  const pruned = ci(2, '');
+  assert.equal(pruned.status, 0, pruned.stderr);
+  assert.doesNotMatch(pruned.stderr, /stale/);
+  assert.equal(budgets(), 'budgets=exact');
+});
+
+test('CI requires pruning debt reduced indirectly by another file', t => {
+  const {write, lint, commit, env} = fixture(t);
+  write('pnpm-workspace.yaml', 'packages: []');
+  write('types.d.ts', 'declare function run(): Promise<void>;\n');
+  write('index.ts', 'run();\n');
+  write(
+    'tsconfig.json',
     JSON.stringify({
-      'source.js': {'no-debugger': {count: 2}},
-      'other.js': {'no-debugger': {count: 1}},
+      compilerOptions: {strict: true, target: 'ESNext', module: 'NodeNext'},
+      include: ['*.ts'],
     })
   );
-  const edited = ci(1);
-  assert.equal(edited.status, 1, edited.stderr);
-  assert.match(edited.stderr, /source.js no-debugger: budget 2, 0 violations/);
+  write(
+    'oxlint.config.ts',
+    `
+    export const incubator = {rules: {'typescript/no-floating-promises': 'error'}};
+    export default {
+      plugins: ['typescript'],
+      categories: {correctness: 'off'},
+      options: {typeAware: true},
+      ...incubator,
+    };
+  `
+  );
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({'index.ts': {'typescript/no-floating-promises': {count: 1}}})
+  );
+  commit();
+  env.SENTRY_OXLINT_VERIFIED_BASE = '';
+  assert.equal(lint('--ci', '--base', 'HEAD').status, 0);
+  write('types.d.ts', 'declare function run(): void;\n');
+  const reduced = lint('--ci', '--base', 'HEAD');
+  assert.equal(reduced.status, 1, reduced.stdout + reduced.stderr);
+  assert.match(reduced.stderr, /Suppression budgets are stale/);
+  assert.match(
+    reduced.stderr,
+    /index.ts typescript\/no-floating-promises: budget 1, 0 violations/
+  );
 });
 
 test('CI and prune report violations exceeding committed budgets', t => {
