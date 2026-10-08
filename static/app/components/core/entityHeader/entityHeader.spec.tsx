@@ -533,10 +533,14 @@ describe('EntityHeader', () => {
       expect(screen.getByRole('list', {name: 'Replay properties'})).toBeInTheDocument();
       expect(screen.getByRole('list', {name: 'Replay stats'})).toBeInTheDocument();
 
-      // A metadata item is a term and its definition, rather than a label that
-      // merely happens to precede a value.
-      expect(screen.getByRole('term')).toHaveTextContent('Browser');
-      expect(screen.getByRole('definition')).toHaveTextContent('Chrome 144');
+      // A metadata item is one stop, named from everything in it. Marking the
+      // label and value as a term and its definition made VoiceOver narrate
+      // the pairing — "term", "selectable list item", "end of term" — before
+      // ever reaching the value.
+      expect(screen.queryByRole('term')).not.toBeInTheDocument();
+      const [property] = screen.getAllByRole('listitem');
+      expect(property).toHaveTextContent('Browser');
+      expect(property).toHaveTextContent('Chrome');
     });
 
     it('keeps people beside the stats list rather than inside it', () => {

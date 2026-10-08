@@ -190,7 +190,6 @@ export function EntityHeader({
 
             {hasMetadata && metadata && (
               <Flex
-                as="dl"
                 role="list"
                 aria-label={metadata.label}
                 align="center"

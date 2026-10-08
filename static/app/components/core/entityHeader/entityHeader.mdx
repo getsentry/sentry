@@ -361,9 +361,9 @@ Two values rather than one joined string is the point: a browser is its name _an
 
 The row's `label` names it. Without one a screen reader meets a run of unrelated strings with nothing saying they belong together, or to what.
 
-Each item is a description list entry — a `dt` holding the label, a `dd` holding the values — so the two are tied together rather than merely adjacent. `showLabel` renders the term as text as well; the graphic beside the values usually carries it, and a header has no room to name every property, so it is hidden by default. Showing it is a question of visibility only; what is read does not change.
+Each item's own label is in the DOM whether or not it is on screen, so an item is one stop that reads "Started at, 2 hours ago". `showLabel` renders the label as text too — the graphic beside the values usually carries it, and a header has no room to name every property, so it is hidden by default. Showing it is a question of visibility only; what is read does not change.
 
-Stats are a plain list instead. A stat that links is already named "4 Dead Clicks" as one phrase, and splitting it across a term and a definition would undo that.
+A description list would tie each label to its value structurally, which sounds like the better answer and is not: marking them up as a `dt` and a `dd` made VoiceOver narrate the pairing itself — "term", then "selectable list item", then "end of term" — before it reached the value. One named item beats two correctly-related ones.
 
 ### Variants
 
