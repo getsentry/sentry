@@ -32,6 +32,7 @@ const config: Pick<DatasetConfig<any, any>, 'transformSeries'> = {
 describe('useEventsTimeseriesSpotCheck', () => {
   const pageFilters = PageFiltersFixture();
   const widget = WidgetFixture({
+    dashboardId: '42',
     displayType: DisplayType.LINE,
     queries: [
       {
@@ -120,6 +121,7 @@ describe('useEventsTimeseriesSpotCheck', () => {
       'Dashboard widget `/events-timeseries/` spot-check mismatch',
       expect.objectContaining({
         dataset: 'ourlogs',
+        dashboardId: '42',
         groupBy: '',
         yAxis: 'count()',
         differences: JSON.stringify([

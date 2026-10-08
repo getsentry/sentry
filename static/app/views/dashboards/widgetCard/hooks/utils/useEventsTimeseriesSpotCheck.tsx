@@ -4,6 +4,7 @@ import {useQueries} from '@tanstack/react-query';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {useParams} from 'sentry/utils/useParams';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {convertEventStatsRequestDataToEventTimeseriesQueryParams} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -47,6 +48,8 @@ export function useEventsTimeseriesSpotCheck({
   widget: Widget;
 }) {
   const [isSampled] = useState(() => Math.random() < SAMPLE_RATE);
+  const {dashboardId: routeDashboardId} = useParams<{dashboardId?: string}>();
+  const dashboardId = widget.dashboardId ?? routeDashboardId;
   const isSpotCheckEnabled =
     enabled &&
     isSampled &&
@@ -109,6 +112,7 @@ export function useEventsTimeseriesSpotCheck({
         warn('Dashboard widget `/events-timeseries/` spot-check mismatch', {
           dataset: params.dataset,
           displayType: widget.displayType,
+          dashboardId,
           widgetId: widget.id,
           queryIndex: originalQueryIndex,
           groupBy: widgetQuery.columns.join(','),
