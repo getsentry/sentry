@@ -479,7 +479,10 @@ class SlackAutofixEntrypoint(
                         "changes": changes_list,
                     }
                 )
-            case SentryAppEventType.SEER_PR_CREATED | SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
+            # Dupes PR_CREATED. Maybe post "This PR is ready for review", but could get spammy
+            case SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
+                return
+            case SentryAppEventType.SEER_PR_CREATED:
                 pull_requests = [
                     pr_payload.get("pull_request", {})
                     for pr_payload in event_payload.get("pull_requests", [])

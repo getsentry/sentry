@@ -32,6 +32,7 @@ from sentry.seer.entrypoints.slack.messaging import (
     update_existing_message,
 )
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 
@@ -179,6 +180,16 @@ class SlackAutofixEntrypointTest(TestCase):
                 organization_id=cache_payload["organization_id"],
                 data=ANY,
             )
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_autofix_update_skips_pr_ready_for_review(self, mock_schedule_all_thread_updates):
+        ep = self._get_entrypoint()
+        ep.on_autofix_update(
+            event_type=SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+            event_payload=MOCK_SEER_WEBHOOKS[SentryAppEventType.SEER_PR_READY_FOR_REVIEW],
+            cache_payload=ep.create_autofix_cache_payload(),
+        )
+        mock_schedule_all_thread_updates.assert_not_called()
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
