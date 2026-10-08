@@ -8,11 +8,11 @@ from typing import Any, Literal, TypedDict
 import sentry_sdk
 from cryptography.fernet import InvalidToken
 from django.db.models import Field
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.utils import metrics
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
-from sentry.utils.tracing import trace
 
 # Encryption method markers
 MARKER_PLAINTEXT = "enc:plaintext"
@@ -92,7 +92,7 @@ class EncryptedField(Field):
         super().contribute_to_class(cls, name, private_only=private_only)
         self._model_name = cls.__name__
 
-    @trace
+    @traces.trace
     def _format_encrypted_value(
         self, encrypted_data: bytes, marker: str, key_id: str | None = None
     ) -> str:
@@ -112,7 +112,7 @@ class EncryptedField(Field):
         else:
             return f"{marker}:{encoded_data}"
 
-    @trace
+    @traces.trace
     def get_prep_value(self, value: Any) -> Any:
         """Encrypt the value before saving to database."""
         value = super().get_prep_value(value)
@@ -148,11 +148,11 @@ class EncryptedField(Field):
             metrics.incr("database.encrypted_field.encrypt", tags={**tags, "status": "failure"})
             raise
 
-    @trace
+    @traces.trace
     def from_db_value(self, value: Any, expression: Any, connection: Any) -> bytes | str | None:
         return self.to_python(value)
 
-    @trace
+    @traces.trace
     def to_python(self, value: Any) -> Any:
         """Decrypt the value when loading from database."""
         if value is None:
@@ -183,7 +183,7 @@ class EncryptedField(Field):
                 return True
         return False
 
-    @trace
+    @traces.trace
     def _get_value_in_bytes(self, value: Any) -> bytes:
         if isinstance(value, str):
             return value.encode("utf-8")
@@ -192,13 +192,13 @@ class EncryptedField(Field):
         else:
             return str(value).encode("utf-8")
 
-    @trace
+    @traces.trace
     def _encrypt_plaintext(self, value: Any) -> str:
         """Store value as plain text (UTF-8 encoded)."""
         value_bytes = self._get_value_in_bytes(value)
         return self._format_encrypted_value(value_bytes, MARKER_PLAINTEXT)
 
-    @trace
+    @traces.trace
     def _decrypt_plaintext(self, value: str) -> bytes:
         """Decrypt plain text. Extracts data from the formatted value.
 
@@ -212,7 +212,7 @@ class EncryptedField(Field):
             logger.warning("Failed to decode base64 data: %s", e)
             raise ValueError("Invalid base64 encoding") from e
 
-    @trace
+    @traces.trace
     def _encrypt_fernet(self, value: Any) -> str:
         """Encrypt using Fernet symmetric encryption.
 
@@ -228,7 +228,7 @@ class EncryptedField(Field):
             sentry_sdk.capture_exception(e)
             raise
 
-    @trace
+    @traces.trace
     def _decrypt_fernet(self, value: str) -> bytes:
         """Decrypt using Fernet. Extracts key_id from the formatted value.
 
@@ -271,7 +271,7 @@ class EncryptedField(Field):
         """
         raise NotImplementedError("Keysets decryption not yet implemented")
 
-    @trace
+    @traces.trace
     def _decrypt_with_fallback(self, value: str) -> bytes | str:
         """
         Attempt to decrypt with the appropriate method based on the marker.
