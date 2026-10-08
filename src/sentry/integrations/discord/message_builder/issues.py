@@ -27,8 +27,8 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.rules import RuleIdType, get_rule_or_workflow_id
 from sentry.services.eventstore.models import GroupEvent
 
