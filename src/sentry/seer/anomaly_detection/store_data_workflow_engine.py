@@ -1,3 +1,4 @@
+import contextlib
 import logging
 from typing import Any
 
@@ -32,6 +33,13 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    set_viewer_context_project,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models import DataCondition, DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel
 
@@ -173,15 +181,28 @@ def handle_send_historical_data_to_seer(
     event_types: list[SnubaQueryEventType.EventType] | None = None,
 ) -> None:
     event_types_param = event_types or snuba_query.event_types
-    try:
-        send_historical_data_to_seer(
-            detector=detector,
-            data_source=data_source,
-            data_condition=data_condition,
-            project=project,
-            snuba_query=snuba_query,
-            event_types=event_types_param,
+    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+    if get_viewer_context() is None:
+        scope = viewer_context_scope(
+            ViewerContext(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                actor_type=ActorType.SYSTEM,
+            )
         )
+    else:
+        set_viewer_context_project(project.id)
+
+    try:
+        with scope:
+            send_historical_data_to_seer(
+                detector=detector,
+                data_source=data_source,
+                data_condition=data_condition,
+                project=project,
+                snuba_query=snuba_query,
+                event_types=event_types_param,
+            )
     except (TimeoutError, MaxRetryError):
         raise TimeoutError(f"Failed to send data to Seer - cannot {method} detector.")
     except ParseError:

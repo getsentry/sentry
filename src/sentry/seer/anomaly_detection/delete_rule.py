@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,13 @@ from sentry.seer.anomaly_detection.types import AlertInSeer, DataSourceType, Del
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    set_viewer_context_project,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +61,27 @@ def delete_data_in_seer_for_detector(detector: Detector):
         )
         return
 
-    organization = detector.linked_project.organization
+    project = detector.linked_project
+    organization = project.organization
 
     if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
-        success = delete_rule_in_seer(
-            source_id=int(data_source_detector.data_source.source_id), organization=organization
-        )
+        scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+        if get_viewer_context() is None:
+            scope = viewer_context_scope(
+                ViewerContext(
+                    organization_id=organization.id,
+                    project_id=project.id,
+                    actor_type=ActorType.SYSTEM,
+                )
+            )
+        else:
+            set_viewer_context_project(project.id)
+
+        with scope:
+            success = delete_rule_in_seer(
+                source_id=int(data_source_detector.data_source.source_id),
+                organization=organization,
+            )
         if not success:
             logger.error(
                 "Call to delete rule data in Seer failed",

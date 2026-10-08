@@ -198,6 +198,7 @@ def _judge_issue(issue_data_id: int, event_id: str) -> None:
     with viewer_context_scope(
         ViewerContext(
             organization_id=issue_data.organization_id,
+            project_id=issue_data.project_id,
             actor_type=ActorType.SYSTEM,
         )
     ):

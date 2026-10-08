@@ -25,6 +25,7 @@ from sentry.seer.anomaly_detection.get_historical_anomalies import (
     get_historical_anomaly_data_from_seer_preview,
 )
 from sentry.seer.anomaly_detection.types import DetectAnomaliesResponse, TimeSeriesPoint
+from sentry.viewer_context import set_viewer_context_project
 
 
 @cell_silo_endpoint
@@ -93,6 +94,7 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsEndpointBase):
         if not projects:
             return Response({"detail": "Invalid project"}, status=400)
 
+        set_viewer_context_project(project_id)
         anomalies = get_historical_anomaly_data_from_seer_preview(
             current_data=current_data,
             historical_data=historical_data,

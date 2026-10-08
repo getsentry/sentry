@@ -22,6 +22,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.viewer_context import ActorType, get_viewer_context
 
 
 @freeze_time()
@@ -105,7 +106,17 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
                 ),
             ],
         )
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        def make_request(*_args: object, **_kwargs: object) -> HTTPResponse:
+            context = get_viewer_context()
+            assert context is not None
+            assert context.organization_id == self.organization.id
+            assert context.project_id == self.project.id
+            assert context.user_id == self.user.id
+            assert context.actor_type == ActorType.USER
+            return HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        mock_seer_request.side_effect = make_request
 
         data = self.get_test_data(self.project.id)
         with outbox_runner():

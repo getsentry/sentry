@@ -360,6 +360,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         assert observed_contexts == [
             ViewerContext(
                 organization_id=self.organization.id,
+                project_id=self.project.id,
                 actor_type=ActorType.SYSTEM,
             )
         ]
