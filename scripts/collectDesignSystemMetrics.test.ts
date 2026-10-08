@@ -203,6 +203,7 @@ test('publication uses real SDK batches and rejects HTTP errors, drops and flush
     schemaVersion: 1 as const,
     collectedAt: '2026-01-01T00:00:00Z',
     commit: 'test',
+    run: {url: 'https://github.com/example/repo/actions/runs/123', attempt: '2'},
     hashes: {},
     scope: {roots: [], exclusions: '', ownerTotalsOverlap: true as const},
     rules: [],
@@ -236,6 +237,40 @@ test('publication uses real SDK batches and rejects HTTP errors, drops and flush
   assert(!requests[0]!.includes('design_system.collected_at'));
   assert(!requests[1]!.includes('design_system.collected_at'));
   assert(requests[2]!.includes('design_system.collected_at'));
+  const metrics = requests.flatMap(body => JSON.parse(body.split('\n')[2]!).items);
+  assert.equal(metrics.length, 608);
+  for (const metric of metrics) {
+    assert.deepEqual(metric.attributes['ci.commit'], {type: 'string', value: 'test'});
+    assert.deepEqual(metric.attributes['ci.github_actions_run'], {
+      type: 'string',
+      value: snapshot.run.url,
+    });
+    assert.deepEqual(metric.attributes['ci.github_run_attempt'], {
+      type: 'string',
+      value: '2',
+    });
+  }
+  for (const expected of measurements(snapshot)) {
+    const metric = metrics.shift()!;
+    assert.equal(metric.name, expected.name);
+    assert.equal(metric.value, expected.value);
+    for (const [key, value] of Object.entries(expected.attributes)) {
+      assert.deepEqual(metric.attributes[key], {type: 'string', value});
+    }
+  }
+  assert.equal(metrics[0]!.name, 'design_system.collected_at');
+  requests.length = 0;
+  assert.equal(
+    await publish({...snapshot, run: undefined}, sdk, 'https://key@example.com/1'),
+    608
+  );
+  for (const body of requests) {
+    for (const metric of JSON.parse(body.split('\n')[2]!).items) {
+      assert.deepEqual(metric.attributes['ci.commit'], {type: 'string', value: 'test'});
+      assert(!('ci.github_actions_run' in metric.attributes));
+      assert(!('ci.github_run_attempt' in metric.attributes));
+    }
+  }
   await Sentry.close();
   for (statusCode of [429, 500, undefined]) {
     requests.length = 0;

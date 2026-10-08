@@ -55,6 +55,11 @@ deleting an owner or component definition removes that series. Outside-Scraps sh
 components are ranked by consuming files in each artifact bucket, without a changing
 top-N telemetry series or a rule that treats their use as a violation.
 
+Every gauge includes `ci.commit` for the scanned checkout. GitHub Actions snapshots
+also retain `run.url` and `run.attempt`, published as `ci.github_actions_run` and
+`ci.github_run_attempt`. These are omitted unless all four GitHub run environment
+variables are present. Republishing uses the snapshot's metadata, not the current run.
+
 Use last/max/average values within daily time buckets; never sum daily snapshots.
 `design_system.collected_at` records the latest successful publisher completion's
 snapshot time. SDK gauges have ingestion timestamps, so batches span a short interval.

@@ -66,6 +66,7 @@ type Snapshot = {
   rules: Rule[];
   schemaVersion: 1;
   scope: {exclusions: string; ownerTotalsOverlap: true; roots: string[]};
+  run?: {attempt: string; url: string};
 };
 
 export function eligible(file: string) {
@@ -604,6 +605,13 @@ export async function publish(
   assert(dsn, 'Publishing requires DESIGN_SYSTEM_METRICS_DSN');
   let deliveryError: Error | undefined;
   let acknowledged = 0;
+  const attributes = {
+    'ci.commit': snapshot.commit,
+    ...(snapshot.run && {
+      'ci.github_actions_run': snapshot.run.url,
+      'ci.github_run_attempt': snapshot.run.attempt,
+    }),
+  };
   sdk.init({
     dsn,
     environment: 'production',
@@ -645,7 +653,9 @@ export async function publish(
     assert.equal(acknowledged, count, 'Sentry did not acknowledge all metrics');
   };
   for (const metric of measurements(snapshot)) {
-    sdk.metrics.gauge(metric.name, metric.value, {attributes: metric.attributes});
+    sdk.metrics.gauge(metric.name, metric.value, {
+      attributes: {...attributes, ...metric.attributes},
+    });
     if (++count % 500 === 0) {
       await flush();
     }
@@ -653,7 +663,8 @@ export async function publish(
   await flush();
   sdk.metrics.gauge(
     'design_system.collected_at',
-    Date.parse(snapshot.collectedAt) / 1000
+    Date.parse(snapshot.collectedAt) / 1000,
+    {attributes}
   );
   count++;
   await flush();
@@ -705,10 +716,19 @@ async function main() {
     }
     return digest.digest('hex');
   };
+  const {GITHUB_SERVER_URL, GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT} =
+    process.env;
   const snapshot: Snapshot = {
     schemaVersion: 1,
     collectedAt: new Date().toISOString(),
     commit: git('rev-parse', 'HEAD').trim(),
+    run:
+      GITHUB_SERVER_URL && GITHUB_REPOSITORY && GITHUB_RUN_ID && GITHUB_RUN_ATTEMPT
+        ? {
+            url: `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}`,
+            attempt: GITHUB_RUN_ATTEMPT,
+          }
+        : undefined,
     hashes: {
       codeowners: hash(['.github/CODEOWNERS']),
       collector: hash([
