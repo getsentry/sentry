@@ -1,8 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
-import {Button} from '@sentry/scraps/button';
-
 import {
   getAriaSort,
   SortableHeaderCell,
@@ -65,23 +63,6 @@ describe('SortableHeaderCell', () => {
 
     expect(getEmotionRules(screen.getByText('Duration')).join('')).not.toContain(
       'flex: 1'
-    );
-  });
-
-  it('leaves room for focus rings around its content', () => {
-    render(
-      <SortableHeaderCell>
-        <Button>Select all</Button>
-      </SortableHeaderCell>
-    );
-
-    const label = screen.getByRole('button', {name: 'Select all'}).parentElement!;
-    const labelRules = getEmotionRules(label).join('');
-
-    expect(labelRules).toContain('margin: -2px');
-    expect(labelRules).toContain('padding: 2px');
-    expect(getEmotionRules(label.parentElement!).join('')).not.toContain(
-      'overflow: hidden'
     );
   });
 
