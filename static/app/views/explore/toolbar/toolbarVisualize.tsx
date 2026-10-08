@@ -307,6 +307,7 @@ function ToolbarVisualizeItem({
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar
+            menuPresentation="panel"
             initialQuery={filter}
             onSearch={onFilterSearch}
             searchSource="explore-conditional-aggregate"

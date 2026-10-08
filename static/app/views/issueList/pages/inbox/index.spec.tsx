@@ -5,6 +5,7 @@ import {
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -34,7 +35,7 @@ jest.mock('sentry/utils/useMedia');
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
-    features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
+    features: ['issue-inbox', 'seat-based-seer-enabled'],
   });
   const seerOrganization = organization;
   const project = ProjectFixture({
@@ -205,12 +206,17 @@ describe('InboxPage', () => {
     ];
   }
 
+  function mockAllSections() {
+    return [
+      mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]),
+      mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]),
+      mockSection('issue.progress:assigned is:unresolved', [assignedGroup]),
+      mockSection('issue.progress:fix_applied is:unresolved', []),
+    ];
+  }
+
   function mockIssuePreview({
-    autofixSetup = AutofixSetupFixture({
-      billing: {hasAutofixQuota: false},
-      integration: {ok: false, reason: null},
-      seerReposLinked: false,
-    }),
+    autofixSetup = AutofixSetupFixture({}),
     autofixSetupDelay,
     group = fixProposedGroup,
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
@@ -227,6 +233,10 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: () => ({...group, hasSeen: previewHasSeen}),
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/recommended/`,
+      body: EventFixture({groupID: group.id}),
+    });
     const markSeenRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       method: 'PUT',
@@ -242,6 +252,10 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: autofixSetup,
       ...(autofixSetupDelay === undefined ? {} : {asyncDelay: autofixSetupDelay}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/onboarding-check/',
+      body: {hasSupportedScmIntegration: true},
     });
     mockAutofixResponse(ExplorerAutofixResponseFixture({autofix: null}));
     MockApiClient.addMockResponse({
@@ -387,7 +401,9 @@ describe('InboxPage', () => {
     expect(within(diagnosedSection).getByText('2')).toBeInTheDocument();
     expect(within(assignedSection).getByText('12')).toBeInTheDocument();
     expect(within(fixSection).getByText('Fix proposed message')).toBeInTheDocument();
-    expect(within(fixSection).queryByText('PROJECT-101')).not.toBeInTheDocument();
+    expect(within(fixSection).getByText('PROJECT-101')).toBeInTheDocument();
+    expect(within(diagnosedSection).getByText('PROJECT-102')).toBeInTheDocument();
+    expect(within(assignedSection).getByText('PROJECT-103')).toBeInTheDocument();
     expect(within(fixSection).getByTitle('Jane Doe')).toBeInTheDocument();
     expect(within(fixSection).getByRole('img', {name: 'Jane Doe'})).toHaveAttribute(
       'src',
@@ -486,9 +502,13 @@ describe('InboxPage', () => {
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
-    expect(
-      await within(fixSection).findByRole('link', {name: 'Pull request #10, Open'})
-    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
+    const openPullRequest = await within(fixSection).findByRole('link', {
+      name: 'Pull request #10, Open',
+    });
+    expect(openPullRequest).toHaveAttribute(
+      'href',
+      'https://github.com/org/repository/pull/10'
+    );
     expect(
       within(fixSection).getByRole('link', {name: 'Pull request #13, Draft'})
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/13');
@@ -501,6 +521,10 @@ describe('InboxPage', () => {
     expect(
       within(fixSection).queryByRole('link', {name: 'Pull request #14, Merged'})
     ).not.toBeInTheDocument();
+    const shortId = within(fixSection).getByText('PROJECT-101');
+    expect(
+      openPullRequest.compareDocumentPosition(shortId) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(diagnosedPullRequests).not.toHaveBeenCalled();
     expect(assignedPullRequests).not.toHaveBeenCalled();
   });
@@ -754,15 +778,10 @@ describe('InboxPage', () => {
     expect(fixAppliedEmptyMessage).toBeVisible();
   });
 
-  it('filters sections without scrolling the selected issue into view', async () => {
+  it('clears the selected issue when filtering without scrolling it into view', async () => {
     const myTeamsRequests = mockSuccessfulSections();
     mockIssuePreview();
-    const allRequests = [
-      mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]),
-      mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]),
-      mockSection('issue.progress:assigned is:unresolved', [assignedGroup]),
-      mockSection('issue.progress:fix_applied is:unresolved', []),
-    ];
+    const allRequests = mockAllSections();
 
     const {router} = render(<InboxPage />, {
       organization: seerOrganization,
@@ -792,11 +811,10 @@ describe('InboxPage', () => {
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     }
     expect(
-      await within(screen.getByRole('region', {name: 'Fix Proposed'})).findByRole(
-        'link',
-        {name: /Fix proposed issue/}
-      )
-    ).toHaveAttribute('aria-current', 'true');
+      within(screen.getByRole('region', {name: 'Fix Proposed'})).getByRole('link', {
+        name: /Fix proposed issue/,
+      })
+    ).not.toHaveAttribute('aria-current');
     expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
   });
 
@@ -1180,7 +1198,7 @@ describe('InboxPage', () => {
     expect(within(preview).getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
   });
 
-  it('shows standard issue actions for an assigned issue without paid Seer', async () => {
+  it('keeps Resolve available for an assigned issue without Seer quota', async () => {
     mockAssignedPreview(
       AutofixSetupFixture({
         billing: {hasAutofixQuota: false},
@@ -1443,7 +1461,7 @@ describe('InboxPage', () => {
     await userEvent.click(retryButton);
 
     expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
-    await waitFor(() => expect(retryButton).toBeDisabled());
+    await waitFor(() => expect(retryButton).toHaveAttribute('aria-disabled', 'true'));
     await waitFor(() =>
       expect(retryPullRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -1499,6 +1517,38 @@ describe('InboxPage', () => {
         })
       ).toHaveAttribute('aria-current', 'true');
       unmount();
+    });
+
+    it('clears an auto-selected issue when switching to an empty inbox', async () => {
+      mockAllSections();
+      mockIssuePreview();
+
+      const {router} = render(<InboxPage />, {
+        organization: seerOrganization,
+        initialRouterConfig: {
+          location: {
+            ...initialRouterConfig.location,
+            query: {...initialRouterConfig.location.query, assignment: 'all'},
+          },
+        },
+      });
+
+      await waitFor(() => {
+        expect(router.location.query).toEqual(
+          expect.objectContaining({assignment: 'all', preview: fixProposedGroup.id})
+        );
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+      });
+      await userEvent.click(screen.getByRole('radio', {name: /^Me/}));
+
+      await waitFor(() => {
+        expect(router.location.query.preview).toBeUndefined();
+      });
+      expect(await screen.findByText('No Issues in your Inbox!')).toBeInTheDocument();
     });
 
     it('shows an empty state when every section is empty', async () => {

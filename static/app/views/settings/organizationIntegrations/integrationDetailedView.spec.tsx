@@ -1,12 +1,18 @@
+import {Fragment} from 'react';
+import {QueryClientProvider} from '@tanstack/react-query';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GitLabIntegrationFixture} from 'sentry-fixture/gitlabIntegration';
 import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
+import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
@@ -24,6 +30,14 @@ describe('IntegrationDetailedView', () => {
       },
     };
   }
+
+  const missingFeatures = [
+    {key: 'seer_mentions', description: 'Server-provided Seer mentions feature.'},
+  ];
+  const slackIntegration = {
+    ...OrganizationIntegrationsFixture({outOfDate: true}),
+    missingFeatures,
+  };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -136,7 +150,7 @@ describe('IntegrationDetailedView', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
-      body: [],
+      body: [slackIntegration],
     });
   });
 
@@ -177,6 +191,9 @@ describe('IntegrationDetailedView', () => {
   });
 
   it('shows Update Now only for the outdated Slack workspace', async () => {
+    const openPipelineModalSpy = jest
+      .spyOn(pipelineModal, 'openPipelineModal')
+      .mockImplementation(() => {});
     const slackProvider = {
       aspects: {},
       canAdd: true,
@@ -197,6 +214,7 @@ describe('IntegrationDetailedView', () => {
           provider: slackProvider,
           status: 'active',
           outOfDate: true,
+          missingFeatures,
         },
         {
           id: '11',
@@ -220,6 +238,18 @@ describe('IntegrationDetailedView', () => {
     // Only the outdated workspace surfaces an Update Now button, not every row.
     expect(screen.getByTestId('integration-upgrade-button')).toBeInTheDocument();
     expect(screen.getAllByTestId('integration-upgrade-button')).toHaveLength(1);
+    await userEvent.click(screen.getByTestId('integration-upgrade-button'));
+    expect(openPipelineModalSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: 'slack',
+        title: 'Update Slack App Permissions',
+        description: expect.anything(),
+      })
+    );
+    render(<Fragment>{openPipelineModalSpy.mock.calls[0]![0].description}</Fragment>);
+    expect(screen.getByRole('listitem')).toHaveTextContent(
+      'Server-provided Seer mentions feature.'
+    );
   });
 
   describe('overview upgrade button', () => {
@@ -240,9 +270,13 @@ describe('IntegrationDetailedView', () => {
       provider: slackProvider,
       status: 'active',
       outOfDate: true,
+      missingFeatures,
     };
 
-    it('renders the reinstall button for a single outdated workspace with access', async () => {
+    it('explains the Slack permissions when updating from the overview', async () => {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/`,
         match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
@@ -254,7 +288,18 @@ describe('IntegrationDetailedView', () => {
         organization,
       });
 
-      expect(await screen.findByTestId('integration-upgrade-button')).toBeInTheDocument();
+      await userEvent.click(await screen.findByTestId('integration-upgrade-button'));
+      expect(openPipelineModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'slack',
+          title: 'Update Slack App Permissions',
+          description: expect.anything(),
+        })
+      );
+      render(<Fragment>{openPipelineModalSpy.mock.calls[0]![0].description}</Fragment>);
+      expect(screen.getByRole('listitem')).toHaveTextContent(
+        'Server-provided Seer mentions feature.'
+      );
     });
 
     it('disables the update button for members without integration access', async () => {
@@ -486,12 +531,132 @@ describe('IntegrationDetailedView', () => {
       expect(openPipelineModalSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           provider: 'slack',
-          title: 'Upgrade Slack Integration',
-          description:
-            'Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly.',
+          title: 'Update Slack App Permissions',
+          description: expect.anything(),
         })
       );
+      render(<Fragment>{openPipelineModalSpy.mock.calls[0]![0].description}</Fragment>);
+      expect(screen.getByRole('listitem')).toHaveTextContent(
+        'Server-provided Seer mentions feature.'
+      );
     });
+
+    it.each([
+      {body: []},
+      {body: [OrganizationIntegrationsFixture({outOfDate: false, missingFeatures: []})]},
+      {
+        body: [
+          {...slackIntegration, id: '1'},
+          {...slackIntegration, id: '2'},
+        ],
+      },
+    ])(
+      'does not choose a Slack workspace without one upgrade target (%#)',
+      async ({body}) => {
+        const openPipelineModalSpy = jest
+          .spyOn(pipelineModal, 'openPipelineModal')
+          .mockImplementation(() => {});
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/integrations/`,
+          match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+          body,
+        });
+
+        const {router} = render(<IntegrationDetailedView />, {
+          initialRouterConfig: createRouterConfig('slack', {
+            tab: 'configurations',
+            showInstallModal: '1',
+          }),
+          organization,
+        });
+
+        await waitFor(() =>
+          expect(router.location.query.showInstallModal).toBeUndefined()
+        );
+        expect(openPipelineModalSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    it('waits for workspace data and opens once with that workspace’s features', async () => {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+        asyncDelay: 100,
+        body: [slackIntegration],
+      });
+
+      const {router} = render(<IntegrationDetailedView />, {
+        initialRouterConfig: createRouterConfig('slack', {
+          tab: 'configurations',
+          showInstallModal: '1',
+        }),
+        organization,
+      });
+      expect(openPipelineModalSpy).not.toHaveBeenCalled();
+      expect(router.location.query.showInstallModal).toBe('1');
+      await waitFor(() => expect(router.location.query.showInstallModal).toBeUndefined());
+      expect(openPipelineModalSpy).toHaveBeenCalledTimes(1);
+      render(<Fragment>{openPipelineModalSpy.mock.calls[0]![0].description}</Fragment>);
+      expect(screen.getByRole('listitem')).toHaveTextContent(
+        'Server-provided Seer mentions feature.'
+      );
+    });
+
+    it.each([
+      {cached: []},
+      {
+        cached: [
+          OrganizationIntegrationsFixture({outOfDate: false, missingFeatures: []}),
+        ],
+      },
+      {cached: [{...slackIntegration, missingFeatures: []}]},
+    ])(
+      'waits for refetch before using cached Slack workspaces (%#)',
+      async ({cached}) => {
+        const openPipelineModalSpy = jest
+          .spyOn(pipelineModal, 'openPipelineModal')
+          .mockImplementation(() => {});
+        const queryClient = makeTestQueryClient();
+        queryClient.setQueryData(
+          normalizeQueryKey([
+            getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+            {query: {provider_key: 'slack', includeConfig: 0}},
+          ]),
+          {json: cached, headers: {}}
+        );
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/integrations/`,
+          match: [MockApiClient.matchQuery({provider_key: 'slack', includeConfig: 0})],
+          asyncDelay: 100,
+          body: [slackIntegration],
+        });
+
+        const {router} = render(<IntegrationDetailedView />, {
+          initialRouterConfig: createRouterConfig('slack', {showInstallModal: '1'}),
+          organization,
+          additionalWrapper: ({children}) => (
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          ),
+        });
+
+        expect(await screen.findByTestId('install-button')).toBeInTheDocument();
+        expect(openPipelineModalSpy).not.toHaveBeenCalled();
+        expect(router.location.query.showInstallModal).toBe('1');
+        await waitFor(() => expect(openPipelineModalSpy).toHaveBeenCalledTimes(1));
+        await waitFor(() =>
+          expect(router.location.query.showInstallModal).toBeUndefined()
+        );
+        render(<Fragment>{openPipelineModalSpy.mock.calls[0]![0].description}</Fragment>);
+        expect(screen.getByRole('listitem')).toHaveTextContent(
+          'Server-provided Seer mentions feature.'
+        );
+      }
+    );
 
     it('does not auto-open without the param', async () => {
       const openPipelineModalSpy = jest

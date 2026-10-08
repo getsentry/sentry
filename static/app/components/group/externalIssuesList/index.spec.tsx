@@ -45,7 +45,7 @@ describe('ExternalIssueList', () => {
     render(<ExternalIssueList group={group} event={event} />, {
       organization,
     });
-    expect(await screen.findByText(setupCTA)).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: setupCTA})).toBeInTheDocument();
   });
 
   it('renders sentry app issues', async () => {
@@ -68,7 +68,7 @@ describe('ExternalIssueList', () => {
       organization,
     });
     expect(await screen.findByRole('button', {name: 'Foo'})).toBeInTheDocument();
-    expect(screen.queryByText(setupCTA)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: setupCTA})).not.toBeInTheDocument();
   });
 
   it('renders integrations with issues first', async () => {

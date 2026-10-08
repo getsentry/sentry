@@ -1,11 +1,10 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-import {mergeRefs, useResizeObserver} from '@react-aria/utils';
+import {mergeProps, mergeRefs, useResizeObserver} from '@react-aria/utils';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {Flex, Grid, type FlexProps, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
@@ -16,7 +15,10 @@ import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries'
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {
+  EChartLegendSelectChangeHandler,
+  ReactEchartsRef,
+} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
@@ -34,8 +36,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
-import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
-import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
+import {
+  RELEASE_BUBBLE_SERIES_NAME,
+  useReleaseBubbles,
+} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/eventGraphWidget';
@@ -317,6 +321,7 @@ export function EventGraph({
 
   const {
     connectReleaseBubbleChartRef,
+    onReleaseBubbleLegendSelectChanged,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
@@ -342,13 +347,9 @@ export function EventGraph({
     },
   });
 
-  useReleasesDrawer();
-
-  const handleConnectRef = useCallback(
-    (e: ReactEchartsRef | null) => {
-      connectReleaseBubbleChartRef(e);
-    },
-    [connectReleaseBubbleChartRef]
+  const mergedChartRef = useMemo(
+    () => mergeRefs(ref, connectReleaseBubbleChartRef),
+    [ref, connectReleaseBubbleChartRef]
   );
 
   const series = useMemo((): BarChartSeries[] => {
@@ -454,18 +455,19 @@ export function EventGraph({
     selected: legendSelected,
     zlevel: 10,
     inactiveColor: theme.tokens.content.secondary,
+    formatter: name => (name === RELEASE_BUBBLE_SERIES_NAME ? t('Releases') : name),
   });
 
-  const onLegendSelectChanged = useMemo(
-    () =>
-      ({name, selected: record}: any) => {
-        const newValue = record[name];
-        setLegendSelected(prevState => ({
-          ...prevState,
-          [name]: newValue,
-        }));
-      },
-    [setLegendSelected]
+  const onLegendSelectChanged = useCallback<EChartLegendSelectChangeHandler>(
+    (params, instance) => {
+      onReleaseBubbleLegendSelectChanged(params, instance);
+      const newValue = params.selected[params.name];
+      setLegendSelected(prevState => ({
+        ...prevState,
+        [params.name]: newValue,
+      }));
+    },
+    [onReleaseBubbleLegendSelectChanged, setLegendSelected]
   );
 
   if (error) {
@@ -514,15 +516,22 @@ export function EventGraph({
       ) : (
         <div />
       )}
-      <ChartContainer role="figure" ref={chartContainerRef}>
+      <Container
+        role="figure"
+        ref={chartContainerRef}
+        position="relative"
+        padding={{zero: 'sm 0', '5xl': 'sm md sm 0'}}
+        width="calc(100% + 2px)"
+      >
         <BarChart
-          ref={mergeRefs(ref, handleConnectRef)}
+          ref={mergedChartRef}
           height={100}
           series={series}
           additionalSeries={releaseBubbleSeries ? [releaseBubbleSeries] : []}
           legend={legendConfig}
           onLegendSelectChanged={onLegendSelectChanged}
           showTimeInTooltip
+          utc={location.query.utc === 'true'}
           grid={{
             left: 8,
             right: 8,
@@ -572,7 +581,7 @@ export function EventGraph({
           }}
           {...chartZoomProps}
         />
-      </ChartContainer>
+      </Container>
     </Grid>
   );
 }
@@ -588,34 +597,26 @@ function GraphButton({
   const textVariant = undefined;
 
   return (
-    <CalloutButton aria-label={`${t('Toggle graph series')} - ${label}`} {...props}>
-      <Stack gap="xs">
-        <Text size="sm" variant={textVariant}>
-          {label}
-        </Text>
-        <Text size="lg" variant={textVariant}>
-          {count ? formatAbbreviatedNumber(count) : '-'}
-        </Text>
-      </Stack>
-    </CalloutButton>
+    <Container height="unset" padding="xs lg">
+      {layoutProps => (
+        <Button
+          aria-label={`${t('Toggle graph series')} - ${label}`}
+          {...mergeProps(props, layoutProps)}
+        >
+          <Stack gap="xs">
+            <Text size="sm" variant={textVariant}>
+              {label}
+            </Text>
+            <Text size="lg" variant={textVariant}>
+              {count ? formatAbbreviatedNumber(count) : '-'}
+            </Text>
+          </Stack>
+        </Button>
+      )}
+    </Container>
   );
 }
 
 function SummaryContainer(props: FlexProps) {
   return <Stack padding="lg xs lg lg" gap="sm" radius="md" {...props} />;
 }
-
-const CalloutButton = styled(Button)`
-  height: unset;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
-`;
-
-const ChartContainer = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
-  margin-right: -2px;
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm} 0;
-  }
-`;

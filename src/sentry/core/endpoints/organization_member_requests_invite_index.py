@@ -4,7 +4,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, roles
+from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -29,7 +29,10 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
-from sentry.core.endpoints.organization_member_utils import save_team_assignments
+from sentry.core.endpoints.organization_member_utils import (
+    get_allowed_org_roles,
+    save_team_assignments,
+)
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -113,9 +116,10 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
         Create an invite request for an organization given an email and suggested
         role / teams.
         """
+        allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
-            context={"organization": organization, "allowed_roles": roles.get_all()},
+            context={"organization": organization, "allowed_roles": allowed_roles},
         )
 
         if not serializer.is_valid():

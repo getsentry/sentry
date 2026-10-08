@@ -29,6 +29,7 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {
+  getTagKeysInMultipleDatasets,
   globalFilterKeysAreEqual,
   globalFiltersAreEqual,
   mergeGlobalFilters,
@@ -43,6 +44,12 @@ import {
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {NavigationTypeSwitcher} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeSwitcher';
+import {
+  hidesNavigationTypeChip,
+  showsNavigationTypeSwitcher,
+  useNavigationTypeExperiment,
+} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -177,6 +184,7 @@ export function FiltersBar({
     if (urlFilters && urlFilters.length > 0) {
       for (const filter of urlFilters) {
         if (!activeGlobalFilters.some(f => globalFiltersAreEqual(f, filter))) {
+          // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
           setActiveGlobalFilters(mergeGlobalFilters(activeGlobalFilters, urlFilters));
         }
       }
@@ -192,6 +200,22 @@ export function FiltersBar({
   };
 
   const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
+
+  // The insights route omits `prebuiltDashboardId`, since passing it would
+  // surface the prebuilt chips there, so fall back to the dashboard's own ID.
+  const {isEnabled: isNavigationTypeExperimentEnabled} = useNavigationTypeExperiment(
+    prebuiltDashboardId ?? dashboard?.prebuiltId
+  );
+  const isNavigationTypeSwitcherShown = showsNavigationTypeSwitcher(
+    activeGlobalFilters,
+    organization,
+    isNavigationTypeExperimentEnabled
+  );
+  const visibleGlobalFilters = activeGlobalFilters.filter(
+    filter =>
+      !hidesNavigationTypeChip(filter, organization, isNavigationTypeSwitcherShown)
+  );
+  const tagKeysInMultipleDatasets = getTagKeysInMultipleDatasets(visibleGlobalFilters);
 
   const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
   return (
@@ -260,7 +284,13 @@ export function FiltersBar({
           }}
           onSortChange={setReleaseSort}
         />
-        {activeGlobalFilters.map(filter => (
+        {isNavigationTypeSwitcherShown && (
+          <NavigationTypeSwitcher
+            globalFilters={activeGlobalFilters}
+            onChange={updateGlobalFilters}
+          />
+        )}
+        {visibleGlobalFilters.map(filter => (
           <GenericFilterSelector
             disableRemoveFilter={
               isPrebuiltDashboard &&
@@ -270,8 +300,9 @@ export function FiltersBar({
                   prebuiltFilter.dataset === filter.dataset
               )
             }
-            key={filter.tag.key + filter.value}
+            key={`${filter.tag.key}:${filter.dataset}:${filter.value}`}
             globalFilter={filter}
+            showDatasetLabel={tagKeysInMultipleDatasets.has(filter.tag.key)}
             searchBarData={getSearchBarData(filter.dataset)}
             onUpdateFilter={updatedFilter => {
               updateGlobalFilters(

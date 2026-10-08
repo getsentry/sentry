@@ -46,7 +46,7 @@ describe('AccountSecurityDetails', () => {
       });
     });
 
-    it('has enrolled circle indicator', async () => {
+    it('shows the authentication method title and dates', async () => {
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
           location: {
@@ -63,7 +63,7 @@ describe('AccountSecurityDetails', () => {
       });
 
       expect(
-        await screen.findByRole('status', {name: 'Authentication Method Active'})
+        await screen.findByRole('heading', {name: AuthenticatorsFixture().Totp().name})
       ).toBeInTheDocument();
 
       // has created and last used dates
@@ -162,7 +162,10 @@ describe('AccountSecurityDetails', () => {
         },
       });
 
-      expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Remove'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
   });
 
@@ -189,7 +192,7 @@ describe('AccountSecurityDetails', () => {
       });
     });
 
-    it('has enrolled circle indicator', async () => {
+    it('shows the recovery method title without a remove button', async () => {
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
           location: {
@@ -206,7 +209,9 @@ describe('AccountSecurityDetails', () => {
       });
 
       expect(
-        await screen.findByRole('status', {name: 'Authentication Method Active'})
+        await screen.findByRole('heading', {
+          name: AuthenticatorsFixture().Recovery().name,
+        })
       ).toBeInTheDocument();
 
       // does not have remove button

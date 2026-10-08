@@ -10,6 +10,7 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
@@ -499,15 +500,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           <DropdownMenu
             position="left"
             size="xs"
-            triggerProps={{
-              showChevron: false,
-              icon: (
-                <Fragment>
-                  <IconDownload variant="primary" size="sm" />
-                  <DownloadCount>{items.length}</DownloadCount>
-                </Fragment>
-              ),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                icon={
+                  <Fragment>
+                    <IconDownload variant="primary" size="sm" />
+                    <DownloadCount>{items.length}</DownloadCount>
+                  </Fragment>
+                }
+                aria-label={t('Download attachments')}
+              />
+            )}
             items={items}
           />
         </RightAlignedContainer>

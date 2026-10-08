@@ -22,6 +22,8 @@ import {
 import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
 import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
+import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
@@ -34,11 +36,13 @@ import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/toke
 import {isInvalidFilterKey} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
+  InvalidReason,
   Token,
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
+import {isQueryBuilderPanelChrome} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -96,14 +100,18 @@ function fitMiddleEllipsisToElement(
     return value;
   }
 
-  const previousText = element.textContent;
   const previousWidth = element.style.width;
   const fallback = ellipsizeFilterValue(value, fallbackMaxLength, multi);
+
+  // Detaching and reattaching the same nodes keeps the references React holds valid.
+  // Writing `element.textContent` instead would destroy any rendered child elements.
+  const children = Array.from(element.childNodes);
+  const measureNode = document.createTextNode(value);
 
   try {
     // Expand to the full value first so content-sized ancestors can grow up to their
     // max-width when the window/search bar is no longer constraining them.
-    element.textContent = value;
+    element.replaceChildren(measureNode);
     element.style.width = '';
 
     if (element.clientWidth <= 0) {
@@ -123,13 +131,13 @@ function fitMiddleEllipsisToElement(
 
     let low = 1;
     let high = value.length;
-    element.textContent = ELLIPSIS;
+    measureNode.data = ELLIPSIS;
     let best = element.scrollWidth <= availableWidth ? ELLIPSIS : '';
 
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
       const candidate = ellipsizeFilterValue(value, mid, multi);
-      element.textContent = candidate;
+      measureNode.data = candidate;
       if (element.scrollWidth <= availableWidth) {
         best = candidate;
         low = mid + 1;
@@ -140,7 +148,7 @@ function fitMiddleEllipsisToElement(
 
     return best;
   } finally {
-    element.textContent = previousText;
+    element.replaceChildren(...children);
     element.style.width = previousWidth;
   }
 }
@@ -149,10 +157,12 @@ function TruncatedFilterDisplayValue({
   value,
   fallbackMaxLength,
   multi = false,
+  renderValue,
 }: {
   fallbackMaxLength: number;
   value: string;
   multi?: boolean;
+  renderValue?: (displayValue: string) => React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [displayValue, setDisplayValue] = useState(() =>
@@ -202,7 +212,7 @@ function TruncatedFilterDisplayValue({
 
   return (
     <Truncated ref={ref} data-overflowing={displayValue === value ? undefined : 'true'}>
-      {displayValue}
+      {renderValue ? renderValue(displayValue) : displayValue}
     </Truncated>
   );
 }
@@ -218,6 +228,20 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         value={prettifyTagKey(token.value.text)}
         fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
       />
+    );
+  }
+
+  if (isRegexOperator(token.operator)) {
+    return (
+      <Flex align="center" minWidth="0" width="100%">
+        <RegexDelimiter paddingRight="2xs" />
+        <TruncatedFilterDisplayValue
+          value={formatFilterValue({token: token.value, valueType})}
+          fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
+          renderValue={renderRegexPattern}
+        />
+        <RegexDelimiter />
+      </Flex>
     );
   }
 
@@ -278,47 +302,61 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
+  const {menuPresentation, panelRef, portalTarget} = useSearchQueryBuilderLayout();
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [editSource, setEditSource] = useState<'click' | 'focusOverride' | false>(false);
 
   useLayoutEffect(() => {
     if (
-      !isEditing &&
+      !editSource &&
       focusOverride?.itemKey === item.key &&
       focusOverride.part === 'value'
     ) {
       // oxlint-disable-next-line react/set-state-in-effect
-      setIsEditing(true);
+      setEditSource('focusOverride');
       onActiveChange(true);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
-  }, [dispatch, focusOverride, isEditing, item.key, onActiveChange]);
+  }, [dispatch, editSource, focusOverride, item.key, onActiveChange]);
 
   const {focusWithinProps} = useFocusWithin({
-    onBlurWithin: () => {
-      setIsEditing(false);
+    onBlurWithin: event => {
+      if (
+        menuPresentation === 'panel' &&
+        event.relatedTarget instanceof Node &&
+        isQueryBuilderPanelChrome(event.relatedTarget, panelRef.current, portalTarget)
+      ) {
+        return;
+      }
+      setEditSource(false);
     },
   });
 
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  if (isEditing) {
+  if (editSource) {
     return (
       <ValueEditing ref={ref} {...mergeProps(focusWithinProps, filterButtonProps)}>
         <SearchQueryBuilderValueCombobox
           token={token}
           wrapperRef={ref}
+          editingCommittedValue={editSource === 'click'}
           onDelete={() => {
             filterRef.current?.focus();
             state.selectionManager.setFocusedKey(item.key);
-            setIsEditing(false);
+            setEditSource(false);
             onActiveChange(false);
           }}
           onCommit={() => {
-            setIsEditing(false);
+            setEditSource(false);
             onActiveChange(false);
             dispatch({type: 'COMMIT_QUERY'});
-            if (state.collection.getKeyAfter(item.key)) {
+            // Committing on blur must not move focus back into a dismissed panel.
+            if (
+              state.collection.getKeyAfter(item.key) &&
+              (menuPresentation !== 'panel' ||
+                panelRef.current?.contains(document.activeElement))
+            ) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)
               );
@@ -333,7 +371,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
     <ValueButton
       aria-label={t('Edit value for filter: %s', getKeyName(token.key))}
       onClick={() => {
-        setIsEditing(true);
+        setEditSource('click');
         onActiveChange(true);
       }}
       disabled={disabled}
@@ -372,7 +410,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   const isFocused = item.key === state.selectionManager.focusedKey;
 
   const {dispatch} = useSearchQueryBuilderState();
-  const {invalidFilterKeys, invalidFilterKeyMessage} = useSearchQueryBuilderConfig();
+  const {invalidFilterKeys, invalidFilterKeyMessage, filterKeyAliases} =
+    useSearchQueryBuilderConfig();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -395,10 +434,13 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     onKeyDown,
   });
 
-  const hasTokenInvalid = 'invalid' in token && defined(token.invalid);
+  const hasTokenInvalid =
+    'invalid' in token &&
+    defined(token.invalid) &&
+    !(filterMenuOpen && token.invalid.type === InvalidReason.FILTER_MUST_HAVE_VALUE);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
   const filterKeyName = getKeyName(token.key, {aggregateWithArgs: true});
-  const keyIsInvalid = isInvalidFilterKey(token.key, invalidFilterKeys);
+  const keyIsInvalid = isInvalidFilterKey(token.key, invalidFilterKeys, filterKeyAliases);
   const tokenHasError = hasTokenInvalid || keyIsInvalid;
 
   return (

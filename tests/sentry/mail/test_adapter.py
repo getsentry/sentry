@@ -22,6 +22,7 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
 from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.mail import build_subject_prefix, mail_adapter
+from sentry.mail.adapter import RuleFuture as MailRuleFuture
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -40,7 +41,11 @@ from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import (
+    ActionTargetType,
+    FallthroughChoiceType,
+    RuleFuture,
+)
 from sentry.notifications.utils.digest import get_digest_subject
 from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
@@ -56,13 +61,31 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
-from sentry.types.rules import RuleFuture
+from sentry.types.rules import RuleFuture as LegacyRuleFuture
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from tests.sentry.mail import make_event_data, mock_notify
 
 pytestmark = requires_snuba
+
+
+def test_rule_future_import_compatibility() -> None:
+    assert MailRuleFuture is RuleFuture
+    assert LegacyRuleFuture is RuleFuture
+
+    rule = MagicMock(spec=Rule)
+    kwargs = {"key": "value"}
+    future = RuleFuture(rule=rule, kwargs=kwargs)
+
+    assert future._fields == ("rule", "kwargs")
+    assert future[0] is rule
+    assert future[1] == kwargs
+    assert isinstance(future, tuple)
+    unpacked_rule, unpacked_kwargs = future
+    assert unpacked_rule is rule
+    assert unpacked_kwargs == kwargs
+    assert future == (rule, kwargs)
 
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):

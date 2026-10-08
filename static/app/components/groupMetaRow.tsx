@@ -18,6 +18,7 @@ import {IconChat} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import {getTitle} from 'sentry/utils/events';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -73,9 +74,7 @@ export function GroupMetaRow({data, showLifetime = true}: Props) {
   const autofixRunExists = getAutofixRunExists(data);
   const seerFixable = isIssueQuickFixable(data);
   const showSeer =
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures &&
-    (autofixRunExists || seerFixable);
+    areAiFeaturesAllowed(organization) && (autofixRunExists || seerFixable);
 
   const {subtitle} = getTitle(data);
 
@@ -172,10 +171,6 @@ const GroupExtra = styled('div')`
     background-position: left center;
     background-size: 1px 10px;
     background-repeat: no-repeat;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    line-height: 1;
   }
 `;
 

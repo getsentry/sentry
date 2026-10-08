@@ -59,6 +59,12 @@ export type InvestigationBlock = {
 
 export type InvestigationBlockKind = 'query' | 'text';
 
+export type InvestigationViewer = {
+  active: boolean;
+  lastSeen: string;
+  userId: string;
+};
+
 export type InvestigationBlockExecutionStart = {
   id: string;
   status: InvestigationExecutionStatus;
@@ -186,7 +192,7 @@ export type InvestigationCandidate =
 /** A known set of string values that still accepts one Seer added later. */
 type InvestigationOrchestrationOpenString<T extends string> = T | (string & {});
 
-type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
+export type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
   | 'intake'
   | 'broad_scan'
   | 'planning'
@@ -203,7 +209,7 @@ export type InvestigationOrchestrationStatus = InvestigationOrchestrationOpenStr
   'pending' | 'processing' | 'awaiting_input' | 'completed' | 'failed' | 'cancelled'
 >;
 
-/** Lifecycle of one unit of agent work. Mirrors `WORK_STATUSES`. */
+/** Lifecycle of agent work, including skipped verification checks. */
 type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpenString<
   | 'not_started'
   | 'queued'
@@ -214,6 +220,7 @@ type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpenString
   | 'completed'
   | 'failed'
   | 'cancelled'
+  | 'skipped'
 >;
 
 /**
@@ -274,7 +281,7 @@ type InvestigationOrchestrationEvidence = {
   url?: string | null;
 };
 
-/** One check the agent ran against a hypothesis — an "Evidence checked" row. */
+/** One check planned against a hypothesis, including checks skipped by the agent. */
 export type InvestigationVerificationStep = {
   error: InvestigationOrchestrationError | null;
   evidence: InvestigationOrchestrationEvidence[];

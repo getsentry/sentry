@@ -280,7 +280,10 @@ function SeerWorkflows() {
     <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
       <Stack gap="lg" padding="xl">
         <Stack gap="2xs">
-          <TopBar.Slot name="title">{t('Sentry Workflows')}</TopBar.Slot>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{type: 'page-title', label: t('Sentry Workflows')}}
+          />
           <Flex justify="between" align="center" gap="md" wrap="wrap">
             <Text as="p" variant="muted">
               {t('Historical runs of Sentry workflows for this organization.')}
@@ -288,8 +291,11 @@ function SeerWorkflows() {
             {runActions.length > 0 && (
               <DropdownMenu
                 size="sm"
-                triggerLabel={t('Run…')}
-                triggerProps={{busy: isStartingWorkflowRun}}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} busy={isStartingWorkflowRun}>
+                    {t('Run…')}
+                  </OverlayTrigger.Button>
+                )}
                 isDisabled={isStartingWorkflowRun}
                 items={runActions.map(({strategy, label}) => ({
                   key: strategy,

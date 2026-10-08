@@ -1,52 +1,116 @@
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import {
+  AutofixSetupCard,
+  useAutofixSetupStep,
+} from 'sentry/components/events/autofix/v3/autofixSetupCard';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
 import {AutofixWarnings} from 'sentry/components/events/autofix/v3/warnings';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+// getsentry supplies the upgrade CTA; open source has no billing UI to show.
+const AiSetupDataConsent = OverrideOrDefault({
+  overrideName: 'component:ai-setup-data-consent',
+});
+
 export default function GroupAutofix() {
   const organization = useOrganization();
-  const {group} = useGroupData();
+  const {group, project} = useGroupData();
   const {baseUrl} = useGroupDetailsRoute();
 
   // The same three conditions the Seer drawer refuses to open under. Sending
   // people back to the issue keeps a shared or bookmarked URL from dead-ending.
-  if (
-    !hasAutofixPage(organization) ||
-    !organization.features.includes('gen-ai-features') ||
-    organization.hideAiFeatures
-  ) {
+  if (!hasAutofixPage(organization) || !areAiFeaturesAllowed(organization)) {
     return <Redirect to={baseUrl} />;
   }
 
   return (
     <SentryDocumentTitle title={t('Autofix')} orgSlug={organization.slug}>
       <AnalyticsArea name="autofix_page">
-        <GroupAutofixContent group={group} />
+        <GroupAutofixContent group={group} project={project} />
       </AnalyticsArea>
     </SentryDocumentTitle>
   );
 }
 
-function GroupAutofixContent({group}: {group: Group}) {
+function GroupAutofixContent({group, project}: {group: Group; project: Project}) {
+  const organization = useOrganization();
   // The provider is mounted by the layout for this tab, so this is always set.
   const panel = useAutofixPanel();
+  const {
+    billing,
+    hasFreeAutofixAccess,
+    isError: isSeerSetupError,
+    isPending: isSeerSetupPending,
+  } = useOrganizationSeerSetup();
+
+  // Same condition the Seer project settings use to decide an org has to buy in
+  // before Autofix will run for it. A failed setup check leaves both flags
+  // false, which reads the same as a genuine "no quota" answer, so only a
+  // successful response is allowed to withhold the start card.
+  const needsSeerSubscription =
+    !isSeerSetupError &&
+    !hasFreeAutofixAccess &&
+    !billing.hasAutofixQuota &&
+    organization.features.includes('seer-billing');
+
+  const setupStep = useAutofixSetupStep({
+    seerReposLinked: panel?.aiConfig.seerReposLinked ?? false,
+  });
 
   if (!panel) {
     return null;
   }
 
   const {aiConfig, autofix, warnings} = panel;
+
+  if (isSeerSetupPending || setupStep.isPending) {
+    return <Placeholder height="15rem" />;
+  }
+
+  // Without a subscription, starting a run would only fail, so offer the
+  // upgrade instead of the start card. The CTA itself comes from getsentry;
+  // open source registers no override and renders nothing here. It stands in
+  // for the start card alone, so an org that loses its quota keeps the results
+  // of a run it already has.
+  if (needsSeerSubscription && !autofix.isLoading && !autofix.runState) {
+    return (
+      <Stack gap="lg">
+        <AutofixWarnings warnings={warnings} groupId={group.id} />
+        <div data-test-id="autofix-upgrade-cta">
+          <AiSetupDataConsent groupId={group.id} />
+        </div>
+      </Stack>
+    );
+  }
+
+  // Until Seer can reach the code, a run has nothing to work from, so point
+  // people at setup instead of the start card, the same as the sidebar does.
+  // An existing run stays visible.
+  const setupType = aiConfig.isAutofixSetupLoading ? null : setupStep.setupType;
+
+  if (setupType && !autofix.isLoading && !autofix.runState) {
+    return (
+      <Stack gap="lg">
+        <AutofixWarnings warnings={warnings} groupId={group.id} />
+        <AutofixSetupCard group={group} project={project} setupType={setupType} />
+      </Stack>
+    );
+  }
 
   return (
     <Stack gap="lg">
@@ -58,7 +122,12 @@ function GroupAutofixContent({group}: {group: Group}) {
           <Placeholder height="15rem" />
         </Stack>
       ) : (
-        <SeerDrawerContent group={group} autofix={autofix} aiConfig={aiConfig} />
+        <SeerDrawerContent
+          group={group}
+          autofix={autofix}
+          aiConfig={aiConfig}
+          stickyNextStep
+        />
       )}
     </Stack>
   );

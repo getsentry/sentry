@@ -9,7 +9,13 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_TOO_MANY_REQUESTS,
+)
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -46,6 +52,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            429: RESPONSE_TOO_MANY_REQUESTS,
         },
         examples=ReplayExamples.GET_REPLAY_SEGMENTS,
     )
@@ -55,11 +62,12 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
         """Return a collection of replay recording segments."""
         self.check_replay_access(request, project)
 
-        return self.paginate(
-            request=request,
-            response_cls=StreamingHttpResponse,
-            response_kwargs={"content_type": "application/json"},
-            paginator_cls=GenericOffsetPaginator,
-            data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
-            on_results=download_segments,
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                response_cls=StreamingHttpResponse,
+                response_kwargs={"content_type": "application/json"},
+                paginator_cls=GenericOffsetPaginator,
+                data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
+                on_results=download_segments,
+            )

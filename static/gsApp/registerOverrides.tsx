@@ -36,7 +36,6 @@ import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerC
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import {ReplayInit} from 'getsentry/components/replayInit';
-import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import {
   shouldExcludeOrg,
   SuperuserWarning,
@@ -72,7 +71,6 @@ import {useMetricDetectorLimit} from 'getsentry/overrides/useMetricDetectorLimit
 import {useReplayForCriticalFlow} from 'getsentry/overrides/useReplayForCriticalFlow';
 import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
-import {trackMetric} from 'getsentry/utils/trackMetric';
 import SeerAutomationTrial from 'getsentry/views/seerAutomation/trial';
 
 import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
@@ -131,7 +129,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    */
   'analytics:raw-track-event': rawTrackAnalyticsEvent,
   'analytics:init-user': analyticsInitUser,
-  'metrics:event': trackMetric,
 
   /**
    * Sidebar augmentation
@@ -237,7 +234,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
   'component:scm-github-multi-org-install': () => ScmGithubMultiOrgInstall,
-  'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
   'component:product-selection-availability': () => ProductSelectionAvailability,

@@ -75,7 +75,7 @@ interface TableWidgetVisualizationProps {
    */
   aliases?: Record<string, string>;
   /**
-   * The cell actions that may appear when a user clicks on a table cell. By default, copying text and opening external links are enabled.
+   * The cell actions that may appear in the table cell actions menu. By default, copying text and opening external links are enabled.
    */
   allowedCellActions?: Actions[] | GetAllowedCellActionsFn;
   /**
@@ -384,7 +384,6 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
         },
       }}
       stickyHeader={scrollable}
-      scrollable={scrollable}
       height={scrollable ? '100%' : undefined}
       bodyStyle={frameless ? FRAMELESS_STYLES : {}}
       resizable={resizable}

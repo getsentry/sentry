@@ -1,8 +1,9 @@
 import React, {Fragment} from 'react';
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {useTimezone} from '@sentry/scraps/datetime';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AutoSelectText} from 'sentry/components/autoSelectText';
@@ -28,10 +29,12 @@ function TimestampTooltipBody({
   attributes,
   isTraceItemDetailsPending,
   relativeTime,
+  onPointerUp,
 }: {
   attributes: Record<string, string | number | boolean>;
   timestamp: string | number;
   isTraceItemDetailsPending?: boolean;
+  onPointerUp?: React.PointerEventHandler<HTMLElement>;
   relativeTime?: number;
 }) {
   const currentTimezone = useTimezone();
@@ -52,71 +55,73 @@ function TimestampTooltipBody({
   const isUTCLocalTimezone = currentTimezone === 'UTC';
 
   return (
-    <DescriptionList>
-      <dt>{t('Occurred')}</dt>
-      <dd>
-        <TimestampValues>
-          <AutoSelectText>
-            <DateTime date={timestampToUse} seconds milliseconds timeZone />
-          </AutoSelectText>
-          {!isUTCLocalTimezone && (
+    <Tooltip.Grid>
+      <DescriptionList terms="strong" onPointerUp={onPointerUp}>
+        <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          <TimestampValues>
             <AutoSelectText>
-              <DateTime date={timestampToUse} seconds milliseconds timeZone utc />
+              <DateTime date={timestampToUse} seconds milliseconds timeZone />
             </AutoSelectText>
-          )}
-          <TimestampLabel>
-            ({preciseTimestampMs ? String(preciseTimestampMs) : String(timestamp)})
-          </TimestampLabel>
-        </TimestampValues>
-      </dd>
-      {relativeTime && (
-        <Fragment>
-          <dt>{t('Relative to Replay Start')}</dt>
-          <dd>
-            <TimestampValues>
-              <Duration duration={[Math.abs(relativeTime), 'ms']} precision="ms" />
-            </TimestampValues>
-          </dd>
-        </Fragment>
-      )}
-      {isUTCLocalTimezone && (
-        <Fragment>
-          <dt />
-          <TimestampLabelLinkContainer>
-            <TimestampLabelLink
-              target="_blank"
-              to="/settings/account/details/#timezone"
-              onClick={() =>
-                trackAnalytics('logs.timestamp_tooltip.add_timezone_clicked', {
-                  organization,
-                })
-              }
-            >
-              <br />
-              {t('Add your local timezone')}
-            </TimestampLabelLink>
-          </TimestampLabelLinkContainer>
-        </Fragment>
-      )}
-
-      {(observedTime || isTraceItemDetailsPending) && (
-        <Fragment>
-          <HorizontalRule />
-          <dt>{t('Received')}</dt>
-          <dd>
-            {observedTime ? (
-              <TimestampValues>
-                <AutoSelectText>
-                  <DateTime date={observedTime} seconds timeZone />
-                </AutoSelectText>
-              </TimestampValues>
-            ) : (
-              <LoadingIndicator size={16} style={{margin: 0}} />
+            {!isUTCLocalTimezone && (
+              <AutoSelectText>
+                <DateTime date={timestampToUse} seconds milliseconds timeZone utc />
+              </AutoSelectText>
             )}
-          </dd>
-        </Fragment>
-      )}
-    </DescriptionList>
+            <TimestampLabel>
+              ({preciseTimestampMs ? String(preciseTimestampMs) : String(timestamp)})
+            </TimestampLabel>
+          </TimestampValues>
+        </DescriptionList.Details>
+        {relativeTime && (
+          <Fragment>
+            <DescriptionList.Term>{t('Relative to Replay Start')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              <TimestampValues>
+                <Duration duration={[Math.abs(relativeTime), 'ms']} precision="ms" />
+              </TimestampValues>
+            </DescriptionList.Details>
+          </Fragment>
+        )}
+        {isUTCLocalTimezone && (
+          <Fragment>
+            <DescriptionList.Term />
+            <TimestampLabelLinkContainer>
+              <TimestampLabelLink
+                target="_blank"
+                to="/settings/account/details/#timezone"
+                onClick={() =>
+                  trackAnalytics('logs.timestamp_tooltip.add_timezone_clicked', {
+                    organization,
+                  })
+                }
+              >
+                <br />
+                {t('Add your local timezone')}
+              </TimestampLabelLink>
+            </TimestampLabelLinkContainer>
+          </Fragment>
+        )}
+
+        {(observedTime || isTraceItemDetailsPending) && (
+          <Fragment>
+            <HorizontalRule />
+            <DescriptionList.Term>{t('Received')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {observedTime ? (
+                <TimestampValues>
+                  <AutoSelectText>
+                    <DateTime date={observedTime} seconds timeZone />
+                  </AutoSelectText>
+                </TimestampValues>
+              ) : (
+                <LoadingIndicator size={16} style={{margin: 0}} />
+              )}
+            </DescriptionList.Details>
+          </Fragment>
+        )}
+      </DescriptionList>
+    </Tooltip.Grid>
   );
 }
 
@@ -141,14 +146,13 @@ export function LogsTimestampTooltip({
   return (
     <Tooltip
       title={
-        <div onPointerUp={handleTooltipPointerUp}>
-          <TimestampTooltipBody
-            timestamp={timestamp}
-            attributes={attributes}
-            isTraceItemDetailsPending={isTraceItemDetailsPending}
-            relativeTime={relativeTime}
-          />
-        </div>
+        <TimestampTooltipBody
+          timestamp={timestamp}
+          attributes={attributes}
+          isTraceItemDetailsPending={isTraceItemDetailsPending}
+          relativeTime={relativeTime}
+          onPointerUp={handleTooltipPointerUp}
+        />
       }
       maxWidth={400}
     >
@@ -156,14 +160,6 @@ export function LogsTimestampTooltip({
     </Tooltip>
   );
 }
-
-const DescriptionList = styled('dl')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  text-align: left;
-  margin: 0;
-`;
 
 const TimestampValues = styled('div')`
   display: flex;
@@ -187,6 +183,6 @@ const TimestampLabel = styled('span')`
   color: ${p => p.theme.colors.gray500};
 `;
 
-const TimestampLabelLinkContainer = styled('dd')`
+const TimestampLabelLinkContainer = styled(DescriptionList.Details)`
   line-height: 0.8;
 `;

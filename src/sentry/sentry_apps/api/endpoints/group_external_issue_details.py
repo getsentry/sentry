@@ -8,12 +8,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.apidocs.constants import (
+    RESPONSE_CONFLICT,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
@@ -23,7 +25,9 @@ from sentry.issues.action_log import (
 )
 from sentry.issues.action_log.types import UnlinkPlatformExternalIssueAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.locks import locks
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.utils.locking import UnableToAcquireLock
 
 
 @extend_schema(tags=["Integration"])
@@ -54,6 +58,7 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
         },
     )
     @deprecated(
@@ -61,31 +66,48 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-external-issues-details",
         url_names=["sentry-api-0-group-external-issues-details"],
     )
-    def delete(self, request: Request, external_issue_id, group) -> Response[None]:
+    def delete(
+        self, request: Request, external_issue_id, group
+    ) -> Response[None] | Response[DetailResponse]:
         """Remove a custom integration's association with a Sentry issue. The external issue is not deleted."""
         try:
             external_issue = PlatformExternalIssue.objects.get(
                 id=external_issue_id, group_id=group.id
             )
         except PlatformExternalIssue.DoesNotExist:
-            return Response(status=404)
+            return Response(status=204)
 
-        publish_action(
-            UnlinkPlatformExternalIssueAction(
-                service_type=external_issue.service_type,
-                display_name=external_issue.display_name,
-                web_url=external_issue.web_url,
-            ),
-            source=resolve_action_source(request),
-            group_id=group.id,
-            project=group.project,
-            actor=(
-                GroupActionActor.user(request.user.id)
-                if request.user.is_authenticated
-                else SYSTEM_ACTOR
-            ),
-        )
+        try:
+            lock = locks.get(
+                f"platform-external-issue-link:{group.id}:{external_issue.service_type}",
+                duration=300,
+                name="platform_external_issue_link",
+            ).acquire()
+        except UnableToAcquireLock:
+            return Response({"detail": "This issue link is being updated. Try again."}, status=409)
 
-        deletions.exec_sync(external_issue)
+        with lock:
+            try:
+                external_issue.refresh_from_db()
+            except PlatformExternalIssue.DoesNotExist:
+                return Response(status=204)
+
+            publish_action(
+                UnlinkPlatformExternalIssueAction(
+                    service_type=external_issue.service_type,
+                    display_name=external_issue.display_name,
+                    web_url=external_issue.web_url,
+                ),
+                source=resolve_action_source(request),
+                group_id=group.id,
+                project=group.project,
+                actor=(
+                    GroupActionActor.user(request.user.id)
+                    if request.user.is_authenticated
+                    else SYSTEM_ACTOR
+                ),
+            )
+
+            deletions.exec_sync(external_issue)
 
         return Response(status=204)

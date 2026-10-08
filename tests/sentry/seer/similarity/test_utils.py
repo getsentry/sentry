@@ -876,8 +876,6 @@ class StacktraceExceedsLimitsTest(TestCase):
         Test that short stacktraces pass without running token count.
         If string length < max_token_count, we skip tokenization.
         """
-        # Use a non-bypassed platform
-        self.event.data["platform"] = "java"
         # Create a short stacktrace
         short_stacktrace = 'Error: short\n  File "a.py", function a\n    x = 1'
         self.event.data["stacktrace_string"] = short_stacktrace
@@ -888,7 +886,7 @@ class StacktraceExceedsLimitsTest(TestCase):
             # Should pass because string length (50 chars) < max_token_count (10000)
             assert (
                 stacktrace_exceeds_limits(
-                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
                 )
                 is False
             )
@@ -897,8 +895,6 @@ class StacktraceExceedsLimitsTest(TestCase):
         """
         Test that long stacktraces are blocked when token count exceeds limit.
         """
-        # Use a non-bypassed platform
-        self.event.data["platform"] = "java"
         # Create a very long stacktrace that will definitely exceed token count
         long_stacktrace = "VeryLongError: " + ("a" * 10000) + "\n" + ("  File 'x.py'\n" * 100)
         self.event.data["stacktrace_string"] = long_stacktrace
@@ -909,7 +905,7 @@ class StacktraceExceedsLimitsTest(TestCase):
             # Should be blocked because token count will exceed 100
             assert (
                 stacktrace_exceeds_limits(
-                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
                 )
                 is True
             )
@@ -920,8 +916,6 @@ class StacktraceExceedsLimitsTest(TestCase):
         This tests the case where string length > max_token_count (triggering tokenization)
         but actual token count < max_token_count (so it passes).
         """
-        # Use a non-bypassed platform
-        self.event.data["platform"] = "java"
         # Create a stacktrace that's long in characters (>7000) but not in tokens (<7000)
         # Repetitive text compresses well in tokens
         long_stacktrace = "Error: test\n" + ("  File 'file.py', function func\n    line\n" * 200)
@@ -934,7 +928,7 @@ class StacktraceExceedsLimitsTest(TestCase):
             # Should pass because token count is under the limit despite long string
             assert (
                 stacktrace_exceeds_limits(
-                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
                 )
                 is False
             )
@@ -943,8 +937,6 @@ class StacktraceExceedsLimitsTest(TestCase):
         """
         Test that the function uses cached stacktrace_string from event.data.
         """
-        # Use a non-bypassed platform
-        self.event.data["platform"] = "java"
         cached_stacktrace = "Cached: error\n  File 'cached.py'\n    cached_line"
         self.event.data["stacktrace_string"] = cached_stacktrace
 
@@ -953,7 +945,7 @@ class StacktraceExceedsLimitsTest(TestCase):
 
             with patch("sentry.seer.similarity.utils.get_stacktrace_string") as mock_get_stacktrace:
                 stacktrace_exceeds_limits(
-                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
                 )
                 # Should not call get_stacktrace_string since we have cached value
                 mock_get_stacktrace.assert_not_called()
@@ -962,8 +954,6 @@ class StacktraceExceedsLimitsTest(TestCase):
         """
         Test that the function generates stacktrace string when not cached.
         """
-        # Use a non-bypassed platform
-        self.event.data["platform"] = "java"
         self.event.data["exception"]["values"][0]["stacktrace"] = {
             "frames": [self.contributing_in_app_frame]
         }
@@ -974,7 +964,7 @@ class StacktraceExceedsLimitsTest(TestCase):
             # No cached stacktrace_string, so it should generate one
             assert (
                 stacktrace_exceeds_limits(
-                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
                 )
                 is False
             )
@@ -983,8 +973,6 @@ class StacktraceExceedsLimitsTest(TestCase):
         """
         Test that events grouped by fingerprint are not checked for stacktrace length.
         """
-        # Use a non-bypassed platform
-        self.event.data["platform"] = "java"
         long_stacktrace = "VeryLongError: " + ("a" * 10000)
         self.event.data["stacktrace_string"] = long_stacktrace
         self.event.data["fingerprint"] = ["custom_fingerprint"]
@@ -997,53 +985,10 @@ class StacktraceExceedsLimitsTest(TestCase):
             # Should return False because it's not grouped on stacktrace
             assert (
                 stacktrace_exceeds_limits(
-                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V2_1
                 )
                 is False
             )
-
-    def test_bypassed_platforms_always_pass_for_v1(self) -> None:
-        """
-        Test that bypassed platforms (python, javascript, etc.) always pass regardless of length
-        when using V1 model (or no model version specified).
-        """
-        for platform in ["python", "javascript", "node", "go", "php", "ruby"]:
-            self.event.data["platform"] = platform
-            # Create a very long stacktrace that would normally be blocked
-            long_stacktrace = "VeryLongError: " + ("a" * 10000)
-            self.event.data["stacktrace_string"] = long_stacktrace
-
-            with self.options({"seer.similarity.max_token_count": 100}):
-                variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-
-                # Bypassed platforms should always pass for V1
-                assert (
-                    stacktrace_exceeds_limits(
-                        self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
-                    )
-                    is False
-                )
-
-    def _assert_bypassed_platforms_are_checked(self, model_version: GroupingVersion) -> None:
-        for platform in ["python", "javascript", "node", "go", "php", "ruby"]:
-            self.event.data["platform"] = platform
-            # Create a stacktrace that will exceed the token limit (repetitive chars compress
-            # well in BPE, so we need varied content to generate enough tokens)
-            long_stacktrace = "VeryLongError: " + ("a" * 10000) + "\n" + ("  File 'x.py'\n" * 100)
-            self.event.data["stacktrace_string"] = long_stacktrace
-
-            with self.options({"seer.similarity.max_token_count": 100}):
-                variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-
-                assert (
-                    stacktrace_exceeds_limits(
-                        self.event, variants, ReferrerOptions.INGEST, model_version
-                    )
-                    is True
-                )
-
-    def test_bypassed_platforms_are_checked_for_v2_1(self) -> None:
-        self._assert_bypassed_platforms_are_checked(GroupingVersion.V2_1)
 
 
 class GetTokenCountTest(TestCase):

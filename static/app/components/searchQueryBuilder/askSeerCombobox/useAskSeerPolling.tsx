@@ -11,6 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   AskSeerPollingResponse,
   AskSeerStartResponse,
+  AskSeerStrategy,
   QueryTokensProps,
 } from './types';
 
@@ -60,7 +61,7 @@ const makeInitialAskSeerData = <
 
 interface UseAskSeerPollingOptions {
   projectIds: number[];
-  strategy: string;
+  strategy: AskSeerStrategy;
   onError?: (error: Error) => void;
   options?: Record<string, unknown>;
 }

@@ -653,16 +653,6 @@ class DetectorWorkflowParams:
     )
 
 
-class IssueAlertParams:
-    ISSUE_RULE_ID = OpenApiParameter(
-        name="rule_id",
-        location="path",
-        required=True,
-        type=int,
-        description="The ID of the rule you'd like to query.",
-    )
-
-
 class DataForwarderParams:
     DATA_FORWARDER_ID = OpenApiParameter(
         name="data_forwarder_id",
@@ -719,6 +709,23 @@ class VisibilityParams:
         description="""Filters results by using [query syntax](/product/sentry-basics/search/).
 
 Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
+""",
+    )
+    EXPLORE_QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="""Filters results by using [query syntax](/concepts/search/).
+
+Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
+
+With the `logs` dataset, a string attribute can also be matched against a regular expression written as `key://pattern//`, and excluded with `!key://pattern//`.
+Patterns use [RE2 syntax](https://github.com/google/re2/wiki/Syntax), match anywhere in the value unless anchored with `^` or `$`, are case sensitive unless they start with `(?i)`, and are limited to 64 characters.
+To search for a literal value that starts with `//`, quote it: `key:"//value"`.
+See [regular expressions](/concepts/search/#regular-expressions-logs-only) for more details.
+
+Example: `query=message://^Timeout after \\d+ms//`
 """,
     )
     FIELD = OpenApiParameter(
@@ -996,6 +1003,14 @@ class EventParams:
 
 
 class ProjectParams:
+    CUSTOM_INBOUND_FILTER_ID = OpenApiParameter(
+        name="filter_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the custom inbound filter.",
+    )
+
     FILTER_ID = OpenApiParameter(
         name="filter_id",
         location="path",
