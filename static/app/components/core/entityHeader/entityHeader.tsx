@@ -14,7 +14,10 @@ import {Text} from '@sentry/scraps/text';
 import {Placeholder} from 'sentry/components/placeholder';
 
 import type {EntityHeaderMetadataItemProps} from './items/entityHeaderMetadataItem';
-import {EntityHeaderMetadataItem} from './items/entityHeaderMetadataItem';
+import {
+  EntityHeaderMetadataItem,
+  EntityHeaderMetadataItemSkeleton,
+} from './items/entityHeaderMetadataItem';
 import type {EntityHeaderPeopleProps} from './items/entityHeaderPeople';
 import {EntityHeaderPeople} from './items/entityHeaderPeople';
 import type {EntityHeaderStatProps} from './items/entityHeaderStat';
@@ -58,8 +61,15 @@ export interface EntityHeaderProps {
   stats?: Array<EntityHeaderStatProps | null>;
   /**
    * A single line of secondary text under the title, e.g. an error message.
+   *
+   * Declaring the object reserves the row, so content that arrives after the
+   * first paint fills a space that was already there. `content` may be empty
+   * until it does.
    */
-  subtitle?: React.ReactNode;
+  subtitle?: {
+    content: React.ReactNode;
+    loadingWidth?: string;
+  };
 }
 
 function getGridTemplate({
@@ -150,7 +160,17 @@ export function EntityHeader({
   // row is there if either one is.
   const hasStatsRow = hasStats || hasPeople;
   const hasSubtitle = Boolean(subtitle);
-  const hasMetadata = visibleMetadata.length > 0;
+  // Declared, not resolved. A caller whose items are all gated on a request
+  // has none of them on the first paint, and keying the row off that would
+  // bring the whole row — and the height of the page below it — in late.
+  const hasMetadata = Boolean(metadata) && (isLoading || visibleMetadata.length > 0);
+  // So while loading, every declared slot holds a space, nulls included.
+  const metadataSlots: Array<{
+    index: number;
+    item: EntityHeaderMetadataItemProps | null;
+  }> = isLoading
+    ? (metadata?.items ?? []).map((item, index) => ({item, index}))
+    : visibleMetadata;
   const hasContext = hasSubtitle || hasMetadata;
 
   const {columns, areas} = getGridTemplate({hasStatsRow, hasContext});
@@ -173,13 +193,16 @@ export function EntityHeader({
 
         {hasContext && (
           <Stack area="context" minWidth={0}>
-            {hasSubtitle && (
+            {subtitle && (
               <Flex align="center" minWidth={0} minHeight={METADATA_TEXT_HEIGHT}>
                 {isLoading ? (
-                  <Placeholder width="320px" height={METADATA_TEXT_HEIGHT} />
+                  <Placeholder
+                    width={subtitle.loadingWidth ?? '320px'}
+                    height={METADATA_TEXT_HEIGHT}
+                  />
                 ) : (
                   <Text size="md" density="comfortable" ellipsis>
-                    {subtitle}
+                    {subtitle.content}
                   </Text>
                 )}
               </Flex>
@@ -195,10 +218,14 @@ export function EntityHeader({
                 minWidth={0}
                 minHeight={METADATA_TEXT_HEIGHT}
               >
-                {visibleMetadata.map(({item, index}, position) => (
+                {metadataSlots.map(({item, index}, position) => (
                   <Fragment key={index}>
                     {position > 0 && <Divider height="12px" />}
-                    <EntityHeaderMetadataItem {...item} isLoading={isLoading} />
+                    {item ? (
+                      <EntityHeaderMetadataItem {...item} isLoading={isLoading} />
+                    ) : (
+                      <EntityHeaderMetadataItemSkeleton />
+                    )}
                   </Fragment>
                 ))}
               </Flex>

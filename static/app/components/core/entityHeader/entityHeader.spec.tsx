@@ -5,6 +5,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {getEmotionRules} from 'sentry-test/utils';
 
 import {Tag} from '@sentry/scraps/badge';
+import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -632,7 +633,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           isLoading
           title={{label: 'Replay user', value: 'Session'}}
-          subtitle="A subtitle"
+          subtitle={{content: 'A subtitle'}}
           stats={[
             {type: 'text', label: 'Dead Clicks', value: 4},
             {type: 'text', label: 'Errors', value: 2},
@@ -662,6 +663,38 @@ describe('EntityHeader', () => {
       // And the region says it is in flux, which is the only signal a screen
       // reader gets that more is coming.
       expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'true');
+    });
+
+    it('keeps the grid template steady when declared slots resolve late', () => {
+      // What the replay consumer does: every item is gated on one request, so
+      // the first paint has none of them.
+      const build = (hasData: boolean): EntityHeaderProps => ({
+        isLoading: !hasData,
+        title: {label: 'Replay user', value: 'Session'},
+        subtitle: {content: hasData ? 'A summary' : undefined},
+        metadata: {
+          label: 'Replay properties',
+          items: [
+            hasData ? {label: 'Started at', values: ['2h ago']} : null,
+            hasData ? {label: 'Browser', values: ['Chrome']} : null,
+          ],
+        },
+        stats: [{type: 'text', label: 'Errors', value: 0}],
+      });
+
+      const {rerender} = render(<EntityHeader {...build(false)} />);
+      const loading = getGridRules().filter(rule => rule.includes('grid-template-areas'));
+
+      // Both declared rows hold a space rather than arriving with the data.
+      expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(5);
+
+      rerender(<EntityHeader {...build(true)} />);
+
+      expect(getGridRules().filter(rule => rule.includes('grid-template-areas'))).toEqual(
+        loading
+      );
+      expect(screen.getByText('A summary')).toBeInTheDocument();
+      expect(screen.getByText('Chrome')).toBeInTheDocument();
     });
 
     it('shows the people skeleton alongside the stats, not after them', () => {

@@ -59,6 +59,20 @@ export interface EntityHeaderMetadataItemProps {
   variant?: EntityHeaderMetadataVariant;
 }
 
+/**
+ * A metadata slot the caller declared but whose item has not resolved yet.
+ *
+ * The row reserves space for every declared slot, so the number of items
+ * cannot change as data lands and push the rows below it down.
+ */
+export function EntityHeaderMetadataItemSkeleton({width = '120px'}: {width?: string}) {
+  return (
+    <Flex role="listitem" align="center" minWidth={0} minHeight={METADATA_TEXT_HEIGHT}>
+      <Placeholder width={width} height={METADATA_TEXT_HEIGHT} />
+    </Flex>
+  );
+}
+
 export function EntityHeaderMetadataItem({
   isLoading,
   label,

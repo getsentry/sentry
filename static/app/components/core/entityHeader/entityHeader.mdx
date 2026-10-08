@@ -63,7 +63,7 @@ Use `EntityHeader` on a detail page — a single issue, trace, replay, release, 
   title={{label: t('Replay user'), value: replay.user.display_name}}
   people={{users: viewers, label: t('Viewed by')}}
   stats={[{type: 'link', label: t('Errors'), value: errors.length, to: errorsTab}]}
-  subtitle={replay.summary}
+  subtitle={{content: replay.summary}}
   metadata={{
     label: t('Replay properties'),
     items: [{label: t('Browser'), values: ['Chrome', '144.0.0']}],
