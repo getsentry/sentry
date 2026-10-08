@@ -773,9 +773,9 @@ def should_defer_pr_iteration(resolved: ResolvedGreenCheckSuite) -> bool:
     """
     # feedback.py imports the check-suite feedback source, which imports this
     # module; deferred like ``make_scm`` below it.
-    from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
+    from sentry.seer.autofix.pr_iteration.feedback import iteration_cap_reached
 
-    if automated_iteration_cap_reached(resolved.autofix_run.run_state):
+    if iteration_cap_reached(resolved.autofix_run.run_state):
         _skip("hard_cap_reached", resolved.log_extra)
         return True
 
