@@ -6,6 +6,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from sentry_sdk import traces
+from taskbroker_client.registry import TaskNamespace
 
 from sentry.ingest.event_payload import load_event_payload, prepare_submit
 from sentry.killswitches import killswitch_matches_context
@@ -25,7 +26,11 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import StacktraceInfo
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import symbolication_tasks
+from sentry.taskworker.namespaces import (
+    symbolication_js_tasks,
+    symbolication_jvm_tasks,
+    symbolication_tasks,
+)
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
 
@@ -260,7 +265,13 @@ SymbolicationTaskFn = Any  # FIXME: it would be nice if `instrumented_task` woul
 TASK_FNS: dict[SymbolicatorTaskKind, str] = {}
 
 
-def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> SymbolicationTaskFn:
+def make_task_fn(
+    name: str,
+    queue: str,
+    task_kind: SymbolicatorTaskKind,
+    namespace: TaskNamespace = symbolication_tasks,
+    alias_namespace: TaskNamespace | None = None,
+) -> SymbolicationTaskFn:
     """
     Returns a parameterized version of `_do_symbolicate_event` that runs as a task,
     and can be spawned as one.
@@ -268,7 +279,8 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
 
     @instrumented_task(
         name=name,
-        namespace=symbolication_tasks,
+        namespace=namespace,
+        alias_namespace=alias_namespace,
         processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
         silo_mode=SiloMode.CELL,
     )
@@ -344,11 +356,17 @@ symbolicate_js_event = make_task_fn(
     name="sentry.tasks.symbolicate_js_event",
     queue="events.symbolicate_js_event",
     task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.js, is_reprocessing=False),
+    namespace=symbolication_js_tasks,
+    # Keep processing activations still queued in the shared `symbolication` namespace.
+    alias_namespace=symbolication_tasks,
 )
 symbolicate_jvm_event = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event",
     queue="events.symbolicate_jvm_event",
     task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.jvm, is_reprocessing=False),
+    namespace=symbolication_jvm_tasks,
+    # Keep processing activations still queued in the shared `symbolication` namespace.
+    alias_namespace=symbolication_tasks,
 )
 
 
