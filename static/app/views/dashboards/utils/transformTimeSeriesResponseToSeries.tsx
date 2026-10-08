@@ -11,6 +11,8 @@ import type {
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
 
+const OTHER_SERIES_NAME = 'Other';
+
 export type WidgetSeries = Series & {
   timeSeries?: TimeSeries;
 };
@@ -63,7 +65,7 @@ function getLegacySeriesName(
   }
 
   const groupName = timeSeries.meta.isOther
-    ? 'Other'
+    ? OTHER_SERIES_NAME
     : getLegacyGroupName(timeSeries.groupBy ?? []);
 
   if (!hasMultipleYAxes) {
@@ -78,7 +80,7 @@ function getLegacySeriesName(
  * Mirrors how group by values are joined in `/events-stats/` result keys
  */
 function getLegacyGroupName(groupBy: TimeSeriesGroupBy[]): string {
-  return groupBy
+  const groupName = groupBy
     .map(({value}) => {
       if (value === null) {
         return 'None';
@@ -92,6 +94,12 @@ function getLegacyGroupName(groupBy: TimeSeriesGroupBy[]): string {
       return String(value);
     })
     .join(',');
+
+  // A real group by value of "Other" would collide with the "Other" bucket, so
+  // `/events-stats/` appends the first group by field to the key
+  return groupName === OTHER_SERIES_NAME && groupBy[0]
+    ? `${groupName} (${groupBy[0].key})`
+    : groupName;
 }
 
 /** @public */
