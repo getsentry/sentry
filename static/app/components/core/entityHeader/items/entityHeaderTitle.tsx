@@ -90,8 +90,11 @@ function LeadingGraphic({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
       return <UserAvatar user={graphic.user} size={20} />;
     case 'project': {
       const platforms = graphic.projects.map(project => project.platform).filter(defined);
-      return platforms.length === 0 ? null : (
-        <ProjectsBadge projectPlatforms={platforms} size="lg" />
+      return (
+        <ProjectsBadge
+          projectPlatforms={platforms.length > 0 ? platforms : ['default']}
+          size="lg"
+        />
       );
     }
     case 'platform':

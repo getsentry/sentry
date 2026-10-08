@@ -99,6 +99,26 @@ describe('EntityHeader', () => {
       expect(await screen.findByText('frontend, backend')).toBeInTheDocument();
     });
 
+    it('falls back to the generic tile when no project has a known platform', () => {
+      render(
+        <EntityHeader
+          title={{
+            label: 'Trace',
+            value: 'GET /api/',
+            leadingGraphic: {
+              type: 'project',
+              projects: [{slug: 'backend'}],
+              label: '1 project',
+            },
+          }}
+        />
+      );
+
+      // Not an empty 24px box, and not a named image with nothing in it.
+      const graphic = screen.getByRole('img', {name: '1 project'});
+      expect(graphic.querySelector('img')).toBeInTheDocument();
+    });
+
     it('draws a user avatar at the size the people slot shows, inside the same box', () => {
       render(
         <EntityHeader
