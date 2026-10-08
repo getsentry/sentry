@@ -250,19 +250,29 @@ def error_type_rule_condition(values: list[str]) -> dict:
     }
 
 
+RELEASE_FIELDS = [
+    "event.release",
+    "log.attributes.sentry.release.value",
+    "trace_metric.attributes.sentry.release.value",
+    "span.attributes.sentry.release.value",
+]
+
+
 def release_rule_condition(values: list[str]) -> dict:
     """The catch-all shape: the release field of every data type, combined with OR."""
     return {
         "op": "or",
+        "inner": [{"op": "glob", "name": name, "value": values} for name in RELEASE_FIELDS],
+    }
+
+
+def release_version_rule_condition(comparator: str, release: str) -> dict:
+    """The catch-all shape of a version comparison."""
+    return {
+        "op": "or",
         "inner": [
-            {"op": "glob", "name": "event.release", "value": values},
-            {"op": "glob", "name": "log.attributes.sentry.release.value", "value": values},
-            {
-                "op": "glob",
-                "name": "trace_metric.attributes.sentry.release.value",
-                "value": values,
-            },
-            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": values},
+            {"op": "release", "name": name, "comparator": comparator, "value": release}
+            for name in RELEASE_FIELDS
         ],
     }
 
@@ -326,7 +336,7 @@ def release_rule_condition(values: list[str]) -> dict:
             "log",
             [
                 {"type": "log_message", "value": ["*DEBUG*"]},
-                {"type": "release", "value": ["1.2.3"]},
+                {"type": "release", "value": ["1.2.*"]},
             ],
             {
                 "op": "and",
@@ -335,7 +345,7 @@ def release_rule_condition(values: list[str]) -> dict:
                     {
                         "op": "glob",
                         "name": "log.attributes.sentry.release.value",
-                        "value": ["1.2.3"],
+                        "value": ["1.2.*"],
                     },
                 ],
             },
@@ -345,7 +355,7 @@ def release_rule_condition(values: list[str]) -> dict:
             "metric",
             [
                 {"type": "metric_name", "value": ["checkout.*"]},
-                {"type": "release", "value": ["1.2.3"]},
+                {"type": "release", "value": ["1.2.*"]},
             ],
             {
                 "op": "and",
@@ -354,7 +364,7 @@ def release_rule_condition(values: list[str]) -> dict:
                     {
                         "op": "glob",
                         "name": "trace_metric.attributes.sentry.release.value",
-                        "value": ["1.2.3"],
+                        "value": ["1.2.*"],
                     },
                 ],
             },
@@ -368,9 +378,36 @@ def release_rule_condition(values: list[str]) -> dict:
         ),
         pytest.param(
             "span",
-            [{"type": "release", "value": ["1.2.3"]}],
-            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": ["1.2.3"]},
+            [{"type": "release", "value": ["1.2.*"]}],
+            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": ["1.2.*"]},
             id="release_on_spans",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "release", "value": ["1.2.3", "myapp@2.0", "a4b7e0f9c2d1"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "glob",
+                        "name": "span.attributes.sentry.release.value",
+                        "value": ["a4b7e0f9c2d1"],
+                    },
+                    {
+                        "op": "release",
+                        "name": "span.attributes.sentry.release.value",
+                        "comparator": "eq",
+                        "value": "1.2.3",
+                    },
+                    {
+                        "op": "release",
+                        "name": "span.attributes.sentry.release.value",
+                        "comparator": "eq",
+                        "value": "myapp@2.0",
+                    },
+                ],
+            },
+            id="plain_version_compares_as_equal",
         ),
         pytest.param(
             "error",
@@ -387,17 +424,65 @@ def release_rule_condition(values: list[str]) -> dict:
         pytest.param(
             "all",
             [
-                {"type": "release", "value": [">2*"]},
-                {"type": "release", "value": ["<4*"]},
+                {"type": "release", "value": [">=2"]},
+                {"type": "release", "value": ["<4"]},
             ],
             {
                 "op": "and",
                 "inner": [
-                    release_rule_condition([">2*"]),
-                    release_rule_condition(["<4*"]),
+                    release_version_rule_condition("gte", "2"),
+                    release_version_rule_condition("lt", "4"),
                 ],
             },
             id="catch_all_release_range",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "value": [">1.2.0", ">= 1.3", "<myapp@2.0", "<=2", "=1.2.3"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "release",
+                        "name": "event.release",
+                        "comparator": "gt",
+                        "value": "1.2.0",
+                    },
+                    {"op": "release", "name": "event.release", "comparator": "gte", "value": "1.3"},
+                    {
+                        "op": "release",
+                        "name": "event.release",
+                        "comparator": "lt",
+                        "value": "myapp@2.0",
+                    },
+                    {"op": "release", "name": "event.release", "comparator": "lte", "value": "2"},
+                    {
+                        "op": "release",
+                        "name": "event.release",
+                        "comparator": "eq",
+                        "value": "1.2.3",
+                    },
+                ],
+            },
+            id="release_version_comparators",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "value": ["1.*", ">=3.0", "2.5.*"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": "event.release", "value": ["1.*", "2.5.*"]},
+                    {"op": "release", "name": "event.release", "comparator": "gte", "value": "3.0"},
+                ],
+            },
+            id="release_globs_and_version_comparison_mixed",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "value": ["builds/*", "x" * 300]}],
+            {"op": "glob", "name": "event.release", "value": ["builds/*", "x" * 300]},
+            id="release_values_the_parser_rejects_stay_globs",
         ),
         pytest.param(
             "error",

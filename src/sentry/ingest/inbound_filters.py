@@ -1,10 +1,15 @@
+import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, Literal, cast
 
+import orjson
 from django.conf import settings
 from rest_framework import serializers
+from sentry_relay.exceptions import InvalidReleaseError
+from sentry_relay.processing import parse_release
 
+from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.models.custominboundfilter import (
     MAX_FILTERS_PER_PROJECT,
     ConditionType,
@@ -563,7 +568,7 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
     )
 
 
-# Builds the Relay condition that matches one filter condition's glob values.
+# Builds the Relay condition that matches one filter condition's values.
 _ConditionMatcher = Callable[[list[str]], RuleCondition]
 
 # The matcher for each condition type a data type supports.
@@ -587,6 +592,87 @@ def _cidr_matcher(name: str) -> _ConditionMatcher:
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
 
 
+ReleaseComparator = Literal["eq", "gt", "gte", "lt", "lte"]
+
+_RELEASE_COMPARATORS: Mapping[str, ReleaseComparator] = {
+    ">=": "gte",
+    "<=": "lte",
+    ">": "gt",
+    "<": "lt",
+    "=": "eq",
+}
+
+_RELEASE_COMPARISON_RE = re.compile(r"(>=|<=|>|<|=)\s*(.+)")
+
+
+@dataclass(frozen=True)
+class ReleaseComparison:
+    comparator: ReleaseComparator
+    # The release to compare against, such as `1.2.0` or `myapp@1.2.0`.
+    release: str
+
+
+def parse_release_comparison(value: str) -> ReleaseComparison | None:
+    """
+    Reads a release condition value that compares versions: one with a leading
+    comparator, such as `>=1.2.0` or `<myapp@2.0`, or a plain release with a version,
+    such as `1.2.0`, which compares as equal. Returns None for any other value, which
+    is a glob pattern.
+
+    A value with a comparator is returned whether or not its release carries a
+    version, so that the caller can reject one that does not.
+    """
+    match = _RELEASE_COMPARISON_RE.fullmatch(value)
+    if match is not None:
+        return ReleaseComparison(_RELEASE_COMPARATORS[match.group(1)], match.group(2))
+    if is_release_version(value):
+        return ReleaseComparison("eq", value)
+    return None
+
+
+def is_release_version(release: str) -> bool:
+    """
+    Whether Relay reads a version out of the release, so that it can compare it.
+    A release such as `1.2`, `1.2.3.4-rc.1` or `myapp@1.2.0` has one. A commit hash
+    or a glob pattern has none.
+    """
+    if "@" not in release:
+        release = f"{SEMVER_FAKE_PACKAGE}@{release}"
+    try:
+        parsed = parse_release(release, json_loads=orjson.loads)
+    except InvalidReleaseError:
+        return False
+    return parsed.get("version_parsed") is not None
+
+
+def _release_matcher(name: str) -> _ConditionMatcher:
+    # Glob values share one condition; each version comparison is a condition of
+    # its own, as Relay takes one comparator and release per `release` condition.
+    def match(values: list[str]) -> RuleCondition:
+        globs: list[str] = []
+        conditions: list[RuleCondition] = []
+        for value in values:
+            comparison = parse_release_comparison(value)
+            if comparison is None:
+                globs.append(value)
+            else:
+                conditions.append(
+                    {
+                        "op": "release",
+                        "name": name,
+                        "comparator": comparison.comparator,
+                        "value": comparison.release,
+                    }
+                )
+        if globs:
+            conditions.insert(0, {"op": "glob", "name": name, "value": globs})
+        if len(conditions) == 1:
+            return conditions[0]
+        return {"op": "or", "inner": conditions}
+
+    return match
+
+
 _CONDITION_MATCHERS: Mapping[
     ConditionType,
     _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
@@ -604,10 +690,10 @@ _CONDITION_MATCHERS: Mapping[
         DataType.METRIC: _field_matcher("trace_metric.name"),
     },
     ConditionType.RELEASE: {
-        DataType.ERROR: _field_matcher("event.release"),
-        DataType.LOG: _field_matcher("log.attributes.sentry.release.value"),
-        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.release.value"),
-        DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
+        DataType.ERROR: _release_matcher("event.release"),
+        DataType.LOG: _release_matcher("log.attributes.sentry.release.value"),
+        DataType.METRIC: _release_matcher("trace_metric.attributes.sentry.release.value"),
+        DataType.SPAN: _release_matcher("span.attributes.sentry.release.value"),
     },
     ConditionType.IP_ADDRESS: _client_ip_matcher,
     # Relay fills the geo from the client IP before filtering, unless the SDK sent one.

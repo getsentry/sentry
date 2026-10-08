@@ -330,6 +330,46 @@ class CustomInboundFiltersTest(APITestCase):
             "10.0.0.*, nope is not an IP address or CIDR range."
         )
 
+    def test_post_release_version_comparison(self) -> None:
+        """A release value that starts with a comparator is stored as typed."""
+        conditions = [{"type": "release", "value": [">=1.2.0", "<myapp@2.0", "1.*"]}]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Old versions",
+                dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_rejects_release_comparison_without_version(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Typo",
+                dataType="error",
+                conditions=[
+                    {
+                        "type": "release",
+                        "value": [">=1.2.0", ">2*", "<a4b7e0f9c2d1", "<=1.0/beta", "1.*"],
+                    }
+                ],
+            )
+
+        assert str(response.data["conditions"][0]["value"][0]) == (
+            ">2*, <a4b7e0f9c2d1, <=1.0/beta does not compare against a version "
+            "such as 1.2.0 or myapp@1.2.0."
+        )
+
     def test_catch_all_needs_no_ingestion_feature(self) -> None:
         """The catch-all filters whichever data types the organization ingests."""
         with self.feature(self.features):
