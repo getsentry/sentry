@@ -8,6 +8,7 @@ from django.core.mail import EmailMultiAlternatives
 
 from sentry.notifications.platform.registry import (
     provider_registry,
+    renderer_registry,
     template_registry,
 )
 from sentry.notifications.platform.service import NotificationService
@@ -109,6 +110,26 @@ class RenderTemplateLinkTrackingTest(TestCase):
                     assert links == tracked
 
         assert checked
+
+    def test_custom_renderers_get_the_undecorated_template(self) -> None:
+        for (provider_key, source), renderer in renderer_registry.registrations.items():
+            if source not in template_registry.registrations:
+                continue
+            template = template_registry.get(source)()
+            data = template.example_data
+            with (
+                self.subTest(source=source, provider=provider_key),
+                mock.patch.object(renderer, "render") as render,
+            ):
+                NotificationService.render_template(
+                    data=data, template=template, provider=provider_registry.get(provider_key)
+                )
+
+                render.assert_called_once_with(
+                    data=data,
+                    rendered_template=template.render(data=data),
+                    link_decorator=mock.ANY,
+                )
 
     def test_metric_alert_custom_renderers_decorate_alert_link(self) -> None:
         template = template_registry.get(NotificationSource.METRIC_ALERT)()

@@ -191,8 +191,11 @@ class NotificationService[T: NotificationData]:
         Returns the renderable and the kinds of tracked link it contains.
         """
         link_decorator = NotificationLinkDecorator(data=data, provider=provider.key)
-        rendered_template = link_decorator.decorate_rendered_template(template.render(data=data))
+        rendered_template = template.render(data=data)
         renderer = provider.get_renderer(data=data)
+        if renderer is provider.default_renderer:
+            # Custom renderers will decorate their own links, so only decorate the default renderer
+            rendered_template = link_decorator.decorate_rendered_template(rendered_template)
         renderable = renderer.render(
             data=data, rendered_template=rendered_template, link_decorator=link_decorator
         )
