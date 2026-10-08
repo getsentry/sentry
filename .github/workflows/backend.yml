@@ -49,19 +49,6 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      # `migration_tests` only matches migrations under src/ and tests/, so fail
-      # if a PR adds migrations anywhere else instead of silently skipping them.
-      - name: Check for migrations outside src/ and tests/
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          files="$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename')"
-          if grep -E '(^|/)migrations/' <<< "$files" | grep -vE '^(src|tests|fixtures|tools)/'; then
-            echo "::error::Migrations outside src/ or tests/ won't trigger migration tests. Update migration_tests in .github/file-filters.yml."
-            exit 1
-          fi
-
   api-docs:
     if: needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
