@@ -76,6 +76,7 @@ export function ErrorList() {
             aria-label={t('Errors')}
             columns={ERROR_TABLE_COLUMNS}
             customSections
+            density="compressed"
             maxHeight="100%"
             ref={tableRef}
             scrollable

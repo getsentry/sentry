@@ -1,5 +1,5 @@
 import type {HTMLAttributes, MouseEvent, ReactNode, Ref, RefObject} from 'react';
-import {Fragment} from 'react';
+import {createContext, Fragment, useContext} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -21,6 +21,16 @@ import {PanelProvider} from 'sentry/utils/panelProvider';
 
 export const SIMPLE_TABLE_HEADER_ROW_HEIGHT = 40;
 
+type TableDensity = 'compressed' | 'default' | 'comfortable';
+
+const CELL_PADDING = {
+  compressed: 'xs md',
+  default: 'lg xl',
+  comfortable: 'xl',
+} as const satisfies Record<TableDensity, FlexProps<'td'>['padding']>;
+
+const DensityContext = createContext<TableDensity>('default');
+
 type TableSectionsProps =
   | {
       /**
@@ -40,6 +50,7 @@ type TableProps = Omit<HTMLAttributes<HTMLTableElement>, 'children'> &
   TableSectionsProps & {
     children?: ReactNode;
     columns?: TableColumnConfig[];
+    density?: TableDensity;
     flexibleLastColumn?: boolean;
     maxHeight?: CSS['maxHeight'];
     minimumColumnWidth?: number;
@@ -71,6 +82,7 @@ export function SimpleTable({
   children,
   columns,
   customSections,
+  density = 'default',
   header,
   ...props
 }: TableProps) {
@@ -79,16 +91,18 @@ export function SimpleTable({
 
   return (
     <StyledTable columns={resolvedColumns} {...props}>
-      <PanelProvider>
-        {customSections ? (
-          children
-        ) : (
-          <Fragment>
-            {header ? <Table.Head>{header}</Table.Head> : null}
-            <Table.Body>{children}</Table.Body>
-          </Fragment>
-        )}
-      </PanelProvider>
+      <DensityContext value={density}>
+        <PanelProvider>
+          {customSections ? (
+            children
+          ) : (
+            <Fragment>
+              {header ? <Table.Head>{header}</Table.Head> : null}
+              <Table.Body>{children}</Table.Body>
+            </Fragment>
+          )}
+        </PanelProvider>
+      </DensityContext>
     </StyledTable>
   );
 }
@@ -103,10 +117,13 @@ function HeaderCell({
   divider = defined(children) ? true : false,
   ...props
 }: HeaderCellProps) {
+  const density = useContext(DensityContext);
+
   return (
     <ColumnHeaderCell
       {...props}
       align={align}
+      density={density}
       onSort={handleSortClick}
       overlays={
         <Fragment>
@@ -125,16 +142,27 @@ function HeaderCell({
 }
 
 function Row({children, variant = 'default', ref, ...props}: RowProps) {
+  const density = useContext(DensityContext);
+
   return (
-    <StyledRow divider variant={variant} ref={ref} {...props}>
+    <StyledRow divider={density !== 'compressed'} variant={variant} ref={ref} {...props}>
       {children}
     </StyledRow>
   );
 }
 
 function RowCell({children, ...props}: FlexProps<'td'>) {
+  const density = useContext(DensityContext);
+
   return (
-    <Flex as="td" role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
+    <Flex
+      as="td"
+      role="cell"
+      align="center"
+      overflow="hidden"
+      padding={CELL_PADDING[density]}
+      {...props}
+    >
       {children}
     </Flex>
   );
@@ -209,10 +237,10 @@ const HeaderDivider = styled('div')`
 `;
 
 const ColumnHeaderCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'variant',
-})<{variant: HeaderCellVariant; align?: ColumnAlign}>`
+  shouldForwardProp: prop => prop !== 'density' && prop !== 'variant',
+})<{density: TableDensity; variant: HeaderCellVariant; align?: ColumnAlign}>`
   outline: none;
-  padding: 0 ${p => p.theme.space.xl};
+  padding: 0 ${p => (p.density === 'compressed' ? p.theme.space.md : p.theme.space.xl)};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};

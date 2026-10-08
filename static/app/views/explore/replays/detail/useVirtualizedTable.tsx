@@ -5,7 +5,7 @@ import {SIMPLE_TABLE_HEADER_ROW_HEIGHT} from 'sentry/components/tables/simpleTab
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {getVisibleRangeFromVirtualRows} from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
 
-const ESTIMATED_ROW_HEIGHT = 45;
+const ESTIMATED_ROW_HEIGHT = 25;
 const OVERSCAN = 20;
 
 export function useVirtualizedTable({rowCount}: {rowCount: number}) {

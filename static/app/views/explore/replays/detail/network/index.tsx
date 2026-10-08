@@ -141,6 +141,7 @@ export function NetworkList() {
                 aria-label={t('Network requests')}
                 columns={NETWORK_TABLE_COLUMNS}
                 customSections
+                density="compressed"
                 maxHeight="100%"
                 ref={tableRef}
                 scrollable
