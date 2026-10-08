@@ -113,3 +113,14 @@ This protects intentionally empty identifiers and secrets and false reply
 settings from deprecated aliases. Existing self-hosted legacy aliases keep their
 precedence unless their target is explicitly tracked. The provenance is removed
 when the deprecated writers and SaaS credential remaps are retired.
+
+## Deployment prerequisites
+
+Deploy this setting support before GetSentry changes its deployment writers.
+Preserve the legacy option registrations and explicit option promotion during
+that rollout. Verify the environment inputs and candidate settings against every
+serving workload before removing deployment values or option promotion.
+
+Deploy runtime schema coverage and preserved values before the later
+authoritative read cutover. Runtime registration changes that need new schemas
+belong to that cutover after schema deployment.

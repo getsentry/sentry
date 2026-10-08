@@ -246,10 +246,10 @@ class DiscordIntegrationTest(IntegrationTestCase):
         self, mock_set_application_command: mock.MagicMock
     ) -> None:
         provider = self.provider()
-        provider.application_id = None
-        provider.post_install(
-            integration=self.integration, organization=self.organization, extra={}
-        )
+        with mock.patch.object(provider, "application_id", None):
+            provider.post_install(
+                integration=self.integration, organization=self.organization, extra={}
+            )
         assert mock_set_application_command.call_count == 0
 
     @responses.activate
