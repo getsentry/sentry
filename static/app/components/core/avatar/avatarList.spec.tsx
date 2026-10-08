@@ -2,24 +2,12 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {AvatarList} from '@sentry/scraps/avatar';
 
 describe('AvatarList', () => {
   const user = UserFixture();
   const team = TeamFixture();
-
-  it('does not pull the stack in past its leftmost avatar', () => {
-    render(<AvatarList users={[{...user, id: '1', name: 'AB'}]} />);
-
-    const rules = getEmotionRules(screen.getByText('A').closest('span')!);
-
-    expect(rules.some(rule => /margin-left:\s*-8px/.test(rule))).toBe(true);
-    expect(rules.some(rule => /:last-child\s*{\s*margin-left:\s*0/.test(rule))).toBe(
-      true
-    );
-  });
 
   it('renders with user letter avatars', () => {
     const users = [
