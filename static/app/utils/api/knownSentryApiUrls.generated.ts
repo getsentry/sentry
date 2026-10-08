@@ -444,6 +444,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-bundles/$bundleId/files/$fileId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-lookup/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/cluster-transaction-names/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/code-mapping-prefixes/stack/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/$codeownersId/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/commits/'
