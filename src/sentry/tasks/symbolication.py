@@ -270,7 +270,6 @@ def make_task_fn(
     queue: str,
     task_kind: SymbolicatorTaskKind,
     namespace: TaskNamespace = symbolication_tasks,
-    alias_namespace: TaskNamespace | None = None,
 ) -> SymbolicationTaskFn:
     """
     Returns a parameterized version of `_do_symbolicate_event` that runs as a task,
@@ -280,7 +279,9 @@ def make_task_fn(
     @instrumented_task(
         name=name,
         namespace=namespace,
-        alias_namespace=alias_namespace,
+        # All symbolication tasks used to live in `symbolication`; keep them registered
+        # there so activations still queued in that namespace get processed.
+        alias_namespace=symbolication_tasks,
         processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
         silo_mode=SiloMode.CELL,
     )
@@ -357,16 +358,12 @@ symbolicate_js_event = make_task_fn(
     queue="events.symbolicate_js_event",
     task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.js, is_reprocessing=False),
     namespace=symbolication_js_tasks,
-    # Keep processing activations still queued in the shared `symbolication` namespace.
-    alias_namespace=symbolication_tasks,
 )
 symbolicate_jvm_event = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event",
     queue="events.symbolicate_jvm_event",
     task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.jvm, is_reprocessing=False),
     namespace=symbolication_jvm_tasks,
-    # Keep processing activations still queued in the shared `symbolication` namespace.
-    alias_namespace=symbolication_tasks,
 )
 
 
