@@ -571,3 +571,78 @@ test('CI rescans unverified base commits instead of trusting stale budgets', t =
     assert.match(result.stderr, /2 violations, budget 1/);
   }
 });
+
+test('Scraps reports include enforced and incubator rules without changing enrollment or budgets', t => {
+  const {directory, write, lint} = fixture(t);
+  write(
+    'plugin.mjs',
+    `
+    const rule = {
+      meta: {schema: [{type: 'string'}]},
+      create(context) {
+        return {DebuggerStatement(node) { context.report({node, message: context.options[0] ?? 'finding'}); }};
+      },
+    };
+    export default {rules: {enforced: rule, incubating: rule, scoped: rule, disabled: rule}};
+  `
+  );
+  write(
+    'oxlint.config.ts',
+    `
+    export const incubator = {rules: {'@sentry/scraps/incubating': 'error'}};
+    export default {
+      categories: {correctness: 'off'},
+      jsPlugins: [{name: '@sentry/scraps', specifier: './plugin.mjs'}],
+      rules: {...incubator.rules, '@sentry/scraps/enforced': ['warn', 'configured'], '@sentry/scraps/disabled': 'off'},
+      overrides: [
+        {files: ['scoped/*.js'], rules: {'@sentry/scraps/scoped': 'error'}},
+        {files: ['scoped/excluded.js'], rules: {'@sentry/scraps/scoped': 'off'}},
+      ],
+    };
+  `
+  );
+  write('source.js', 'debugger;');
+  write('scoped/source.js', 'debugger;');
+  write('scoped/excluded.js', 'debugger;');
+  const original = '{"source.js":{"@sentry/scraps/incubating":{"count":1}}}\n';
+  write('oxlint-suppressions.json', original);
+  const result = lint('--report-scraps');
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.deepEqual(report.rules, [
+    {rule: '@sentry/scraps/enforced', stage: 'enforced'},
+    {rule: '@sentry/scraps/incubating', stage: 'incubator'},
+    {rule: '@sentry/scraps/scoped', stage: 'enforced'},
+  ]);
+  assert.equal(report.findings.length, 7);
+  assert.equal(
+    report.findings.filter(
+      (finding: {message: string}) => finding.message === 'configured'
+    ).length,
+    3
+  );
+  assert.equal(
+    readFileSync(path.join(directory, 'oxlint-suppressions.json'), 'utf8'),
+    original
+  );
+  for (const file of ['source.js', 'scoped/source.js', 'scoped/excluded.js']) {
+    write(file, '');
+  }
+  const clean = lint('--report-scraps');
+  assert.equal(clean.status, 0, clean.stderr);
+  assert.deepEqual(JSON.parse(clean.stdout), {rules: report.rules, findings: []});
+  write('source.js', 'const = ;');
+  const failed = lint('--report-scraps');
+  assert.notEqual(failed.status, 0);
+  assert.equal(failed.stdout, '');
+  assert.equal(
+    readFileSync(path.join(directory, 'oxlint-suppressions.json'), 'utf8'),
+    original
+  );
+  write('source.js', 'debugger;');
+  write(
+    'oxlint-suppressions.json',
+    '{"source.js":{"@sentry/scraps/enforced":{"count":1}}}'
+  );
+  assert.match(lint('--report-scraps').stderr, /not enrolled/);
+});

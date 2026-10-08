@@ -1,0 +1,42 @@
+name: Design system metrics
+
+on:
+  schedule:
+    - cron: '37 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    if: github.repository == 'getsentry/sentry'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Test collectors
+        run: node --test scripts/collectDesignSystemMetrics.test.ts scripts/customOxlint.test.ts
+      - name: Collect and publish snapshot
+        env:
+          DESIGN_SYSTEM_METRICS_DSN: ${{ secrets.DESIGN_SYSTEM_METRICS_DSN }}
+        run: |
+          if [ -n "$DESIGN_SYSTEM_METRICS_DSN" ]; then
+            node scripts/collectDesignSystemMetrics.ts --publish
+          else
+            echo '::warning::DESIGN_SYSTEM_METRICS_DSN is missing; collecting artifact without publishing.'
+            node scripts/collectDesignSystemMetrics.ts
+          fi
+      - name: Upload snapshot
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: design-system-metrics-${{ github.run_id }}
+          path: .artifacts/design-system-metrics.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
