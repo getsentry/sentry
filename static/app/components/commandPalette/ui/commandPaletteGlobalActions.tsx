@@ -448,6 +448,7 @@ export function GlobalCommandPaletteActions() {
             display={{
               label: t('Errors'),
             }}
+            keywords={[t('discover')]}
             to={`${prefix}/explore/errors/`}
           />
           {organization.features.includes('profiling') && (
@@ -488,7 +489,12 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+        <CMDKAction
+          display={{label: t('Dashboards'), icon: <IconDashboard />}}
+          // Once Insights is folded into Dashboards, let "insights" searches
+          // surface this group since the standalone Insights entry is hidden.
+          keywords={hasInsightsRollout ? [t('insights')] : undefined}
+        >
           <CMDKAction
             display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
@@ -617,7 +623,12 @@ export function GlobalCommandPaletteActions() {
           )}
           <CMDKAction
             display={{label: t('Alerts')}}
-            keywords={[t('alert rules'), t('issue alert')]}
+            keywords={[
+              t('alert rules'),
+              t('issue alert'),
+              t('automations'),
+              t('automation'),
+            ]}
             to={`${prefix}/monitors/alerts/`}
           />
         </CMDKAction>
