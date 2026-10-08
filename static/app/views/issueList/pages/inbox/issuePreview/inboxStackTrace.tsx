@@ -14,13 +14,7 @@ const STACK_TRACE_ENTRY_TYPES = new Set<EntryType>([
   EntryType.THREADS,
 ]);
 
-export function IssuePreviewStackTrace({
-  group,
-  project,
-}: {
-  group: Group;
-  project: Project;
-}) {
+export function InboxStackTrace({group, project}: {group: Group; project: Project}) {
   const {data: event, isPending} = useGroupEvent({
     groupId: group.id,
     eventId: 'recommended',

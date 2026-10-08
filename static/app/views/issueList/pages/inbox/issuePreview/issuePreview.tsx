@@ -47,6 +47,7 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {InboxStackTrace} from 'sentry/views/issueList/pages/inbox/issuePreview/inboxStackTrace';
 import {
   IssuePreviewHeaderActions,
   OpenIssueButton,
@@ -57,7 +58,6 @@ import {
   IssuePreviewSeerProvider,
   useIssuePreviewSeer,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {IssuePreviewStackTrace} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewStackTrace';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
 
@@ -268,7 +268,7 @@ function IssuePreviewContent() {
         <Dividers>
           {disableActions ? null : (
             <ErrorBoundary mini>
-              <IssuePreviewStackTrace group={group} project={project} />
+              <InboxStackTrace group={group} project={project} />
             </ErrorBoundary>
           )}
           {linkedPullRequests.data?.pullRequests.length ? (
