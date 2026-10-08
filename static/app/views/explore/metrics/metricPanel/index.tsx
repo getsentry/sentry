@@ -356,7 +356,10 @@ export function MetricPanel({
                             {mode === Mode.AGGREGATE ? (
                               <MetricsAggregateExportModalButton
                                 isError={metricAggregatesTableResult.result.isError}
-                                isLoading={metricAggregatesTableResult.result.isPending}
+                                isLoading={
+                                  areQueriesEnabled &&
+                                  metricAggregatesTableResult.result.isPending
+                                }
                                 pageLinks={metricAggregatesTableResult.result.pageLinks}
                                 tableData={metricAggregatesTableResult.result.data ?? []}
                                 traceMetric={traceMetric}
