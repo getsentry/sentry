@@ -26,6 +26,18 @@ type SeriesDifference = {
   timeSeriesValue?: number;
 };
 
+// Bucket values may also be `NaN`, which is not considered equal in `areNumbersAlmostEqual`
+// For the purpose of this function, we consider `NaN` values to be equal, so check with `Object.is` first
+function areValuesAlmostEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) {
+    return true;
+  }
+  if (typeof a !== 'number' || typeof b !== 'number') {
+    return false;
+  }
+  return areNumbersAlmostEqual(a, b, VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE);
+}
+
 function normalizeSeries(series: WidgetSeries[]) {
   return series.map(({timeSeries: _timeSeries, ...rest}) => ({
     ...rest,
@@ -88,11 +100,7 @@ export function findSeriesDifferences(
             .slice(1, -1)
             .find(
               ([item, matchingItem]) =>
-                !areNumbersAlmostEqual(
-                  item.value,
-                  matchingItem.value,
-                  VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE
-                )
+                !areValuesAlmostEqual(item.value, matchingItem.value)
             );
 
       if (mismatchedTimestamp) {
@@ -133,10 +141,7 @@ export function findSeriesDifferences(
           data: alignedData.get(series.seriesName)?.[1] ?? series.data,
         }))
       ),
-      (a, b, key) =>
-        key === 'value' && typeof a === 'number' && typeof b === 'number'
-          ? areNumbersAlmostEqual(a, b, VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE)
-          : undefined
+      (a, b, key) => (key === 'value' ? areValuesAlmostEqual(a, b) : undefined)
     )
   ) {
     differences.push({reason: 'other'});
