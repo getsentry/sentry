@@ -276,14 +276,8 @@ class SeerAutofixOperator[CachePayloadT]:
                         run_id=run_id,
                         user=user,
                     )
-            except NoSeerQuotaException:
-                error = "No budget for Seer Autofix"
-                with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
-                    entrypoint_key=self.entrypoint.key,
-                ).capture():
-                    self.entrypoint.on_trigger_autofix_error(error=error)
-                lifecycle.record_failure(failure_reason=error)
+            except NoSeerQuotaException as error:
+                lifecycle.record_halt(halt_reason=error)
                 return
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
