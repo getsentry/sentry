@@ -880,6 +880,34 @@ const dataviz = {
      */
     other: color.neutral.dark.opaque800,
   },
+  sequential: {
+    magma: {
+      series5: [
+        color.blue.dark.opaque700,
+        color.categorical.dark.plum,
+        color.categorical.light.pink,
+        color.categorical.dark.salmon,
+        color.categorical.dark.yellow,
+      ] as const,
+      series6: [
+        color.blue.dark.opaque700,
+        color.categorical.dark.plum,
+        color.categorical.dark.magenta,
+        color.categorical.dark.pink,
+        color.categorical.dark.orange,
+        color.categorical.dark.yellow,
+      ] as const,
+      series7: [
+        color.blue.dark.opaque700,
+        color.categorical.dark.plum,
+        color.categorical.dark.magenta,
+        color.categorical.dark.pink,
+        color.categorical.dark.salmon,
+        color.categorical.dark.orange,
+        color.yellow.dark.opaque1200,
+      ] as const,
+    },
+  },
 };
 
 const elevation = {
