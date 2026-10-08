@@ -24,11 +24,11 @@ const COLUMNS: Array<{
   align?: ColumnAlign;
   tooltipTitle?: ReactNode;
 }> = [
-  {field: 'method', label: t('Method'), width: '100px'},
+  {field: 'method', label: t('Method'), width: '80px'},
   {
     field: 'status',
     label: t('Status'),
-    width: '112px',
+    width: '88px',
     tooltipTitle: tct(
       'If the status is [zero], the resource might be a cross-origin request.[linebreak][linebreak]Configure the server to respond with the CORS header [header] to see the actual response codes. [mozilla].',
       {
@@ -44,18 +44,18 @@ const COLUMNS: Array<{
     ),
   },
   {field: 'description', label: t('Path'), width: 'minmax(160px, 1fr)'},
-  {field: 'op', label: t('Type'), width: '96px'},
+  {field: 'op', label: t('Type'), width: '72px'},
   {
     field: 'size',
     label: t('Size'),
-    width: '104px',
+    width: '84px',
     align: 'right',
     tooltipTitle: t(
       'The number used for fetch/xhr is the response body size. It is possible the network transfer size is smaller due to compression.'
     ),
   },
-  {field: 'duration', label: t('Duration'), width: '120px', align: 'right'},
-  {field: 'startTimestamp', label: t('Timestamp'), width: '128px', align: 'right'},
+  {field: 'duration', label: t('Duration'), width: '88px', align: 'right'},
+  {field: 'startTimestamp', label: t('Timestamp'), width: '108px', align: 'right'},
 ];
 
 export const NETWORK_TABLE_COLUMNS = COLUMNS.map(({field, width}) => ({

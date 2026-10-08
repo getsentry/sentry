@@ -15,11 +15,11 @@ const COLUMNS: Array<{
   width: string;
   align?: 'right';
 }> = [
-  {field: 'id', label: t('Event ID'), width: '112px'},
+  {field: 'id', label: t('Event ID'), width: '88px'},
   {field: 'title', label: t('Title'), width: 'minmax(200px, 1fr)'},
-  {field: 'project', label: t('Issue'), width: '180px'},
-  {field: 'level', label: t('Level'), width: '96px'},
-  {field: 'timestamp', label: t('Timestamp'), width: '128px', align: 'right'},
+  {field: 'project', label: t('Issue'), width: '144px'},
+  {field: 'level', label: t('Level'), width: '72px'},
+  {field: 'timestamp', label: t('Timestamp'), width: '104px', align: 'right'},
 ];
 
 export const ERROR_TABLE_COLUMNS = COLUMNS.map(({field, width}) => ({
