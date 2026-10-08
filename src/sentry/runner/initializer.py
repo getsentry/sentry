@@ -285,15 +285,22 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # remap in initialize_app handles the option key; this handles the setting.
     if settings.SENTRY_SINGLE_ORGANIZATION:
         if (
-            "github-app.client-secret" not in settings.SENTRY_OPTIONS
-            and settings.SENTRY_GITHUB_APP_CLIENT_SECRET
-        ):
-            settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
-        if (
-            "github-app.client-id" not in settings.SENTRY_OPTIONS
-            and settings.SENTRY_GITHUB_APP_CLIENT_ID
+            {"SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"}
+            & settings.SENTRY_CONFIGURED_OPTION_SETTINGS
         ):
             settings.GITHUB_APP_ID = settings.SENTRY_GITHUB_APP_CLIENT_ID
+            settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+        else:
+            if (
+                "github-app.client-secret" not in settings.SENTRY_OPTIONS
+                and settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+            ):
+                settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+            if (
+                "github-app.client-id" not in settings.SENTRY_OPTIONS
+                and settings.SENTRY_GITHUB_APP_CLIENT_ID
+            ):
+                settings.GITHUB_APP_ID = settings.SENTRY_GITHUB_APP_CLIENT_ID
 
 
 def configure_structlog() -> None:
