@@ -42,13 +42,15 @@ jobs:
       - name: Publish cleanup pull request
         env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
+          BOT_LOGIN: ${{ steps.bot.outputs.app-slug }}[bot]
         run: |
           if git diff --quiet -- oxlint-suppressions.json; then
             exit 0
           fi
           gh auth setup-git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BOT_ID=$(gh api "users/$BOT_LOGIN" --jq .id)
+          git config user.name "$BOT_LOGIN"
+          git config user.email "$BOT_ID+$BOT_LOGIN@users.noreply.github.com"
           BRANCH="bot/prune-oxlint-suppressions"
           git switch -C "$BRANCH"
           git add oxlint-suppressions.json
