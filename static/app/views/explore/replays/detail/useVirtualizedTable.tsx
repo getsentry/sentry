@@ -21,8 +21,6 @@ export function useVirtualizedTable({rowCount}: {rowCount: number}) {
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
     getScrollElement: () => tableRef.current,
     overscan: OVERSCAN,
-    // The rows start below the sticky header, which the virtualizer doesn't know
-    // about, so a row is only fully in view once it clears the header's height.
     scrollPaddingEnd: SIMPLE_TABLE_HEADER_ROW_HEIGHT,
   });
 

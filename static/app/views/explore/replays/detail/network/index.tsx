@@ -233,7 +233,6 @@ export function NetworkList() {
   );
 }
 
-// The bordered frame holds both the table and the details split below it.
 const FlushTable = styled(SimpleTable)`
   border: 0;
   border-radius: 0;

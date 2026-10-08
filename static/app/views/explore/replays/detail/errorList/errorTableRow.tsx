@@ -98,7 +98,7 @@ export function ErrorTableRow({
         </Text>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell gap="xs">
-        <ProjectAvatar project={project!} size={16} />
+        {project ? <ProjectAvatar project={project} size={16} /> : null}
         <Text ellipsis>
           {linkToEvent(
             <QuickContextHovercard
