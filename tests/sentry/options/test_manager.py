@@ -31,10 +31,14 @@ from sentry.utils.types import Int, String
 
 class TestSaasAuthoritativeOptions:
     @pytest.fixture
-    def manager(self) -> Generator[OptionsManager]:
+    def store(self) -> Mock:
         store = Mock(spec=OptionsStore)
         for method in ("get", "set", "delete", "set_cache", "get_last_update_channel"):
             getattr(store, method).side_effect = AssertionError("legacy store accessed")
+        return store
+
+    @pytest.fixture
+    def manager(self, store: Mock) -> Generator[OptionsManager]:
         with override_settings(
             SENTRY_SELF_HOSTED=False, SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}
         ):
@@ -184,79 +188,98 @@ class TestSaasAuthoritativeOptions:
             ("sentry:system-token", "stored"),
             ("sentry:install-id", "stored"),
             ("sentry:latest_version", "stored"),
-            ("sentry:last_worker_ping", 1.0),
             ("sentry:last_worker_version", "stored"),
             ("sentry:version-configured", "stored"),
         ],
     )
-    def test_application_state_keeps_store(self, manager: OptionsManager, key: str, value) -> None:
+    def test_application_state_keeps_store(
+        self, manager: OptionsManager, store: Mock, key: application_state.StringStateKey, value: str
+    ) -> None:
         with pytest.raises(UnknownOption):
             manager.is_saas_runtime_option(key)
-        manager.store.get.side_effect = None
-        manager.store.get.return_value = value
-        manager.store.set.side_effect = None
-        manager.store.delete.side_effect = None
-        with patch.object(application_state, "default_store", manager.store):
+        store.get.side_effect = None
+        store.get.return_value = value
+        store.set.side_effect = None
+        store.delete.side_effect = None
+        with patch.object(application_state, "default_store", store):
             assert application_state.get(key) == value
             application_state.set(key, value)
             application_state.delete(key)
-        manager.store.set.assert_called_once()
-        assert manager.store.set.call_args.args[0].name == key
-        assert manager.store.set.call_args.args[1] == value
-        assert manager.store.set.call_args.kwargs["channel"] == UpdateChannel.APPLICATION
-        manager.store.delete.assert_called_once()
+        store.set.assert_called_once()
+        assert store.set.call_args.args[0].name == key
+        assert store.set.call_args.args[1] == value
+        assert store.set.call_args.kwargs["channel"] == UpdateChannel.APPLICATION
+        store.delete.assert_called_once()
 
-    def test_nonruntime_option_keeps_store(self, manager: OptionsManager) -> None:
+    def test_timestamp_state_keeps_store(self, manager: OptionsManager, store: Mock) -> None:
+        key = "sentry:last_worker_ping"
+        with pytest.raises(UnknownOption):
+            manager.is_saas_runtime_option(key)
+        store.get.side_effect = None
+        store.get.return_value = 1.0
+        store.set.side_effect = None
+        store.delete.side_effect = None
+        with patch.object(application_state, "default_store", store):
+            assert application_state.get("sentry:last_worker_ping") == 1.0
+            application_state.set("sentry:last_worker_ping", 1.0)
+            application_state.delete("sentry:last_worker_ping")
+        store.set.assert_called_once()
+        assert store.set.call_args.args[0].name == key
+        assert store.set.call_args.args[1] == 1.0
+        assert store.set.call_args.kwargs["channel"] == UpdateChannel.APPLICATION
+        store.delete.assert_called_once()
+
+    def test_nonruntime_option_keeps_store(self, manager: OptionsManager, store: Mock) -> None:
         key = "legacy"
         assert manager.is_saas_runtime_option(key) is False
-        manager.store.get.side_effect = None
-        manager.store.get.return_value = "stored"
-        manager.store.get_last_update_channel.side_effect = None
-        manager.store.get_last_update_channel.return_value = UpdateChannel.APPLICATION
-        manager.store.set.side_effect = None
-        manager.store.delete.side_effect = None
+        store.get.side_effect = None
+        store.get.return_value = "stored"
+        store.get_last_update_channel.side_effect = None
+        store.get_last_update_channel.return_value = UpdateChannel.APPLICATION
+        store.set.side_effect = None
+        store.delete.side_effect = None
         assert manager.get(key) == "stored"
         assert manager.isset(key) is True
         assert manager.get_last_update_channel(key) == UpdateChannel.APPLICATION
         manager.set(key, "stored", channel=UpdateChannel.APPLICATION)
         manager.delete(key)
-        manager.store.set.assert_called_once()
-        manager.store.delete.assert_called_once()
+        store.set.assert_called_once()
+        store.delete.assert_called_once()
 
-    def test_self_hosted_keeps_store(self, manager: OptionsManager) -> None:
+    def test_self_hosted_keeps_store(self, manager: OptionsManager, store: Mock) -> None:
         with override_settings(SENTRY_SELF_HOSTED=True):
             assert manager.is_saas_runtime_option("runtime") is False
-            manager.store.get.side_effect = None
-            manager.store.get.return_value = "stored"
-            manager.store.get_last_update_channel.side_effect = None
-            manager.store.get_last_update_channel.return_value = UpdateChannel.CLI
-            manager.store.set.side_effect = None
-            manager.store.delete.side_effect = None
+            store.get.side_effect = None
+            store.get.return_value = "stored"
+            store.get_last_update_channel.side_effect = None
+            store.get_last_update_channel.return_value = UpdateChannel.CLI
+            store.set.side_effect = None
+            store.delete.side_effect = None
             assert manager.get("runtime") == "stored"
             assert manager.isset("runtime") is True
             assert manager.get_last_update_channel("runtime") == UpdateChannel.CLI
             manager.set("runtime", "stored", channel=UpdateChannel.CLI)
             manager.delete("runtime")
-            manager.store.set.assert_called_once()
-            manager.store.delete.assert_called_once()
+            store.set.assert_called_once()
+            store.delete.assert_called_once()
 
-    def test_self_hosted_wizard_keeps_store(self, manager: OptionsManager) -> None:
+    def test_self_hosted_wizard_keeps_store(self, manager: OptionsManager, store: Mock) -> None:
         manager.register("system.admin-email", default="registered")
         with override_settings(SENTRY_SELF_HOSTED=True):
             assert manager.is_saas_runtime_option("system.admin-email") is False
-            manager.store.get.side_effect = None
-            manager.store.get.return_value = "stored"
-            manager.store.get_last_update_channel.side_effect = None
-            manager.store.get_last_update_channel.return_value = UpdateChannel.ADMIN
-            manager.store.set.side_effect = None
-            manager.store.delete.side_effect = None
+            store.get.side_effect = None
+            store.get.return_value = "stored"
+            store.get_last_update_channel.side_effect = None
+            store.get_last_update_channel.return_value = UpdateChannel.ADMIN
+            store.set.side_effect = None
+            store.delete.side_effect = None
             assert manager.get("system.admin-email") == "stored"
             assert manager.isset("system.admin-email") is True
             assert manager.get_last_update_channel("system.admin-email") == UpdateChannel.ADMIN
             manager.set("system.admin-email", "stored", channel=UpdateChannel.APPLICATION)
             manager.delete("system.admin-email")
-            manager.store.set.assert_called_once()
-            manager.store.delete.assert_called_once()
+            store.set.assert_called_once()
+            store.delete.assert_called_once()
 
     def test_unknown_key_stays_unknown(self, manager: OptionsManager) -> None:
         with pytest.raises(UnknownOption):
