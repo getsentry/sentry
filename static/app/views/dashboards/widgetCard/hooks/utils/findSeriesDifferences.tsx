@@ -18,7 +18,6 @@ type SeriesDifference = {
   legacyLength?: number;
   legacyTimestamp?: number | string;
   legacyValue?: number;
-  seriesName?: string;
   timeSeriesLength?: number;
   timeSeriesTimestamp?: number | string;
   timeSeriesValue?: number;
@@ -32,7 +31,8 @@ function normalizeSeries(series: WidgetSeries[]) {
   }));
 }
 
-// Compares the series built from `/events-stats/` and `/events-timeseries/` responses
+// Compares the series built from `/events-stats/` and `/events-timeseries/` responses.
+// Series names are left out of the result since group by values can contain user data.
 export function findSeriesDifferences(
   legacySeries: Series[],
   timeSeries: Series[]
@@ -47,7 +47,7 @@ export function findSeriesDifferences(
     unmatchedTimeSeries.delete(seriesName);
 
     if (!matchingTimeSeries) {
-      differences.push({reason: 'unmatchedLegacySeries', seriesName});
+      differences.push({reason: 'unmatchedLegacySeries'});
     } else if (matchingTimeSeries.data.length === data.length) {
       const buckets = data.map((item, i) => [item, matchingTimeSeries.data[i]!] as const);
 
@@ -72,7 +72,6 @@ export function findSeriesDifferences(
         const [item, matchingItem] = mismatchedTimestamp;
         differences.push({
           reason: 'timestamp',
-          seriesName,
           legacyTimestamp: item.name,
           timeSeriesTimestamp: matchingItem.name,
         });
@@ -80,7 +79,6 @@ export function findSeriesDifferences(
         const [item, matchingItem] = mismatchedValue;
         differences.push({
           reason: 'value',
-          seriesName,
           legacyValue: item.value,
           timeSeriesValue: matchingItem.value,
         });
@@ -88,15 +86,14 @@ export function findSeriesDifferences(
     } else {
       differences.push({
         reason: 'length',
-        seriesName,
         legacyLength: data.length,
         timeSeriesLength: matchingTimeSeries.data.length,
       });
     }
   }
 
-  for (const seriesName of unmatchedTimeSeries.keys()) {
-    differences.push({reason: 'unmatchedTimeSeries', seriesName});
+  for (const _seriesName of unmatchedTimeSeries.keys()) {
+    differences.push({reason: 'unmatchedTimeSeries'});
   }
 
   // Fallback for anything the checks above don't look for

@@ -105,11 +105,14 @@ export function useEventsTimeseriesSpotCheck({
       );
 
       if (differences.length > 0) {
+        // Only field names are logged, since group by values can contain user data
         warn('Dashboard widget `/events-timeseries/` spot-check mismatch', {
           dataset: params.dataset,
           displayType: widget.displayType,
           widgetId: widget.id,
           queryIndex: originalQueryIndex,
+          groupBy: widgetQuery.columns.join(','),
+          yAxis: widgetQuery.aggregates.join(','),
           differences: JSON.stringify(differences.slice(0, 5)),
         });
       }

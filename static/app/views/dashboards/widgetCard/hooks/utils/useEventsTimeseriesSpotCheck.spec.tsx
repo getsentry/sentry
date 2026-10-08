@@ -120,7 +120,11 @@ describe('useEventsTimeseriesSpotCheck', () => {
       'Dashboard widget `/events-timeseries/` spot-check mismatch',
       expect.objectContaining({
         dataset: 'ourlogs',
-        differences: JSON.stringify([{reason: 'value'}]),
+        groupBy: '',
+        yAxis: 'count()',
+        differences: JSON.stringify([
+          {reason: 'value', legacyValue: 200, timeSeriesValue: 250},
+        ]),
       })
     );
   });
