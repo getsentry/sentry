@@ -224,7 +224,7 @@ class RecordEngagementTest(TestCase):
         ("https://sentry.io/organizations/acme/issues/1/", NotificationLink.ISSUE),
         ("https://acme.sentry.io/issues/1/?referrer=slack", NotificationLink.ISSUE),
         ("https://acme.sentry.io/issues/1/events/latest/", NotificationLink.ISSUE),
-        ("https://acme.sentry.io/issues/1/?seerDrawer=true", NotificationLink.SEER),
+        ("https://acme.sentry.io/issues/1/?seerDrawer=true", NotificationLink.ISSUE_WITH_SEER),
         ("https://acme.sentry.io/issues/inbox/?project=2&preview=1", NotificationLink.ISSUE),
         ("https://sentry.io/organizations/acme/issues/?project=2", NotificationLink.ISSUE_LIST),
         ("https://acme.sentry.io/monitors/alerts/3/", NotificationLink.ALERT),
@@ -319,7 +319,11 @@ class DecorateRenderedTemplateTest(TestCase):
                 )
             ],
         )
-        assert links == {NotificationLink.ISSUE, NotificationLink.SEER, NotificationLink.SETTINGS}
+        assert links == {
+            NotificationLink.ISSUE,
+            NotificationLink.ISSUE_WITH_SEER,
+            NotificationLink.SETTINGS,
+        }
         assert rendered_template.subject[1] == LinkTextBlock(
             text="ACME-1",
             url="https://sentry.io/organizations/acme/issues/1/?referrer=activity_notification",

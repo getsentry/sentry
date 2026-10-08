@@ -31,7 +31,7 @@ class NotificationLink(StrEnum):
     """What a tracked link points to, inferred from the page it lands on."""
 
     ISSUE = "issue"
-    SEER = "seer"
+    ISSUE_WITH_SEER = "issue_with_seer"
     """An issue opened with the Seer drawer."""
     ISSUE_LIST = "issue_list"
     ALERT = "alert"
@@ -174,7 +174,9 @@ def classify_link(url: str) -> NotificationLink:
 
     if re.match(r"^/issues/\d+(/|$)", path):
         return (
-            NotificationLink.SEER if query.get("seerDrawer") == ["true"] else NotificationLink.ISSUE
+            NotificationLink.ISSUE_WITH_SEER
+            if query.get("seerDrawer") == ["true"]
+            else NotificationLink.ISSUE
         )
     if path.startswith("/issues/"):
         return NotificationLink.ISSUE if "preview" in query else NotificationLink.ISSUE_LIST

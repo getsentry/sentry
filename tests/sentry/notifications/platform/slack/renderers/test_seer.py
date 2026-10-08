@@ -119,7 +119,7 @@ class SeerSlackRendererTest(TestCase):
         assert isinstance(section_block, SectionBlock)
         assert isinstance(section_block.accessory, LinkButtonElement)
         assert f"notification_uuid={data.notification_uuid}" in section_block.accessory.url
-        assert decorator.links == {NotificationLink.SEER}
+        assert decorator.links == {NotificationLink.ISSUE_WITH_SEER}
 
     def test_render_footer_blocks_with_stage_not_completed(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
