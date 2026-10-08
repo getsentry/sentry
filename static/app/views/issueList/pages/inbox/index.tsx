@@ -364,13 +364,7 @@ function InboxContent() {
     : undefined;
 
   return (
-    <Stack
-      flex={1}
-      minHeight={0}
-      contain="size"
-      overflow="hidden"
-      containerType="inline-size"
-    >
+    <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
       <TopBar.Slot
         name="breadcrumbs"
         title={{
@@ -389,17 +383,17 @@ function InboxContent() {
       <Grid
         flex={1}
         minHeight={0}
-        columns={{zero: 'minmax(0, 1fr)', '4xl': 'max-content minmax(0, 1fr)'}}
+        columns={isDesktop ? 'max-content minmax(0, 1fr)' : 'minmax(0, 1fr)'}
       >
         <Stack
           ref={isMobile ? undefined : resizableContainerRef}
           as="section"
           aria-label={t('Issue inbox')}
           position="relative"
-          width={{zero: '100%', '4xl': `${size}px`}}
+          width={isDesktop ? `${size}px` : '100%'}
           minWidth={0}
           minHeight={0}
-          display={selectedIssueId ? {zero: 'none', '4xl': 'flex'} : 'flex'}
+          display={selectedIssueId && !isDesktop ? 'none' : 'flex'}
           background="primary"
           borderRight="muted"
         >
@@ -431,6 +425,14 @@ function InboxContent() {
                 restoreSelectedIssueScroll={restoreSelectedIssueScroll}
               />
             ))}
+            {!selectedIssueId && isInboxEmpty && !isDesktop && (
+              <Flex flex={1} minHeight={0}>
+                <InboxEmptyState
+                  assignmentFilter={assignmentFilter}
+                  alternateInbox={alternateInboxAction}
+                />
+              </Flex>
+            )}
           </Stack>
           <Container
             top="0"
@@ -439,7 +441,7 @@ function InboxContent() {
             width="8px"
             radius="lg"
             position="absolute"
-            display={{zero: 'none', '4xl': 'block'}}
+            display={isDesktop ? 'block' : 'none'}
           >
             {props => (
               <ResizeHandle
@@ -459,11 +461,11 @@ function InboxContent() {
           minWidth={0}
           minHeight={0}
           overflow="hidden"
-          display={selectedIssueId ? 'flex' : {zero: 'none', '4xl': 'flex'}}
+          display={selectedIssueId || isDesktop ? 'flex' : 'none'}
         >
           {selectedIssueId && (
             <Container
-              display={{zero: 'block', '4xl': 'none'}}
+              display={isDesktop ? 'none' : 'block'}
               padding="md"
               borderBottom="muted"
             >
@@ -478,7 +480,7 @@ function InboxContent() {
             </Container>
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
-          {!selectedIssueId && isInboxEmpty && (
+          {!selectedIssueId && isInboxEmpty && isDesktop && (
             <InboxEmptyState
               assignmentFilter={assignmentFilter}
               alternateInbox={alternateInboxAction}

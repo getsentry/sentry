@@ -21,6 +21,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -160,6 +161,7 @@ describe('InboxPage', () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     localStorage.removeItem('inbox-split-size');
@@ -1492,6 +1494,24 @@ describe('InboxPage', () => {
     });
 
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
+  });
+
+  it('shows the empty state in the inbox pane when the container is narrow', async () => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1016);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [],
+    });
+
+    render(<InboxPageInContainer />, {organization, initialRouterConfig});
+
+    const inbox = screen.getByRole('region', {name: 'Issue inbox'});
+    expect(
+      await within(inbox).findByRole('heading', {name: 'No Issues in your Inbox!'})
+    ).toBeInTheDocument();
+    expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
+      'grid-template-columns: minmax(0, 1fr)'
+    );
   });
 
   describe('on desktop', () => {
