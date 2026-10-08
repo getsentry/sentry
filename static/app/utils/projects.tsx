@@ -1,5 +1,4 @@
-import {Component} from 'react';
-import memoize from 'lodash/memoize';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import partition from 'lodash/partition';
 
 import type {Client} from 'sentry/api';
@@ -10,8 +9,8 @@ import {defined} from 'sentry/utils/defined';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {withApi} from 'sentry/utils/withApi';
-import {withProjects} from 'sentry/utils/withProjects';
+import {useApi} from 'sentry/utils/useApi';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type ProjectPlaceholder = AvatarProject;
 
@@ -74,16 +73,11 @@ type RenderProps = {
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
 type Props = {
-  api: Client;
   children: RenderFunc;
   /**
    * Organization slug
    */
   orgId: string;
-  /**
-   * List of projects that have we already have summaries for (i.e. from store)
-   */
-  projects: Project[];
   /**
    * Whether to fetch all the projects in the organization of which the user
    * has access to
@@ -105,296 +99,30 @@ type Props = {
   slugs?: string[];
 };
 
-class BaseProjects extends Component<Props, State> {
-  state: State = {
-    fetchedProjects: [],
-    projectsFromStore: [],
-    initiallyLoaded: false,
-    fetching: false,
-    isIncomplete: null,
-    hasMore: null,
-    prevSearch: null,
-    nextCursor: null,
-    fetchError: null,
-  };
+const INITIAL_STATE: State = {
+  fetchedProjects: [],
+  projectsFromStore: [],
+  initiallyLoaded: false,
+  fetching: false,
+  isIncomplete: null,
+  hasMore: null,
+  prevSearch: null,
+  nextCursor: null,
+  fetchError: null,
+};
 
-  componentDidMount() {
-    const {slugs, projectIds} = this.props;
+/**
+ * Returns a `Map<project.slug, project>`
+ */
+function getProjectsMap(projects: Project[]): Map<string, Project> {
+  return new Map(projects.map(project => [project.slug, project]));
+}
 
-    if (slugs?.length) {
-      this.loadSpecificProjects();
-    } else if (projectIds?.length) {
-      this.loadSpecificProjectsFromIds();
-    } else {
-      this.loadAllProjects();
-    }
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    const {projects} = this.props;
-
-    if (projects !== prevProps.projects) {
-      this.updateProjectsFromStore();
-    }
-  }
-
-  /**
-   * Function to update projects when the store emits updates
-   */
-  updateProjectsFromStore() {
-    const {allProjects, projects, slugs} = this.props;
-
-    if (allProjects) {
-      this.setState({fetchedProjects: projects});
-      return;
-    }
-
-    if (slugs?.length) {
-      // Extract the requested projects from the store based on props.slugs
-      const projectsMap = this.getProjectsMap(projects);
-      const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(defined);
-      this.setState({projectsFromStore});
-    }
-  }
-
-  /**
-   * List of projects that need to be fetched via API
-   */
-  fetchQueue = new Set<string>();
-
-  /**
-   * Memoized function that returns a `Map<project.slug, project>`
-   */
-  getProjectsMap: (projects: Project[]) => Map<string, Project> = memoize(
-    projects => new Map(projects.map(project => [project.slug, project]))
-  );
-
-  /**
-   * Memoized function that returns a `Map<project.id, project>`
-   */
-  getProjectsIdMap: (projects: Project[]) => Map<number, Project> = memoize(
-    projects => new Map(projects.map(project => [parseInt(project.id, 10), project]))
-  );
-
-  /**
-   * When `props.slugs` is included, identifies what projects we already
-   * have summaries for and what projects need to be fetched from API
-   */
-  loadSpecificProjects = () => {
-    const {slugs, projects} = this.props;
-
-    const projectsMap = this.getProjectsMap(projects);
-
-    // Split slugs into projects that are in store and not in store
-    // (so we can request projects not in store)
-    const [inStore, notInStore] = partition(slugs, slug => projectsMap.has(slug));
-
-    // Get the actual summaries of projects that are in store
-    const projectsFromStore = inStore.map(slug => projectsMap.get(slug)).filter(defined);
-
-    // Add to queue
-    notInStore.forEach(slug => this.fetchQueue.add(slug));
-
-    this.setState({
-      // placeholders for projects we need to fetch
-      fetchedProjects: notInStore.map(slug => ({slug})),
-      // set initiallyLoaded if any projects were fetched from store
-      initiallyLoaded: !!inStore.length,
-      projectsFromStore,
-    });
-
-    if (!notInStore.length) {
-      return;
-    }
-
-    this.fetchSpecificProjects();
-  };
-
-  /**
-   * When `props.projectIds` is included, identifies if we already
-   * have summaries them, otherwise fetches all projects from API
-   */
-  loadSpecificProjectsFromIds = () => {
-    const {projectIds, projects} = this.props;
-
-    const projectsMap = this.getProjectsIdMap(projects);
-
-    // Split projectIds into projects that are in store and not in store
-    // (so we can request projects not in store)
-    const [inStore, notInStore] = partition(projectIds, id => projectsMap.has(id));
-
-    if (notInStore.length) {
-      this.loadAllProjects();
-      return;
-    }
-
-    // Get the actual summaries of projects that are in store
-    const projectsFromStore = inStore.map(id => projectsMap.get(id)).filter(defined);
-
-    this.setState({
-      // set initiallyLoaded if any projects were fetched from store
-      initiallyLoaded: !!inStore.length,
-      projectsFromStore,
-    });
-  };
-
-  /**
-   * These will fetch projects via API (using project slug) provided by `this.fetchQueue`
-   */
-  fetchSpecificProjects = async () => {
-    const {api, orgId} = this.props;
-
-    if (!this.fetchQueue.size) {
-      return;
-    }
-
-    this.setState({
-      fetching: true,
-    });
-
-    let projects: Project[] = [];
-    let fetchError = null;
-
-    try {
-      const {results} = await fetchProjects(api, orgId, {
-        slugs: Array.from(this.fetchQueue),
-      });
-      projects = results;
-    } catch (err) {
-      console.error(err); // eslint-disable-line no-console
-      fetchError = err as RequestError;
-    }
-
-    const projectsMap = this.getProjectsMap(projects);
-
-    // For each item in the fetch queue, lookup the project object and in the case
-    // where something wrong has happened and we were unable to get project summary from
-    // the server, just fill in with an object with only the slug
-    const projectsOrPlaceholder = Array.from(this.fetchQueue)
-      .map(slug => (projectsMap.has(slug) ? projectsMap.get(slug) : {slug}))
-      .filter(defined);
-
-    this.setState({
-      fetchedProjects: projectsOrPlaceholder,
-      isIncomplete: this.fetchQueue.size !== projects.length,
-      initiallyLoaded: true,
-      fetching: false,
-      fetchError,
-    });
-
-    this.fetchQueue.clear();
-  };
-
-  /**
-   * If `props.slugs` is not provided, request from API a list of paginated project summaries
-   * that are in `prop.orgId`.
-   *
-   * Provide render prop with results as well as `hasMore` to indicate there are more results.
-   * Downstream consumers should use this to notify users so that they can e.g. narrow down
-   * results using search
-   */
-  loadAllProjects = async () => {
-    const {api, orgId, limit, allProjects} = this.props;
-
-    this.setState({
-      fetching: true,
-    });
-
-    try {
-      const {results, hasMore, nextCursor} = await fetchProjects(api, orgId, {
-        limit,
-        allProjects,
-      });
-
-      this.setState({
-        fetching: false,
-        fetchedProjects: results,
-        initiallyLoaded: true,
-        hasMore,
-        nextCursor,
-      });
-    } catch (err) {
-      console.error(err); // eslint-disable-line no-console
-
-      this.setState({
-        fetching: false,
-        fetchedProjects: [],
-        initiallyLoaded: true,
-        fetchError: err as RequestError,
-      });
-    }
-  };
-
-  /**
-   * This is an action provided to consumers for them to update the current projects
-   * result set using a simple search query. New results replace the existing list.
-   *
-   * @param {String} search The search term to use
-   */
-  handleSearch = async (search: string) => {
-    const {api, orgId, limit} = this.props;
-    const {prevSearch} = this.state;
-    const cursor = this.state.nextCursor;
-
-    this.setState({fetching: true});
-
-    try {
-      const {results, hasMore, nextCursor} = await fetchProjects(api, orgId, {
-        search,
-        limit,
-        prevSearch,
-        cursor,
-      });
-
-      this.setState({
-        fetchedProjects: results,
-        hasMore,
-        fetching: false,
-        prevSearch: search,
-        nextCursor,
-      });
-    } catch (err) {
-      console.error(err); // eslint-disable-line no-console
-
-      this.setState({
-        fetching: false,
-        fetchError: err as RequestError,
-      });
-    }
-  };
-
-  render() {
-    const {slugs, children} = this.props;
-
-    const renderProps = {
-      // We want to make sure that at the minimum, we return a list of objects with only `slug`
-      // while we load actual project data
-      projects: this.state.initiallyLoaded
-        ? [...this.state.fetchedProjects, ...this.state.projectsFromStore]
-        : slugs?.map(slug => ({slug})) || [],
-
-      // This is set when we fail to find some slugs from both store and API
-      isIncomplete: this.state.isIncomplete,
-
-      // This is state for when fetching data from API
-      fetching: this.state.fetching,
-
-      // Project results (from API) are paginated and there are more projects
-      // that are not in the initial queryset
-      hasMore: this.state.hasMore,
-
-      onSearch: this.handleSearch,
-
-      // Reflects whether or not the initial fetch for the requested projects
-      // was fulfilled
-      initiallyLoaded: this.state.initiallyLoaded,
-
-      // The error that occurred if fetching failed
-      fetchError: this.state.fetchError,
-    };
-
-    return children(renderProps);
-  }
+/**
+ * Returns a `Map<project.id, project>`
+ */
+function getProjectsIdMap(projects: Project[]): Map<number, Project> {
+  return new Map(projects.map(project => [parseInt(project.id, 10), project]));
 }
 
 /**
@@ -407,7 +135,267 @@ class BaseProjects extends Component<Props, State> {
  * The legacy way of handling this is that `ProjectSummary[]` is expected to be included in an
  * `Organization` as well as being saved to `ProjectsStore`.
  */
-export const Projects = withProjects(withApi(BaseProjects));
+export function Projects({
+  children,
+  orgId,
+  allProjects,
+  limit,
+  projectIds,
+  slugs,
+}: Props) {
+  const api = useApi();
+  // List of projects that we already have summaries for (i.e. from store)
+  const {projects} = useProjects();
+
+  const [state, setFullState] = useState<State>(INITIAL_STATE);
+  const setState = useCallback(
+    (patch: Partial<State>) => setFullState(prev => ({...prev, ...patch})),
+    []
+  );
+
+  /**
+   * List of projects that need to be fetched via API
+   */
+  const fetchQueue = useRef(new Set<string>());
+
+  /**
+   * If `props.slugs` is not provided, request from API a list of paginated project summaries
+   * that are in `prop.orgId`.
+   *
+   * Provide render prop with results as well as `hasMore` to indicate there are more results.
+   * Downstream consumers should use this to notify users so that they can e.g. narrow down
+   * results using search
+   */
+  const loadAllProjects = async () => {
+    setState({fetching: true});
+
+    try {
+      const {results, hasMore, nextCursor} = await fetchProjects(api, orgId, {
+        limit,
+        allProjects,
+      });
+
+      setState({
+        fetching: false,
+        fetchedProjects: results,
+        initiallyLoaded: true,
+        hasMore,
+        nextCursor,
+      });
+    } catch (err) {
+      console.error(err); // eslint-disable-line no-console
+
+      setState({
+        fetching: false,
+        fetchedProjects: [],
+        initiallyLoaded: true,
+        fetchError: err as RequestError,
+      });
+    }
+  };
+
+  /**
+   * These will fetch projects via API (using project slug) provided by `fetchQueue`
+   */
+  const fetchSpecificProjects = async () => {
+    const queue = fetchQueue.current;
+
+    if (!queue.size) {
+      return;
+    }
+
+    setState({fetching: true});
+
+    let fetched: Project[] = [];
+    let fetchError = null;
+
+    try {
+      const {results} = await fetchProjects(api, orgId, {
+        slugs: Array.from(queue),
+      });
+      fetched = results;
+    } catch (err) {
+      console.error(err); // eslint-disable-line no-console
+      fetchError = err as RequestError;
+    }
+
+    const projectsMap = getProjectsMap(fetched);
+
+    // For each item in the fetch queue, lookup the project object and in the case
+    // where something wrong has happened and we were unable to get project summary from
+    // the server, just fill in with an object with only the slug
+    const projectsOrPlaceholder = Array.from(queue)
+      .map(slug => (projectsMap.has(slug) ? projectsMap.get(slug) : {slug}))
+      .filter(defined);
+
+    setState({
+      fetchedProjects: projectsOrPlaceholder,
+      isIncomplete: queue.size !== fetched.length,
+      initiallyLoaded: true,
+      fetching: false,
+      fetchError,
+    });
+
+    queue.clear();
+  };
+
+  /**
+   * When `props.slugs` is included, identifies what projects we already
+   * have summaries for and what projects need to be fetched from API
+   */
+  const loadSpecificProjects = () => {
+    const projectsMap = getProjectsMap(projects);
+
+    // Split slugs into projects that are in store and not in store
+    // (so we can request projects not in store)
+    const [inStore, notInStore] = partition(slugs, slug => projectsMap.has(slug));
+
+    // Get the actual summaries of projects that are in store
+    const projectsFromStore = inStore.map(slug => projectsMap.get(slug)).filter(defined);
+
+    // Add to queue
+    notInStore.forEach(slug => fetchQueue.current.add(slug));
+
+    setState({
+      // placeholders for projects we need to fetch
+      fetchedProjects: notInStore.map(slug => ({slug})),
+      // set initiallyLoaded if any projects were fetched from store
+      initiallyLoaded: !!inStore.length,
+      projectsFromStore,
+    });
+
+    if (!notInStore.length) {
+      return;
+    }
+
+    fetchSpecificProjects();
+  };
+
+  /**
+   * When `props.projectIds` is included, identifies if we already
+   * have summaries them, otherwise fetches all projects from API
+   */
+  const loadSpecificProjectsFromIds = () => {
+    const projectsMap = getProjectsIdMap(projects);
+
+    // Split projectIds into projects that are in store and not in store
+    // (so we can request projects not in store)
+    const [inStore, notInStore] = partition(projectIds, id => projectsMap.has(id));
+
+    if (notInStore.length) {
+      loadAllProjects();
+      return;
+    }
+
+    // Get the actual summaries of projects that are in store
+    const projectsFromStore = inStore.map(id => projectsMap.get(id)).filter(defined);
+
+    setState({
+      // set initiallyLoaded if any projects were fetched from store
+      initiallyLoaded: !!inStore.length,
+      projectsFromStore,
+    });
+  };
+
+  // Equivalent of componentDidMount: perform the initial load once
+  useEffect(() => {
+    if (slugs?.length) {
+      loadSpecificProjects();
+    } else if (projectIds?.length) {
+      loadSpecificProjectsFromIds();
+    } else {
+      loadAllProjects();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Equivalent of componentDidUpdate: update projects when the store emits updates
+  const prevProjectsRef = useRef(projects);
+  useEffect(() => {
+    if (prevProjectsRef.current === projects) {
+      return;
+    }
+    prevProjectsRef.current = projects;
+
+    if (allProjects) {
+      setState({fetchedProjects: projects});
+      return;
+    }
+
+    if (slugs?.length) {
+      // Extract the requested projects from the store based on props.slugs
+      const projectsMap = getProjectsMap(projects);
+      const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(defined);
+      setState({projectsFromStore});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects]);
+
+  /**
+   * This is an action provided to consumers for them to update the current projects
+   * result set using a simple search query. New results replace the existing list.
+   *
+   * @param {String} search The search term to use
+   */
+  const handleSearch = async (search: string) => {
+    const {prevSearch, nextCursor: cursor} = state;
+
+    setState({fetching: true});
+
+    try {
+      const {results, hasMore, nextCursor} = await fetchProjects(api, orgId, {
+        search,
+        limit,
+        prevSearch,
+        cursor,
+      });
+
+      setState({
+        fetchedProjects: results,
+        hasMore,
+        fetching: false,
+        prevSearch: search,
+        nextCursor,
+      });
+    } catch (err) {
+      console.error(err); // eslint-disable-line no-console
+
+      setState({
+        fetching: false,
+        fetchError: err as RequestError,
+      });
+    }
+  };
+
+  const renderProps = {
+    // We want to make sure that at the minimum, we return a list of objects with only `slug`
+    // while we load actual project data
+    projects: state.initiallyLoaded
+      ? [...state.fetchedProjects, ...state.projectsFromStore]
+      : slugs?.map(slug => ({slug})) || [],
+
+    // This is set when we fail to find some slugs from both store and API
+    isIncomplete: state.isIncomplete,
+
+    // This is state for when fetching data from API
+    fetching: state.fetching,
+
+    // Project results (from API) are paginated and there are more projects
+    // that are not in the initial queryset
+    hasMore: state.hasMore,
+
+    onSearch: handleSearch,
+
+    // Reflects whether or not the initial fetch for the requested projects
+    // was fulfilled
+    initiallyLoaded: state.initiallyLoaded,
+
+    // The error that occurred if fetching failed
+    fetchError: state.fetchError,
+  };
+
+  return children(renderProps);
+}
 
 type FetchProjectsOptions = {
   cursor?: State['nextCursor'];
