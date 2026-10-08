@@ -3,7 +3,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
@@ -102,18 +102,8 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
       queryClient.invalidateQueries({
         queryKey: clientDetailsQueryOptions(clientDetails.clientID ?? '').queryKey,
       }),
-    onError: error => {
-      if (
-        error instanceof RequestError &&
-        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
-      ) {
-        return;
-      }
-      addErrorMessage('Unable to update client settings.');
-    },
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       clientID: clientDetails.clientID ?? '',
       name: clientDetails.name ?? '',
@@ -123,28 +113,33 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
       privacyUrl: clientDetails.privacyUrl ?? '',
       termsUrl: clientDetails.termsUrl ?? '',
     },
-    validators: {onDynamic: clientSchema},
-    onSubmit: ({value}) =>
-      mutation.mutateAsync(clientSchema.parse(value)).catch(() => {}),
+    validators: defaultFormValidators(clientSchema),
+    onSubmit: ({value, createValidationError}) =>
+      mutation.mutateAsync(clientSchema.parse(value)).catch(error => {
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
+          }
+        }
+        addErrorMessage('Unable to update client settings.');
+        return;
+      }),
   });
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
-        <form.AppField name="clientID">
+        <form.Field name="clientID">
           {field => (
             <field.Layout.Stack
               label="Client ID"
               hintText="ID of the selected client (not modifiable)"
             >
-              <field.Input
-                value={field.state.value}
-                onChange={field.handleChange}
-                disabled
-              />
+              <field.Input value={field.value} onChange={field.handleChange} disabled />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="name">
+        </form.Field>
+        <form.Field name="name">
           {field => (
             <field.Layout.Stack
               label="Client Name"
@@ -152,15 +147,15 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="e.g. CodeCov"
                 disabled={mutation.isPending}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="redirectUris">
+        </form.Field>
+        <form.Field name="redirectUris">
           {field => (
             <field.Layout.Stack
               label="Redirect URIs (space separated)"
@@ -168,77 +163,77 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="e.g. https://notsentry.io/redirect"
                 disabled={mutation.isPending}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="allowedOrigins">
+        </form.Field>
+        <form.Field name="allowedOrigins">
           {field => (
             <field.Layout.Stack
               label="Allowed Origins (space separated)"
               hintText="Allowed origins for the client"
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="e.g. https://notsentry.io/origin"
                 disabled={mutation.isPending}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="homepageUrl">
+        </form.Field>
+        <form.Field name="homepageUrl">
           {field => (
             <field.Layout.Stack label="Homepage URL" hintText="Client's homepage">
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="e.g. https://notsentry.io/home"
                 disabled={mutation.isPending}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="privacyUrl">
+        </form.Field>
+        <form.Field name="privacyUrl">
           {field => (
             <field.Layout.Stack
               label="Privacy Policy URL"
               hintText="URL to client's privacy policy"
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="e.g. https://notsentry.io/privacy"
                 disabled={mutation.isPending}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="termsUrl">
+        </form.Field>
+        <form.Field name="termsUrl">
           {field => (
             <field.Layout.Stack
               label="Terms and Conditions URL"
               hintText="URL to client's terms and conditions"
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="e.g. https://notsentry.io/terms"
                 disabled={mutation.isPending}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Text as="p">
           <Text bold>Date added:</Text> {clientDetails.createdAt}
         </Text>
         <form.SubmitButton>Save Client Settings</form.SubmitButton>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

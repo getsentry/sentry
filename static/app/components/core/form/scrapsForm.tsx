@@ -87,7 +87,7 @@ function Form({children}: {children: React.ReactNode}) {
 
 const fieldComponents = {
   Base: BaseField,
-  Checkbox: CheckboxField,
+  Checkbox: fieldComponent.loose(CheckboxField, 'field'),
   Input: fieldComponent.loose(InputField, 'field'),
   Number: fieldComponent.loose(NumberField, 'field'),
   Password: fieldComponent.loose(PasswordField, 'field'),

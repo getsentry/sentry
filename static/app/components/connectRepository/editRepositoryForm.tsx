@@ -2,7 +2,7 @@ import {Fragment, type ReactNode, useMemo} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -41,7 +41,7 @@ export type EditFormProps = ModalRenderProps & {
 };
 
 // Inner component — only mounted once seeded mappings and the repo default
-// branch are both ready. This lets useScrapsForm receive stable defaultValues.
+// branch are both ready. This lets receive stable defaultValues.
 interface EditRepositoryFormBodyProps extends Omit<EditFormProps, 'CloseButton'> {
   allMappings: RepositoryProjectPathConfig[];
   defaultBranch: string | null;
@@ -52,6 +52,8 @@ interface EditRepositoryFormBodyProps extends Omit<EditFormProps, 'CloseButton'>
   rightLabel: string;
   seededMappings: RepositoryProjectPathConfig[];
 }
+
+import {useConnectRepoForm} from './useConnectRepoForm';
 
 function EditRepositoryFormBody({
   Header,
@@ -85,15 +87,6 @@ function EditRepositoryFormBody({
         }))
       : [{stackRoot: '', sourceRoot: '', branch: defaultBranch ?? DEFAULT_BRANCH}];
 
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {
-      repository: null as string | null,
-      pathMappings: seededPathMappings,
-    },
-    onSubmit: () => {},
-  });
-
   const existingMappings = allMappings.filter(m => m.repoId !== repositoryId);
 
   const seededById = useMemo(
@@ -109,8 +102,36 @@ function EditRepositoryFormBody({
     },
   });
 
+  const form = useConnectRepoForm({
+    defaultValues: {
+      repository: null as string | null,
+      pathMappings: seededPathMappings,
+    },
+    onSubmit: value => {
+      if (
+        !seededMappings ||
+        !integrationId ||
+        value.pathMappings.length === 0 ||
+        hasExactDuplicate(value.pathMappings, existingMappings, seededById)
+      ) {
+        return;
+      }
+      return editMutation
+        .mutateAsync({
+          orgSlug: organization.slug,
+          project,
+          repositoryId,
+          integrationId,
+          seededMappings,
+          submittedMappings: value.pathMappings,
+        })
+        .then(() => {})
+        .catch(() => {});
+    },
+  });
+
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.Subscribe selector={state => state.values.pathMappings}>
         {pathMappings => {
           const canSave =
@@ -155,24 +176,14 @@ function EditRepositoryFormBody({
               }
               canSave={canSave}
               isSaving={editMutation.isPending}
-              onSave={() => {
-                if (!seededMappings || !integrationId) {
-                  return;
-                }
-                editMutation.mutate({
-                  orgSlug: organization.slug,
-                  project,
-                  repositoryId,
-                  integrationId,
-                  seededMappings,
-                  submittedMappings: pathMappings,
-                });
-              }}
+              saveButton={
+                <form.SubmitButton disabled={!canSave}>{t('Save')}</form.SubmitButton>
+              }
             />
           );
         }}
       </form.Subscribe>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

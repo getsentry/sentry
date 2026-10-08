@@ -557,9 +557,8 @@ export function AzureRepository({
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       const data: AzureSubmitData = {
@@ -585,13 +584,13 @@ export function AzureRepository({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Title type={CustomRepoType.AZURE} isEditing={!!sourceConfig} />
       </Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Stack
                 label={t('Name')}
@@ -599,14 +598,14 @@ export function AzureRepository({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('New Repository')}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="account">
+          </form.Field>
+          <form.Field name="account">
             {field => (
               <field.Layout.Stack
                 label={t('Storage Account')}
@@ -614,14 +613,14 @@ export function AzureRepository({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="storageaccount"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="container">
+          </form.Field>
+          <form.Field name="container">
             {field => (
               <field.Layout.Stack
                 label={t('Container')}
@@ -629,14 +628,14 @@ export function AzureRepository({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="symbols"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="tenant_id">
+          </form.Field>
+          <form.Field name="tenant_id">
             {field => (
               <field.Layout.Stack
                 label={t('Tenant ID')}
@@ -644,14 +643,14 @@ export function AzureRepository({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="00000000-0000-0000-0000-000000000000"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="client_id">
+          </form.Field>
+          <form.Field name="client_id">
             {field => (
               <field.Layout.Stack
                 label={t('Client ID')}
@@ -662,18 +661,18 @@ export function AzureRepository({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="00000000-0000-0000-0000-000000000000"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="client_secret">
+          </form.Field>
+          <form.Field name="client_secret">
             {field => (
               <field.Layout.Stack label={t('Client Secret')} required={!secretAlreadySet}>
                 <field.Password
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={
                     secretAlreadySet ? t('(Client Secret unchanged)') : undefined
@@ -681,8 +680,8 @@ export function AzureRepository({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="prefix">
+          </form.Field>
+          <form.Field name="prefix">
             {field => (
               <field.Layout.Stack
                 label={t('Root Path')}
@@ -691,46 +690,46 @@ export function AzureRepository({
                 )}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="layoutType">
+          </form.Field>
+          <form.Field name="layoutType">
             {field => (
               <field.Layout.Stack
                 label={t('Directory Layout')}
                 hintText={t('The layout of the folder structure.')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={LAYOUT_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="layoutCasing">
+          </form.Field>
+          <form.Field name="layoutCasing">
             {field => (
               <field.Layout.Stack
                 label={t('Path Casing')}
                 hintText={t('The case of files and folders.')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={CASING_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
         <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

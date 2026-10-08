@@ -78,18 +78,18 @@ currency symbols.
 </Storybook.Demo>
 
 ```jsx
-<form.AppField name="amount">
+<form.Field name="amount">
   {field => (
     <field.Layout.Row label={t('Amount')}>
       <field.Number
         leadingItems="$"
-        value={field.state.value}
+        value={field.value}
         onChange={field.handleChange}
         min={0}
       />
     </field.Layout.Row>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 ## Password
@@ -196,16 +196,16 @@ Boolean choice with a label and optional hint text. The hint aligns beneath the 
 </Storybook.Demo>
 
 ```jsx
-<form.AppField name="subscribe">
+<form.Field name="subscribe">
   {field => (
     <field.Checkbox
-      checked={field.state.value}
+      checked={field.value}
       onChange={field.handleChange}
       label={t('Send me the newsletter')}
       hintText={t('Get product updates by email.')}
     />
   )}
-</form.AppField>
+</form.Field>
 ```
 
 ## Switch

@@ -204,49 +204,48 @@ export function NumberFieldDemo() {
   const {t} = useTranslation();
   const defaultValues: {amount: number | null} = {amount: 0};
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
+    validators: defaultFormValidators(z.object({amount: z.number().nullable()})),
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="amount">
+    <ScrapsForm form={form}>
+      <form.Field name="amount">
         {field => (
           <field.Layout.Row label={t('Amount')}>
             <field.Number
               leadingItems="$"
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               min={0}
             />
           </field.Layout.Row>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 
 export function CheckboxFieldDemo() {
   const {t} = useTranslation();
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {subscribe: false},
-    validators: {onDynamic: z.object({subscribe: z.boolean()})},
+    validators: defaultFormValidators(z.object({subscribe: z.boolean()})),
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="subscribe">
+    <ScrapsForm form={form}>
+      <form.Field name="subscribe">
         {field => (
           <field.Checkbox
-            checked={field.state.value}
+            checked={field.value}
             onChange={field.handleChange}
             label={t('Send me the newsletter')}
             hintText={t('Get product updates by email.')}
           />
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 

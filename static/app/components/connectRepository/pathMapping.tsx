@@ -58,7 +58,11 @@ export function PathMapping({
       {editing && (
         <PathMappingEdit
           form={form}
-          fields={fields}
+          fields={{
+            branch: `${fields}.branch`,
+            stackRoot: `${fields}.stackRoot`,
+            sourceRoot: `${fields}.sourceRoot`,
+          }}
           providerKey={providerKey}
           defaultBranch={defaultBranch}
           projectSlug={projectSlug}

@@ -1,6 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, useScrapsForm, ScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -17,6 +18,12 @@ type Props = ModalRenderProps & {
   onSubmit: (user: User) => void;
   user: User;
 };
+
+const schema = z.object({
+  isSuperuser: z.boolean(),
+  isStaff: z.boolean(),
+  permissions: z.array(z.string()),
+});
 
 export function UserPermissionsModal({
   Body,
@@ -110,8 +117,8 @@ export function UserPermissionsModal({
     permissions,
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
@@ -124,37 +131,37 @@ export function UserPermissionsModal({
   }
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h4">Edit Permissions</Heading>
       </Header>
       <Body>
         <Stack gap="lg">
-          <form.AppField name="isSuperuser">
+          <form.Field name="isSuperuser">
             {field => (
               <Grid columns="minmax(0, 1fr) max-content" align="center" gap="md">
                 <field.Meta.Label>
                   Grant superuser permission (required for admin access).
                 </field.Meta.Label>
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </Grid>
             )}
-          </form.AppField>
-          <form.AppField name="isStaff">
+          </form.Field>
+          <form.Field name="isStaff">
             {field => (
               <Grid columns="minmax(0, 1fr) max-content" align="center" gap="md">
                 <field.Meta.Label>
                   Grant staff permission (WIP, will be required for admin access in the
                   future).
                 </field.Meta.Label>
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </Grid>
             )}
-          </form.AppField>
+          </form.Field>
           <Heading as="h5" size="md">
             Additional Permissions
           </Heading>
-          <form.AppField name="permissions">
+          <form.Field name="permissions">
             {field =>
               available.map(perm => (
                 <Grid
@@ -170,24 +177,24 @@ export function UserPermissionsModal({
                   <Switch
                     id={`permission-${perm}`}
                     size="lg"
-                    checked={field.state.value.includes(perm)}
+                    checked={field.value.includes(perm)}
                     onChange={event =>
                       field.handleChange(
                         event.target.checked
-                          ? [...field.state.value, perm]
-                          : field.state.value.filter(value => value !== perm)
+                          ? [...field.value, perm]
+                          : field.value.filter(value => value !== perm)
                       )
                     }
                   />
                 </Grid>
               ))
             }
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
         <form.SubmitButton>Save Changes</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

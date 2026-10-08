@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -73,18 +73,8 @@ export function PolicyFormModal({
       onSuccess(data);
       closeModal();
     },
-    onError: error => {
-      if (
-        error instanceof RequestError &&
-        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
-      ) {
-        return;
-      }
-      addErrorMessage('Unable to save the policy.');
-    },
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       name: '',
       slug: '',
@@ -95,8 +85,8 @@ export function PolicyFormModal({
       file: null,
       current: !isNewPolicy,
     } as Values,
-    validators: {onDynamic: isNewPolicy ? policySchema : revisionSchema},
-    onSubmit: ({value}) => {
+    validators: defaultFormValidators(isNewPolicy ? policySchema : revisionSchema),
+    onSubmit: ({value, createValidationError}) => {
       if (isReadingFile) {
         addErrorMessage('Please wait for the selected file to finish loading.');
         return;
@@ -126,11 +116,20 @@ export function PolicyFormModal({
                 current: value.current,
               },
         })
-        .catch(() => {});
+        .catch(error => {
+          if (error instanceof RequestError) {
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
+            }
+          }
+          addErrorMessage('Unable to save the policy.');
+          return;
+        });
     },
   });
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h3">{title}</Heading>
       </Header>
@@ -138,76 +137,76 @@ export function PolicyFormModal({
         <Stack gap="lg">
           {isNewPolicy && (
             <Fragment>
-              <form.AppField name="name">
+              <form.Field name="name">
                 {field => (
                   <field.Layout.Stack label="Name" required>
                     <field.Input
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       placeholder="e.g. Terms of Service"
                     />
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
-              <form.AppField name="slug">
+              </form.Field>
+              <form.Field name="slug">
                 {field => (
                   <field.Layout.Stack label="Slug" required>
                     <field.Input
-                      value={field.state.value}
+                      value={field.value}
                       onChange={value => field.handleChange(slugify(value))}
                       placeholder="e.g. terms-of-service"
                     />
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
-              <form.AppField name="active">
+              </form.Field>
+              <form.Field name="active">
                 {field => (
                   <field.Checkbox
                     label="Active"
                     hintText="Should this policy be visible to customers?"
-                    checked={field.state.value}
+                    checked={field.value}
                     onChange={field.handleChange}
                   />
                 )}
-              </form.AppField>
-              <form.AppField name="hasSignature">
+              </form.Field>
+              <form.Field name="hasSignature">
                 {field => (
                   <field.Checkbox
                     label="Has Signature"
                     hintText="Does this policy require the user accept it?"
-                    checked={field.state.value}
+                    checked={field.value}
                     onChange={field.handleChange}
                   />
                 )}
-              </form.AppField>
+              </form.Field>
             </Fragment>
           )}
-          <form.AppField name="version">
+          <form.Field name="version">
             {field => (
               <field.Layout.Stack label="Version" required={!isNewPolicy}>
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. 1.0"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="url">
+          </form.Field>
+          <form.Field name="url">
             {field => (
               <field.Layout.Stack
                 label="URL"
                 hintText="A revision needs either a URL or a PDF file."
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://example.com/terms-of-service/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="file">
+          </form.Field>
+          <form.Field name="file">
             {field => (
               <field.Layout.Stack
                 label="File"
@@ -249,9 +248,9 @@ export function PolicyFormModal({
                   <Text variant="muted" ellipsis>
                     {isReadingFile
                       ? 'Reading file…'
-                      : (field.state.value?.[0] ?? 'No file selected')}
+                      : (field.value?.[0] ?? 'No file selected')}
                   </Text>
-                  {field.state.value && (
+                  {field.value && (
                     <Button
                       variant="transparent"
                       size="xs"
@@ -269,18 +268,18 @@ export function PolicyFormModal({
                 </Flex>
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           {!isNewPolicy && (
-            <form.AppField name="current">
+            <form.Field name="current">
               {field => (
                 <field.Checkbox
                   label="Current"
                   hintText="Make this the active version of this policy."
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                 />
               )}
-            </form.AppField>
+            </form.Field>
           )}
         </Stack>
       </Body>
@@ -290,6 +289,6 @@ export function PolicyFormModal({
           <form.SubmitButton>Save Changes</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
