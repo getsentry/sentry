@@ -668,6 +668,17 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             DetectorWorkflow.objects.count(),
         )
 
+    def _create_agent_client(self, user_id: int, scopes: list[str]) -> APIClient:
+        token, _ = agent_token.encode_agent_token(
+            user_id=user_id,
+            organization_id=self.organization.id,
+            scopes=scopes,
+            session_id="workflow-create",
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        return client
+
     def _assert_create_rejected_without_writes(
         self, data: dict[str, Any], status_code: int = 403
     ) -> None:
@@ -1291,6 +1302,100 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         self.login_as(user=self.member_user)
 
         self._assert_create_rejected_without_writes({"detectorIds": [all_projects_detector.id]})
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_project_scoped_workflow_agent_token_advertises_alerts_write_and_retries(self) -> None:
+        detector = self.create_detector(project=self.project)
+        workflow_data = {**self.valid_workflow, "detectorIds": [detector.id]}
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self._create_agent_client(self.user.id, ["org:read"]).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data=workflow_data,
+                format="json",
+            )
+
+            retry_response = self._create_agent_client(self.user.id, ["alerts:write"]).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data=workflow_data,
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"]
+            == 'Bearer error="insufficient_scope", scope="alerts:write"'
+        )
+        assert retry_response.status_code == 201, retry_response.content
+        assert DetectorWorkflow.objects.filter(
+            workflow_id=retry_response.data["id"], detector=detector
+        ).exists()
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_team_admin_agent_token_advertises_project_alerts_write(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        workflow_data = {**self.valid_workflow, "detectorIds": [detector.id]}
+
+        with self.feature([agent_token.FEATURE_FLAG, "organizations:team-roles"]):
+            response = self._create_agent_client(self.team_admin_user.id, ["org:read"]).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data=workflow_data,
+                format="json",
+            )
+            retry_response = self._create_agent_client(
+                self.team_admin_user.id, ["org:read", "alerts:write"]
+            ).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data=workflow_data,
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"]
+            == 'Bearer error="insufficient_scope", scope="alerts:write"'
+        )
+        assert retry_response.status_code == 201, retry_response.content
+        assert DetectorWorkflow.objects.filter(
+            workflow_id=retry_response.data["id"], detector=detector
+        ).exists()
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_does_not_advertise_scope_for_inaccessible_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        inaccessible_project = self.create_project(
+            organization=self.organization,
+            teams=[self.create_team(organization=self.organization)],
+        )
+        detector = self.create_detector(project=inaccessible_project)
+
+        with self.feature([agent_token.FEATURE_FLAG, "organizations:team-roles"]):
+            response = self._create_agent_client(self.team_admin_user.id, ["org:read"]).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={**self.valid_workflow, "detectorIds": [detector.id]},
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert "insufficient_scope" not in response.get("WWW-Authenticate", "")
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_all_projects_workflow_agent_token_advertises_org_write(self) -> None:
+        detector = ensure_default_all_projects_detector(self.organization.id)
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self._create_agent_client(self.user.id, ["org:read"]).post(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={**self.valid_workflow, "detectorIds": [detector.id]},
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
+        )
 
     def test_create_workflow_with_invalid_detector_ids(self) -> None:
         workflow_data = {

@@ -2,8 +2,10 @@ from datetime import timedelta
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.test import APIClient
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -16,6 +18,7 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -45,6 +48,8 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
+
+AGENT_TOKEN_SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
 
 @cell_silo_test
@@ -687,6 +692,48 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             assert audit_entries.count() == 2
             assert audit_entries[0].target_object == detector_workflows[0].id
             assert audit_entries[1].target_object == detector_workflows[1].id
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_advertises_org_write_for_all_projects_workflow(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(detector=all_projects_detector, workflow=workflow)
+
+        def create_agent_client(scopes: list[str]) -> APIClient:
+            token, _ = agent_token.encode_agent_token(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                scopes=scopes,
+                session_id="detector-workflow-update",
+            )
+            client = APIClient()
+            client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+            return client
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = create_agent_client(["alerts:write"]).put(
+                f"/api/0/organizations/{self.organization.slug}/detectors/{self.detector.id}/",
+                data={"workflowIds": [workflow.id]},
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
+        )
+        assert not DetectorWorkflow.objects.filter(
+            detector=self.detector, workflow=workflow
+        ).exists()
+
+        with self.feature(agent_token.FEATURE_FLAG), outbox_runner():
+            retry_response = create_agent_client(["org:write"]).put(
+                f"/api/0/organizations/{self.organization.slug}/detectors/{self.detector.id}/",
+                data={"workflowIds": [workflow.id]},
+                format="json",
+            )
+
+        assert retry_response.status_code == 200, retry_response.content
+        assert DetectorWorkflow.objects.filter(detector=self.detector, workflow=workflow).exists()
 
     def test_update_workflows_replace_workflows(self) -> None:
         """Test replacing existing workflows with new ones"""
