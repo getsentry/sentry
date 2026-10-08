@@ -1,8 +1,10 @@
 name: Prune oxlint suppressions
 
 on:
-  schedule:
-    - cron: '17 * * * *'
+  workflow_call:
+    secrets:
+      SENTRY_RELEASE_BOT_PRIVATE_KEY:
+        required: true
   workflow_dispatch:
 
 permissions:
