@@ -29,6 +29,7 @@ import {
 } from 'sentry/views/explore/metrics/constants';
 import {useEquationReferencedLabels} from 'sentry/views/explore/metrics/hooks/useEquationReferencedLabels';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
+import {useRefetchOutdatedTimeseries} from 'sentry/views/explore/metrics/hooks/useRefetchOutdatedTimeseries';
 import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
 import {SortableMetricPanel} from 'sentry/views/explore/metrics/metricPanel/sortableMetricPanel';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -159,6 +160,7 @@ function MetricsTabBodySection({
     areToolbarsLoading,
     isMetricOptionsEmpty,
   });
+  useRefetchOutdatedTimeseries();
   const referenceMap = useMetricReferences(metricQueries);
   const aggregateMetricQueries = useSortableMetricQueries({
     predicate: metricQuery =>
