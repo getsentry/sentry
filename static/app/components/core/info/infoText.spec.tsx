@@ -34,12 +34,12 @@ describe('InfoText', () => {
     const text = screen.getByText('Text content');
     expect(text).toHaveAttribute('tabindex', '0');
     expect(text).toHaveAttribute('aria-describedby');
-    expect(
-      getEmotionRules(text).some(
-        rule =>
-          rule.includes('overflow: hidden') && rule.includes('text-overflow: ellipsis')
-      )
-    ).toBe(true);
+    expect(getEmotionRules(text).join(' ')).toEqual(
+      expect.stringContaining('overflow: hidden')
+    );
+    expect(getEmotionRules(text).join(' ')).toEqual(
+      expect.stringContaining('text-overflow: ellipsis')
+    );
     expect(text).not.toHaveStyle({textDecoration: 'underline'});
 
     await userEvent.hover(text);
@@ -78,11 +78,11 @@ describe('InfoText', () => {
 
     const text = screen.getByText('Text content');
     expect(text).toHaveAttribute('tabindex', '0');
-    expect(
-      getEmotionRules(text).some(
-        rule =>
-          rule.includes('overflow: hidden') && rule.includes('text-overflow: ellipsis')
-      )
-    ).toBe(true);
+    expect(getEmotionRules(text).join(' ')).toEqual(
+      expect.stringContaining('overflow: hidden')
+    );
+    expect(getEmotionRules(text).join(' ')).toEqual(
+      expect.stringContaining('text-overflow: ellipsis')
+    );
   });
 });

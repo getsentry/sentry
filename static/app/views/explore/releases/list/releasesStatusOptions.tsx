@@ -29,7 +29,7 @@ export function ReleasesStatusOptions({selected, onSelect}: Props) {
           options={options}
           selected={selected}
           onSelect={onSelect}
-          style={{zIndex: 3}}
+          style={{...containerProps.style, zIndex: 3}}
         />
       )}
     </Container>

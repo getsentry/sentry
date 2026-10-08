@@ -26,6 +26,7 @@ import {
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
 import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
+import {STYLEX_ROOTS} from './build-utils/stylex.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -112,6 +113,7 @@ const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
+const STYLEX_CSS_PATH = path.join(staticPrefix, 'app', 'stylex.css');
 const typeLoaderPath = path.resolve(
   import.meta.dirname,
   'static/app/stories/typeLoader.ts'
@@ -347,6 +349,23 @@ const appConfig: Configuration = {
             options: swcReactLoaderConfig({reactCompiler: false}),
           },
           {
+            // @sentry/scraps compiles StyleX before swc. Scoped to the
+            // directories that may use StyleX so other modules skip a JS loader.
+            include: STYLEX_ROOTS,
+            use: [
+              {
+                loader: 'builtin:swc-loader',
+                options: swcReactLoaderConfig({reactCompiler: true}),
+              },
+              {
+                loader: path.resolve(
+                  import.meta.dirname,
+                  './build-utils/stylex-loader.ts'
+                ),
+              },
+            ],
+          },
+          {
             // Application code only.
             exclude: /node_modules/,
             loader: 'builtin:swc-loader',
@@ -382,7 +401,23 @@ const appConfig: Configuration = {
         ],
       },
       {
+        // Generated StyleX stylesheet. Injected when the app entry evaluates,
+        // i.e. after sentry.css and before any Emotion styles.
+        test: STYLEX_CSS_PATH,
+        use: [
+          'style-loader',
+          'css-loader',
+          {
+            loader: path.resolve(
+              import.meta.dirname,
+              './build-utils/stylex-css-loader.ts'
+            ),
+          },
+        ],
+      },
+      {
         test: /\.css$/,
+        exclude: STYLEX_CSS_PATH,
         use: ['style-loader', 'css-loader'],
       },
       {

@@ -8,7 +8,7 @@ const config = {
   },
   transform: {
     '^.+\\.[jt]sx?$': [
-      '@swc/jest',
+      '<rootDir>/../../../tests/js/jestStylexTransform.js',
       {
         jsc: {
           target: 'es2022',

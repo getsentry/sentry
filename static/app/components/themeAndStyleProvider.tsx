@@ -1,8 +1,14 @@
-import {Fragment, lazy, useRef} from 'react';
+import {Fragment, lazy, useLayoutEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
+import * as stylex from '@stylexjs/stylex';
 
+// The generated dark theme class is internal to scraps' StyleX setup.
+// eslint-disable-next-line boundaries/dependencies
+import {stylexDarkTheme} from '@sentry/scraps/theme/darkTheme';
+
+import 'sentry/stylex.css';
 import {printConsoleBanner} from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -32,6 +38,10 @@ const cache = createCache({key: 'app', stylisPlugins: []});
 // Compat disables :nth-child warning
 cache.compat = true;
 
+// StyleX variables default to the light theme on :root; the dark theme
+// overrides them from the document element so portals pick it up too.
+const darkThemeClassNames = stylex.props(stylexDarkTheme).className?.split(' ') ?? [];
+
 /**
  * Wraps children with emotions ThemeProvider reactively set a theme.
  *
@@ -41,6 +51,14 @@ export function ThemeAndStyleProvider({children}: Props) {
   const config = useLegacyStore(ConfigStore);
 
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
+
+  useLayoutEffect(() => {
+    if (config.theme !== 'dark') {
+      return;
+    }
+    document.documentElement.classList.add(...darkThemeClassNames);
+    return () => document.documentElement.classList.remove(...darkThemeClassNames);
+  }, [config.theme]);
 
   const didPrintBanner = useRef(false);
   // oxlint-disable-next-line react/refs

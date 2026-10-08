@@ -1,4 +1,4 @@
-/* eslint-disable import/no-nodejs-modules, no-console */
+/* eslint-disable import/no-nodejs-modules, no-console, import/no-relative-parent-imports */
 
 import childProcess from 'node:child_process';
 import fs from 'node:fs/promises';
@@ -6,6 +6,13 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import * as esbuild from 'esbuild';
+
+// Shares the StyleX compilation settings with the rspack loaders.
+import {
+  needsStylexTransform,
+  STYLEX_ROOTS,
+  transformStylex,
+} from '../build-utils/stylex.ts';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDir, '..');
@@ -96,6 +103,24 @@ async function runEsbuild(commitHash: string): Promise<void> {
     // Stub out .pegjs grammar files with a no-op parse function since
     // chartcuterie doesn't need search syntax parsing.
     plugins: [
+      {
+        // @sentry/scraps uses StyleX, which must be compiled away. Chartcuterie
+        // renders no DOM, so the collected CSS is discarded.
+        name: 'stylex',
+        setup(build) {
+          build.onLoad({filter: /\.tsx?$/}, async args => {
+            if (!STYLEX_ROOTS.some(root => args.path.startsWith(root))) {
+              return null;
+            }
+            const source = await fs.readFile(args.path, 'utf8');
+            if (!needsStylexTransform(source)) {
+              return null;
+            }
+            const {code} = await transformStylex(source, args.path);
+            return {contents: code, loader: args.path.endsWith('.tsx') ? 'tsx' : 'ts'};
+          });
+        },
+      },
       {
         name: 'peggy-stub',
         setup(build) {

@@ -828,7 +828,7 @@ function GrabHandle() {
           aria-label={t('Drag to reorder')}
           data-drag-icon
           ref={setActivatorNodeRef}
-          style={{cursor: isDragging ? 'grabbing' : 'grab'}}
+          style={{...p.style, cursor: isDragging ? 'grabbing' : 'grab'}}
         >
           <IconGrabbable variant="muted" aria-hidden="true" />
         </GrabHandleAnimation>

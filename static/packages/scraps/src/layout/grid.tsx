@@ -1,15 +1,17 @@
-import styled from '@emotion/styled';
-
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {SpaceSize} from '@sentry/scraps/theme';
 
 import {
-  Container,
+  addContainerStyles,
+  omitContainerProps,
+  resolveSpacing,
+  useLayoutElement,
   type ContainerElement,
   type ContainerProps,
   type ContainerPropsWithRenderFunction,
 } from './container';
-import {getSpacing, rc, type Responsive} from './styles';
+import type {Responsive} from './styles';
+import {addLayoutProp, createLayoutStyle} from './stylexLayout';
 
 const omitGridProps = new Set<keyof GridLayoutProps | 'as'>([
   'align',
@@ -95,73 +97,52 @@ export type GridProps<T extends ContainerElement = 'div'> = ContainerProps<T> &
 export type GridPropsWithRenderFunction<T extends ContainerElement = 'div'> =
   ContainerPropsWithRenderFunction<T> & GridLayoutProps;
 
-export const Grid = styled(Container, {
-  shouldForwardProp: prop => {
-    return !omitGridProps.has(prop as keyof GridLayoutProps | 'as');
-  },
-})<GridProps<any> | GridPropsWithRenderFunction<any>>`
-  ${p => rc('display', p.display ?? 'grid', p.theme)}
+const OMIT_GRID_PROPS: ReadonlySet<string> = new Set<string>([
+  ...omitContainerProps,
+  ...omitGridProps,
+]);
 
-  ${p => rc('gap', p.gap, p.theme, getSpacing)};
+const GRID_DISTRIBUTION = {
+  start: 'start',
+  end: 'end',
+  center: 'center',
+  between: 'space-between',
+  around: 'space-around',
+  evenly: 'space-evenly',
+  stretch: 'stretch',
+} as const;
 
-  ${p => rc('grid-template-columns', p.columns, p.theme)};
-  ${p => rc('grid-template-rows', p.rows, p.theme)};
-  ${p => rc('grid-template-areas', p.areas, p.theme)};
-  ${p => rc('grid-auto-columns', p.autoColumns, p.theme)};
-  ${p => rc('grid-auto-rows', p.autoRows, p.theme)};
-  ${p => rc('grid-auto-flow', p.flow, p.theme)};
+function resolveDistribution(value: keyof typeof GRID_DISTRIBUTION) {
+  return GRID_DISTRIBUTION[value] ?? value;
+}
 
-  ${p =>
-    rc('justify-content', p.justify, p.theme, (value, _breakpoint, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'start';
-        case 'end':
-          return 'end';
-        case 'center':
-          return 'center';
-        case 'between':
-          return 'space-between';
-        case 'around':
-          return 'space-around';
-        case 'evenly':
-          return 'space-evenly';
-        case 'stretch':
-          return 'stretch';
-        default:
-          return value;
-      }
-    })};
+const GAP_OPTIONS = {fixed: 'gap', resolve: resolveSpacing};
+const JUSTIFY_OPTIONS = {fixed: 'gridJustify', resolve: resolveDistribution};
+const ALIGN_CONTENT_OPTIONS = {fixed: 'gridAlignContent', resolve: resolveDistribution};
+const ALIGN_OPTIONS = {fixed: 'gridAlign'};
+const JUSTIFY_ITEMS_OPTIONS = {fixed: 'justifyItems'};
 
-  ${p =>
-    rc('align-content', p.alignContent, p.theme, (value, _breakpoint, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'start';
-        case 'end':
-          return 'end';
-        case 'center':
-          return 'center';
-        case 'between':
-          return 'space-between';
-        case 'around':
-          return 'space-around';
-        case 'evenly':
-          return 'space-evenly';
-        case 'stretch':
-          return 'stretch';
-        default:
-          return value;
-      }
-    })};
+function GridComponent<T extends ContainerElement = 'div'>(
+  props: GridProps<T> | GridPropsWithRenderFunction<T>
+) {
+  const acc = createLayoutStyle(typeof props.children === 'function');
+  addContainerStyles(acc, props, props.display ?? 'grid');
+  addLayoutProp(acc, 'gap', props.gap, GAP_OPTIONS);
 
-  ${p => rc('align-items', p.align, p.theme)};
-  ${p => rc('justify-items', p.justifyItems, p.theme)};
-  /**
-   * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
-   * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
-   * https://github.com/styled-components/styled-components/issues/1803
-   */
-` as unknown as <T extends ContainerElement = 'div'>(
+  addLayoutProp(acc, 'gridTemplateColumns', props.columns);
+  addLayoutProp(acc, 'gridTemplateRows', props.rows);
+  addLayoutProp(acc, 'gridTemplateAreas', props.areas);
+  addLayoutProp(acc, 'gridAutoColumns', props.autoColumns);
+  addLayoutProp(acc, 'gridAutoRows', props.autoRows);
+  addLayoutProp(acc, 'gridAutoFlow', props.flow);
+
+  addLayoutProp(acc, 'justifyContent', props.justify, JUSTIFY_OPTIONS);
+  addLayoutProp(acc, 'alignContent', props.alignContent, ALIGN_CONTENT_OPTIONS);
+  addLayoutProp(acc, 'alignItems', props.align, ALIGN_OPTIONS);
+  addLayoutProp(acc, 'justifyItems', props.justifyItems, JUSTIFY_ITEMS_OPTIONS);
+  return useLayoutElement(props, acc, OMIT_GRID_PROPS);
+}
+
+export const Grid = GridComponent as <T extends ContainerElement = 'div'>(
   props: GridProps<T> | GridPropsWithRenderFunction<T>
 ) => React.ReactElement;
