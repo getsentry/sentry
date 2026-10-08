@@ -180,10 +180,10 @@ def classify_link(url: str) -> NotificationLink:
             if query.get("seerDrawer") == ["true"]
             else NotificationLink.ISSUE
         )
+    if path.startswith(("/monitors/", "/alerts/", "/issues/alerts/")):
+        return NotificationLink.ALERT
     if path.startswith("/issues/"):
         return NotificationLink.ISSUE if "preview" in query else NotificationLink.ISSUE_LIST
-    if path.startswith(("/monitors/", "/alerts/")):
-        return NotificationLink.ALERT
     if path.startswith("/releases/"):
         return NotificationLink.RELEASE
     if path.startswith("/data-export/"):

@@ -230,6 +230,14 @@ class RecordEngagementTest(TestCase):
         ("https://acme.sentry.io/monitors/alerts/3/", NotificationLink.ALERT),
         ("https://acme.sentry.io/monitors/3/", NotificationLink.ALERT),
         ("https://acme.sentry.io/alerts/rules/details/3/", NotificationLink.ALERT),
+        (
+            "https://sentry.io/organizations/acme/issues/alerts/rules/backend/3/details/",
+            NotificationLink.ALERT,
+        ),
+        (
+            "https://acme.sentry.io/issues/alerts/rules/crons/backend/cron/details/",
+            NotificationLink.ALERT,
+        ),
         ("https://acme.sentry.io/releases/1.0.0/?project=2", NotificationLink.RELEASE),
         ("https://acme.sentry.io/data-export/4/", NotificationLink.DATA_EXPORT),
         ("https://sentry.io/settings/account/notifications/alerts/", NotificationLink.SETTINGS),
