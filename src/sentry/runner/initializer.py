@@ -239,6 +239,12 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
 
     # First move options from settings into options
     for k, v in options_mapper.items():
+        if (
+            settings.SENTRY_SINGLE_ORGANIZATION
+            and not settings.SENTRY_SELF_HOSTED
+            and k in ("github-app.client-id", "github-app.client-secret")
+        ):
+            continue
         # A modern credential pair owns empty partners. Explicit app option
         # keys also take precedence over synthesized legacy login values.
         if (
@@ -294,7 +300,8 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # remap in initialize_app handles the option key; this handles the setting.
     if settings.SENTRY_SINGLE_ORGANIZATION:
         if (
-            {"SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"}
+            not settings.SENTRY_SELF_HOSTED
+            or {"SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"}
             & settings.SENTRY_CONFIGURED_OPTION_SETTINGS
         ):
             settings.GITHUB_APP_ID = settings.SENTRY_GITHUB_APP_CLIENT_ID
@@ -410,7 +417,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and
     # integration.
-    if settings.SENTRY_SINGLE_ORGANIZATION:
+    if settings.SENTRY_SINGLE_ORGANIZATION and settings.SENTRY_SELF_HOSTED:
         options_mapper.update(
             {
                 "github-app.client-id": "GITHUB_APP_ID",

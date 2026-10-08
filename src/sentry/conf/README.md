@@ -134,3 +134,10 @@ unregistered keys are excluded from legacy synchronization. Keep those exports
 out of source control. Retain the previous settings and configuration artifacts
 for rollback until the rollback window closes. Delete surviving rows only after
 that window closes and their backups are confirmed.
+
+After the settings rollout, SaaS single organization login always uses the direct
+integration app credential pair, including empty partners. Retired app option
+keys are neither promoted nor synthesized in SaaS. This remains true after the
+temporary provenance is removed. Self-hosted GitHub app remapping retains its
+legacy option and login precedence unless explicit deployment provenance selects
+the modern pair.
