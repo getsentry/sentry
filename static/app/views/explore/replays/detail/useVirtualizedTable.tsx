@@ -21,7 +21,7 @@ export function useVirtualizedTable({rowCount}: {rowCount: number}) {
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
     getScrollElement: () => tableRef.current,
     overscan: OVERSCAN,
-    scrollPaddingEnd: SIMPLE_TABLE_HEADER_ROW_HEIGHT,
+    scrollPaddingEnd: SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed,
   });
 
   const visibleRange = useMemo<VisibleRange>(
@@ -31,7 +31,8 @@ export function useVirtualizedTable({rowCount}: {rowCount: number}) {
         scrollOffset: virtualizer.scrollOffset ?? 0,
         viewportHeight: Math.max(
           0,
-          (virtualizer.scrollRect?.height ?? 0) - SIMPLE_TABLE_HEADER_ROW_HEIGHT
+          (virtualizer.scrollRect?.height ?? 0) -
+            SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed
         ),
         virtualRows,
       }),

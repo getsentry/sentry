@@ -368,10 +368,10 @@ export default Storybook.story('SimpleTable', story => {
             name="density"
             value="'compressed' | 'default' | 'comfortable'"
           />{' '}
-          to change how much room each row takes. Compressed tables use small text, tight
-          cell padding, and no lines between rows, which suits long, scannable lists such
-          as a replay's network requests. Comfortable tables give their cells more
-          padding.
+          to change how much room each row takes. Compressed tables use small text, a
+          shorter header, tight cell padding, and no lines between rows, which suits long,
+          scannable lists such as a replay's network requests. Comfortable tables give
+          their cells more padding.
         </p>
 
         {DENSITIES.map(density => (

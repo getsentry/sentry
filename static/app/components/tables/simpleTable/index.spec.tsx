@@ -308,7 +308,7 @@ describe('SimpleTable component', () => {
     expect(rules).not.toContain('grid-template-rows');
   });
 
-  it('tightens cells, drops row dividers, and shrinks text when compressed', () => {
+  it('tightens cells, shortens the header, drops row dividers, and shrinks text when compressed', () => {
     render(
       <SimpleTable
         density="compressed"
@@ -330,6 +330,7 @@ describe('SimpleTable component', () => {
     const headerRules = getEmotionRules(
       screen.getByRole('columnheader', {name: 'A'})
     ).join('');
+    const headerRowRules = getEmotionRules(screen.getByRole('row', {name: 'A'})).join('');
 
     expect(getEmotionRules(screen.getByRole('cell', {name: 'One'})).join('')).toContain(
       'padding: 4px 8px'
@@ -342,6 +343,7 @@ describe('SimpleTable component', () => {
     );
     expect(headerRules).toContain('padding: 0px 8px');
     expect(headerRules).toContain('font-size: 12px');
+    expect(headerRowRules).toContain('min-height: 26px');
   });
 
   it('pads cells more when comfortable', () => {

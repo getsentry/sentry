@@ -212,7 +212,7 @@ export function NetworkList() {
                 <JumpButtons
                   jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
                   onClick={onClickToJump}
-                  tableHeaderHeight={SIMPLE_TABLE_HEADER_ROW_HEIGHT}
+                  tableHeaderHeight={SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed}
                 />
               ) : null}
             </Container>

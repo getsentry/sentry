@@ -1,4 +1,11 @@
-import type {HTMLAttributes, MouseEvent, ReactNode, Ref, RefObject} from 'react';
+import type {
+  ComponentProps,
+  HTMLAttributes,
+  MouseEvent,
+  ReactNode,
+  Ref,
+  RefObject,
+} from 'react';
 import {createContext, Fragment, useContext} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
@@ -19,9 +26,13 @@ import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/sta
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
-export const SIMPLE_TABLE_HEADER_ROW_HEIGHT = 40;
-
 type TableDensity = 'compressed' | 'default' | 'comfortable';
+
+export const SIMPLE_TABLE_HEADER_ROW_HEIGHT = {
+  compressed: 26,
+  default: 40,
+  comfortable: 40,
+} as const satisfies Record<TableDensity, number>;
 
 const CELL_PADDING = {
   compressed: 'xs md',
@@ -141,6 +152,12 @@ function HeaderCell({
   );
 }
 
+function HeaderRow(props: Omit<ComponentProps<typeof StyledHeaderRow>, 'density'>) {
+  const density = useContext(DensityContext);
+
+  return <StyledHeaderRow density={density} {...props} />;
+}
+
 function Row({children, variant = 'default', ref, ...props}: RowProps) {
   const density = useContext(DensityContext);
 
@@ -199,16 +216,20 @@ const StyledTable = styled(Table, {
     (p.scrollable || p.maxHeight) &&
     css`
       &:has(> thead + tbody) {
-        grid-template-rows: ${SIMPLE_TABLE_HEADER_ROW_HEIGHT}px auto;
+        grid-template-rows: ${SIMPLE_TABLE_HEADER_ROW_HEIGHT[p.density]}px auto;
       }
 
       &:has(> thead + tbody + tbody) {
-        grid-template-rows: ${SIMPLE_TABLE_HEADER_ROW_HEIGHT}px fit-content(100%) auto;
+        grid-template-rows: ${SIMPLE_TABLE_HEADER_ROW_HEIGHT[p.density]}px fit-content(
+            100%
+          ) auto;
       }
     `}
 `;
 
-const StyledHeaderRow = styled(Table.Row)`
+const StyledHeaderRow = styled(Table.Row, {
+  shouldForwardProp: prop => prop !== 'density',
+})<{density: TableDensity}>`
   background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: calc(${p => p.theme.radius.md} + 1px)
@@ -216,7 +237,7 @@ const StyledHeaderRow = styled(Table.Row)`
   text-transform: none;
   justify-content: left;
   padding: 0;
-  min-height: ${SIMPLE_TABLE_HEADER_ROW_HEIGHT}px;
+  min-height: ${p => SIMPLE_TABLE_HEADER_ROW_HEIGHT[p.density]}px;
   align-items: center;
 `;
 
@@ -336,7 +357,7 @@ function FullWidthRow({children, ...props}: RowProps) {
 
 SimpleTable.Body = Table.Body;
 SimpleTable.Head = Table.Head;
-SimpleTable.HeaderRow = StyledHeaderRow;
+SimpleTable.HeaderRow = HeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
