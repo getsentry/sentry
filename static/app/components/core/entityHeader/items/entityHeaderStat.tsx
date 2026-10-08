@@ -78,7 +78,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
   const {isLoading, label, labelTooltip, loadingWidth = '80px', value} = props;
   if (isLoading) {
     return (
-      <Flex align="center" height={ROW_HEIGHT} flexShrink={0}>
+      <Flex as="li" align="center" height={ROW_HEIGHT} flexShrink={0}>
         <Placeholder width={loadingWidth} height={STAT_VALUE_HEIGHT} />
       </Flex>
     );
@@ -157,7 +157,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
   }
 
   return (
-    <Flex align="center" height={ROW_HEIGHT} flexShrink={0} minWidth={0}>
+    <Flex as="li" align="center" height={ROW_HEIGHT} flexShrink={0} minWidth={0}>
       <Flex align="baseline" gap="xs" minWidth={0}>
         {valueContent}
         {labelContent}

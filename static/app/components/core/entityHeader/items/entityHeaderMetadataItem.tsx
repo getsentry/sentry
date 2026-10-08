@@ -4,7 +4,7 @@ import type {PlatformIcon} from 'platformicons';
 
 import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -127,26 +127,30 @@ export function EntityHeaderMetadataItem({
       ) : (
         <Fragment>
           {/*
-            The label is in the DOM either way, so a screen reader reads
-            "Browser Chrome 144.0.0" whether or not it is on screen. Showing it
-            is then only a question of visibility, not of semantics.
+            A real `dt`, so the label is tied to its value rather than merely
+            preceding it. Hiding it is then a question of visibility only —
+            what a screen reader reads does not change.
           */}
-          {showLabel ? (
-            <Text {...textStyles} variant="muted">
-              {label}
-            </Text>
-          ) : (
-            <VisuallyHidden>{label}</VisuallyHidden>
-          )}
-          {tooltip ? (
-            <InfoText title={tooltip} variant={variant} {...textStyles}>
-              {valueContent}
-            </InfoText>
-          ) : (
-            <Text variant={variant} {...textStyles}>
-              {valueContent}
-            </Text>
-          )}
+          <Container as="dt" margin="0">
+            {showLabel ? (
+              <Text {...textStyles} variant="muted">
+                {label}
+              </Text>
+            ) : (
+              <VisuallyHidden>{label}</VisuallyHidden>
+            )}
+          </Container>
+          <Container as="dd" margin="0" minWidth={0}>
+            {tooltip ? (
+              <InfoText title={tooltip} variant={variant} {...textStyles}>
+                {valueContent}
+              </InfoText>
+            ) : (
+              <Text variant={variant} {...textStyles}>
+                {valueContent}
+              </Text>
+            )}
+          </Container>
         </Fragment>
       )}
     </Flex>

@@ -116,39 +116,42 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
         label: t('Viewed by'),
         isLoading: viewers.isPending,
       },
-      stats: [
-        showDeadRageClicks
-          ? {
-              type: 'link',
-              label: t('Dead Clicks'),
-              value: deadClicks,
-              to: breadcrumbTab,
-              isLoading: statsLoading,
-              loadingWidth: '82px',
-            }
-          : null,
-        showDeadRageClicks
-          ? {
-              type: 'link',
-              label: t('Rage Clicks'),
-              value: rageClicks,
-              to: breadcrumbTab,
-              isLoading: statsLoading,
-              loadingWidth: '82px',
-            }
-          : null,
-        {
-          type: 'link',
-          label: t('Errors'),
-          value: nonFeedbackErrors.length,
-          to: errorsTab,
-          labelTooltip: nonFeedbackErrors.length ? (
-            <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
-          ) : undefined,
-          isLoading: statsLoading,
-          loadingWidth: '64px',
-        },
-      ],
+      stats: {
+        label: t('Replay stats'),
+        items: [
+          showDeadRageClicks
+            ? {
+                type: 'link',
+                label: t('Dead Clicks'),
+                value: deadClicks,
+                to: breadcrumbTab,
+                isLoading: statsLoading,
+                loadingWidth: '82px',
+              }
+            : null,
+          showDeadRageClicks
+            ? {
+                type: 'link',
+                label: t('Rage Clicks'),
+                value: rageClicks,
+                to: breadcrumbTab,
+                isLoading: statsLoading,
+                loadingWidth: '82px',
+              }
+            : null,
+          {
+            type: 'link',
+            label: t('Errors'),
+            value: nonFeedbackErrors.length,
+            to: errorsTab,
+            labelTooltip: nonFeedbackErrors.length ? (
+              <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
+            ) : undefined,
+            isLoading: statsLoading,
+            loadingWidth: '64px',
+          },
+        ],
+      },
       metadata: {
         label: t('Replay properties'),
         items: [

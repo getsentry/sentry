@@ -38,11 +38,14 @@ Use `EntityHeader` on a detail page — a single issue, trace, replay, release, 
         </Tag>,
       ],
     }}
-    stats={[
-      {type: 'text', label: 'Dead Clicks', value: 0},
-      {type: 'text', label: 'Rage Clicks', value: 2},
-      {type: 'link', label: 'Errors', value: 1, to: '/replays/1/?t_main=errors'},
-    ]}
+    stats={{
+      label: 'Replay stats',
+      items: [
+        {type: 'text', label: 'Dead Clicks', value: 0},
+        {type: 'text', label: 'Rage Clicks', value: 2},
+        {type: 'link', label: 'Errors', value: 1, to: '/replays/1/?t_main=errors'},
+      ],
+    }}
     metadata={{
       label: 'Replay properties',
       items: [
@@ -62,7 +65,10 @@ Use `EntityHeader` on a detail page — a single issue, trace, replay, release, 
 <EntityHeader
   title={{label: t('Replay user'), value: replay.user.display_name}}
   people={{users: viewers, label: t('Viewed by')}}
-  stats={[{type: 'link', label: t('Errors'), value: errors.length, to: errorsTab}]}
+  stats={{
+    label: 'Replay stats',
+    items: [{type: 'link', label: t('Errors'), value: errors.length, to: errorsTab}],
+  }}
   subtitle={{content: replay.summary}}
   metadata={{
     label: t('Replay properties'),
@@ -76,10 +82,10 @@ Only `title` is required. The grid template is built from whichever other slots 
 `stats`, `metadata.items` and `title.tags` drop `null` entries, so a conditional can be written inline. Items are keyed by their position in the array you wrote rather than in the filtered result, so one appearing or disappearing never remounts its neighbours.
 
 ```jsx
-stats={[
+stats={{label: 'Replay stats', items: [
   isVideoReplay ? null : {type: 'text', label: t('Dead Clicks'), value: deadClicks},
   {type: 'text', label: t('Errors'), value: errors.length},
-]}
+]}}
 ```
 
 ### Loading
@@ -92,10 +98,13 @@ Each slot is replaced whole, stat labels included. A label is static and could b
   <EntityHeader
     isLoading
     title={{label: 'Replay user', value: 'anonymous@example.com'}}
-    stats={[
-      {type: 'text', label: 'Dead Clicks', value: 0},
-      {type: 'text', label: 'Errors', value: 1},
-    ]}
+    stats={{
+      label: 'Replay stats',
+      items: [
+        {type: 'text', label: 'Dead Clicks', value: 0},
+        {type: 'text', label: 'Errors', value: 1},
+      ],
+    }}
     metadata={{
       label: 'Replay properties',
       items: [
@@ -110,16 +119,23 @@ Each slot is replaced whole, stat labels included. A label is static and could b
 <EntityHeader
   isLoading={!replayRecord}
   title={{label: t('Replay user'), value: displayName, loadingWidth: '200px'}}
-  stats={[{type: 'text', label: t('Errors'), value: errors.length, loadingWidth: '64px'}]}
+  stats={{
+    label: 'Replay stats',
+    items: [
+      {type: 'text', label: t('Errors'), value: errors.length, loadingWidth: '64px'},
+    ],
+  }}
 />
 ```
+
+A declared slot holds its space before its contents arrive. Passing `metadata` reserves the row even while every item is still `null`, and passing `subtitle` reserves its line even while `content` is empty — so a header whose data all lands at once does not grow a row and push the page down. Only an omitted slot leaves no row behind.
 
 Slots that resolve on their own schedule carry their own flag, additive to the header's: `people.isLoading` for the avatar stack, and `isLoading` on an individual stat. Use the latter when a count arrives after the entity does — an issue knows its title before it knows how many events it has, and a stat without the flag would render the zero it happens to hold. The entity's own fields stay live throughout.
 
 ```jsx
-stats={[
+stats={{label: 'Replay stats', items: [
   {type: 'text', label: t('Events'), value: count, isLoading: isCountPending},
-]}
+]}}
 ```
 
 The header sets `aria-busy` while any slot is loading. Note that this is a state in the accessibility tree, not an announcement — no screen reader reads it. A page that needs the transition announced has to add its own live region.
@@ -220,12 +236,14 @@ They are siblings of the heading, not part of it, so a tag's text is not in the 
 A stat is one measurement: a `label` naming it and a `value`. Both are rendered, on a shared baseline.
 
 ```jsx
-stats={[{type: 'text', label: t('Rage Clicks'), value: 2}]}
+stats={{label: 'Replay stats', items: [{type: 'text', label: t('Rage Clicks'), value: 2}]}}
 ```
 
 Keep the value to the single number the label names. Anything that explains it belongs in a tooltip, not in the row — a stat that renders its own detail inline fights the density the row is built for.
 
 ### Accessibility
+
+The row is a list, and `label` names it — "Replay stats". Without it a screen reader meets a run of numbers with nothing saying what they count. People sit beside that list rather than inside it: a list named for its stats cannot hold something that is not one.
 
 A stat is one fact split across two elements, which a screen reader moving element by element otherwise reads as two: "0", then "Dead Clicks".
 
@@ -257,27 +275,30 @@ Colour says it navigates; an underline says it explains. A link label is accent-
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
     title={{label: 'Issue type', value: 'ValueError'}}
-    stats={[
-      {type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'},
-      {
-        type: 'text',
-        label: 'Users',
-        value: 22,
-        labelTooltip: 'Distinct users affected in the last 90 days.',
-      },
-      {
-        type: 'link',
-        label: 'Dead Clicks',
-        value: 4,
-        to: '/issues/1/replays/',
-        labelTooltip: 'A click that did not change anything on the page.',
-      },
-    ]}
+    stats={{
+      label: 'Replay stats',
+      items: [
+        {type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'},
+        {
+          type: 'text',
+          label: 'Users',
+          value: 22,
+          labelTooltip: 'Distinct users affected in the last 90 days.',
+        },
+        {
+          type: 'link',
+          label: 'Dead Clicks',
+          value: 4,
+          to: '/issues/1/replays/',
+          labelTooltip: 'A click that did not change anything on the page.',
+        },
+      ],
+    }}
   />
 </Storybook.Demo>
 
 ```jsx
-stats={[
+stats={{label: 'Replay stats', items: [
   {type: 'link', label: t('Events'), value: count, to: eventsTab},
   {
     type: 'text',
@@ -292,7 +313,7 @@ stats={[
     to: replaysTab,
     labelTooltip: t('A click that did not change anything on the page.'),
   },
-]}
+]}}
 ```
 
 ## People
@@ -340,7 +361,9 @@ Two values rather than one joined string is the point: a browser is its name _an
 
 The row's `label` names it. Without one a screen reader meets a run of unrelated strings with nothing saying they belong together, or to what.
 
-Each item's own label is in the DOM whether or not it is on screen, so a screen reader reads "Browser Chrome 144.0.0" rather than a bare version string. `showLabel` renders it as text too — the graphic beside the values usually carries it, and a header has no room to name every property, so it is hidden by default. Showing it is a question of visibility only; what is read does not change.
+Each item is a description list entry — a `dt` holding the label, a `dd` holding the values — so the two are tied together rather than merely adjacent. `showLabel` renders the term as text as well; the graphic beside the values usually carries it, and a header has no room to name every property, so it is hidden by default. Showing it is a question of visibility only; what is read does not change.
+
+Stats are a plain list instead. A stat that links is already named "4 Dead Clicks" as one phrase, and splitting it across a term and a definition would undo that.
 
 ### Variants
 

@@ -46,9 +46,16 @@ export interface EntityHeaderProps {
   /**
    * Measurements about the entity. Right-aligned beside the title when there is
    * room; below the metadata row when there is not.
-   * `null` entries are dropped so callers can inline conditionals.
+   *
+   * The row is a list, and `label` names it — "Replay stats". Without it a
+   * screen reader meets a run of numbers with nothing saying what they count.
+   *
+   * `null` items are dropped so callers can inline conditionals.
    */
-  stats?: Array<EntityHeaderStatProps | null>;
+  stats?: {
+    items: Array<EntityHeaderStatProps | null>;
+    label: string;
+  };
   /**
    * A single line of secondary text under the title, e.g. an error message.
    *
@@ -109,7 +116,7 @@ export function EntityHeader({
 }: EntityHeaderProps) {
   const hasParentQueryContainer = useHasContainerQuery();
 
-  const visibleStats = (stats ?? [])
+  const visibleStats = (stats?.items ?? [])
     .map((stat, index) => ({stat, index}))
     .filter((entry): entry is {index: number; stat: EntityHeaderStatProps} =>
       Boolean(entry.stat)
@@ -183,11 +190,13 @@ export function EntityHeader({
 
             {hasMetadata && metadata && (
               <Flex
+                as="dl"
                 role="list"
                 aria-label={metadata.label}
                 align="center"
                 gap="xl"
                 wrap="wrap"
+                margin="0"
                 minWidth={0}
                 minHeight={METADATA_TEXT_HEIGHT}
               >
@@ -218,13 +227,32 @@ export function EntityHeader({
             {hasPeople && people && (
               <EntityHeaderPeople {...people} isLoading={peopleLoading} />
             )}
-            {visibleStats.map(({stat, index}) => (
-              <EntityHeaderStat
-                key={index}
-                {...stat}
-                isLoading={isLoading || stat.isLoading}
-              />
-            ))}
+            {/*
+              People are not a stat, so they sit beside the list rather than
+              inside it — a list whose items are not all stats cannot be named
+              for them.
+            */}
+            {hasStats && stats && (
+              <Flex
+                as="ul"
+                role="list"
+                aria-label={stats.label}
+                align="center"
+                gap="xl"
+                wrap="wrap"
+                margin="0"
+                padding="0"
+                minHeight={ROW_HEIGHT}
+              >
+                {visibleStats.map(({stat, index}) => (
+                  <EntityHeaderStat
+                    key={index}
+                    {...stat}
+                    isLoading={isLoading || stat.isLoading}
+                  />
+                ))}
+              </Flex>
+            )}
           </Flex>
         )}
       </Grid>

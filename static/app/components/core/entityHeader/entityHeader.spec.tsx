@@ -166,15 +166,18 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {
-              type: 'link',
-              label: 'Dead Clicks',
-              value: 4,
-              to: '/replays/1/?t_main=breadcrumbs',
-            },
-            {type: 'text', label: 'Rage Clicks', value: 0},
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                type: 'link',
+                label: 'Dead Clicks',
+                value: 4,
+                to: '/replays/1/?t_main=breadcrumbs',
+              },
+              {type: 'text', label: 'Rage Clicks', value: 0},
+            ],
+          }}
         />
       );
 
@@ -199,10 +202,13 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {type: 'link', label: 'Dead Clicks', value: 4, to: '/replays/1/'},
-            {type: 'text', label: 'Rage Clicks', value: 0},
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {type: 'link', label: 'Dead Clicks', value: 4, to: '/replays/1/'},
+              {type: 'text', label: 'Rage Clicks', value: 0},
+            ],
+          }}
         />
       );
 
@@ -226,14 +232,17 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {
-              type: 'text',
-              label: 'Dead Clicks',
-              value: 4,
-              labelTooltip: 'A click that did not change anything.',
-            },
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                type: 'text',
+                label: 'Dead Clicks',
+                value: 4,
+                labelTooltip: 'A click that did not change anything.',
+              },
+            ],
+          }}
         />
       );
 
@@ -247,26 +256,29 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {
-              type: 'text',
-              label: 'Errors',
-              value: 3,
-              valueTooltip: (
-                <Fragment>
-                  <Tooltip.Header>Errors</Tooltip.Header>
-                  <Tooltip.Grid columns="1fr max-content">
-                    <Tooltip.Row trailingItems={<span>2</span>}>
-                      <span>javascript</span>
-                    </Tooltip.Row>
-                    <Tooltip.Row trailingItems={<span>1</span>}>
-                      <span>python</span>
-                    </Tooltip.Row>
-                  </Tooltip.Grid>
-                </Fragment>
-              ),
-            },
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                type: 'text',
+                label: 'Errors',
+                value: 3,
+                valueTooltip: (
+                  <Fragment>
+                    <Tooltip.Header>Errors</Tooltip.Header>
+                    <Tooltip.Grid columns="1fr max-content">
+                      <Tooltip.Row trailingItems={<span>2</span>}>
+                        <span>javascript</span>
+                      </Tooltip.Row>
+                      <Tooltip.Row trailingItems={<span>1</span>}>
+                        <span>python</span>
+                      </Tooltip.Row>
+                    </Tooltip.Grid>
+                  </Fragment>
+                ),
+              },
+            ],
+          }}
         />
       );
 
@@ -282,15 +294,18 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {
-              type: 'link',
-              label: 'Errors',
-              value: 3,
-              to: '/replays/1/?t_main=errors',
-              labelTooltip: 'Errors recorded during this replay',
-            },
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                type: 'link',
+                label: 'Errors',
+                value: 3,
+                to: '/replays/1/?t_main=errors',
+                labelTooltip: 'Errors recorded during this replay',
+              },
+            ],
+          }}
         />
       );
 
@@ -309,9 +324,12 @@ describe('EntityHeader', () => {
       const {rerender} = render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {type: 'link', label: 'Errors', value: 0, to: '/replays/1/?t_main=errors'},
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {type: 'link', label: 'Errors', value: 0, to: '/replays/1/?t_main=errors'},
+            ],
+          }}
         />
       );
       const before = screen.getByRole('link', {name: '0 Errors'});
@@ -319,9 +337,12 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
+            ],
+          }}
         />
       );
 
@@ -335,7 +356,10 @@ describe('EntityHeader', () => {
       const {rerender} = render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[{type: 'text', label: 'Errors', value: 3}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 3}],
+          }}
         />
       );
       expect(hasLabelFontSize(screen.getByText('Errors'))).toBe(true);
@@ -343,9 +367,12 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
+            ],
+          }}
         />
       );
 
@@ -357,12 +384,15 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            isVideoReplay
-              ? null
-              : {type: 'text' as const, label: 'Dead Clicks', value: 4},
-            {type: 'text', label: 'Errors', value: 2},
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              isVideoReplay
+                ? null
+                : {type: 'text' as const, label: 'Dead Clicks', value: 4},
+              {type: 'text', label: 'Errors', value: 2},
+            ],
+          }}
           metadata={{
             label: 'Replay properties',
             items: [
@@ -386,10 +416,13 @@ describe('EntityHeader', () => {
         return (
           <EntityHeader
             title={{label: 'Replay user', value: 'Session'}}
-            stats={[
-              showViewers ? {type: 'text' as const, label: 'Seen By', value: 2} : null,
-              {type: 'text', label: 'Note', value: 7},
-            ]}
+            stats={{
+              label: 'Replay stats',
+              items: [
+                showViewers ? {type: 'text' as const, label: 'Seen By', value: 2} : null,
+                {type: 'text', label: 'Note', value: 7},
+              ],
+            }}
           />
         );
       }
@@ -414,7 +447,10 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
           people={{users: [], isLoading: true, label: 'Viewed by'}}
-          stats={[{type: 'text', label: 'Errors', value: 2}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 2}],
+          }}
         />
       );
 
@@ -424,7 +460,10 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
           people={{users, label: 'Viewed by'}}
-          stats={[{type: 'text', label: 'Errors', value: 2}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 2}],
+          }}
         />
       );
 
@@ -476,6 +515,49 @@ describe('EntityHeader', () => {
       expect(stack).toBeInTheDocument();
     });
 
+    it('names both rows, so neither is a run of loose strings', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          metadata={{
+            label: 'Replay properties',
+            items: [{label: 'Browser', values: ['Chrome', '144']}],
+          }}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 2}],
+          }}
+        />
+      );
+
+      expect(screen.getByRole('list', {name: 'Replay properties'})).toBeInTheDocument();
+      expect(screen.getByRole('list', {name: 'Replay stats'})).toBeInTheDocument();
+
+      // A metadata item is a term and its definition, rather than a label that
+      // merely happens to precede a value.
+      expect(screen.getByRole('term')).toHaveTextContent('Browser');
+      expect(screen.getByRole('definition')).toHaveTextContent('Chrome 144');
+    });
+
+    it('keeps people beside the stats list rather than inside it', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          people={{users: [UserFixture({id: '1', name: 'Alice'})], label: 'Viewed by'}}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 2}],
+          }}
+        />
+      );
+
+      // A list named for its stats cannot hold something that is not one.
+      const statsList = screen.getByRole('list', {name: 'Replay stats'});
+      expect(within(statsList).getAllByRole('listitem')).toHaveLength(1);
+      expect(within(statsList).queryByText(/Viewed by/)).not.toBeInTheDocument();
+      expect(screen.getByText('Viewed by: Alice')).toBeInTheDocument();
+    });
+
     it('renders people with no stats, and stats with no people', () => {
       const users = [UserFixture({id: '1', name: 'Alice', email: 'alice@example.com'})];
 
@@ -491,7 +573,10 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[{type: 'text', label: 'Errors', value: 2}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 2}],
+          }}
         />
       );
 
@@ -504,7 +589,10 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
           people={{users: [], label: 'Viewed by'}}
-          stats={[{type: 'text', label: 'Errors', value: 2}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 2}],
+          }}
         />
       );
 
@@ -585,15 +673,18 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {
-              type: 'link',
-              label: 'Errors',
-              value: 3,
-              to: '/replays/1/?t_main=errors',
-              labelTooltip: 'From 2 projects',
-            },
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                type: 'link',
+                label: 'Errors',
+                value: 3,
+                to: '/replays/1/?t_main=errors',
+                labelTooltip: 'From 2 projects',
+              },
+            ],
+          }}
         />
       );
 
@@ -632,10 +723,13 @@ describe('EntityHeader', () => {
           isLoading
           title={{label: 'Replay user', value: 'Session'}}
           subtitle={{content: 'A subtitle'}}
-          stats={[
-            {type: 'text', label: 'Dead Clicks', value: 4},
-            {type: 'text', label: 'Errors', value: 2},
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {type: 'text', label: 'Dead Clicks', value: 4},
+              {type: 'text', label: 'Errors', value: 2},
+            ],
+          }}
           metadata={{
             label: 'Replay properties',
             items: [
@@ -677,7 +771,10 @@ describe('EntityHeader', () => {
             hasData ? {label: 'Browser', values: ['Chrome']} : null,
           ],
         },
-        stats: [{type: 'text', label: 'Errors', value: 0}],
+        stats: {
+          label: 'Replay stats',
+          items: [{type: 'text', label: 'Errors', value: 0}],
+        },
       });
 
       const {rerender} = render(<EntityHeader {...build(false)} />);
@@ -701,7 +798,10 @@ describe('EntityHeader', () => {
           isLoading
           title={{label: 'Replay user', value: 'Session'}}
           people={{users: [], label: 'Viewed by'}}
-          stats={[{type: 'text', label: 'Errors', value: 2}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 2}],
+          }}
         />
       );
 
@@ -711,7 +811,10 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
           people={{users: [], isLoading: true, label: 'Viewed by'}}
-          stats={[{type: 'text', label: 'Errors', value: 2}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 2}],
+          }}
         />
       );
 
@@ -723,10 +826,13 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {type: 'text', label: 'Dead Clicks', value: 4},
-            {type: 'text', label: 'Errors', value: 0, isLoading: true},
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {type: 'text', label: 'Dead Clicks', value: 4},
+              {type: 'text', label: 'Errors', value: 0, isLoading: true},
+            ],
+          }}
         />
       );
 
@@ -741,7 +847,10 @@ describe('EntityHeader', () => {
       const {rerender} = render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[{type: 'text', label: 'Errors', value: 0, isLoading: true}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 0, isLoading: true}],
+          }}
         />
       );
 
@@ -750,7 +859,10 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[{type: 'text', label: 'Errors', value: 2}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 2}],
+          }}
         />
       );
 
@@ -763,9 +875,12 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[
-            {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
-          ]}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
+            ],
+          }}
           metadata={{
             label: 'Replay properties',
             items: [
@@ -794,7 +909,10 @@ describe('EntityHeader', () => {
         <EntityHeader
           isLoading
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[{type: 'text', label: 'Seen By', value: 0}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Seen By', value: 0}],
+          }}
           metadata={{
             label: 'Replay properties',
             items: [{label: 'Browser', values: ['Chrome 144']}],
@@ -814,7 +932,10 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
           people={{users: [UserFixture({id: '1', name: 'Alice'})], label: 'Viewed by'}}
-          stats={[{type: 'text', label: 'Seen By', value: 2}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Seen By', value: 2}],
+          }}
           metadata={{
             label: 'Replay properties',
             items: [{label: 'Browser', values: ['Chrome 144']}],
@@ -832,7 +953,10 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
-          stats={[{type: 'text', label: 'Errors', value: 2}]}
+          stats={{
+            label: 'Replay stats',
+            items: [{type: 'text', label: 'Errors', value: 2}],
+          }}
           metadata={{
             label: 'Replay properties',
             items: [{label: 'Browser', values: ['Chrome 144']}],
