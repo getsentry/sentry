@@ -487,8 +487,6 @@ describe('EntityHeader', () => {
       );
 
       expect(screen.getByText('Viewed by: Alice')).toBeInTheDocument();
-      // Nobody to separate from, so the row opens with the avatars.
-      expect(document.querySelectorAll('[aria-hidden="true"] hr')).toHaveLength(0);
 
       rerender(
         <EntityHeader
@@ -511,7 +509,7 @@ describe('EntityHeader', () => {
       );
 
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      expect(screen.getByRole('banner').querySelectorAll('hr')).toHaveLength(0);
+      expect(screen.queryByText(/Viewed by/)).not.toBeInTheDocument();
     });
 
     it('names each metadata item, and the row they belong to', () => {

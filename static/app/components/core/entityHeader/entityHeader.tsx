@@ -1,14 +1,4 @@
-import {Fragment} from 'react';
-
-import {
-  Container,
-  type ContainerProps,
-  Flex,
-  Grid,
-  Stack,
-  useHasContainerQuery,
-} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
+import {Container, Flex, Grid, Stack, useHasContainerQuery} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -97,23 +87,6 @@ function getGridTemplate({
         }
       : {zero: `"title" "stats"`, lg: `"title stats"`},
   } as const;
-}
-
-function Divider({height}: {height: ContainerProps['height']}) {
-  return (
-    // Purely visual: the dividers carry no grouping the layout does not already
-    // convey, and a header has five of them. Read out, they are noise between
-    // every number and every fact.
-    <Container
-      height={height}
-      display="flex"
-      flexShrink={0}
-      alignSelf="center"
-      aria-hidden
-    >
-      <Separator orientation="vertical" />
-    </Container>
-  );
 }
 
 /**
@@ -213,21 +186,22 @@ export function EntityHeader({
                 role="list"
                 aria-label={metadata.label}
                 align="center"
-                gap="md"
+                gap="xl"
                 wrap="wrap"
                 minWidth={0}
                 minHeight={METADATA_TEXT_HEIGHT}
               >
-                {metadataSlots.map(({item, index}, position) => (
-                  <Fragment key={index}>
-                    {position > 0 && <Divider height="12px" />}
-                    {item ? (
-                      <EntityHeaderMetadataItem {...item} isLoading={isLoading} />
-                    ) : (
-                      <EntityHeaderMetadataItemSkeleton />
-                    )}
-                  </Fragment>
-                ))}
+                {metadataSlots.map(({item, index}) =>
+                  item ? (
+                    <EntityHeaderMetadataItem
+                      key={index}
+                      {...item}
+                      isLoading={isLoading}
+                    />
+                  ) : (
+                    <EntityHeaderMetadataItemSkeleton key={index} />
+                  )
+                )}
               </Flex>
             )}
           </Stack>
@@ -236,7 +210,7 @@ export function EntityHeader({
           <Flex
             area="stats"
             align="center"
-            gap="md"
+            gap="xl"
             wrap="wrap"
             minHeight={ROW_HEIGHT}
             justifySelf={{zero: 'start', lg: 'end'}}
@@ -244,11 +218,12 @@ export function EntityHeader({
             {hasPeople && people && (
               <EntityHeaderPeople {...people} isLoading={peopleLoading} />
             )}
-            {visibleStats.map(({stat, index}, position) => (
-              <Fragment key={index}>
-                {(position > 0 || hasPeople) && <Divider height="8px" />}
-                <EntityHeaderStat {...stat} isLoading={isLoading || stat.isLoading} />
-              </Fragment>
+            {visibleStats.map(({stat, index}) => (
+              <EntityHeaderStat
+                key={index}
+                {...stat}
+                isLoading={isLoading || stat.isLoading}
+              />
             ))}
           </Flex>
         )}

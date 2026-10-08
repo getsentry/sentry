@@ -33,8 +33,10 @@ export interface EntityHeaderMetadataItemProps {
    */
   values: [React.ReactNode, ...React.ReactNode[]];
   /**
-   * Decorative 16x16 graphic rendered before the values: an icon from
-   * `sentry/icons`, or a `PlatformIcon` for a browser, OS or SDK.
+   * Decorative graphic rendered before the values: an icon from
+   * `sentry/icons`, or a `PlatformIcon` for a browser, OS or SDK. Drawn in a
+   * fixed 16x16 box, which is held through loading so the row does not
+   * narrow as items resolve.
    */
   leadingGraphic?:
     | React.ReactElement<SVGIconProps>
@@ -108,9 +110,16 @@ export function EntityHeaderMetadataItem({
       minWidth={0}
       minHeight={METADATA_TEXT_HEIGHT}
     >
-      {leadingGraphic && !isLoading && (
-        <Flex align="center" flexShrink={0} aria-hidden>
-          {leadingGraphic}
+      {leadingGraphic && (
+        <Flex
+          width="16px"
+          height="16px"
+          align="center"
+          justify="center"
+          flexShrink={0}
+          aria-hidden
+        >
+          {isLoading ? null : leadingGraphic}
         </Flex>
       )}
       {isLoading ? (
