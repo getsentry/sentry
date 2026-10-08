@@ -156,6 +156,7 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
     <SimpleTable
       aria-label={t('Check-in timeline')}
       columns={COLUMNS}
+      density="comfortable"
       header={
         <TimelineHeaderRow>
           <SimpleTable.HeaderCell>{t('Check-Ins')}</SimpleTable.HeaderCell>
