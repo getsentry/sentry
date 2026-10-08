@@ -19,6 +19,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.detector import Detector
@@ -216,6 +217,37 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
 
 
 class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
+    @mock.patch.object(SubscriptionProcessor, "process_update")
+    def test_process_preserves_viewer_and_adds_project(
+        self, mock_process_update: mock.MagicMock
+    ) -> None:
+        observed_contexts: list[ViewerContext | None] = []
+
+        def record_context(*_args: object, **_kwargs: object) -> bool:
+            observed_contexts.append(get_viewer_context())
+            return True
+
+        mock_process_update.side_effect = record_context
+        message = self.build_subscription_update(self.sub, value=100)
+        viewer = ViewerContext(
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            actor_type=ActorType.USER,
+        )
+
+        with viewer_context_scope(viewer):
+            assert SubscriptionProcessor.process(self.sub, message)
+
+        assert observed_contexts == [
+            ViewerContext(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                user_id=self.user.id,
+                actor_type=ActorType.USER,
+            )
+        ]
+        assert get_viewer_context() is None
+
     def test_uses_stored_last_update_value(self) -> None:
         stored_timestamp = timezone.now() + timedelta(minutes=10)
         store_detector_last_update(self.metric_detector, self.project.id, stored_timestamp)

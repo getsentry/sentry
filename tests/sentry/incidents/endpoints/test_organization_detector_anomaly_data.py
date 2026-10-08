@@ -4,6 +4,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.snuba.subscriptions import create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
+from sentry.viewer_context import ActorType, get_viewer_context
 from sentry.workflow_engine.models import DataSourceDetector
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -99,7 +100,17 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
                 "yhat_upper": 20.5,
             }
         ]
-        mock_get_data.return_value = mock_data
+
+        def get_data(*_args, **_kwargs):
+            context = get_viewer_context()
+            assert context is not None
+            assert context.organization_id == self.organization.id
+            assert context.project_id == self.project.id
+            assert context.user_id == self.user.id
+            assert context.actor_type == ActorType.USER
+            return mock_data
+
+        mock_get_data.side_effect = get_data
 
         response = self.get_success_response(
             self.organization.slug,
