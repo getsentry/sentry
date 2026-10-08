@@ -49,6 +49,7 @@ import type {UsageSeries} from 'sentry/views/organizationStats/types';
 type ConditionType =
   | 'error_message'
   | 'error_type'
+  | 'geo_country_code'
   | 'metric_name'
   | 'log_message'
   | 'release'
@@ -143,6 +144,14 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     placeholder: t('Glob pattern, e.g. TypeError'),
     description: t(
       'Matches the exception type of an error, e.g. TypeError. Use an Error Message condition to match the message.'
+    ),
+  },
+  geo_country_code: {
+    dataType: 'error',
+    label: t('Country'),
+    placeholder: t('Glob pattern, e.g. US'),
+    description: t(
+      "Matches the two-letter country code of the user's location, e.g. US. Sentry derives it from the sender IP address unless the SDK sets one."
     ),
   },
   metric_name: {
