@@ -7,7 +7,7 @@ import {AsyncQueuer} from '@tanstack/react-pacer';
  * the CORS preflights for those requests get limited too. Keep this well under
  * the concurrent limit, because other requests on the page share that budget.
  */
-export const MAX_CONCURRENT_SEGMENT_REQUESTS = 10;
+const MAX_CONCURRENT_SEGMENT_REQUESTS = 10;
 
 interface SegmentRequest {
   reject: (reason: unknown) => void;
