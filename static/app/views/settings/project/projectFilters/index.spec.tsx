@@ -1160,6 +1160,33 @@ describe('ProjectFilters', () => {
     ).toBeInTheDocument();
   });
 
+  it('warns in the modal when an error condition targets an obfuscated platform', async () => {
+    const warningLink = {name: 'Learn how to match the incoming error.'};
+    renderInboundFilters([], ProjectFixture({...project, platform: 'javascript-react'}));
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    expect(screen.getByRole('link', warningLink)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Error Type'}));
+    expect(screen.getByRole('link', warningLink)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
+    expect(screen.queryByRole('link', warningLink)).not.toBeInTheDocument();
+  });
+
+  it('does not warn in the modal on a backend platform', async () => {
+    renderInboundFilters([], ProjectFixture({...project, platform: 'python'}));
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Learn how to match the incoming error.'})
+    ).not.toBeInTheDocument();
+  });
+
   it('creates a catch-all filter that applies to every data type', async () => {
     renderInboundFilters([]);
     expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
