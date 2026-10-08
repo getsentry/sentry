@@ -224,8 +224,9 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      // CompactSelect filter — not the series `_if` search bar also on screen.
-      const searchInput = screen.getByPlaceholderText('Search…');
+      const listbox = await screen.findByRole('listbox');
+      const menu = listbox.closest<HTMLElement>('[data-overlay]')!;
+      const searchInput = within(menu).getByRole('textbox');
       await userEvent.type(searchInput, 'searched');
       await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
 
@@ -708,8 +709,9 @@ describe('LogsToolbar', () => {
       screen.queryByRole('option', {name: 'custom.searched_tag'})
     ).not.toBeInTheDocument();
 
-    // CompactSelect filter — not the series `_if` search bar also on screen.
-    const searchInput = screen.getByPlaceholderText('Search…');
+    const listbox = await screen.findByRole('listbox');
+    const menu = listbox.closest<HTMLElement>('[data-overlay]')!;
+    const searchInput = within(menu).getByRole('textbox');
     await userEvent.type(searchInput, 'searched');
 
     await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
