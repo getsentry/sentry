@@ -240,9 +240,11 @@ class SiloCacheBackedListCallable(Generic[_R]):
         if isinstance(value, str):
             try:
                 metrics.incr("hybridcloud.caching.list.cached", tags={"base_key": self.base_key})
-                # An undecryptable value is returned as-is and fails JSON parsing below,
-                # and a value that decrypts to invalid UTF-8 raises InvalidEncodingError.
-                # Both are treated as a cache miss.
+                # If encryption is enabled, and the retrieved value has the
+                # markers of an encrypted value, attempt to decrypt it.
+                #
+                # If decryption fails, this will delete the old cache entry and
+                # force a refetch.
                 if self.encrypt_contents and CacheEncrypter.is_encrypted(value):
                     value = CacheEncrypter.decrypt(value)
                 return [self.type_(**item) for item in json.loads(value)]
@@ -339,9 +341,13 @@ class SiloCacheManyBackedCallable(Generic[_R]):
             version: int | None = None
             cache_value = cache_values[cache_key]
             if isinstance(cache_value, str):
-                # Found data in cache. An undecryptable value is returned as-is and
-                # fails JSON parsing, and a value that decrypts to invalid UTF-8 raises
-                # InvalidEncodingError. Both are treated as a cache miss.
+                # Found data in cache.
+                #
+                # If encryption is enabled, attempts to decrypt the value if
+                # it has the encryption prefix markers.
+                #
+                # On failure, this discards the cache entry and treats this as a
+                # full cache miss.
                 try:
                     if self.encrypt_contents and CacheEncrypter.is_encrypted(cache_value):
                         cache_value = CacheEncrypter.decrypt(cache_value)
