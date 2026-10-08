@@ -569,6 +569,7 @@ def top_events_timeseries(
                     if zerofill_results
                     else []
                 ),
+                "meta": top_events_builder.process_results(result)["meta"],
             },
             snuba_params.start_date,
             snuba_params.end_date,
