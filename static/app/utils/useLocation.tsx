@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useLocation as useReactRouter6Location} from 'react-router-dom';
+import {useLocation as useReactRouter6Location} from 'react-router';
 import type {Location, Query} from 'history';
 
 import {location6ToLocation3} from './reactRouter6Compat/location';

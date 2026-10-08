@@ -22,6 +22,7 @@ from sentry.types.activity import ActivityType
 class CreateTargetSpecificDeployDataTest(TestCase):
     data = DeployReleaseData(
         source=NotificationSource.DEPLOY_RELEASE,
+        organization_id=1,
         date="2025-01-01T00:00:00+00:00",
         author_count=1,
         commit_count=1,

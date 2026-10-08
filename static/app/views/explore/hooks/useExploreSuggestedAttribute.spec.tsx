@@ -39,11 +39,11 @@ describe('useExploreSuggestedAttribute', () => {
   });
 
   it('resolves a tag array root with [*] to its backend membership key', () => {
-    expect(setup()('csv_headers[*]')).toBe('tags[csv_headers,array][*]');
+    expect(setup()('csv_headers[*]')).toBe('tags[csv_headers[*],array]');
   });
 
   it('resolves the explicit tag membership form to itself', () => {
-    expect(setup()('tags[csv_headers,array][*]')).toBe('tags[csv_headers,array][*]');
+    expect(setup()('tags[csv_headers[*],array]')).toBe('tags[csv_headers[*],array]');
   });
 
   it('resolves a non-tag array membership form to itself', () => {

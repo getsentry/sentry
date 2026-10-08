@@ -11,8 +11,6 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.rules.conditions.event_frequency import ComparisonType
-from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils import json
@@ -24,6 +22,8 @@ from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers im
     EventUniqueUserFrequencyQueryHandler,
     QueryResult,
 )
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import ComparisonType
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,

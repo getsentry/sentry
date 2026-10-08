@@ -1,5 +1,6 @@
 import {z} from 'zod';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -36,7 +37,13 @@ function ProjectLogsSettings() {
   return (
     <FormSearch route="/settings/:orgId/projects/:projectId/logs/">
       <SentryDocumentTitle title={t('Logs')} projectSlug={project.slug}>
-        <SettingsPageHeader title={t('Logs')} />
+        <SettingsPageHeader
+          title={{
+            type: 'page-title',
+            label: t('Logs'),
+            trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+          }}
+        />
         <ProjectPermissionAlert project={project} />
 
         <FieldGroup title={t('Attributes')}>

@@ -1,5 +1,4 @@
 import type {Location, Query} from 'history';
-import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -7,11 +6,11 @@ import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
 
 import type {SelectValue} from '@sentry/scraps/select';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -40,9 +39,13 @@ import {
   type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-import type {WebVital} from 'sentry/utils/fields';
 import {AggregationKey} from 'sentry/utils/fields';
-import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {
+  decodeList,
+  decodeScalar,
+  decodeSorts,
+  encodeSort,
+} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {WidgetType} from 'sentry/views/dashboards/types';
@@ -120,10 +123,9 @@ const isSortEqualToField = (
 const fieldToSort = (
   field: Field,
   tableMeta: MetaType | undefined,
-  kind?: 'desc' | 'asc',
-  useFunctionFormat?: boolean
+  kind?: 'desc' | 'asc'
 ): Sort | undefined => {
-  const sortKey = getSortKeyFromField(field, tableMeta, useFunctionFormat);
+  const sortKey = getSortKeyFromField(field, tableMeta);
 
   if (!sortKey) {
     return void 0;
@@ -135,21 +137,13 @@ const fieldToSort = (
   };
 };
 
-function getSortKeyFromField(
-  field: Field,
-  tableMeta?: MetaType,
-  useFunctionFormat?: boolean
-): string | null {
-  const fieldString = useFunctionFormat ? field.field : getAggregateAlias(field.field);
+function getSortKeyFromField(field: Field, tableMeta?: MetaType): string | null {
+  const fieldString = getAggregateAlias(field.field);
   return getSortField(fieldString, tableMeta);
 }
 
-export function isFieldSortable(
-  field: Field,
-  tableMeta?: MetaType,
-  useFunctionFormat?: boolean
-): boolean {
-  return !!getSortKeyFromField(field, tableMeta, useFunctionFormat);
+export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
+  return !!getSortKeyFromField(field, tableMeta);
 }
 
 const decodeFields = (location: Location): Field[] => {
@@ -173,20 +167,6 @@ const decodeFields = (location: Location): Field[] => {
   });
 
   return parsed;
-};
-
-export const encodeSort = (sort: Sort): string => {
-  switch (sort.kind) {
-    case 'desc': {
-      return `-${sort.field}`;
-    }
-    case 'asc': {
-      return String(sort.field);
-    }
-    default: {
-      throw new Error('Unexpected sort type');
-    }
-  }
 };
 
 const encodeSorts = (sorts: readonly Sort[]): string[] => sorts.map(encodeSort);
@@ -751,7 +731,7 @@ export class EventView {
 
     stringifyQueryParams(output);
 
-    return cloneDeep(output as any);
+    return structuredClone(output as any);
   }
 
   isValid(): boolean {
@@ -1108,37 +1088,6 @@ export class EventView {
     }));
   }
 
-  // returns query input for the search
-  getQuery(inputQuery?: string | string[] | null): string {
-    const queryParts: string[] = [];
-
-    if (this.query) {
-      if (this.additionalConditions) {
-        queryParts.push(this.getQueryWithAdditionalConditions());
-      } else {
-        queryParts.push(this.query);
-      }
-    }
-
-    if (inputQuery) {
-      // there may be duplicate query in the query string
-      // e.g. query=hello&query=world
-      if (Array.isArray(inputQuery)) {
-        inputQuery.forEach(query => {
-          if (typeof query === 'string' && !queryParts.includes(query)) {
-            queryParts.push(query);
-          }
-        });
-      }
-
-      if (typeof inputQuery === 'string' && !queryParts.includes(inputQuery)) {
-        queryParts.push(inputQuery);
-      }
-    }
-
-    return queryParts.join(' ');
-  }
-
   getFacetsAPIPayload(
     location: Location
   ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
@@ -1279,7 +1228,7 @@ export class EventView {
         path: '/results/',
         organization,
       }),
-      query: cloneDeep(output),
+      query: structuredClone(output),
     };
   }
 
@@ -1289,10 +1238,9 @@ export class EventView {
       breakdown?: SpanOperationBreakdownFilter;
       showTransactions?: EventsDisplayFilterName;
       view?: DomainView;
-      webVital?: WebVital;
     }
   ): {pathname: string; query: Query} {
-    const {showTransactions, breakdown, webVital} = options;
+    const {showTransactions, breakdown} = options;
     const output = {
       sort: encodeSorts(this.sorts),
       project: [...this.project],
@@ -1300,7 +1248,6 @@ export class EventView {
       transaction: this.name,
       showTransactions,
       breakdown,
-      webVital,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -1313,7 +1260,7 @@ export class EventView {
 
     stringifyQueryParams(output);
 
-    const query = cloneDeep(output as any);
+    const query = structuredClone(output as any);
     return {
       pathname: normalizeUrl(
         `${getTransactionSummaryBaseUrl(organization, options.view)}/events/`
@@ -1329,12 +1276,7 @@ export class EventView {
     return this.sorts.find(sort => isSortEqualToField(sort, field, tableMeta));
   }
 
-  sortOnField(
-    field: Field,
-    tableMeta: MetaType,
-    kind?: 'desc' | 'asc',
-    useFunctionFormat?: boolean
-  ): EventView {
+  sortOnField(field: Field, tableMeta: MetaType, kind?: 'desc' | 'asc'): EventView {
     // check if field can be sorted
     if (!isFieldSortable(field, tableMeta)) {
       return this;
@@ -1351,14 +1293,8 @@ export class EventView {
 
       const sorts = [...newEventView.sorts];
       sorts[needleIndex] = kind
-        ? setSortOrder(
-            {...currentSort, ...(useFunctionFormat ? {field: field.field} : {})},
-            kind
-          )
-        : reverseSort({
-            ...currentSort,
-            ...(useFunctionFormat ? {field: field.field} : {}),
-          });
+        ? setSortOrder(currentSort, kind)
+        : reverseSort(currentSort);
 
       newEventView.sorts = sorts;
 
@@ -1369,7 +1305,7 @@ export class EventView {
     const newEventView = this.clone();
 
     // invariant: this is not falsey, since sortKey exists
-    const sort = fieldToSort(field, tableMeta, kind, useFunctionFormat)!;
+    const sort = fieldToSort(field, tableMeta, kind)!;
 
     newEventView.sorts = [sort];
 

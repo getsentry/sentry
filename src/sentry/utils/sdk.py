@@ -35,7 +35,9 @@ from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import json, warnings
+from sentry.utils.attributes import get_attribute_value
 from sentry.utils.db import DjangoAtomicIntegration
+from sentry.utils.env import in_test_environment
 from sentry.utils.rust import RustInfoIntegration
 from sentry.utils.tracing import get_current_span, start_span
 from sentry.viewer_context import set_viewer_context_organization
@@ -294,7 +296,10 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
     if attributes is not None:
         # This is a coming from arroyo and creating high cardinality of attribute names like
         # `Partition(topic=Topic(name='...'), index=...)`
-        if attributes.get("sentry.message.template") == "New partitions assigned: %r":
+        if (
+            get_attribute_value(attributes, "sentry.message.template", "string")
+            == "New partitions assigned: %r"
+        ):
             return None
 
     try:
@@ -413,10 +418,11 @@ def configure_sdk():
         )
         return
 
-    warnings.warn(
-        "Sentry SDK not initialized: no DSN available. "
-        "Set `backend_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
-    )
+    if not in_test_environment():
+        warnings.warn(
+            "Sentry SDK not initialized: no DSN available. "
+            "Set `backend_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
+        )
 
 
 def check_tag_for_scope_bleed(
