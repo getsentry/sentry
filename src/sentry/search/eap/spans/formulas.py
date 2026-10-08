@@ -1096,6 +1096,7 @@ SPAN_FORMULA_DEFINITIONS = {
             )
         ],
         formula_resolver=trace_status_rate,
+        valid_arithmetic=True,
     ),
     "failure_rate": FormulaDefinition(
         default_search_type="percentage",
@@ -1117,18 +1118,21 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=failure_rate_if,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "ttfd_contribution_rate": FormulaDefinition(
         default_search_type="percentage",
         arguments=[],
         formula_resolver=ttfd_contribution_rate,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "ttid_contribution_rate": FormulaDefinition(
         default_search_type="percentage",
         arguments=[],
         formula_resolver=ttid_contribution_rate,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "opportunity_score": FormulaDefinition(
         default_search_type="percentage",
@@ -1212,6 +1216,7 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=division_if,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "division": FormulaDefinition(
         default_search_type="percentage",
@@ -1306,6 +1311,7 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=failure_count_if,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "eps": FormulaDefinition(
         default_search_type="rate",
