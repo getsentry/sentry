@@ -39,6 +39,7 @@ type ResultsChartProps = {
   api: Client;
   confirmedQuery: boolean;
   eventView: EventView;
+  interval: string;
   location: Location;
   organization: Organization;
   yAxisValue: string[];
@@ -78,6 +79,7 @@ const ResultsChart = memo(
   function ResultsChart({
     api,
     eventView,
+    interval,
     location,
     organization,
     confirmedQuery,
@@ -112,7 +114,6 @@ const ResultsChart = memo(
           : customPerformanceMetricFieldType === 'size' && isTopEvents
             ? AreaChart
             : undefined;
-    const interval = getResultsChartInterval(eventView, location);
 
     const seriesLabels = yAxisValue.map(stripEquationPrefix);
     const disableableSeries = [
@@ -257,6 +258,7 @@ export const ResultsChartContainer = memo(
           <ResultsChart
             api={api}
             eventView={eventView}
+            interval={chartInterval}
             location={location}
             organization={organization}
             confirmedQuery={confirmedQuery}
