@@ -6,7 +6,6 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from sentry_sdk import traces
-from taskbroker_client.registry import TaskNamespace
 
 from sentry.ingest.event_payload import load_event_payload, prepare_submit
 from sentry.killswitches import killswitch_matches_context
@@ -265,16 +264,18 @@ SymbolicationTaskFn = Any  # FIXME: it would be nice if `instrumented_task` woul
 TASK_FNS: dict[SymbolicatorTaskKind, str] = {}
 
 
-def make_task_fn(
-    name: str,
-    queue: str,
-    task_kind: SymbolicatorTaskKind,
-    namespace: TaskNamespace = symbolication_tasks,
-) -> SymbolicationTaskFn:
+def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> SymbolicationTaskFn:
     """
     Returns a parameterized version of `_do_symbolicate_event` that runs as a task,
     and can be spawned as one.
     """
+
+    # JS and JVM get dedicated namespaces so an outage of one Symbolicator pool
+    # does not back up the others.
+    namespace = {
+        SymbolicatorFunction.js: symbolication_js_tasks,
+        SymbolicatorFunction.jvm: symbolication_jvm_tasks,
+    }.get(task_kind.function, symbolication_tasks)
 
     @instrumented_task(
         name=name,
@@ -357,13 +358,11 @@ symbolicate_js_event = make_task_fn(
     name="sentry.tasks.symbolicate_js_event",
     queue="events.symbolicate_js_event",
     task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.js, is_reprocessing=False),
-    namespace=symbolication_js_tasks,
 )
 symbolicate_jvm_event = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event",
     queue="events.symbolicate_jvm_event",
     task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.jvm, is_reprocessing=False),
-    namespace=symbolication_jvm_tasks,
 )
 
 
