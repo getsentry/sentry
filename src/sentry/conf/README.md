@@ -15,8 +15,9 @@ Single organization mode reuses the GitHub integration app's client ID and
 secret for login when the app option keys are absent and the corresponding
 app settings are nonempty. When either modern app credential is configured,
 login settings never backfill the empty partner into the integration credentials.
-Explicit app option keys retain their existing
-login remap precedence. Plain bootstrap also copies the paired direct app
+Original app option keys take precedence over direct app settings and
+synthetic login backfills. GitHub login option keys retain their login remap
+precedence. Plain bootstrap also copies the paired direct app
 credentials into the login settings, even without the application initializer's
 legacy app remap. This changes unused GitHub login settings in API gateway
 bootstrap; API gateway has no GitHub login consumers.
@@ -103,3 +104,10 @@ also deployment settings; they no longer change while the process is running.
 | `github-login.api-domain` | `GITHUB_API_DOMAIN` |
 | `github-login.extended-permissions` | `GITHUB_EXTENDED_PERMISSIONS` |
 | `github-login.organization` | `GITHUB_ORGANIZATION` |
+
+Deployment settings writers temporarily record explicit assignments in
+`SENTRY_CONFIGURED_OPTION_SETTINGS`, an immutable internal set of setting names.
+This protects intentionally empty identifiers and secrets and false reply
+settings from deprecated aliases. Existing self-hosted legacy aliases keep their
+precedence unless their target is explicitly tracked. The provenance is removed
+when the deprecated writers and SaaS credential remaps are retired.

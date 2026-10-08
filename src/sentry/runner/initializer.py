@@ -233,15 +233,17 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
 
     # First move options from settings into options
     for k, v in options_mapper.items():
-        # Any configured integration app credential owns the pair, including
-        # an empty partner. Login values must not fill either absent app key.
+        # A modern credential pair owns empty partners. Explicit app option
+        # keys also take precedence over synthesized legacy login values.
         if (
             settings.SENTRY_SINGLE_ORGANIZATION
             and k in ("github-app.client-id", "github-app.client-secret")
             and k not in options
-            and k not in settings.SENTRY_OPTIONS
             and (
-                settings.SENTRY_GITHUB_APP_CLIENT_ID
+                k in settings.SENTRY_OPTIONS
+                or {"SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"}
+                & settings.SENTRY_CONFIGURED_OPTION_SETTINGS
+                or settings.SENTRY_GITHUB_APP_CLIENT_ID
                 or settings.SENTRY_GITHUB_APP_CLIENT_SECRET
             )
         ):
@@ -651,6 +653,12 @@ def bind_cache_to_option_store() -> None:
 def apply_legacy_settings(settings: Any) -> None:
     from sentry import options
 
+    effective_mapper = (
+        {**options_mapper, **migrated_options_mapper, **self_hosted_options_mapper}
+        if settings.SENTRY_SELF_HOSTED
+        else {**options_mapper, **migrated_options_mapper}
+    )
+
     for old, new in (
         ("SENTRY_ADMIN_EMAIL", "system.admin-email"),
         ("SENTRY_ENABLE_EMAIL_REPLIES", "mail.enable-replies"),
@@ -666,6 +674,9 @@ def apply_legacy_settings(settings: Any) -> None:
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
+            # An explicit deployment assignment owns even an empty secret.
+            if effective_mapper.get(new) in settings.SENTRY_CONFIGURED_OPTION_SETTINGS:
+                continue
             warnings.warn(DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
             value = getattr(settings, old)
             settings.SENTRY_OPTIONS[new] = value
@@ -673,11 +684,6 @@ def apply_legacy_settings(settings: Any) -> None:
             # Django settings, so writing SENTRY_OPTIONS here is too late for any key
             # whose consumers read the setting (e.g. filestore.* -> SENTRY_FILE_STORAGE_*).
             # Re-promote the legacy value so the override actually takes effect.
-            effective_mapper = (
-                {**options_mapper, **migrated_options_mapper, **self_hosted_options_mapper}
-                if settings.SENTRY_SELF_HOSTED
-                else {**options_mapper, **migrated_options_mapper}
-            )
             if new in effective_mapper:
                 setattr(settings, effective_mapper[new], value)
 
