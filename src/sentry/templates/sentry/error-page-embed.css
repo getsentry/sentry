@@ -1,6 +1,3 @@
-{% load i18n %}
-
-<style>
 /** Wrapper class name is provided by JS **/
 .sentry-error-embed-wrapper {
   display: block;
@@ -35,7 +32,9 @@
   overflow: auto;
   border-radius: 3px;
   color: #546076;
-  box-shadow: 0 0 0 1px rgba(0,0,0, .3), 0 10px 40px rgba(0,0,0, .3);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 10px 40px rgba(0, 0, 0, 0.3);
 }
 .sentry-error-embed .clearfix {
   *zoom: 1;
@@ -43,7 +42,7 @@
 .sentry-error-embed .clearfix:before,
 .sentry-error-embed .clearfix:after {
   display: table;
-  content: "";
+  content: '';
   line-height: 0;
 }
 .sentry-error-embed .clearfix:after {
@@ -57,7 +56,7 @@
 }
 .sentry-error-embed * {
   -webkit-font-smoothing: antialiased;
-  font-family: "Helvetica Neue", helvetica, sans-serif;
+  font-family: 'Helvetica Neue', helvetica, sans-serif;
 }
 .sentry-error-embed p {
   margin: 0 0 20px;
@@ -66,8 +65,9 @@
   margin: 0;
 }
 .sentry-error-embed a:active,
-.sentry-error-embed a:focus, a:hover {
-  color: #1E263C;
+.sentry-error-embed a:focus,
+a:hover {
+  color: #1e263c;
   text-decoration: underline;
 }
 .sentry-error-embed h2 {
@@ -80,10 +80,10 @@
   text-align: center;
   margin-bottom: 20px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #E8EBF1;
+  border-bottom: 1px solid #e8ebf1;
 }
 .sentry-error-embed header p {
-  color: #94A0B3;
+  color: #94a0b3;
   font-size: 16px;
 }
 .sentry-error-embed .form-field {
@@ -102,33 +102,33 @@
 .sentry-error-embed .form-field textarea {
   font-size: 15px;
   padding: 8px 12px;
-  border: 1px solid #BAC2D3;
-  background: #FBFBFC;
+  border: 1px solid #bac2d3;
+  background: #fbfbfc;
   border-radius: 0;
   box-shadow: none;
   width: 100%;
   height: auto;
-  -webkit-box-sizing : border-box;‌​
-  -moz-box-sizing : border-box;
-  box-sizing : border-box;
-  box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.06);
   border-radius: 2px;
 }
 
 .sentry-error-embed .form-field input::-webkit-input-placeholder,
 .sentry-error-embed .form-field textarea::-webkit-input-placeholder {
-  color: #94A0B3;
+  color: #94a0b3;
 }
 
 .sentry-error-embed .form-field input:focus,
 .sentry-error-embed .form-field textarea:focus {
   outline: none;
-  border-color: #94A0B3;
+  border-color: #94a0b3;
 }
 
 .sentry-error-embed .form-errors input,
 .sentry-error-embed .form-errors textarea {
-  border-color: #E35141;
+  border-color: #e35141;
 }
 .sentry-error-embed .form-field textarea {
   height: 100px;
@@ -136,15 +136,15 @@
 .sentry-error-embed .form-submit .btn {
   border: none;
   color: #fff;
-  background: #25A6F7;
+  background: #25a6f7;
   padding: 10px 15px;
   margin-right: 15px;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   float: left;
-  border: 1px solid #1D87CE;
-  box-shadow: 0 1px 1px rgba(0,0,0, .12);
+  border: 1px solid #1d87ce;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
 }
 .sentry-error-embed .form-submit .close {
   padding: 10px 0;
@@ -155,7 +155,7 @@
   border: none;
 }
 .sentry-error-embed .form-submit .btn:hover {
-  background: #1D87CE;
+  background: #1d87ce;
 }
 .sentry-error-embed .form-submit .powered-by {
   padding: 10px 0;
@@ -166,16 +166,16 @@
 .sentry-error-embed .form-submit .powered-by a {
   text-indent: -9999em;
   display: inline-block;
-  color: #1E263C;
+  color: #1e263c;
   width: 81px;
   height: 18px;
-	background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiPjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiIHZpZXdCb3g9IjAgMCAyMzkuOCA1MyIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMjM5LjggNTMiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxnPjxnPjxwYXRoIGZpbGw9IiMxRDI2M0MiIGQ9Ik01NCw1M2gtNS42di00LjVINTRjMC41LDAsMC43LTAuMywwLjgtMC41YzAuMS0wLjIsMC4yLTAuNSwwLTFMMzAuNiw1Yy0wLjItMC40LTAuNi0wLjUtMC44LTAuNVMyOS4yLDQuNiwyOC45LDVsLTQuOSw4LjRDMzUuOSwyMi4xLDQzLDM1LjksNDMsNTAuN1Y1M0gyNy43di0yLjNjMC05LjMtNC4zLTE4LTExLjUtMjMuN2wtMy4xLDUuNGM1LjEsNC42LDguMSwxMS4zLDguMSwxOC4zVjUzSDUuNWMtMiwwLTMuOC0xLTQuOC0yLjdzLTEtMy44LDAtNS41bDMuNS02LjFsMy45LDIuM0w0LjcsNDdjLTAuMiwwLjQtMC4xLDAuOCwwLDFjMC4xLDAuMiwwLjMsMC41LDAuOCwwLjVoMTEuMUMxNiw0MywxMy4yLDM4LDguOCwzNC43bC0xLjYtMS4ybDcuNS0xMy4xbDIsMS4zYzkuMSw2LDE0LjcsMTUuOSwxNS40LDI2LjZoNi4yQzM3LjYsMzUuMywzMC44LDIzLjMsMTkuOCwxNkwxOCwxNC44bDctMTIuMUMyNiwxLDI3LjgsMCwyOS44LDBzMy44LDEsNC44LDIuN2wyNC4zLDQyYzEsMS43LDEsMy44LDAsNS41UzU2LDUzLDU0LDUzeiIvPjwvZz48cGF0aCBmaWxsPSIjMUQyNjNDIiBkPSJNODQuMiw0Mi4zYy00LjcsMC05LTEuNi0xMi42LTQuNmwyLjctMy4yYzMuMywyLjcsNi40LDMuOSwxMCwzLjljMy43LDAsNi4xLTEuOCw2LjEtNC41YzAtMi44LTEuOC00LjEtNy42LTUuNGMtNi42LTEuNi0xMC4yLTMuNS0xMC4yLTljMC01LjIsNC4zLTguOCwxMC4zLTguOGM0LjIsMCw3LjYsMS4xLDEwLjgsMy42bC0yLjQsMy40Yy0yLjktMi4xLTUuNy0zLjEtOC41LTMuMWMtMy40LDAtNS43LDEuNy01LjcsNC4zYzAsMi45LDEuNyw0LDcuOSw1LjVjNy4xLDEuNyw5LjgsNC4yLDkuOCw4LjlDOTUsMzguOCw5MC44LDQyLjMsODQuMiw0Mi4zeiIvPjxwb2x5Z29uIGZpbGw9IiMxRDI2M0MiIHBvaW50cz0iOTkuMyw0MS45IDk5LjMsMTEuMSAxMjEuOSwxMS4xIDEyMS45LDE1LjEgMTAzLjksMTUuMSAxMDMuOSwyNC40IDExOS44LDI0LjQgMTE5LjgsMjguMyAxMDMuOSwyOC4zIDEwMy45LDM3LjkgMTIyLjEsMzcuOSAxMjIuMSw0MS45ICIvPjxwb2x5Z29uIGZpbGw9IiMxRDI2M0MiIHBvaW50cz0iMTQ5LjIsNDEuOSAxMzEsMTguMyAxMzEsNDEuOSAxMjYuNSw0MS45IDEyNi41LDExLjEgMTMwLjksMTEuMSAxNDguNywzNC4xIDE0OC43LDExLjEgMTUzLjIsMTEuMSAxNTMuMiw0MS45ICIvPjxwb2x5Z29uIGZpbGw9IiMxRDI2M0MiIHBvaW50cz0iMTY2LjksNDEuOSAxNjYuOSwxNS4zIDE1Ni44LDE1LjMgMTU2LjgsMTEuMSAxODEuNiwxMS4xIDE4MS42LDE1LjMgMTcxLjUsMTUuMyAxNzEuNSw0MS45ICIvPjxwYXRoIGZpbGw9IiMxRDI2M0MiIGQ9Ik0yMDUuNCw0MS45bC03LjgtMTEuMWgtNy44djExLjFoLTQuNlYxMS4xaDEzLjdjNywwLDExLjMsMy43LDExLjMsOS42YzAsNC42LTIuNiw3LjktNy4yLDkuMmwtMC43LDAuMmw4LjQsMTEuOEgyMDUuNHogTTE4OS44LDI2LjloOC43YzQuMywwLDctMi4zLDctNS45YzAtMy43LTIuNi01LjgtNy4xLTUuOGgtOC42VjI2Ljl6Ii8+PHBvbHlnb24gZmlsbD0iIzFEMjYzQyIgcG9pbnRzPSIyMjMsNDEuOSAyMjMsMjkuNyAyMTAuOCwxMS4xIDIxNi4yLDExLjEgMjI1LjQsMjUuNiAyMzQuNiwxMS4xIDIzOS44LDExLjEgMjI3LjYsMjkuNiAyMjcuNiw0MS45ICIvPjwvZz48L3N2Zz4=);
+  background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiPjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiIHZpZXdCb3g9IjAgMCAyMzkuOCA1MyIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMjM5LjggNTMiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxnPjxnPjxwYXRoIGZpbGw9IiMxRDI2M0MiIGQ9Ik01NCw1M2gtNS42di00LjVINTRjMC41LDAsMC43LTAuMywwLjgtMC41YzAuMS0wLjIsMC4yLTAuNSwwLTFMMzAuNiw1Yy0wLjItMC40LTAuNi0wLjUtMC44LTAuNVMyOS4yLDQuNiwyOC45LDVsLTQuOSw4LjRDMzUuOSwyMi4xLDQzLDM1LjksNDMsNTAuN1Y1M0gyNy43di0yLjNjMC05LjMtNC4zLTE4LTExLjUtMjMuN2wtMy4xLDUuNGM1LjEsNC42LDguMSwxMS4zLDguMSwxOC4zVjUzSDUuNWMtMiwwLTMuOC0xLTQuOC0yLjdzLTEtMy44LDAtNS41bDMuNS02LjFsMy45LDIuM0w0LjcsNDdjLTAuMiwwLjQtMC4xLDAuOCwwLDFjMC4xLDAuMiwwLjMsMC41LDAuOCwwLjVoMTEuMUMxNiw0MywxMy4yLDM4LDguOCwzNC43bC0xLjYtMS4ybDcuNS0xMy4xbDIsMS4zYzkuMSw2LDE0LjcsMTUuOSwxNS40LDI2LjZoNi4yQzM3LjYsMzUuMywzMC44LDIzLjMsMTkuOCwxNkwxOCwxNC44bDctMTIuMUMyNiwxLDI3LjgsMCwyOS44LDBzMy44LDEsNC44LDIuN2wyNC4zLDQyYzEsMS43LDEsMy44LDAsNS41UzU2LDUzLDU0LDUzeiIvPjwvZz48cGF0aCBmaWxsPSIjMUQyNjNDIiBkPSJNODQuMiw0Mi4zYy00LjcsMC05LTEuNi0xMi42LTQuNmwyLjctMy4yYzMuMywyLjcsNi40LDMuOSwxMCwzLjljMy43LDAsNi4xLTEuOCw2LjEtNC41YzAtMi44LTEuOC00LjEtNy42LTUuNGMtNi42LTEuNi0xMC4yLTMuNS0xMC4yLTljMC01LjIsNC4zLTguOCwxMC4zLTguOGM0LjIsMCw3LjYsMS4xLDEwLjgsMy42bC0yLjQsMy40Yy0yLjktMi4xLTUuNy0zLjEtOC41LTMuMWMtMy40LDAtNS43LDEuNy01LjcsNC4zYzAsMi45LDEuNyw0LDcuOSw1LjVjNy4xLDEuNyw5LjgsNC4yLDkuOCw4LjlDOTUsMzguOCw5MC44LDQyLjMsODQuMiw0Mi4zeiIvPjxwb2x5Z29uIGZpbGw9IiMxRDI2M0MiIHBvaW50cz0iOTkuMyw0MS45IDk5LjMsMTEuMSAxMjEuOSwxMS4xIDEyMS45LDE1LjEgMTAzLjksMTUuMSAxMDMuOSwyNC40IDExOS44LDI0LjQgMTE5LjgsMjguMyAxMDMuOSwyOC4zIDEwMy45LDM3LjkgMTIyLjEsMzcuOSAxMjIuMSw0MS45ICIvPjxwb2x5Z29uIGZpbGw9IiMxRDI2M0MiIHBvaW50cz0iMTQ5LjIsNDEuOSAxMzEsMTguMyAxMzEsNDEuOSAxMjYuNSw0MS45IDEyNi41LDExLjEgMTMwLjksMTEuMSAxNDguNywzNC4xIDE0OC43LDExLjEgMTUzLjIsMTEuMSAxNTMuMiw0MS45ICIvPjxwb2x5Z29uIGZpbGw9IiMxRDI2M0MiIHBvaW50cz0iMTY2LjksNDEuOSAxNjYuOSwxNS4zIDE1Ni44LDE1LjMgMTU2LjgsMTEuMSAxODEuNiwxMS4xIDE4MS42LDE1LjMgMTcxLjUsMTUuMyAxNzEuNSw0MS45ICIvPjxwYXRoIGZpbGw9IiMxRDI2M0MiIGQ9Ik0yMDUuNCw0MS45bC03LjgtMTEuMWgtNy44djExLjFoLTQuNlYxMS4xaDEzLjdjNywwLDExLjMsMy43LDExLjMsOS42YzAsNC42LTIuNiw3LjktNy4yLDkuMmwtMC43LDAuMmw4LjQsMTEuOEgyMDUuNHogTTE4OS44LDI2LjloOC43YzQuMywwLDctMi4zLDctNS45YzAtMy43LTIuNi01LjgtNy4xLTUuOGgtOC42VjI2Ljl6Ii8+PHBvbHlnb24gZmlsbD0iIzFEMjYzQyIgcG9pbnRzPSIyMjMsNDEuOSAyMjMsMjkuNyAyMTAuOCwxMS4xIDIxNi4yLDExLjEgMjI1LjQsMjUuNiAyMzQuNiwxMS4xIDIzOS44LDExLjEgMjI3LjYsMjkuNiAyMjcuNiw0MS45ICIvPjwvZz48L3N2Zz4=);
   background-repeat: no-repeat;
   background-size: 81px 18px;
   margin-left: 4px;
   position: relative;
   top: 2px;
-  opacity: .75;
+  opacity: 0.75;
 }
 .sentry-error-embed .message-success,
 .sentry-error-embed .message-error {
@@ -184,15 +184,15 @@
   padding: 30px;
   margin: -21px 0 20px;
   border-radius: 3px;
-  box-shadow: 0 1px 1px rgba(0,0,0, .06);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
 }
 .sentry-error-embed .message-success {
-  border: 1px solid #C9DEC2;
-  background: #FCFEFB;
+  border: 1px solid #c9dec2;
+  background: #fcfefb;
 }
 .sentry-error-embed .message-error {
-  border: 1px solid #ECCFCC;
-  background: #FEFDFD;
+  border: 1px solid #eccfcc;
+  background: #fefdfd;
 }
 .sentry-error-embed .error-wrapper p:last-child {
   margin-bottom: 0;
@@ -258,37 +258,3 @@
     font-size: 10px;
   }
 }
-</style>
-
-<div class="sentry-error-embed clearfix" role="dialog" aria-modal="true" aria-labelledby="sentry-error-embed-heading">
-  <header>
-    <h2 id="sentry-error-embed-heading">{{ title }}</h2>
-    <p>{{ subtitle }} <span>{{ subtitle2 }}</span></p>
-  </header>
-  <form>
-    <div class="error-wrapper"></div>
-    <div class="form-content">
-      <div class="form-field clearfix">
-        <label>{{ name_label }}</label>
-        {{ form.name }}
-      </div>
-      <div class="form-field clearfix">
-        <label>{{ email_label }}</label>
-        {{ form.email }}
-      </div>
-      <div class="form-field clearfix">
-        <label>{{ comments_label }}</label>
-        {{ form.comments }}
-      </div>
-    </div>
-    <div class="form-submit clearfix">
-      <button type="submit" class="btn">{{ submit_label }}</button>
-      <button class="close">{{ close_label }}</button>
-      {% if show_branding %}
-      <p class="powered-by">
-        {% trans "Crash reports powered by <a href=\"https://sentry.io\">Sentry</a>" %}
-      </p>
-      {% endif %}
-    </div>
-  </form>
-</div>
