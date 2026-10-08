@@ -1,12 +1,14 @@
+import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {type InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 
-import {BaseField, type BaseFieldProps} from './baseField';
+import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 
 export interface InputFieldProps
   extends
     BaseFieldProps<HTMLInputElement>,
     Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'type'> {
+  field: AnyFieldApi;
   onChange: (value: string) => void;
   value: string;
   disabled?: boolean | string;
@@ -38,6 +40,7 @@ export interface InputFieldProps
 }
 
 export function InputField({
+  field,
   onChange,
   disabled,
   leadingItems,
@@ -46,7 +49,7 @@ export function InputField({
   ...props
 }: InputFieldProps) {
   return (
-    <BaseField disabled={disabled} ref={ref}>
+    <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {(fieldProps, {indicator}) => (
         <InputGroup style={{flex: 1}}>
           {leadingItems && (
@@ -63,6 +66,6 @@ export function InputField({
           </InputGroup.TrailingItems>
         </InputGroup>
       )}
-    </BaseField>
+    </BaseFieldImpl>
   );
 }

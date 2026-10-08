@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -75,36 +75,35 @@ function ChangeGoogleDomainModal({
 
   const defaultValues: z.input<typeof schema> = {newDomain: '', append: null};
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <Heading as="h2">Change Google Domain</Heading>
       </Header>
       <Body>
         <Stack gap="lg">
-          <form.AppField name="newDomain">
+          <form.Field name="newDomain">
             {field => (
               <field.Layout.Stack label="New Domain" required>
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="new domain"
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="append">
+          </form.Field>
+          <form.Field name="append">
             {field => (
               <field.Layout.Stack label="Change Option" required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={CHANGE_CHOICES}
                   placeholder="Choose an option"
@@ -112,7 +111,7 @@ function ChangeGoogleDomainModal({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           {dryRunInfo.length > 0 && (
             <Stack gap="sm">
               <Text bold>Test Run</Text>
@@ -133,7 +132,7 @@ function ChangeGoogleDomainModal({
           </form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

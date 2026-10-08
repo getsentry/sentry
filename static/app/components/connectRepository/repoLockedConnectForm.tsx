@@ -3,7 +3,7 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
@@ -30,6 +30,8 @@ import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtua
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useConnectRepoForm} from './useConnectRepoForm';
 
 export type RepoLockedConnectFormProps = ModalRenderProps & {
   externalId: string | null;
@@ -73,13 +75,43 @@ export function RepoLockedConnectForm({
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const invalidateQueries = useInvalidateRepoQueries(organization.slug);
 
-  const form = useScrapsForm({
-    ...defaultFormOptions,
+  const saveMutation = useMutation({
+    mutationFn: saveProjectRepoConnection,
+    onSuccess: async () => {
+      await invalidateQueries(selectedProject ?? undefined);
+      closeModal();
+    },
+  });
+
+  const form = useConnectRepoForm({
     defaultValues: {
       repository: null as string | null,
       pathMappings: [] as PathMappingValue[],
     },
-    onSubmit: () => {},
+    onSubmit: value => {
+      if (
+        !selectedProject ||
+        !integrationId ||
+        value.pathMappings.length === 0 ||
+        isProjectsError ||
+        codeMappingsPending ||
+        codeMappingsError ||
+        isBranchPending ||
+        hasExactDuplicate(value.pathMappings, existingMappings)
+      ) {
+        return;
+      }
+      return saveMutation
+        .mutateAsync({
+          orgSlug: organization.slug,
+          project: selectedProject,
+          repositoryId,
+          integrationId,
+          pathMappings: value.pathMappings,
+        })
+        .then(() => {})
+        .catch(() => {});
+    },
   });
 
   const {
@@ -131,14 +163,6 @@ export function RepoLockedConnectForm({
     m => m.repoId !== repositoryId
   );
 
-  const saveMutation = useMutation({
-    mutationFn: saveProjectRepoConnection,
-    onSuccess: async () => {
-      await invalidateQueries(selectedProject ?? undefined);
-      closeModal();
-    },
-  });
-
   const title = tct('Connect a project to [repo]', {repo: repoName});
 
   const intro = (
@@ -178,7 +202,7 @@ export function RepoLockedConnectForm({
   );
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.Subscribe selector={state => state.values.pathMappings}>
         {pathMappings => {
           const canSave =
@@ -259,22 +283,13 @@ export function RepoLockedConnectForm({
               pathsSection={pathsSection}
               canSave={canSave}
               isSaving={saveMutation.isPending}
-              onSave={() => {
-                if (!selectedProject || !integrationId) {
-                  return;
-                }
-                saveMutation.mutate({
-                  orgSlug: organization.slug,
-                  project: selectedProject,
-                  repositoryId,
-                  integrationId,
-                  pathMappings,
-                });
-              }}
+              saveButton={
+                <form.SubmitButton disabled={!canSave}>{t('Save')}</form.SubmitButton>
+              }
             />
           );
         }}
       </form.Subscribe>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

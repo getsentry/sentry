@@ -4,7 +4,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -110,12 +110,11 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       superuserAccessCategory: '',
       superuserReason: '',
     },
-    validators: {onDynamic: accessSchema},
+    validators: defaultFormValidators(accessSchema),
     onSubmit: async ({value}) => {
       const access = accessSchema.parse(value);
 
@@ -222,17 +221,14 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
   }
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="xl">
         {errorAlert}
         {state.step === 'access' ? (
           <Fragment>
-            <form.AppField name="superuserAccessCategory">
+            <form.Field name="superuserAccessCategory">
               {field => (
-                <field.Radio.Group
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                >
+                <field.Radio.Group value={field.value} onChange={field.handleChange}>
                   <field.Layout.Stack
                     label={t('Categories of Superuser Access')}
                     required
@@ -244,20 +240,20 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
                   </field.Layout.Stack>
                 </field.Radio.Group>
               )}
-            </form.AppField>
-            <form.AppField name="superuserReason">
+            </form.Field>
+            <form.Field name="superuserReason">
               {field => (
                 <field.Layout.Stack label={t('Reason for Access')} required>
                   <field.Input
                     maxLength={128}
                     minLength={4}
                     placeholder={t('e.g. disabling SSO enforcement')}
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
           </Fragment>
         ) : (
           <WebAuthn
@@ -296,7 +292,7 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
           </Button>
         </Flex>
       )}
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

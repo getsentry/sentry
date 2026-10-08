@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -53,10 +53,9 @@ export default function AddCredentialsModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {clientId: '', clientSecret: ''},
-    validators: {onDynamic: schema},
-    onSubmit: ({value, formApi}) =>
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) =>
       mutation
         .mutateAsync(value)
         .then(() => {
@@ -71,40 +70,40 @@ export default function AddCredentialsModal({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(
-              formApi,
-              requestErrorToFieldErrors(error, formApi.state.values)
-            );
-          } else {
-            addErrorMessage(t('Unable to add credentials'));
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
+            }
           }
+          addErrorMessage(t('Unable to add credentials'));
+          return;
         }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>{t('Add New Credentials')}</Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="clientId">
+          <form.Field name="clientId">
             {field => (
               <field.Layout.Stack label={t('Client ID')} required>
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="clientSecret">
+          </form.Field>
+          <form.Field name="clientSecret">
             {field => (
               <field.Layout.Stack label={t('Client Secret')} required>
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
         <form.SubmitButton>{t('Add Credentials')}</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

@@ -701,6 +701,7 @@ describe('projectPerformance', () => {
     const performanceIssuesPutMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'PUT',
+      asyncDelay: 0,
     });
 
     render(<ProjectPerformance />, {organization: org, initialRouterConfig});

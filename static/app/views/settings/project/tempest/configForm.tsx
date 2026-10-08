@@ -37,7 +37,7 @@ export function ConfigForm({organization, project}: ConfigFormProps) {
             label={t('Attach Screenshots')}
             hintText={t('Attach screenshots to issues.')}
           >
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>

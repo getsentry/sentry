@@ -43,7 +43,7 @@ describe('AutoSaveForm', () => {
           >
             {field => (
               <field.Layout.Row label="Username">
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
           </AutoSaveForm>
@@ -77,7 +77,7 @@ describe('AutoSaveForm', () => {
           >
             {field => (
               <field.Layout.Row label="Name">
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
           </AutoSaveForm>
@@ -112,7 +112,7 @@ describe('AutoSaveForm', () => {
         >
           {field => (
             <field.Layout.Row label="Name">
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </field.Layout.Row>
           )}
         </AutoSaveForm>
@@ -144,7 +144,7 @@ describe('AutoSaveForm', () => {
           >
             {field => (
               <field.Layout.Row label="Name">
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
                 <field.Meta />
               </field.Layout.Row>
             )}

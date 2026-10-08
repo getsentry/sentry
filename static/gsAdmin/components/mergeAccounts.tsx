@@ -1,7 +1,7 @@
 import {queryOptions, useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -63,9 +63,8 @@ export function MergeAccountsModal(props: Props) {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: mergeSchema},
+    validators: defaultFormValidators(mergeSchema),
     onSubmit: ({value}) =>
       doMergeMutation.mutateAsync(value.users.map(user => user.id)).catch(() => {}),
   });
@@ -79,20 +78,20 @@ export function MergeAccountsModal(props: Props) {
   }
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h4">Merge Accounts</Heading>
       </Header>
       <Body>
         <Stack gap="sm">
           <Text as="p">Selected accounts will be merged into this user.</Text>
-          <form.AppField name="users">
+          <form.Field name="users">
             {field => (
               <field.Layout.Stack label="Accounts to merge">
                 <field.SelectAsync
                   multiple
                   isSearchable
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   queryOptions={search => {
                     const options = apiOptions.as<User[]>()('/users/', {
@@ -102,7 +101,7 @@ export function MergeAccountsModal(props: Props) {
                     return queryOptions({
                       ...options,
                       select: ({json}) =>
-                        [...mergeAccounts.users, ...json, ...field.state.value]
+                        [...mergeAccounts.users, ...json, ...field.value]
                           .filter(
                             (user, index, users) =>
                               users.findIndex(candidate => candidate.id === user.id) ===
@@ -118,7 +117,7 @@ export function MergeAccountsModal(props: Props) {
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -126,6 +125,6 @@ export function MergeAccountsModal(props: Props) {
           <form.SubmitButton>Merge Account(s)</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

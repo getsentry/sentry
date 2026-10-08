@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -105,18 +105,17 @@ function NightShiftForm() {
     dryRun: false,
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: formSchema},
-    onSubmit: ({value}) =>
+    validators: defaultFormValidators(formSchema),
+    onSubmit: ({value, formApi}) =>
       mutation
         .mutateAsync(formSchema.parse(value))
-        .then(() => form.setFieldValue('organizationId', null))
+        .then(() => formApi.setFieldValue('organizationId', null))
         .catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Container background="secondary" border="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
           <Heading as="h3">Trigger Night Shift Run</Heading>
@@ -134,54 +133,54 @@ function NightShiftForm() {
               repeatedly.
             </Alert>
           </Alert.Container>
-          <form.AppField name="locality">
+          <form.Field name="locality">
             {field => (
               <field.Layout.Stack label="Region" required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={regionOptions(localities)}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="organizationId">
+          </form.Field>
+          <form.Field name="organizationId">
             {field => (
               <field.Layout.Stack label="Organization ID (blank = all orgs)">
                 <field.Number
                   min={1}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="Leave blank to trigger every eligible org"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="maxCandidates">
+          </form.Field>
+          <form.Field name="maxCandidates">
             {field => (
               <field.Layout.Stack label="Max candidates (optional)">
                 <field.Number
                   min={1}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="Leave blank to use default"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="dryRun">
+          </form.Field>
+          <form.Field name="dryRun">
             {field => (
               <field.Layout.Stack label="Dry run (triage only, no autofix triggered)">
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           <Flex justify="end">
             <form.SubmitButton>Trigger Night Shift</form.SubmitButton>
           </Flex>
         </Stack>
       </Container>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -211,18 +210,17 @@ function AutofixRetryForm() {
     runIds: '',
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: retryFormSchema},
-    onSubmit: ({value}) =>
+    validators: defaultFormValidators(retryFormSchema),
+    onSubmit: ({value, formApi}) =>
       mutation
         .mutateAsync(retryFormSchema.parse(value))
-        .then(() => form.setFieldValue('runIds', ''))
+        .then(() => formApi.setFieldValue('runIds', ''))
         .catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Container background="secondary" border="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
           <Heading as="h3">Retry Autofix Runs</Heading>
@@ -231,29 +229,29 @@ function AutofixRetryForm() {
             aren't in an error state, have a pull request or coding agent, or failed
             during PR iteration are skipped.
           </Text>
-          <form.AppField name="locality">
+          <form.Field name="locality">
             {field => (
               <field.Layout.Stack label="Region" required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={regionOptions(localities)}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="runIds">
+          </form.Field>
+          <form.Field name="runIds">
             {field => (
               <field.Layout.Stack label="Run IDs" required>
                 <field.TextArea
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   rows={3}
                   placeholder={`Up to ${MAX_RETRY_RUN_IDS}, separated by commas or whitespace`}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           <Flex justify="end">
             <form.SubmitButton>Retry Runs</form.SubmitButton>
           </Flex>
@@ -282,7 +280,7 @@ function AutofixRetryForm() {
           )}
         </Stack>
       </Container>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

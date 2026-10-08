@@ -77,7 +77,7 @@ export function SeerAutomationDefault() {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!canWrite}
               />
@@ -99,7 +99,7 @@ export function SeerAutomationDefault() {
                 )}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={SEER_THRESHOLD_OPTIONS}
                   disabled={!canWrite}
@@ -122,7 +122,7 @@ export function SeerAutomationDefault() {
               hintText={t('Allow members to use Seer to write code.')}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!canWrite}
               />

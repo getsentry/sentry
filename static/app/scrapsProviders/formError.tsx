@@ -13,9 +13,9 @@ const sentryFormErrorMapper = <TFormData,>(
     return undefined;
   }
 
-  const requestFieldErrors = requestErrorToFieldErrors(error, formValues);
-  if (Object.keys(requestFieldErrors).length > 0) {
-    return {fieldErrors: requestFieldErrors};
+  const fieldErrors = requestErrorToFieldErrors(error, formValues);
+  if (fieldErrors) {
+    return {fieldErrors};
   }
 
   return {message: getRequestErrorUserMessage(error, fallbackMessage)};

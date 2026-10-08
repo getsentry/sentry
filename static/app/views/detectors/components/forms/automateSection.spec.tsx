@@ -17,7 +17,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 import {Form} from 'sentry/components/forms/form';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -138,18 +138,17 @@ describe('AutomateSection', () => {
 
   function FormHarness({initial}: {initial: string[]}) {
     const form = useScrapsForm({
-      ...defaultFormOptions,
       defaultValues: {workflowIds: initial},
       onSubmit: () => {},
     });
     return (
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <AutomateSection
           form={form}
           fields={{workflowIds: 'workflowIds'}}
           project={project}
         />
-      </form.AppForm>
+      </ScrapsForm>
     );
   }
 

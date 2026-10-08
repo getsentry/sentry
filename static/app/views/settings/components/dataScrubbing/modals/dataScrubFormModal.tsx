@@ -8,10 +8,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {
-  defaultFormOptions,
-  setFieldErrors,
+  defaultFormValidators,
+  ScrapsForm,
   useScrapsForm,
-  useStore,
+  useSelector,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -119,18 +119,16 @@ export function DataScrubFormModal({
     sourceGroupData.sourceSuggestions
   );
   const [eventIdError, setEventIdError] = useState<string | undefined>(undefined);
+  const [attributeError, setAttributeError] = useState<string | undefined>(undefined);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       ...initialValues,
       dataset: initialDataset,
       eventId: sourceGroupData.eventId,
     },
-    validators: {
-      onDynamic: dataScrubSchema,
-    },
-    onSubmit: async ({value}) => {
+    validators: defaultFormValidators(dataScrubSchema),
+    onSubmit: async ({value, createValidationError}) => {
       // Strip dataset and eventId from values before creating rules
       const {dataset: _dataset, eventId: _eventId, ...ruleValues} = value;
       const newRules = onGetNewRules(ruleValues);
@@ -144,36 +142,41 @@ export function DataScrubFormModal({
         switch (parsedError.type) {
           case ErrorType.INVALID_SELECTOR:
           case ErrorType.ATTRIBUTE_INVALID:
-            setFieldErrors(form, {
-              source: {message: parsedError.message},
+            return createValidationError({
+              fields: {
+                source: {message: parsedError.message},
+              },
             });
-            break;
           case ErrorType.REGEX_PARSE:
-            setFieldErrors(form, {
-              pattern: {message: parsedError.message},
+            return createValidationError({
+              fields: {
+                pattern: {message: parsedError.message},
+              },
             });
-            break;
           default:
             addErrorMessage(parsedError.message);
+            return;
         }
       }
+      return;
     },
   });
 
-  const type = useStore(form.store, state => state.values.type);
+  const type = useSelector(form.atom, state => state.values.type);
 
   const handleValidateAttributeField = (value: string) => {
     const traceItemField = TraceItemFieldSelector.fromField(dataset, value);
 
     if (!traceItemField) {
+      setAttributeError(undefined);
       return;
     }
 
     const validation = validateTraceItemFieldSelector(traceItemField);
     if (!validation.isValid && validation.error) {
-      setFieldErrors(form, {
-        source: {message: validation.error},
-      });
+      setAttributeError(validation.error);
+    } else {
+      setAttributeError(undefined);
     }
   };
 
@@ -195,7 +198,7 @@ export function DataScrubFormModal({
   }));
 
   const eventIdFieldBlock = (
-    <form.AppField name="eventId">
+    <form.Field name="eventId">
       {eventIdField => (
         <eventIdField.Layout.Stack
           label={t('Event ID (Optional)')}
@@ -209,7 +212,7 @@ export function DataScrubFormModal({
               <Flex gap="sm" align="center" flexGrow={1}>
                 <EventIdField
                   fieldProps={fieldProps}
-                  value={eventIdField.state.value ?? ''}
+                  value={eventIdField.value ?? ''}
                   onChange={eventIdField.handleChange}
                   onSuggestionsLoaded={setSourceSuggestions}
                   onErrorChange={setEventIdError}
@@ -222,21 +225,21 @@ export function DataScrubFormModal({
           </eventIdField.Base>
         </eventIdField.Layout.Stack>
       )}
-    </form.AppField>
+    </form.Field>
   );
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <h5>{title}</h5>
       </Header>
       <Body>
         <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>
           {traceItemDatasetsEnabled && (
-            <form.AppField name="dataset">
+            <form.Field name="dataset">
               {field => (
                 <field.Radio.Group
-                  value={field.state.value}
+                  value={field.value}
                   onChange={value => {
                     field.handleChange(value as AllowedDataScrubbingDatasets);
                     setDataset(value as AllowedDataScrubbingDatasets);
@@ -258,7 +261,7 @@ export function DataScrubFormModal({
                   </field.Layout.Stack>
                 </field.Radio.Group>
               )}
-            </form.AppField>
+            </form.Field>
           )}
 
           <form.Subscribe selector={state => state.values.method}>
@@ -271,15 +274,18 @@ export function DataScrubFormModal({
                 }
                 gap={{'screen:sm': 'md'}}
               >
-                <form.AppField
+                <form.Field
                   name="method"
-                  listeners={{
-                    onChange: ({value}) => {
-                      if (value !== MethodType.REPLACE) {
-                        form.setFieldValue('placeholder', '');
-                      }
+                  listeners={[
+                    {
+                      run: ({value}) => {
+                        if (value !== MethodType.REPLACE) {
+                          form.setFieldValue('placeholder', '');
+                        }
+                      },
+                      triggers: ['change'],
                     },
-                  }}
+                  ]}
                 >
                   {methodField => (
                     <methodField.Layout.Stack
@@ -290,15 +296,15 @@ export function DataScrubFormModal({
                       <methodField.Select
                         placeholder={t('Select method')}
                         options={methodOptions}
-                        value={methodField.state.value}
+                        value={methodField.value}
                         onChange={methodField.handleChange}
                         isSearchable={false}
                       />
                     </methodField.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
                 {method === MethodType.REPLACE && (
-                  <form.AppField name="placeholder">
+                  <form.Field name="placeholder">
                     {placeholderField => (
                       <placeholderField.Layout.Stack
                         label={t('Custom Placeholder (Optional)')}
@@ -309,11 +315,11 @@ export function DataScrubFormModal({
                           type="text"
                           placeholder={`[${t('Filtered')}]`}
                           onChange={placeholderField.handleChange}
-                          value={placeholderField.state.value}
+                          value={placeholderField.value}
                         />
                       </placeholderField.Layout.Stack>
                     )}
-                  </form.AppField>
+                  </form.Field>
                 )}
               </Grid>
             )}
@@ -327,16 +333,19 @@ export function DataScrubFormModal({
             }
             gap={{'screen:sm': 'md'}}
           >
-            <form.AppField
+            <form.Field
               name="type"
-              listeners={{
-                onChange: ({value}) => {
-                  if (value !== RuleType.PATTERN) {
-                    form.setFieldValue('pattern', '');
-                    form.setFieldValue('replaceCaptured', false);
-                  }
+              listeners={[
+                {
+                  run: ({value}) => {
+                    if (value !== RuleType.PATTERN) {
+                      form.setFieldValue('pattern', '');
+                      form.setFieldValue('replaceCaptured', false);
+                    }
+                  },
+                  triggers: ['change'],
                 },
-              }}
+              ]}
             >
               {typeField => (
                 <typeField.Layout.Stack
@@ -349,26 +358,35 @@ export function DataScrubFormModal({
                   <typeField.Select
                     placeholder={t('Select type')}
                     options={typeOptions}
-                    value={typeField.state.value}
+                    value={typeField.value}
                     onChange={typeField.handleChange}
                     isSearchable={false}
                   />
                 </typeField.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
             {type === RuleType.PATTERN && (
-              <form.AppField
+              <form.Field
                 name="pattern"
-                validators={{
-                  onDynamic: z.string().trim().min(1, t('This field is required')),
-                }}
-                listeners={{
-                  onChange: ({value}) => {
-                    if (!hasCaptureGroups(value)) {
-                      form.setFieldValue('replaceCaptured', false);
-                    }
+                validators={[
+                  {
+                    run: ({value, formApi}) =>
+                      formApi.state.values.type === RuleType.PATTERN && !value.trim()
+                        ? t('This field is required')
+                        : undefined,
+                    triggers: ['change'],
                   },
-                }}
+                ]}
+                listeners={[
+                  {
+                    run: ({value}) => {
+                      if (!hasCaptureGroups(value)) {
+                        form.setFieldValue('replaceCaptured', false);
+                      }
+                    },
+                    triggers: ['change'],
+                  },
+                ]}
               >
                 {patternField => (
                   <patternField.Layout.Stack
@@ -382,27 +400,27 @@ export function DataScrubFormModal({
                         type="text"
                         placeholder={t('[a-zA-Z0-9]+')}
                         onChange={patternField.handleChange}
-                        value={patternField.state.value}
+                        value={patternField.value}
                       />
                     </RegularExpressionWrapper>
-                    <form.AppField name="replaceCaptured">
+                    <form.Field name="replaceCaptured">
                       {replaceCapturedField => (
                         <ReplaceCapturedCheckbox
-                          pattern={patternField.state.value}
-                          checked={replaceCapturedField.state.value}
+                          pattern={patternField.value}
+                          checked={replaceCapturedField.value}
                           onChange={val => replaceCapturedField.handleChange(val)}
                         />
                       )}
-                    </form.AppField>
+                    </form.Field>
                   </patternField.Layout.Stack>
                 )}
-              </form.AppField>
+              </form.Field>
             )}
           </Grid>
 
-          <form.AppField name="source">
+          <form.Field name="source">
             {sourceField => {
-              const sourceValue = sourceField.state.value;
+              const sourceValue = sourceField.value;
               const isRegExMatchesSelected = type === RuleType.PATTERN;
 
               if (traceItemDatasetsEnabled) {
@@ -467,19 +485,20 @@ export function DataScrubFormModal({
                         variant="compact"
                         required
                       >
-                        <sourceField.Base>
+                        <sourceField.Base error={attributeError}>
                           {fieldProps => (
                             <AttributeField
                               fieldProps={fieldProps}
                               dataset={dataset}
-                              onChange={value =>
+                              onChange={value => {
                                 sourceField.handleChange(
                                   TraceItemFieldSelector.fromField(
                                     dataset,
                                     value
                                   )?.getSelector() ?? ''
-                                )
-                              }
+                                );
+                                setAttributeError(undefined);
+                              }}
                               value={sourceValue}
                               onBlur={(value, _event) => {
                                 handleValidateAttributeField(value);
@@ -535,7 +554,7 @@ export function DataScrubFormModal({
                 </Fragment>
               );
             }}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -544,7 +563,7 @@ export function DataScrubFormModal({
           <form.SubmitButton>{t('Save Rule')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

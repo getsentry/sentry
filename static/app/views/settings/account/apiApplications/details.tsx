@@ -165,7 +165,7 @@ function ApiApplicationsDetails() {
                 hintText={t('e.g. My Application')}
                 required
               >
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
           </AutoSaveForm>
@@ -182,7 +182,7 @@ function ApiApplicationsDetails() {
                 hintText={t("An optional link to your application's homepage")}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://example.com/"
                 />
@@ -202,7 +202,7 @@ function ApiApplicationsDetails() {
                 hintText={t('An optional link to your Privacy Policy')}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://example.com/privacy"
                 />
@@ -222,7 +222,7 @@ function ApiApplicationsDetails() {
                 hintText={t('An optional link to your Terms of Service agreement')}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://example.com/terms"
                 />
@@ -253,7 +253,7 @@ function ApiApplicationsDetails() {
                 hintText={t('Separate multiple entries with a newline.')}
               >
                 <field.TextArea
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. https://example.com/oauth/complete"
                   autosize
@@ -283,7 +283,7 @@ function ApiApplicationsDetails() {
                 hintText={t('Separate multiple entries with a newline.')}
               >
                 <field.TextArea
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. example.com"
                   autosize

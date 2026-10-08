@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -59,13 +59,10 @@ export function OrganizationSampling() {
   );
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       targetSampleRate: initialTargetSampleRate,
     },
-    validators: {
-      onDynamic: targetSampleRateSchema,
-    },
+    validators: defaultFormValidators(targetSampleRateSchema),
     onSubmit: async ({value, formApi}) => {
       try {
         await updateOrganization({
@@ -83,7 +80,7 @@ export function OrganizationSampling() {
   const sampleCountsQuery = useProjectSampleCounts({period});
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.Subscribe selector={s => ({isDirty: s.isDirty})}>
         {({isDirty}) => (
           <Fragment>
@@ -101,16 +98,16 @@ export function OrganizationSampling() {
             {sampleCountsQuery.isError ? (
               <LoadingError onRetry={sampleCountsQuery.refetch} />
             ) : (
-              <form.AppField name="targetSampleRate">
+              <form.Field name="targetSampleRate">
                 {field => (
                   <ProjectsPreviewTable
                     sampleCounts={sampleCountsQuery.data}
                     isLoading={sampleCountsQuery.isPending}
                     period={period}
-                    targetSampleRate={field.state.value}
+                    targetSampleRate={field.value}
                     savedTargetSampleRate={savedTargetSampleRate}
                     onTargetSampleRateChange={field.handleChange}
-                    targetSampleRateError={field.state.meta.errors[0]?.message}
+                    targetSampleRateError={field.meta.errors[0]?.message}
                     actions={
                       <Fragment>
                         <form.ResetButton disabled={isPending}>
@@ -130,7 +127,7 @@ export function OrganizationSampling() {
                     }
                   />
                 )}
-              </form.AppField>
+              </form.Field>
             )}
             <SubTextParagraph>
               {t(
@@ -140,7 +137,7 @@ export function OrganizationSampling() {
           </Fragment>
         )}
       </form.Subscribe>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

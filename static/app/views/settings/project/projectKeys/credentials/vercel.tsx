@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
@@ -28,20 +28,19 @@ export function VercelTab({
   const headers = `x-sentry-auth: sentry sentry_key=${publicKey}`;
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       logDrainEndpoint: `${integrationEndpoint}vercel/logs`,
       logDrainHeaders: headers,
       traceDrainEndpoint: tracesEndpoint,
       traceDrainHeaders: headers,
     },
-    validators: {onChange: vercelSchema},
+    validators: defaultFormValidators(vercelSchema),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FieldList>
-        <form.AppField name="logDrainEndpoint">
+        <form.Field name="logDrainEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('Vercel Log Drain Endpoint')}
@@ -55,13 +54,13 @@ export function VercelTab({
               )}
             >
               <TextCopyInput aria-label={t('Vercel Log Drain Endpoint')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="logDrainHeaders">
+        <form.Field name="logDrainHeaders">
           {field => (
             <field.Layout.Stack
               label={t('Log Drain Authentication Headers')}
@@ -70,13 +69,13 @@ export function VercelTab({
               )}
             >
               <TextCopyInput aria-label={t('Log Drain Authentication Header')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="traceDrainEndpoint">
+        <form.Field name="traceDrainEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('Vercel Trace Drain Endpoint')}
@@ -90,13 +89,13 @@ export function VercelTab({
               )}
             >
               <TextCopyInput aria-label={t('Vercel Trace Drain Endpoint')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="traceDrainHeaders">
+        <form.Field name="traceDrainHeaders">
           {field => (
             <field.Layout.Stack
               label={t('Vercel Trace Drain Authentication Headers')}
@@ -105,12 +104,12 @@ export function VercelTab({
               )}
             >
               <TextCopyInput aria-label={t('Vercel Trace Drain Authentication Header')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </FieldList>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

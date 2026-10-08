@@ -1,7 +1,13 @@
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm, withFieldGroup} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  defineAppFieldGroup,
+  FieldGroup,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {IconDelete} from 'sentry/icons';
@@ -59,12 +65,25 @@ function buildSqsConfig(
 /**
  * Reusable field group for SQS-specific configuration fields.
  */
-const SQSConfigFields = withFieldGroup({
-  defaultValues: sqsDefaults,
-  props: {disabled: false},
-  render: ({group, disabled}) => (
-    <group.FieldGroup title={t('Global Configuration')}>
-      <group.AppField name="queue_url">
+const sqsConfigFieldGroup = defineAppFieldGroup(({strict}) => ({
+  queue_url: strict<string>(),
+  region: strict<string>(),
+  access_key: strict<string>(),
+  secret_key: strict<string>(),
+  message_group_id: strict<string>(),
+  s3_bucket: strict<string>(),
+}));
+
+function SQSConfigFieldsImpl({
+  fields,
+  disabled,
+}: {
+  disabled: boolean;
+  fields: typeof sqsConfigFieldGroup.fields;
+}) {
+  return (
+    <FieldGroup title={t('Global Configuration')}>
+      <fields.Field name="queue_url">
         {field => (
           <field.Layout.Row
             label={t('Queue URL')}
@@ -72,15 +91,15 @@ const SQSConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. https://sqs.us-east-1.amazonaws.com/12345678/myqueue"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-      <group.AppField name="region">
+      </fields.Field>
+      <fields.Field name="region">
         {field => (
           <field.Layout.Row
             label={t('Region')}
@@ -88,15 +107,15 @@ const SQSConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. us-east-1"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-      <group.AppField name="access_key">
+      </fields.Field>
+      <fields.Field name="access_key">
         {field => (
           <field.Layout.Row
             label={t('Access Key')}
@@ -104,15 +123,15 @@ const SQSConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. AKIAIOSFODNN7EXAMPLE"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-      <group.AppField name="secret_key">
+      </fields.Field>
+      <fields.Field name="secret_key">
         {field => (
           <field.Layout.Row
             label={t('Secret Key')}
@@ -120,30 +139,30 @@ const SQSConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. wJalrXUtnFEMI1K7MDENGSbPxRfiCYEXAMPLEKEY"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-      <group.AppField name="message_group_id">
+      </fields.Field>
+      <fields.Field name="message_group_id">
         {field => (
           <field.Layout.Row
             label={t('Message Group ID')}
             hintText={t('Required for FIFO queues, exclude for standard queues')}
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. my-message-group-id"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-      <group.AppField name="s3_bucket">
+      </fields.Field>
+      <fields.Field name="s3_bucket">
         {field => (
           <field.Layout.Row
             label={t('S3 Bucket')}
@@ -152,17 +171,19 @@ const SQSConfigFields = withFieldGroup({
             )}
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. my-s3-bucket"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-    </group.FieldGroup>
-  ),
-});
+      </fields.Field>
+    </FieldGroup>
+  );
+}
+
+const SQSConfigFields = sqsConfigFieldGroup.bindComponent(SQSConfigFieldsImpl, 'fields');
 
 export function SQSSetupForm({
   projects,
@@ -174,9 +195,8 @@ export function SQSSetupForm({
   projects: Project[];
 }) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {...baseFormSetupDefaults, ...sqsDefaults},
-    validators: {onDynamic: sqsSchema},
+    validators: defaultFormValidators(sqsSchema),
     onSubmit: ({value}) => {
       const {
         is_enabled: _is_enabled,
@@ -197,7 +217,7 @@ export function SQSSetupForm({
   const projectOptions = buildProjectOptions(projects);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <EnablementFields
         form={form}
         fields={{is_enabled: 'is_enabled'}}
@@ -228,7 +248,7 @@ export function SQSSetupForm({
       <Flex justify="end" padding="lg">
         <form.SubmitButton disabled={disabled}>{t('Complete Setup')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -244,13 +264,12 @@ export function SQSEditForm({
   projects: Project[];
 }) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       ...baseFormEditDefaults(dataForwarder),
       ...sqsDefaults,
       ...dataForwarder.config,
     },
-    validators: {onDynamic: sqsSchema},
+    validators: defaultFormValidators(sqsSchema),
     onSubmit: ({value}) => {
       const {is_enabled, enroll_new_projects, project_ids, ...configFields} = value;
       onSubmit({
@@ -266,7 +285,7 @@ export function SQSEditForm({
   const projectOptions = buildProjectOptions(projects);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <EnablementFields
         form={form}
         fields={{is_enabled: 'is_enabled'}}
@@ -302,6 +321,6 @@ export function SQSEditForm({
         </DataForwarderDeleteConfirm>
         <form.SubmitButton disabled={disabled}>{t('Update Forwarder')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

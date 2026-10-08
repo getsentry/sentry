@@ -4,7 +4,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -79,14 +79,13 @@ function GDPREditModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       name: subscription.gdprDetails?.[`${prefix}Name`] ?? '',
       address: subscription.gdprDetails?.[`${prefix}Address`] ?? '',
       phone: subscription.gdprDetails?.[`${prefix}Phone`] ?? '',
       email: subscription.gdprDetails?.[`${prefix}Email`] ?? '',
     } satisfies GDPRFormValues,
-    validators: {onDynamic: gdprSchema},
+    validators: defaultFormValidators(gdprSchema),
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
@@ -95,41 +94,41 @@ function GDPREditModal({
       <Header>
         <Heading as="h4">{sectionTitles[prefix]}</Heading>
       </Header>
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <Stack gap="lg">
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Row label={t('Full Name')}>
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
-          <form.AppField name="address">
+          </form.Field>
+          <form.Field name="address">
             {field => (
               <field.Layout.Row label={t('Address')}>
                 <field.TextArea
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   rows={2}
                   autosize
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
-          <form.AppField name="phone">
+          </form.Field>
+          <form.Field name="phone">
             {field => (
               <field.Layout.Row label={t('Phone Number')}>
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
-          <form.AppField name="email">
+          </form.Field>
+          <form.Field name="email">
             {field => (
               <field.Layout.Row label={t('Email')}>
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
         <Footer>
           <Grid flow="column" align="center" gap="md">
@@ -137,7 +136,7 @@ function GDPREditModal({
             <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
           </Grid>
         </Footer>
-      </form.AppForm>
+      </ScrapsForm>
     </Fragment>
   );
 }

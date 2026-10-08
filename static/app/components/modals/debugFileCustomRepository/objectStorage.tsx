@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -118,9 +118,8 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       const data: S3SubmitData = {
@@ -145,13 +144,13 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Title type={CustomRepoType.S3} isEditing={!!sourceConfig} />
       </Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Stack
                 label={t('Name')}
@@ -159,14 +158,14 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('New Repository')}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="bucket">
+          </form.Field>
+          <form.Field name="bucket">
             {field => (
               <field.Layout.Stack
                 label={t('Bucket')}
@@ -176,14 +175,14 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="s3-bucket-name"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="region">
+          </form.Field>
+          <form.Field name="region">
             {field => (
               <field.Layout.Stack
                 label={t('Region')}
@@ -191,14 +190,14 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
                 required
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={REGION_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="access_key">
+          </form.Field>
+          <form.Field name="access_key">
             {field => (
               <field.Layout.Stack
                 label={t('Access Key ID')}
@@ -215,21 +214,21 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="AKIAIOSFODNN7EXAMPLE"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="secret_key">
+          </form.Field>
+          <form.Field name="secret_key">
             {field => (
               <field.Layout.Stack
                 label={t('Secret Access Key')}
                 required={!secretAlreadySet}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={
                     secretAlreadySet
@@ -239,8 +238,8 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="prefix">
+          </form.Field>
+          <form.Field name="prefix">
             {field => (
               <field.Layout.Stack
                 label={t('Root Path')}
@@ -249,47 +248,47 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
                 )}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="layoutType">
+          </form.Field>
+          <form.Field name="layoutType">
             {field => (
               <field.Layout.Stack
                 label={t('Directory Layout')}
                 hintText={t('The layout of the folder structure.')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={LAYOUT_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="layoutCasing">
+          </form.Field>
+          <form.Field name="layoutCasing">
             {field => (
               <field.Layout.Stack
                 label={t('Path Casing')}
                 hintText={t('The case of files and folders.')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={CASING_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
         <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -335,9 +334,8 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       const data: GcsSubmitData = {
@@ -361,13 +359,13 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Title type={CustomRepoType.GCS} isEditing={!!sourceConfig} />
       </Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Stack
                 label={t('Name')}
@@ -375,14 +373,14 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('New Repository')}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="bucket">
+          </form.Field>
+          <form.Field name="bucket">
             {field => (
               <field.Layout.Stack
                 label={t('Bucket')}
@@ -392,14 +390,14 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="gcs-bucket-name"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="client_email">
+          </form.Field>
+          <form.Field name="client_email">
             {field => (
               <field.Layout.Stack
                 label={t('Client Email')}
@@ -408,14 +406,14 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
               >
                 <field.Input
                   type="email"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="user@project.iam.gserviceaccount.com"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="private_key">
+          </form.Field>
+          <form.Field name="private_key">
             {field => (
               <field.Layout.Stack
                 label={t('Private Key')}
@@ -425,7 +423,7 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
                   autosize
                   rows={3}
                   maxRows={5}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={
                     privateKeyAlreadySet
@@ -447,8 +445,8 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
                 </Text>
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="prefix">
+          </form.Field>
+          <form.Field name="prefix">
             {field => (
               <field.Layout.Stack
                 label={t('Root Path')}
@@ -457,47 +455,47 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
                 )}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="layoutType">
+          </form.Field>
+          <form.Field name="layoutType">
             {field => (
               <field.Layout.Stack
                 label={t('Directory Layout')}
                 hintText={t('The layout of the folder structure.')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={LAYOUT_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="layoutCasing">
+          </form.Field>
+          <form.Field name="layoutCasing">
             {field => (
               <field.Layout.Stack
                 label={t('Path Casing')}
                 hintText={t('The case of files and folders.')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={CASING_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
         <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -559,9 +557,8 @@ export function AzureRepository({
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       const data: AzureSubmitData = {
@@ -587,13 +584,13 @@ export function AzureRepository({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Title type={CustomRepoType.AZURE} isEditing={!!sourceConfig} />
       </Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Stack
                 label={t('Name')}
@@ -601,14 +598,14 @@ export function AzureRepository({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('New Repository')}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="account">
+          </form.Field>
+          <form.Field name="account">
             {field => (
               <field.Layout.Stack
                 label={t('Storage Account')}
@@ -616,14 +613,14 @@ export function AzureRepository({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="storageaccount"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="container">
+          </form.Field>
+          <form.Field name="container">
             {field => (
               <field.Layout.Stack
                 label={t('Container')}
@@ -631,14 +628,14 @@ export function AzureRepository({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="symbols"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="tenant_id">
+          </form.Field>
+          <form.Field name="tenant_id">
             {field => (
               <field.Layout.Stack
                 label={t('Tenant ID')}
@@ -646,14 +643,14 @@ export function AzureRepository({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="00000000-0000-0000-0000-000000000000"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="client_id">
+          </form.Field>
+          <form.Field name="client_id">
             {field => (
               <field.Layout.Stack
                 label={t('Client ID')}
@@ -664,18 +661,18 @@ export function AzureRepository({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="00000000-0000-0000-0000-000000000000"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="client_secret">
+          </form.Field>
+          <form.Field name="client_secret">
             {field => (
               <field.Layout.Stack label={t('Client Secret')} required={!secretAlreadySet}>
                 <field.Password
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={
                     secretAlreadySet ? t('(Client Secret unchanged)') : undefined
@@ -683,8 +680,8 @@ export function AzureRepository({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="prefix">
+          </form.Field>
+          <form.Field name="prefix">
             {field => (
               <field.Layout.Stack
                 label={t('Root Path')}
@@ -693,46 +690,46 @@ export function AzureRepository({
                 )}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="layoutType">
+          </form.Field>
+          <form.Field name="layoutType">
             {field => (
               <field.Layout.Stack
                 label={t('Directory Layout')}
                 hintText={t('The layout of the folder structure.')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={LAYOUT_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="layoutCasing">
+          </form.Field>
+          <form.Field name="layoutCasing">
             {field => (
               <field.Layout.Stack
                 label={t('Path Casing')}
                 hintText={t('The case of files and folders.')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={CASING_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
         <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

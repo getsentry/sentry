@@ -118,7 +118,7 @@ export function KeySettings({
                 {field => (
                   <field.Layout.Row label={t('Name')}>
                     <field.Input
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       disabled={!hasAccess}
                       maxLength={64}
@@ -140,7 +140,7 @@ export function KeySettings({
                     )}
                   >
                     <field.Switch
-                      checked={field.state.value}
+                      checked={field.value}
                       onChange={field.handleChange}
                       disabled={!hasAccess}
                     />
@@ -156,7 +156,7 @@ export function KeySettings({
                 {field => (
                   <field.Layout.Row label={t('Created')}>
                     <Text>
-                      <DateTime date={field.state.value} />
+                      <DateTime date={field.value} />
                     </Text>
                   </field.Layout.Row>
                 )}

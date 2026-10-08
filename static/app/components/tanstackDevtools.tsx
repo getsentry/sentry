@@ -12,8 +12,8 @@ export function SentryTanStackDevtools() {
           name: 'TanStack Query',
           render: <ReactQueryDevtoolsPanel />,
         },
-        formDevtoolsPlugin(),
         pacerDevtoolsPlugin(),
+        formDevtoolsPlugin(),
       ]}
     />
   );

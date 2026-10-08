@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
@@ -46,7 +46,6 @@ export function OtlpTab({
   ].join('\n');
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       otlpEndpoint: `${integrationEndpoint}otlp`,
       logsEndpoint,
@@ -55,26 +54,24 @@ export function OtlpTab({
       tracesHeaders: headers,
       collectorConfig,
     },
-    validators: {onChange: otlpSchema},
+    validators: defaultFormValidators(otlpSchema),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FieldList>
-        <form.AppField name="otlpEndpoint">
+        <form.Field name="otlpEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('OTLP Endpoint')}
               hintText={t('The base OTLP endpoint for your project.')}
             >
-              <TextCopyInput aria-label={t('OTLP Endpoint')}>
-                {field.state.value}
-              </TextCopyInput>
+              <TextCopyInput aria-label={t('OTLP Endpoint')}>{field.value}</TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="logsEndpoint">
+        <form.Field name="logsEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('OTLP Logs Endpoint')}
@@ -88,13 +85,13 @@ export function OtlpTab({
               )}
             >
               <TextCopyInput aria-label={t('OTLP Logs Endpoint')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="logsHeaders">
+        <form.Field name="logsHeaders">
           {field => (
             <field.Layout.Stack
               label={t('OTLP Logs Endpoint Headers')}
@@ -103,13 +100,13 @@ export function OtlpTab({
               )}
             >
               <TextCopyInput aria-label={t('OTLP Logs Endpoint Headers')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="tracesEndpoint">
+        <form.Field name="tracesEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('OTLP Traces Endpoint')}
@@ -123,13 +120,13 @@ export function OtlpTab({
               )}
             >
               <TextCopyInput aria-label={t('OTLP Traces Endpoint')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="tracesHeaders">
+        <form.Field name="tracesHeaders">
           {field => (
             <field.Layout.Stack
               label={t('OTLP Traces Endpoint Headers')}
@@ -138,13 +135,13 @@ export function OtlpTab({
               )}
             >
               <TextCopyInput aria-label={t('OTLP Traces Endpoint Headers')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="collectorConfig">
+        <form.Field name="collectorConfig">
           {field => (
             <field.Layout.Stack
               label={t('OpenTelemetry Collector Exporter Configuration')}
@@ -153,13 +150,13 @@ export function OtlpTab({
               )}
             >
               <UnsetHeightCodeBlock language="yaml" filename="config.yaml" isRounded>
-                {field.state.value}
+                {field.value}
               </UnsetHeightCodeBlock>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </FieldList>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

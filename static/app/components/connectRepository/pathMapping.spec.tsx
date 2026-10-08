@@ -1,11 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm} from '@sentry/scraps/form';
 
 import {PathMapping} from 'sentry/components/connectRepository/pathMapping';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 
-function renderMapping({
+import {useConnectRepoForm} from './useConnectRepoForm';
+
+function TestMapping({
   value = {stackRoot: '', sourceRoot: '', branch: ''},
   editing = false,
   isNew = false,
@@ -16,33 +18,33 @@ function renderMapping({
   projectSlug?: string;
   value?: PathMappingValue;
 } = {}) {
-  function Wrapper() {
-    const form = useScrapsForm({
-      ...defaultFormOptions,
-      defaultValues: {repository: null as string | null, pathMappings: [value]},
-      onSubmit: () => {},
-    });
-    return (
-      <form.AppForm form={form}>
-        <PathMapping
-          editing={editing}
-          fields="pathMappings[0]"
-          form={form}
-          isNew={isNew}
-          value={value}
-          onDelete={jest.fn()}
-          onExpandToggle={jest.fn()}
-          projectSlug={projectSlug}
-        />
-      </form.AppForm>
-    );
-  }
-  return render(<Wrapper />);
+  const form = useConnectRepoForm({
+    defaultValues: {repository: null as string | null, pathMappings: [value]},
+    onSubmit: () => {},
+  });
+  return (
+    <ScrapsForm form={form}>
+      <PathMapping
+        editing={editing}
+        fields="pathMappings[0]"
+        form={form}
+        isNew={isNew}
+        value={value}
+        onDelete={jest.fn()}
+        onExpandToggle={jest.fn()}
+        projectSlug={projectSlug}
+      />
+    </ScrapsForm>
+  );
 }
 
 describe('PathMapping', () => {
   it('renders collapsed summary with paths and branch', () => {
-    renderMapping({value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'}});
+    render(
+      <TestMapping
+        {...{value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'}}}
+      />
+    );
 
     expect(screen.getByText('src/')).toBeInTheDocument();
     expect(screen.getByText('app/')).toBeInTheDocument();
@@ -53,27 +55,35 @@ describe('PathMapping', () => {
   });
 
   it('shows empty placeholder when paths are blank', () => {
-    renderMapping({value: {stackRoot: '', sourceRoot: '', branch: 'main'}});
+    render(<TestMapping {...{value: {stackRoot: '', sourceRoot: '', branch: 'main'}}} />);
 
     expect(screen.getAllByText('empty')).toHaveLength(2);
   });
 
   it('hides the summary row for a new (never-saved) mapping', () => {
-    renderMapping({
-      editing: true,
-      isNew: true,
-      value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'},
-    });
+    render(
+      <TestMapping
+        {...{
+          editing: true,
+          isNew: true,
+          value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'},
+        }}
+      />
+    );
 
     expect(screen.queryByRole('button', {name: /expand/i})).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: /branch/i})).toBeInTheDocument();
   });
 
   it('renders the edit form when expanded', () => {
-    renderMapping({
-      editing: true,
-      value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'},
-    });
+    render(
+      <TestMapping
+        {...{
+          editing: true,
+          value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'},
+        }}
+      />
+    );
 
     expect(screen.getByRole('textbox', {name: /branch/i})).toBeInTheDocument();
     expect(
@@ -83,7 +93,7 @@ describe('PathMapping', () => {
   });
 
   it('shows placeholders on the prefix inputs', () => {
-    renderMapping({editing: true, isNew: true});
+    render(<TestMapping {...{editing: true, isNew: true}} />);
 
     expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveAttribute(
       'placeholder',
@@ -96,7 +106,7 @@ describe('PathMapping', () => {
   });
 
   it('renders preview using placeholder example and updates on input', () => {
-    renderMapping({editing: true, isNew: true});
+    render(<TestMapping {...{editing: true, isNew: true}} />);
 
     expect(screen.getByText('Example preview')).toBeInTheDocument();
     expect(screen.getByText('In your stack trace')).toBeInTheDocument();
@@ -106,7 +116,7 @@ describe('PathMapping', () => {
   });
 
   it('accents only the filled prefix once a value is typed', async () => {
-    renderMapping({editing: true, isNew: true});
+    render(<TestMapping {...{editing: true, isNew: true}} />);
 
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
@@ -117,10 +127,19 @@ describe('PathMapping', () => {
   });
 
   it('explains the disabled delete with a link to Code Owners', async () => {
-    renderMapping({
-      projectSlug: 'my-project',
-      value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main', hasCodeOwner: true},
-    });
+    render(
+      <TestMapping
+        {...{
+          projectSlug: 'my-project',
+          value: {
+            stackRoot: 'src/',
+            sourceRoot: 'app/',
+            branch: 'main',
+            hasCodeOwner: true,
+          },
+        }}
+      />
+    );
 
     const deleteButton = screen.getByRole('button', {name: 'Delete path mapping'});
     expect(deleteButton).toHaveAttribute('aria-disabled', 'true');

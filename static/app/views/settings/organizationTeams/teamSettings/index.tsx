@@ -4,9 +4,10 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {
-  defaultFormOptions,
+  defaultFormValidators,
   FieldGroup,
   FormSearch,
+  ScrapsForm,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
@@ -69,9 +70,8 @@ export default function TeamSettings() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {slug: team.slug, teamId: team.id},
-    validators: {onDynamic: teamSettingsSchema},
+    validators: defaultFormValidators(teamSettingsSchema),
     onSubmit: ({value}) => mutation.mutateAsync({slug: value.slug}).catch(() => {}),
   });
 
@@ -105,9 +105,9 @@ export default function TeamSettings() {
         </Alert.Container>
       )}
 
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <FieldGroup title={t('Team Settings')}>
-          <form.AppField name="slug">
+          <form.Field name="slug">
             {field => (
               <field.Layout.Row
                 label={t('Team Slug')}
@@ -115,15 +115,15 @@ export default function TeamSettings() {
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={value => field.handleChange(slugify(value))}
                   placeholder="e.g. operations, web-frontend, mobile-ios"
                   disabled={isDisabled}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
-          <form.AppField name="teamId">
+          </form.Field>
+          <form.Field name="teamId">
             {field => (
               <field.Layout.Row
                 label={t('Team ID')}
@@ -131,14 +131,10 @@ export default function TeamSettings() {
                   'The unique identifier for this team. It cannot be modified.'
                 )}
               >
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled
-                />
+                <field.Input value={field.value} onChange={field.handleChange} disabled />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
           {isDisabled ? null : (
             <Flex gap="md" align="center" padding="sm">
@@ -162,7 +158,7 @@ export default function TeamSettings() {
             </Flex>
           )}
         </FieldGroup>
-      </form.AppForm>
+      </ScrapsForm>
 
       <AvatarChooser
         key={team.id}

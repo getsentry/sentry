@@ -6,7 +6,12 @@ import {z} from 'zod';
 import {AlertLink} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  FormSearch,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -64,9 +69,8 @@ function AccountEmails() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {email: ''},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value, formApi}) => {
       return mutation
         .mutateAsync(value)
@@ -83,9 +87,9 @@ function AccountEmails() {
       <SettingsPageHeader title={t('Email Addresses')} />
       <EmailAddresses />
       <FormSearch route="/settings/account/emails/">
-        <form.AppForm form={form}>
+        <ScrapsForm form={form}>
           <form.FieldGroup title={t('Add Secondary Emails')}>
-            <form.AppField name="email">
+            <form.Field name="email">
               {field => (
                 <field.Layout.Row
                   label={t('Additional Email')}
@@ -93,18 +97,18 @@ function AccountEmails() {
                 >
                   <field.Input
                     type="email"
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     placeholder={t('e.g. secondary@example.com')}
                   />
                 </field.Layout.Row>
               )}
-            </form.AppField>
+            </form.Field>
           </form.FieldGroup>
           <Flex justify="end">
             <form.SubmitButton>{t('Add email')}</form.SubmitButton>
           </Flex>
-        </form.AppForm>
+        </ScrapsForm>
       </FormSearch>
 
       <Container paddingTop="xl">

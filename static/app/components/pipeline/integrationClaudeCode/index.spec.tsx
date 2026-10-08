@@ -17,7 +17,7 @@ describe('ClaudeCodeApiKeyStep', () => {
   });
 
   it('calls advance with API key on submit', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<ClaudeCodeApiKeyStep {...makeStepProps({stepData: {}, advance})} />);
 
     await userEvent.type(screen.getByLabelText('Anthropic API Key'), 'sk-ant-test-key');

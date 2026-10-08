@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -45,15 +45,14 @@ const securitySchema = z.object({
 
 function SecurityTab({securityEndpoint}: SecurityTabProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {securityEndpoint},
-    validators: {onDynamic: securitySchema},
+    validators: defaultFormValidators(securitySchema),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FieldList>
-        <form.AppField name="securityEndpoint">
+        <form.Field name="securityEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('Security Header Endpoint')}
@@ -69,13 +68,13 @@ function SecurityTab({securityEndpoint}: SecurityTabProps) {
               )}
             >
               <TextCopyInput aria-label={t('Security Header Endpoint URL')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </FieldList>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -89,15 +88,14 @@ const minidumpSchema = z.object({
 
 function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {minidumpEndpoint},
-    validators: {onDynamic: minidumpSchema},
+    validators: defaultFormValidators(minidumpSchema),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FieldList>
-        <form.AppField name="minidumpEndpoint">
+        <form.Field name="minidumpEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('Minidump Endpoint')}
@@ -113,13 +111,13 @@ function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
               )}
             >
               <TextCopyInput aria-label={t('Minidump Endpoint URL')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </FieldList>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -133,28 +131,27 @@ const unrealSchema = z.object({
 
 function UnrealTab({unrealEndpoint}: UnrealTabProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {unrealEndpoint},
-    validators: {onDynamic: unrealSchema},
+    validators: defaultFormValidators(unrealSchema),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FieldList>
-        <form.AppField name="unrealEndpoint">
+        <form.Field name="unrealEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('Unreal Engine Endpoint')}
               hintText={t('Use this endpoint to configure your UE Crash Reporter.')}
             >
               <TextCopyInput aria-label={t('Unreal Engine Endpoint URL')}>
-                {field.state.value}
+                {field.value}
               </TextCopyInput>
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </FieldList>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -182,49 +179,42 @@ function CredentialsTab({
   showProjectId,
 }: CredentialsTabProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {publicKey, secretKey, projectId},
-    validators: {onDynamic: credentialsSchema},
+    validators: defaultFormValidators(credentialsSchema),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FieldList>
         {showPublicKey && (
-          <form.AppField name="publicKey">
+          <form.Field name="publicKey">
             {field => (
               <field.Layout.Stack label={t('Public Key')}>
-                <TextCopyInput aria-label={t('Public Key')}>
-                  {field.state.value}
-                </TextCopyInput>
+                <TextCopyInput aria-label={t('Public Key')}>{field.value}</TextCopyInput>
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         )}
         {showSecretKey && (
-          <form.AppField name="secretKey">
+          <form.Field name="secretKey">
             {field => (
               <field.Layout.Stack label={t('Secret Key')}>
-                <TextCopyInput aria-label={t('Secret Key')}>
-                  {field.state.value}
-                </TextCopyInput>
+                <TextCopyInput aria-label={t('Secret Key')}>{field.value}</TextCopyInput>
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         )}
         {showProjectId && (
-          <form.AppField name="projectId">
+          <form.Field name="projectId">
             {field => (
               <field.Layout.Stack label={t('Project ID')}>
-                <TextCopyInput aria-label={t('Project ID')}>
-                  {field.state.value}
-                </TextCopyInput>
+                <TextCopyInput aria-label={t('Project ID')}>{field.value}</TextCopyInput>
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         )}
       </FieldList>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -286,17 +276,16 @@ export function ProjectKeyCredentials({
   const [showDeprecatedDsn] = useQueryState('showDeprecated', parseAsBoolean);
 
   const dsnForm = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       dsn: data.dsn.public,
       useCase: data.useCase ?? '',
     },
-    validators: {
-      onDynamic: z.object({
+    validators: defaultFormValidators(
+      z.object({
         dsn: z.string(),
         useCase: z.string(),
-      }),
-    },
+      })
+    ),
   });
 
   const tabParser = useMemo(
@@ -352,9 +341,9 @@ export function ProjectKeyCredentials({
 
   return (
     <Fragment>
-      <dsnForm.AppForm form={dsnForm}>
+      <ScrapsForm form={dsnForm}>
         <FieldList>
-          <dsnForm.AppField name="dsn">
+          <dsnForm.Field name="dsn">
             {field => (
               <field.Layout.Stack
                 label={t('DSN')}
@@ -378,9 +367,7 @@ export function ProjectKeyCredentials({
                   }
                 )}
               >
-                <TextCopyInput aria-label={t('DSN URL')}>
-                  {field.state.value}
-                </TextCopyInput>
+                <TextCopyInput aria-label={t('DSN URL')}>{field.value}</TextCopyInput>
                 {showDeprecatedDsn && (
                   <Stack gap="sm" paddingTop="2xs">
                     <Text size="sm" variant="muted">
@@ -393,10 +380,10 @@ export function ProjectKeyCredentials({
                 )}
               </field.Layout.Stack>
             )}
-          </dsnForm.AppField>
+          </dsnForm.Field>
 
           {data.useCase && (
-            <dsnForm.AppField name="useCase">
+            <dsnForm.Field name="useCase">
               {field => (
                 <field.Layout.Row
                   label={t('Use Case')}
@@ -404,13 +391,13 @@ export function ProjectKeyCredentials({
                     'Whether the DSN is for the user or for internal data submissions.'
                   )}
                 >
-                  <Text>{field.state.value}</Text>
+                  <Text>{field.value}</Text>
                 </field.Layout.Row>
               )}
-            </dsnForm.AppField>
+            </dsnForm.Field>
           )}
         </FieldList>
-      </dsnForm.AppForm>
+      </ScrapsForm>
 
       {availableTabs.length > 0 && (
         <Fragment>

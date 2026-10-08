@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
@@ -57,10 +57,9 @@ export function ReprocessingEventModal({
   const defaultValues: FormValues = {maxEvents: null, remainingEvents: 'keep'};
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
-    onSubmit: ({value, formApi}) =>
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) =>
       mutation
         .mutateAsync(value)
         .then(() => {
@@ -68,21 +67,19 @@ export function ReprocessingEventModal({
           testableWindowLocation.reload();
         })
         .catch((error: unknown) => {
-          const handled =
-            error instanceof RequestError
-              ? setFieldErrors(
-                  formApi,
-                  requestErrorToFieldErrors(error, formApi.state.values)
-                )
-              : false;
-          if (!handled) {
-            addErrorMessage(t('Failed to reprocess. Please check your input.'));
+          if (error instanceof RequestError) {
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
+            }
           }
+          addErrorMessage(t('Failed to reprocess. Please check your input.'));
+          return;
         }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <h4>{t('Reprocess Events')}</h4>
       </Header>
@@ -125,7 +122,7 @@ export function ReprocessingEventModal({
         </Introduction>
 
         <Stack gap="xl">
-          <form.AppField name="maxEvents">
+          <form.Field name="maxEvents">
             {field => (
               <field.Layout.Row
                 label={t('Number of events to be reprocessed')}
@@ -136,21 +133,21 @@ export function ReprocessingEventModal({
                 <field.Number
                   min={1}
                   placeholder={t('Reprocess all events')}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
           <Separator orientation="horizontal" border="secondary" />
 
           <form.Subscribe selector={state => state.values.maxEvents === null}>
             {isDisabled => (
-              <form.AppField name="remainingEvents">
+              <form.Field name="remainingEvents">
                 {field => (
                   <field.Radio.Group
-                    value={field.state.value}
+                    value={field.value}
                     onChange={value => {
                       if (value === 'keep' || value === 'delete') {
                         field.handleChange(value);
@@ -169,7 +166,7 @@ export function ReprocessingEventModal({
                     </field.Layout.Row>
                   </field.Radio.Group>
                 )}
-              </form.AppField>
+              </form.Field>
             )}
           </form.Subscribe>
         </Stack>
@@ -180,7 +177,7 @@ export function ReprocessingEventModal({
           <form.SubmitButton>{t('Reprocess Events')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

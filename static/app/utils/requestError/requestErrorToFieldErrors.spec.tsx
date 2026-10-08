@@ -31,13 +31,13 @@ describe('requestErrorToFieldErrors', () => {
     });
   });
 
-  it('returns no errors when the response has no known fields', () => {
+  it('returns undefined when the response has no known fields', () => {
     const error = createRequestError({unknownField: ['ignored error']});
 
-    expect(requestErrorToFieldErrors(error, {name: ''})).toEqual({});
+    expect(requestErrorToFieldErrors(error, {name: ''})).toBeUndefined();
   });
 
-  it('returns no errors when responseJSON is missing', () => {
-    expect(requestErrorToFieldErrors(createRequestError(), {name: ''})).toEqual({});
+  it('returns undefined when responseJSON is missing', () => {
+    expect(requestErrorToFieldErrors(createRequestError(), {name: ''})).toBeUndefined();
   });
 });
