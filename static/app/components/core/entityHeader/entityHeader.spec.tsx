@@ -746,7 +746,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           isLoading
           title={{label: 'Replay user', value: 'Session'}}
-          subtitle={{content: 'A subtitle'}}
+          subtitle="A subtitle"
           stats={{
             label: 'Replay stats',
             items: [
@@ -787,7 +787,6 @@ describe('EntityHeader', () => {
       const build = (hasData: boolean): EntityHeaderProps => ({
         isLoading: !hasData,
         title: {label: 'Replay user', value: 'Session'},
-        subtitle: {content: hasData ? 'A summary' : undefined},
         metadata: {
           label: 'Replay properties',
           items: [
@@ -804,15 +803,15 @@ describe('EntityHeader', () => {
       const {rerender} = render(<EntityHeader {...build(false)} />);
       const loading = getGridRules().filter(rule => rule.includes('grid-template-areas'));
 
-      // Both declared rows hold a space rather than arriving with the data.
-      expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(5);
+      // The declared metadata row holds its space rather than arriving with
+      // the data: title + two metadata slots + one stat.
+      expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(4);
 
       rerender(<EntityHeader {...build(true)} />);
 
       expect(getGridRules().filter(rule => rule.includes('grid-template-areas'))).toEqual(
         loading
       );
-      expect(screen.getByText('A summary')).toBeInTheDocument();
       expect(screen.getByText('Chrome')).toBeInTheDocument();
     });
 

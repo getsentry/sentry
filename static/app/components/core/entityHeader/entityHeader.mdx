@@ -69,7 +69,7 @@ Use `EntityHeader` on a detail page — a single issue, trace, replay, release, 
     label: 'Replay stats',
     items: [{type: 'link', label: t('Errors'), value: errors.length, to: errorsTab}],
   }}
-  subtitle={{content: replay.summary}}
+  subtitle={replay.summary}
   metadata={{
     label: t('Replay properties'),
     items: [{label: t('Browser'), values: ['Chrome', '144.0.0']}],
@@ -128,7 +128,9 @@ Skeleton widths are fixed per slot rather than configurable. A caller-supplied w
 />
 ```
 
-A declared slot holds its space before its contents arrive. Passing `metadata` reserves the row even while every item is still `null`, and passing `subtitle` reserves its line even while `content` is empty — so a header whose data all lands at once does not grow a row and push the page down. Only an omitted slot leaves no row behind.
+A declared slot holds its space before its contents arrive. Passing `metadata` reserves the row even while every item is still `null`, so a header whose facts all land at once does not grow a row and push the page down. Only an omitted slot leaves no row behind.
+
+`subtitle` is the exception, because a node gives nothing to declare with: one that has not loaded is indistinguishable from one that was never passed, so its line appears when the text does.
 
 Slots that resolve on their own schedule carry their own flag, additive to the header's: `people.isLoading` for the avatar stack, and `isLoading` on an individual stat. Use the latter when a count arrives after the entity does — an issue knows its title before it knows how many events it has, and a stat without the flag would render the zero it happens to hold. The entity's own fields stay live throughout.
 

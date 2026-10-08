@@ -59,13 +59,12 @@ export interface EntityHeaderProps {
   /**
    * A single line of secondary text under the title, e.g. an error message.
    *
-   * Declaring the object reserves the row, so content that arrives after the
-   * first paint fills a space that was already there. `content` may be empty
-   * until it does.
+   * Unlike `metadata`, this row follows the content rather than the
+   * declaration: there is no way to tell a subtitle that has not loaded from
+   * one that was never passed. A subtitle arriving after the first paint adds
+   * its line then.
    */
-  subtitle?: {
-    content: React.ReactNode;
-  };
+  subtitle?: React.ReactNode;
 }
 
 function getGridTemplate({
@@ -172,13 +171,13 @@ export function EntityHeader({
 
         {hasContext && (
           <Stack area="context" minWidth={0}>
-            {subtitle && (
+            {hasSubtitle && (
               <Flex align="center" minWidth={0} minHeight={METADATA_TEXT_HEIGHT}>
                 {isLoading ? (
                   <Placeholder width="320px" height={METADATA_TEXT_HEIGHT} />
                 ) : (
                   <Text size="md" density="comfortable" ellipsis>
-                    {subtitle.content}
+                    {subtitle}
                   </Text>
                 )}
               </Flex>
