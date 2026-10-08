@@ -14,9 +14,10 @@ import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
-import type {
-  AggregateField,
-  WritableAggregateField,
+import {
+  serializeAggregateFields,
+  type AggregateField,
+  type WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -390,7 +391,7 @@ export function useSetQueryParamsGroupBys() {
         }
       }
 
-      const aggregateFields: WritableAggregateField[] = [];
+      const aggregateFields: AggregateField[] = [];
 
       const iter = groupBys[Symbol.iterator]();
 
@@ -403,7 +404,7 @@ export function useSetQueryParamsGroupBys() {
               aggregateFields.push({groupBy});
             }
           }
-          aggregateFields.push(aggregateField.serialize());
+          aggregateFields.push(aggregateField);
         } else if (isGroupBy(aggregateField)) {
           const {value: groupBy, done} = iter.next();
           if (!done) {
@@ -418,7 +419,7 @@ export function useSetQueryParamsGroupBys() {
         aggregateFields.push({groupBy});
       }
 
-      setQueryParams({aggregateFields, mode});
+      setQueryParams({aggregateFields: serializeAggregateFields(aggregateFields), mode});
     },
     [queryParams, setQueryParams]
   );

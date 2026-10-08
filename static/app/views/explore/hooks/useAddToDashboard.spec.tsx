@@ -23,14 +23,22 @@ describe('AddToDashboardButton', () => {
   let setMode: ReturnType<typeof useSetQueryParamsMode>;
   let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
-  function TestPage({visualizeIndex}: {visualizeIndex: number}) {
+  function TestPage({
+    visualizeIndex,
+    includeChartGroup,
+  }: {
+    visualizeIndex: number;
+    includeChartGroup?: boolean;
+  }) {
     // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setMode = useSetQueryParamsMode();
     // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setVisualizes = useSetQueryParamsVisualizes();
     const {addToDashboard} = useAddToDashboard();
     return (
-      <button onClick={() => addToDashboard(visualizeIndex)}>Add to Dashboard</button>
+      <button onClick={() => addToDashboard(visualizeIndex, {includeChartGroup})}>
+        Add to Dashboard
+      </button>
     );
   }
 
@@ -273,6 +281,45 @@ describe('AddToDashboardButton', () => {
               },
             ],
           },
+        ],
+      })
+    );
+  });
+
+  it('adds every aggregate plotted on the same chart', async () => {
+    render(
+      <Wrapper>
+        <TestPage visualizeIndex={0} includeChartGroup />
+      </Wrapper>
+    );
+
+    act(() => setMode(Mode.AGGREGATE));
+    act(() =>
+      setVisualizes([
+        {
+          yAxes: ['p50(span.duration)', 'p99(span.duration)'],
+          chartType: ChartType.LINE,
+        },
+        {
+          yAxes: ['count(span.duration)'],
+          chartType: ChartType.BAR,
+        },
+      ])
+    );
+
+    await userEvent.click(screen.getByText('Add to Dashboard'));
+
+    expect(openAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widgets: [
+          expect.objectContaining({
+            displayType: DisplayType.LINE,
+            queries: [
+              expect.objectContaining({
+                aggregates: ['p50(span.duration)', 'p99(span.duration)'],
+              }),
+            ],
+          }),
         ],
       })
     );

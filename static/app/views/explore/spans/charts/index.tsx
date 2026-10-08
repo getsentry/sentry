@@ -1,6 +1,5 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -12,14 +11,12 @@ import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
 import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
-import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
-import {usePrevious} from 'sentry/utils/usePrevious';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -38,7 +35,11 @@ import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContex
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  groupVisualizes,
+  serializeVisualizes,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
@@ -95,26 +96,6 @@ export function ExploreCharts({
   samplingMode,
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
-  const [combineChartsParam, setCombineChartsParam] = useQueryState(
-    'combineCharts',
-    parseAsBoolean.withDefault(false)
-  );
-
-  // Combining is only allowed when every visualization shares a value type,
-  // so the combined chart always has a single Y axis. The type comes from the
-  // response meta, so hold the last known answer while a request is pending,
-  // or when no visualization returned a series, to keep the combined chart
-  // from splitting apart on every refetch.
-  const sharedValueType = getSharedValueType(visualizes, timeseriesResult);
-  const isValueTypeUnknown = timeseriesResult.isPending || sharedValueType === undefined;
-  const previousSharedValueType = usePrevious(sharedValueType, isValueTypeUnknown);
-  const hasSharedValueType = defined(
-    isValueTypeUnknown ? previousSharedValueType : sharedValueType
-  );
-
-  const hasMultipleVisualizes = visualizes.length > 1;
-  const canCombineCharts = hasMultipleVisualizes && hasSharedValueType;
-  const combineCharts = canCombineCharts && combineChartsParam;
 
   function updateVisualizes(
     indices: number[],
@@ -124,16 +105,13 @@ export function ExploreCharts({
       if (indices.includes(i)) {
         visualize = visualize.replace(options);
       }
-      return visualize.serialize();
+      return visualize;
     });
-    setVisualizes(newVisualizes);
+    setVisualizes(serializeVisualizes(newVisualizes));
   }
 
-  // When charts are combined, every visualize is plotted on a single chart
-  // so they can be compared against a shared Y axis.
-  const chartGroups: ChartGroup[] = combineCharts
-    ? [{index: 0, visualizes}]
-    : visualizes.map((visualize, index) => ({index, visualizes: [visualize]}));
+  // Aggregates selected together in the toolbar share a chart and Y axis.
+  const chartGroups = useMemo(() => groupVisualizes(visualizes), [visualizes]);
 
   useSynchronizeCharts(
     chartGroups.length,
@@ -153,13 +131,6 @@ export function ExploreCharts({
               index={group.index}
               onChartTypeChange={chartType => updateVisualizes(indices, {chartType})}
               onChartVisibilityChange={visible => updateVisualizes(indices, {visible})}
-              combineCharts={hasMultipleVisualizes ? combineCharts : undefined}
-              canCombineCharts={canCombineCharts}
-              onCombineChartsChange={
-                hasMultipleVisualizes
-                  ? value => setCombineChartsParam(value ? true : null)
-                  : undefined
-              }
               query={query}
               timeseriesResult={timeseriesResult}
               visualizes={group.visualizes}
@@ -172,39 +143,6 @@ export function ExploreCharts({
       </WidgetSyncContextProvider>
     </ChartList>
   );
-}
-
-/**
- * Returns the value type (e.g. `duration`) shared by every visualize that has a
- * series, `null` when the types differ, or `undefined` when no visualize has a
- * series to read the type from. Visualizes without a series plot nothing, so
- * they cannot introduce a second Y axis and are ignored.
- */
-function getSharedValueType(
-  visualizes: readonly Visualize[],
-  timeseriesResult: SortedTimeSeries
-): string | null | undefined {
-  const valueTypes = new Set(
-    visualizes
-      .map(visualize => timeseriesResult.data[visualize.yAxis]?.[0]?.meta.valueType)
-      .filter(defined)
-  );
-  if (valueTypes.size === 0) {
-    return undefined;
-  }
-  if (valueTypes.size > 1) {
-    return null;
-  }
-  const [valueType] = valueTypes;
-  return valueType;
-}
-
-interface ChartGroup {
-  /**
-   * Index of the first visualize in this group.
-   */
-  index: number;
-  visualizes: readonly Visualize[];
 }
 
 function getChartInfo({
@@ -291,18 +229,10 @@ interface ChartProps {
   query: string;
   rawSpanCounts: RawCounts;
   timeseriesResult: SortedTimeSeries;
+  /**
+   * The visualizes plotted on this chart.
+   */
   visualizes: readonly Visualize[];
-  /**
-   * Whether every visualization can be plotted on a single chart. Charts can
-   * only be combined when all visualizations share a value type.
-   */
-  canCombineCharts?: boolean;
-  /**
-   * Whether all visualizes are plotted on a single chart. Leave undefined
-   * when there is nothing to combine.
-   */
-  combineCharts?: boolean;
-  onCombineChartsChange?: (combineCharts: boolean) => void;
   samplingMode?: SamplingMode;
   topEvents?: number;
 }
@@ -316,9 +246,6 @@ function Chart({
   rawSpanCounts,
   visualizes,
   timeseriesResult,
-  canCombineCharts,
-  combineCharts,
-  onCombineChartsChange,
   samplingMode,
   topEvents,
 }: ChartProps) {
@@ -439,24 +366,6 @@ function Chart({
           options={intervalOptions}
         />
       </Tooltip>
-      {defined(combineCharts) && onCombineChartsChange ? (
-        <Button
-          aria-label={combineCharts ? t('Split charts') : t('Combine charts')}
-          aria-pressed={combineCharts}
-          disabled={!canCombineCharts}
-          icon={<IconStack />}
-          onClick={() => onCombineChartsChange(!combineCharts)}
-          size="xs"
-          tooltipProps={{
-            title: canCombineCharts
-              ? combineCharts
-                ? t('Show each visualization in its own chart')
-                : t('Plot all visualizations on a single chart')
-              : t('Only visualizations with the same unit can be combined'),
-          }}
-          variant={combineCharts ? 'primary' : undefined}
-        />
-      ) : null}
       <ChartContextMenu
         key="context"
         visualizeYAxes={visualizes}

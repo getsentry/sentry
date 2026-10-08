@@ -326,8 +326,41 @@ describe('getReadableQueryParamsFromLocation', () => {
           aggregateFields: [
             new VisualizeFunction('count(span.duration)', {chartType: ChartType.AREA}),
             {groupBy: 'span.op'},
+            new VisualizeFunction('p50(span.duration)', {
+              chartGroup: expect.any(String),
+            }),
+            new VisualizeFunction('p75(span.duration)', {
+              chartGroup: expect.any(String),
+            }),
+          ],
+        })
+      )
+    );
+
+    // Percentiles of the same field listed together share a chart.
+    const [count, , p50, p75] = queryParams.aggregateFields as VisualizeFunction[];
+    expect(count!.chartGroup).toBeUndefined();
+    expect(p50!.chartGroup).toBe(p75!.chartGroup);
+  });
+
+  it('keeps a chart per y axis when the y axes cannot share a chart', () => {
+    const location = locationFixture({
+      aggregateField: [
+        {groupBy: 'span.op'},
+        {yAxes: ['count(span.duration)', 'p50(span.duration)']},
+        {yAxes: ['p50(span.duration)', 'p50(span.self_time)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          aggregateFields: [
+            {groupBy: 'span.op'},
+            new VisualizeFunction('count(span.duration)'),
             new VisualizeFunction('p50(span.duration)'),
-            new VisualizeFunction('p75(span.duration)'),
+            new VisualizeFunction('p50(span.duration)'),
+            new VisualizeFunction('p50(span.self_time)'),
           ],
         })
       )

@@ -28,6 +28,7 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {canShareChart} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const SPANS_MODE_KEY = 'mode';
@@ -229,7 +230,8 @@ export function defaultVisualizes(): [Visualize] {
 function getSpansAggregateFieldsFromLocation(location: Location): AggregateField[] {
   const aggregateFields = getAggregateFieldsFromLocation(
     location,
-    SPANS_AGGREGATE_FIELD_KEY
+    SPANS_AGGREGATE_FIELD_KEY,
+    {groupYAxes: canShareChart}
   );
 
   if (aggregateFields?.length) {
@@ -259,8 +261,9 @@ function getSpansAggregateFieldsFromLocation(location: Location): AggregateField
 
   return [
     ...(getGroupBysFromLocation(location, SPANS_GROUP_BY_KEY) ?? defaultGroupBys()),
-    ...(getVisualizesFromLocation(location, SPANS_VISUALIZATION_KEY) ??
-      defaultVisualizes()),
+    ...(getVisualizesFromLocation(location, SPANS_VISUALIZATION_KEY, {
+      groupYAxes: canShareChart,
+    }) ?? defaultVisualizes()),
   ];
 }
 

@@ -14,8 +14,9 @@ import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeB
 import * as chartVisualization from 'sentry/views/explore/components/chart/chartVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {parseVisualize, Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
+import {canShareChart} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -119,14 +120,10 @@ describe('ExploreCharts', () => {
     });
   });
 
-  describe('combine charts', () => {
-    // Only the meta matters for deciding whether charts can be combined. The
-    // series have no values so the charts render their empty state instead
-    // of ECharts.
+  describe('chart groups', () => {
+    // The series have no values so the charts render their empty state
+    // instead of ECharts.
     function timeSeriesFor(yAxis: string): TimeSeries {
-      if (yAxis === 'eps()') {
-        return TimeSeriesFixture({yAxis, values: []});
-      }
       return TimeSeriesFixture({
         yAxis,
         meta: {
@@ -139,30 +136,29 @@ describe('ExploreCharts', () => {
     }
 
     function ControlledExploreCharts({
-      yAxes,
-      chartTypes,
-      seriesYAxes = yAxes,
+      initialVisualizes,
+      onSetVisualizes,
     }: {
-      yAxes: string[];
-      chartTypes?: ChartType[];
-      // The y axes that returned a series. Defaults to every y axis.
-      seriesYAxes?: string[];
+      initialVisualizes: BaseVisualize[];
+      onSetVisualizes?: (visualizes: BaseVisualize[]) => void;
     }) {
+      const [serialized, setSerialized] = useState<BaseVisualize[]>(initialVisualizes);
+      const visualizes = useMemo(
+        () =>
+          serialized.flatMap(value => parseVisualize(value, {groupYAxes: canShareChart})),
+        [serialized]
+      );
       const timeseriesResult = useMemo(
         () =>
           timeseriesResultFixture({
             data: Object.fromEntries(
-              seriesYAxes.map(yAxis => [yAxis, [timeSeriesFor(yAxis)]])
+              visualizes.map(visualize => [
+                visualize.yAxis,
+                [timeSeriesFor(visualize.yAxis)],
+              ])
             ),
           }),
-        [seriesYAxes]
-      );
-      const [serialized, setSerialized] = useState<BaseVisualize[]>(() =>
-        yAxes.map((yAxis, i) => ({yAxes: [yAxis], chartType: chartTypes?.[i]}))
-      );
-      const visualizes = useMemo(
-        () => serialized.flatMap(value => Visualize.fromJSON(value)),
-        [serialized]
+        [visualizes]
       );
 
       return (
@@ -173,7 +169,10 @@ describe('ExploreCharts', () => {
               query=""
               timeseriesResult={timeseriesResult}
               visualizes={visualizes}
-              setVisualizes={setSerialized}
+              setVisualizes={newVisualizes => {
+                onSetVisualizes?.(newVisualizes);
+                setSerialized(newVisualizes);
+              }}
               rawSpanCounts={{
                 total: {count: 0, isLoading: false},
                 normal: {count: 0, isLoading: false},
@@ -184,124 +183,83 @@ describe('ExploreCharts', () => {
       );
     }
 
-    it('does not offer to combine a single chart', async () => {
-      render(<ControlledExploreCharts yAxes={['p50(span.duration)']} />, {
-        organization: OrganizationFixture(),
-      });
-
-      expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
-      expect(screen.queryByLabelText('Combine charts')).not.toBeInTheDocument();
-    });
-
-    it('plots every visualization on a single chart when combined', async () => {
-      const onNuqsUrlUpdate = jest.fn();
+    it('plots aggregates selected together on a single chart', async () => {
       render(
         <ControlledExploreCharts
-          yAxes={['p50(span.duration)', 'p75(span.duration)', 'p99(span.duration)']}
+          initialVisualizes={[
+            {yAxes: ['p50(span.duration)', 'p75(span.duration)', 'p99(span.duration)']},
+            {yAxes: ['count(span.duration)']},
+          ]}
         />,
-        {organization: OrganizationFixture(), onNuqsUrlUpdate}
+        {organization: OrganizationFixture()}
       );
 
-      expect(await screen.findAllByLabelText('Combine charts')).toHaveLength(3);
-      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(3);
-
-      await userEvent.click(screen.getAllByLabelText('Combine charts')[0]!);
-
-      expect(await screen.findByLabelText('Split charts')).toBeInTheDocument();
-      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(1);
+      expect(await screen.findAllByLabelText('Collapse chart')).toHaveLength(2);
       expect(
         screen.getByText('p50(span.duration), p75(span.duration), p99(span.duration)')
       ).toBeInTheDocument();
-      expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          queryString: expect.stringContaining('combineCharts=true'),
-        })
-      );
-
-      await userEvent.click(screen.getByLabelText('Split charts'));
-
-      expect(await screen.findAllByLabelText('Combine charts')).toHaveLength(3);
-      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(3);
+      expect(screen.queryByLabelText('Combine charts')).not.toBeInTheDocument();
     });
 
-    it('draws every combined visualization with the selected chart type', async () => {
+    it('draws each visualization on its own chart when selected separately', async () => {
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['p50(span.duration)']},
+            {yAxes: ['p75(span.duration)']},
+          ]}
+        />,
+        {organization: OrganizationFixture()}
+      );
+
+      expect(await screen.findAllByLabelText('Collapse chart')).toHaveLength(2);
+    });
+
+    it('draws every aggregate of a chart with its chart type', async () => {
       const useChartInfosPlottables = jest.spyOn(
         chartVisualization,
         'useChartInfosPlottables'
       );
       render(
         <ControlledExploreCharts
-          yAxes={['p50(span.duration)', 'sum(span.duration)']}
-          chartTypes={[ChartType.LINE, ChartType.BAR]}
+          initialVisualizes={[
+            {
+              yAxes: ['p50(span.duration)', 'p99(span.duration)'],
+              chartType: ChartType.BAR,
+            },
+          ]}
         />,
-        {
-          organization: OrganizationFixture(),
-          initialRouterConfig: {
-            location: {pathname: '/', query: {combineCharts: 'true'}},
-          },
-        }
+        {organization: OrganizationFixture()}
       );
 
-      expect(await screen.findByLabelText('Split charts')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
       const chartInfos = useChartInfosPlottables.mock.lastCall![0];
       expect(chartInfos.map(info => info.chartType)).toEqual([
-        ChartType.LINE,
-        ChartType.LINE,
+        ChartType.BAR,
+        ChartType.BAR,
       ]);
       useChartInfosPlottables.mockRestore();
     });
 
-    it('keeps charts combined when a visualization returns no series', async () => {
+    it('keeps the aggregates together when the chart is collapsed', async () => {
+      const onSetVisualizes = jest.fn();
       render(
         <ControlledExploreCharts
-          yAxes={['p50(span.duration)', 'p75(span.duration)']}
-          seriesYAxes={['p50(span.duration)']}
+          initialVisualizes={[{yAxes: ['p50(span.duration)', 'p99(span.duration)']}]}
+          onSetVisualizes={onSetVisualizes}
         />,
-        {
-          organization: OrganizationFixture(),
-          initialRouterConfig: {
-            location: {pathname: '/', query: {combineCharts: 'true'}},
-          },
-        }
+        {organization: OrganizationFixture()}
       );
 
-      expect(await screen.findByLabelText('Split charts')).toBeInTheDocument();
-      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(1);
-    });
+      await userEvent.click(await screen.findByLabelText('Collapse chart'));
 
-    it('keeps charts combined when a refetch returns no series', async () => {
-      const yAxes = ['p50(span.duration)', 'p75(span.duration)'];
-      const {rerender} = render(<ControlledExploreCharts yAxes={yAxes} />, {
-        organization: OrganizationFixture(),
-        initialRouterConfig: {location: {pathname: '/', query: {combineCharts: 'true'}}},
-      });
-
-      expect(await screen.findByLabelText('Split charts')).toBeInTheDocument();
-
-      rerender(<ControlledExploreCharts yAxes={yAxes} seriesYAxes={[]} />);
-
-      expect(await screen.findByLabelText('Split charts')).toBeInTheDocument();
-      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(1);
-    });
-
-    it('does not combine visualizations with different units', async () => {
-      render(<ControlledExploreCharts yAxes={['p50(span.duration)', 'eps()']} />, {
-        organization: OrganizationFixture(),
-        initialRouterConfig: {location: {pathname: '/', query: {combineCharts: 'true'}}},
-      });
-
-      const combineButtons = await screen.findAllByLabelText('Combine charts');
-      expect(combineButtons).toHaveLength(2);
-      for (const button of combineButtons) {
-        expect(button).toHaveAttribute('aria-disabled', 'true');
-      }
-      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(2);
-      expect(screen.queryByLabelText('Split charts')).not.toBeInTheDocument();
-
-      await userEvent.hover(combineButtons[0]!);
-      expect(
-        await screen.findByText('Only visualizations with the same unit can be combined')
-      ).toBeInTheDocument();
+      expect(onSetVisualizes).toHaveBeenLastCalledWith([
+        expect.objectContaining({
+          yAxes: ['p50(span.duration)', 'p99(span.duration)'],
+          visible: false,
+        }),
+      ]);
+      expect(await screen.findByLabelText('Expand chart')).toBeInTheDocument();
     });
   });
 
