@@ -7,8 +7,6 @@ import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconSeer} from 'sentry/icons';
-import {getDuration} from 'sentry/utils/duration/getDuration';
-import {SECOND} from 'sentry/utils/formatters';
 
 const ELAPSED_TIME_TICK_INTERVAL_MS = 100;
 
@@ -28,6 +26,21 @@ function useElapsedTime(startTime: Date, endTime: Date | undefined): number {
   }, [endTime]);
 
   return Math.max(0, (endTime ?? now).getTime() - startTime.getTime());
+}
+
+/**
+ * Formats elapsed ms as "5.3s" under a minute, else "1m 30s" or "1h 2m 3s".
+ */
+function formatElapsed(ms: number): string {
+  const tenths = Math.floor(ms / 100);
+  if (tenths < 600) {
+    return `${(tenths / 10).toFixed(1)}s`;
+  }
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return hours > 0 ? `${hours}h ${minutes}m ${seconds}s` : `${minutes}m ${seconds}s`;
 }
 
 /**
@@ -107,7 +120,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
         leadingItems={<IconSeer size="xs" animation={isActive ? 'loading' : undefined} />}
         trailingItems={
           <Text variant="secondary" size="sm" align="right" monospace>
-            {getDuration(elapsed / 1000, 1, true, false, false, SECOND)}
+            {formatElapsed(elapsed)}
           </Text>
         }
       >
