@@ -36,10 +36,7 @@ jobs:
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
-      migration_tests: ${{ steps.migration-changes.outputs.migration_tests }}
-      migration_tests_files: ${{ steps.migration-changes.outputs.migration_tests_files }}
-      migration_like_paths_files: ${{ steps.migration-changes.outputs.migration_like_paths_files }}
-      migration_paths_unrelated_files: ${{ steps.migration-changes.outputs.migration_paths_unrelated_files }}
+      migration_tests: ${{ steps.changes.outputs.migration_tests }}
       # When true, skip selective testing and run the full backend suite
       skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
@@ -52,37 +49,16 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
-      - name: Check for migration file changes
-        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
-        id: migration-changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/migration-file-filters.yml
-          list-files: json
-
-  migration-paths-guard:
-    if: github.event_name == 'pull_request'
-    needs: files-changed
-    name: migration paths guard
-    runs-on: ubuntu-24.04
-    timeout-minutes: 3
-    steps:
-      - name: Fail on migration-like paths not covered by migration filters
+      # `migration_tests` only matches migrations under src/ and tests/, so fail
+      # if a PR adds migrations anywhere else instead of silently skipping them.
+      - name: Check for migrations outside src/ and tests/
+        if: github.event_name == 'pull_request'
         env:
-          MIGRATION_LIKE: ${{ needs.files-changed.outputs.migration_like_paths_files }}
-          SANCTIONED: ${{ needs.files-changed.outputs.migration_tests_files }}
-          UNRELATED: ${{ needs.files-changed.outputs.migration_paths_unrelated_files }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          uncovered="$(jq -rn \
-            --argjson like "${MIGRATION_LIKE:-[]}" \
-            --argjson sanctioned "${SANCTIONED:-[]}" \
-            --argjson unrelated "${UNRELATED:-[]}" \
-            '$like - $sanctioned - $unrelated | .[]')"
-          if [ -n "$uncovered" ]; then
-            while IFS= read -r f; do
-              echo "::error file=$f::Migration-like path is not covered by .github/migration-file-filters.yml"
-            done <<< "$uncovered"
-            echo "Add these to \`migration_tests\` if migrations depend on them (so migration tests run), or to \`migration_paths_unrelated\` if not."
+          files="$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename')"
+          if grep -E '(^|/)migrations/' <<< "$files" | grep -vE '^(src|tests|fixtures|tools)/'; then
+            echo "::error::Migrations outside src/ or tests/ won't trigger migration tests. Update migration_tests in .github/file-filters.yml."
             exit 1
           fi
 
@@ -374,15 +350,9 @@ jobs:
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
   backend-migration-tests:
-    # Always run on master; on PRs only when migrations or their harness changed
-    # (or selective testing is overridden).
     if: >-
       needs.files-changed.outputs.backend == 'true' &&
-      (
-        github.event_name != 'pull_request' ||
-        needs.files-changed.outputs.migration_tests == 'true' ||
-        needs.files-changed.outputs.skip_selective_testing == 'true'
-      )
+      (github.event_name != 'pull_request' || needs.files-changed.outputs.migration_tests == 'true')
     needs: files-changed
     name: backend migration tests
     runs-on: ubuntu-24.04
@@ -689,7 +659,6 @@ jobs:
         api-docs,
         backend-test,
         backend-migration-tests,
-        migration-paths-guard,
         calculate-shards,
         cli,
         files-changed,

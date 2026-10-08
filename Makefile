@@ -134,12 +134,10 @@ test-python-ci:
 		-o junit_suite_name=pytest
 	@echo ""
 
-# Only collect migration test dirs to avoid collecting the whole suite just to
-# deselect everything but `-m migrations`.
 test-migrations-ci:
 	@echo "--> Running CI Python migration tests"
 	python3 -b -m pytest \
-		$$(find tests -type d -name migrations -not -path 'tests/acceptance/*' | sort) \
+		$$(find tests -type d -name migrations) \
 		-m migrations \
 		--migrations \
 		--reruns 0 \
