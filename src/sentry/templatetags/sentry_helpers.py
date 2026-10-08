@@ -14,7 +14,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from packaging.version import parse as parse_version
 
-from sentry import options
+from sentry import application_state, options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
@@ -265,7 +265,7 @@ def get_sentry_version(context):
 
     current = sentry.VERSION
 
-    latest = options.get("sentry:latest_version") or current
+    latest = application_state.get("sentry:latest_version") or current
     update_available = parse_version(latest) > parse_version(current)
     build = sentry.__build__ or current
 

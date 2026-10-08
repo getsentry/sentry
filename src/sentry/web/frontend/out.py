@@ -3,7 +3,7 @@ from django.http.response import HttpResponseBase
 from django.views.generic import View
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import application_state
 from sentry.utils.settings import is_self_hosted
 from sentry.web.frontend.base import control_silo_view
 
@@ -14,7 +14,7 @@ class OutView(View):
         if not is_self_hosted():
             raise Http404
 
-        install_id = options.get("sentry:install-id")
+        install_id = application_state.get("sentry:install-id")
         if install_id:
             query = "?install_id=" + install_id
         else:

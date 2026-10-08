@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 import sentry
-from sentry import options
+from sentry import application_state, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -151,11 +151,8 @@ class SystemOptionsEndpoint(Endpoint):
                     },
                     status=400,
                 )
-        # TODO(dcramer): this has nothing to do with configuring options and
-        # should not be set here
-        options.set(
+        application_state.set(
             "sentry:version-configured",
             sentry.get_version(),
-            channel=options.UpdateChannel.APPLICATION,
         )
         return Response(status=200)
