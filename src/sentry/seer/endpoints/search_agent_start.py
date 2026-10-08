@@ -199,7 +199,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         result_target = infer_result_target(request)
         sentry_sdk.set_tag("search_agent.result_target", result_target.value)
         referrer = resolve_referrer(request, validated_data.get("referrer"))
-        sentry_sdk.set_tag("search_agent.referrer", referrer.value)
+        sentry_sdk.set_tag("referrer", referrer.value)
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
