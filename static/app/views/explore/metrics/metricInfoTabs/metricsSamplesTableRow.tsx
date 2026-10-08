@@ -1,4 +1,5 @@
-import {Fragment, useRef, useState, type ReactNode, type RefObject} from 'react';
+import {Fragment, memo, useRef, useState, type ReactNode, type RefObject} from 'react';
+import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -18,7 +19,6 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
 import {FieldValueType} from 'sentry/utils/fields';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Actions} from 'sentry/views/discover/table/cellAction';
@@ -37,7 +37,6 @@ import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTab
 import {
   defaultAggregateSortBys,
   defaultMetricQuery,
-  stripMetricParamsFromLocation,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
@@ -166,6 +165,7 @@ interface SampleTableRowProps {
   columns: SampleTableColumnKey[];
   meta: EventsMetaType;
   row: TraceMetricEventsResponseItem;
+  traceLinkLocation: Pick<Location, 'pathname' | 'query'>;
   ref?: RefObject<HTMLTableRowElement | null>;
   routingHint?: string;
   source?: MetricsSamplesTableSource;
@@ -273,17 +273,17 @@ function MetricDefaultCell({
   );
 }
 
-export function SampleTableRow({
+export const SampleTableRow = memo(function SampleTableRow({
   routingHint,
   row,
   columns,
   meta,
   source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
+  traceLinkLocation,
   ref,
 }: SampleTableRowProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
   const measureRef = useRef<HTMLTableRowElement>(null);
   const projects = useProjects();
@@ -312,14 +312,12 @@ export function SampleTableRow({
     const spanId = row[TraceMetricKnownFieldKey.SPAN_ID];
     const oldSpanId = row[TraceMetricKnownFieldKey.OLD_SPAN_ID] as string;
     const spanIdToUse = oldSpanId || spanId;
-    const strippedLocation = stripMetricParamsFromLocation(location);
-
     const target = getTraceDetailsUrl({
       organization,
       traceSlug: traceId,
       dateSelection: normalizeDateTimeParams(selection.datetime),
       timestamp,
-      location: strippedLocation,
+      location: traceLinkLocation,
       source: TraceViewSources.TRACE_METRICS,
       spanId: spanIdToUse || undefined,
       // tab: spanIdToUse ? TraceLayoutTabKeys.WATERFALL : TraceLayoutTabKeys.METRICS, // TODO: Can use this if want to go to the waterfall view if we add metrics to span details.
@@ -402,4 +400,4 @@ export function SampleTableRow({
       )}
     </Fragment>
   );
-}
+});
