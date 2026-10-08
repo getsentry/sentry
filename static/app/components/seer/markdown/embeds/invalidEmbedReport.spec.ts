@@ -40,8 +40,8 @@ describe('describeInvalidEmbed', () => {
     const report = reportFor('event', {event_id: 'efae0baac11e4a44986616c070d1f60d'});
 
     expect(report.failures).toEqual([
-      'id: expected string, received missing',
-      'issueId: expected string, received missing',
+      'id: Invalid input, received missing',
+      'issueId: Invalid input, received missing',
     ]);
     expect(report.receivedKeys).toEqual(['event_id']);
     expect(report.unexpectedKeys).toEqual(['event_id']);
