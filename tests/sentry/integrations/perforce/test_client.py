@@ -388,7 +388,14 @@ class PerforceClientTest(TestCase):
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_get_changes_with_end_cl(self, mock_p4_class):
-        """Test get_changes filters by end changelist"""
+        """Test an end-only request (initial release, no previous changelist).
+
+        The ``-e`` flag is deliberately NOT used: ``p4 changes -e N`` returns
+        changes >= N (a lower bound to HEAD), the opposite of an upper bound. A
+        bare ``@end_cl`` specifier already means "at or before end_cl", so with
+        -m it yields the most recent max_changes changes up to end_cl. No "@0"
+        floor is synthesized -- changelist 0 is not a real changelist.
+        """
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
@@ -411,20 +418,21 @@ class PerforceClientTest(TestCase):
 
         changes = self.p4_client.get_changes("//depot/...", max_changes=20, end_cl=12346)
 
-        # Verify -e flag was used for end_cl
-        mock_p4.run.assert_called_once_with(
-            "changes", "-m", "20", "-l", "-e", "12346", "//depot/..."
-        )
+        # Bare inclusive upper-bound specifier on the path (not -e, not an "@0" floor).
+        mock_p4.run.assert_called_once_with("changes", "-m", "20", "-l", "//depot/...@12346")
 
         assert len(changes) == 2
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_get_changes_with_start_cl(self, mock_p4_class):
-        """Test get_changes filters by start changelist (exclusive)"""
+        """Test get_changes bounds the lower end exclusively via the revision range.
+
+        An exclusive lower bound (changes strictly after start_cl) becomes an
+        inclusive ``start_cl + 1`` in Perforce range syntax, running to ``@now``.
+        """
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
-        # Mock returns changes 12345, 12346, 12347
         mock_p4.run.return_value = [
             {
                 "change": "12347",
@@ -440,27 +448,25 @@ class PerforceClientTest(TestCase):
                 "time": "1609545600",
                 "desc": "Change 2",
             },
-            {
-                "change": "12345",
-                "user": "user1",
-                "client": "ws1",
-                "time": "1609459200",
-                "desc": "Change 1",
-            },
         ]
 
-        # Filter out changes <= 12345 (only want changes > 12345)
         changes = self.p4_client.get_changes("//depot/...", max_changes=20, start_cl=12345)
 
-        # Verify no -s flag (Perforce doesn't have one)
-        # Client-side filtering is done for start_cl
+        # start_cl=12345 is exclusive -> range begins at 12346, runs to @now.
+        mock_p4.run.assert_called_once_with("changes", "-m", "20", "-l", "//depot/...@12346,@now")
+
         assert len(changes) == 2
         assert changes[0]["change"] == "12347"
         assert changes[1]["change"] == "12346"
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_get_changes_with_range(self, mock_p4_class):
-        """Test get_changes filters by start and end changelist range"""
+        """Test get_changes bounds both ends via the revision range.
+
+        A request for (start_cl, end_cl] must query the inclusive Perforce range
+        ``@start_cl+1,@end_cl`` so the server returns exactly that window rather
+        than everything from end_cl to HEAD.
+        """
         mock_p4 = mock.Mock()
         mock_p4_class.return_value = mock_p4
 
@@ -478,13 +484,6 @@ class PerforceClientTest(TestCase):
                 "client": "ws2",
                 "time": "1609545600",
                 "desc": "Change 2",
-            },
-            {
-                "change": "12345",
-                "user": "user1",
-                "client": "ws1",
-                "time": "1609459200",
-                "desc": "Change 1",
             },
         ]
 
@@ -493,10 +492,75 @@ class PerforceClientTest(TestCase):
             "//depot/...", max_changes=20, start_cl=12345, end_cl=12348
         )
 
-        # Should filter out 12345 (exclusive lower bound)
+        # Exclusive lower bound -> @12346; inclusive upper bound -> @12348.
+        mock_p4.run.assert_called_once_with("changes", "-m", "20", "-l", "//depot/...@12346,@12348")
+
         assert len(changes) == 2
         assert changes[0]["change"] == "12347"
         assert changes[1]["change"] == "12346"
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_changes_single_changelist(self, mock_p4_class):
+        """A one-CL window (start_cl == end_cl - 1... i.e. pin one CL) resolves
+        to an inclusive single-value range like ``@N,@N``."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        mock_p4.run.return_value = [
+            {
+                "change": "13000",
+                "user": "user1",
+                "client": "ws1",
+                "time": "1609459200",
+                "desc": "Single change",
+            },
+        ]
+
+        # Associate exactly changelist 13000: previousCommit=12999, commit=13000.
+        changes = self.p4_client.get_changes(
+            "//depot/...", max_changes=20, start_cl=12999, end_cl=13000
+        )
+
+        mock_p4.run.assert_called_once_with("changes", "-m", "20", "-l", "//depot/...@13000,@13000")
+
+        assert len(changes) == 1
+        assert changes[0]["change"] == "13000"
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_changes_wide_range_not_truncated(self, mock_p4_class):
+        """A window wider than max_changes must not be capped to max_changes.
+
+        ``p4 changes -m N`` returns only the N highest-numbered changes, so a
+        fixed ``-m 20`` would silently drop the older end of a large release.
+        -m must be sized to cover the whole interval instead.
+        """
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+        mock_p4.run.return_value = []
+
+        # previousCommit=1000, commit=1100 -> range [1001, 1100], 100 CLs wide,
+        # well above the default max_changes=20.
+        self.p4_client.get_changes("//depot/...", max_changes=20, start_cl=1000, end_cl=1100)
+
+        # -m must cover the full window (1100 - 1001 + 1 = 100), not the cap of 20.
+        mock_p4.run.assert_called_once_with("changes", "-m", "100", "-l", "//depot/...@1001,@1100")
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_get_changes_empty_window_returns_early(self, mock_p4_class):
+        """An empty window (previousCommit == commit) returns [] without querying.
+
+        start_cl is exclusive, so start_cl == end_cl selects no changes; it must
+        not form an inverted "@hi,@lo" range.
+        """
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        changes = self.p4_client.get_changes(
+            "//depot/...", max_changes=20, start_cl=1234, end_cl=1234
+        )
+
+        assert changes == []
+        mock_p4.run.assert_not_called()
 
     @mock.patch("sentry.integrations.perforce.client.P4")
     def test_get_changes_type_validation(self, mock_p4_class):

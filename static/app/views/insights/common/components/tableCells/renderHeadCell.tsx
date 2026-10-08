@@ -1,21 +1,18 @@
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {getNextSort} from 'sentry/components/tables/getNextSort';
 import type {
   ColumnAlign,
   GridColumnHeader,
   GridColumnSort,
-} from 'sentry/components/tables/gridEditable';
-import {encodeSort} from 'sentry/utils/discover/eventView';
+} from 'sentry/components/tables/dataGrid';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
   fieldAlignment,
   parseFunction,
 } from 'sentry/utils/discover/fields';
+import {encodeSort} from 'sentry/utils/queryString';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -66,15 +63,6 @@ export const getColumnSort = ({
   };
 };
 
-export const renderHeadCell = ({column}: Pick<Options, 'column'>) =>
-  column.tooltip ? (
-    <StyledTooltip showUnderline title={column.tooltip}>
-      {column.name}
-    </StyledTooltip>
-  ) : (
-    column.name
-  );
-
 export const getAlignment = (key: string): ColumnAlign => {
   const result = parseFunction(key);
 
@@ -90,8 +78,3 @@ export const getAlignment = (key: string): ColumnAlign => {
   }
   return 'left';
 };
-
-const StyledTooltip = styled(Tooltip)`
-  top: 1px;
-  position: relative;
-`;

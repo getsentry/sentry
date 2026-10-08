@@ -8,12 +8,9 @@ from jsonschema.exceptions import ValidationError
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule, RuleSource
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
-from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
-    ComparisonType,
     EventUniqueUserFrequencyConditionWithConditions,
 )
 from sentry.rules.conditions.every_event import EveryEventCondition
@@ -22,9 +19,11 @@ from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
-from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import ComparisonType
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,
@@ -279,42 +278,6 @@ class IssueAlertMigratorTest(TestCase):
         )
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
-
-        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
-        action = dcg_actions.action
-        assert action.type == Action.Type.SLACK
-
-    def test_run__snoozed_rule(self) -> None:
-        # create_project_rule runs the IssueAlertMigrator
-        issue_alert = self.create_project_rule(
-            name="test",
-            condition_data=self.rule_conditions,
-            action_match="any",
-            filter_match="any",
-            action_data=self.action_data,
-            frequency=5,
-        )
-        RuleSnooze.objects.create(rule=issue_alert)
-
-        self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
-
-        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
-        action = dcg_actions.action
-        assert action.type == Action.Type.SLACK
-
-    def test_run__snoozed_rule_for_user(self) -> None:
-        # create_project_rule runs the IssueAlertMigrator
-        issue_alert = self.create_project_rule(
-            name="test",
-            condition_data=self.rule_conditions,
-            action_match="any",
-            filter_match="any",
-            action_data=self.action_data,
-            frequency=5,
-        )
-        RuleSnooze.objects.create(rule=issue_alert, user_id=self.user.id)
-
-        self.assert_issue_alert_migrated(issue_alert, is_enabled=True)
 
         dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action

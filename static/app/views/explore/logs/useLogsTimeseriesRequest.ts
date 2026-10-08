@@ -68,7 +68,6 @@ export function useLogsTimeseriesRequest({
       topEvents: topEventsLimit,
       orderby,
       caseInsensitive,
-      includeMeasuredIngestionDelayMetadata: true,
       ...queryExtras,
     };
   }, [

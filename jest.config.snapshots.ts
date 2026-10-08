@@ -6,6 +6,12 @@ import type {Options as SwcOptions} from '@swc/core';
 const {CI, GITHUB_PR_SHA, GITHUB_PR_REF, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT, SENTRY_DSN} =
   process.env;
 
+// `GITHUB_PR_REF` is the head branch name on pull requests, but a fully qualified
+// ref (`refs/heads/master`) on pushes. Normalize both down to a bare branch name
+// for tagging. Keep the master check on the raw ref: only a push to master is
+// `refs/heads/master`, so a pull request opened from a branch named `master`
+// stays `ci:pull_request`.
+const BRANCH = GITHUB_PR_REF?.replace(/^refs\/heads\//, '');
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const swcConfig: SwcOptions = {
@@ -53,7 +59,7 @@ const config: Config.InitialOptions = {
   // testEnvironment and testMatch are the core differences between this and the main config
   testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment-node.js',
   testMatch: ['<rootDir>/static/**/*.snapshots.tsx'],
-  testPathIgnorePatterns: ['/node_modules/'],
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/static/packages/scraps/'],
   // Coding agents check out nested git worktrees under .claude/worktrees/, each a
   // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
   // mock in static/ collides with its copies and the file that ends up backing
@@ -68,13 +74,13 @@ const config: Config.InitialOptions = {
         profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
-      transactionOptions: {
-        tags: {
-          branch: GITHUB_PR_REF,
-          commit: GITHUB_PR_SHA,
-          github_run_attempt: GITHUB_RUN_ATTEMPT,
-          github_actions_run: `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
-        },
+      // Set as tags (for error events) and, via withTagsAsSpanAttributes, as span
+      // attributes, so every span in the trace can be filtered by them.
+      tags: {
+        'ci.branch': BRANCH,
+        'ci.commit': GITHUB_PR_SHA,
+        'ci.github_run_attempt': GITHUB_RUN_ATTEMPT,
+        'ci.github_actions_run': `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
       },
     },
   },
@@ -82,11 +88,18 @@ const config: Config.InitialOptions = {
   setupFiles: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-setup.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-framework.ts'],
 
+  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
-    '^@sentry/scraps/(.*)': '<rootDir>/static/app/components/core/$1',
+    '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
+    '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
+    // The app falls back to core components until they move into scraps.
+    '^@sentry/scraps/(.*)$': [
+      '<rootDir>/static/packages/scraps/src/$1',
+      '<rootDir>/static/app/components/core/$1',
+    ],
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
     '^admin/(.*)': '<rootDir>/static/gsAdmin/$1',
     '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',

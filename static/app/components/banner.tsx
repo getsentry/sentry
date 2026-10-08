@@ -1,9 +1,10 @@
 import {useState} from 'react';
-import {css} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -31,6 +32,18 @@ type BannerWrapperProps = {
   backgroundImg?: string;
 };
 
+const BannerFlex = styled(Flex, {
+  shouldForwardProp: prop => prop !== 'backgroundImg',
+})<{backgroundImg?: string}>`
+  background-color: ${p => (p.backgroundImg ? 'transparent' : p.theme.colors.gray800)};
+  background-image: ${p => (p.backgroundImg ? `url(${p.backgroundImg})` : 'none')};
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow: ${p => p.theme.shadow.medium};
+  color: ${p => p.theme.tokens.content.onVibrant.light};
+`;
+
 type Props = BannerWrapperProps & {
   children?: React.ReactNode;
   className?: string;
@@ -49,99 +62,63 @@ export function Banner({
   children,
 }: Props) {
   const [dismissed, dismiss] = useDismissable(dismissKey);
+  const theme = useTheme();
 
   if (dismissed) {
     return null;
   }
 
   return (
-    <BannerWrapper backgroundImg={backgroundImg} className={className}>
-      {backgroundComponent}
-      <CloseButton
-        type="button"
-        size="xs"
-        variant="link"
-        icon={<IconClose />}
-        onClick={dismiss}
-        aria-label={t('Close')}
-      />
-      <BannerContent>
-        <BannerTitle>{title}</BannerTitle>
-        <BannerSubtitle>{subtitle}</BannerSubtitle>
-        <StyledButtonBar>{children}</StyledButtonBar>
-      </BannerContent>
-    </BannerWrapper>
+    <Container position="relative" marginBottom="xl">
+      <BannerFlex
+        className={className}
+        backgroundImg={backgroundImg}
+        align="center"
+        justify="center"
+        position="relative"
+        overflow="hidden"
+        radius="md"
+        height={{zero: '180px', xl: '220px'}}
+      >
+        {backgroundComponent}
+        <Grid
+          position="absolute"
+          justifyItems="center"
+          rows="repeat(3, max-content)"
+          padding="3xl"
+        >
+          <Heading
+            as="h1"
+            align="center"
+            size={{zero: '2xl', xl: '3xl'}}
+            variant="inherit"
+          >
+            {title}
+          </Heading>
+          <Text as="div" align="center" size={{zero: 'md', xl: 'lg'}} variant="inherit">
+            {subtitle}
+          </Text>
+          <Grid flow="column" align="center" gap="md" width="fit-content" paddingTop="xl">
+            {children}
+          </Grid>
+        </Grid>
+      </BannerFlex>
+      <Container
+        position="absolute"
+        top={`-${theme.space.md}`}
+        right={`-${theme.space.md}`}
+        style={{zIndex: 1}}
+      >
+        <Button
+          size="zero"
+          icon={<IconClose />}
+          onClick={dismiss}
+          aria-label={t('Close')}
+          style={{borderRadius: '50%'}}
+        />
+      </Container>
+    </Container>
   );
 }
 
 Banner.dismiss = dismissBanner;
-
-const BannerWrapper = styled('div')<BannerWrapperProps>`
-  ${p =>
-    p.backgroundImg
-      ? css`
-          background: url(${p.backgroundImg});
-          background-repeat: no-repeat;
-          background-size: cover;
-          background-position: center center;
-        `
-      : css`
-          background-color: ${p.theme.colors.gray800};
-        `}
-  display: flex;
-  overflow: hidden;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  margin-bottom: ${p => p.theme.space.xl};
-  box-shadow: ${p => p.theme.shadow.medium};
-  border-radius: ${p => p.theme.radius.md};
-  height: 180px;
-  color: ${p => p.theme.colors.white};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    height: 220px;
-  }
-`;
-
-const BannerContent = styled('div')`
-  position: absolute;
-  display: grid;
-  justify-items: center;
-  grid-template-rows: repeat(3, max-content);
-  text-align: center;
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const BannerTitle = styled('h1')`
-  margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: 40px;
-  }
-`;
-
-const BannerSubtitle = styled('div')`
-  margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.xl};
-  }
-`;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  margin-top: ${p => p.theme.space.xl};
-  width: fit-content;
-`;
-
-const CloseButton = styled(Button)`
-  position: absolute;
-  display: block;
-  top: ${p => p.theme.space.xl};
-  right: ${p => p.theme.space.xl};
-  color: ${p => p.theme.colors.white};
-  cursor: pointer;
-  z-index: 1;
-`;

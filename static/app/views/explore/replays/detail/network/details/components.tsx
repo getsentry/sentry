@@ -2,10 +2,10 @@ import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -54,25 +54,25 @@ export function SizeTooltip({children}: {children: ReactNode}) {
 export type KeyValueTuple = {
   key: string;
   value: string | ReactNode;
-  type?: 'warning' | 'error';
+  type?: 'warning';
 };
 
 export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: string) {
   return data.length ? (
-    <StyledKeyValueTable>
+    <NetworkDescriptionList striped>
       {data.map(({key, value, type}) => (
-        <KeyValueTableRow
-          key={key}
-          keyName={key}
-          type={type}
-          value={
+        <Fragment key={key}>
+          <DescriptionList.Term data-warning={type === 'warning' || undefined}>
+            {key}
+          </DescriptionList.Term>
+          <DescriptionList.Details data-warning={type === 'warning' || undefined}>
             <Container as="span" overflow="auto">
               {value}
             </Container>
-          }
-        />
+          </DescriptionList.Details>
+        </Fragment>
       ))}
-    </StyledKeyValueTable>
+    </NetworkDescriptionList>
   ) : (
     <Indent>
       <NotFoundText>{notFoundText}</NotFoundText>
@@ -142,7 +142,7 @@ export function SectionItem({
   );
 }
 
-const StyledKeyValueTable = styled(KeyValueTable)`
+const NetworkDescriptionList = styled(DescriptionList)`
   & > dt {
     font-size: ${p => p.theme.font.size.sm};
     padding-left: ${p => p.theme.space['3xl']};
@@ -156,5 +156,9 @@ const StyledKeyValueTable = styled(KeyValueTable)`
     justify-content: flex-end;
     white-space: normal;
     text-align: right;
+  }
+  & > dt[data-warning],
+  & > dd[data-warning] {
+    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
   }
 `;

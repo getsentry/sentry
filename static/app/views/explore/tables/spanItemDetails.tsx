@@ -38,9 +38,9 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {sortAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {sortAttributes} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 const HIDDEN_SPAN_DETAIL_ATTRIBUTES = new Set(['is_segment', 'project_id', 'received']);
 
@@ -144,6 +144,7 @@ export function SpanItemDetails({
     <SpanItemDetailsContainer>
       <AttributesTree<SpanAttributesRendererExtra>
         attributes={visibleAttributes}
+        config={{attributeDetailsType: 'span'}}
         getCustomActions={getActions}
         renderers={renderers}
         rendererExtra={{
@@ -178,7 +179,7 @@ function useSpanAttributesTreeActions() {
 
   return useCallback(
     (content: AttributesTreeContent) => {
-      const attribute = content.originalAttribute;
+      const attribute = content.original;
       if (!attribute) {
         return [];
       }

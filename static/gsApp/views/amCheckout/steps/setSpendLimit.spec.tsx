@@ -89,9 +89,7 @@ describe('SetSpendLimit', () => {
     );
 
     expect(await screen.findByText('Set your on-demand limit')).toBeInTheDocument();
-    expect(
-      screen.getByRole('radio', {name: 'Shared spending limit mode'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Shared spending limit mode'})).toBeChecked();
     expect(
       screen.getByRole('textbox', {name: 'Custom shared spending limit (in dollars)'})
     ).toBeInTheDocument();
@@ -102,8 +100,9 @@ describe('SetSpendLimit', () => {
     const perCategoryRadio = screen.getByRole('radio', {
       name: 'Per-category spending limit mode',
     });
-    expect(perCategoryRadio).toBeInTheDocument();
+    expect(perCategoryRadio).not.toBeChecked();
     await userEvent.click(perCategoryRadio);
+    expect(perCategoryRadio).toBeChecked();
 
     expect(
       screen.queryByRole('textbox', {name: 'Custom shared spending limit (in dollars)'})

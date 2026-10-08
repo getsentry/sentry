@@ -1,14 +1,15 @@
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconEllipsis} from 'sentry/icons';
 
 interface BreadcrumbMenuLinkItem {
   key: string;
   label: string;
-  to: LinkProps['to'];
+  externalHref?: string;
+  to?: LinkProps['to'];
 }
 
 interface BreadcrumbItemMenuBreadcrumbsProps {

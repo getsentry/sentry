@@ -6,14 +6,17 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock, IconContract, IconExpand, IconGraph, IconStack} from 'sentry/icons';
+import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
+import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
+import {hasDroppedData} from 'sentry/components/droppedData/utils';
+import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -35,6 +38,7 @@ import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
@@ -77,8 +81,6 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
 ];
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
-
-const DROPPED_DATA_LAYER = 'dropped-data';
 
 export function ExploreCharts({
   query,
@@ -169,20 +171,15 @@ function Chart({
   samplingMode,
   topEvents,
 }: ChartProps) {
-  const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const hasAnnotations = organization.features.includes(
-    'explore-data-fidelity-annotations'
-  );
-  const droppedData = hasAnnotations
-    ? timeseriesResult.meta?.droppedAnnotations
-    : undefined;
-  const acceptedData = hasAnnotations
-    ? timeseriesResult.meta?.acceptedAnnotations
-    : undefined;
-  const hasDroppedData = defined(droppedData) && droppedData.length > 0;
-  const [showDroppedData, setShowDroppedData] = useState(true);
+  const dataset = useSpansDataset();
+  const {droppedEvents, acceptedEvents} = useDroppedData({dataset});
+  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
+  const openDroppedDataDrawer = useDroppedDataDrawer(dataset);
+  const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
+  const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
+
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -277,29 +274,11 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {hasDroppedData ? (
-        <Tooltip title={t('Show or hide additional layers on this chart')}>
-          <CompactSelect
-            multiple
-            value={showDroppedData ? [DROPPED_DATA_LAYER] : []}
-            options={[{value: DROPPED_DATA_LAYER, label: t('Dropped Data')}]}
-            menuTitle={t('Layers')}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                aria-label={t('Chart layers')}
-                icon={<IconStack />}
-                variant="transparent"
-                showChevron={false}
-                size="xs"
-              />
-            )}
-            onChange={selected => {
-              const values = selected.map(option => option.value);
-              setShowDroppedData(values.includes(DROPPED_DATA_LAYER));
-            }}
-          />
-        </Tooltip>
+      {canShowDroppedData ? (
+        <DroppedDataLayerControl
+          showDroppedData={isDroppedDataLayerOn}
+          onChange={setIsDroppedDataLayerOn}
+        />
       ) : null}
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
         <CompactSelect
@@ -372,9 +351,15 @@ function Chart({
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
-              acceptedData={acceptedData}
-              droppedData={droppedData}
-              showDroppedData={showDroppedData}
+              droppedData={
+                showDroppedDataBand
+                  ? {
+                      droppedEvents,
+                      acceptedEvents,
+                      onClick: openDroppedDataDrawer,
+                    }
+                  : undefined
+              }
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
                 onSelectionEnd: () => {

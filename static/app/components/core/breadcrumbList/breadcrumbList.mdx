@@ -23,8 +23,8 @@ export const documentation = import('!!type-loader!@sentry/scraps/breadcrumbList
 
 `BreadcrumbList` renders the parent portion of a horizontal breadcrumb trail. It
 does not render a navigation landmark or a page heading. Render the current page
-with `BreadcrumbList.Title` in the `TopBar` title slot; `TopBar` supplies the
-page's single `<h1>`.
+with the `title` prop of `TopBar.Slot name="breadcrumbs"`; `BreadcrumbList.Title`
+supplies the page's single `<h1>`.
 
 ## Usage
 
@@ -33,21 +33,16 @@ import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {TopBar} from 'sentry/views/navigation/topBar';
 ```
 
-The `title` slot is always the page's single `<h1>`. `BreadcrumbList.Title`
-renders title content _without_ a heading of its own, so the slot supplies the
-heading and the item supplies everything else — a leading graphic, a tooltip,
-pagination, trailing actions, or an editable field. Never change the title
-slot's element.
+Pass the page title as a typed `title` prop to `TopBar.Slot name="breadcrumbs"`.
+TopBar renders `BreadcrumbList.Title` internally, which supplies the page's single
+`<h1>`. The title item supports a leading graphic, a tooltip, pagination,
+trailing actions, or an editable field.
 
-Use `BreadcrumbList.Title` on every page, whether or not it has parents. A plain
-string in the title slot renders, but it forfeits every one of those props.
+The `title` prop is required. There is no separate `name="title"` slot.
 
 ### Index pages
 
-An index page has no parents, so it renders the title slot alone — no `items`
-array and no `breadcrumbs` slot. Reaching for `BreadcrumbList.Title` here rather
-than a bare string is what keeps a leading graphic or a trailing action
-available if the page needs one later.
+An index page has no parents. Pass only `title` and omit `items`.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -56,16 +51,14 @@ available if the page needs one later.
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title item={{type: 'page-title', label: 'Dashboards'}} />
-</TopBar.Slot>
+<TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: 'Dashboards'}} />
 ```
 
 ### Pages with parents
 
-Add the `breadcrumbs` slot, which renders to the left of the title. Pass parent
-crumbs in a typed `items` array: each entry is a discriminated union, a `type`
-key plus that type's own props flattened onto the same object.
+Pass parent crumbs through the slot's `items` prop. TopBar renders them with
+`BreadcrumbList` to the left of the title. The slot does not accept children.
+Each item in the typed array is a discriminated union: a `type` key plus that type's own props flattened onto the same object.
 
 Keep the current page out of `items`. It is the title, not a crumb — leaving it
 in renders the page name twice.
@@ -87,27 +80,24 @@ in renders the page name twice.
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
-      {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
-      {
-        type: 'link',
-        label: 'javascript',
-        to: '/settings/org-slug/projects/javascript/',
-      },
-    ]}
-  />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title item={{type: 'page-title', label: 'General Settings'}} />
-</TopBar.Slot>
+<TopBar.Slot
+  name="breadcrumbs"
+  title={{type: 'page-title', label: 'General Settings'}}
+  items={[
+    {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
+    {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
+    {
+      type: 'link',
+      label: 'javascript',
+      to: '/settings/org-slug/projects/javascript/',
+    },
+  ]}
+/>
 ```
 
-Because `BreadcrumbList.Title` carries no heading, this composition still
-produces exactly one `<h1>` even when the title includes pagination, a leading
-graphic, trailing actions, or an editable control.
+`BreadcrumbList.Title` owns the heading; do not wrap it in another heading.
+For `page-title`, only the label is inside the `<h1>`. Pagination, the leading
+graphic, and trailing actions render beside it.
 
 ### Page filters
 
@@ -194,9 +184,9 @@ Page filters are not carried automatically — see [Page filters](#page-filters)
 ### `'page-title'` — the current page
 
 The `page-title` item is rendered with `BreadcrumbList.Title`, not in the
-`BreadcrumbList.items` array. It is bold, non-interactive, and renders as inline
-content. The surrounding `TopBar.Slot name="title"` provides the `<h1>`; the
-demo below mirrors that heading and flex layout.
+`BreadcrumbList.items` array. Its bold label renders inside an `<h1>`, with
+supporting graphics and actions outside the heading. The demo below mirrors
+TopBar's flex layout.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -223,13 +213,42 @@ demo below mirrors that heading and flex layout.
 />
 ```
 
+Use `externalHref` instead of `to` for external parent links. These open in a new
+tab, including when shown in the overflow menu.
+
+### `'select'` — select a parent item
+
+Use this item only for a parent selector in the breadcrumb trail.
+Pass `options`, `value`, and `onChange`. Settings also uses this item for team
+and integration selection. The separate icon button opens the menu on click.
+Pass `to` to make the label a navigation link. Without `to`, it is plain text.
+`label` keeps the current name visible when search results omit
+the selected option; `leadingGraphic` decorates the label. The item also forwards
+`search`, `loading`, and `onOpenChange` to `CompactSelect`. The current page title
+must use `page-title` or `editable-title`.
+
+```tsx
+<BreadcrumbList
+  items={[
+    {
+      type: 'select',
+      value: currentProject.slug,
+      options: projects.map(project => ({value: project.slug, label: project.slug})),
+      onChange: selected => navigateToProject(selected.value),
+    },
+  ]}
+/>
+```
+
 ### `'editable-title'` — rename in place
 
 The `editable-title` item renders the current page as a click-to-edit field for
 pages that let users rename in place. Pass the editable field props directly on
 the `editable-title` item passed to `BreadcrumbList.Title`. Unlike
 `page-title`, it has no `trailingActions` slot; `EditableText` provides its own
-edit affordance.
+edit affordance. Only the displayed label is inside the `h1`; the edit icon,
+leading graphic, and error indicator are outside it. While editing, a labelled
+input replaces the heading.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -276,6 +295,16 @@ Beyond `label`, the optional props are not shared evenly across the item types.
 | `labelTooltip`    |          |       ✓        |                    |
 | `pagination`      |          |       ✓        |                    |
 | `trailingActions` |          |       ✓        |                    |
+
+Use `labelTooltip` for a tooltip on the title text. It accepts React content,
+including descriptions and documentation links.
+Use `trailingActions: {type: 'badge', element: <FeatureBadge type="new" />}`
+to display a feature badge after the title.
+
+Editable titles use the standard `EditableText` behavior: clicking the label
+starts editing and clicking outside saves the draft.
+Use `error` to display a form validation error beside the title. `errorMessage`
+is the message used when an empty title cannot be saved.
 
 ### Leading graphics
 
@@ -494,7 +523,7 @@ a chevron below and move onto the tooltip to reach the link.
 **Available on** `'page-title'` only.
 The `page-title` item accepts a `trailingActions` slot rendered after the label,
 for example a copy action or page-level menu. The slot is bounded to
-typed `copy`, `menu`, or `button` objects. Falsy entries are dropped so
+typed `copy`, `menu`, `button`, or `badge` objects. Falsy entries are dropped so
 consumers can inline conditionals. Actions are always visible and keyboard
 accessible.
 
@@ -565,10 +594,11 @@ a row of icons competing for the same space.
 `BreadcrumbList` uses the nearest inline-size query container. Standalone lists
 establish their own container; lists rendered in the TopBar `breadcrumbs` slot
 reuse the TopBar's flexible content region so the slot remains content-sized.
-Below 512px, parent items hide and `'link'` parents collapse into a single `…`
-overflow button. Any other parent type simply collapses out of view — only links
-survive in the overflow menu. The page title is rendered separately in the title
-slot and remains visible there.
+Below 512px, parent items hide. Links and `'select'` parents with a `to`
+destination appear in a single `…` overflow menu. A select appears there as a
+link to its current selection; its other options are not available in that menu.
+Selects without `to` disappear at this width. The page title remains visible in
+the separate title slot.
 
 Drag the resize handle to see the transition:
 
@@ -595,21 +625,21 @@ Drag the resize handle to see the transition:
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {type: 'link', label: 'Settings', to: '/settings/'},
-      {
-        type: 'link',
-        label: 'javascript',
-        to: '/settings/org-slug/projects/javascript/',
-      },
-      {
-        type: 'link',
-        label: 'Client Keys (DSN)',
-        to: '/settings/org-slug/projects/javascript/keys/',
-      },
-    ]}
-  />
-</TopBar.Slot>
+<TopBar.Slot
+  name="breadcrumbs"
+  title={{type: 'page-title', label: 'Key Details'}}
+  items={[
+    {type: 'link', label: 'Settings', to: '/settings/'},
+    {
+      type: 'link',
+      label: 'javascript',
+      to: '/settings/org-slug/projects/javascript/',
+    },
+    {
+      type: 'link',
+      label: 'Client Keys (DSN)',
+      to: '/settings/org-slug/projects/javascript/keys/',
+    },
+  ]}
+/>
 ```

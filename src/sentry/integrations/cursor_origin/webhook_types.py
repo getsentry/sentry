@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError, validator
 
@@ -107,6 +107,136 @@ class RepositoryMetadataEvent(OriginModel):
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, Any]) -> RepositoryMetadataEvent:
+        try:
+            return cls.parse_obj(payload)
+        except ValidationError as e:
+            raise OriginPayloadError(str(e)) from e
+
+
+class PullRequestHead(OriginModel):
+    sha: str = Field(min_length=1)
+
+
+class PullRequestUser(OriginModel):
+    id: str | None = None
+    email: str = Field(min_length=1)
+    display_name: str = Field(default="", alias="displayName")
+    handle: str | None = None
+
+    @validator("handle", pre=True)
+    def _absent_handle(cls, value: Any) -> Any:
+        """Origin sends an empty string for an unset scalar."""
+        return value or None
+
+
+class PullRequestApp(OriginModel):
+    id: str = Field(min_length=1)
+    display_name: str = Field(default="", alias="displayName")
+
+
+class PullRequestServiceAccount(OriginModel):
+    id: str = Field(min_length=1)
+
+
+class PullRequestAuthor(OriginModel):
+    """Exactly one of a user, an app or a service account."""
+
+    user: PullRequestUser | None = None
+    app: PullRequestApp | None = None
+    service_account: PullRequestServiceAccount | None = Field(default=None, alias="serviceAccount")
+
+    def contributor(self) -> tuple[str, str | None] | None:
+        if self.user is not None:
+            if not self.user.id:
+                return None
+            return self.user.id, self.user.handle or self.user.display_name or None
+        if self.app is not None:
+            return self.app.id, f"{self.app.display_name or self.app.id}[bot]"
+        assert self.service_account is not None
+        return self.service_account.id, f"{self.service_account.id}[bot]"
+
+    def email_and_name(self) -> tuple[str, str]:
+        if self.user is not None:
+            return self.user.email, self.user.display_name
+        if self.app is not None:
+            return f"{self.app.id}@localhost", self.app.display_name or self.app.id
+        assert self.service_account is not None
+        return f"{self.service_account.id}@localhost", self.service_account.id
+
+
+class PullRequest(OriginModel):
+    # Origin's provider-global id (`pr_…`), stored as `PullRequest.external_id`.
+    id: str = Field(min_length=1)
+    number: str = Field(min_length=1)
+    title: str
+    body: str
+    state: Literal["open", "closed"]
+    draft: bool
+    merged: bool
+    head: PullRequestHead
+    merge_commit_sha: str = Field(default="", alias="mergeCommitSha")
+    author: PullRequestAuthor
+    created_at: datetime | None = Field(..., alias="createdAt")
+    updated_at: datetime | None = Field(..., alias="updatedAt")
+    # Origin leaves these out until the pull request closes or merges.
+    closed_at: datetime | None = Field(default=None, alias="closedAt")
+    merged_at: datetime | None = Field(default=None, alias="mergedAt")
+
+    @validator("created_at", "updated_at", "closed_at", "merged_at", pre=True)
+    def _absent_date(cls, value: Any) -> Any:
+        """Origin sends an empty string for an unset date."""
+        return value or None
+
+
+class PullRequestEvent(OriginModel):
+    repository: Repository
+    pull_request: PullRequest = Field(alias="pullRequest")
+
+    @property
+    def repository_id(self) -> str:
+        return self.repository.id
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> PullRequestEvent:
+        try:
+            return cls.parse_obj(payload)
+        except ValidationError as e:
+            raise OriginPayloadError(str(e)) from e
+
+
+class InstallationTarget(OriginModel):
+    slug: str = Field(min_length=1)
+    id: str = Field(min_length=1)
+    type: Literal["team", "user"] | None = None
+
+    @validator("type", pre=True)
+    def _absent_type(cls, value: Any) -> Any:
+        """Origin sends an empty string when the owner type is unknown."""
+        return value or None
+
+
+class Installation(OriginModel):
+    target: InstallationTarget
+    scopes: list[str]
+    repo_selection_mode: Literal["all", "selected"] = Field(alias="repoSelectionMode")
+
+
+class InstallationEvent(OriginModel):
+    installation: Installation
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> InstallationEvent:
+        try:
+            return cls.parse_obj(payload)
+        except ValidationError as e:
+            raise OriginPayloadError(str(e)) from e
+
+
+class RepositoryDeletedEvent(OriginModel):
+    repository: Repository
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> RepositoryDeletedEvent:
         try:
             return cls.parse_obj(payload)
         except ValidationError as e:

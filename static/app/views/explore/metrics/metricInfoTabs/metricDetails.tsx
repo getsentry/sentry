@@ -39,9 +39,9 @@ import {
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
 import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
-import type {EAPTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/types';
-import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import type {EAPTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/types';
+import {useTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 
 const MetricAttributesRendererMap = {
   ...LogAttributesRendererMap,
@@ -109,7 +109,7 @@ export function MetricDetails({
   if (isError) {
     return (
       <MetricsDetailsWrapper ref={ref}>
-        <LogDetailTableBodyCell colSpan={0}>
+        <LogDetailTableBodyCell>
           <EmptyStreamWrapper>
             <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </EmptyStreamWrapper>
@@ -121,7 +121,7 @@ export function MetricDetails({
   if (isTraceDetailsLoading || (isTraceMetaLoading && showTelemetry)) {
     return (
       <MetricsDetailsWrapper ref={ref}>
-        <LogDetailTableBodyCell colSpan={0}>
+        <LogDetailTableBodyCell>
           <LoadingIndicator />
         </LogDetailTableBodyCell>
       </MetricsDetailsWrapper>
@@ -143,7 +143,7 @@ export function MetricDetails({
 
   return (
     <MetricsDetailsWrapper ref={ref}>
-      <LogDetailTableBodyCell colSpan={0}>
+      <LogDetailTableBodyCell>
         <DetailsContent>
           {showTelemetry ? (
             <MetricDetailsTraceSummary
@@ -157,6 +157,7 @@ export function MetricDetails({
               {visibleAttributes.length > 0 ? (
                 <AttributesTree
                   attributes={visibleAttributes}
+                  config={{attributeDetailsType: 'tracemetric'}}
                   getCustomActions={getActions}
                   renderers={MetricAttributesRendererMap}
                   rendererExtra={{
