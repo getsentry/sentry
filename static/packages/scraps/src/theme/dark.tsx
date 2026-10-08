@@ -1870,22 +1870,134 @@ const syntax = {
    */
   variable: content.primary,
   ansi: {
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0U3RTVFQSIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.black` `#E7E5EA`
+     *
+     */
     black: color.neutral.dark.opaque1500,
-    red: color.red.dark.opaque1200,
-    green: color.green.dark.opaque1300,
-    yellow: color.yellow.dark.opaque1300,
-    blue: color.blue.dark.opaque1200,
-    magenta: color.pink.dark.opaque1200,
-    cyan: color.blue.dark.opaque1100,
-    white: color.neutral.dark.opaque1500,
-    brightBlack: color.neutral.dark.opaque1200,
-    brightRed: color.red.dark.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0JDQkFGRCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.blue` `#BCBAFD`
+     *
+     */
+    blue: color.blue.dark.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0M0QzBDQiIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightBlack` `#C4C0CB`
+     *
+     */
+    brightBlack: color.neutral.dark.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0NGQ0VGRiIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightBlue` `#CFCEFF`
+     *
+     */
+    brightBlue: color.blue.dark.opaque1400,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzkxZDhkNyIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightCyan` `#91d8d7`
+     *
+     */
+    brightCyan: '#91d8d7',
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0E4RTZBRiIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightGreen` `#A8E6AF`
+     *
+     */
     brightGreen: color.green.dark.opaque1400,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Y4QzNEOCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightMagenta` `#F8C3D8`
+     *
+     */
+    brightMagenta: color.pink.dark.opaque1400,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQzJCQyIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightRed` `#FFC2BC`
+     *
+     */
+    brightRed: color.red.dark.opaque1400,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0Y5RjhGOSIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightWhite` `#F9F8F9`
+     *
+     */
+    brightWhite: color.neutral.dark.opaque1600,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0U5RDI5MCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightYellow` `#E9D290`
+     *
+     */
     brightYellow: color.yellow.dark.opaque1400,
-    brightBlue: color.blue.dark.opaque1300,
-    brightMagenta: color.pink.dark.opaque1300,
-    brightCyan: color.blue.dark.opaque1100,
-    brightWhite: color.neutral.dark.opaque1500,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzc3Y2VjZCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.cyan` `#77cecd`
+     *
+     */
+    cyan: '#77cecd',
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzgzREE5MCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.green` `#83DA90`
+     *
+     */
+    green: color.green.dark.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0YxQUFDOCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.magenta` `#F1AAC8`
+     *
+     */
+    magenta: color.pink.dark.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZDQUFBMiIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.red` `#FCAAA2`
+     *
+     */
+    red: color.red.dark.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0U3RTVFQSIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.white` `#E7E5EA`
+     *
+     */
+    white: color.neutral.dark.opaque1500,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0UwQzA1RSIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.yellow` `#E0C05E`
+     *
+     */
+    yellow: color.yellow.dark.opaque1300,
   },
 };
 
