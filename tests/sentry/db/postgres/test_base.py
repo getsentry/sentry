@@ -26,6 +26,46 @@ class CursorWrapperTestCase(TestCase):
         cursor.execute("SELECT %(name)s", {"name": "Ma\x00tt"})
         assert cursor.fetchone()[0] == "Matt"
 
+    def test_array_params(self) -> None:
+        cursor = connection.cursor()
+        names = ["Ma\x00tt", "Hello\ud83dWorld🇦🇹!", None]
+        ids = [1, 2, 3]
+
+        # Django's bulk inserts bind one array per column through UNNEST.
+        cursor.execute("SELECT * FROM UNNEST(%s::text[], %s::integer[])", [names, ids])
+        assert cursor.fetchall() == [("Matt", 1), ("HelloWorld🇦🇹!", 2), (None, 3)]
+
+        cursor.execute(
+            "SELECT * FROM UNNEST(%(names)s::text[], %(ids)s::integer[])",
+            {"names": names, "ids": ids},
+        )
+        assert cursor.fetchall() == [("Matt", 1), ("HelloWorld🇦🇹!", 2), (None, 3)]
+
+    def test_nested_array_params(self) -> None:
+        cursor = connection.cursor()
+        cursor.execute("SELECT %s::text[]", [[["Ma\x00tt", "Hello\ud83dWorld🇦🇹!"], ["", None]]])
+        assert cursor.fetchone()[0] == [["Matt", "HelloWorld🇦🇹!"], ["", None]]
+
+    def test_tuple_params(self) -> None:
+        cursor = connection.cursor()
+
+        # Tuples must keep IN-list syntax instead of becoming PostgreSQL arrays.
+        cursor.execute("SELECT 'Matt' IN %s", [("Ma\x00tt", "Hello\ud83dWorld🇦🇹!")])
+        assert cursor.fetchone()[0] is True
+
+        cursor.execute(
+            "SELECT 'HelloWorld🇦🇹!' IN %(names)s",
+            {"names": ("Ma\x00tt", "Hello\ud83dWorld🇦🇹!")},
+        )
+        assert cursor.fetchone()[0] is True
+
+    def test_null_byte_array_params(self) -> None:
+        cursor = connection.cursor()
+        cursor.execute("SELECT %s::bytea[]", [[b"Ma\x00tt", b"\x00"]])
+        result = cursor.fetchone()[0]
+        assert bytes(result[0]) == b"Ma\x00tt"
+        assert bytes(result[1]) == b"\x00"
+
     def test_null_byte_at_max_len_bytes(self) -> None:
         cursor = connection.cursor()
 
