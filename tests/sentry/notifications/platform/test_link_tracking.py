@@ -140,7 +140,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
             NotificationProviderKey.MSTEAMS,
             NotificationProviderKey.DISCORD,
         ):
-            with self.subTest(provider=provider_key):
+            with self.subTest(provider=str(provider_key)):
                 renderable, links = NotificationService.render_template(
                     data=data,
                     template=template,
@@ -174,7 +174,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
             NotificationProviderKey.MSTEAMS,
             NotificationProviderKey.DISCORD,
         ):
-            with self.subTest(provider=provider_key):
+            with self.subTest(provider=str(provider_key)):
                 renderable, links = NotificationService.render_template(
                     data=data,
                     template=IssueNotificationTemplate(),
