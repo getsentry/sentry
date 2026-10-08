@@ -16,6 +16,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {EntryException, Event, ExceptionValue} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
@@ -423,6 +425,62 @@ export function getCustomFilterUrl(
   });
 }
 
+// Relay reads every value as a glob, so a value copied from an event escapes the
+// glob characters to match that text and nothing else. A line break in the text
+// would split the value into one pattern per line, so it turns into a wildcard,
+// which keeps a single pattern that still matches the whole text.
+function globFromLiteral(text: string): string {
+  return text.replace(/[\\*?[\]{}]/g, '\\$&').replace(/\s*\n\s*/g, '*');
+}
+
+function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.map(value => value?.trim()).filter(Boolean))] as string[];
+}
+
+// A draft filter that matches the event: one condition per property the event
+// carries a value for, so the user removes what they do not want instead of
+// typing what they do. Exception types and messages come from the raw values
+// where the event has them, which is what Relay saw before symbolication.
+export function getFilterDraftFromEvent(event: Event): FilterFormValues {
+  const exceptions: ExceptionValue[] =
+    event.entries.find(
+      (entry): entry is EntryException => entry.type === EntryType.EXCEPTION
+    )?.data.values ?? [];
+  const message: string | undefined = event.entries.find(
+    entry => entry.type === EntryType.MESSAGE
+  )?.data.formatted;
+
+  const literals: Array<[ConditionType, string[]]> = [
+    ['error_type', uniqueNonEmpty(exceptions.map(exc => exc.rawType || exc.type))],
+    [
+      'error_message',
+      exceptions.length > 0
+        ? uniqueNonEmpty(exceptions.map(exc => exc.rawValue || exc.value))
+        : uniqueNonEmpty([message]),
+    ],
+    ['geo_country_code', uniqueNonEmpty([event.user?.geo?.country_code])],
+    ['release', uniqueNonEmpty([event.release?.version])],
+  ];
+  const conditions: ConditionFormValue[] = literals
+    .filter(([, values]) => values.length > 0)
+    .map(([property, values]) => ({
+      property,
+      value: values.map(globFromLiteral).join('\n'),
+    }));
+
+  const ipAddress = event.user?.ip_address?.trim();
+  if (ipAddress) {
+    conditions.push({property: 'ip_address', value: ipAddress});
+  }
+
+  return {
+    name: event.title.slice(0, 256),
+    dataType: 'error',
+    conditions:
+      conditions.length > 0 ? conditions : [emptyCondition(getDefaultProperty('error'))],
+  };
+}
+
 function CustomFilterModal({
   Header,
   Body,
@@ -430,8 +488,11 @@ function CustomFilterModal({
   closeModal,
   project,
   filter,
+  draft,
 }: ModalRenderProps & {
   project: Project;
+  // Starting values of a new filter. Ignored when `filter` is set.
+  draft?: FilterFormValues;
   // The filter to edit. Absent when the modal creates one.
   filter?: CustomInboundFilter;
 }) {
@@ -441,11 +502,11 @@ function CustomFilterModal({
 
   const defaultValues = filter
     ? filterToFormValues(filter)
-    : {
+    : (draft ?? {
         name: '',
         dataType: 'error' as const,
         conditions: [emptyCondition('error_message')],
-      };
+      });
   const modalDataTypeOptions = getModalDataTypeOptions(
     getAvailableDataTypeOptions(organization),
     filter ? defaultValues.dataType : undefined
@@ -511,9 +572,13 @@ function CustomFilterModal({
             {filter ? t('Edit Custom Filter') : t('Create Custom Filter')}
           </Heading>
           <Text variant="muted" size="sm">
-            {t(
-              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. Put one pattern per line to match any of them.'
-            )}
+            {draft && !filter
+              ? t(
+                  'The conditions below come from the event you were looking at. Remove the ones you do not want, and widen the rest with * where one exact value is too narrow. Sentry only filters data that matches every condition.'
+                )
+              : t(
+                  'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. Put one pattern per line to match any of them.'
+                )}
           </Text>
         </Stack>
       </Header>
@@ -693,10 +758,11 @@ function CustomFilterModal({
   );
 }
 
-// Opens the modal to create a filter, or to edit `filter`. Saving goes through
-// the modal, so callers only pick what it opens on.
+// Opens the modal to create a filter, from a draft or from scratch, or to edit
+// `filter`. Saving goes through the modal, so callers only pick what it opens on.
 export function openCustomFilterModal(options: {
   project: Project;
+  draft?: FilterFormValues;
   filter?: CustomInboundFilter;
 }) {
   openModal(deps => <CustomFilterModal {...deps} {...options} />, {

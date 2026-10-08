@@ -17,6 +17,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {ArchiveActions} from 'sentry/components/actions/archive';
@@ -37,6 +38,7 @@ import {
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -247,6 +249,7 @@ export function GroupActions({
       | 'subscribed'
       | 'mark_reviewed'
       | 'discarded'
+      | 'add_inbound_filter'
       | GroupStatus,
     substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
@@ -333,6 +336,26 @@ export function GroupActions({
 
   const onReprocessEvent = () => {
     openReprocessEventModal({organization, groupId: group.id});
+  };
+
+  // Custom inbound filters read the fields of an error event, so the action only
+  // makes sense while one is shown. The first two flags gate the settings table
+  // too; the third rolls out the entry points outside of settings on their own.
+  const canAddInboundFilter =
+    organization.features.includes('inbound-filters-v2') &&
+    organization.features.includes('inbound-filters-v2-ui') &&
+    organization.features.includes('inbound-filters-in-product-flows') &&
+    (event?.type === EventOrGroupType.ERROR || event?.type === EventOrGroupType.DEFAULT);
+  const hasFilterWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+
+  const onAddInboundFilter = async () => {
+    if (!event) {
+      return;
+    }
+    trackIssueAction('add_inbound_filter');
+    const {getFilterDraftFromEvent, openCustomFilterModal} =
+      await import('sentry/views/settings/project/projectFilters/customFilterModal');
+    openCustomFilterModal({project, draft: getFilterDraftFromEvent(event)});
   };
 
   const onTogglePublicShare = () => {
@@ -626,6 +649,16 @@ export function GroupActions({
               label: t('Reprocess events'),
               hidden: !displayReprocessEventAction(event),
               onAction: onReprocessEvent,
+            },
+            {
+              key: 'add-inbound-filter',
+              label: t('Add Inbound Filter'),
+              hidden: !canAddInboundFilter,
+              disabled: !hasFilterWriteAccess,
+              details: hasFilterWriteAccess
+                ? undefined
+                : t('You need project write access to add filters'),
+              onAction: onAddInboundFilter,
             },
             {
               key: 'delete-issue',
