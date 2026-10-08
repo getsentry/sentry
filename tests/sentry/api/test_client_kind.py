@@ -11,7 +11,6 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.api.client_kind import (
     ATTRIBUTION_SPAN_OP,
-    FEATURE_FLAG,
     ClientKind,
     client_kind_scope,
     get_client_host,
@@ -493,11 +492,8 @@ class DispatchWiringTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def tags_for(self, url: str, *, enabled: bool = True) -> list[Any]:
-        with (
-            self.feature(FEATURE_FLAG if enabled else {FEATURE_FLAG: False}),
-            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
-        ):
+    def tags_for(self, url: str) -> list[Any]:
+        with mock.patch("sentry.api.client_kind.sentry_sdk") as sdk:
             assert self.client.get(url).status_code == 200
         return sdk.set_tag.call_args_list
 
@@ -519,19 +515,3 @@ class DispatchWiringTest(APITestCase):
         # likely to silently fall out of coverage.
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
         assert mock.call("client_kind", "frontend") in self.tags_for(url)
-
-    def test_records_nothing_when_the_organization_has_not_opted_in(self) -> None:
-        url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"
-        assert self.tags_for(url, enabled=False) == []
-
-    def test_a_declared_kind_does_not_bypass_the_opt_in(self) -> None:
-        """A declared caller must not also grant the organization's opt-in.
-
-        The opt-in check moved out of `get_client_kind` and up to the dispatch call
-        site, so it is the ordering there -- not the function -- that now keeps a
-        `client_kind_scope` declaration from reporting for an org that never enabled
-        the feature.
-        """
-        url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"
-        with client_kind_scope(ClientKind.SEER):
-            assert self.tags_for(url, enabled=False) == []
