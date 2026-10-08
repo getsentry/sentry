@@ -1,9 +1,7 @@
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
-import {TABLE_HEAD_ROW_HEIGHT} from '@sentry/scraps/table';
-
-import {DataTable} from 'sentry/components/tables/dataTable';
 
 export function Header(props: FlexProps) {
   return <Flex justify="between" align="center" marginBottom="md" {...props} />;
@@ -34,7 +32,7 @@ export const HeaderButtonContainer = styled('div')`
  * without interactive aspects.
  */
 export const GridHeadCellStatic = styled('th')`
-  height: ${TABLE_HEAD_ROW_HEIGHT}px;
+  height: 100%;
   display: flex;
   align-items: center;
   padding: 0 ${p => p.theme.space.xl};
@@ -48,10 +46,10 @@ export const GridHeadCellStatic = styled('th')`
   }
 `;
 
-export const GridBodyCellStatic = styled(DataTable.Cell)`
+export const gridBodyCellStaticStyle = (theme: Theme) => css`
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
   &:nth-child(2) {
-    padding: ${p => `${p.theme.space.md} 0 ${p.theme.space.md} ${p.theme.space['2xl']}`};
+    padding: ${theme.space.md} 0 ${theme.space.md} ${theme.space['2xl']};
   }
 `;

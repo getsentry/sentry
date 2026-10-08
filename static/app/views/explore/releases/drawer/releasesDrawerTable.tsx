@@ -55,9 +55,9 @@ type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error
 type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
-  {key: 'release', name: 'release', width: 320},
-  {key: 'error_count', name: 'new issues', width: 110},
-  {key: 'date', name: 'created', width: 200},
+  {key: 'release', name: t('Release'), width: 320},
+  {key: 'error_count', name: t('New issues'), width: 110},
+  {key: 'date', name: t('Created'), width: 200},
 ];
 
 /**
@@ -209,7 +209,6 @@ export function ReleasesDrawerTable({
         emptyMessage={tableEmptyMessage}
         fit="max-content"
         stickyHeader
-        scrollable
         grid={{
           renderHeadCell: column => <span>{column.name}</span>,
           renderBodyCell,

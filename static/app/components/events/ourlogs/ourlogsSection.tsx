@@ -10,7 +10,7 @@ import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/even
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {DataTable} from 'sentry/components/tables/dataTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -261,7 +261,7 @@ function OurlogsSectionContent({
     >
       <Stack>
         <SmallTable>
-          <DataTable.Body>
+          <SimpleTable.Body>
             {abbreviatedTableData?.map((row, index) => (
               <LogRowContent
                 dataRow={row}
@@ -275,7 +275,7 @@ function OurlogsSectionContent({
                 onEmbeddedRowClick={onEmbeddedRowClick}
               />
             ))}
-          </DataTable.Body>
+          </SimpleTable.Body>
         </SmallTable>
         {tableData.data && tableData.data.length > 5 ? (
           <div>

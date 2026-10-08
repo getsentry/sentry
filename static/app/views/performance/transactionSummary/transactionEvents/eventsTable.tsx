@@ -82,7 +82,7 @@ function makeCustomColumn(name: 'attachments' | 'minidump'): TableColumn<string>
 function OperationTitle({onClick}: TitleProps) {
   return (
     <div onClick={onClick}>
-      <span>{t('operation duration')}</span>
+      <span>{t('Operation duration')}</span>
       <StyledIconQuestion
         size="xs"
         position="top"
