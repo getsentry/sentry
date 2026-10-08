@@ -137,25 +137,6 @@ function ColorDot({color}: {color: string}) {
   );
 }
 
-function ReasonCodes({row}: {row: ReasonRow}) {
-  return (
-    <Grid columns="auto auto" gap="xs md" align="baseline">
-      <Text size="sm" variant="muted">
-        {t('Reason')}
-      </Text>
-      <Text size="sm" monospace>
-        {row.reason}
-      </Text>
-      <Text size="sm" variant="muted">
-        {t('Outcome')}
-      </Text>
-      <Text size="sm" monospace>
-        {row.outcome}
-      </Text>
-    </Grid>
-  );
-}
-
 function CategoryPill({children}: {children: React.ReactNode}) {
   return (
     <Container
@@ -256,7 +237,7 @@ function ReasonExpansion({
       align="center"
       justify="between"
       gap="md"
-      padding="sm xl"
+      padding="lg xl"
       background="secondary"
       borderBottom={isLast ? 'none' : 'muted'}
     >
@@ -291,7 +272,7 @@ function ReasonTableRow({
           <Flex align="baseline" gap="md">
             <Text size="md">{reasonTitle(row.reason)}</Text>
             <Text size="sm" variant="muted">
-              <TimeSince date={row.lastSeen} unitStyle="short" />
+              <TimeSince date={row.lastSeen} unitStyle="short" disabledAbsoluteTooltip />
             </Text>
           </Flex>
           <ReasonDescriptionLine reason={row.reason} category={row.category} />
@@ -306,17 +287,15 @@ function ReasonTableRow({
             {formatDroppedShare(row.shareRatio)}
           </Text>
         </Container>
-        <Flex
-          align="center"
-          justify="center"
-          padding="md xl"
-          onClick={() => setExpanded(value => !value)}
-          style={{cursor: 'pointer'}}
-          aria-expanded={expanded}
-          aria-label={t('Toggle fix options')}
-          role="button"
-        >
-          <IconChevron direction={expanded ? 'up' : 'down'} size="xs" />
+        <Flex align="center" justify="center">
+          <Button
+            size="xs"
+            variant="transparent"
+            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="xs" />}
+            aria-label={t('Toggle fix options')}
+            aria-expanded={expanded}
+            onClick={() => setExpanded(value => !value)}
+          />
         </Flex>
       </Grid>
       {expanded && (

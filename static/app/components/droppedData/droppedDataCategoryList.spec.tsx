@@ -1,6 +1,6 @@
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   droppedEventsToCategorySections,
@@ -203,31 +203,6 @@ describe('DroppedDataCategoryList', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the raw reason and outcome codes only when hovering the title', async () => {
-    render(
-      <DroppedDataCategoryList
-        droppedEvents={[
-          DroppedEventFixture({
-            outcome: 'client_discard',
-            reason: 'queue_overflow',
-            start: 0,
-            end: 60_000,
-            count: 5,
-          }),
-        ]}
-        acceptedEvents={[]}
-      />
-    );
-
-    expect(screen.queryByText('queue_overflow')).not.toBeInTheDocument();
-    expect(screen.queryByText('client_discard')).not.toBeInTheDocument();
-
-    await userEvent.hover(screen.getByText('SDK queue overflow'));
-
-    expect(await screen.findByText('queue_overflow')).toBeInTheDocument();
-    expect(screen.getByText('client_discard')).toBeInTheDocument();
-  });
-
   it('collapses and expands a section when the header is clicked', async () => {
     render(
       <DroppedDataCategoryList
@@ -280,6 +255,11 @@ describe('DroppedDataCategoryList', () => {
     // Collapsing hides it again.
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
     expect(screen.queryByRole('button', {name: 'Fix this'})).not.toBeInTheDocument();
+
+    // The toggle is reachable from the keyboard.
+    act(() => screen.getByRole('button', {name: 'Toggle fix options'}).focus());
+    await userEvent.keyboard('{Enter}');
+    expect(screen.getByRole('button', {name: 'Fix this'})).toBeInTheDocument();
   });
 
   it('opens the fix-this menu with investigate, settings, and docs entries', async () => {
