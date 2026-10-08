@@ -1,16 +1,13 @@
 from datetime import timedelta
-from typing import Any, Mapping
+from typing import Any
 from uuid import uuid4
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.group import Group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.issue_alert_conditions import (
-    translate_to_data_condition as dual_write_condition,
-)
 from sentry.utils.samples import load_data
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
+from sentry.workflow_engine.models import DataCondition, DataPacket
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -18,13 +15,6 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 class ConditionTestCase(BaseWorkflowTest):
     def setUp(self) -> None:
         self.group, self.event, self.group_event = self.create_group_event()
-
-    def translate_to_data_condition(
-        self, data: Mapping[str, Any], dcg: DataConditionGroup
-    ) -> DataCondition:
-        data_condition = dual_write_condition(data, dcg)
-        data_condition.save()
-        return data_condition
 
     def assert_passes(
         self, data_condition: DataCondition, job: WorkflowEventData | DataPacket[Any]
