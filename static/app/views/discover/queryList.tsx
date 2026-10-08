@@ -77,7 +77,7 @@ function renderDropdownMenu(items: MenuItemProps[]) {
   );
 }
 
-export default function QueryList({
+export function QueryList({
   location,
   organization,
   pageLinks,
