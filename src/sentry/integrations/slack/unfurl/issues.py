@@ -80,10 +80,7 @@ def _unfurl_issues(
                 else None
             )
             out[link.url] = SlackIssuesMessageBuilder(
-                group=group_by_id[issue_id],
-                event=event,
-                link_to_event=True,
-                is_unfurl=True,
+                group=group_by_id[issue_id], event=event, link_to_event=True, is_unfurl=True
             ).build()
     return out
 

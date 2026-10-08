@@ -450,9 +450,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
 
-    def _prepare_title_link(self, title_link: str) -> str:
-        return title_link
-
     def get_title_block(
         self,
         event_or_group: Event | GroupEvent | Group,
@@ -581,6 +578,60 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_context_block(context_text)
 
+    def _build_link_context(
+        self, notification_uuid: str | None
+    ) -> tuple[int | None, int | None, str | None]:
+        rule_id = None
+        workflow_id = self.workflow_id
+        rule_environment_id = None
+        link_key: RuleIdType = "legacy_rule_id"
+        link_id = None
+        if self.rules:
+            # The block id's "rule" is resolved back to a Rule by the Slack action
+            # handler, so it keeps preferring the legacy rule id.
+            _, value = get_rule_or_workflow_id(self.rules[0])
+            rule_id = int(value)
+            action = self.rules[0].data.get("actions", [{}])[0]
+            if action.get("workflow_id") is not None:
+                workflow_id = int(action["workflow_id"])
+
+            link_key, link_value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
+            link_id = int(link_value)
+            match link_key:
+                case "workflow_id":
+                    workflow = Workflow.objects.filter(id=link_id).first()
+                    rule_environment_id = workflow.environment_id if workflow else None
+                case "legacy_rule_id":
+                    rule_environment_id = self.rules[0].environment_id
+
+        match link_key:
+            case "workflow_id":
+                title_link = get_title_link_workflow_engine_ui(
+                    self.group,
+                    self.event,
+                    self.link_to_event,
+                    self.issue_details,
+                    self.notification,
+                    ExternalProviders.SLACK,
+                    link_id,
+                    rule_environment_id,
+                    notification_uuid=notification_uuid,
+                )
+            case "legacy_rule_id":
+                title_link = get_title_link(
+                    self.group,
+                    self.event,
+                    self.link_to_event,
+                    self.issue_details,
+                    self.notification,
+                    ExternalProviders.SLACK,
+                    link_id,
+                    rule_environment_id,
+                    notification_uuid=notification_uuid,
+                )
+
+        return rule_id, workflow_id, title_link
+
     def build(
         self,
         notification_uuid: str | None = None,
@@ -610,63 +661,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             payload_actions = []
             has_action = False
 
-        rule_id = None
-        workflow_id = self.workflow_id
-        rule_environment_id = None
-        link_key: RuleIdType = "legacy_rule_id"
-        link_id = None
-        if self.rules:
-            # The block id's "rule" is resolved back to a Rule by the Slack action
-            # handler, so it keeps preferring the legacy rule id.
-            _, value = get_rule_or_workflow_id(self.rules[0])
-            rule_id = int(value)
-            action = self.rules[0].data.get("actions", [{}])[0]
-            if action.get("workflow_id") is not None:
-                workflow_id = int(action["workflow_id"])
-
-            link_key, link_value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
-            link_id = int(link_value)
-            match link_key:
-                case "workflow_id":
-                    workflow = Workflow.objects.filter(id=link_id).first()
-                    rule_environment_id = workflow.environment_id if workflow else None
-                case "legacy_rule_id":
-                    rule_environment_id = self.rules[0].environment_id
+        rule_id, workflow_id, title_link = self._build_link_context(notification_uuid)
 
         # build up actions text
         if self.actions and self.identity and not action_text:
             # this means somebody is interacting with the message
             action_text = get_action_text(self.actions, self.identity)
             has_action = True
-
-        title_link = None
-        match link_key:
-            case "workflow_id":
-                title_link = get_title_link_workflow_engine_ui(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.SLACK,
-                    link_id,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                )
-            case "legacy_rule_id":
-                title_link = get_title_link(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.SLACK,
-                    link_id,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                )
-        if title_link is not None:
-            title_link = self._prepare_title_link(title_link)
 
         blocks = [self.get_title_block(event_or_group, has_action, title_link)]
 
@@ -770,5 +771,10 @@ class NotificationPlatformSlackIssuesMessageBuilder(SlackIssuesMessageBuilder):
         super().__init__(*args, **kwargs)
         self.link_decorator = link_decorator
 
-    def _prepare_title_link(self, title_link: str) -> str:
-        return self.link_decorator.decorate_url(title_link)
+    def _build_link_context(
+        self, notification_uuid: str | None
+    ) -> tuple[int | None, int | None, str | None]:
+        rule_id, workflow_id, title_link = super()._build_link_context(notification_uuid)
+        if title_link is not None:
+            title_link = self.link_decorator.decorate_url(title_link)
+        return rule_id, workflow_id, title_link

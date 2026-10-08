@@ -52,10 +52,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
             message = DiscordIssuesMessageBuilder(
-                event.group,
-                event=event,
-                tags=tags,
-                rules=rules,
+                event.group, event=event, tags=tags, rules=rules
             ).build(notification_uuid=notification_uuid)
             record_legacy_render(NotificationProviderKey.DISCORD, message)
 

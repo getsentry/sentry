@@ -53,16 +53,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
 
-    def _prepare_title_link(self, title_link: str) -> str:
-        return title_link
-
-    def build(self, notification_uuid: str | None = None) -> DiscordMessage:
-        project = Project.objects.get_from_cache(id=self.group.project_id)
-        event_for_tags = self.event or self.group.get_latest_event()
-        timestamp = (
-            max(self.group.last_seen, self.event.datetime) if self.event else self.group.last_seen
-        )
-        obj: Group | GroupEvent = self.event if self.event is not None else self.group
+    def _build_title_link(self, notification_uuid: str | None) -> str | None:
         rule_id = None
         rule_environment_id = None
         key: RuleIdType = "legacy_rule_id"
@@ -70,10 +61,9 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
             rule_environment_id = self.rules[0].environment_id
             key, rule_id = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
 
-        url = None
         match key:
             case "workflow_id":
-                url = get_title_link_workflow_engine_ui(
+                return get_title_link_workflow_engine_ui(
                     self.group,
                     self.event,
                     self.link_to_event,
@@ -85,7 +75,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                     notification_uuid=notification_uuid,
                 )
             case "legacy_rule_id":
-                url = get_title_link(
+                return get_title_link(
                     self.group,
                     self.event,
                     self.link_to_event,
@@ -96,8 +86,15 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                     rule_environment_id,
                     notification_uuid=notification_uuid,
                 )
-        if url is not None:
-            url = self._prepare_title_link(url)
+
+    def build(self, notification_uuid: str | None = None) -> DiscordMessage:
+        project = Project.objects.get_from_cache(id=self.group.project_id)
+        event_for_tags = self.event or self.group.get_latest_event()
+        timestamp = (
+            max(self.group.last_seen, self.event.datetime) if self.event else self.group.last_seen
+        )
+        obj: Group | GroupEvent = self.event if self.event is not None else self.group
+        url = self._build_title_link(notification_uuid)
 
         embeds = [
             DiscordMessageEmbed(
@@ -134,8 +131,9 @@ class NotificationPlatformDiscordIssuesMessageBuilder(DiscordIssuesMessageBuilde
         super().__init__(*args, **kwargs)
         self.link_decorator = link_decorator
 
-    def _prepare_title_link(self, title_link: str) -> str:
-        return self.link_decorator.decorate_url(title_link)
+    def _build_title_link(self, notification_uuid: str | None) -> str | None:
+        title_link = super()._build_title_link(notification_uuid)
+        return None if title_link is None else self.link_decorator.decorate_url(title_link)
 
 
 def build_tag_fields(
