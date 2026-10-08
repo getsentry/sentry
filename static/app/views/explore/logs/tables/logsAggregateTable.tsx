@@ -5,10 +5,11 @@ import styled from '@emotion/styled';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -112,7 +113,7 @@ export function LogsAggregateTable({
 
   return (
     <Stack>
-      <GridEditable
+      <DataGrid
         aria-label={t('Aggregates')}
         isLoading={isLoading}
         error={error}

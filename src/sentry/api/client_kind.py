@@ -202,14 +202,12 @@ def set_client_kind_attributes(request: Request) -> None:
 
     _record_attribution_span(request, client_kind, client_host, user_agent)
 
-    # `_test` suffix while this is a POC, to keep it out of the way of a
-    # real `client_kind` attribute later.
-    sentry_sdk.set_tag("client_kind_test", client_kind.value)
-    sentry_sdk.set_attribute("client_kind_test", client_kind.value)
+    sentry_sdk.set_tag("client_kind", client_kind.value)
+    sentry_sdk.set_attribute("client_kind", client_kind.value)
 
     if client_host is not None:
-        sentry_sdk.set_tag("client_host_test", client_host)
-        sentry_sdk.set_attribute("client_host_test", client_host)
+        sentry_sdk.set_tag("client_host", client_host)
+        sentry_sdk.set_attribute("client_host", client_host)
 
     if user_agent is not None:
         sentry_sdk.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
@@ -230,9 +228,9 @@ def _record_attribution_span(
     route = get_transaction_name_from_request(request)
     with start_span(op=ATTRIBUTION_SPAN_OP, name=route) as span:
         set_span_data(span, ATTRIBUTE_NAMES.HTTP_ROUTE, route)
-        set_span_data(span, "client_kind_test", client_kind.value)
+        set_span_data(span, "client_kind", client_kind.value)
         if client_host is not None:
-            set_span_data(span, "client_host_test", client_host)
+            set_span_data(span, "client_host", client_host)
         if user_agent is not None:
             set_span_data(span, ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 

@@ -15,14 +15,17 @@ from sentry.debug_files.artifact_bundles import (
     get_redis_cluster_for_artifact_bundles,
     index_urls_in_bundle,
     query_artifact_bundles_containing_file,
+    renew_artifact_bundle,
 )
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
+    DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
+    SourceFileType,
 )
 from sentry.models.files.fileblob import FileBlob
 from sentry.tasks.assemble import assemble_artifacts
@@ -936,3 +939,63 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             "artifact_bundle_url_lookup.candidates", tags={"truncated": "false"}
         )
         logger.info.assert_not_called()
+
+
+class RenewArtifactBundleTest(TestCase):
+    def setUp(self) -> None:
+        self.old_date = timezone.now() - timedelta(days=60)
+        self.artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=1)
+        ArtifactBundle.objects.filter(id=self.artifact_bundle.id).update(date_added=self.old_date)
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=self.artifact_bundle,
+            date_added=self.old_date,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
+            dist_name="",
+            artifact_bundle=self.artifact_bundle,
+            date_added=self.old_date,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=uuid.uuid4(),
+            artifact_bundle=self.artifact_bundle,
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+            date_added=self.old_date,
+        )
+        ArtifactBundleIndex.objects.create(
+            organization_id=self.organization.id,
+            artifact_bundle=self.artifact_bundle,
+            url="~/path/to/app.js",
+            date_added=self.old_date,
+        )
+
+    def renew(self) -> datetime:
+        now = timezone.now()
+        renew_artifact_bundle(self.artifact_bundle.id, now - timedelta(days=30), now)
+        return now
+
+    def linked_dates(self) -> set[datetime]:
+        bundle_id = self.artifact_bundle.id
+        return {
+            ProjectArtifactBundle.objects.get(artifact_bundle_id=bundle_id).date_added,
+            ReleaseArtifactBundle.objects.get(artifact_bundle_id=bundle_id).date_added,
+            DebugIdArtifactBundle.objects.get(artifact_bundle_id=bundle_id).date_added,
+            ArtifactBundleIndex.objects.get(artifact_bundle_id=bundle_id).date_added,
+        }
+
+    def test_renews_bundle_and_linked_rows(self) -> None:
+        now = self.renew()
+
+        assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
+        assert self.linked_dates() == {now}
+
+    @override_options({"sourcemaps.artifact-bundles.date-only-on-bundle": True})
+    def test_renews_only_the_bundle_with_date_only_on_bundle(self) -> None:
+        now = self.renew()
+
+        assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
+        assert self.linked_dates() == {self.old_date}

@@ -1299,11 +1299,6 @@
       "count": 5
     }
   },
-  "static/app/components/tables/gridEditable/styles.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/components/tables/keyValueTable/keyValueTable.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -1551,7 +1546,7 @@
   },
   "static/app/views/admin/adminEnvironment.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 2
+      "count": 1
     }
   },
   "static/app/views/admin/adminMail.tsx": {
@@ -1562,11 +1557,6 @@
   "static/app/views/admin/adminPackages.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/admin/adminRelays.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
     }
   },
   "static/app/views/admin/adminWarnings.tsx": {
@@ -3452,11 +3442,6 @@
   "static/gsApp/components/ai/AiSetupDataConsent.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
-    }
-  },
-  "static/gsApp/components/billingDetails/form.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
     }
   },
   "static/gsApp/components/dataConsentModal.tsx": {
