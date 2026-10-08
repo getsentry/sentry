@@ -28,8 +28,6 @@ const cellColor = (p: CellProps & {theme: Theme}) => {
 };
 
 type CellProps = {
-  className?: string;
-  hasOccurred?: boolean;
   isSelected?: boolean;
   isStatusError?: boolean;
   isStatusWarning?: boolean;
@@ -38,9 +36,6 @@ type CellProps = {
 };
 
 export const Cell = styled(SimpleTable.RowCell)<CellProps>`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.font.size.sm};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
 
   ${cellBackground}

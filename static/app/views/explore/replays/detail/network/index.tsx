@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -30,7 +29,6 @@ import {FilterLoadingIndicator} from 'sentry/views/explore/replays/detail/filter
 import {NetworkDetails} from 'sentry/views/explore/replays/detail/network/details';
 import {NetworkFilters} from 'sentry/views/explore/replays/detail/network/networkFilters';
 import {
-  COLUMN_COUNT,
   NetworkHeaderCell,
   TABLE_COLUMNS,
 } from 'sentry/views/explore/replays/detail/network/networkHeaderCell';
@@ -157,7 +155,7 @@ export function NetworkList() {
         >
           {networkFrames ? (
             <OverflowHidden>
-              <FlushTable
+              <VirtualTable.Table
                 aria-label={t('Network requests')}
                 columns={TABLE_COLUMNS}
                 customSections
@@ -168,13 +166,12 @@ export function NetworkList() {
               >
                 <SimpleTable.Head sticky>
                   <SimpleTable.HeaderRow>
-                    {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
+                    {Array.from({length: TABLE_COLUMNS.length}, (_, columnIndex) => (
                       <NetworkHeaderCell
                         key={columnIndex}
                         handleSort={handleSort}
                         index={columnIndex}
                         sortConfig={sortConfig}
-                        style={{height: HEADER_HEIGHT}}
                       />
                     ))}
                   </SimpleTable.HeaderRow>
@@ -233,31 +230,31 @@ export function NetworkList() {
                           key={virtualRow.key}
                           className={rowClassName}
                           data-index={virtualRow.index}
-                          style={{
-                            height: BODY_HEIGHT,
-                          }}
                         >
-                          {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
-                            <NetworkTableCell
-                              key={`${virtualRow.key}-${columnIndex}`}
-                              columnIndex={columnIndex}
-                              frame={network}
-                              isSelected={selectedIndex === virtualRow.index}
-                              onMouseEnter={onMouseEnter}
-                              onMouseLeave={onMouseLeave}
-                              onClickCell={onClickCell}
-                              onClickTimestamp={onClickTimestamp}
-                              rowIndex={rowIndex}
-                              startTimestampMs={startTimestampMs}
-                              style={{height: BODY_HEIGHT}}
-                            />
-                          ))}
+                          {Array.from(
+                            {length: TABLE_COLUMNS.length},
+                            (_, columnIndex) => (
+                              <NetworkTableCell
+                                key={`${virtualRow.key}-${columnIndex}`}
+                                columnIndex={columnIndex}
+                                frame={network}
+                                isSelected={selectedIndex === virtualRow.index}
+                                onMouseEnter={onMouseEnter}
+                                onMouseLeave={onMouseLeave}
+                                onClickCell={onClickCell}
+                                onClickTimestamp={onClickTimestamp}
+                                rowIndex={rowIndex}
+                                startTimestampMs={startTimestampMs}
+                                style={{height: BODY_HEIGHT}}
+                              />
+                            )
+                          )}
                         </VirtualTable.BodyRow>
                       );
                     })}
                   </SimpleTable.Body>
                 )}
-              </FlushTable>
+              </VirtualTable.Table>
               {sortConfig.by === 'startTimestamp' && items.length ? (
                 <JumpButtons
                   jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
@@ -283,8 +280,3 @@ export function NetworkList() {
     </Stack>
   );
 }
-
-const FlushTable = styled(SimpleTable)`
-  border: 0;
-  border-radius: 0;
-`;

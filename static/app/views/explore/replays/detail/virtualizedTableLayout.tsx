@@ -2,10 +2,13 @@ import styled from '@emotion/styled';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
-const BodyRow = styled(SimpleTable.Row)<{useTransparentBorders?: boolean}>`
-  display: grid;
-  position: relative;
+const Table = styled(SimpleTable)`
+  border: 0;
+  border-radius: 0;
+  overscroll-behavior: contain;
+`;
 
+const BodyRow = styled(SimpleTable.Row)<{useTransparentBorders?: boolean}>`
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid
       ${p =>
@@ -59,4 +62,4 @@ const BodyRow = styled(SimpleTable.Row)<{useTransparentBorders?: boolean}>`
   }
 `;
 
-export const VirtualTable = {BodyRow};
+export const VirtualTable = {BodyRow, Table};

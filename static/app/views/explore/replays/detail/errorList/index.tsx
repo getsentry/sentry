@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -10,6 +9,7 @@ import {
   useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
+import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
 import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
 import {
   SIMPLE_TABLE_HEADER_ROW_HEIGHT,
@@ -21,7 +21,6 @@ import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayRea
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {ErrorFilters} from 'sentry/views/explore/replays/detail/errorList/errorFilters';
 import {
-  COLUMN_COUNT,
   ErrorHeaderCell,
   TABLE_COLUMNS,
 } from 'sentry/views/explore/replays/detail/errorList/errorHeaderCell';
@@ -92,10 +91,10 @@ export function ErrorList() {
   return (
     <Stack minHeight="0" minWidth="0" wrap="nowrap">
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
-      <ErrorTable data-test-id="replay-details-errors-tab">
+      <GridTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
           <OverflowHidden>
-            <SimpleTable
+            <VirtualTable.Table
               aria-label={t('Errors')}
               columns={TABLE_COLUMNS}
               customSections
@@ -106,13 +105,12 @@ export function ErrorList() {
             >
               <SimpleTable.Head sticky>
                 <SimpleTable.HeaderRow>
-                  {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
+                  {Array.from({length: TABLE_COLUMNS.length}, (_, columnIndex) => (
                     <ErrorHeaderCell
                       key={columnIndex}
                       handleSort={handleSort}
                       index={columnIndex}
                       sortConfig={sortConfig}
-                      style={{height: HEADER_HEIGHT}}
                     />
                   ))}
                 </SimpleTable.HeaderRow>
@@ -157,11 +155,8 @@ export function ErrorList() {
                         key={virtualRow.key}
                         className={rowClassName}
                         data-index={virtualRow.index}
-                        style={{
-                          height: BODY_HEIGHT,
-                        }}
                       >
-                        {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
+                        {Array.from({length: TABLE_COLUMNS.length}, (_, columnIndex) => (
                           <ErrorTableCell
                             key={`${virtualRow.key}-${columnIndex}`}
                             columnIndex={columnIndex}
@@ -178,7 +173,7 @@ export function ErrorList() {
                   })}
                 </SimpleTable.Body>
               )}
-            </SimpleTable>
+            </VirtualTable.Table>
             {sortConfig.by === 'timestamp' && items.length ? (
               <JumpButtons
                 jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
@@ -190,16 +185,7 @@ export function ErrorList() {
         ) : (
           <Placeholder height="100%" />
         )}
-      </ErrorTable>
+      </GridTable>
     </Stack>
   );
 }
-
-const ErrorTable = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-  overflow: hidden;
-  height: 100%;
-`;

@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 
+import {SIMPLE_TABLE_HEADER_ROW_HEIGHT} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 
 type Opts = {
@@ -21,8 +22,8 @@ export function useVirtualizedGrid({overscan, rowCount, rowHeight}: Opts) {
     estimateSize: () => rowHeight,
     getScrollElement: () => scrollContainerRef.current,
     overscan,
-    scrollPaddingStart: 25,
-    scrollPaddingEnd: 25,
+    scrollPaddingStart: SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed,
+    scrollPaddingEnd: SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed,
   });
 
   return {

@@ -1,4 +1,4 @@
-import type {CSSProperties, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -20,7 +20,6 @@ type Props<SortableRecord extends BaseRecord> = {
   handleSort: (fieldName: string) => void;
   label: ReactNode;
   sortConfig: SortConfig<SortableRecord>;
-  style: CSSProperties;
   tooltipTitle: undefined | ReactNode;
 };
 
@@ -40,7 +39,6 @@ export function HeaderCell<T extends BaseRecord>({
   handleSort,
   label,
   sortConfig,
-  style,
   tooltipTitle,
 }: Props<T>) {
   return (
@@ -48,7 +46,6 @@ export function HeaderCell<T extends BaseRecord>({
       align={align}
       handleSortClick={() => handleSort(field)}
       sort={sortConfig.by === field ? (sortConfig.asc ? 'asc' : 'desc') : undefined}
-      style={style}
     >
       {label}
       {tooltipTitle ? (

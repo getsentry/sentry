@@ -2079,11 +2079,6 @@
       "count": 2
     }
   },
-  "static/app/views/explore/replays/detail/errorList/index.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/replays/detail/layout/replayLayout.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3

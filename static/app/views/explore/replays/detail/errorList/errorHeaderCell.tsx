@@ -1,4 +1,4 @@
-import type {ComponentProps, CSSProperties} from 'react';
+import type {ComponentProps} from 'react';
 
 import type {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -12,7 +12,6 @@ type Props = {
   handleSort: ReturnType<typeof useSortErrors>['handleSort'];
   index: number;
   sortConfig: SortConfig;
-  style: CSSProperties;
 };
 
 const COLUMNS: Array<{
@@ -29,11 +28,9 @@ const COLUMNS: Array<{
   {field: 'timestamp', label: t('Timestamp'), width: '104px', align: 'right'},
 ];
 
-export const COLUMN_COUNT = COLUMNS.length;
-
 export const TABLE_COLUMNS = COLUMNS.map(({field, width}) => ({key: field, width}));
 
-export function ErrorHeaderCell({handleSort, index, sortConfig, style}: Props) {
+export function ErrorHeaderCell({handleSort, index, sortConfig}: Props) {
   const {align, field, label, tooltipTitle} = COLUMNS[index]!;
   return (
     <HeaderCell
@@ -43,7 +40,6 @@ export function ErrorHeaderCell({handleSort, index, sortConfig, style}: Props) {
       label={label}
       tooltipTitle={tooltipTitle}
       sortConfig={sortConfig}
-      style={style}
     />
   );
 }

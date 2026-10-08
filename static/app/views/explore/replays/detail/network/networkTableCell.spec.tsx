@@ -13,10 +13,8 @@ import {NetworkTableCell} from './networkTableCell';
 function TableWrapper({children}: {children: ReactNode}) {
   return (
     <NuqsAdapter>
-      <SimpleTable customSections>
-        <SimpleTable.Body>
-          <SimpleTable.Row>{children}</SimpleTable.Row>
-        </SimpleTable.Body>
+      <SimpleTable>
+        <SimpleTable.Row>{children}</SimpleTable.Row>
       </SimpleTable>
     </NuqsAdapter>
   );

@@ -1,4 +1,4 @@
-import type {ComponentProps, CSSProperties} from 'react';
+import type {ComponentProps} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 import type {Tooltip} from '@sentry/scraps/tooltip';
@@ -13,7 +13,6 @@ type Props = {
   handleSort: ReturnType<typeof useSortNetwork>['handleSort'];
   index: number;
   sortConfig: SortConfig;
-  style: CSSProperties;
 };
 
 const COLUMNS: Array<{
@@ -61,11 +60,9 @@ const COLUMNS: Array<{
   {field: 'startTimestamp', label: t('Timestamp'), width: '108px', align: 'right'},
 ];
 
-export const COLUMN_COUNT = COLUMNS.length;
-
 export const TABLE_COLUMNS = COLUMNS.map(({field, width}) => ({key: field, width}));
 
-export function NetworkHeaderCell({handleSort, index, sortConfig, style}: Props) {
+export function NetworkHeaderCell({handleSort, index, sortConfig}: Props) {
   const {align, field, label, tooltipTitle} = COLUMNS[index]!;
   return (
     <HeaderCell
@@ -75,7 +72,6 @@ export function NetworkHeaderCell({handleSort, index, sortConfig, style}: Props)
       label={label}
       tooltipTitle={tooltipTitle}
       sortConfig={sortConfig}
-      style={style}
     />
   );
 }

@@ -28,7 +28,6 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   frame: ErrorFrame;
   startTimestampMs: number;
   style: CSSProperties;
-  ref?: React.Ref<HTMLDivElement>;
 }
 
 export function ErrorTableCell({
@@ -39,7 +38,6 @@ export function ErrorTableCell({
   onClickTimestamp,
   startTimestampMs,
   style,
-  ref,
 }: Props) {
   const organization = useOrganization();
 
@@ -66,7 +64,6 @@ export function ErrorTableCell({
   const columnProps = {
     onMouseEnter: () => onMouseEnter(frame),
     onMouseLeave: () => onMouseLeave(frame),
-    ref,
     style,
   } as ComponentProps<typeof Cell>;
 
