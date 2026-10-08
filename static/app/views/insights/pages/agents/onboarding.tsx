@@ -1,9 +1,10 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
+import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -127,7 +128,13 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <Flex justify="between" gap="2xl" radius="md" padding="3xl">
+              <Flex
+                containerType="inline-size"
+                justify="between"
+                gap="2xl"
+                radius="md"
+                padding="3xl"
+              >
                 <HeaderText>
                   <Title>{t('Monitor AI Agents')}</Title>
                   <SubTitle>
@@ -158,8 +165,18 @@ function OnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Container display={{zero: 'none', xl: 'block'}}>
-                  {imageProps => <Image {...imageProps} src={emptyTraceImg} />}
+                <Container
+                  display={{zero: 'none', xl: 'block'}}
+                  alignSelf="center"
+                  pointerEvents="none"
+                  flexShrink={0}
+                >
+                  <Image
+                    src={agentTracingEmptyStateImg}
+                    alt=""
+                    height="180px"
+                    width="auto"
+                  />
                 </Container>
               </Flex>
               <Divider />
@@ -490,12 +507,6 @@ const Arcade = styled('iframe')`
   min-height: 370px;
   margin-top: ${p => p.theme.space['2xl']};
   border: 0;
-`;
-
-const Image = styled('img')`
-  pointer-events: none;
-  height: 120px;
-  overflow: hidden;
 `;
 
 const Divider = styled('hr')`
