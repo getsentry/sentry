@@ -148,11 +148,6 @@ export function GlobalModal() {
   // The ref is stable because `getModalPortal` is memoized.
   const portalRef = useRef(portal);
   const focusTrap = useRef<FocusTrap | null>(null);
-  // SentryApp might be missing on tests
-  if (window.SentryApp) {
-    // oxlint-disable-next-line react/immutability
-    window.SentryApp.modalFocusTrap = focusTrap;
-  }
 
   useEffect(() => {
     focusTrap.current = createFocusTrap(portal, {

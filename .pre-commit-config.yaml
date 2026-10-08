@@ -94,8 +94,9 @@ repos:
       - id: oxlint
         name: oxlint
         language: system
-        files: \.(ts|js|tsx|jsx|mjs)$
-        entry: env SENTRY_PRECOMMIT=true ./node_modules/.bin/oxlint --quiet --fix --no-error-on-unmatched-pattern
+        files: \.(ts|js|tsx|jsx|mjs|cjs|mts|cts)$
+        entry: env SENTRY_PRECOMMIT=true node scripts/custom-oxlint.ts --quiet --fix --no-error-on-unmatched-pattern
+        require_serial: true
 
       - id: stylelint
         name: stylelint

@@ -3,8 +3,8 @@ import {useQueryState} from 'nuqs';
 
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {encodeSort} from 'sentry/utils/queryString';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

@@ -1376,10 +1376,6 @@ urlpatterns += [
                     include("sentry.integrations.bitbucket_server.urls"),
                 ),
                 re_path(
-                    r"^vercel/",
-                    include("sentry.integrations.vercel.urls"),
-                ),
-                re_path(
                     r"^msteams/",
                     include("sentry.integrations.msteams.urls"),
                 ),

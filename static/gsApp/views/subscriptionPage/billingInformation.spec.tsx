@@ -1,3 +1,4 @@
+import type {StripeElements} from '@stripe/stripe-js';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
@@ -94,51 +95,35 @@ describe('Subscription > BillingInformation', () => {
     render(<BillingInformation subscription={subscription} />, {organization});
 
     // panels are collapsed with pre-existing information
-    const cardPanel = await screen.findByTestId('credit-card-panel');
-    expect(within(cardPanel).getByText('United States 94242')).toBeInTheDocument();
-    expect(within(cardPanel).getByText('Visa ****4242 12/77')).toBeInTheDocument();
-    expect(
-      within(cardPanel).getByRole('button', {name: 'Edit payment method'})
-    ).toBeInTheDocument();
-    expect(
-      within(cardPanel).queryByRole('button', {name: 'Save Changes'})
-    ).not.toBeInTheDocument();
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
+    expect(screen.getByText('United States 94242')).toBeInTheDocument();
+    expect(screen.getByText('Visa ****4242 12/77')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Edit payment method'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Save Changes'})).not.toBeInTheDocument();
 
     const billingDetailsPanel = await screen.findByTestId('billing-details-panel');
-    expect(within(billingDetailsPanel).getByText('Business address')).toBeInTheDocument();
-    expect(within(billingDetailsPanel).getByText('test@gmail.com')).toBeInTheDocument();
-    expect(within(billingDetailsPanel).getByText('Test company')).toBeInTheDocument();
-    expect(within(billingDetailsPanel).getByText('123 Street')).toBeInTheDocument();
+    expect(screen.getByText('Business address')).toBeInTheDocument();
+    expect(screen.getByText('test@gmail.com')).toBeInTheDocument();
+    expect(screen.getByText('Test company')).toBeInTheDocument();
+    expect(screen.getByText('123 Street')).toBeInTheDocument();
+    expect(screen.getByText('Toronto, ON M5A 0J5')).toBeInTheDocument();
+    expect(screen.getByText('Canada')).toBeInTheDocument();
+    expect(screen.getByText('GST/HST Number: 1')).toBeInTheDocument();
     expect(
-      within(billingDetailsPanel).getByText('Toronto, ON M5A 0J5')
+      screen.getByRole('button', {name: 'Edit business address'})
     ).toBeInTheDocument();
-    expect(within(billingDetailsPanel).getByText('Canada')).toBeInTheDocument();
-    expect(
-      within(billingDetailsPanel).getByText('GST/HST Number: 1')
-    ).toBeInTheDocument();
-    expect(
-      within(billingDetailsPanel).getByRole('button', {name: 'Edit business address'})
-    ).toBeInTheDocument();
-    expect(
-      within(billingDetailsPanel).queryByRole('button', {name: 'Save Changes'})
-    ).not.toBeInTheDocument();
-
     // can edit both
-    await userEvent.click(
-      within(cardPanel).getByRole('button', {name: 'Edit payment method'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     expect(
-      within(cardPanel).queryByRole('button', {name: 'Edit payment method'})
+      screen.queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
     expect(
       within(cardPanel).getByRole('button', {name: 'Save Changes'})
     ).toBeInTheDocument();
 
-    await userEvent.click(
-      within(billingDetailsPanel).getByRole('button', {name: 'Edit business address'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Edit business address'}));
     expect(
-      within(billingDetailsPanel).queryByRole('button', {name: 'Edit business address'})
+      screen.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
     expect(
       within(billingDetailsPanel).getByRole('button', {name: 'Save Changes'})
@@ -152,19 +137,17 @@ describe('Subscription > BillingInformation', () => {
     render(<BillingInformation subscription={sub} />, {organization});
 
     // panels are expanded with no pre-existing information
-    const cardPanel = await screen.findByTestId('credit-card-panel');
-    expect(cardPanel).toBeInTheDocument();
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     expect(
-      within(cardPanel).queryByRole('button', {name: 'Edit payment method'})
+      screen.queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
     expect(
       within(cardPanel).getByRole('button', {name: 'Save Changes'})
     ).toBeInTheDocument();
 
     const billingDetailsPanel = await screen.findByTestId('billing-details-panel');
-    expect(billingDetailsPanel).toBeInTheDocument();
     expect(
-      within(billingDetailsPanel).queryByRole('button', {name: 'Edit business address'})
+      screen.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
     expect(
       within(billingDetailsPanel).getByRole('button', {name: 'Save Changes'})
@@ -182,15 +165,15 @@ describe('Subscription > BillingInformation', () => {
       },
     });
 
-    await screen.findByText('Payment method');
     expect(
       screen.queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
-    const cardPanel = await screen.findByTestId('credit-card-panel');
-    const inCardPanel = within(cardPanel);
-    expect(inCardPanel.getByRole('button', {name: 'Save Changes'})).toBeInTheDocument();
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     expect(
-      inCardPanel.getByText(/Your credit card will be charged upon update./)
+      within(cardPanel).getByRole('button', {name: 'Save Changes'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your credit card will be charged upon update./)
     ).toBeInTheDocument();
   });
 
@@ -272,29 +255,56 @@ describe('Subscription > BillingInformation', () => {
 
     await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
-    const cardPanel = await screen.findByTestId('credit-card-panel');
-    const inCardPanel = within(cardPanel);
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
 
     expect(
-      inCardPanel.getByText(
+      screen.getByText(
         /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
       )
     ).toBeInTheDocument();
 
     // Save the updated credit card details
-    expect(inCardPanel.getByRole('button', {name: 'Save Changes'})).toBeEnabled();
-    await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
+    const saveButton = within(cardPanel).getByRole('button', {name: 'Save Changes'});
+    expect(saveButton).toBeEnabled();
+    await userEvent.click(saveButton);
 
     // Wait for the API call to complete
-    await waitFor(() => inCardPanel.findByRole('button', {name: 'Edit payment method'}));
+    await screen.findByRole('button', {name: 'Edit payment method'});
 
     // for testing purposes, update the store and rerender with the updated subscription
     // due to the nature of how the components are abstracted, this is necessary for testing
     // but in prod the UI refreshes on SubscriptionStore update
     SubscriptionStore.set(organization.slug, updatedSubscription);
     rerender(<BillingInformation subscription={updatedSubscription} />);
-    expect(inCardPanel.getByText('Visa ****1111 12/30')).toBeInTheDocument();
-    expect(inCardPanel.getByText('United States 94107')).toBeInTheDocument();
+    expect(screen.getByText('Visa ****1111 12/30')).toBeInTheDocument();
+    expect(screen.getByText('United States 94107')).toBeInTheDocument();
+  });
+
+  it('leaves Stripe field validation errors beside the fields', async () => {
+    const stripeImport = await import('@stripe/react-stripe-js');
+    const originalElements = stripeImport.useElements();
+    const submit = jest.fn().mockResolvedValue({
+      error: {message: 'Your card number is incomplete.'},
+    });
+    const useElementsSpy = jest.spyOn(stripeImport, 'useElements').mockReturnValue({
+      submit,
+    } as unknown as StripeElements);
+    const createSetupIntent = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/setup/`,
+      method: 'POST',
+      body: {clientSecret: 'seti_abc123'},
+    });
+
+    render(<BillingInformation subscription={subscription} />, {organization});
+
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
+    await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
+    await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(createSetupIntent).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    useElementsSpy.mockReturnValue(originalElements);
   });
 
   it('shows an error if the setupintent creation fails', async () => {
@@ -309,7 +319,7 @@ describe('Subscription > BillingInformation', () => {
 
     const testSubscription = SubscriptionFixture({organization});
 
-    MockApiClient.addMockResponse({
+    const createSetupIntent = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
       statusCode: 400,
@@ -322,11 +332,62 @@ describe('Subscription > BillingInformation', () => {
 
     await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
-    const cardPanel = await screen.findByTestId('credit-card-panel');
-    const inCardPanel = within(cardPanel);
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
 
-    await inCardPanel.findByText(
+    expect(createSetupIntent).not.toHaveBeenCalled();
+    await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
       'Unable to initialize payment setup, please try again later.'
+    );
+  });
+
+  it('shows a setup error when setup intent creation fails without a detail', async () => {
+    const updatePaymentMethod = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'PUT',
+    });
+    const createSetupIntent = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/setup/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {},
+    });
+
+    render(<BillingInformation subscription={subscription} />, {organization});
+
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
+    await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
+    await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not set up payment method.'
+    );
+    expect(createSetupIntent).toHaveBeenCalledTimes(1);
+    expect(updatePaymentMethod).not.toHaveBeenCalled();
+  });
+
+  it('shows a useful error when updating the payment method fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/setup/`,
+      method: 'POST',
+      body: {clientSecret: 'seti_abc123'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'PUT',
+      statusCode: 400,
+      body: {},
+    });
+
+    const sub: TSubscription = {...subscription, paymentSource: null};
+    render(<BillingInformation subscription={sub} />, {organization});
+
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
+    await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not update payment method.'
     );
   });
 
@@ -346,13 +407,12 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    const cardPanel = await screen.findByTestId('credit-card-panel');
-    const inCardPanel = within(cardPanel);
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
 
     // Panel is already in edit mode because paymentSource is null
     // Save the updated credit card details
-    await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
 
-    expect(await screen.findByText('card invalid')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('card invalid');
   });
 });
