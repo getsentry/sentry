@@ -1,172 +1,7 @@
 import React, {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/add';
-import {IconAllProjects} from '@sentry/icons/allProjects';
-import {IconAngry} from '@sentry/icons/angry';
-import {IconArrow} from '@sentry/icons/arrow';
-import {IconAsana} from '@sentry/icons/asana';
-import {IconAttachment} from '@sentry/icons/attachment';
-import {IconBarAntennaOne} from '@sentry/icons/barAntennaOne';
-import {IconBarAntennaThree} from '@sentry/icons/barAntennaThree';
-import {IconBarAntennaTwo} from '@sentry/icons/barAntennaTwo';
-import {IconBitbucket} from '@sentry/icons/bitbucket';
-import {IconBookmark} from '@sentry/icons/bookmark';
-import {IconBot} from '@sentry/icons/bot';
-import {IconBranch} from '@sentry/icons/branch';
-import {IconBroadcast} from '@sentry/icons/broadcast';
-import {IconBug} from '@sentry/icons/bug';
-import {IconBuilding} from '@sentry/icons/building';
-import {IconBusiness} from '@sentry/icons/business';
-import {IconCalendar} from '@sentry/icons/calendar';
-import {IconCase} from '@sentry/icons/case';
-import {IconChat} from '@sentry/icons/chat';
-import {IconCheckmark} from '@sentry/icons/checkmark';
-import {IconChevron} from '@sentry/icons/chevron';
-import {IconCircle} from '@sentry/icons/circle';
-import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
-import {IconCircleDashed} from '@sentry/icons/circleDashed';
-import {IconCircleFill} from '@sentry/icons/circleFill';
-import {IconClock} from '@sentry/icons/clock';
-import {IconClose} from '@sentry/icons/close';
-import {IconCode} from '@sentry/icons/code';
-import {IconCommand} from '@sentry/icons/command';
-import {IconCommit} from '@sentry/icons/commit';
-import {IconCompass} from '@sentry/icons/compass';
-import {IconContract} from '@sentry/icons/contract';
-import {IconControl} from '@sentry/icons/control';
-import {IconCopy} from '@sentry/icons/copy';
-import {IconCopyId} from '@sentry/icons/copyId';
-import {IconCreditCard} from '@sentry/icons/creditCard';
-import {IconCursor} from '@sentry/icons/cursor';
-import {IconCursorArrow} from '@sentry/icons/cursorArrow';
-import {IconDashboard} from '@sentry/icons/dashboard';
-import {IconDelete} from '@sentry/icons/delete';
-import {IconDiamond} from '@sentry/icons/diamond';
-import {IconDiscord} from '@sentry/icons/discord';
-import {IconDivide} from '@sentry/icons/divide';
-import {IconDocs} from '@sentry/icons/docs';
-import {IconDownload} from '@sentry/icons/download';
-import {IconEdit} from '@sentry/icons/edit';
-import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {IconExclamation} from '@sentry/icons/exclamation';
-import {IconExpand} from '@sentry/icons/expand';
-import {IconFatal} from '@sentry/icons/fatal';
-import {IconFile} from '@sentry/icons/file';
-import {IconFileBroken} from '@sentry/icons/fileBroken';
-import {IconFilter} from '@sentry/icons/filter';
-import {IconFire} from '@sentry/icons/fire';
-import {IconFix} from '@sentry/icons/fix';
-import {IconFlag} from '@sentry/icons/flag';
-import {IconFocus} from '@sentry/icons/focus';
-import {IconGeneric} from '@sentry/icons/generic';
-import {IconGithub} from '@sentry/icons/github';
-import {IconGitlab} from '@sentry/icons/gitlab';
-import {IconGlobe} from '@sentry/icons/globe';
-import {IconGoogle} from '@sentry/icons/google';
-import {IconGrabbable} from '@sentry/icons/grabbable';
-import {IconGraph} from '@sentry/icons/graph';
-import {IconGrid} from '@sentry/icons/grid';
-import {IconGroup} from '@sentry/icons/group';
-import {IconHappy} from '@sentry/icons/happy';
-import {IconHide} from '@sentry/icons/hide';
-import {IconImage} from '@sentry/icons/image';
-import {IconInfo} from '@sentry/icons/info';
-import {IconInput} from '@sentry/icons/input';
-import {IconIssues} from '@sentry/icons/issues';
-import {IconJira} from '@sentry/icons/jira';
-import {IconJson} from '@sentry/icons/json';
-import {IconKeyDown} from '@sentry/icons/keyDown';
-import {IconLab} from '@sentry/icons/lab';
-import {IconLightning} from '@sentry/icons/lightning';
-import {IconLinear} from '@sentry/icons/linear';
-import {IconLink} from '@sentry/icons/link';
-import {IconLinkBroken} from '@sentry/icons/linkBroken';
-import {IconList} from '@sentry/icons/list';
-import {IconLocation} from '@sentry/icons/location';
-import {IconLock} from '@sentry/icons/lock';
-import {IconMail} from '@sentry/icons/mail';
-import {IconMarkdown} from '@sentry/icons/markdown';
-import {IconMegaphone} from '@sentry/icons/megaphone';
-import {IconMeh} from '@sentry/icons/meh';
-import {IconMenu} from '@sentry/icons/menu';
-import {IconMerge} from '@sentry/icons/merge';
-import {IconMobile} from '@sentry/icons/mobile';
-import {IconMoon} from '@sentry/icons/moon';
-import {IconMute} from '@sentry/icons/mute';
-import {IconMyProjects} from '@sentry/icons/myProjects';
-import {IconNext} from '@sentry/icons/next';
-import {IconNot} from '@sentry/icons/not';
-import {IconNumber} from '@sentry/icons/number';
-import {IconOpen} from '@sentry/icons/open';
-import {IconOption} from '@sentry/icons/option';
-import {IconPanel} from '@sentry/icons/panel';
-import {IconPause} from '@sentry/icons/pause';
-import {IconPerforce} from '@sentry/icons/perforce';
-import {IconPieHalf} from '@sentry/icons/pieHalf';
-import {IconPieQuarter} from '@sentry/icons/pieQuarter';
-import {IconPieThreeQuarters} from '@sentry/icons/pieThreeQuarters';
-import {IconPin} from '@sentry/icons/pin';
-import {IconPlay} from '@sentry/icons/play';
-import {IconPrevent} from '@sentry/icons/prevent';
-import {IconPrevious} from '@sentry/icons/previous';
-import {IconPrint} from '@sentry/icons/print';
-import {IconProfiling} from '@sentry/icons/profiling';
-import {IconProject} from '@sentry/icons/project';
-import {IconPullRequest} from '@sentry/icons/pullRequest';
-import {IconPullRequestClosed} from '@sentry/icons/pullRequestClosed';
-import {IconPullRequestDraft} from '@sentry/icons/pullRequestDraft';
-import {IconQuestion} from '@sentry/icons/question';
-import {IconReceipt} from '@sentry/icons/receipt';
-import {IconRefresh} from '@sentry/icons/refresh';
-import {IconReleases} from '@sentry/icons/releases';
-import {IconRepository} from '@sentry/icons/repository';
-import {IconResize} from '@sentry/icons/resize';
-import {IconReturn} from '@sentry/icons/return';
-import {IconRewind10} from '@sentry/icons/rewind10';
-import {IconRuler} from '@sentry/icons/ruler';
-import {IconSad} from '@sentry/icons/sad';
-import {IconScrollHorizontally} from '@sentry/icons/scrollHorizontally';
-import {IconScrollVertically} from '@sentry/icons/scrollVertically';
-import {IconSearch} from '@sentry/icons/search';
-import {IconSeer} from '@sentry/icons/seer';
 import {IconSentry} from '@sentry/icons/sentry';
-import {IconSentryPrideLogo} from '@sentry/icons/sentryPrideLogo';
-import {IconSettings} from '@sentry/icons/settings';
-import {IconShift} from '@sentry/icons/shift';
-import {IconShow} from '@sentry/icons/show';
-import {IconSiren} from '@sentry/icons/siren';
-import {IconSlashForward} from '@sentry/icons/slashForward';
-import {IconSliders} from '@sentry/icons/sliders';
-import {IconSort} from '@sentry/icons/sort';
-import {IconSound} from '@sentry/icons/sound';
-import {IconSpan} from '@sentry/icons/span';
-import {IconStack} from '@sentry/icons/stack';
-import {IconStar} from '@sentry/icons/star';
-import {IconStats} from '@sentry/icons/stats';
-import {IconSubscribed} from '@sentry/icons/subscribed';
-import {IconSubtract} from '@sentry/icons/subtract';
-import {IconSun} from '@sentry/icons/sun';
-import {IconSupport} from '@sentry/icons/support';
-import {type SVGIconProps} from '@sentry/icons/svgIcon';
-import {IconSync} from '@sentry/icons/sync';
-import {IconTable} from '@sentry/icons/table';
-import {IconTag} from '@sentry/icons/tag';
-import {IconTap} from '@sentry/icons/tap';
-import {IconTelescope} from '@sentry/icons/telescope';
-import {IconTerminal} from '@sentry/icons/terminal';
-import {IconThumb} from '@sentry/icons/thumb';
-import {IconTimer} from '@sentry/icons/timer';
-import {IconTrello} from '@sentry/icons/trello';
-import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
-import {IconUpgrade} from '@sentry/icons/upgrade';
-import {IconUpload} from '@sentry/icons/upload';
-import {IconUser} from '@sentry/icons/user';
-import {IconVercel} from '@sentry/icons/vercel';
-import {IconVsts} from '@sentry/icons/vsts';
-import {IconWarning} from '@sentry/icons/warning';
-import {IconWifi} from '@sentry/icons/wifi';
-import {IconWindow} from '@sentry/icons/window';
-import {IconZoom} from '@sentry/icons/zoom';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import lowerFirst from 'lodash/lowerFirst';
 import {parseAsString, useQueryState} from 'nuqs';
 import {PlatformIcon, platforms} from 'platformicons';
@@ -186,174 +21,14 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
-const Icons = {
-  IconAdd,
-  IconAllProjects,
-  IconAngry,
-  IconArrow,
-  IconAsana,
-  IconAttachment,
-  IconBarAntennaOne,
-  IconBarAntennaThree,
-  IconBarAntennaTwo,
-  IconBitbucket,
-  IconBookmark,
-  IconBot,
-  IconBranch,
-  IconBroadcast,
-  IconBug,
-  IconBuilding,
-  IconBusiness,
-  IconCalendar,
-  IconCase,
-  IconChat,
-  IconCheckmark,
-  IconChevron,
-  IconCircle,
-  IconCircleCheckmark,
-  IconCircleDashed,
-  IconCircleFill,
-  IconClock,
-  IconClose,
-  IconCode,
-  IconCommand,
-  IconCommit,
-  IconCompass,
-  IconContract,
-  IconControl,
-  IconCopy,
-  IconCopyId,
-  IconCreditCard,
-  IconCursor,
-  IconCursorArrow,
-  IconDashboard,
-  IconDelete,
-  IconDiamond,
-  IconDiscord,
-  IconDivide,
-  IconDocs,
-  IconDownload,
-  IconEdit,
-  IconEllipsis,
-  IconExclamation,
-  IconExpand,
-  IconFatal,
-  IconFile,
-  IconFileBroken,
-  IconFilter,
-  IconFire,
-  IconFix,
-  IconFlag,
-  IconFocus,
-  IconGeneric,
-  IconGithub,
-  IconGitlab,
-  IconGlobe,
-  IconGoogle,
-  IconGrabbable,
-  IconGraph,
-  IconGrid,
-  IconGroup,
-  IconHappy,
-  IconHide,
-  IconImage,
-  IconInfo,
-  IconInput,
-  IconIssues,
-  IconJira,
-  IconJson,
-  IconKeyDown,
-  IconLab,
-  IconLightning,
-  IconLinear,
-  IconLink,
-  IconLinkBroken,
-  IconList,
-  IconLocation,
-  IconLock,
-  IconMail,
-  IconMarkdown,
-  IconMegaphone,
-  IconMeh,
-  IconMenu,
-  IconMerge,
-  IconMobile,
-  IconMoon,
-  IconMute,
-  IconMyProjects,
-  IconNext,
-  IconNot,
-  IconNumber,
-  IconOpen,
-  IconOption,
-  IconPanel,
-  IconPause,
-  IconPerforce,
-  IconPieHalf,
-  IconPieQuarter,
-  IconPieThreeQuarters,
-  IconPin,
-  IconPlay,
-  IconPrevent,
-  IconPrevious,
-  IconPrint,
-  IconProfiling,
-  IconProject,
-  IconPullRequest,
-  IconPullRequestClosed,
-  IconPullRequestDraft,
-  IconQuestion,
-  IconReceipt,
-  IconRefresh,
-  IconReleases,
-  IconRepository,
-  IconResize,
-  IconReturn,
-  IconRewind10,
-  IconRuler,
-  IconSad,
-  IconScrollHorizontally,
-  IconScrollVertically,
-  IconSearch,
-  IconSeer,
-  IconSentry,
-  IconSentryPrideLogo,
-  IconSettings,
-  IconShift,
-  IconShow,
-  IconSiren,
-  IconSun,
-  IconSlashForward,
-  IconSliders,
-  IconSort,
-  IconSound,
-  IconSpan,
-  IconStack,
-  IconStar,
-  IconStats,
-  IconSubscribed,
-  IconSubtract,
-  IconSupport,
-  IconSync,
-  IconTable,
-  IconTag,
-  IconTap,
-  IconTelescope,
-  IconTerminal,
-  IconThumb,
-  IconTimer,
-  IconTrello,
-  IconUnsubscribed,
-  IconUpgrade,
-  IconUpload,
-  IconUser,
-  IconVercel,
-  IconVsts,
-  IconWarning,
-  IconWifi,
-  IconWindow,
-  IconZoom,
-};
+const iconModules = import.meta.glob<Record<string, React.ComponentType<SVGIconProps>>>(
+  ['../../packages/icons/src/icon*.tsx', '!../../packages/icons/src/*.spec.tsx'],
+  {eager: true}
+);
+
+const Icons = Object.fromEntries(
+  Object.values(iconModules).flatMap(module => Object.entries(module))
+);
 
 type TIcon = {
   id: string;
@@ -2019,7 +1694,7 @@ export function IconsStories() {
       <Flex direction="row" gap="md" justify="between" width="100%">
         {variants.map(v => (
           <Stack key={v} align="center" gap="md">
-            <Icons.IconSentry size="md" variant={v} />
+            <IconSentry size="md" variant={v} />
             <InlineCode>
               <Text size="xs" monospace>
                 {v}
@@ -2177,7 +1852,7 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
 function CoreSection({section, searchTerm}: {searchTerm: string; section: TSection}) {
   const renderIcon = (icon: TIcon) => {
     const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
-    const Component = Icons[name as keyof typeof Icons];
+    const Component = Icons[name];
 
     if (!Component) {
       // The definition is not type safe, so lets log the icon instead of throwing an error
@@ -2190,7 +1865,7 @@ function CoreSection({section, searchTerm}: {searchTerm: string; section: TSecti
 
     const props = {...icon.defaultProps};
     return (
-      <IconCard icon={icon} importSource={`@sentry/icons/${lowerFirst(name)}`}>
+      <IconCard icon={icon} importSource={`@sentry/icons/${lowerFirst(name.slice(4))}`}>
         <Component {...props} />
         {name}
         {variant && (
