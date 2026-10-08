@@ -270,8 +270,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
     and can be spawned as one.
     """
 
-    # JS and JVM get dedicated namespaces so an outage of one Symbolicator pool
-    # does not back up the others.
     namespace = {
         SymbolicatorFunction.js: symbolication_js_tasks,
         SymbolicatorFunction.jvm: symbolication_jvm_tasks,
@@ -280,8 +278,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
     @instrumented_task(
         name=name,
         namespace=namespace,
-        # All symbolication tasks used to live in `symbolication`; keep them registered
-        # there so activations still queued in that namespace get processed.
         alias_namespace=symbolication_tasks,
         processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
         silo_mode=SiloMode.CELL,
