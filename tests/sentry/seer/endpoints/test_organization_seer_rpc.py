@@ -102,6 +102,39 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.data["dsn_public"].endswith(f"/{project.id}")
 
     @with_feature("organizations:seer-public-rpc")
+    def test_project_method_get_project_members(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        self.project.add_team(team)
+
+        path = self._get_path("get_project_members")
+        response = self.client.post(
+            path, data={"args": {"project_id": self.project.id}}, format="json"
+        )
+
+        assert response.status_code == 200
+        assert [m["id"] for m in response.data["members"]] == [self.user.id]
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_project_method_get_project_members_requires_project_id(self) -> None:
+        path = self._get_path("get_project_members")
+        response = self.client.post(path, data={"args": {}}, format="json")
+
+        assert response.status_code == 400
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_project_method_get_project_members_non_accessible_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.login_as(self.create_user())
+
+        path = self._get_path("get_project_members")
+        response = self.client.post(
+            path, data={"args": {"project_id": self.project.id}}, format="json"
+        )
+
+        assert response.status_code == 403
+
+    @with_feature("organizations:seer-public-rpc")
     def test_project_method_requires_project_id(self) -> None:
         """Test that project-level methods require project_id in args"""
         path = self._get_path("get_transactions_for_project")
