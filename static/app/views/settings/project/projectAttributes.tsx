@@ -1,13 +1,16 @@
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
+import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -20,6 +23,7 @@ import {FieldValueType} from 'sentry/utils/fields';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import type {
@@ -58,6 +62,15 @@ const DATASET_LABELS: Record<AttributeDataset, string> = {
   tracemetrics: t('Metrics'),
 };
 
+const ALL_OPTION_VALUE = 'all';
+
+const DATASET_OPTIONS = [
+  {value: ALL_OPTION_VALUE, label: t('All')},
+  {value: 'spans', label: DATASET_LABELS.spans},
+  {value: 'logs', label: DATASET_LABELS.logs},
+  {value: 'tracemetrics', label: DATASET_LABELS.tracemetrics},
+];
+
 const SORT_FIELDS = ['name', 'type', 'datasets', 'description'] as const;
 
 type SortField = (typeof SORT_FIELDS)[number];
@@ -71,16 +84,42 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'description', width: 'minmax(200px, 3fr)'},
 ];
 
+function decodeOption(value: string | undefined, options: Array<{value: string}>) {
+  return options.find(option => option.value === value)?.value ?? ALL_OPTION_VALUE;
+}
+
 function ProjectAttributesSettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const typeOptions = [
+    {value: ALL_OPTION_VALUE, label: t('All')},
+    ...Object.keys(ATTRIBUTE_VALUE_TYPES)
+      .filter(
+        type =>
+          type !== 'array' ||
+          organization.features.includes('trace-item-array-query-support')
+      )
+      .map(type => ({value: type, label: type})),
+  ];
 
   const cursor = decodeScalar(location.query.cursor);
   const sort =
     decodeSorts(location.query.sort).find(({field}) =>
       SORT_FIELDS.some(sortField => sortField === field)
     ) ?? DEFAULT_SORT;
+  const dataset = decodeOption(decodeScalar(location.query.dataset), DATASET_OPTIONS);
+  const type = decodeOption(decodeScalar(location.query.type), typeOptions);
+  const search = decodeScalar(location.query.search, '');
+
+  function updateQuery(query: Record<string, string | undefined>) {
+    navigate({
+      ...location,
+      query: {...location.query, cursor: undefined, ...query},
+    });
+  }
 
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<Attribute[]>()(
@@ -88,8 +127,11 @@ function ProjectAttributesSettings() {
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
+          attributeType: type === ALL_OPTION_VALUE ? undefined : type,
           cursor,
+          dataset: dataset === ALL_OPTION_VALUE ? undefined : dataset,
           expand: 'context',
+          search: search || undefined,
           per_page: ATTRIBUTES_PER_PAGE,
           project: [project.id],
           sort: encodeSort(sort),
@@ -122,6 +164,39 @@ function ProjectAttributesSettings() {
           'Browse the attributes sent with your logs, metrics, and spans in the last 14 days.'
         )}
       />
+      <Flex gap="md" wrap="wrap" paddingBottom="md">
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Dataset')} />
+          )}
+          value={dataset}
+          options={DATASET_OPTIONS}
+          onChange={option =>
+            updateQuery({
+              dataset: option.value === ALL_OPTION_VALUE ? undefined : option.value,
+            })
+          }
+        />
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Type')} />
+          )}
+          value={type}
+          options={typeOptions}
+          onChange={option =>
+            updateQuery({
+              type: option.value === ALL_OPTION_VALUE ? undefined : option.value,
+            })
+          }
+        />
+        <Container flexGrow={1}>
+          <SearchBar
+            query={search}
+            placeholder={t('Search attribute names or descriptions')}
+            onSearch={query => updateQuery({search: query || undefined})}
+          />
+        </Container>
+      </Flex>
       <SimpleTable
         columns={COLUMNS}
         header={
