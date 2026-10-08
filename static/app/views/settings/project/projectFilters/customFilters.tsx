@@ -8,7 +8,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -53,6 +53,7 @@ import type {UsageSeries} from 'sentry/views/organizationStats/types';
 type ConditionType =
   | 'error_message'
   | 'error_type'
+  | 'geo_country_code'
   | 'metric_name'
   | 'log_message'
   | 'release'
@@ -147,6 +148,14 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     placeholder: t('Glob pattern, e.g. TypeError'),
     description: t(
       'Matches the exception type of an error, e.g. TypeError. Use an Error Message condition to match the message.'
+    ),
+  },
+  geo_country_code: {
+    dataType: 'error',
+    label: t('Country'),
+    placeholder: t('Glob pattern, e.g. US'),
+    description: t(
+      "Matches the two-letter country code of the user's location, e.g. US. Sentry derives it from the sender IP address unless the SDK sets one."
     ),
   },
   metric_name: {
@@ -1074,7 +1083,10 @@ export function CustomFilters({project}: {project: Project}) {
   const visibleFilters = filters.filter(filter => matchesQuery(filter, query));
 
   return (
-    <FieldGroup title={t('Filter Rules')}>
+    <Stack gap="lg">
+      <Heading as="h2" size="md">
+        {t('Filter Rules')}
+      </Heading>
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -1124,9 +1136,8 @@ export function CustomFilters({project}: {project: Project}) {
         <LoadingIndicator />
       ) : (
         <Container containerType="inline-size">
-          <CustomFiltersTable
-            columns={CUSTOM_FILTER_COLUMNS}
-            header={
+          <CustomFiltersTable columns={CUSTOM_FILTER_COLUMNS} customSections scrollable>
+            <SimpleTable.Head sticky>
               <SimpleTable.HeaderRow>
                 <SimpleTable.HeaderCell divider={false}>
                   {t('Active')}
@@ -1156,101 +1167,104 @@ export function CustomFilters({project}: {project: Project}) {
                   {t('Action')}
                 </SimpleTable.HeaderCell>
               </SimpleTable.HeaderRow>
-            }
-          >
-            {visibleFilters.length === 0 && (
-              <SimpleTable.Empty>
-                {filters.length === 0
-                  ? t('No inbound filters found')
-                  : t('No rules match your search')}
-              </SimpleTable.Empty>
-            )}
-            {visibleFilters.map(filter => (
-              <SimpleTable.Row
-                key={filter.id}
-                variant={filter.active ? 'default' : 'faded'}
-              >
-                <SimpleTable.RowCell>
-                  <Switch
-                    aria-label={filter.active ? t('Disable filter') : t('Enable filter')}
-                    checked={filter.active}
-                    disabled={!hasWriteAccess}
-                    onChange={() => handleToggleActive(filter)}
-                  />
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Text ellipsis>{filter.name}</Text>
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Text ellipsis variant="muted">
-                    {getDataTypeLabel(filter)}
-                  </Text>
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Stack align="start" gap="xs">
-                    {filter.conditions.map((condition, index) => (
-                      <ConditionSummary key={index} condition={condition} />
-                    ))}
-                  </Stack>
-                </SimpleTable.RowCell>
-                <FilteredVolumeCells
-                  intervals={stats?.intervals ?? []}
-                  seriesByCategory={stats?.seriesByReason.get(
-                    `${OUTCOMES_REASON_PREFIX}${filter.id}`
-                  )}
-                  isPending={isStatsPending}
-                  isError={isStatsError}
-                />
-                <SimpleTable.RowCell whiteSpace="nowrap">
-                  <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell whiteSpace="nowrap">
-                  <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Flex gap="sm">
-                    <Button
-                      size="sm"
-                      variant="transparent"
-                      icon={<IconEdit />}
-                      aria-label={t('Edit filter')}
-                      disabled={!hasWriteAccess}
-                      onClick={() =>
-                        openModal(
-                          deps => (
-                            <CustomFilterModal
-                              {...deps}
-                              project={project}
-                              filter={filter}
-                              dataTypeOptions={dataTypeOptions}
-                              onSave={values => handleEdit(filter.id, values)}
-                            />
-                          ),
-                          {modalCss: filterModalCss}
-                        )
+            </SimpleTable.Head>
+            <SimpleTable.Body>
+              {visibleFilters.length === 0 && (
+                <SimpleTable.Empty>
+                  {filters.length === 0
+                    ? t('No inbound filters found')
+                    : t('No rules match your search')}
+                </SimpleTable.Empty>
+              )}
+              {visibleFilters.map(filter => (
+                <SimpleTable.Row
+                  key={filter.id}
+                  variant={filter.active ? 'default' : 'faded'}
+                >
+                  <SimpleTable.RowCell>
+                    <Switch
+                      aria-label={
+                        filter.active ? t('Disable filter') : t('Enable filter')
                       }
-                    />
-                    <Confirm
-                      priority="danger"
+                      checked={filter.active}
                       disabled={!hasWriteAccess}
-                      message={t('Are you sure you want to delete this filter?')}
-                      onConfirm={() => handleDelete(filter.id)}
-                    >
+                      onChange={() => handleToggleActive(filter)}
+                    />
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    <Text ellipsis>{filter.name}</Text>
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    <Text ellipsis variant="muted">
+                      {getDataTypeLabel(filter)}
+                    </Text>
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    <Stack align="start" gap="xs">
+                      {filter.conditions.map((condition, index) => (
+                        <ConditionSummary key={index} condition={condition} />
+                      ))}
+                    </Stack>
+                  </SimpleTable.RowCell>
+                  <FilteredVolumeCells
+                    intervals={stats?.intervals ?? []}
+                    seriesByCategory={stats?.seriesByReason.get(
+                      `${OUTCOMES_REASON_PREFIX}${filter.id}`
+                    )}
+                    isPending={isStatsPending}
+                    isError={isStatsError}
+                  />
+                  <SimpleTable.RowCell whiteSpace="nowrap">
+                    <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell whiteSpace="nowrap">
+                    <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    <Flex gap="sm">
                       <Button
                         size="sm"
                         variant="transparent"
-                        icon={<IconDelete />}
-                        aria-label={t('Delete filter')}
+                        icon={<IconEdit />}
+                        aria-label={t('Edit filter')}
+                        disabled={!hasWriteAccess}
+                        onClick={() =>
+                          openModal(
+                            deps => (
+                              <CustomFilterModal
+                                {...deps}
+                                project={project}
+                                filter={filter}
+                                dataTypeOptions={dataTypeOptions}
+                                onSave={values => handleEdit(filter.id, values)}
+                              />
+                            ),
+                            {modalCss: filterModalCss}
+                          )
+                        }
                       />
-                    </Confirm>
-                  </Flex>
-                </SimpleTable.RowCell>
-              </SimpleTable.Row>
-            ))}
+                      <Confirm
+                        priority="danger"
+                        disabled={!hasWriteAccess}
+                        message={t('Are you sure you want to delete this filter?')}
+                        onConfirm={() => handleDelete(filter.id)}
+                      >
+                        <Button
+                          size="sm"
+                          variant="transparent"
+                          icon={<IconDelete />}
+                          aria-label={t('Delete filter')}
+                        />
+                      </Confirm>
+                    </Flex>
+                  </SimpleTable.RowCell>
+                </SimpleTable.Row>
+              ))}
+            </SimpleTable.Body>
           </CustomFiltersTable>
         </Container>
       )}
-    </FieldGroup>
+    </Stack>
   );
 }
 
@@ -1264,11 +1278,15 @@ const CUSTOM_FILTER_COLUMNS: TableColumnConfig[] = [
   {key: 'conditions', width: 'minmax(240px, 2fr)'},
   {key: 'trend', visible: {'3xl': true}, width: '190px'},
   {key: 'filtered', visible: {'2xl': true}, width: '90px'},
-  {key: 'created', visible: {'4xl': true}, width: '90px'},
-  {key: 'edited', visible: {'4xl': true}, width: '90px'},
+  {key: 'created', visible: {'5xl': true}, width: '90px'},
+  {key: 'edited', visible: {'5xl': true}, width: '90px'},
   {key: 'action', width: '110px'},
 ];
 
+// A fixed height keeps the search box and the sections below the table in place
+// while a search shrinks or grows the list. The grid would otherwise stretch its
+// rows to fill the spare height.
 const CustomFiltersTable = styled(SimpleTable)`
-  overflow-x: auto;
+  height: 480px;
+  align-content: start;
 `;

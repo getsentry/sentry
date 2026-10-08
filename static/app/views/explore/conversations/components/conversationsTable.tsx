@@ -18,7 +18,6 @@ import {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   GridEditable,
-  type GridColumnHeader,
   type GridColumnOrder,
   type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
@@ -291,20 +290,6 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
     [navigate, organization.slug, selection.projects]
   );
 
-  const renderHeadCell = useCallback(
-    (column: GridColumnHeader<ColumnKey>) => (
-      <Flex
-        flex="1"
-        align="center"
-        gap="xs"
-        justify={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'end' : 'start'}
-      >
-        {column.name}
-      </Flex>
-    ),
-    []
-  );
-
   const getColumnSort = useCallback(
     (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
       const field = SORT_FIELD_BY_COLUMN[column.key];
@@ -346,12 +331,11 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
           data={data}
           columnOrder={displayedColumns}
           stickyHeader
-          // GridEditable's Panel body has a default bottom margin; drop it so
+          // GridEditable has a default bottom margin; drop it so
           // the Stack's `lg` gap is the only spacing before the pagination.
           bodyStyle={{marginBottom: 0}}
           grid={{
             getColumnSort,
-            renderHeadCell,
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
             staticColumnWidths,

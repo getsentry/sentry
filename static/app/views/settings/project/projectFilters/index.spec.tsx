@@ -1101,6 +1101,7 @@ describe('ProjectFilters', () => {
       screen.getByRole('menuitemradio', {name: 'Error Message'})
     ).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Error Type'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Country'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'IP Address'})).toBeInTheDocument();
     expect(
@@ -1213,6 +1214,9 @@ describe('ProjectFilters', () => {
     expect(screen.getByRole('menuitemradio', {name: 'IP Address'})).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'Error Message'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Country'})
     ).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
 

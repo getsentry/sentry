@@ -19,7 +19,6 @@ import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
@@ -41,6 +40,7 @@ import type {
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
+import {LogsAnsiHighlight} from 'sentry/views/explore/logs/logsAnsiHighlight';
 import {LogsTimestampTooltip} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
@@ -49,7 +49,7 @@ import {
   LogBasicRendererContainer,
   LogDate,
   LogsFilteredHelperText,
-  LogsHighlight,
+  LogTimestamp,
   WrappingText,
   type getLogColors,
 } from 'sentry/views/explore/logs/styles';
@@ -165,7 +165,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
     : props.item.value;
 
   return (
-    <LogDate align={props.extra.align}>
+    <LogTimestamp align={props.extra.align}>
       <LogsTimestampTooltip
         timestamp={props.item.value!}
         attributes={props.extra.attributes}
@@ -174,7 +174,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
       >
         <DateTime seconds milliseconds date={timestampToUse} />
       </LogsTimestampTooltip>
-    </LogDate>
+    </LogTimestamp>
   );
 }
 
@@ -501,12 +501,12 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
       isAppendingTemplate={!!templateText}
     >
       <WrappingText wrapText={props.extra.wrapBody}>
-        <LogsHighlight
+        <LogsAnsiHighlight
           caseSensitive={props.extra.caseSensitiveHighlighting}
           terms={highlightTerms}
         >
-          {stripAnsi(attribute_value)}
-        </LogsHighlight>
+          {attribute_value}
+        </LogsAnsiHighlight>
         {isBodyFiltered && templateText && (
           <FieldReplacementHelper
             replacement={templateText as string}
@@ -522,9 +522,11 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
 function LogTemplateRenderer(props: LogFieldRendererProps) {
   return (
     <span>
-      {typeof props.item.value === 'string'
-        ? stripAnsi(props.item.value)
-        : props.basicRendered}
+      {typeof props.item.value === 'string' ? (
+        <LogsAnsiHighlight>{props.item.value}</LogsAnsiHighlight>
+      ) : (
+        props.basicRendered
+      )}
     </span>
   );
 }

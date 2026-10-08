@@ -39,6 +39,7 @@ from sentry.auth.exceptions import (
 )
 from sentry.auth.idpmigration import (
     SSO_VERIFICATION_KEY,
+    delete_verification_key,
     get_verification_value_from_key,
     send_one_time_account_confirm_link,
 )
@@ -576,6 +577,7 @@ class AuthIdentityHandler:
         return bool(
             verification_value["email"] == self.identity["email"]
             and verification_value["user_id"] == self.user.id
+            and verification_value.get("organization_id") == self.organization.id
         )
 
     @property
@@ -747,6 +749,8 @@ class AuthIdentityHandler:
         try:
             if op == "confirm" and (self.request.user.is_authenticated or is_account_verified):
                 auth_identity = self.handle_attach_identity()
+                if is_account_verified and verification_key:
+                    delete_verification_key(verification_key)
             elif op == "confirm":
                 logger.info(
                     "sso.login-pipeline.merge-failed",

@@ -28,6 +28,7 @@ import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {ProjectItem as ProjectListItem} from 'sentry/views/settings/components/settingsProjectItem';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
@@ -119,6 +120,7 @@ export default function TeamProjects() {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Projects')} />
       <TextBlock>
         {t(
           'If you have Team Admin permissions for other projects, you can associate them with this team.'

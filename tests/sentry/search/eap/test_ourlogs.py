@@ -26,8 +26,27 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.ourlogs import OurLogs
 from sentry.testutils.helpers.features import with_feature
 from sentry.users.services.user import RpcUser
+
+
+class OurLogsRunTableQueryTest(TestCase):
+    def test_no_selected_columns_raises_before_rpc(self) -> None:
+        """An empty column list should be rejected the same way sentry.snuba.errors
+        rejects it, before ever reaching the RPC (which would otherwise return a
+        generic 500)."""
+        with pytest.raises(InvalidSearchQuery, match="No columns selected"):
+            OurLogs.run_table_query(
+                params=SnubaParams(),
+                query_string="",
+                selected_columns=[],
+                orderby=None,
+                offset=0,
+                limit=10,
+                referrer="test",
+                config=SearchResolverConfig(),
+            )
 
 
 class SearchResolverQueryTest(TestCase):
@@ -527,7 +546,7 @@ def test_count_default_argument() -> None:
         label="count()",
         extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
     )
-    assert virtual_context is None
+    assert virtual_context == [None]
 
 
 @pytest.mark.parametrize(
@@ -560,7 +579,7 @@ def test_monoid_functions(function_name, proto_function) -> None:
             label=f"{function_name}({attr})",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
 
 @pytest.mark.parametrize(

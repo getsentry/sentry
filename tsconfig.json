@@ -46,7 +46,15 @@
     "verbatimModuleSyntax": true,
 
     "paths": {
-      "@sentry/scraps/*": ["./static/app/components/core/*"],
+      "react-router": ["./static/app/utils/reactRouterV6/types.d.ts"],
+      "react-router/dom": ["./static/app/utils/reactRouterV6/dom.ts"],
+      "@sentry/scraps/text": ["./static/app/components/core/text/index.tsx"],
+      "@sentry/scraps": ["./static/packages/scraps/src/index.ts"],
+      // The app falls back to core components until they move into scraps.
+      "@sentry/scraps/*": [
+        "./static/packages/scraps/src/*",
+        "./static/app/components/core/*"
+      ],
       "sentry/*": ["./static/app/*"],
       "sentry-fixture/*": ["./tests/js/fixtures/*"],
       "sentry-test/*": ["./tests/js/sentry-test/*"],
@@ -63,6 +71,7 @@
   "include": [
     "*.config.*s",
     "static/app",
+    "static/packages/scraps/src",
     "static/gsApp",
     "static/gsAdmin",
     "static/oxlint",
@@ -70,5 +79,10 @@
     "config",
     "scripts"
   ],
-  "exclude": ["./node_modules", "static/app/serviceWorker/worker"]
+  "exclude": [
+    "./node_modules",
+    "static/app/serviceWorker/worker",
+    "static/packages/scraps/src/**/*.spec.ts",
+    "static/packages/scraps/src/**/*.spec.tsx"
+  ]
 }

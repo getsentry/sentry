@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {DataTable} from 'sentry/components/tables/dataTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron, IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
@@ -75,17 +75,17 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
 
               if (status === 'pending') {
                 return (
-                  <DataTable.Row key={rowId}>
+                  <SimpleTable.Row key={rowId}>
                     <LoadingGridBodyCell>
                       <Placeholder height="100%" />
                     </LoadingGridBodyCell>
-                  </DataTable.Row>
+                  </SimpleTable.Row>
                 );
               }
 
               const isErrorRow = status === 'error';
               return (
-                <DataTable.Row key={rowId}>
+                <SimpleTable.Row key={rowId}>
                   <UnavailableGridBodyCell>
                     <Flex align="center" gap="sm">
                       <IconWarning size="xs" />
@@ -101,7 +101,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
                       )}
                     </Flex>
                   </UnavailableGridBodyCell>
-                </DataTable.Row>
+                </SimpleTable.Row>
               );
             }
 
@@ -135,7 +135,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
   );
 }
 
-const PinnedTableBody = styled(DataTable.Body)`
+const PinnedTableBody = styled(SimpleTable.Body)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   overflow-y: auto;
   overflow-x: hidden;
@@ -143,7 +143,7 @@ const PinnedTableBody = styled(DataTable.Body)`
   scrollbar-width: thin;
 `;
 
-const PinnedToolbarRow = styled(DataTable.Row)`
+const PinnedToolbarRow = styled(SimpleTable.Row)`
   position: sticky;
   bottom: 0;
   z-index: 1;

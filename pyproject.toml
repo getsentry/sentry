@@ -90,15 +90,15 @@ dependencies = [
   "rfc3986-validator>=0.1.1",
   # [end] jsonschema format validators
   "sentry-arroyo>=2.42.2",
-  "sentry-conventions>=0.25.0",
+  "sentry-conventions>=0.26.0",
   "sentry-forked-email-reply-parser>=0.5.12.post1",
   "sentry-kafka-schemas>=3.0.2",
   "sentry-ophio>=1.2.0",
   # sentry-options is only used in getsentry for now
   "sentry-options>=1.2.13",
-  "sentry-protos>=0.79.0",
+  "sentry-protos>=0.81.1",
   "sentry-redis-tools>=0.5.0",
-  "sentry-relay>=0.9.31",
+  "sentry-relay>=0.10.0",
   "sentry-scm>=1.7.2",
   "sentry-sdk[http2]>=2.68.0",
   "sentry-usage-accountant>=0.0.10",
@@ -115,6 +115,7 @@ dependencies = [
   "tldextract>=5.1.2",
   "toronado>=0.1.0",
   "typing-extensions>=4.12.0",
+  "tzdata>=2026.4",
   "ua-parser>=0.10.0",
   "unidiff>=0.7.4",
   # note: we cannot resolve urllib3[brotli] but brotli is installed
@@ -146,8 +147,16 @@ environments = [
 [[tool.uv.index]]
 # We don't allow using public pypi - submit a PR to
 # https://github.com/getsentry/pypi to add a dependency.
+name = "sentry-pypi"
 url = "https://pypi.devinfra.sentry.io/simple"
 default = true
+
+[[tool.uv.index]]
+# Org-level Dependabot registry. Declaring it here stops Dependabot from
+# passing it as `--default-index`; `explicit` keeps uv from ever using it.
+name = "sfw"
+url = "https://sfw.security.sentry.io/pypi/simple"
+explicit = true
 
 # Note: instead of using a build system, we use tools/fast_editable.py
 # to install sentry editably as well as console scripts.
@@ -205,6 +214,9 @@ dev = [
   "types-requests-oauthlib>=2.0.0.20250119",
   "types-simplejson>=3.17.7.2",
   "types-unidiff>=0.7.0.20240505",
+]
+image-debug = [
+  "memray==1.20.0",
 ]
 
 [tool.ruff]
@@ -529,7 +541,6 @@ module = [
     "sentry.api.endpoints.organization_sdk_deprecations",
     "sentry.api.endpoints.organization_sdk_updates",
     "sentry.api.endpoints.organization_sessions",
-    "sentry.api.endpoints.organization_spans_fields",
     "sentry.api.endpoints.organization_stats",
     "sentry.api.endpoints.organization_stats_summary",
     "sentry.api.endpoints.organization_stats_v2",
@@ -616,7 +627,6 @@ module = [
     "sentry.api.serializers.models.groupsearchviewstarred",
     "sentry.api.serializers.models.groupseen",
     "sentry.api.serializers.models.grouptombstone",
-    "sentry.api.serializers.models.incidentactivity",
     "sentry.api.serializers.models.organization",
     "sentry.api.serializers.models.organization_access_request",
     "sentry.api.serializers.models.organizationmemberinvite",
@@ -635,7 +645,6 @@ module = [
     "sentry.api.serializers.models.release_threshold",
     "sentry.api.serializers.models.repository",
     "sentry.api.serializers.models.role",
-    "sentry.api.serializers.models.rule",
     "sentry.api.serializers.models.seer_agentic_triage_run",
     "sentry.api.serializers.models.tagvalue",
     "sentry.api.serializers.models.team",
@@ -655,7 +664,6 @@ module = [
     "sentry.api.serializers.rest_framework.project",
     "sentry.api.serializers.rest_framework.project_key",
     "sentry.api.serializers.rest_framework.release",
-    "sentry.api.serializers.rest_framework.rule",
     "sentry.api.serializers.snuba",
     "sentry.api.serializers.types",
     "sentry.api.urls",
@@ -934,7 +942,6 @@ module = [
     "sentry.integrations.utils.source_context",
     "sentry.integrations.utils.stacktrace_link",
     "sentry.integrations.utils.webhook_viewer_context",
-    "sentry.integrations.vercel.*",
     "sentry.integrations.vsts",
     "sentry.integrations.vsts.client",
     "sentry.integrations.vsts.integration",
@@ -1221,11 +1228,7 @@ module = [
     "sentry.rules.actions.base",
     "sentry.rules.actions.notify_event_service",
     "sentry.rules.actions.services",
-    "sentry.rules.actions.utils",
-    "sentry.rules.age",
-    "sentry.rules.base",
     "sentry.rules.filters.*",
-    "sentry.rules.match",
     "sentry.rules.processing.*",
     "sentry.rules.registry",
     "sentry.scm.*",
@@ -1389,7 +1392,6 @@ module = [
     "sentry.testutils.helpers.redis",
     "sentry.testutils.helpers.response",
     "sentry.testutils.helpers.sdk",
-    "sentry.testutils.helpers.serializer_parity",
     "sentry.testutils.helpers.slack",
     "sentry.testutils.helpers.socket",
     "sentry.testutils.helpers.uptime",
@@ -1627,7 +1629,6 @@ module = [
     "tests.sentry.api.endpoints.test_organization_sampling_project_span_counts",
     "tests.sentry.api.endpoints.test_organization_sdk_deprecations",
     "tests.sentry.api.endpoints.test_organization_sdk_updates",
-    "tests.sentry.api.endpoints.test_organization_spans_fields",
     "tests.sentry.api.endpoints.test_organization_stats",
     "tests.sentry.api.endpoints.test_organization_traces",
     "tests.sentry.api.endpoints.test_organization_unsubscribe",
@@ -1817,7 +1818,6 @@ module = [
     "tests.sentry.integrations.test_notification_utilities",
     "tests.sentry.integrations.test_pipeline",
     "tests.sentry.integrations.utils.*",
-    "tests.sentry.integrations.vercel.*",
     "tests.sentry.integrations.vsts.*",
     "tests.sentry.issues.related.*",
     "tests.sentry.issues.test_ingest_incident_integration",
@@ -1969,9 +1969,7 @@ module = [
     "tests.sentry.rules.actions.test_notify_event_sentry_app",
     "tests.sentry.rules.actions.test_notify_event_service",
     "tests.sentry.rules.conditions.*",
-    "tests.sentry.rules.history",
     "tests.sentry.rules.processing",
-    "tests.sentry.rules.test_match",
     "tests.sentry.runner",
     "tests.sentry.runner.commands",
     "tests.sentry.runner.commands.test_backup",

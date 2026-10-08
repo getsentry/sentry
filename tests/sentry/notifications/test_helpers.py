@@ -7,7 +7,11 @@ from sentry.notifications.helpers import (
     validate,
 )
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
-from sentry.notifications.types import NotificationSettingEnum, NotificationSettingsOptionEnum
+from sentry.notifications.types import (
+    NotificationOrigin,
+    NotificationSettingEnum,
+    NotificationSettingsOptionEnum,
+)
 from sentry.notifications.utils.links import (
     get_email_link_extra_params,
     get_group_settings_link,
@@ -88,6 +92,11 @@ class NotificationHelpersTest(TestCase):
     def test_get_group_settings_link(self) -> None:
         rule: Rule = self.create_project_rule(self.project)
         rule_details = get_rules([rule], self.organization, self.project, self.group.type)
+        assert rule_details[0].id == rule.id
+        assert rule_details[0].status_url == (
+            f"/organizations/{self.organization.slug}/issues/alerts/rules/"
+            f"{self.project.slug}/{rule.id}/details/"
+        )
         link = get_group_settings_link(
             self.group, self.environment.name, rule_details, 1337, extra="123"
         )
@@ -103,6 +112,42 @@ class NotificationHelpersTest(TestCase):
             "alert_rule_id": str(rule_details[0].id),
             "extra": "123",
         }
+
+    def test_get_rules_uses_workflow_identity_without_legacy_rule(self) -> None:
+        rule = self.create_project_rule(self.project, include_legacy_rule_id=False)
+
+        [rule_details] = get_rules([rule], self.organization, self.project)
+
+        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        assert rule_details.id == workflow_id
+        assert rule_details.status_url == (
+            f"/organizations/{self.organization.slug}/monitors/alerts/{workflow_id}/"
+        )
+
+    def test_get_rules_falls_back_to_rule_id_without_embedded_identity(self) -> None:
+        rule = self.create_project_rule(
+            self.project, include_legacy_rule_id=False, include_workflow_id=False
+        )
+
+        [rule_details] = get_rules([rule], self.organization, self.project)
+
+        assert rule_details.id == rule.id
+        assert rule_details.status_url == (
+            f"/organizations/{self.organization.slug}/issues/alerts/rules/"
+            f"{self.project.slug}/{rule.id}/details/"
+        )
+
+    def test_notification_origin_normalizes_legacy_identity(self) -> None:
+        rule = self.create_project_rule(self.project)
+        rule.data["actions"][0]["legacy_rule_id"] = str(rule.id)
+        workflow_id = rule.data["actions"][0]["workflow_id"]
+        rule.data["actions"][0]["workflow_id"] = str(workflow_id)
+
+        origin = NotificationOrigin.from_legacy_rule(rule)
+
+        assert origin.label == rule.label
+        assert origin.legacy_rule_id == rule.id
+        assert origin.workflow_id == workflow_id
 
     def test_get_email_link_extra_params(self) -> None:
         rule: Rule = self.create_project_rule(self.project)
