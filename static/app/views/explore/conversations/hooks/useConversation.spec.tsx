@@ -304,6 +304,7 @@ describe('useConversation', () => {
           'gen_ai.memory.query.text': 'dietary preferences',
           'gen_ai.memory.record.id': 'mem_123',
           'gen_ai.memory.record.count': 3,
+          'gen_ai.memory.records': '[{"content":"User prefers dark mode"}]',
         },
       ]),
     });
@@ -325,6 +326,9 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_MEMORY_QUERY_TEXT]).toBe('dietary preferences');
     expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORD_ID]).toBe('mem_123');
     expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORD_COUNT]).toBe(3);
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORDS]).toBe(
+      '[{"content":"User prefers dark mode"}]'
+    );
   });
 
   it('maps gen_ai.operation.name to node attributes', async () => {
