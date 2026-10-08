@@ -348,11 +348,7 @@ export function getSamplesTargetAtIndex(
     search.setFilterValues(groupBy, [value]);
   }
 
-  const newQuery = {
-    ...queryToUpdate,
-    groupBys: [],
-    query: search.formatString(),
-  };
+  const newQuery = {...queryToUpdate, groupBys: [], query: search.formatString()};
   newQuery.fields = getFieldsForConstructedQuery(newQuery.yAxes);
   const newQueries = [...queries];
   newQueries[index] = newQuery;

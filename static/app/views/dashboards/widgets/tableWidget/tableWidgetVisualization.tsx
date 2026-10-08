@@ -290,10 +290,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
                 }
               : undefined,
             to: column.sortable
-              ? {
-                  ...location,
-                  query: {...location.query, sort: encodeSort(nextSort)},
-                }
+              ? {...location, query: {...location.query, sort: encodeSort(nextSort)}}
               : undefined,
           };
         },

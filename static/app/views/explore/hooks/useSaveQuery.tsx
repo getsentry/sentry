@@ -129,12 +129,7 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
     },
   });
 
-  return {
-    saveQuery,
-    updateQuery,
-    saveQueryFromSavedQuery,
-    updateQueryFromSavedQuery,
-  };
+  return {saveQuery, updateQuery, saveQueryFromSavedQuery, updateQueryFromSavedQuery};
 }
 
 /**
@@ -183,10 +178,7 @@ export function useFromSavedQuery() {
       const response = isExploreSavedQuery(savedQuery)
         ? await api.requestPromise(
             getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                id: String(savedQuery.id),
-              },
+              path: {organizationIdOrSlug: organization.slug, id: String(savedQuery.id)},
             }),
             {
               method: 'PUT',

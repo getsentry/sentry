@@ -8,10 +8,7 @@ import {encodeSort} from 'sentry/utils/queryString';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const DECODED_DEFAULT_REPLAY_LIST_SORT: Sort = {
-  field: 'started_at',
-  kind: 'desc',
-};
+const DECODED_DEFAULT_REPLAY_LIST_SORT: Sort = {field: 'started_at', kind: 'desc'};
 export const DEFAULT_REPLAY_LIST_SORT = encodeSort(DECODED_DEFAULT_REPLAY_LIST_SORT);
 
 export function useReplayTableSort() {

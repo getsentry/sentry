@@ -276,9 +276,7 @@ export function getExploreMultiQueryUrl({
     referrer,
   };
 
-  return `/organizations/${
-    organization.slug
-  }/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
+  return `/organizations/${organization.slug}/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
 export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {
