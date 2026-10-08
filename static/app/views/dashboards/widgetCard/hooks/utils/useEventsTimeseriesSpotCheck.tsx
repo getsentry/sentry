@@ -48,10 +48,7 @@ export function useEventsTimeseriesSpotCheck({
 }) {
   const [isSampled] = useState(() => Math.random() < SAMPLE_RATE);
   const isSpotCheckEnabled =
-    enabled &&
-    isSampled &&
-    !shouldUseEventsTimeseries(organization) &&
-    organization.features.includes('dashboards-widgets-events-timeseries-spot-check');
+    enabled && isSampled && !shouldUseEventsTimeseries(organization);
 
   const activeTimeSeriesQueries = timeSeriesQueries.flatMap(
     (query, originalQueryIndex) => (query ? [{...query, originalQueryIndex}] : [])
