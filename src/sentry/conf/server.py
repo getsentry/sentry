@@ -2642,6 +2642,7 @@ SENTRY_GITHUB_CONSOLE_SDK_APP_ID: int = 0
 SENTRY_SLACK_CLIENT_ID: str = ""
 SENTRY_SLACK_STAGING_CLIENT_ID: str = ""
 SENTRY_MSTEAMS_CLIENT_ID: str = ""
+# Empty tenant ID uses the multi-tenant botframework.com OAuth authority.
 SENTRY_MSTEAMS_TENANT_ID: str = ""
 SENTRY_VERCEL_CLIENT_ID: str = ""
 SENTRY_DISCORD_APPLICATION_ID: str = ""

@@ -6,8 +6,13 @@ Changes to these values require restarting the process. Values stored with
 Use `config.yml`, `SENTRY_OPTIONS` in `sentry.conf.py`, or the corresponding
 Django setting instead.
 
-An explicitly configured option key overrides its corresponding new setting.
-Registered defaults and `None` option values do not replace a direct setting.
+Self-hosted deployments promote explicitly configured option keys into their
+corresponding new settings. Registered defaults and `None` option values do not
+replace a direct setting. The same rule applies to earlier self-hosted hostname,
+filestore, analytics, viewer context, relay, and objectstore mappings: custom
+`SENTRY_DEFAULT_OPTIONS` and null option values no longer replace those settings.
+SaaS deployment options no longer promote into new
+settings; configure the setting directly.
 Existing GitHub login and email mappings retain their original bootstrap
 precedence and backend aliases. Setup wizard email credentials remain options.
 
@@ -111,3 +116,19 @@ This protects intentionally empty identifiers and secrets and false reply
 settings from deprecated aliases. Existing self-hosted legacy aliases keep their
 precedence unless their target is explicitly tracked. The provenance is removed
 when the deprecated writers and SaaS credential remaps are retired.
+
+
+## Deployment prerequisites
+
+This registration cleanup must deploy after the settings writers and consumers
+are deployed to every SaaS cell and single tenant and the deployment has soaked.
+The automator deployment values and their schema entries must already be removed.
+Single tenant replay storage templates must assign settings directly before this
+cleanup, because those deployments do not enable the self-hosted compatibility
+mapper.
+
+Export surviving deployment option rows before removing their registrations;
+unregistered keys are excluded from legacy synchronization. Keep those exports
+out of source control. Retain the previous settings and configuration artifacts
+for rollback until the rollback window closes. Delete surviving rows only after
+that window closes and their backups are confirmed.

@@ -293,40 +293,38 @@ def pytest_configure(config: pytest.Config) -> None:
                     "key_prefix": xdist.get_redis_cluster_key_prefix(),
                 },
             },
-            "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.secret-key": "a" * 52,
-            "slack.client-id": "slack-client-id",
-            "slack.client-secret": "slack-client-secret",
-            "slack.verification-token": "slack-verification-token",
-            "slack.signing-secret": "slack-signing-secret",
-            "github-app.name": "sentry-test-app",
-            "github-app.client-id": "github-client-id",
-            "github-app.client-secret": "github-client-secret",
-            "github-app.webhook-secret": "b3002c3e321d4b7880360d397db2ccfd",
-            "github-console-sdk-app.id": 42,
-            "github-console-sdk-app.client-id": "github-client-id",
-            "github-console-sdk-app.client-secret": "github-client-secret",
-            "github-console-sdk-app.installation-id": "123123123",
-            "github-console-sdk-app.private-key": "github-private-key",
-            "vsts.client-id": "vsts-client-id",
-            "vsts.client-secret": "vsts-client-secret",
-            "vsts-limited.client-id": "vsts-limited-client-id",
-            "vsts-limited.client-secret": "vsts-limited-client-secret",
-            "vercel.client-id": "vercel-client-id",
-            "vercel.client-secret": "vercel-client-secret",
-            "msteams.client-id": "msteams-client-id",
-            "msteams.client-secret": "msteams-client-secret",
-            "aws-lambda.access-key-id": "aws-key-id",
-            "aws-lambda.secret-access-key": "aws-secret-access-key",
-            "aws-lambda.cloudformation-url": "https://example.com/file.json",
-            "aws-lambda.account-number": "1234",
             "aws-lambda.node.layer-name": "my-layer",
             "aws-lambda.node.layer-version": "3",
             "aws-lambda.python.layer-name": "my-python-layer",
             "aws-lambda.python.layer-version": "34",
         }
     )
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    settings.SENTRY_GITHUB_CONSOLE_SDK_APP_INSTALLATION_ID = "123123123"
+    settings.SENTRY_GITHUB_CONSOLE_SDK_APP_PRIVATE_KEY = "github-private-key"
+    settings.SENTRY_SLACK_CLIENT_ID = "slack-client-id"
+    settings.SENTRY_SLACK_CLIENT_SECRET = "slack-client-secret"
+    settings.SENTRY_SLACK_VERIFICATION_TOKEN = "slack-verification-token"
+    settings.SENTRY_SLACK_SIGNING_SECRET = "slack-signing-secret"
+    settings.SENTRY_GITHUB_APP_NAME = "sentry-test-app"
+    settings.SENTRY_GITHUB_APP_CLIENT_ID = "github-client-id"
+    settings.SENTRY_GITHUB_APP_CLIENT_SECRET = "github-client-secret"
+    settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET = "b3002c3e321d4b7880360d397db2ccfd"
+    settings.SENTRY_GITHUB_CONSOLE_SDK_APP_ID = 42
+    settings.SENTRY_VSTS_CLIENT_ID = "vsts-client-id"
+    settings.SENTRY_VSTS_CLIENT_SECRET = "vsts-client-secret"
+    settings.SENTRY_VSTS_LIMITED_CLIENT_ID = "vsts-limited-client-id"
+    settings.SENTRY_VSTS_LIMITED_CLIENT_SECRET = "vsts-limited-client-secret"
+    settings.SENTRY_VERCEL_CLIENT_ID = "vercel-client-id"
+    settings.SENTRY_VERCEL_CLIENT_SECRET = "vercel-client-secret"
+    settings.SENTRY_MSTEAMS_CLIENT_ID = "msteams-client-id"
+    settings.SENTRY_MSTEAMS_CLIENT_SECRET = "msteams-client-secret"
+    settings.SENTRY_AWS_LAMBDA_ACCESS_KEY_ID = "aws-key-id"
+    settings.SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY = "aws-secret-access-key"
+    settings.SENTRY_AWS_LAMBDA_CLOUDFORMATION_URL = "https://example.com/file.json"
+    settings.SENTRY_AWS_LAMBDA_ACCOUNT_NUMBER = "1234"
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
 
@@ -341,8 +339,8 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.ASANA_CLIENT_SECRET = "123"
     settings.BITBUCKET_CONSUMER_KEY = "abc"
     settings.BITBUCKET_CONSUMER_SECRET = "123"
-    settings.SENTRY_OPTIONS["github-login.client-id"] = "abc"
-    settings.SENTRY_OPTIONS["github-login.client-secret"] = "123"
+    settings.GITHUB_APP_ID = "abc"
+    settings.GITHUB_API_SECRET = "123"
 
     # Configure control backend settings for storage
     settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"

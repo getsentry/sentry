@@ -72,7 +72,6 @@ def get_asset_version(settings: Any) -> str:
 options_mapper = {
     # 'cache.backend': 'SENTRY_CACHE',
     # 'cache.options': 'SENTRY_CACHE_OPTIONS',
-    # 'system.databases': 'DATABASES',
     # 'system.debug': 'DEBUG',
     "system.secret-key": "SECRET_KEY",
     "mail.backend": "EMAIL_BACKEND",
@@ -115,14 +114,6 @@ self_hosted_options_mapper = {
     "filestore.profiles-options": "SENTRY_PROFILES_FILE_STORAGE_CONFIG",
     "filestore.control.backend": "SENTRY_CONTROL_FILE_STORAGE_BACKEND",
     "filestore.control.options": "SENTRY_CONTROL_FILE_STORAGE_CONFIG",
-}
-
-# Options whose consumers now read Django settings. Values configured for the
-# option key (config.yml or SENTRY_OPTIONS) are still promoted into the setting,
-# in every mode, until deployments configure the setting directly. Registered
-# defaults are never promoted, so a setting configured directly is never
-# overwritten.
-migrated_options_mapper = {
     "auth-fly.client-secret": "SENTRY_AUTH_FLY_CLIENT_SECRET",
     "auth-google.client-secret": "SENTRY_AUTH_GOOGLE_CLIENT_SECRET",
     "aws-lambda.secret-access-key": "SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY",
@@ -190,6 +181,21 @@ migrated_options_mapper = {
     "u2f.facets": "SENTRY_U2F_FACETS",
     "sms.twilio-account": "SENTRY_SMS_TWILIO_ACCOUNT",
     "sms.twilio-number": "SENTRY_SMS_TWILIO_NUMBER",
+}
+
+# Existing mapped settings used registered defaults during bootstrap. Initialize
+# them only after copying explicitly configured settings back into option keys,
+# so defaults never create synthetic login keys that override app credentials.
+legacy_mapped_settings_defaults: dict[str, str | bool | list[str]] = {
+    "EMAIL_BACKEND": "smtp",
+    "EMAIL_SUBJECT_PREFIX": "[Sentry]",
+    "GITHUB_APP_ID": "",
+    "GITHUB_API_SECRET": "",
+    "GITHUB_REQUIRE_VERIFIED_EMAIL": False,
+    "GITHUB_BASE_DOMAIN": "github.com",
+    "GITHUB_API_DOMAIN": "api.github.com",
+    "GITHUB_EXTENDED_PERMISSIONS": [],
+    "GITHUB_ORGANIZATION": "",
 }
 
 
@@ -260,11 +266,13 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
-    effective_mapper = (
-        {**options_mapper, **self_hosted_options_mapper}
-        if settings.SENTRY_SELF_HOSTED
-        else options_mapper
-    )
+    for setting_name, default in legacy_mapped_settings_defaults.items():
+        if getattr(settings, setting_name, DEAD) is DEAD:
+            if setting_name == "EMAIL_BACKEND":
+                default = settings.SENTRY_EMAIL_BACKEND_ALIASES.get(default, default)
+            setattr(settings, setting_name, default)
+
+    effective_mapper = options_mapper
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
         for k, v in o.items():
             if k in effective_mapper:
@@ -277,9 +285,10 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
                 # Escalate the few needed to actually get the app bootstrapped into settings
                 setattr(settings, effective_mapper[k], v)
 
-    for k, v in settings.SENTRY_OPTIONS.items():
-        if k in migrated_options_mapper and v is not None:
-            setattr(settings, migrated_options_mapper[k], v)
+    if settings.SENTRY_SELF_HOSTED:
+        for k, v in settings.SENTRY_OPTIONS.items():
+            if k in self_hosted_options_mapper and v is not None:
+                setattr(settings, self_hosted_options_mapper[k], v)
 
     # Single organization mode reuses the GitHub integration app for SSO. The
     # remap in initialize_app handles the option key; this handles the setting.
@@ -565,12 +574,12 @@ def setup_services(validate: bool = True) -> None:
 def validate_options(settings: Any) -> None:
     from sentry.options import default_manager
 
-    if settings.SENTRY_SELF_HOSTED:
-        opts = {
-            k: v for k, v in settings.SENTRY_OPTIONS.items() if k not in self_hosted_options_mapper
-        }
-    else:
-        opts = settings.SENTRY_OPTIONS
+    opts = {
+        k: v
+        for k, v in settings.SENTRY_OPTIONS.items()
+        if not (settings.SENTRY_SELF_HOSTED and k in self_hosted_options_mapper)
+        and not (k in options_mapper and options_mapper[k] in legacy_mapped_settings_defaults)
+    }
     default_manager.validate(opts, warn=True)
 
 
@@ -654,9 +663,9 @@ def apply_legacy_settings(settings: Any) -> None:
     from sentry import options
 
     effective_mapper = (
-        {**options_mapper, **migrated_options_mapper, **self_hosted_options_mapper}
+        {**options_mapper, **self_hosted_options_mapper}
         if settings.SENTRY_SELF_HOSTED
-        else {**options_mapper, **migrated_options_mapper}
+        else options_mapper
     )
 
     for old, new in (
@@ -674,6 +683,10 @@ def apply_legacy_settings(settings: Any) -> None:
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
+            # SaaS consumers use direct settings; retired keys must not be
+            # recreated by a deprecated deployment alias.
+            if not settings.SENTRY_SELF_HOSTED and new in self_hosted_options_mapper:
+                continue
             # An explicit deployment assignment owns even an empty secret.
             if effective_mapper.get(new) in settings.SENTRY_CONFIGURED_OPTION_SETTINGS:
                 continue
@@ -684,7 +697,9 @@ def apply_legacy_settings(settings: Any) -> None:
             # Django settings, so writing SENTRY_OPTIONS here is too late for any key
             # whose consumers read the setting (e.g. filestore.* -> SENTRY_FILE_STORAGE_*).
             # Re-promote the legacy value so the override actually takes effect.
-            if new in effective_mapper:
+            if new in effective_mapper and (
+                new not in self_hosted_options_mapper or value is not None
+            ):
                 setattr(settings, effective_mapper[new], value)
 
     if hasattr(settings, "SENTRY_REDIS_OPTIONS"):

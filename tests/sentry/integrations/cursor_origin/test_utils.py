@@ -7,6 +7,7 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.asymmetric.rsa import generate_private_key
+from django.test import override_settings
 
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_JWT_AUDIENCE,
@@ -65,7 +66,7 @@ class GetJwtTest(TestCase):
 
     def test_reads_options_when_not_passed(self) -> None:
         with (
-            self.options({"cursor-origin-app.id": APP_ID}),
+            override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID),
             self.settings(SENTRY_CURSOR_ORIGIN_APP_PRIVATE_KEY=self.pem),
         ):
             token = get_jwt()
