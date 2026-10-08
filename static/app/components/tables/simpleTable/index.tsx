@@ -1,4 +1,4 @@
-import type {HTMLAttributes, MouseEvent, ReactNode, RefObject} from 'react';
+import type {HTMLAttributes, MouseEvent, ReactNode, Ref, RefObject} from 'react';
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
@@ -61,7 +61,7 @@ interface HeaderCellProps extends HTMLAttributes<HTMLTableCellElement> {
 }
 
 interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
-  ref?: RefObject<HTMLTableRowElement | null>;
+  ref?: Ref<HTMLTableRowElement>;
   variant?: 'default' | 'faded';
 }
 

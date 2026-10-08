@@ -8,20 +8,23 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import groupBy from 'lodash/groupBy';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
+import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
@@ -47,8 +50,13 @@ export interface InstallationWrapperProps {
   installation: ScmInstallation;
 }
 
-const REPO_LIST_MAX_HEIGHT = 400;
-const ESTIMATED_REPO_ROW_HEIGHT = 32;
+const TABLE_MAX_HEIGHT = 400;
+const ESTIMATED_ROW_HEIGHT = 49;
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: 'minmax(0, 1fr)'},
+  {key: 'projects', width: 'max-content'},
+];
 
 function EmptyRepositoryMessage({
   isLoading,
@@ -96,7 +104,8 @@ interface ScmRepositoryTableProps {
    * Optional wrapper component rendered around each installation. Useful for
    * setting up per-installation state — e.g. wiring a sync hook that feeds
    * `isSyncing` and `onSync` back into the installation via
-   * `InstallationOverrideProvider`.
+   * `InstallationOverrideProvider`. It renders inside the table, so it must not
+   * render any elements of its own.
    */
   installationWrapper?: React.ComponentType<InstallationWrapperProps>;
   /**
@@ -115,9 +124,13 @@ export function ScmRepositoryTable({installations, ...rest}: ScmRepositoryTableP
   return <MultiInstallTable installations={installations} {...rest} />;
 }
 
+type InstallationOverrides = Partial<
+  Omit<ScmInstallation, 'repositories' | 'mappedProjectSlugsByRepoId' | 'expandDisabled'>
+>;
+
 interface OverrideProviderProps {
   children: React.ReactNode;
-  value: Partial<ScmInstallation>;
+  value: InstallationOverrides;
 }
 
 /**
@@ -167,7 +180,7 @@ function useExpandedInstallations(installations: ScmInstallation[]) {
   return {expandedIds, toggle};
 }
 
-const ScmInstallationContext = createContext<Partial<ScmInstallation>>({});
+const ScmInstallationContext = createContext<InstallationOverrides>({});
 
 /**
  * Returns the installation merged with any overrides from the nearest
@@ -177,6 +190,159 @@ const ScmInstallationContext = createContext<Partial<ScmInstallation>>({});
 function useMergedInstallation(installation: ScmInstallation): ScmInstallation {
   const overrides = useContext(ScmInstallationContext);
   return useMemo(() => ({...installation, ...overrides}), [installation, overrides]);
+}
+
+type TableItem =
+  | {
+      expanded: boolean;
+      installation: ScmInstallation;
+      key: string;
+      onToggle: () => void;
+      type: 'installation';
+    }
+  | {
+      installation: ScmInstallation;
+      key: string;
+      repo: Repository;
+      type: 'repo';
+    }
+  | {installation: ScmInstallation; key: string; type: 'empty'};
+
+function getRepoItems(
+  installation: ScmInstallation,
+  repoMatches: ScmRepoMatches | undefined
+): TableItem[] {
+  const {repositories, mappedProjectSlugsByRepoId} = installation;
+  const id = installation.integration.id;
+  const filtered =
+    repoMatches === undefined
+      ? repositories
+      : repositories.filter(r => repoMatches[r.id]);
+  const hasMapping = (repoId: string) =>
+    (mappedProjectSlugsByRepoId?.[repoId]?.length ?? 0) > 0;
+  const visibleRepos = sortBy(filtered, [r => !hasMapping(r.id), r => r.name]);
+
+  if (visibleRepos.length === 0) {
+    return [{type: 'empty', key: `${id}:empty`, installation}];
+  }
+
+  return visibleRepos.map(repo => ({
+    type: 'repo',
+    key: `${id}:repo:${repo.id}`,
+    installation,
+    repo,
+  }));
+}
+
+function useVirtualTableRows(items: TableItem[]) {
+  const tableRef = useRef<HTMLTableElement>(null);
+
+  const getItemKey = useCallback((index: number) => items[index]!.key, [items]);
+
+  const {paddingBottom, paddingTop, virtualItems, virtualizer} = useVirtualRows({
+    count: items.length,
+    getScrollElement: () => tableRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 6,
+    getItemKey,
+  });
+
+  return {
+    measureElement: virtualizer.measureElement,
+    paddingBottom,
+    paddingTop,
+    tableRef,
+    virtualItems,
+  };
+}
+
+interface TableItemRowProps {
+  index: number;
+  item: TableItem;
+  measureElement: (element: Element | null) => void;
+  providerName: string;
+  repoMatches: ScmRepoMatches | undefined;
+  nested?: boolean;
+}
+
+function TableItemRow({
+  index,
+  item,
+  measureElement,
+  nested,
+  providerName,
+  repoMatches,
+}: TableItemRowProps) {
+  switch (item.type) {
+    case 'installation':
+      return (
+        <InstallationRow
+          data-index={index}
+          ref={measureElement}
+          expanded={item.expanded}
+          installation={item.installation}
+          onToggle={item.onToggle}
+          providerName={providerName}
+        />
+      );
+    case 'repo':
+      return (
+        <RepoRow
+          data-index={index}
+          ref={measureElement}
+          installation={item.installation}
+          nested={nested}
+          providerName={providerName}
+          repo={item.repo}
+          repoMatches={repoMatches}
+        />
+      );
+    case 'empty':
+      return (
+        <EmptyRow
+          data-index={index}
+          ref={measureElement}
+          installation={item.installation}
+          repoMatches={repoMatches}
+        />
+      );
+  }
+}
+
+interface RepositoryTableShellProps {
+  children: React.ReactNode;
+  header: React.ReactNode;
+  paddingBottom: number;
+  paddingTop: number;
+  provider: IntegrationProvider;
+  tableRef: React.RefObject<HTMLTableElement | null>;
+}
+
+function RepositoryTableShell({
+  children,
+  header,
+  paddingBottom,
+  paddingTop,
+  provider,
+  tableRef,
+}: RepositoryTableShellProps) {
+  return (
+    <SimpleTable
+      aria-label={provider.name}
+      columns={COLUMNS}
+      customSections
+      maxHeight={`${TABLE_MAX_HEIGHT}px`}
+      ref={tableRef}
+      scrollable
+    >
+      <SimpleTable.Head sticky>
+        <SimpleTable.HeaderRow>
+          <ProviderHeaderCell>{header}</ProviderHeaderCell>
+        </SimpleTable.HeaderRow>
+      </SimpleTable.Head>
+      <SimpleTable.Body style={{paddingBottom, paddingTop}}>{children}</SimpleTable.Body>
+    </SimpleTable>
+  );
 }
 
 interface SoloInstallTableProps extends Omit<ScmRepositoryTableProps, 'installations'> {
@@ -199,28 +365,48 @@ function SingleInstallTableContent({
 }: SoloInstallTableProps) {
   const merged = useMergedInstallation(installation);
 
+  const items = useMemo(
+    () => getRepoItems(installation, repoMatches),
+    [installation, repoMatches]
+  );
+
+  const {measureElement, paddingBottom, paddingTop, tableRef, virtualItems} =
+    useVirtualTableRows(items);
+
   return (
-    <Panel role="region" aria-label={provider.name}>
-      <TableHeader>
-        <Flex align="center" gap="sm">
-          {getIntegrationIcon(provider.key, 'sm')}
-          <Text bold>{provider.name}</Text>
-          <Text variant="muted">/</Text>
-          <IntegrationSummary installation={merged} />
-        </Flex>
-        <Flex align="center" gap="sm">
-          <Flex display={{zero: 'none', xl: 'flex'}}>
-            <InstallationRepoCountTag installation={merged} />
+    <RepositoryTableShell
+      provider={provider}
+      tableRef={tableRef}
+      paddingTop={paddingTop}
+      paddingBottom={paddingBottom}
+      header={
+        <Fragment>
+          <Flex align="center" gap="sm">
+            {getIntegrationIcon(provider.key, 'sm')}
+            <Text bold>{provider.name}</Text>
+            <Text variant="muted">/</Text>
+            <IntegrationSummary installation={merged} />
           </Flex>
-          <InstallationActions installation={merged} providerName={provider.name} />
-        </Flex>
-      </TableHeader>
-      <VirtualizedRepoList
-        installation={merged}
-        repoMatches={repoMatches}
-        providerName={provider.name}
-      />
-    </Panel>
+          <Flex align="center" gap="sm">
+            <Flex display={{zero: 'none', xl: 'flex'}}>
+              <InstallationRepoCountTag installation={merged} />
+            </Flex>
+            <InstallationActions installation={merged} providerName={provider.name} />
+          </Flex>
+        </Fragment>
+      }
+    >
+      {virtualItems.map(virtualItem => (
+        <TableItemRow
+          key={virtualItem.key}
+          index={virtualItem.index}
+          item={items[virtualItem.index]!}
+          measureElement={measureElement}
+          providerName={provider.name}
+          repoMatches={repoMatches}
+        />
+      ))}
+    </RepositoryTableShell>
   );
 }
 
@@ -232,72 +418,96 @@ function MultiInstallTable({
 }: ScmRepositoryTableProps) {
   const {expandedIds, toggle} = useExpandedInstallations(installations);
 
+  const items = useMemo(
+    () =>
+      installations.flatMap<TableItem>(installation => {
+        const id = installation.integration.id;
+        const hasSearchHits =
+          repoMatches !== undefined &&
+          installation.repositories.some(r => repoMatches[r.id]);
+        const expanded = hasSearchHits || expandedIds.has(id);
+        const row: TableItem = {
+          type: 'installation',
+          key: `${id}:installation`,
+          installation,
+          expanded,
+          onToggle: () => toggle(id),
+        };
+
+        return expanded && !installation.expandDisabled
+          ? [row, ...getRepoItems(installation, repoMatches)]
+          : [row];
+      }),
+    [installations, expandedIds, toggle, repoMatches]
+  );
+
+  const {measureElement, paddingBottom, paddingTop, tableRef, virtualItems} =
+    useVirtualTableRows(items);
+
+  const virtualItemsByInstallationId = groupBy(
+    virtualItems,
+    virtualItem => items[virtualItem.index]!.installation.integration.id
+  );
+
   return (
-    <Panel role="region" aria-label={provider.name}>
-      <TableHeader>
+    <RepositoryTableShell
+      provider={provider}
+      tableRef={tableRef}
+      paddingTop={paddingTop}
+      paddingBottom={paddingBottom}
+      header={
         <Flex align="center" gap="sm">
           {getIntegrationIcon(provider.key, 'sm')}
           <Text bold>{provider.name}</Text>
         </Flex>
-      </TableHeader>
-      <Grid role="list" columns="max-content 1fr max-content max-content" gap="0 md">
-        {installations.map(installation => {
-          const hasSearchHits =
-            repoMatches !== undefined &&
-            installation.repositories.some(r => repoMatches[r.id]);
-          const row = (
-            <InstallationRow
-              provider={provider}
-              installation={installation}
-              expanded={hasSearchHits || expandedIds.has(installation.integration.id)}
-              onToggle={() => toggle(installation.integration.id)}
-              repoMatches={repoMatches}
-            />
-          );
-          return Wrapper ? (
-            <Wrapper key={installation.integration.id} installation={installation}>
-              <InstallationSubgrid role="listitem">{row}</InstallationSubgrid>
-            </Wrapper>
-          ) : (
-            <InstallationSubgrid key={installation.integration.id} role="listitem">
-              {row}
-            </InstallationSubgrid>
-          );
-        })}
-      </Grid>
-    </Panel>
-  );
-}
-
-function TableHeader({children}: {children: React.ReactNode}) {
-  return (
-    <Flex
-      justify="between"
-      background="secondary"
-      padding="xs lg"
-      radius="sm sm 0 0"
-      borderBottom="secondary"
-      minHeight="36px"
+      }
     >
-      {children}
-    </Flex>
+      {installations.map(installation => {
+        const id = installation.integration.id;
+        // Every wrapper stays mounted, even with all of its rows scrolled out of
+        // view, so per-installation state such as sync polling keeps running.
+        const rows = (virtualItemsByInstallationId[id] ?? []).map(virtualItem => (
+          <TableItemRow
+            key={virtualItem.key}
+            index={virtualItem.index}
+            item={items[virtualItem.index]!}
+            measureElement={measureElement}
+            providerName={provider.name}
+            repoMatches={repoMatches}
+            nested
+          />
+        ));
+
+        return Wrapper ? (
+          <Wrapper key={id} installation={installation}>
+            {rows}
+          </Wrapper>
+        ) : (
+          <Fragment key={id}>{rows}</Fragment>
+        );
+      })}
+    </RepositoryTableShell>
   );
 }
 
-interface InstallationRowProps {
+interface TableRowProps {
+  'data-index': number;
+  ref: React.Ref<HTMLTableRowElement>;
+}
+
+interface InstallationRowProps extends TableRowProps {
   expanded: boolean;
   installation: ScmInstallation;
   onToggle: () => void;
-  provider: IntegrationProvider;
-  repoMatches?: ScmRepoMatches;
+  providerName: string;
 }
 
 function InstallationRow({
-  provider,
   installation,
   expanded,
   onToggle,
-  repoMatches,
+  providerName,
+  ...rowProps
 }: InstallationRowProps) {
   const merged = useMergedInstallation(installation);
   const {expandDisabled} = merged;
@@ -324,36 +534,36 @@ function InstallationRow({
   };
 
   return (
-    <Fragment>
-      <RowButton
-        role="button"
-        tabIndex={expandDisabled ? -1 : 0}
-        aria-label={merged.integration.name}
-        aria-expanded={expandDisabled ? undefined : expanded}
-        aria-disabled={expandDisabled || undefined}
-        onClick={handleRowClick}
-        onKeyDown={handleRowKeyDown}
-      >
-        <IconChevron direction={expanded && !expandDisabled ? 'down' : 'right'} />
-        <Flex align="center" gap="sm">
-          <IntegrationSummary installation={merged} />
-        </Flex>
-        <Flex align="center" display={{zero: 'none', xl: 'flex'}}>
-          <InstallationRepoCountTag installation={merged} />
-        </Flex>
-        <Flex align="center" gap="md" justifySelf="end">
-          <InstallationActions installation={merged} providerName={provider.name} />
-        </Flex>
-      </RowButton>
-      {expanded && !expandDisabled && (
-        <VirtualizedRepoList
-          installation={merged}
-          repoMatches={repoMatches}
-          providerName={provider.name}
-          nested
-        />
-      )}
-    </Fragment>
+    <SimpleTable.Row {...rowProps}>
+      <SimpleTable.FullWidthCell>
+        <InstallationToggle
+          role="button"
+          tabIndex={expandDisabled ? -1 : 0}
+          aria-label={merged.integration.name}
+          aria-expanded={expandDisabled ? undefined : expanded}
+          aria-disabled={expandDisabled || undefined}
+          onClick={handleRowClick}
+          onKeyDown={handleRowKeyDown}
+          align="center"
+          justify="between"
+          gap="md"
+          padding="lg xl"
+        >
+          <Flex align="center" gap="md">
+            <IconChevron direction={expanded && !expandDisabled ? 'down' : 'right'} />
+            <Flex align="center" gap="sm">
+              <IntegrationSummary installation={merged} />
+            </Flex>
+          </Flex>
+          <Flex align="center" gap="md">
+            <Flex align="center" display={{zero: 'none', xl: 'flex'}}>
+              <InstallationRepoCountTag installation={merged} />
+            </Flex>
+            <InstallationActions installation={merged} providerName={providerName} />
+          </Flex>
+        </InstallationToggle>
+      </SimpleTable.FullWidthCell>
+    </SimpleTable.Row>
   );
 }
 
@@ -427,7 +637,9 @@ function getRepoCountTooltip(
       syncNow: syncNowButton,
     });
   }
-  return tct('Repositories not yet synced. [syncNow]', {syncNow: syncNowButton});
+  return tct('Repositories not yet synced. [syncNow]', {
+    syncNow: syncNowButton,
+  });
 }
 
 function InstallationActions({installation, providerName}: InstallationActionsProps) {
@@ -439,7 +651,10 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     onSettings,
     onUninstall,
   } = installation;
-  const showManageRepositoriesLabel = useResponsivePropValue({zero: false, '2xl': true});
+  const showManageRepositoriesLabel = useResponsivePropValue({
+    zero: false,
+    '2xl': true,
+  });
   const manageRepositoriesLabel = t('Manage repositories');
 
   return (
@@ -485,6 +700,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
             <DropdownMenu
               items={overflowMenuItems}
               position="bottom-end"
+              strategy="fixed"
               trigger={triggerProps => (
                 <Button
                   {...triggerProps}
@@ -530,184 +746,101 @@ function RepoMappings({
   );
 }
 
-interface VirtualizedRepoListProps {
+interface RepoRowProps extends TableRowProps {
   installation: ScmInstallation;
   providerName: string;
+  repo: Repository;
+  repoMatches: ScmRepoMatches | undefined;
   nested?: boolean;
-  repoMatches?: ScmRepoMatches;
 }
 
-function VirtualizedRepoList({
+function RepoRow({
   installation,
-  repoMatches,
+  nested,
   providerName,
-  nested = false,
-}: VirtualizedRepoListProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const {
-    repositories,
-    manageUrl,
-    reposLoading: isLoading,
-    mappedProjectSlugsByRepoId,
-    mappingsLoading,
-  } = installation;
+  repo,
+  repoMatches,
+  ...rowProps
+}: RepoRowProps) {
+  const merged = useMergedInstallation(installation);
+  const {mappedProjectSlugsByRepoId, mappingsLoading, onMappedProjectClick} = merged;
+  const nameMatch = repoMatches?.[repo.id]?.find(m => m.key === 'name');
 
-  const visibleRepos = useMemo(() => {
-    const filtered =
-      repoMatches === undefined
-        ? repositories
-        : repositories.filter(r => repoMatches[r.id]);
-    const hasMapping = (id: string) =>
-      (mappedProjectSlugsByRepoId?.[id]?.length ?? 0) > 0;
-
-    return sortBy(filtered, [r => !hasMapping(r.id), r => r.name]);
-  }, [repositories, repoMatches, mappedProjectSlugsByRepoId]);
-
-  const getItemKey = useCallback(
-    (index: number) => visibleRepos[index]!.id,
-    [visibleRepos]
-  );
-
-  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
-    count: visibleRepos.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => ESTIMATED_REPO_ROW_HEIGHT,
-    overscan: 6,
-    getItemKey,
-  });
-
-  const outerColumn = nested ? '1/-1' : undefined;
-  const outerColumns = nested ? 'subgrid' : '1fr';
-  const contentColumn = nested ? '2/-1' : undefined;
-
-  const items =
-    visibleRepos.length === 0 ? (
-      <Flex column={contentColumn} padding="md xl" justify="center">
-        <EmptyRepositoryMessage
-          isLoading={isLoading}
-          manageUrl={manageUrl}
-          repositories={repositories}
-          repoMatches={repoMatches}
-        />
-      </Flex>
-    ) : (
-      <Grid
-        column={outerColumn}
-        columns={outerColumns}
-        position="relative"
-        style={{height: totalSize}}
-      >
-        {virtualItems.map(virtualItem => {
-          const repo = visibleRepos[virtualItem.index]!;
-          const nameMatch = repoMatches?.[repo.id]?.find(m => m.key === 'name');
-          const isLast = virtualItem.index === visibleRepos.length - 1;
-          return (
-            <Fragment key={virtualItem.key}>
-              <Container
-                column="1/-1"
-                position="absolute"
-                top="0"
-                left="0"
-                right="0"
-                borderBottom={isLast ? undefined : 'secondary'}
-                style={{
-                  transform: `translateY(${virtualItem.start}px)`,
-                  height: virtualItem.size,
+  return (
+    <RevealOnHover>
+      {revealOnHoverProps => (
+        <SimpleTable.Row {...rowProps} {...revealOnHoverProps}>
+          <SimpleTable.RowCell gap="sm" paddingLeft={nested ? '3xl' : undefined}>
+            <Text wordBreak="break-word">
+              {nameMatch ? highlightFuseMatches(nameMatch, HighlightMark) : repo.name}
+            </Text>
+            <RevealOnHover.Action>
+              <LinkButton
+                href={repo.url ?? ''}
+                external
+                size="zero"
+                variant="transparent"
+                icon={<IconOpen variant="muted" />}
+                aria-label={t('View repository on %s', providerName)}
+                tooltipProps={{
+                  title: t('View repository on %s', providerName),
                 }}
               />
-              <RepoRow
-                role="listitem"
-                ref={virtualizer.measureElement}
-                data-index={virtualItem.index}
-                column={contentColumn}
-                position="absolute"
-                top="0"
-                left="0"
-                right="0"
-                align="center"
-                justify="between"
-                gap="sm"
-                padding={nested ? 'md xl md 0' : 'md lg'}
-                style={{transform: `translateY(${virtualItem.start}px)`}}
-              >
-                <Flex align="center" gap="sm" minWidth="0">
-                  <Text>
-                    {nameMatch
-                      ? highlightFuseMatches(nameMatch, HighlightMark)
-                      : repo.name}
-                  </Text>
-                  <LinkButton
-                    className="hover-reveal"
-                    href={repo.url ?? ''}
-                    external
-                    size="zero"
-                    variant="transparent"
-                    icon={<IconOpen variant="muted" />}
-                    aria-label={t('View repository on %s', providerName)}
-                    tooltipProps={{
-                      title: t('View repository on %s', providerName),
-                    }}
-                  />
-                </Flex>
-                {mappedProjectSlugsByRepoId && (
-                  <RepoMappings
-                    slugs={mappedProjectSlugsByRepoId[repo.id] ?? []}
-                    mappingsLoading={mappingsLoading}
-                    action={installation.repoActions?.(repo)}
-                    onProjectClick={
-                      installation.onMappedProjectClick
-                        ? project => installation.onMappedProjectClick!(repo, project)
-                        : undefined
-                    }
-                  />
-                )}
-              </RepoRow>
-            </Fragment>
-          );
-        })}
-      </Grid>
-    );
-
-  const commonProps = {
-    ref: scrollRef,
-    role: 'list',
-    'aria-label': t('Repositories'),
-    maxHeight: `${REPO_LIST_MAX_HEIGHT}px`,
-    overflowY: 'auto',
-    position: 'relative',
-  } as const;
-
-  return nested ? (
-    <Grid {...commonProps} column={outerColumn} columns={outerColumns}>
-      {items}
-    </Grid>
-  ) : (
-    <Container {...commonProps}>{items}</Container>
+            </RevealOnHover.Action>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end">
+            {mappedProjectSlugsByRepoId && (
+              <RepoMappings
+                slugs={mappedProjectSlugsByRepoId[repo.id] ?? []}
+                mappingsLoading={mappingsLoading}
+                action={merged.repoActions?.(repo)}
+                onProjectClick={
+                  onMappedProjectClick
+                    ? project => onMappedProjectClick(repo, project)
+                    : undefined
+                }
+              />
+            )}
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
+      )}
+    </RevealOnHover>
   );
 }
 
-const InstallationSubgrid = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
+interface EmptyRowProps extends TableRowProps {
+  installation: ScmInstallation;
+  repoMatches: ScmRepoMatches | undefined;
+}
 
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
-`;
+function EmptyRow({installation, repoMatches, ...rowProps}: EmptyRowProps) {
+  const merged = useMergedInstallation(installation);
 
-const RowButton = styled('div')`
-  cursor: pointer;
+  return (
+    <SimpleTable.Row {...rowProps}>
+      <SimpleTable.RowCell column="1 / -1" justify="center">
+        <EmptyRepositoryMessage
+          isLoading={merged.reposLoading}
+          manageUrl={merged.manageUrl}
+          repositories={merged.repositories}
+          repoMatches={repoMatches}
+        />
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
+  );
+}
 
-  display: grid;
-  grid-template-columns: subgrid;
+const ProviderHeaderCell = styled(Table.HeadCell)`
   grid-column: 1 / -1;
   align-items: center;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  justify-content: space-between;
+  gap: ${p => p.theme.space.sm};
+  padding: 0 ${p => p.theme.space.xl};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
 
-  &[aria-expanded='true'] {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
+const InstallationToggle = styled(Flex)`
+  cursor: pointer;
 
   &[aria-disabled='true'] {
     cursor: default;
@@ -720,17 +853,6 @@ const RowButton = styled('div')`
   &:focus-visible {
     outline: 2px solid ${p => p.theme.tokens.focus.default};
     outline-offset: -2px;
-  }
-`;
-
-const RepoRow = styled(Flex)`
-  .hover-reveal {
-    opacity: 0;
-    transition: opacity 100ms;
-  }
-  &:hover .hover-reveal,
-  &:focus-within .hover-reveal {
-    opacity: 1;
   }
 `;
 
