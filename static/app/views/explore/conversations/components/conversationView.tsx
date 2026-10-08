@@ -65,10 +65,10 @@ export function ConversationViewContent({
   const {
     nodes,
     nodeTraceMap,
+    canAutoFetchNextPage,
     hasNextPage,
     isLoading,
     isFetchingNextPage,
-    isFetchNextPageError,
     error,
     loadNextPage,
   } = useConversation({...conversation, autoFetchAll: false});
@@ -80,7 +80,7 @@ export function ConversationViewContent({
     {history: 'replace'}
   );
 
-  const {selectedNode, handleSelectNode} = useConversationSelection({
+  const {selectedNode, hasFocusedToolNode, handleSelectNode} = useConversationSelection({
     nodes,
     selectedSpanId,
     onSelectSpan,
@@ -124,35 +124,32 @@ export function ConversationViewContent({
 
   const handleScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
-      const shouldPrefetch =
-        prefetchedConversationId.current !== conversation.conversationId;
-      prefetchedConversationId.current = conversation.conversationId;
+      if (!hasNextPage || isFetchingNextPage) {
+        return;
+      }
 
       const container = event.currentTarget;
+      const shouldPrefetch =
+        prefetchedConversationId.current !== conversation.conversationId;
       const isNearEnd =
         container.scrollHeight - container.scrollTop - container.clientHeight < 200;
       if (shouldPrefetch || isNearEnd) {
+        prefetchedConversationId.current = conversation.conversationId;
         loadNextPage();
       }
     },
-    [conversation.conversationId, loadNextPage]
+    [conversation.conversationId, hasNextPage, isFetchingNextPage, loadNextPage]
   );
 
   const needsMoreSelectionData = Boolean(
-    (selectedSpanId && !selectedNode) || focusedTool
+    (selectedSpanId && !selectedNode) || (focusedTool && !hasFocusedToolNode)
   );
 
   useEffect(() => {
-    if (!isLoading && hasNextPage && !isFetchNextPageError && needsMoreSelectionData) {
+    if (!isLoading && canAutoFetchNextPage && needsMoreSelectionData) {
       loadNextPage();
     }
-  }, [
-    hasNextPage,
-    isFetchNextPageError,
-    isLoading,
-    loadNextPage,
-    needsMoreSelectionData,
-  ]);
+  }, [canAutoFetchNextPage, isLoading, loadNextPage, needsMoreSelectionData]);
 
   const handleSelectAndOpenDetail = useCallback(
     (node: AITraceSpanNode) => {
@@ -184,8 +181,7 @@ export function ConversationViewContent({
   const isResolvingSelectedSpan = Boolean(
     selectedSpanId &&
     !displayedNode &&
-    !isFetchNextPageError &&
-    (isLoading || hasNextPage || isFetchingNextPage)
+    (isLoading || canAutoFetchNextPage || isFetchingNextPage)
   );
   const isDetailLoading = isLoading || isResolvingSelectedSpan;
 

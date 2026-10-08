@@ -126,9 +126,9 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
 }
 
 interface UseConversationResult {
+  canAutoFetchNextPage: boolean;
   error: boolean;
   hasNextPage: boolean;
-  isFetchNextPageError: boolean;
   isFetchingNextPage: boolean;
   isLoading: boolean;
   loadNextPage: () => void;
@@ -410,6 +410,7 @@ export function useConversation(
     )
   );
 
+  const pageCount = data?.pages.length ?? 0;
   const loadNextPage = useCallback(() => {
     if (hasNextPage && !isFetching) {
       void fetchNextPage();
@@ -418,17 +419,15 @@ export function useConversation(
 
   const autoFetchAll = conversation.autoFetchAll ?? true;
   const canAutoFetchNextPage = Boolean(
-    autoFetchAll &&
-    hasNextPage &&
-    !isFetchNextPageError &&
-    (data?.pages.length ?? 0) < MAX_AUTO_FETCH_PAGES
+    hasNextPage && !isFetchNextPageError && pageCount < MAX_AUTO_FETCH_PAGES
   );
+  const nextAutoFetchPage = autoFetchAll && canAutoFetchNextPage ? pageCount : null;
 
   useEffect(() => {
-    if (!isFetching && canAutoFetchNextPage) {
-      void fetchNextPage();
+    if (nextAutoFetchPage !== null) {
+      loadNextPage();
     }
-  }, [canAutoFetchNextPage, fetchNextPage, isFetching]);
+  }, [loadNextPage, nextAutoFetchPage]);
 
   const allSpans = useMemo(
     () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
@@ -463,10 +462,10 @@ export function useConversation(
     return {
       stats: null,
       nodes: [],
+      canAutoFetchNextPage: false,
       nodeTraceMap: new Map(),
       hasNextPage: false,
       isFetchingNextPage: false,
-      isFetchNextPageError: false,
       isLoading: false,
       loadNextPage,
       error: false,
@@ -478,14 +477,14 @@ export function useConversation(
     stats,
     nodes,
     nodeTraceMap,
+    canAutoFetchNextPage,
     hasNextPage: Boolean(hasNextPage),
     isFetchingNextPage,
-    isFetchNextPageError,
     isLoading:
       isLoading ||
       (autoFetchAll &&
         !isFetchNextPageError &&
-        (isFetchingNextPage || canAutoFetchNextPage)),
+        (isFetchingNextPage || nextAutoFetchPage !== null)),
     loadNextPage,
     error: isLoadingError || (autoFetchAll && isFetchNextPageError),
     title,

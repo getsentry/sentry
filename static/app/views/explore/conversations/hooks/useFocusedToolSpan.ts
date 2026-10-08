@@ -30,20 +30,22 @@ export function useFocusedToolSpan({
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [focusedTool]);
 
+  const focusedToolNode = focusedTool
+    ? nodes.find(node => {
+        const opType = getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
+        const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
+        return getIsExecuteToolSpan(opType) && toolName === focusedTool;
+      })
+    : undefined;
+
   useEffect(() => {
-    if (isLoading || !focusedTool || hasProcessed.current) {
+    if (isLoading || !focusedToolNode || hasProcessed.current) {
       return;
     }
 
-    const toolSpan = nodes.find(node => {
-      const opType = getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
-      const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
-      return getIsExecuteToolSpan(opType) && toolName === focusedTool;
-    });
+    hasProcessed.current = true;
+    onSpanFound(focusedToolNode.id);
+  }, [focusedToolNode, isLoading, onSpanFound]);
 
-    if (toolSpan) {
-      hasProcessed.current = true;
-      onSpanFound(toolSpan.id);
-    }
-  }, [isLoading, focusedTool, nodes, onSpanFound]);
+  return Boolean(focusedToolNode);
 }

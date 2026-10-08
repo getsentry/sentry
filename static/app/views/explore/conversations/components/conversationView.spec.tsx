@@ -103,9 +103,14 @@ describe('ConversationViewContent', () => {
   it('prefetches one page on first scroll and later pages near the end', async () => {
     MockApiClient.clearMockResponses();
     const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+    let resolveInitialPage!: () => void;
+    const initialPageDelay = new Promise<void>(resolve => {
+      resolveInitialPage = resolve;
+    });
     MockApiClient.addMockResponse({
       url,
       match: [MockApiClient.matchQuery({cursor: undefined})],
+      asyncDelay: initialPageDelay,
       body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
       headers: {
         Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
@@ -129,10 +134,10 @@ describe('ConversationViewContent', () => {
             'span.name': 'third turn',
             'precise.start_ts': 3000,
             'precise.finish_ts': 3000.5,
-            'gen_ai.request.messages': JSON.stringify([
-              {role: 'user', content: 'Third?'},
+            'gen_ai.input.messages': JSON.stringify([{role: 'user', content: 'Third?'}]),
+            'gen_ai.output.messages': JSON.stringify([
+              {role: 'assistant', content: 'Third answer'},
             ]),
-            'gen_ai.response.text': 'Third answer',
           }),
         ],
       },
@@ -152,10 +157,10 @@ describe('ConversationViewContent', () => {
             'span.name': 'fourth turn',
             'precise.start_ts': 4000,
             'precise.finish_ts': 4000.5,
-            'gen_ai.request.messages': JSON.stringify([
-              {role: 'user', content: 'Fourth?'},
+            'gen_ai.input.messages': JSON.stringify([{role: 'user', content: 'Fourth?'}]),
+            'gen_ai.output.messages': JSON.stringify([
+              {role: 'assistant', content: 'Fourth answer'},
             ]),
-            'gen_ai.response.text': 'Fourth answer',
           }),
         ],
       },
@@ -163,20 +168,25 @@ describe('ConversationViewContent', () => {
 
     renderView({activeTab: 'transcript'});
 
-    const firstAnswer = await screen.findByText('First answer');
-    expect(screen.getByRole('button', {name: 'Load more'})).toBeInTheDocument();
-
-    const scrollContainer = Array.from(
-      document.querySelectorAll<HTMLElement>('[data-scrollable]')
-    ).find(element => element.contains(firstAnswer));
-    expect(scrollContainer).toBeDefined();
-    Object.defineProperties(scrollContainer!, {
+    const scrollContainer = document.querySelector<HTMLElement>('[data-scrollable]')!;
+    Object.defineProperties(scrollContainer, {
       scrollHeight: {configurable: true, value: 1000},
       clientHeight: {configurable: true, value: 100},
       scrollTop: {configurable: true, value: 100},
     });
 
-    act(() => scrollContainer!.dispatchEvent(new Event('scroll')));
+    // A scroll during the first request must not consume the one-page prefetch.
+    act(() => scrollContainer.dispatchEvent(new Event('scroll')));
+    expect(nextRequest).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveInitialPage();
+      await initialPageDelay;
+    });
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Load more'})).toBeInTheDocument();
+
+    act(() => scrollContainer.dispatchEvent(new Event('scroll')));
 
     expect(
       await screen.findByRole('status', {name: 'Loading more spans'})
@@ -193,14 +203,14 @@ describe('ConversationViewContent', () => {
       screen.queryByRole('status', {name: 'Loading more spans'})
     ).not.toBeInTheDocument();
 
-    act(() => scrollContainer!.dispatchEvent(new Event('scroll')));
+    act(() => scrollContainer.dispatchEvent(new Event('scroll')));
     expect(lastRequest).not.toHaveBeenCalled();
 
-    Object.defineProperty(scrollContainer!, 'scrollTop', {
+    Object.defineProperty(scrollContainer, 'scrollTop', {
       configurable: true,
       value: 850,
     });
-    act(() => scrollContainer!.dispatchEvent(new Event('scroll')));
+    act(() => scrollContainer.dispatchEvent(new Event('scroll')));
 
     expect(await screen.findByText('Fourth answer')).toBeInTheDocument();
     expect(lastRequest).toHaveBeenCalledTimes(1);
@@ -252,7 +262,9 @@ describe('ConversationViewContent', () => {
             'span.name': 'third turn',
             'precise.start_ts': 3000,
             'precise.finish_ts': 3000.5,
-            'gen_ai.response.text': 'Third answer',
+            'gen_ai.output.messages': JSON.stringify([
+              {role: 'assistant', content: 'Third answer'},
+            ]),
           }),
         ],
       },

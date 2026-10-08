@@ -176,6 +176,14 @@ describe('useConversation', () => {
       url,
       match: [MockApiClient.matchQuery({cursor: 'next'})],
       body: envelope([{...BASE_SPAN, span_id: 'span-2'}]),
+      headers: {
+        Link: `<${url}?cursor=last>; rel="next"; results="true"; cursor="last"`,
+      },
+    });
+    const lastRequest = MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: 'last'})],
+      body: envelope([{...BASE_SPAN, span_id: 'span-3'}]),
     });
 
     const {result} = renderHookWithProviders(
@@ -185,8 +193,9 @@ describe('useConversation', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.nodes).toHaveLength(2);
+    expect(result.current.nodes).toHaveLength(3);
     expect(nextRequest).toHaveBeenCalledTimes(1);
+    expect(lastRequest).toHaveBeenCalledTimes(1);
   });
 
   it('keeps loaded spans when the next page fails', async () => {

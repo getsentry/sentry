@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
+import {useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
 import {IconCopy} from '@sentry/icons/copy';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
@@ -51,13 +52,31 @@ function ConversationDetailPage() {
   const startTimestamp = start?.getTime();
   const endTimestamp = end?.getTime();
   const conversation = useMemo(
-    () => ({conversationId, startTimestamp, endTimestamp, autoFetchAll: false}),
+    () => ({conversationId, startTimestamp, endTimestamp}),
     [conversationId, startTimestamp, endTimestamp]
   );
+  const [isCopyingTranscript, setIsCopyingTranscript] = useState(false);
 
-  const {stats, nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
+  const {stats, nodes, nodeTraceMap, isLoading, error, hasNextPage, title} =
+    useConversation({...conversation, autoFetchAll: isCopyingTranscript});
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const isInitialLoading = isLoading && nodes.length === 0;
+
+  useEffect(() => {
+    if (!isCopyingTranscript || isLoading) {
+      return;
+    }
+    if (error) {
+      addErrorMessage(t('Failed to load the complete transcript'));
+    } else if (hasNextPage) {
+      addErrorMessage(t('Transcript is too large to copy'));
+    } else {
+      void copyToClipboard(messagesToMarkdown(messages));
+    }
+    // oxlint-disable-next-line react/set-state-in-effect
+    setIsCopyingTranscript(false);
+  }, [error, hasNextPage, isCopyingTranscript, isLoading, messages]);
 
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
@@ -90,6 +109,17 @@ function ConversationDetailPage() {
     setQueryState({tab: 'timeline'});
   }, [setQueryState]);
 
+  function handleCopyTranscript() {
+    trackAnalytics('conversations.detail.copy-conversation', {
+      organization,
+    });
+    if (hasNextPage) {
+      setIsCopyingTranscript(true);
+    } else {
+      void copyToClipboard(messagesToMarkdown(messages));
+    }
+  }
+
   return (
     <ViewportConstrainedPage background="secondary">
       <ConversationsBreadcrumbs conversationId={conversationId} />
@@ -101,7 +131,7 @@ function ConversationDetailPage() {
           conversationId={conversationId}
           title={title}
           project={project}
-          isLoading={isLoading}
+          isLoading={isInitialLoading}
         />
       </Container>
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
@@ -112,20 +142,18 @@ function ConversationDetailPage() {
               <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
             </TabList>
           </Tabs>
-          {queryState.tab === 'transcript' && !isLoading && messages.length > 0 && (
-            <Button
-              size="xs"
-              icon={<IconCopy />}
-              onClick={() => {
-                trackAnalytics('conversations.detail.copy-conversation', {
-                  organization,
-                });
-                copyToClipboard(messagesToMarkdown(messages));
-              }}
-            >
-              {t('Copy Transcript')}
-            </Button>
-          )}
+          {queryState.tab === 'transcript' &&
+            !isInitialLoading &&
+            messages.length > 0 && (
+              <Button
+                size="xs"
+                icon={<IconCopy />}
+                busy={isCopyingTranscript}
+                onClick={handleCopyTranscript}
+              >
+                {t('Copy Transcript')}
+              </Button>
+            )}
         </Flex>
         <ConversationViewContainer>
           <ConversationViewContent

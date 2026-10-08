@@ -130,6 +130,9 @@ describe('ConversationDetailPage span default selection', () => {
       PageFiltersStore.init();
     });
     mockApis();
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
   });
 
   it('opens the first span when switching from transcript to timeline', async () => {
@@ -159,6 +162,53 @@ describe('ConversationDetailPage span default selection', () => {
     expect(
       screen.queryByRole('button', {name: 'Copy Transcript'})
     ).not.toBeInTheDocument();
+  });
+
+  it('loads every page before copying the transcript', async () => {
+    MockApiClient.clearMockResponses();
+    const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+    MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: undefined})],
+      body: {
+        conversationId: CONVERSATION_ID,
+        title: null,
+        spans: [CONVERSATION_BODY[0]],
+        stats: DEFAULT_STATS,
+      },
+      headers: {
+        Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
+      },
+    });
+    const nextRequest = MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: 'next'})],
+      body: {
+        conversationId: CONVERSATION_ID,
+        title: null,
+        spans: [CONVERSATION_BODY[1]],
+        stats: DEFAULT_STATS,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Copy Transcript'}));
+
+    await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining('Second answer')
+      )
+    );
   });
 });
 
