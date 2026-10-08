@@ -145,7 +145,6 @@ function FeedbackModalFooter({
         <Button onClick={closeModal}>{t('Cancel')}</Button>
         <Button
           variant="primary"
-          aria-label={onNext ? undefined : t('Submit Feedback')}
           tooltipProps={{
             title: isCustomChildren
               ? primaryDisabledReason
@@ -158,18 +157,7 @@ function FeedbackModalFooter({
             isCustomChildren ? defined(primaryDisabledReason) : !defined(state.subject)
           }
         >
-          {onNext ? (
-            t('Next')
-          ) : (
-            <Fragment>
-              <Container as="span" display={{zero: 'inline', xl: 'none'}}>
-                {t('Submit')}
-              </Container>
-              <Container as="span" display={{zero: 'none', xl: 'inline'}}>
-                {t('Submit Feedback')}
-              </Container>
-            </Fragment>
-          )}
+          {onNext ? t('Next') : t('Submit')}
         </Button>
       </Grid>
     </Footer>
