@@ -14,7 +14,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.fields import empty
 
-from sentry import audit_log, quotas
+from sentry import audit_log, features, quotas
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -413,6 +413,25 @@ class MonitorValidator(CamelSnakeSerializer):
 
         alert_rule = attrs.get("alert_rule")
         if alert_rule is not None:
+            organization = self.context["organization"]
+            request = self.context["request"]
+            if features.has(
+                "organizations:crons-disable-alert-rule",
+                organization,
+                actor=request.user,
+            ):
+                logger.info(
+                    "monitors.validator.alert_rule_rejected",
+                    extra={
+                        "organization_id": organization.id,
+                        "operation": "update" if self.instance else "create",
+                        **get_request_attribution(request),
+                    },
+                )
+                raise serializers.ValidationError(
+                    {"alert_rule": "Cron monitor alert rules are disabled for this organization."}
+                )
+
             project = attrs.get("project")
             if project is None:
                 project_id = (

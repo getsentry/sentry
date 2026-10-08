@@ -323,7 +323,7 @@ async function rawScan(directory: string, allowed: Set<string>, policy: string) 
   return {counts, findings};
 }
 
-function fits(current: Suppressions, baseline: Suppressions) {
+function fits(current: Suppressions, baseline: Suppressions, findings: Finding[] = []) {
   const increases: string[] = [];
   for (const [file, rules] of Object.entries(current)) {
     for (const [rule, {count}] of Object.entries(rules)) {
@@ -334,6 +334,14 @@ function fits(current: Suppressions, baseline: Suppressions) {
     }
   }
   if (increases.length > 0) {
+    if (findings.length > 0) {
+      increases.push('Current violations for over-budget file/rule pairs:');
+      for (const {file, line, column, rule, message} of findings) {
+        if (current[file]![rule]!.count > (baseline[file]?.[rule]?.count ?? 0)) {
+          increases.push(`${file}:${line}:${column} ${rule} ${message}`);
+        }
+      }
+    }
     process.exitCode = 1;
     throw new Error(`New incubator violations:\n${increases.join('\n')}`);
   }
@@ -697,7 +705,7 @@ Native oxlint options:
             }
           }
         }
-        fits(current.counts, reduced);
+        fits(current.counts, reduced, current.findings);
         replacement = reduced;
       } else {
         if (command !== 'ci' || values.base) {
@@ -710,17 +718,19 @@ Native oxlint options:
             current.counts,
             await (command === 'ci'
               ? ciBaseline(base, allowed, policy)
-              : baseScan(base, allowed, policy))
+              : baseScan(base, allowed, policy)),
+            current.findings
           );
         }
         if (command === 'enroll') {
           replacement = current.counts;
         } else if (command === 'ci') {
           assert(committed, 'The suppression asset must be committed');
+          fits(current.counts, committed, current.findings);
           if (serialize(committed) !== serialize(current.counts)) {
             process.exitCode = 1;
             throw new Error(
-              'Suppression budgets do not match live debt. Run pnpm run fix:oxlint after cleanup, or pnpm run lint:js --prune for remaining budgets. Use pnpm run lint:js --enroll --base REF for changed policy using trusted source.'
+              'Suppression budgets are stale. Run pnpm run lint:js --prune and commit the updated oxlint-suppressions.json.'
             );
           }
         }

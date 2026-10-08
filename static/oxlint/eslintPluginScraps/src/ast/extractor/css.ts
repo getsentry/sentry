@@ -11,15 +11,29 @@ type CssNode = {
   nodes?: CssNode[];
   prop?: string;
   raws?: {between?: string};
-  source?: {end?: {offset?: number}; start?: {offset?: number}};
+  source?: {
+    end?: {line?: number; offset?: number};
+    start?: {line?: number; offset?: number};
+  };
+  text?: string;
   value?: string;
 };
 type CssDocument = {nodes: CssNode[]};
 type CssParser = {parse: (source: string, options: {from: string}) => CssDocument};
 
+interface CssDirective {
+  action: string;
+  endLine: number | undefined;
+  line: number | undefined;
+  offset: number;
+  rules: string[];
+}
+
 export interface ParsedCssDeclaration {
+  directives: CssDirective[];
   important: boolean;
   interpolations: Array<{expression: ESTree.Expression; index: number}>;
+  line: number | undefined;
   name: string;
   root: boolean;
   sourceRange: [number, number] | null;
@@ -66,8 +80,26 @@ export function parseCssTemplate(
   }
 
   const declarations: ParsedCssDeclaration[] = [];
+  const directives: CssDirective[] = [];
   const walk = (nodes: CssNode[], isRoot: boolean) => {
     for (const node of nodes) {
+      if (node.type === 'comment' && node.source?.start?.offset !== undefined) {
+        const match = node.text
+          ?.split(/\s--(?:\s|$)/)[0]
+          ?.trim()
+          .match(
+            /^(?:eslint|oxlint)-(disable-next-line|disable-line|disable|enable)(?:\s|$)(.*)$/s
+          );
+        if (match) {
+          directives.push({
+            action: match[1]!,
+            rules: match[2]!.split(/[\s,]+/).filter(Boolean),
+            line: node.source.start.line,
+            endLine: node.source.end?.line,
+            offset: node.source.start.offset - PREFIX.length,
+          });
+        }
+      }
       if (node.type === 'decl' && node.prop !== undefined && node.value !== undefined) {
         const sourceStart = node.source?.start?.offset;
         const sourceEnd = node.source?.end?.offset;
@@ -96,8 +128,10 @@ export function parseCssTemplate(
         });
 
         declarations.push({
+          directives,
           important: node.important ?? false,
           interpolations,
+          line: node.source?.start?.line,
           name: normalizePropertyName(node.prop),
           root: isRoot,
           sourceRange,

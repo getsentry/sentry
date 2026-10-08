@@ -71,6 +71,32 @@ const makeInvalidCase = (
 
 ruleTester.run('use-semantic-token', useSemanticToken, {
   valid: [
+    ...['eslint', 'oxlint'].flatMap(prefix => [
+      {
+        name:
+          prefix + ' next-line directive supports multiline values and nested selectors',
+        code: `${emotion}const C = styled.div\`
+  &:hover {
+    /* ${prefix}-disable-next-line rule-to-test/use-semantic-token -- intentional */
+    background: \${p =>
+      p.theme.tokens.content.primary};
+  }
+\`;`,
+      },
+      {
+        name: prefix + ' block directive without rule names',
+        code: `${emotion}const C = css\`
+  /* ${prefix}-disable -- intentional */
+  background: \${p => p.theme.tokens.content.primary};
+\`;`,
+      },
+      {
+        name: prefix + ' trailing disable-line directive',
+        code: `${emotion}const C = styled.div\`
+  background: \${p => p.theme.tokens.content.primary}; /* ${prefix}-disable-line rule-to-test/use-semantic-token */
+\`;`,
+      },
+    ]),
     {
       name: 'unrelated styled and css bindings are ignored',
       code: "const styled = x => y => y; const css = x => x; const C = styled('div')`background: ${theme.tokens.content.primary};`; const styles = css`background: ${theme.tokens.content.primary};`;",
@@ -160,6 +186,29 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
   ],
 
   invalid: [
+    ...[
+      '/* ordinary comment */',
+      '/* eslint-disable-next-line unrelated/rule */',
+      'content: "/* eslint-disable-next-line rule-to-test/use-semantic-token */";',
+      '/* eslint-disable-next-line rule-to-test/use-semantic-token */\nbackground: ${p => p.theme.tokens.content.primary};',
+      '/* eslint-disable rule-to-test/use-semantic-token */\nbackground: ${p => p.theme.tokens.content.primary};\n/* eslint-enable rule-to-test/use-semantic-token */',
+      '/* eslint-disable */\nbackground: ${p => p.theme.tokens.content.primary};\n/* eslint-enable rule-to-test/use-semantic-token */',
+    ].map(comment => ({
+      name: 'only the intended declarations are suppressed: ' + comment,
+      code:
+        emotion +
+        '\nconst C = styled.div`\n' +
+        comment +
+        '\nbackground: ${p => p.theme.tokens.content.primary};\n`;',
+      errors: [{messageId: 'invalidPropertyWithSuggestion'}],
+    })),
+    {
+      name: 'block directives stay within their template',
+      code:
+        emotion +
+        '\nconst A = styled.div`/* eslint-disable */ background: ${p => p.theme.tokens.content.primary};`;\nconst B = styled.div` background: ${p => p.theme.tokens.content.primary};`;',
+      errors: [{messageId: 'invalidPropertyWithSuggestion'}],
+    },
     ...invalidPropertyTokenPairs.map(({suggestedCategory, property, tokenPath}) =>
       makeInvalidCase(suggestedCategory, property, tokenPath)
     ),

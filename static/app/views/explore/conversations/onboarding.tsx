@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
+import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
@@ -285,7 +285,7 @@ function ConversationOnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <Flex justify="between" gap="2xl" padding="3xl">
+              <Flex containerType="inline-size" justify="between" gap="2xl" padding="3xl">
                 <HeaderText>
                   <Title>{t('See Exactly What Your Agent Said')}</Title>
                   <SubTitle>
@@ -305,8 +305,18 @@ function ConversationOnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Container display={{zero: 'none', xl: 'block'}}>
-                  <Image src={replayOnboardingImg} alt="" height="120px" width="auto" />
+                <Container
+                  display={{zero: 'none', xl: 'block'}}
+                  alignSelf="center"
+                  pointerEvents="none"
+                  flexShrink={0}
+                >
+                  <Image
+                    src={agentTracingEmptyStateImg}
+                    alt=""
+                    height="180px"
+                    width="auto"
+                  />
                 </Container>
               </Flex>
               <Container width="95%" margin="0 auto">

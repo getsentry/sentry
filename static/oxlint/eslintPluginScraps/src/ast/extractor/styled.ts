@@ -62,6 +62,26 @@ export function createStyledExtractor({
     }
 
     for (const declaration of parsed) {
+      let disabled = false;
+      let disabledLine = false;
+      for (const directive of declaration.directives) {
+        if (directive.rules.length > 0 && !directive.rules.includes(ruleContext.id)) {
+          continue;
+        }
+        if (directive.action === 'disable-next-line') {
+          disabledLine ||= declaration.line === (directive.endLine ?? -2) + 1;
+        } else if (directive.action === 'disable-line') {
+          disabledLine ||= declaration.line === directive.line;
+        } else if (
+          declaration.sourceRange &&
+          directive.offset < declaration.sourceRange[0]
+        ) {
+          disabled = directive.action === 'disable';
+        }
+      }
+      if (disabled || disabledLine) {
+        continue;
+      }
       for (const {expression, index} of declaration.interpolations) {
         const precedingQuasi = templateNode.quasis[index];
         if (!precedingQuasi) {
