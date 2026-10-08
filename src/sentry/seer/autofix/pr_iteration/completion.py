@@ -9,12 +9,7 @@ from uuid import uuid4
 from sentry import features
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.seer.autofix.autofix_agent import (
-    get_iterations,
-    get_latest_iteration_index,
-    iteration_repos,
-    trigger_push_changes,
-)
+from sentry.seer.autofix.autofix_agent import trigger_push_changes
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import failed_tool_calls
@@ -25,6 +20,11 @@ from sentry.seer.autofix.pr_iteration.emit import (
 )
 from sentry.seer.autofix.pr_iteration.feedback import latest_iteration_feedback_kind
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
+from sentry.seer.autofix.pr_iteration.iterations import (
+    get_iterations,
+    get_latest_iteration_index,
+    iteration_repos,
+)
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_iteration.pr_state import (

@@ -439,6 +439,31 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert payload["rules"] == [self.rules[0].id]
         assert payload["workflows"] == [123]
 
+    def test_issue_description_uses_event(self) -> None:
+        self.event1.data["metadata"].update({"value": "event error"})
+        self.group1.data["metadata"].update({"value": "group error"})
+        self.event1.data["type"] = self.group1.data["type"] = "error"
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build_group_card()
+
+        description = issue_card["body"][1]
+        assert _is_text_block(description)
+        assert "event error" == description["text"]
+
+    def test_issue_description_falls_back_to_group(self) -> None:
+        self.group1.data["metadata"].update({"value": "group error"})
+        self.group1.data["type"] = "error"
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build_group_card()
+
+        description = issue_card["body"][1]
+        assert _is_text_block(description)
+        assert "group error" == description["text"]
+
     def test_issue_without_description(self) -> None:
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=self.rules, integration=self.integration

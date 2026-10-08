@@ -602,6 +602,18 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/attributes/',
+        },
+      },
+      path: 'attributes/',
+      name: t('Attributes'),
+      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+    },
+    {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
           switchTo: '/settings/:orgId/projects/:projectId/tags/',
         },
       },
