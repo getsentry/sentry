@@ -40,6 +40,7 @@ class TestSaasAuthoritativeOptions:
         ):
             manager = OptionsManager(store=store)
             manager.register("runtime", default="registered", flags=FLAG_AUTOMATOR_MODIFIABLE)
+            manager.register("legacy", default="registered")
             yield manager
 
     @pytest.mark.parametrize("hook", [None, lambda key, opt: READ_HOOK_FALLBACK])
@@ -112,6 +113,24 @@ class TestSaasAuthoritativeOptions:
             finally:
                 options.unregister(key)
 
+    def test_registered_prefixed_runtime_uses_authoritative_reads(
+        self, manager: OptionsManager
+    ) -> None:
+        key = "sentry:skip-record-onboarding-tasks-if-complete"
+        manager.registry[key] = options.lookup_key(key)
+        assert manager.get(key) is False
+        assert manager.isset(key) is False
+        assert manager.get_last_update_channel(key) is None
+        assert manager.is_saas_runtime_option(key) is True
+        assert manager.can_update(key, True, UpdateChannel.APPLICATION) == NotWritableReason.READONLY
+        with pytest.raises(AssertionError, match="cannot be changed at runtime"):
+            manager.set(key, True)
+        with pytest.raises(AssertionError, match="cannot be changed at runtime"):
+            manager.delete(key)
+        manager.set_read_hook(Mock(return_value=True))
+        assert manager.get(key) is True
+        assert manager.isset(key) is True
+
     @pytest.mark.parametrize("channel", list(UpdateChannel))
     @pytest.mark.parametrize("include_drift", [True, False])
     def test_all_write_channels_rejected(
@@ -160,17 +179,19 @@ class TestSaasAuthoritativeOptions:
             manager.delete(key)
 
     @pytest.mark.parametrize(
-        ("key", "flags"),
+        "key",
         [
-            ("sentry:state", FLAG_AUTOMATOR_MODIFIABLE),
-            ("getsentry:state", FLAG_AUTOMATOR_MODIFIABLE),
-            ("legacy", DEFAULT_FLAGS),
+            "sentry:system-token",
+            "sentry:install-id",
+            "sentry:latest_version",
+            "sentry:last_worker_ping",
+            "sentry:last_worker_version",
+            "sentry:version-configured",
+            "getsentry:state",
+            "legacy",
         ],
     )
-    def test_application_state_keeps_store(
-        self, manager: OptionsManager, key: str, flags: int
-    ) -> None:
-        manager.register(key, default="registered", flags=flags)
+    def test_application_state_keeps_store(self, manager: OptionsManager, key: str) -> None:
         assert manager.is_saas_runtime_option(key) is False
         manager.store.get.side_effect = None
         manager.store.get.return_value = "stored"

@@ -336,15 +336,14 @@ class OptionsManager:
         """Whether this option uses authoritative SaaS configuration.
 
         Such options never access legacy storage for reads, presence checks,
-        metadata or rejected mutations. Application-generated state retains its
-        database storage even when registered.
+        metadata or rejected mutations. The automator flag and wizard key list
+        determine this policy; a key's prefix does not classify its purpose.
         """
         return self._is_saas_runtime_option(self.lookup_key(key))
 
     def _is_saas_runtime_option(self, opt: Key) -> bool:
         return (
             not settings.SENTRY_SELF_HOSTED
-            and not opt.name.startswith(("sentry:", "getsentry:"))
             and (bool(opt.flags & FLAG_AUTOMATOR_MODIFIABLE) or opt.name in SAAS_WIZARD_OPTIONS)
         )
 
