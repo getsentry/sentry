@@ -7,7 +7,7 @@ import pytest
 
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
-from sentry.notifications.platform.slack.provider import SlackNotificationProvider
+from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.templates.seer import SeerAutofixError
@@ -47,7 +47,7 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
 
 def _render(
     data: NotificationData, rendered_template: NotificationRenderedTemplate
-) -> dict[str, Any]:
+) -> SlackRenderable:
     return SlackMetricAlertRenderer.render(
         data=data,
         rendered_template=rendered_template,

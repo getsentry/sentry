@@ -234,11 +234,25 @@ class RecordEngagementTest(TestCase):
         ("https://acme.sentry.io/data-export/4/", NotificationLink.DATA_EXPORT),
         ("https://sentry.io/settings/account/notifications/alerts/", NotificationLink.SETTINGS),
         ("https://sentry.io/settings/acme/developer-settings/app/", NotificationLink.SETTINGS),
-        ("https://acme.sentry.io/repos/", NotificationLink.OTHER),
+        ("https://sentry.io/organizations/acme/repos/", NotificationLink.REPOSITORIES),
+        (
+            "https://acme.sentry.io/explore/agents/conversations/abc/",
+            NotificationLink.SEER_AGENT_RUN,
+        ),
     ],
 )
 def test_classify_link(url: str, expected: NotificationLink) -> None:
-    assert classify_link(url) == expected
+    with mock.patch("sentry.notifications.platform.tracking.logger") as mock_logger:
+        assert classify_link(url) == expected
+    mock_logger.error.assert_not_called()
+
+
+def test_classify_link_logs_unclassified_sentry_pages() -> None:
+    with mock.patch("sentry.notifications.platform.tracking.logger") as mock_logger:
+        assert classify_link("https://acme.sentry.io/dashboards/1/?q=x") == NotificationLink.OTHER
+    mock_logger.error.assert_called_once_with(
+        "notifications.tracking.unclassified_link", extra={"path": "/dashboards/1/"}
+    )
 
 
 @override_options(ENABLED_OPTIONS)

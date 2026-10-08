@@ -10,6 +10,7 @@ from sentry.incidents.typings.metric_detector import OpenPeriodContext
 from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
 from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
+    DiscordRenderable,
 )
 from sentry.notifications.platform.discord.renderers.metric_alert import (
     DiscordMetricAlertRenderer,
@@ -52,7 +53,7 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
 
 def _render(
     data: NotificationData, rendered_template: NotificationRenderedTemplate
-) -> dict[str, Any]:
+) -> DiscordRenderable:
     return DiscordMetricAlertRenderer.render(
         data=data,
         rendered_template=rendered_template,

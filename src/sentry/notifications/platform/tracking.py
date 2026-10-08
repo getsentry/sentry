@@ -38,6 +38,8 @@ class NotificationLink(StrEnum):
     RELEASE = "release"
     DATA_EXPORT = "data_export"
     SETTINGS = "settings"
+    REPOSITORIES = "repositories"
+    SEER_AGENT_RUN = "seer_agent_run"
     OTHER = "other"
 
 
@@ -188,6 +190,11 @@ def classify_link(url: str) -> NotificationLink:
         return NotificationLink.DATA_EXPORT
     if path.startswith("/settings/"):
         return NotificationLink.SETTINGS
+    if path.startswith("/repos/"):
+        return NotificationLink.REPOSITORIES
+    if path.startswith("/explore/agents/conversations/"):
+        return NotificationLink.SEER_AGENT_RUN
+    logger.error("notifications.tracking.unclassified_link", extra={"path": parsed.path})
     return NotificationLink.OTHER
 
 

@@ -118,6 +118,7 @@ class SeerSlackRendererTest(TestCase):
         section_block = blocks[0]
         assert isinstance(section_block, SectionBlock)
         assert isinstance(section_block.accessory, LinkButtonElement)
+        assert section_block.accessory.url is not None
         assert f"notification_uuid={data.notification_uuid}" in section_block.accessory.url
         assert decorator.links == {NotificationLink.ISSUE_WITH_SEER}
 

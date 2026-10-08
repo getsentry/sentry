@@ -8,6 +8,7 @@ from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.models.group import Group
 from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
+    DiscordRenderable,
 )
 from sentry.notifications.platform.discord.renderers.issue import IssueDiscordRenderer
 from sentry.notifications.platform.templates.issue import (
@@ -28,7 +29,7 @@ from sentry.testutils.notifications.platform import MockNotification
 
 def render_issue(
     data: NotificationData, rendered_template: NotificationRenderedTemplate
-) -> dict[str, Any]:
+) -> DiscordRenderable:
     return IssueDiscordRenderer.render(
         data=data,
         rendered_template=rendered_template,
