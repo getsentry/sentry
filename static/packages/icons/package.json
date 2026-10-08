@@ -185,7 +185,7 @@
     "./useIconDefaults": "./src/useIconDefaults.tsx"
   },
   "scripts": {
-    "test": "jest --config jest.config.mjs",
+    "test": "node ../../../scripts/test.js --config jest.config.mjs",
     "typecheck": "tsc --build tsconfig.json"
   },
   "dependencies": {
