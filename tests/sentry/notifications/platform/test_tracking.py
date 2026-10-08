@@ -418,6 +418,28 @@ class DecorateRenderedTemplateTest(TestCase):
         ]
         assert links == {NotificationLink.ISSUE, NotificationLink.SETTINGS}
 
+    @override_settings(SENTRY_ORGANIZATION_BASE_HOSTNAME="{slug}.example.com:8000")
+    @override_options({"system.url-prefix": "http://localhost:8000"})
+    def test_decorates_organization_links_with_port(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Root cause",
+            body=[],
+            actions=[
+                NotificationRenderedAction(
+                    label="Issue", link="http://acme.example.com:8000/issues/1/"
+                ),
+            ],
+        )
+
+        decorated, links = self.decorate_rendered_template(rendered_template)
+
+        assert decorated.actions == [
+            NotificationRenderedAction(
+                label="Issue", link=f"http://acme.example.com:8000/issues/1/?{self.tracking}"
+            ),
+        ]
+        assert links == {NotificationLink.ISSUE}
+
     def test_idempotent(self) -> None:
         rendered_template = NotificationRenderedTemplate(
             subject="Export ready",

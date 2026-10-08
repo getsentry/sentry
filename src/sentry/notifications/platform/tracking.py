@@ -210,7 +210,8 @@ def _is_sentry_url(parsed: SplitResult) -> bool:
     # On a region, such as `us.sentry.io`, organization links are on `<slug>.sentry.io`, which
     # isn't under the region's own host.
     if org_base_hostname := settings.SENTRY_ORGANIZATION_BASE_HOSTNAME:
-        sentry_hosts.add(org_base_hostname.removeprefix("{slug}."))
+        if org_host := urlsplit(f"//{org_base_hostname.removeprefix('{slug}.')}").hostname:
+            sentry_hosts.add(org_host)
     if host in {f"{subdomain}.{h}" for h in sentry_hosts for subdomain in ("docs", "www")}:
         return False
     return any(host == h or host.endswith(f".{h}") for h in sentry_hosts)
