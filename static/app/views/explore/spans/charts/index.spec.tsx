@@ -114,6 +114,76 @@ describe('ExploreCharts', () => {
     });
   });
 
+  describe('combine charts', () => {
+    function ControlledExploreCharts({yAxes}: {yAxes: string[]}) {
+      const [serialized, setSerialized] = useState<BaseVisualize[]>(() =>
+        yAxes.map(yAxis => ({yAxes: [yAxis]}))
+      );
+      const visualizes = useMemo(
+        () => serialized.flatMap(value => Visualize.fromJSON(value)),
+        [serialized]
+      );
+
+      return (
+        <SpansQueryParamsProvider>
+          <ChartSelectionProvider>
+            <ExploreCharts
+              extrapolate
+              query=""
+              timeseriesResult={timeseriesResultFixture()}
+              visualizes={visualizes}
+              setVisualizes={setSerialized}
+              rawSpanCounts={{
+                total: {count: 0, isLoading: false},
+                normal: {count: 0, isLoading: false},
+              }}
+            />
+          </ChartSelectionProvider>
+        </SpansQueryParamsProvider>
+      );
+    }
+
+    it('does not offer to combine a single chart', async () => {
+      render(<ControlledExploreCharts yAxes={['p50(span.duration)']} />, {
+        organization: OrganizationFixture(),
+      });
+
+      expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Combine charts')).not.toBeInTheDocument();
+    });
+
+    it('plots every visualization on a single chart when combined', async () => {
+      const onNuqsUrlUpdate = jest.fn();
+      render(
+        <ControlledExploreCharts
+          yAxes={['p50(span.duration)', 'p75(span.duration)', 'p99(span.duration)']}
+        />,
+        {organization: OrganizationFixture(), onNuqsUrlUpdate}
+      );
+
+      expect(await screen.findAllByLabelText('Combine charts')).toHaveLength(3);
+      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(3);
+
+      await userEvent.click(screen.getAllByLabelText('Combine charts')[0]!);
+
+      expect(await screen.findByLabelText('Split charts')).toBeInTheDocument();
+      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(1);
+      expect(
+        screen.getByText('p50(span.duration), p75(span.duration), p99(span.duration)')
+      ).toBeInTheDocument();
+      expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          queryString: expect.stringContaining('combineCharts=true'),
+        })
+      );
+
+      await userEvent.click(screen.getByLabelText('Split charts'));
+
+      expect(await screen.findAllByLabelText('Combine charts')).toHaveLength(3);
+      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(3);
+    });
+  });
+
   describe('dropped data layer', () => {
     const features = ['explore-data-fidelity-annotations'];
 

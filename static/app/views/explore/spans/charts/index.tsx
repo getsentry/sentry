@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -11,6 +12,7 @@ import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
 import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
+import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -26,7 +28,7 @@ import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attribu
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {
   ChartVisualization,
-  useChartVisualizationPlottables,
+  useChartInfosPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
@@ -92,29 +94,35 @@ export function ExploreCharts({
   samplingMode,
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
+  const [combineChartsParam, setCombineChartsParam] = useQueryState(
+    'combineCharts',
+    parseAsBoolean.withDefault(false)
+  );
 
-  function handleChartTypeChange(index: number, chartType: ChartType) {
+  const canCombineCharts = visualizes.length > 1;
+  const combineCharts = canCombineCharts && combineChartsParam;
+
+  function updateVisualizes(
+    indices: number[],
+    options: {chartType?: ChartType; visible?: boolean}
+  ) {
     const newVisualizes = visualizes.map((visualize, i) => {
-      if (i === index) {
-        visualize = visualize.replace({chartType});
+      if (indices.includes(i)) {
+        visualize = visualize.replace(options);
       }
       return visualize.serialize();
     });
     setVisualizes(newVisualizes);
   }
 
-  function handleChartVisibilityChange(index: number, visible: boolean) {
-    const newVisualizes = visualizes.map((visualize, i) => {
-      if (i === index) {
-        visualize = visualize.replace({visible});
-      }
-      return visualize.serialize();
-    });
-    setVisualizes(newVisualizes);
-  }
+  // When charts are combined, every visualize is plotted on a single chart
+  // so they can be compared against a shared Y axis.
+  const chartGroups: ChartGroup[] = combineCharts
+    ? [{index: 0, visualizes}]
+    : visualizes.map((visualize, index) => ({index, visualizes: [visualize]}));
 
   useSynchronizeCharts(
-    visualizes.length,
+    chartGroups.length,
     !timeseriesResult.isPending,
     EXPLORE_CHART_GROUP
   );
@@ -122,19 +130,24 @@ export function ExploreCharts({
   return (
     <ChartList>
       <WidgetSyncContextProvider groupName={EXPLORE_CHART_GROUP}>
-        {visualizes.map((visualize, index) => {
+        {chartGroups.map(group => {
+          const indices = group.visualizes.map((_, i) => group.index + i);
           return (
             <Chart
-              key={`${index}`}
+              key={`${group.index}`}
               extrapolate={extrapolate}
-              index={index}
-              onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
-              onChartVisibilityChange={visible =>
-                handleChartVisibilityChange(index, visible)
+              index={group.index}
+              onChartTypeChange={chartType => updateVisualizes(indices, {chartType})}
+              onChartVisibilityChange={visible => updateVisualizes(indices, {visible})}
+              combineCharts={canCombineCharts ? combineCharts : undefined}
+              onCombineChartsChange={
+                canCombineCharts
+                  ? value => setCombineChartsParam(value ? true : null)
+                  : undefined
               }
               query={query}
               timeseriesResult={timeseriesResult}
-              visualize={visualize}
+              visualizes={group.visualizes}
               samplingMode={samplingMode}
               topEvents={topEvents}
               rawSpanCounts={rawSpanCounts}
@@ -146,6 +159,90 @@ export function ExploreCharts({
   );
 }
 
+interface ChartGroup {
+  /**
+   * Index of the first visualize in this group.
+   */
+  index: number;
+  visualizes: readonly Visualize[];
+}
+
+function getChartInfo({
+  samplingMode,
+  timeseriesResult,
+  topEvents,
+  visualize,
+}: {
+  timeseriesResult: SortedTimeSeries;
+  visualize: Visualize;
+  samplingMode?: SamplingMode;
+  topEvents?: number;
+}): ChartInfo {
+  const isTopN = defined(topEvents) && topEvents > 0;
+  const series = timeseriesResult.data[visualize.yAxis] ?? [];
+
+  let confidenceSeries = series;
+
+  let samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
+
+  // This implies that the sampling meta data is not available.
+  // When this happens, we override it with the sampling meta
+  // data from the DEFAULT_VISUALIZATION.
+  if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
+    confidenceSeries = timeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
+    samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
+  }
+
+  // Invalid `_if` filters skip the backend request; surface that as a chart error
+  // instead of an empty/no-data state.
+  const hasValidConditionalFilter = isConditionalAggregateYAxisValid(visualize.yAxis);
+  const resultForChart = (
+    hasValidConditionalFilter
+      ? timeseriesResult
+      : {
+          ...timeseriesResult,
+          error: new Error(
+            getConditionalFilterInvalidSeriesMessageForYAxis(visualize.yAxis)
+          ),
+          isError: true,
+          isPending: false,
+          isLoading: false,
+          isFetching: false,
+          isSuccess: false,
+          status: 'error' as const,
+        }
+  ) as SortedTimeSeries;
+
+  return {
+    chartType: visualize.chartType,
+    confidence: combineConfidenceForSeries(confidenceSeries),
+    series: hasValidConditionalFilter ? series : [],
+    timeseriesResult: resultForChart,
+    yAxis: visualize.yAxis,
+    dataScanned: samplingMeta.dataScanned,
+    isSampled: samplingMeta.isSampled,
+    sampleCount: samplingMeta.sampleCount,
+    samplingMode,
+  };
+}
+
+/**
+ * Merges the chart info of several visualizes plotted on the same chart. All
+ * visualizes come from the same timeseries request, so the sampling metadata
+ * of the first one is representative of the whole chart.
+ */
+function combineChartInfos(chartInfos: ChartInfo[]): ChartInfo {
+  const first = chartInfos[0]!;
+  return {
+    ...first,
+    series: chartInfos.flatMap(chartInfo => chartInfo.series),
+    // Only surface an error when none of the visualizes can be plotted.
+    timeseriesResult:
+      chartInfos.find(chartInfo => !chartInfo.timeseriesResult.error)
+        ?.timeseriesResult ?? first.timeseriesResult,
+  };
+}
+
 interface ChartProps {
   extrapolate: boolean;
   index: number;
@@ -154,7 +251,13 @@ interface ChartProps {
   query: string;
   rawSpanCounts: RawCounts;
   timeseriesResult: SortedTimeSeries;
-  visualize: Visualize;
+  visualizes: readonly Visualize[];
+  /**
+   * Whether all visualizes are plotted on a single chart. Leave undefined
+   * when there is nothing to combine.
+   */
+  combineCharts?: boolean;
+  onCombineChartsChange?: (combineCharts: boolean) => void;
   samplingMode?: SamplingMode;
   topEvents?: number;
 }
@@ -166,11 +269,17 @@ function Chart({
   onChartVisibilityChange,
   query,
   rawSpanCounts,
-  visualize,
+  visualizes,
   timeseriesResult,
+  combineCharts,
+  onCombineChartsChange,
   samplingMode,
   topEvents,
 }: ChartProps) {
+  // Every visualize in a chart shares the chart type and visibility, so the
+  // first one is used to read them.
+  const visualize = visualizes[0]!;
+
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
@@ -196,56 +305,20 @@ function Chart({
   const chartIcon =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
-  const chartInfo: ChartInfo = useMemo(() => {
-    const isTopN = defined(topEvents) && topEvents > 0;
-    const series = timeseriesResult.data[visualize.yAxis] ?? [];
+  const chartInfos = useMemo(
+    () =>
+      visualizes.map(v =>
+        getChartInfo({visualize: v, timeseriesResult, topEvents, samplingMode})
+      ),
+    [timeseriesResult, visualizes, samplingMode, topEvents]
+  );
 
-    let confidenceSeries = series;
+  const chartInfo: ChartInfo = useMemo(
+    () => (chartInfos.length === 1 ? chartInfos[0]! : combineChartInfos(chartInfos)),
+    [chartInfos]
+  );
 
-    let samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
-
-    // This implies that the sampling meta data is not available.
-    // When this happens, we override it with the sampling meta
-    // data from the DEFAULT_VISUALIZATION.
-    if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
-      confidenceSeries = timeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
-      samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
-    }
-
-    // Invalid `_if` filters skip the backend request; surface that as a chart error
-    // instead of an empty/no-data state.
-    const hasValidConditionalFilter = isConditionalAggregateYAxisValid(visualize.yAxis);
-    const resultForChart = (
-      hasValidConditionalFilter
-        ? timeseriesResult
-        : {
-            ...timeseriesResult,
-            error: new Error(
-              getConditionalFilterInvalidSeriesMessageForYAxis(visualize.yAxis)
-            ),
-            isError: true,
-            isPending: false,
-            isLoading: false,
-            isFetching: false,
-            isSuccess: false,
-            status: 'error' as const,
-          }
-    ) as SortedTimeSeries;
-
-    return {
-      chartType,
-      confidence: combineConfidenceForSeries(confidenceSeries),
-      series: hasValidConditionalFilter ? series : [],
-      timeseriesResult: resultForChart,
-      yAxis: visualize.yAxis,
-      dataScanned: samplingMeta.dataScanned,
-      isSampled: samplingMeta.isSampled,
-      sampleCount: samplingMeta.sampleCount,
-      samplingMode,
-    };
-  }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
-
-  const plottables = useChartVisualizationPlottables(chartInfo);
+  const plottables = useChartInfosPlottables(chartInfos);
 
   const Title = (
     <Widget.WidgetTitle
@@ -259,17 +332,20 @@ function Chart({
           />
         ) : null
       }
-      title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
+      title={visualizes.map(v => prettifyAggregation(v.yAxis) ?? v.yAxis).join(', ')}
     />
   );
 
-  const samplingWarningReason = getSamplingWarningReason(
-    visualize.yAxis,
-    chartInfo.series,
-    chartInfo.dataScanned
-  );
-  const TitleBadges = samplingWarningReason ? (
-    <SamplingWarning yAxis={visualize.yAxis} reason={samplingWarningReason} />
+  const samplingWarnings = chartInfos.flatMap(info => {
+    const reason = getSamplingWarningReason(info.yAxis, info.series, info.dataScanned);
+    return reason ? [{yAxis: info.yAxis, reason}] : [];
+  });
+  const TitleBadges = samplingWarnings.length ? (
+    <Fragment>
+      {samplingWarnings.map(({yAxis, reason}, i) => (
+        <SamplingWarning key={`${yAxis}-${i}`} yAxis={yAxis} reason={reason} />
+      ))}
+    </Fragment>
   ) : null;
 
   const Actions = visualize.visible ? (
@@ -314,9 +390,24 @@ function Chart({
           options={intervalOptions}
         />
       </Tooltip>
+      {defined(combineCharts) && onCombineChartsChange ? (
+        <Button
+          aria-label={combineCharts ? t('Split charts') : t('Combine charts')}
+          aria-pressed={combineCharts}
+          icon={<IconStack />}
+          onClick={() => onCombineChartsChange(!combineCharts)}
+          size="xs"
+          tooltipProps={{
+            title: combineCharts
+              ? t('Show each visualization in its own chart')
+              : t('Plot all visualizations on a single chart'),
+          }}
+          variant={combineCharts ? 'primary' : undefined}
+        />
+      ) : null}
       <ChartContextMenu
         key="context"
-        visualizeYAxes={[visualize]}
+        visualizeYAxes={visualizes}
         query={query}
         interval={interval}
         visualizeIndex={index}
@@ -351,6 +442,7 @@ function Chart({
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
+              plottables={plottables}
               droppedData={
                 showDroppedDataBand
                   ? {
