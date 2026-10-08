@@ -475,7 +475,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
             "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
             "account": "1234567890",
             "team": "team789",
-            "priority": "",
+            "priority": "P3",
         }
 
     @mock.patch("sentry.integrations.opsgenie.client.logger")
