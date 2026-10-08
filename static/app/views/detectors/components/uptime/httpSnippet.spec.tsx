@@ -42,10 +42,12 @@ describe('HTTPSnippet', () => {
       '{"key": "value"}',
     ].join('\r\n');
 
-    const codeElem = screen.getByText(/POST \/test\?query=value HTTP\/1\.1/);
+    const codeElem = screen
+      .getByText(/POST \/test\?query=value HTTP\/1\.1/)
+      .closest('code');
 
-    // Using toHaveTextContent would be nice here, but it loses the newlines.
-    expect(codeElem.innerHTML).toBe(expected);
+    // textContent (unlike toHaveTextContent) preserves the newlines.
+    expect(codeElem?.textContent).toBe(expected.replace(/\r\n/g, '\n'));
   });
 
   it('renders cURL command when cURL tab is clicked', async () => {

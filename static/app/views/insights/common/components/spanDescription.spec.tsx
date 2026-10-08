@@ -70,9 +70,14 @@ describe('DatabaseSpanDescription', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(
-      await screen.findByText('SELECT users FROM my_table LIMIT 1;')
-    ).toBeInTheDocument();
+    const codeSnippet = screen.getByText(
+      (_, element) =>
+        element?.tagName === 'CODE' && element.className.includes('language-sql')
+    );
+    expect(codeSnippet).toBeInTheDocument();
+    expect(codeSnippet?.textContent?.replace(/\s+/g, ' ').trim()).toContain(
+      'SELECT users FROM my_table LIMIT 1;'
+    );
   });
 
   it('shows query source if available', async () => {
@@ -102,9 +107,13 @@ describe('DatabaseSpanDescription', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(
-      await screen.findByText('SELECT users FROM my_table LIMIT 1;')
-    ).toBeInTheDocument();
+    const codeSnippet = screen.getByText(
+      (_, element) =>
+        element?.tagName === 'CODE' && element.className.includes('language-sql')
+    );
+    expect(codeSnippet?.textContent?.replace(/\s+/g, ' ').trim()).toContain(
+      'SELECT users FROM my_table LIMIT 1;'
+    );
     expect(
       screen.getByText(textWithMarkupMatcher('/app/views/users.py at line 78'))
     ).toBeInTheDocument();
@@ -138,11 +147,13 @@ describe('DatabaseSpanDescription', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    // expect(await screen.findBy).toBeInTheDocument();
-    const mongoQuerySnippet = await screen.findByText(
-      /\{ "a": "\?", "insert": "documents" \}/i
+    const mongoQuerySnippet = screen.getByText(
+      (_, element) =>
+        element?.tagName === 'CODE' && element.className.includes('language-json')
     );
     expect(mongoQuerySnippet).toBeInTheDocument();
-    expect(mongoQuerySnippet).toHaveClass('language-json');
+    expect(mongoQuerySnippet?.textContent?.replace(/\s+/g, ' ').trim()).toMatch(
+      /\{ "a": "\?", "insert": "documents" \}/i
+    );
   });
 });

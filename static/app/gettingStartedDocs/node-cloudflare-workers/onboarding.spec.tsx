@@ -98,7 +98,7 @@ describe('cloudflare onboarding docs', () => {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
+      screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate/))[0]
     ).toBeInTheDocument();
   });
 

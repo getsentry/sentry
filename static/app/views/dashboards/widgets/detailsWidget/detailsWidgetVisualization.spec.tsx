@@ -81,9 +81,14 @@ describe('DetailsWidgetVisualization', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const queryCodeSnippet = await screen.findByText(/select \* from users/i);
-    expect(queryCodeSnippet).toBeInTheDocument();
-    expect(queryCodeSnippet).toHaveClass('language-sql');
+    const codeSnippet = screen.getByText(
+      (_, element) =>
+        element?.tagName === 'CODE' && element.className.includes('language-sql')
+    );
+    expect(codeSnippet).toBeInTheDocument();
+    expect(codeSnippet?.textContent?.replace(/\s+/g, ' ').trim()).toMatch(
+      /select \* from users/i
+    );
   });
 
   it('renders an http domain status link', async () => {

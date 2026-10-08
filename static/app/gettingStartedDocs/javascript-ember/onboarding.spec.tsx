@@ -26,7 +26,9 @@ describe('javascript-ember onboarding docs', () => {
   it('initializes the SDK directly', () => {
     renderWithOnboardingLayout(docs);
 
-    const setup = screen.getByText(textWithMarkupMatcher(/Sentry\.init\(/));
+    const setup = screen
+      .getByText(textWithMarkupMatcher(/Sentry\.init\(/))
+      .closest('code');
     expect(setup).toHaveTextContent('import config from "./config/environment"');
     expect(setup).toHaveTextContent('loadInitializers(App, config.modulePrefix)');
     expect(setup).not.toHaveTextContent(/sendDefaultPii|enableLogs|enableMetrics/);
@@ -42,9 +44,9 @@ describe('javascript-ember onboarding docs', () => {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });
 
-    const initializer = screen.getByText(
-      textWithMarkupMatcher(/export function initialize\(appInstance\)/)
-    );
+    const initializer = screen
+      .getByText(textWithMarkupMatcher(/export function initialize\(appInstance\)/))
+      .closest('code');
     expect(initializer).toHaveTextContent(
       'import { instrumentAppInstancePerformance } from "@sentry/ember"'
     );
@@ -72,12 +74,16 @@ describe('javascript-ember onboarding docs', () => {
       selectedProducts: [ProductSolution.ERROR_MONITORING],
     });
 
-    const component = screen.getByText(textWithMarkupMatcher(/throw new Error/));
+    const component = screen
+      .getByText(textWithMarkupMatcher(/throw new Error/))
+      .closest('code');
     expect(component).toHaveTextContent('extends Component');
     expect(component).toHaveTextContent(/@action\s*triggerError\(\)/);
     expect(component).not.toHaveTextContent(/setTimeout|@sentry\/ember/);
     expect(
-      screen.getByText(textWithMarkupMatcher(/\{\{on "click" this\.triggerError\}\}/))
+      screen
+        .getByText(textWithMarkupMatcher(/\{\{on "click" this\.triggerError\}\}/))
+        .closest('code')
     ).toHaveTextContent('Break the world');
   });
 
@@ -90,7 +96,9 @@ describe('javascript-ember onboarding docs', () => {
       ],
     });
 
-    const component = screen.getByText(textWithMarkupMatcher(/throw new Error/));
+    const component = screen
+      .getByText(textWithMarkupMatcher(/throw new Error/))
+      .closest('code');
     expect(component).toHaveTextContent('import * as Sentry from "@sentry/ember"');
     expect(component).toHaveTextContent(
       /Sentry\.logger\.info.*Sentry\.metrics\.count.*throw new Error/
