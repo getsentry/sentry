@@ -3,44 +3,74 @@ name: '[NOT REQUIRED] refactor tasks prevention'
 # lists the violations it adds. refactor-tasks.yml is the other half: it scans
 # the existing codebase on a schedule and hands violations to Seer.
 on:
-  pull_request:
+  # pull_request_target runs this file, its script and the conventions from
+  # the base branch, so a PR cannot change the code that holds the OpenRouter
+  # key. The PR's merge commit is checked out only as data and never executed.
+  pull_request_target:
+    types: [opened, reopened, synchronize]
 
-# Cancel in progress workflows on pull_requests.
-# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.number }}
   cancel-in-progress: true
 
 permissions:
   contents: read
+  # needed to look up the PR's merge commit
+  pull-requests: read
 
 jobs:
   judge-patch:
     name: Judge patch against conventions
-    # Fork PRs get no secrets, so there is no inference backend to judge with.
+    # Every judged PR spends OpenRouter credit, so forks are left out while
+    # this is being evaluated.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      # The base branch: the only code this job runs.
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          # pull_request checks out the merge commit; HEAD^1 is the base branch
-          # tip, so depth 2 is enough to diff the patch.
-          fetch-depth: 2
-          # Only the conventions and the patched files are ever read. The
-          # script narrows the sparse checkout to those once it has the diff.
-          filter: blob:none
+          persist-credentials: false
           sparse-checkout: |
             .sentry-refactor-tasks
             .github/workflows/scripts
 
+      - name: Wait for PR merge commit
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        id: mergecommit
+        # An unmergeable PR has no merge commit to judge; that is not a failure
+        # of this check.
+        continue-on-error: true
+        with:
+          script: |
+            const { waitForMergeCommit } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/wait-for-merge-commit.js`);
+            await waitForMergeCommit({github, context, core});
+
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        name: Checkout PR merge commit
+        if: steps.mergecommit.outputs.mergeCommitSha
+        with:
+          ref: ${{ steps.mergecommit.outputs.mergeCommitSha }}
+          path: pr-merge
+          persist-credentials: false
+          # HEAD^1 is the base branch tip, so depth 2 is enough to diff the
+          # patch. The script narrows the sparse checkout to the patched files
+          # once it has the diff, so no other blobs are downloaded.
+          fetch-depth: 2
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /package.json
+
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        if: steps.mergecommit.outputs.mergeCommitSha
         with:
           node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
+        if: steps.mergecommit.outputs.mergeCommitSha
 
       - name: Judge patch
+        if: steps.mergecommit.outputs.mergeCommitSha
         # Violations fail this step but not the check, while we find out how
         # often the judge is right.
         continue-on-error: true
@@ -48,4 +78,4 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.REFACTOR_TASKS_OPENROUTER_API_KEY }}
           INFERENCE_MODEL: haiku
           SCAN_CONCURRENCY: '4'
-        run: node .github/workflows/scripts/refactor-tasks-prevention.ts
+        run: node .github/workflows/scripts/refactor-tasks-prevention.ts pr-merge

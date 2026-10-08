@@ -55,10 +55,15 @@ Both are repository secrets and must exist for the workflow to report.
 
 [`.github/workflows/refactor-tasks-prevention.yml`](../.github/workflows/refactor-tasks-prevention.yml)
 judges each PR's patch instead of the whole codebase. It narrows a sparse
-checkout of the merge commit to this folder plus the files the PR adds lines
-to, then runs `scan`. The judge still reads each changed file whole, but a
-finding is reported only when the patch adds a line its snippet quotes, so
-violations the file already had are left to the scheduled scan. Lint-path
-conventions (`detect_command`) are skipped there, since they need the full tree.
+checkout of the merge commit to the files the PR adds lines to, copies in this
+folder's conventions from `master`, then runs `scan`. The judge still reads each
+changed file whole, but a finding is reported only when the patch adds a line
+its snippet quotes, so violations the file already had are left to the
+scheduled scan. Lint-path conventions (`detect_command`) are skipped there,
+since they need the full tree.
+
+The workflow runs on `pull_request_target`, so the conventions it applies and
+the script that holds the OpenRouter key always come from `master`: a convention
+change only takes effect on PRs once it is merged.
 
 The check is not required yet: violations fail its step, but not the check.

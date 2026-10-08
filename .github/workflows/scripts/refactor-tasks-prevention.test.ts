@@ -99,17 +99,18 @@ describe('parseAddedLines', () => {
 });
 
 describe('sparsePatterns', () => {
-  it('keeps the config dir and patched files, and drops lint-path conventions', () => {
+  it('keeps only the patched files, never the PR copy of the conventions', () => {
     assert.deepEqual(
-      sparsePatterns(
-        ['static/app/foo.tsx', 'static/app/[slug]/page*.tsx'],
-        ['no-circular-dependencies.yaml']
-      ),
+      sparsePatterns([
+        'static/app/foo.tsx',
+        'static/app/[slug]/page*.tsx',
+        '.sentry-refactor-tasks/conventions/evil.yaml',
+      ]),
       [
-        '/.sentry-refactor-tasks/',
-        '!/.sentry-refactor-tasks/conventions/no-circular-dependencies.yaml',
         '/static/app/foo.tsx',
         '/static/app/\\[slug]/page\\*.tsx',
+        '/.sentry-refactor-tasks/conventions/evil.yaml',
+        '!/.sentry-refactor-tasks/',
       ]
     );
   });
@@ -147,6 +148,28 @@ describe('quotedLines', () => {
   it('finds the snippet lines in the span, ignoring elisions and bare punctuation', () => {
     assert.deepEqual(quotedLines(existingClass, MODIFIED_FILE), [1]);
     assert.deepEqual(quotedLines(newHelper, MODIFIED_FILE), [8, 9]);
+  });
+
+  it('finds lines of a snippet the model collapsed onto one line', () => {
+    const file = [
+      'function renderPreviousTraceLookup(links?: TraceItemResponseLink[]) {',
+      '  return renderHookWithProviders(',
+      '    () =>',
+      '      useFindAdjacentTrace({',
+      "        attributes: [{name: 'trace', value: 'abc'}],",
+      '        links,',
+      '      }),',
+      '    {organization}',
+      '  );',
+      '}',
+    ].join('\n');
+    const collapsed = makeFinding(
+      'static/app/spec.tsx',
+      1,
+      10,
+      'function renderPreviousTraceLookup(links?: TraceItemResponseLink[]) { return renderHookWithProviders( () => useFindAdjacentTrace({ attributes: [...], links, }), {organization} ); }'
+    );
+    assert.deepEqual(quotedLines(collapsed, file), [1, 2, 4, 8]);
   });
 });
 
