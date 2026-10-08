@@ -22,6 +22,15 @@ describe('findSeriesDifferences', () => {
     ).toEqual([]);
   });
 
+  it('does not report matching non-numeric values', () => {
+    expect(
+      findSeriesDifferences(
+        [makeSeries('count()', [NaN, NaN, NaN])],
+        [makeSeries('count()', [NaN, NaN, NaN])]
+      )
+    ).toEqual([]);
+  });
+
   it('reports value, length and naming differences', () => {
     expect(
       findSeriesDifferences(
