@@ -146,6 +146,50 @@ migrated_options_mapper = {
     "vsts.client-secret": "SENTRY_VSTS_CLIENT_SECRET",
     "vsts-limited.client-secret": "SENTRY_VSTS_LIMITED_CLIENT_SECRET",
     "vsts_new.client-secret": "SENTRY_VSTS_NEW_CLIENT_SECRET",
+    "auth-fly.client-id": "SENTRY_AUTH_FLY_CLIENT_ID",
+    "auth-google.client-id": "SENTRY_AUTH_GOOGLE_CLIENT_ID",
+    "msteams.app-id": "SENTRY_MSTEAMS_APP_ID",
+    "sms.backend": "SENTRY_SMS_BACKEND",
+    "github-app.id": "SENTRY_GITHUB_APP_ID",
+    "github-app.name": "SENTRY_GITHUB_APP_NAME",
+    "github-app.client-id": "SENTRY_GITHUB_APP_CLIENT_ID",
+    "github-console-sdk-app.id": "SENTRY_GITHUB_CONSOLE_SDK_APP_ID",
+    "slack.client-id": "SENTRY_SLACK_CLIENT_ID",
+    "slack-staging.client-id": "SENTRY_SLACK_STAGING_CLIENT_ID",
+    "msteams.client-id": "SENTRY_MSTEAMS_CLIENT_ID",
+    "msteams.tenant-id": "SENTRY_MSTEAMS_TENANT_ID",
+    "vercel.client-id": "SENTRY_VERCEL_CLIENT_ID",
+    "discord.application-id": "SENTRY_DISCORD_APPLICATION_ID",
+    "discord.public-key": "SENTRY_DISCORD_PUBLIC_KEY",
+    "gcp.client-id": "SENTRY_GCP_CLIENT_ID",
+    "vsts.client-id": "SENTRY_VSTS_CLIENT_ID",
+    "vsts-limited.client-id": "SENTRY_VSTS_LIMITED_CLIENT_ID",
+    "vsts_new.client-id": "SENTRY_VSTS_NEW_CLIENT_ID",
+    "aws-lambda.access-key-id": "SENTRY_AWS_LAMBDA_ACCESS_KEY_ID",
+    "aws-lambda.account-number": "SENTRY_AWS_LAMBDA_ACCOUNT_NUMBER",
+    "aws-lambda.cloudformation-url": "SENTRY_AWS_LAMBDA_CLOUDFORMATION_URL",
+    "pagerduty.app-id": "SENTRY_PAGERDUTY_APP_ID",
+    "cursor-origin-app.id": "SENTRY_CURSOR_ORIGIN_APP_ID",
+    "system.internal-url-prefix": "SENTRY_SYSTEM_INTERNAL_URL_PREFIX",
+    "symbolicator.enabled": "SENTRY_SYMBOLICATOR_ENABLED",
+    "symbolicator.options": "SENTRY_SYMBOLICATOR_OPTIONS",
+    "symbolserver.enabled": "SENTRY_SYMBOLSERVER_ENABLED",
+    "symbolserver.options": "SENTRY_SYMBOLSERVER_OPTIONS",
+    "replay.storage.backend": "SENTRY_REPLAY_STORAGE_BACKEND",
+    "replay.storage.options": "SENTRY_REPLAY_STORAGE_OPTIONS",
+    "chart-rendering.enabled": "SENTRY_CHART_RENDERING_ENABLED",
+    "chart-rendering.chartcuterie": "SENTRY_CHART_RENDERING_CHARTCUTERIE",
+    "chart-rendering.storage.backend": "SENTRY_CHART_RENDERING_STORAGE_BACKEND",
+    "chart-rendering.storage.options": "SENTRY_CHART_RENDERING_STORAGE_OPTIONS",
+    "dsym.cache-path": "SENTRY_DSYM_CACHE_PATH",
+    "releasefile.cache-path": "SENTRY_RELEASEFILE_CACHE_PATH",
+    "mail.enable-replies": "SENTRY_MAIL_ENABLE_REPLIES",
+    "mail.reply-hostname": "SENTRY_MAIL_REPLY_HOSTNAME",
+    "system.support-email": "SENTRY_SYSTEM_SUPPORT_EMAIL",
+    "system.security-email": "SENTRY_SYSTEM_SECURITY_EMAIL",
+    "u2f.facets": "SENTRY_U2F_FACETS",
+    "sms.twilio-account": "SENTRY_SMS_TWILIO_ACCOUNT",
+    "sms.twilio-number": "SENTRY_SMS_TWILIO_NUMBER",
 }
 
 
@@ -189,6 +233,16 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
 
     # First move options from settings into options
     for k, v in options_mapper.items():
+        # Direct integration app settings take precedence over login values
+        # copied into absent app option keys in single organization mode.
+        if (
+            settings.SENTRY_SINGLE_ORGANIZATION
+            and k in ("github-app.client-id", "github-app.client-secret")
+            and k not in options
+            and k not in settings.SENTRY_OPTIONS
+            and getattr(settings, migrated_options_mapper[k])
+        ):
+            continue
         if getattr(settings, v, DEAD) is not DEAD and k not in options:
             warnings.warn(DeprecatedSettingWarning(options_mapper[k], "SENTRY_OPTIONS['%s']" % k))
             options[k] = getattr(settings, v)
@@ -224,12 +278,17 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
 
     # Single organization mode reuses the GitHub integration app for SSO. The
     # remap in initialize_app handles the option key; this handles the setting.
-    if (
-        settings.SENTRY_SINGLE_ORGANIZATION
-        and "github-app.client-secret" not in settings.SENTRY_OPTIONS
-        and settings.SENTRY_GITHUB_APP_CLIENT_SECRET
-    ):
-        settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+    if settings.SENTRY_SINGLE_ORGANIZATION:
+        if (
+            "github-app.client-secret" not in settings.SENTRY_OPTIONS
+            and settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+        ):
+            settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+        if (
+            "github-app.client-id" not in settings.SENTRY_OPTIONS
+            and settings.SENTRY_GITHUB_APP_CLIENT_ID
+        ):
+            settings.GITHUB_APP_ID = settings.SENTRY_GITHUB_APP_CLIENT_ID
 
 
 def configure_structlog() -> None:

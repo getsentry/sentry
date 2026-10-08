@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from requests.exceptions import RequestException
 
-from sentry import http, options
+from sentry import http
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.types import (
@@ -82,7 +82,7 @@ class GitHubIdentityProvider(OAuth2Provider):
     oauth_scopes = ()
 
     def get_oauth_client_id(self):
-        return options.get("github-app.client-id")
+        return settings.SENTRY_GITHUB_APP_CLIENT_ID
 
     def get_oauth_client_secret(self):
         return settings.SENTRY_GITHUB_APP_CLIENT_SECRET

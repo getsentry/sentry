@@ -27,7 +27,7 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
 
     role_arn = f"arn:aws:iam::{account_number}:role/SentryRole"
 
-    aws_access_key_id = options.get("aws-lambda.access-key-id")
+    aws_access_key_id = settings.SENTRY_AWS_LAMBDA_ACCESS_KEY_ID
     aws_secret_access_key = settings.SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY
 
     # throw a configuration error if we don't have keys

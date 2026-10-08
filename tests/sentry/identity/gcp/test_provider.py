@@ -164,12 +164,10 @@ class GCPIdentityProviderTest(TestCase):
     def test_get_refresh_token_url(self) -> None:
         assert self.provider.get_refresh_token_url() == TOKEN_URL
 
-    @override_settings(SENTRY_GCP_CLIENT_SECRET="my-client-secret")
-    @patch("sentry.identity.gcp.provider.options.get")
-    def test_get_refresh_token_params(self, mock_options: MagicMock) -> None:
-        mock_options.side_effect = lambda key: {
-            "gcp.client-id": "my-client-id",
-        }[key]
+    @override_settings(
+        SENTRY_GCP_CLIENT_SECRET="my-client-secret", SENTRY_GCP_CLIENT_ID="my-client-id"
+    )
+    def test_get_refresh_token_params(self) -> None:
 
         identity = MagicMock()
         params = self.provider.get_refresh_token_params("refresh-token-123", identity)

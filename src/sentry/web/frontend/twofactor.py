@@ -2,6 +2,7 @@ import logging
 import time
 from base64 import b64encode
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.utils.translation import gettext as _
 
@@ -200,7 +201,7 @@ class TwoFactorAuthView(BaseView):
 
 @control_silo_view
 def u2f_appid(request):
-    facets = options.get("u2f.facets")
+    facets = settings.SENTRY_U2F_FACETS
     if not facets:
         facets = [options.get("system.url-prefix")]
     return HttpResponse(

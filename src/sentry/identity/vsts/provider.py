@@ -61,7 +61,7 @@ class VSTSIdentityProvider(OAuth2Provider):
     oauth_authorize_url = "https://app.vssps.visualstudio.com/oauth2/authorize"
 
     def get_oauth_client_id(self):
-        return options.get("vsts.client-id")
+        return settings.SENTRY_VSTS_CLIENT_ID
 
     def get_oauth_client_secret(self):
         return settings.SENTRY_VSTS_CLIENT_SECRET
@@ -165,7 +165,7 @@ class VSTSNewIdentityProvider(OAuth2Provider):
 
     # Using a new option
     def get_oauth_client_id(self):
-        return options.get("vsts_new.client-id")
+        return settings.SENTRY_VSTS_NEW_CLIENT_ID
 
     def get_oauth_client_secret(self):
         return settings.SENTRY_VSTS_NEW_CLIENT_SECRET

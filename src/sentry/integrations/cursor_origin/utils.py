@@ -6,7 +6,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from django.conf import settings
 
-from sentry import options
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_JWT_AUDIENCE,
     JWT_EXPIRY_SECONDS,
@@ -27,7 +26,7 @@ def _load_private_key(private_key: str) -> Ed25519PrivateKey:
 def get_jwt(app_id: str | None = None, private_key: str | None = None) -> str:
     """A short-lived app JWT."""
     if app_id is None:
-        app_id = str(options.get("cursor-origin-app.id"))
+        app_id = str(settings.SENTRY_CURSOR_ORIGIN_APP_ID)
     if private_key is None:
         private_key = settings.SENTRY_CURSOR_ORIGIN_APP_PRIVATE_KEY
     if not app_id:
