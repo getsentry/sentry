@@ -30,6 +30,7 @@ import type {
   LLMContextSnapshot,
 } from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -41,11 +42,7 @@ import type {
   SeerExplorerResponse,
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
-import {
-  isSeerExplorerEnabled,
-  makeSeerExplorerQueryKey,
-  usePageReferrer,
-} from 'sentry/views/seerExplorer/utils';
+import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerChatResponse = {
   message: Block;

@@ -4,8 +4,8 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 // Quote free-text search so the runs search grammar treats it as a title
 // filter rather than parsing filter-like input (`foo:bar`) and returning 400.

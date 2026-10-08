@@ -19,8 +19,8 @@ jest.mock('sentry/utils/useFeedbackForm', () => ({
   useFeedbackForm: () => jest.fn(),
 }));
 
-jest.mock('sentry/views/seerExplorer/utils', () => ({
-  ...jest.requireActual('sentry/views/seerExplorer/utils'),
+jest.mock('sentry/views/seerExplorer/isSeerExplorerEnabled', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/isSeerExplorerEnabled'),
   isSeerExplorerEnabled: () => true,
 }));
 

@@ -3,8 +3,8 @@ import {useCallback} from 'react';
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface UseRethinkInChatOptions {
   /** Seer's question, e.g. "How can this root cause be improved?". */

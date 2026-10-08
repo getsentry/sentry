@@ -36,7 +36,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/utils';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 
 import {ProjectCard} from './projectCard';
 import {Resources} from './resources';
