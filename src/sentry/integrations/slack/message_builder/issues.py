@@ -428,8 +428,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         send_nudge: bool = False,
         has_mentions_read_scope: bool = False,
         workflow_id: int | None = None,
-        *,
-        link_decorator: NotificationLinkDecorator,
     ) -> None:
         super().__init__()
         self.group = group
@@ -448,10 +446,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.send_nudge = send_nudge
         self.has_mentions_read_scope = has_mentions_read_scope
         self.workflow_id = workflow_id
-        self.link_decorator = link_decorator
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
+
+    def _prepare_title_link(self, title_link: str) -> str:
+        return title_link
 
     def get_title_block(
         self,
@@ -666,7 +666,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     notification_uuid=notification_uuid,
                 )
         if title_link is not None:
-            title_link = self.link_decorator.decorate_url(title_link)
+            title_link = self._prepare_title_link(title_link)
 
         blocks = [self.get_title_block(event_or_group, has_action, title_link)]
 
@@ -758,3 +758,17 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             block_id=orjson.dumps(block_id).decode(),
             skip_fallback=self.skip_fallback,
         )
+
+
+class NotificationPlatformSlackIssuesMessageBuilder(SlackIssuesMessageBuilder):
+    def __init__(
+        self,
+        *args: Any,
+        link_decorator: NotificationLinkDecorator,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.link_decorator = link_decorator
+
+    def _prepare_title_link(self, title_link: str) -> str:
+        return self.link_decorator.decorate_url(title_link)

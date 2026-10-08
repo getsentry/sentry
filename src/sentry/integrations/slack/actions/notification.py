@@ -31,8 +31,7 @@ from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.platform.shadow.capture import record_legacy_render
-from sentry.notifications.platform.tracking import NotificationLinkDecorator
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.types import RuleFuture
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
@@ -98,10 +97,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             # app_mentions:read is mandatory for every new Slack app installation, so its
             # presence tells us the app is up to date.
             has_mentions_read_scope=SlackScope.APP_MENTIONS_READ in scopes,
-            link_decorator=NotificationLinkDecorator.disabled(
-                source=NotificationSource.ISSUE,
-                provider=NotificationProviderKey.SLACK,
-            ),
         ).build(notification_uuid=notification_uuid)
 
         if additional_attachment:

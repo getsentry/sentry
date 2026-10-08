@@ -18,8 +18,6 @@ from sentry.integrations.slack.unfurl.types import (
 )
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.notifications.platform.tracking import NotificationLinkDecorator
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.services import eventstore
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -86,10 +84,6 @@ def _unfurl_issues(
                 event=event,
                 link_to_event=True,
                 is_unfurl=True,
-                link_decorator=NotificationLinkDecorator.disabled(
-                    source=NotificationSource.ISSUE,
-                    provider=NotificationProviderKey.SLACK,
-                ),
             ).build()
     return out
 

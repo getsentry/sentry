@@ -28,14 +28,16 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueSlackRenderer does not support {data.__class__.__name__}")
 
-        from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+        from sentry.integrations.slack.message_builder.issues import (
+            NotificationPlatformSlackIssuesMessageBuilder,
+        )
 
         group = Group.objects.get_from_cache(id=data.group_id)
         event = None
         if data.event_id:
             event = eventstore.backend.get_event_by_id(group.project.id, data.event_id)
 
-        builder = SlackIssuesMessageBuilder(
+        builder = NotificationPlatformSlackIssuesMessageBuilder(
             group=group,
             event=event,
             tags=set(data.tags) if data.tags else None,

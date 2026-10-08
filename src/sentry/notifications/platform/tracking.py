@@ -4,7 +4,7 @@ from collections.abc import Collection, Mapping
 from copy import copy
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
-from typing import NotRequired, Self, TypedDict, cast
+from typing import NotRequired, TypedDict, cast
 from urllib.parse import SplitResult, parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sentry import analytics, options
@@ -93,15 +93,6 @@ class NotificationLinkDecorator:
     notification_uuid: str
     enabled: bool = True
     links: set[NotificationLink] = field(default_factory=set, init=False)
-
-    @classmethod
-    def disabled(
-        cls,
-        *,
-        source: NotificationSource | str,
-        provider: NotificationProviderKey | str,
-    ) -> Self:
-        return cls(source=source, provider=provider, notification_uuid="", enabled=False)
 
     def decorate_url(self, url: str) -> str:
         """

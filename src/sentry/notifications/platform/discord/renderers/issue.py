@@ -30,7 +30,9 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueDiscordRenderer does not support {data.__class__.__name__}")
 
-        from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
+        from sentry.integrations.discord.message_builder.issues import (
+            NotificationPlatformDiscordIssuesMessageBuilder,
+        )
 
         # Retrieving Group and Event data is an anti-pattern, do not do this
         # in permanent renderers.
@@ -57,7 +59,7 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
 
         rules = [data.rule.to_rule()] if data.rule else []
 
-        return DiscordIssuesMessageBuilder(
+        return NotificationPlatformDiscordIssuesMessageBuilder(
             group=group,
             event=group_event,
             tags=set(data.tags) if data.tags else None,

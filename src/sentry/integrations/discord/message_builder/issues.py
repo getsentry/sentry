@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sentry import tagstore
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import (
@@ -42,8 +44,6 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
-        *,
-        link_decorator: NotificationLinkDecorator,
     ) -> None:
         self.group = group
         self.event = event
@@ -52,7 +52,9 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         self.link_to_event = link_to_event
         self.issue_details = issue_details
         self.notification = notification
-        self.link_decorator = link_decorator
+
+    def _prepare_title_link(self, title_link: str) -> str:
+        return title_link
 
     def build(self, notification_uuid: str | None = None) -> DiscordMessage:
         project = Project.objects.get_from_cache(id=self.group.project_id)
@@ -95,7 +97,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                     notification_uuid=notification_uuid,
                 )
         if url is not None:
-            url = self.link_decorator.decorate_url(url)
+            url = self._prepare_title_link(url)
 
         embeds = [
             DiscordMessageEmbed(
@@ -120,6 +122,20 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         components = build_components(self.group, project)
 
         return self._build(embeds=embeds, components=components)
+
+
+class NotificationPlatformDiscordIssuesMessageBuilder(DiscordIssuesMessageBuilder):
+    def __init__(
+        self,
+        *args: Any,
+        link_decorator: NotificationLinkDecorator,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.link_decorator = link_decorator
+
+    def _prepare_title_link(self, title_link: str) -> str:
+        return self.link_decorator.decorate_url(title_link)
 
 
 def build_tag_fields(
