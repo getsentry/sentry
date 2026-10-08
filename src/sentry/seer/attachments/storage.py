@@ -119,26 +119,19 @@ def metadata_batch(keys: list[str]) -> tuple[list[AttachmentResponse], list[str]
         for key in keys
     }
     cached = cache.get_many(list(cache_keys.values()))
-    found: dict[str, AttachmentResponse] = {}
-    missing: list[str] = []
-    uncached: list[str] = []
-    for key in keys:
-        value = cached.get(cache_keys[key])
-        if value is not None:
-            found[key] = value
-        else:
-            uncached.append(key)
+    found: dict[str, AttachmentResponse] = {
+        key: cached[cache_key] for key, cache_key in cache_keys.items() if cache_key in cached
+    }
+    uncached = [key for key in keys if key not in found]
     if uncached:
         # Resolve settings/options on the request thread before issuing HEADs.
         lookup = partial(head, store=session())
         with ContextPropagatingThreadPoolExecutor(max_workers=min(8, len(uncached))) as executor:
             for key, attachment in zip(uncached, executor.map(lookup, uncached)):
-                if attachment is None:
-                    missing.append(key)
-                else:
+                if attachment is not None:
                     found[key] = attachment.response(key)
                     cache.set(cache_keys[key], found[key], timeout=300)
-    return [found[key] for key in keys if key in found], missing
+    return [found[key] for key in keys if key in found], [key for key in keys if key not in found]
 
 
 def validate_message(keys: list[str], query: str) -> None:
@@ -149,7 +142,7 @@ def validate_message(keys: list[str], query: str) -> None:
     for key in keys:
         validate_key(key)
     total = 0
-    kinds: list[AttachmentKind] = []
+    kinds: set[AttachmentKind] = set()
     # Deliberately bypass the preview metadata cache: existence and current
     # policy must be checked immediately before sending a message to Seer.
     for key in keys:
@@ -158,12 +151,12 @@ def validate_message(keys: list[str], query: str) -> None:
             raise AttachmentError("attachment_missing", "An attachment is missing or expired.")
         attachment.check_limits()
         total += attachment.size
-        kinds.append(attachment.kind)
+        kinds.add(attachment.kind)
     if total > limit("max-message-bytes"):
         raise AttachmentError(
             "message_too_large", "The attachments exceed the combined size limit.", 413
         )
-    if not query.strip() and (not kinds or any(kind != "image" for kind in kinds)):
+    if not query.strip() and kinds != {"image"}:
         raise AttachmentError(
             "query_required", "A message is required unless all attachments are images."
         )

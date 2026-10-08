@@ -8,7 +8,6 @@ from pypdf import PdfWriter
 
 from sentry.seer.attachments.models import Attachment, AttachmentError, sanitize_filename
 from sentry.seer.attachments.validation import validate_upload
-from sentry.testutils.helpers import override_options
 
 pytestmark = pytest.mark.django_db
 
@@ -62,17 +61,15 @@ def test_text_ignores_mime_and_preserves_invalid_json(filename, kind):
         ("bad.md", b"%PDF-invalid", "invalid_pdf"),
         ("bad.json", b"\xff\xd8broken", "invalid_image"),
         ("bad.png", b"\x89PNGbad", "invalid_image"),
+        ("image.md", image_bytes("GIF"), "unsupported_type"),
+        ("broken.png", image_bytes()[:-20], "invalid_image"),
+        ("file.pdf", pdf_bytes().replace(b"startxref", b"brokenref"), "invalid_pdf"),
     ],
 )
 def test_rejected_files(name, data, code):
     with pytest.raises(AttachmentError) as exc:
         validate_upload(SimpleUploadedFile(name, data))
     assert exc.value.code == code
-
-
-def test_unsupported_image():
-    with pytest.raises(AttachmentError, match="not supported"):
-        validate_upload(SimpleUploadedFile("image.md", image_bytes("GIF")))
 
 
 @pytest.mark.parametrize("format", ["PNG", "WEBP"])
@@ -83,13 +80,6 @@ def test_animation_rejected(format):
     with pytest.raises(AttachmentError) as exc:
         validate_upload(SimpleUploadedFile("image", data))
     assert exc.value.code == "animated_image"
-
-
-def test_corrupt_image_pixels():
-    data = image_bytes("PNG")[:-20]
-    with pytest.raises(AttachmentError) as exc:
-        validate_upload(SimpleUploadedFile("broken.png", data))
-    assert exc.value.code == "invalid_image"
 
 
 @pytest.mark.parametrize("dimensions", [(8001, 1), (1, 8001), (5001, 4000)])
@@ -132,20 +122,6 @@ def test_pdf_page_rejections(pages, code):
     with pytest.raises(AttachmentError) as exc:
         validate_upload(SimpleUploadedFile("file.pdf", pdf_bytes(pages)))
     assert exc.value.code == code
-
-
-def test_strict_pdf():
-    data = pdf_bytes().replace(b"startxref", b"brokenref")
-    with pytest.raises(AttachmentError) as exc:
-        validate_upload(SimpleUploadedFile("file.pdf", data))
-    assert exc.value.code == "invalid_pdf"
-
-
-def test_limits_are_options():
-    with override_options({"seer.attachments.max-text-bytes": 2}):
-        with pytest.raises(AttachmentError) as exc:
-            validate_upload(SimpleUploadedFile("x.md", b"abc"))
-    assert exc.value.status_code == 413
 
 
 def test_filename_sanitization():

@@ -21,10 +21,6 @@ from sentry.seer.attachments.models import (
 def validate_upload(upload: UploadedFile) -> tuple[bytes, Attachment]:
     with observe("validation"):
         maximum = max(limit("max-image-bytes"), limit("max-pdf-bytes"), limit("max-text-bytes"))
-        if upload.size is not None and upload.size > maximum:
-            raise AttachmentError(
-                "file_too_large", "The attachment exceeds the file size limit.", 413
-            )
         data = upload.read(maximum + 1)
         if len(data) > maximum:
             raise AttachmentError(

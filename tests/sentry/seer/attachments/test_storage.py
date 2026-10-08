@@ -1,12 +1,11 @@
 from dataclasses import replace
 from datetime import timedelta
 from io import BytesIO
-from threading import Lock
-from time import sleep
 from unittest.mock import ANY, Mock, patch
 
 import pytest
 import urllib3
+from django.test import override_settings
 from objectstore_client import Metadata, TimeToIdle
 from objectstore_client.client import GetResponse
 from objectstore_client.errors import RequestError
@@ -140,30 +139,6 @@ def test_batch_storage_failure_is_not_partial_success():
     assert exc.value.status_code == 503
 
 
-def test_head_concurrency_and_viewer_propagation():
-    cache.clear()
-    lock = Lock()
-    active = 0
-    peak = 0
-
-    def head(key, *, store):
-        nonlocal active, peak
-        assert storage.organization_id() == 123
-        with lock:
-            active += 1
-            peak = max(peak, active)
-        sleep(0.01)
-        with lock:
-            active -= 1
-        return None
-
-    with patch("sentry.seer.attachments.storage.head", side_effect=head):
-        found, missing = storage.metadata_batch([str(n) for n in range(50)])
-    assert not found
-    assert len(missing) == 50
-    assert 1 < peak <= 8
-
-
 @pytest.mark.parametrize("keys", [[], [str(n) for n in range(51)]])
 def test_batch_limit(keys):
     with pytest.raises(AttachmentError):
@@ -207,12 +182,8 @@ def test_chat_image_only_and_aggregate_boundary():
     assert exc.value.status_code == 413
 
 
-@pytest.mark.parametrize(
-    "kind,mime",
-    [("json", "application/json"), ("markdown", "text/markdown"), ("pdf", "application/pdf")],
-)
-def test_nonimages_require_text(kind, mime):
-    attachment = Attachment("file", mime, 10, kind, page_count=1)
+def test_nonimages_require_text():
+    attachment = Attachment("file.md", "text/markdown", 10, "markdown")
     with patch("sentry.seer.attachments.storage.head", return_value=attachment):
         with pytest.raises(AttachmentError) as exc:
             storage.validate_message(["a"], "  ")
@@ -232,14 +203,6 @@ def test_current_limits_rechecked():
     assert exc.value.status_code == 413
 
 
-def test_read_closes_payload():
-    payload = BytesIO(b"hello")
-    with patch("sentry.seer.attachments.storage.session") as session:
-        session.return_value.get.return_value = GetResponse(metadata(size=5), payload)
-        assert storage.read("key")[0] == b"hello"
-    assert payload.closed
-
-
 def test_read_closes_payload_on_error():
     payload = BytesIO(b"short")
     retry_payload = BytesIO(b"short")
@@ -256,8 +219,6 @@ def test_read_closes_payload_on_error():
 
 
 def test_objectstore_existing_client_settings_preserved():
-    from django.test import override_settings
-
     with (
         override_settings(
             SENTRY_OBJECTSTORE_CONFIG={

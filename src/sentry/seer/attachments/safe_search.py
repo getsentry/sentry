@@ -48,13 +48,13 @@ def scan_image(data: bytes) -> None:
             ):
                 for attempt in range(2):
                     try:
-                        response = session.post(
+                        with session.post(
                             url, json=body, timeout=timeout, allow_redirects=False
-                        )
-                        with response:
-                            if response.status_code == 429 or response.status_code >= 500:
-                                if attempt == 0:
-                                    continue
+                        ) as response:
+                            if attempt == 0 and (
+                                response.status_code == 429 or response.status_code >= 500
+                            ):
+                                continue
                             if response.status_code != 200:
                                 raise AttachmentError(
                                     "scan_unavailable",

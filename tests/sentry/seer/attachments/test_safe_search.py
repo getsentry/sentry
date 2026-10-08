@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
@@ -34,9 +34,8 @@ def post():
 
 
 def response(annotation=None, status=200):
-    result = Mock(status_code=status)
-    result.__enter__ = Mock(return_value=result)
-    result.__exit__ = Mock(return_value=False)
+    result = MagicMock(status_code=status)
+    result.__enter__.return_value = result
     result.json.return_value = {
         "responses": [
             {
@@ -73,14 +72,6 @@ def test_acceptable_ratings_and_ignored_categories(post, rating):
     scan_image(b"image")
 
 
-@pytest.mark.parametrize("rating", ["UNKNOWN", {}])
-def test_unknown_rating_fails_closed(post, rating):
-    post.return_value = response({"adult": rating, "violence": "UNLIKELY", "racy": "UNLIKELY"})
-    with pytest.raises(AttachmentError) as exc:
-        scan_image(b"image")
-    assert exc.value.code == "scan_inconclusive"
-
-
 @pytest.mark.parametrize(
     "payload",
     [
@@ -88,6 +79,7 @@ def test_unknown_rating_fails_closed(post, rating):
         {"responses": []},
         {"responses": [{"error": {"code": 13}}]},
         {"responses": [{"safeSearchAnnotation": {"adult": "UNLIKELY"}}]},
+        {"responses": [{"safeSearchAnnotation": {"adult": "UNKNOWN"}}]},
         None,
     ],
 )
@@ -96,6 +88,7 @@ def test_inconclusive_responses(post, payload):
     with pytest.raises(AttachmentError) as exc:
         scan_image(b"image")
     assert exc.value.status_code == 503
+    assert exc.value.code == "scan_inconclusive"
 
 
 @pytest.mark.parametrize("location", ["us", "eu"])
@@ -135,19 +128,13 @@ def test_single_transient_retry(post, failure):
     assert post.call_count == 2
 
 
-def test_timeout_exhausted(post):
-    post.side_effect = requests.Timeout()
+@pytest.mark.parametrize("failure,attempts", [(requests.Timeout(), 2), (response(status=403), 1)])
+def test_scan_failure_stops_retrying(post, failure, attempts):
+    post.side_effect = [failure, failure]
     with pytest.raises(AttachmentError) as exc:
         scan_image(b"image")
     assert exc.value.status_code == 503
-    assert post.call_count == 2
-
-
-def test_permanent_error_does_not_retry(post):
-    post.return_value = response(status=403)
-    with pytest.raises(AttachmentError):
-        scan_image(b"image")
-    assert post.call_count == 1
+    assert post.call_count == attempts
 
 
 def test_threshold_option(post):

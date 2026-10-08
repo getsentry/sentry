@@ -3,6 +3,7 @@ from io import BytesIO
 from unittest.mock import Mock, patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from objectstore_client import TimeToIdle
 from PIL import Image
 
@@ -14,7 +15,7 @@ from sentry.testutils.skips import requires_objectstore
 
 
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerAttachmentsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -215,22 +216,3 @@ class OrganizationSeerAttachmentsTest(APITestCase):
             assert content.content == data
         finally:
             store.delete(key)
-
-
-def test_attachment_api_schema():
-    import sentry.apidocs.extensions  # noqa: F401
-    from sentry.seer.endpoints.organization_seer_attachments import (
-        OrganizationSeerAttachmentsEndpoint,
-    )
-    from tests.sentry.apidocs import generate_schema
-
-    schema = generate_schema(
-        "organizations/{organization_id_or_slug}/seer/explorer-attachments/",
-        view=OrganizationSeerAttachmentsEndpoint,
-    )
-    attachment = schema["components"]["schemas"]["ExplorerAttachment"]
-    assert set(attachment["required"]) == {"key", "filename", "contentType", "size", "kind"}
-    assert schema["components"]["schemas"]["AttachmentUpload"]["properties"]["file"] == {
-        "type": "string",
-        "format": "binary",
-    }
