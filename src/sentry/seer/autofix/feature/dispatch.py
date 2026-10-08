@@ -22,6 +22,7 @@ from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     AutofixFeaturePayload,
     CodeChangesStepArgs,
+    PrIterationStepArgs,
     RCAStepArgs,
     SolutionStepArgs,
 )
@@ -39,7 +40,7 @@ logger = logging.getLogger(__name__)
 class AutofixFeatureArgs:
     step: AutofixStep
     referrer: AutofixReferrer
-    step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs
+    step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs | PrIterationStepArgs
     existing_run_id: int | None = None
     insert_index: int | None = None
     user_context: str | None = None
@@ -92,7 +93,7 @@ def trigger_autofix_feature(
         step_args=args.step_args,
     )
 
-    enable_coding = args.step == AutofixStep.CODE_CHANGES
+    enable_coding = args.step in (AutofixStep.CODE_CHANGES, AutofixStep.PR_ITERATION)
     client = SeerAgentClient(
         organization=group.organization,
         project=group.project,
@@ -106,6 +107,7 @@ def trigger_autofix_feature(
         is_context_engine_enabled=False,
         enable_frontend_code_search=False,
         enable_coding=enable_coding,
+        enable_pr_context_tools=args.step == AutofixStep.PR_ITERATION,
     )
 
     extras: dict[str, Any] = {
@@ -174,7 +176,7 @@ def trigger_autofix_feature(
             "stopping_point": args.stopping_point,
             "flush": args.flush,
             "allow_free_cohort": args.allow_free_cohort,
-            "user_context": args.user_context,
+            "has_user_context": args.user_context is not None,
             "enable_bash_mode": args.enable_bash_mode,
         },
     )

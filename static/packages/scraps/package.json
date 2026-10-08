@@ -50,17 +50,18 @@
   "scripts": {
     "build": "rslib build",
     "verify": "node scripts/verify.mjs",
-    "test": "jest --config jest.config.mjs",
-    "typecheck": "tsc --project tsconfig.test.json",
+    "test": "node ../../../scripts/test.js --config jest.config.mjs",
+    "typecheck": "tsc --build tsconfig.test.json",
     "prepack": "pnpm run build"
   },
   "dependencies": {
-    "@emotion/is-prop-valid": "1.4.0",
-    "@emotion/styled": "11.14.0",
+    "@emotion/is-prop-valid": "^1.4.0",
+    "@emotion/styled": "^11.14.0",
     "@react-aria/utils": "3.34.1",
-    "@types/react": "^19.0.0"
+    "@types/react": "19.3.0"
   },
   "devDependencies": {
+    "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@rsbuild/plugin-react": "2.1.1",
     "@rslib/core": "1.0.3",

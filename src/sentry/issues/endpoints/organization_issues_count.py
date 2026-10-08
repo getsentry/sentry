@@ -1,5 +1,6 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import search
 from sentry.api.api_owners import ApiOwner
@@ -16,7 +17,6 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.tracing import set_span_data, start_span
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -44,7 +44,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     def _count(
         self, request: Request, query, organization, projects, environments, extra_query_kwargs=None
     ):
-        with start_span(op="_count", name="_count"):
+        with traces.start_span(name="_count", attributes={"sentry.op": "_count"}):
             query_kwargs = {
                 "projects": projects,
                 "referrer": Referrer.API_ORGANIZATION_ISSUES_COUNT,
@@ -67,8 +67,13 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
             query_kwargs["max_hits"] = ISSUES_COUNT_MAX_HITS_LIMIT
 
             query_kwargs["actor"] = request.user
-        with start_span(op="start_search", name="start_search") as span:
-            set_span_data(span, "query_kwargs", query_kwargs)
+        with traces.start_span(
+            name="start_search",
+            attributes={
+                "sentry.op": "start_search",
+                "query_kwargs": repr(query_kwargs),
+            },
+        ):
             result = search.backend.query(**query_kwargs)
             return result.hits
 

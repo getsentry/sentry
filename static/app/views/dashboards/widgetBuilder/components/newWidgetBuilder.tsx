@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DisplayType,
   WidgetType,
@@ -290,10 +289,9 @@ export function WidgetPreviewContainer({
       )
     );
 
-  const organization = useOrganization();
   const message =
     (hasOnlyBlankEquation ? t('Enter an equation to preview results') : undefined) ??
-    getWidgetConfigError(widget, organization) ??
+    getWidgetConfigError(widget) ??
     (isQueryConditionInvalid ? t("This widget's query filter is invalid.") : undefined);
 
   let previewStatus: WidgetPreviewStatus;

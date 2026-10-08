@@ -26,7 +26,10 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     check_suite_head_match,
 )
 from sentry.seer.autofix.pr_iteration.constants import CAP_ASSIGN_FLAG
-from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
+from sentry.seer.autofix.pr_iteration.feedback import (
+    automated_streak_cap_reached,
+    total_iteration_cap_reached,
+)
 from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused, record_pause_blocked
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
@@ -102,13 +105,14 @@ def _record_cap_exhausted_marker(
 def _status_comment_body(github_login: str) -> str:
     cap = options.get("autofix.pr-iteration.max-iterations")
     return (
-        f"@{github_login} CI is still failing after {cap} automated "
-        "fix attempts, so Seer has stopped iterating on this pull request. It needs a human "
-        "decision — you can:\n\n"
-        "- push a fix to this branch yourself,\n"
-        "- comment `@sentry <guidance>` to send Seer back for another attempt,\n"
-        "- comment `@sentry stop iterating` to stop this Autofix run from iterating, or\n"
-        "- close this pull request if it is not worth pursuing."
+        f"@{github_login} CI is still failing after Seer tried to fix it {cap} times in a "
+        "row, so Seer has paused.\n\n"
+        "What you can do:\n\n"
+        "- Push a fix to this branch yourself.\n"
+        "- Comment `@sentry <instructions>`. Seer will make a change based on your "
+        "instructions, then go back to fixing CI failures on its own.\n"
+        "- Comment `@sentry stop iterating` to stop Seer from working on this pull request.\n"
+        "- Close this pull request if it's not worth fixing."
     )
 
 
@@ -142,7 +146,12 @@ def assign_user_for_exhausted_cap(
         _skip("paused", log_extra)
         return
 
-    if not automated_iteration_cap_reached(resolved.run_state):
+    if total_iteration_cap_reached(resolved.run_state):
+        # The total cap stops automated iterations without a handoff.
+        _skip("total_cap_reached", log_extra)
+        return
+
+    if not automated_streak_cap_reached(resolved.run_state):
         # The listener only hands over cap-blocked events; re-check anyway so
         # this stays safe to call from other paths.
         logger.info("autofix.pr_iteration.cap_exhausted.cap_not_reached", extra=log_extra)
