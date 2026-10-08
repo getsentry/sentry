@@ -5,12 +5,14 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -29,10 +31,12 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
 import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -42,7 +46,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
-import {ErrorMessageFilterWarning} from 'sentry/views/settings/project/projectFilters/errorMessageFilterWarning';
 
 // Condition types accepted by the custom inbound filters API. The values match
 // the `type` field on the backend serializer exactly. `CONDITIONS` below
@@ -357,6 +360,47 @@ function getModalDataTypeOptions(
 // platforms, which is what the warning in the modal is about.
 const RAW_ERROR_PROPERTIES = new Set<string>(['error_message', 'error_type']);
 
+// Project platforms that usually ship obfuscated code, so their error type and
+// message change once Sentry applies source maps, ProGuard mappings, or debug
+// files. This is a guess from the project setting: the backend decides per event
+// from its payload, so the list only picks who sees the warning.
+const OBFUSCATED_PLATFORMS = new Set<PlatformKey>([
+  ...sourceMaps,
+  ...android,
+  ...gaming,
+  'capacitor',
+  'dart-flutter',
+  'flutter',
+  'ionic',
+  'javascript-capacitor',
+  'javascript-cordova',
+  'minidump',
+  'native-breakpad',
+  'native-crashpad',
+  'native-minidump',
+  'native-qt',
+]);
+
+const OBFUSCATED_ERRORS_DOCS_URL =
+  'https://docs.sentry.io/concepts/data-management/filtering/#error-message-filters-do-not-match-deobfuscated-exception-types';
+
+// Inbound filters run before symbolication, so a pattern copied from an issue on
+// an obfuscated platform misses the raw type and message the filter checks.
+function ObfuscatedErrorWarning({project}: {project: Project}) {
+  if (!project.platform || !OBFUSCATED_PLATFORMS.has(project.platform)) {
+    return null;
+  }
+
+  return (
+    <Alert variant="warning">
+      {tct(
+        'Filters check the error type and message as they arrive, before Sentry applies source maps, ProGuard mappings, or debug files. What you see in an issue can differ from what the filter checks. [link:Learn how to match the incoming error.]',
+        {link: <ExternalLink href={OBFUSCATED_ERRORS_DOCS_URL} />}
+      )}
+    </Alert>
+  );
+}
+
 // Condition values are glob patterns that can get long (full error messages,
 // release ranges), so give the modal more room than the 640px default.
 const filterModalCss = css`
@@ -630,7 +674,7 @@ function CustomFilterModal({
                       </Flex>
                       {conditions.some(condition =>
                         RAW_ERROR_PROPERTIES.has(condition.property)
-                      ) && <ErrorMessageFilterWarning project={project} />}
+                      ) && <ObfuscatedErrorWarning project={project} />}
                     </Stack>
                   );
                 }}

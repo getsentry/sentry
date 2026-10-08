@@ -187,26 +187,6 @@ export const sourceMaps: PlatformKey[] = [
   'electron',
 ];
 
-// Platforms whose error type and message Sentry rewrites after ingestion, by
-// applying source maps, ProGuard mappings, or debug files. Inbound filters run
-// before that step, so on these platforms they match the raw type and message.
-export const symbolicated: PlatformKey[] = [
-  ...sourceMaps,
-  ...android,
-  ...gaming,
-  'capacitor',
-  'dart-flutter',
-  'flutter',
-  'ionic',
-  'javascript-capacitor',
-  'javascript-cordova',
-  'minidump',
-  'native-breakpad',
-  'native-crashpad',
-  'native-minidump',
-  'native-qt',
-];
-
 export const performance: PlatformKey[] = [
   'bun',
   'deno',
