@@ -9,10 +9,11 @@ from django.core.cache.backends.locmem import LocMemCache
 from django.test import override_settings
 
 from sentry.models.options.option import Option
-from sentry.options.manager import OptionsManager, UpdateChannel
+from sentry.options.manager import DEFAULT_FLAGS, OptionsManager, UpdateChannel
 from sentry.options.store import OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.utils.types import Any
 
 
 @no_silo_test
@@ -210,12 +211,13 @@ class ApplicationStateTest(TestCase):
         ]
         for name, value in string_states:
             with self.subTest(name=name):
-                self.manager.set(name, value)
+                key = self.manager.make_key(name, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+                self.store.set_store(key, value, UpdateChannel.UNKNOWN)
                 assert application_state.get(name) == value
                 assert application_state.set(name, value)
                 assert Option.objects.get(key=name).value == value
-                assert self.manager.get(name) == value
-                assert self.store.cache.get(self.manager.lookup_key(name).cache_key) == value
+                assert self.store.get(key) == value
+                assert self.store.cache.get(key.cache_key) == value
                 assert application_state.delete(name)
                 assert not Option.objects.filter(key=name).exists()
                 assert application_state.get(name) == ""
@@ -225,12 +227,13 @@ class ApplicationStateTest(TestCase):
 
         name = "sentry:last_worker_ping"
         value = 1234.5
-        self.manager.set(name, value)
+        key = self.manager.make_key(name, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+        self.store.set_store(key, value, UpdateChannel.UNKNOWN)
         assert application_state.get("sentry:last_worker_ping") == value
         assert application_state.set("sentry:last_worker_ping", value)
         assert Option.objects.get(key=name).value == value
-        assert self.manager.get(name) == value
-        assert self.store.cache.get(self.manager.lookup_key(name).cache_key) == value
+        assert self.store.get(key) == value
+        assert self.store.cache.get(key.cache_key) == value
         assert application_state.delete("sentry:last_worker_ping")
         assert not Option.objects.filter(key=name).exists()
         assert application_state.get("sentry:last_worker_ping") == ""

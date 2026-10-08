@@ -125,6 +125,10 @@ class SystemOptionsEndpoint(Endpoint):
                 )
 
             try:
+                # Reject externally managed SaaS configuration before opening
+                # an option-store transaction, including empty-value deletes.
+                if options.is_saas_runtime_option(k):
+                    raise AssertionError("%r cannot be changed at runtime" % k)
                 with transaction.atomic(router.db_for_write(options.default_store.model)):
                     if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
                         options.delete(k)

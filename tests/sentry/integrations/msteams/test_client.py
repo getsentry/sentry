@@ -26,7 +26,6 @@ from sentry.silo.util import (
     PROXY_SIGNATURE_HEADER,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
@@ -376,7 +375,7 @@ class OAuthMsTeamsClientTest(TestCase):
         client = OAuthMsTeamsClient("client-id", "client-secret")
         assert client.base_url == "https://login.microsoftonline.com/botframework.com"
 
-    @override_options({"msteams.tenant-id": "00000000-1111-2222-3333-444444444444"})
+    @override_settings(SENTRY_MSTEAMS_TENANT_ID="00000000-1111-2222-3333-444444444444")
     def test_uses_tenant_authority_when_configured(self) -> None:
         client = OAuthMsTeamsClient("client-id", "client-secret")
         assert (

@@ -56,7 +56,7 @@ class SmsInterfaceTest(TestCase):
         interface = SmsInterface()
         interface.phone_number = "2345678901"
 
-        with self.options({"sms.twilio-account": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}):
+        with override_settings(SENTRY_SMS_TWILIO_ACCOUNT="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"):
             rv = interface.activate(request)
 
         assert (
@@ -103,7 +103,7 @@ class SmsInterfaceTest(TestCase):
         interface.phone_number = "2345678901"
 
         with freeze_time(datetime.datetime.now()):
-            with self.options({"sms.twilio-account": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}):
+            with override_settings(SENTRY_SMS_TWILIO_ACCOUNT="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"):
                 with pytest.raises(SMSRateLimitExceeded):
                     for _ in range(4):
                         rv = interface.activate(request)
@@ -127,7 +127,7 @@ class SmsInterfaceTest(TestCase):
     @patch("sentry.utils.sms.requests.post")
     @override_settings(DEBUG=True)
     def test_console_backend(self, requests_post: MagicMock, logger_info: MagicMock) -> None:
-        with self.options({"sms.backend": "console", "sms.twilio-account": ""}):
+        with override_settings(SENTRY_SMS_BACKEND="console", SENTRY_SMS_TWILIO_ACCOUNT=""):
             assert sms_available()
             assert send_sms("123456 is your Sentry authentication code.", "2125550199")
 
@@ -142,7 +142,7 @@ class SmsInterfaceTest(TestCase):
 
     @override_settings(DEBUG=False)
     def test_console_backend_outside_debug_mode(self) -> None:
-        with self.options({"sms.backend": "console", "sms.twilio-account": ""}):
+        with override_settings(SENTRY_SMS_BACKEND="console", SENTRY_SMS_TWILIO_ACCOUNT=""):
             assert not sms_available()
             with pytest.raises(
                 RuntimeError, match="Console SMS backend is only available in debug mode"
@@ -150,7 +150,7 @@ class SmsInterfaceTest(TestCase):
                 send_sms("message", "2125550199")
 
     def test_unknown_backend(self) -> None:
-        with self.options({"sms.backend": "unknown"}):
+        with override_settings(SENTRY_SMS_BACKEND="unknown"):
             assert not sms_available()
             with pytest.raises(RuntimeError, match="Unknown SMS backend: unknown"):
                 send_sms("message", "2125550199")

@@ -9,6 +9,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from django.http.response import HttpResponseBase
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ValidationError
 
@@ -84,7 +85,7 @@ class VerifyReceiptTest(TestCase):
         self, receipt: str, state: str | None = STATE, keys: list[OriginSigningKey] | None = None
     ) -> str | None:
         with (
-            self.options({"cursor-origin-app.id": APP_ID}),
+            override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID),
             mock.patch(KEYS, return_value=self.public_keys(keys)) as self.mock_keys,
         ):
             return verify_receipt(receipt, state)
@@ -206,7 +207,7 @@ class InstallStepTest(TestCase):
 
     def _post(self, **data: str) -> PipelineStepResult:
         with (
-            self.options({"cursor-origin-app.id": APP_ID}),
+            override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID),
             mock.patch(KEYS, return_value=[self.public]),
         ):
             return CursorOriginInstallApiStep().handle_post(
@@ -214,7 +215,7 @@ class InstallStepTest(TestCase):
             )
 
     def _step_data(self, pipeline: mock.Mock | None = None) -> Any:
-        with self.options({"cursor-origin-app.id": APP_ID}):
+        with override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID):
             return CursorOriginInstallApiStep().get_step_data(
                 pipeline or self.pipeline, mock.Mock()
             )
@@ -312,7 +313,7 @@ class PipelineAdvancerTest(IntegrationTestCase):
 
     def _setup(self, **params: str) -> HttpResponseBase:
         with (
-            self.options({"cursor-origin-app.id": APP_ID}),
+            override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID),
             mock.patch(KEYS, return_value=[self.public]),
         ):
             return self.client.get(f"{self.setup_path}?{urlencode(params)}")
@@ -381,7 +382,7 @@ class ExternalInstallSerializerTest(TestCase):
 
     def _validated(self, data: dict[str, str]) -> dict[str, str]:
         with (
-            self.options({"cursor-origin-app.id": APP_ID}),
+            override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID),
             mock.patch(KEYS, return_value=[self.public]),
         ):
             serializer = ExternalInstallSerializer(data=data)

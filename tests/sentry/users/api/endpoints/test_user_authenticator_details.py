@@ -2,6 +2,7 @@ import datetime
 from unittest import mock
 
 from django.core import mail
+from django.test import override_settings
 from django.utils import timezone
 from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
@@ -294,7 +295,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_delete_superuser(self) -> None:
         user = self.create_user(email="a@example.com", is_superuser=True)
 
-        with override_options({"sms.twilio-account": "twilio-account"}):
+        with override_settings(SENTRY_SMS_TWILIO_ACCOUNT="twilio-account"):
             auth = Authenticator.objects.create(type=2, user=user, config={})  # sms
             available_auths = Authenticator.objects.all_interfaces_for_user(
                 user, ignore_backup=True
@@ -314,7 +315,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_delete_staff(self) -> None:
         staff_user = self.create_user(email="a@example.com", is_staff=True)
 
-        with override_options({"sms.twilio-account": "twilio-account"}):
+        with override_settings(SENTRY_SMS_TWILIO_ACCOUNT="twilio-account"):
             auth = Authenticator.objects.create(type=2, user=staff_user, config={})  # sms
             available_auths = Authenticator.objects.all_interfaces_for_user(
                 staff_user, ignore_backup=True
@@ -378,7 +379,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
-        with override_options({"sms.twilio-account": "twilio-account"}):
+        with override_settings(SENTRY_SMS_TWILIO_ACCOUNT="twilio-account"):
             # enroll in one auth method
             interface = TotpInterface()
             interface.enroll(self.user)
@@ -403,7 +404,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         staff_user = self.create_user(email="a@example.com", is_staff=True)
         self.login_as(user=staff_user, staff=True)
 
-        with override_options({"sms.twilio-account": "twilio-account"}):
+        with override_settings(SENTRY_SMS_TWILIO_ACCOUNT="twilio-account"):
             # enroll in one auth method
             interface = TotpInterface()
             interface.enroll(self.user)
@@ -424,7 +425,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_require_2fa__delete_with_multiple_auth__ok(self) -> None:
         self._require_2fa_for_organization()
 
-        with override_options({"sms.twilio-account": "twilio-account"}):
+        with override_settings(SENTRY_SMS_TWILIO_ACCOUNT="twilio-account"):
             # enroll in two auth methods
             interface_sms = SmsInterface()
             interface_sms.phone_number = "5551231234"
@@ -459,7 +460,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         totp.enroll(self.user)
         assert totp.authenticator is not None
 
-        with override_options({"sms.twilio-account": "twilio-account"}):
+        with override_settings(SENTRY_SMS_TWILIO_ACCOUNT="twilio-account"):
             sms = SmsInterface()
             sms.phone_number = "5551231234"
             sms.enroll(self.user)

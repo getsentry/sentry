@@ -9,6 +9,7 @@ from unittest import mock
 import orjson
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from django.test import override_settings
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.keys import OriginSigningKey
@@ -79,7 +80,7 @@ class CursorOriginWebhookTest(APITestCase):
             signature = _signature(self.private, DELIVERY_ID, timestamp, body)
 
         with (
-            self.options({"cursor-origin-app.id": APP_ID}),
+            override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID),
             mock.patch(KEYS, return_value=[self.public] if keys is None else keys),
         ):
             response = self.client.post(
@@ -252,7 +253,7 @@ class CursorOriginWebhookCellTest(APITestCase):
 
     def _post(self, timestamp: str) -> int:
         with (
-            self.options({"cursor-origin-app.id": APP_ID}),
+            override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID),
             mock.patch(KEYS, return_value=[self.public]),
         ):
             response = self.client.post(
@@ -277,7 +278,7 @@ class CursorOriginWebhookCellTest(APITestCase):
         other, _ = _signing_key()
         timestamp = str(int(time.time()))
         with (
-            self.options({"cursor-origin-app.id": APP_ID}),
+            override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID),
             mock.patch(KEYS, return_value=[self.public]),
         ):
             response = self.client.post(

@@ -6,40 +6,8 @@ from sentry.options import FLAG_AUTOMATOR_MODIFIABLE
 # this list only shrinks as they move to Django settings.
 LEGACY_OPTIONS = frozenset(
     {
-        # Deployment configuration, moving to Django settings.
-        "auth-fly.client-id",
-        "auth-fly.client-secret",
-        "auth-google.client-id",
-        "auth-google.client-secret",
-        "aws-lambda.secret-access-key",
-        "cursor-origin-app.private-key",
-        "discord.bot-token",
-        "discord.client-secret",
-        "gcp.client-secret",
-        "github-app.client-secret",
-        "github-app.private-key",
-        "github-app.webhook-secret",
-        "github-console-sdk-app.client-secret",
-        "github-console-sdk-app.installation-id",
-        "github-console-sdk-app.private-key",
-        "github-login.client-secret",
-        "mail.backend",
-        "msteams.app-id",
-        "msteams.client-secret",
-        "slack-staging.client-secret",
-        "slack-staging.signing-secret",
-        "slack.client-secret",
-        "slack.signing-secret",
-        "slack.verification-token",
-        "sms.backend",
-        "sms.twilio-token",
-        "system.databases",
-        "system.region",
+        # Bootstrap input; credentials are read from SECRET_KEY.
         "system.secret-key",
-        "vercel.client-secret",
-        "vsts-limited.client-secret",
-        "vsts.client-secret",
-        "vsts_new.client-secret",
         # Edited in the self-hosted setup wizard and admin UI.
         "auth.allow-registration",
         "beacon.anonymous",
@@ -55,8 +23,6 @@ LEGACY_OPTIONS = frozenset(
         "system.url-prefix",
         # Backs the options cache itself.
         "redis.clusters",
-        # Admin-only; awaiting an owner decision.
-        "seer.similarity.token_count_metrics_enabled",
     }
 )
 
@@ -75,3 +41,12 @@ def test_no_new_legacy_options() -> None:
 
     removed = sorted(LEGACY_OPTIONS - legacy)
     assert not removed, f"Remove these from LEGACY_OPTIONS: {removed}"
+
+
+def test_seer_token_metrics_remains_admin_modifiable_and_accepts_automator() -> None:
+    from sentry.options import UpdateChannel
+
+    key = "seer.similarity.token_count_metrics_enabled"
+    assert options.can_update(key, False, UpdateChannel.ADMIN, include_drift=False) is None
+    assert options.can_update(key, False, UpdateChannel.AUTOMATOR, include_drift=False) is None
+    assert options.lookup_key(key).default() is True

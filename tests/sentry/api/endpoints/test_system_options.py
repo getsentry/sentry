@@ -1,12 +1,38 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.request import Request
 
 import sentry
 from sentry import application_state, options
+from sentry.api.endpoints.system_options import SystemOptionsEndpoint
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+
+
+@pytest.mark.parametrize("key", ["system.admin-email", "mail.host", "api.rate-limit.org-create"])
+@pytest.mark.parametrize("value", ["updated", "", None])
+def test_saas_rejects_mutations_before_transaction(key: str, value) -> None:
+    request = MagicMock(spec=Request)
+    request.data = {key: value}
+    endpoint = SystemOptionsEndpoint()
+    with (
+        override_settings(SENTRY_SELF_HOSTED=False),
+        patch.object(endpoint, "has_permission", return_value=True),
+        patch(
+            "sentry.api.endpoints.system_options.transaction.atomic",
+            side_effect=AssertionError("option transaction opened"),
+        ),
+        patch.object(options.default_store, "set", side_effect=AssertionError("store write")),
+        patch.object(options.default_store, "delete", side_effect=AssertionError("store delete")),
+    ):
+        response = endpoint.put(request)
+    assert response.status_code == 400
+    assert response.data["error"] == "immutable_option"
+    assert response.data["errorDetail"]["option"] == key
+    assert "cannot be changed at runtime" in response.data["errorDetail"]["message"]
 
 
 class SystemOptionsTest(APITestCase):
@@ -36,7 +62,7 @@ class SystemOptionsTest(APITestCase):
         self.login_as(user=self.user, superuser=True)
         response = self.client.get(self.url)
         assert response.status_code == 200
-        assert response.data["github-login.client-secret"]["value"] == "[redacted]"
+        assert response.data["system.secret-key"]["value"] == "[redacted]"
 
     def test_bad_query(self) -> None:
         self.login_as(user=self.user, superuser=True)
@@ -83,13 +109,13 @@ class SystemOptionsTest(APITestCase):
     def test_disabled_smtp(self) -> None:
         self.login_as(user=self.user, superuser=True)
 
-        with self.options({"mail.backend": "smtp"}):
+        with override_settings(EMAIL_BACKEND="smtp"):
             response = self.client.get(self.url)
             assert response.status_code == 200
             assert response.data["mail.host"]["field"]["disabled"] is False
             assert response.data["mail.host"]["field"]["disabledReason"] is None
 
-        with self.options({"mail.backend": "dummy"}):
+        with override_settings(EMAIL_BACKEND="dummy"):
             response = self.client.get(self.url)
             assert response.status_code == 200
             assert response.data["mail.host"]["field"]["disabled"] is True
@@ -158,18 +184,13 @@ class SystemOptionsTest(APITestCase):
         assert options.get("mail.host") == "lolcalhost"
 
     @patch("sentry.api.endpoints.system_options.logger")
-    def test_put_redacts_credential_option_value_in_log(self, mock_logger: MagicMock) -> None:
+    def test_put_rejects_immutable_secret_without_logging_value(self, mock_logger: MagicMock) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
-        response = self.client.put(self.url, {"github-app.webhook-secret": "super-secret-value"})
-        assert response.status_code == 200
-        assert options.get("github-app.webhook-secret") == "super-secret-value"
-
-        mock_logger.info.assert_called_once()
-        args, kwargs = mock_logger.info.call_args
-        assert args[0] == "options.update"
-        assert kwargs["extra"]["option_key"] == "github-app.webhook-secret"
-        assert kwargs["extra"]["option_value"] == "[redacted]"
+        response = self.client.put(self.url, {"system.secret-key": "super-secret-value"})
+        assert response.status_code == 400
+        assert response.data["error"] == "immutable_option"
+        mock_logger.info.assert_not_called()
 
     @patch("sentry.api.endpoints.system_options.logger")
     def test_put_does_not_redact_non_secret_option(self, mock_logger: MagicMock) -> None:
@@ -194,3 +215,23 @@ class SystemOptionsTest(APITestCase):
             options.get_last_update_channel("auth.allow-registration")
             == options.UpdateChannel.APPLICATION
         )
+
+
+    def test_put_retired_deployment_option_is_unknown(self) -> None:
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
+
+        response = self.client.put(self.url, {"github-app.webhook-secret": "test-secret"})
+        assert response.status_code == 400
+        assert response.data["error"] == "unknown_option"
+        assert response.data["errorDetail"]["option"] == "github-app.webhook-secret"
+
+        response = self.client.put(self.url, {"github-app.client-id": "test-client-id"})
+        assert response.status_code == 400
+        assert response.data["error"] == "unknown_option"
+        assert response.data["errorDetail"]["option"] == "github-app.client-id"
+
+        response = self.client.put(self.url, {"chart-rendering.enabled": True})
+        assert response.status_code == 400
+        assert response.data["error"] == "unknown_option"
+        assert response.data["errorDetail"]["option"] == "chart-rendering.enabled"

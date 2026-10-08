@@ -7,23 +7,23 @@ from sentry.utils.email.backend import get_mail_backend
 
 class GetMailBackendTest(TestCase):
     def test_get_mail_backend(self) -> None:
-        with self.options({"mail.backend": "smtp"}):
+        with override_settings(EMAIL_BACKEND="smtp"):
             assert get_mail_backend() == "django.core.mail.backends.smtp.EmailBackend"
 
-        with self.options({"mail.backend": "dummy"}):
+        with override_settings(EMAIL_BACKEND="dummy"):
             assert get_mail_backend() == "django.core.mail.backends.dummy.EmailBackend"
 
-        with self.options({"mail.backend": "something.else"}):
+        with override_settings(EMAIL_BACKEND="something.else"):
             assert get_mail_backend() == "something.else"
 
     @override_settings(DEBUG=True)
     def test_console_backend_in_debug_mode(self) -> None:
-        with self.options({"mail.backend": "console"}):
+        with override_settings(EMAIL_BACKEND="console"):
             assert get_mail_backend() == "django.core.mail.backends.console.EmailBackend"
 
     @override_settings(DEBUG=False)
     def test_console_backend_outside_debug_mode(self) -> None:
-        with self.options({"mail.backend": "console"}):
+        with override_settings(EMAIL_BACKEND="console"):
             with pytest.raises(
                 RuntimeError, match="Console email backend is only available in debug mode"
             ):

@@ -24,15 +24,6 @@ from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
 
 # System
 register("system.admin-email", flags=FLAG_REQUIRED)
-register(
-    "system.support-email",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "system.security-email",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register("system.databases", type=Dict, flags=FLAG_NOSTORE)
 # register('system.debug', default=False, flags=FLAG_NOSTORE)
 register(
     "system.event-retention-days",
@@ -58,12 +49,6 @@ register(
     default=os.environ.get("SENTRY_SYSTEM_URL_PREFIX"),
     flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
-register(
-    "system.internal-url-prefix",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# The region that this instance is currently running in.
-register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 
 # Organization
 register(
@@ -127,23 +112,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Processing worker caches
-register(
-    "dsym.cache-path",
-    type=String,
-    default="/tmp/sentry-dsym-cache",
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "releasefile.cache-path",
-    type=String,
-    default="/tmp/sentry-releasefile-cache",
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # Mail
-register("mail.backend", default="smtp", flags=FLAG_NOSTORE)
 register(
     "mail.host",
     default="127.0.0.1",
@@ -173,29 +142,9 @@ register(
     flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
 )
 register(
-    "mail.subject-prefix",
-    default="[Sentry]",
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "mail.from",
     default="root@localhost",
     flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
-)
-register(
-    "mail.enable-replies",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "mail.reply-hostname",
-    default="",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "mail.mailgun-api-key",
-    default="",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "mail.timeout",
@@ -214,26 +163,6 @@ register(
 
 # SMS
 register(
-    "sms.backend",
-    default="twilio",
-    flags=FLAG_NOSTORE,
-)
-register(
-    "sms.twilio-account",
-    default="",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sms.twilio-token",
-    default="",
-    flags=FLAG_CREDENTIAL | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
-)
-register(
-    "sms.twilio-number",
-    default="",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "sms.disallow-new-enrollment",
     default=False,
     type=Bool,
@@ -244,12 +173,6 @@ register(
 register(
     "u2f.app-id",
     default="",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "u2f.facets",
-    default=[],
-    type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -449,30 +372,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Symbol server
-register(
-    "symbolserver.enabled",
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "symbolserver.options",
-    default={"url": "http://127.0.0.1:3000"},
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Symbolicator
-register(
-    "symbolicator.enabled",
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "symbolicator.options",
-    default={"url": "http://127.0.0.1:3021"},
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Teapot (GPU crash dump symbolication service)
 register(
     "teapot.enabled",
@@ -513,32 +412,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Backend chart rendering via chartcuterie
-register(
-    "chart-rendering.enabled",
-    default=False,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "chart-rendering.chartcuterie",
-    default={"url": "http://127.0.0.1:7901"},
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Leaving these empty will use the same storage driver configured for
-# Filestore
-register(
-    "chart-rendering.storage.backend",
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "chart-rendering.storage.options",
-    type=Dict,
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # Flag Options
 register(
     "flags:options-audit-log-is-enabled",
@@ -555,18 +428,6 @@ register(
 
 # Replay Options
 #
-# Replay storage backend configuration (only applicable if the direct-storage driver is used)
-register(
-    "replay.storage.backend",
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "replay.storage.options",
-    type=Dict,
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Globally disables replay-video.
 register(
     "replay.replay-video.disabled",
@@ -730,11 +591,7 @@ register(
 )
 
 # Slack Integration
-register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
-register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # Debug values are used for the Notification Debug CLI
 register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -747,11 +604,6 @@ register(
     default=0.3,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Slack Staging App
-register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("slack-staging.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("slack-staging.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # Issue Summary Auto-trigger rate (max number of autofix runs auto-triggered per project per hour)
 register(
@@ -782,12 +634,6 @@ register(
 )
 
 # GitHub Integration
-register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("github-app.name", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("github-app.webhook-secret", default="", flags=FLAG_CREDENTIAL)
-register("github-app.private-key", default="", flags=FLAG_CREDENTIAL)
-register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register(
     "github-app.required-permissions",
     type=Dict,
@@ -819,16 +665,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# GitHub Console SDK App (separate app for repository invitations)
-register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("github-console-sdk-app.installation-id", default="", flags=FLAG_CREDENTIAL)
-register("github-console-sdk-app.private-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("github-console-sdk-app.client-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("github-console-sdk-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-
 # Cursor Origin Integration
-register("cursor-origin-app.id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("cursor-origin-app.private-key", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register(
     "cursor-origin-app.fetch-commits.max-compare-commits",
     type=Int,
@@ -844,54 +681,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# GitHub Auth
-register(
-    "github-login.client-id",
-    default="",
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github-login.client-secret",
-    default="",
-    flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK,
-)
-register(
-    "github-login.require-verified-email",
-    type=Bool,
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github-login.base-domain",
-    default="github.com",
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github-login.api-domain",
-    default="api.github.com",
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github-login.extended-permissions",
-    type=Sequence,
-    default=[],
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register("github-login.organization", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-
-# VSTS Integration
-register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("vsts.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-
-# New VSTS Integration
-register("vsts_new.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("vsts_new.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-
-# VSTS Integration - with limited scopes
-register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-
-
 # Add consent prompt for Azure DevOps Integration
 register(
     "vsts.consent-prompt",
@@ -899,45 +688,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# PagerDuty Integration
-register("pagerduty.app-id", default="", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-
 # Vercel Integration
-register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("vercel.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # MsTeams Integration
-register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("msteams.app-id")
 register(
     "msteams.personal-installation-link.enabled",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Tenant-specific OAuth authority, required for single-tenant Azure Bots.
-# Empty (default) keeps the historical multi-tenant botframework.com authority.
-register("msteams.tenant-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
 # Discord Integration
-register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # Debug values are used for the Notification Debug CLI
 register("discord.debug-server", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# GCP MCP Integration
-register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-
 # AWS Lambda Integration
-register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register("aws-lambda.cloudformation-url", flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("aws-lambda.account-number", default="943013980633", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "aws-lambda.node.layer-name",
     default="SentryNodeServerlessSDK",
@@ -1455,7 +1221,7 @@ register(
     "seer.similarity.token_count_metrics_enabled",
     type=Bool,
     default=True,
-    flags=FLAG_MODIFIABLE_BOOL,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Maximum token count for stacktraces sent to Seer for similarity analysis
