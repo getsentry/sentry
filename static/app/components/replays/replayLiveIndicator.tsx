@@ -94,20 +94,27 @@ interface UseLiveBadgeParams {
 /**
  * Hook to determine if a replay is considered live
  */
-export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
-  const [isLive, setIsLive] = useState(
-    // We check for getLiveDurationMs to avoid a flicker.
-    // There can exist a time where the replay hasn't expired
-    // (Date.now() < started_at + 1 hour), in which case the isLive would show
-    // True, but the liveDuration is 0 (Date.now() > finished_at + 5 minutes),
-    // so the setTimeout, having a live duration of 0, would immediately set
-    // isLive to false and cause this flicker.
-    //
-    // `Date.now()` is impure and can't be read while rendering
-    // (pure-render-functions), so we use a lazy initializer here.
-    () =>
-      Date.now() < getReplayExpiresAtMs(startedAt) && getLiveDurationMs(finishedAt) > 0
+/**
+ * We check for getLiveDurationMs to avoid a flicker.
+ * There can exist a time where the replay hasn't expired
+ * (Date.now() < started_at + 1 hour), in which case the isLive would show
+ * True, but the liveDuration is 0 (Date.now() > finished_at + 5 minutes),
+ * so the setTimeout, having a live duration of 0, would immediately set
+ * isLive to false and cause this flicker.
+ */
+function getIsLive(
+  startedAt: ReplayRecord['started_at'],
+  finishedAt: ReplayRecord['finished_at']
+) {
+  return (
+    Date.now() < getReplayExpiresAtMs(startedAt) && getLiveDurationMs(finishedAt) > 0
   );
+}
+
+export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
+  // `Date.now()` is impure and can't be read while rendering
+  // (pure-render-functions), so we use a lazy initializer here.
+  const [isLive, setIsLive] = useState(() => getIsLive(startedAt, finishedAt));
 
   const {start: startTimeout} = useTimeout({
     timeMs: 0,
@@ -119,9 +126,15 @@ export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
   // `getLiveDurationMs` calls `Date.now()` internally, so it must not be
   // called during render (pure-render-functions). Compute it inside the
   // effect and pass the result to `startTimeout`.
+  //
+  // The initializer only ran on mount, so a caller that renders before its
+  // replay record has loaded would otherwise keep the answer it got from the
+  // empty times it passed then, and never go live.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
+    setIsLive(getIsLive(startedAt, finishedAt));
     startTimeout(getLiveDurationMs(finishedAt));
-  }, [startTimeout, finishedAt]);
+  }, [startTimeout, startedAt, finishedAt]);
 
   return {
     isLive,
