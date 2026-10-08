@@ -479,7 +479,9 @@ class SlackAutofixEntrypoint(
                         "changes": changes_list,
                     }
                 )
-            # Dupes PR_CREATED. Maybe post "This PR is ready for review", but could get spammy
+            # Skipped for now, as it would repeat PR_CREATED's message. Seer will eventually always
+            # mark PRs ready for review (after fixing CI in draft, or giving up on CI), and we plan
+            # to post a separate "ready for a human to review" message in Slack at that point.
             case SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
                 return
             case SentryAppEventType.SEER_PR_CREATED:
