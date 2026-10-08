@@ -20,9 +20,14 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
   interval?: string;
+  onInvestigate?: () => void;
 }
 
-function DroppedDataDrawerInner({dataset, interval}: DroppedDataDrawerProps) {
+function DroppedDataDrawerInner({
+  dataset,
+  interval,
+  onInvestigate,
+}: DroppedDataDrawerProps) {
   const [chartInterval] = useChartInterval();
   const {droppedEvents, acceptedEvents, isPending} = useDroppedData({
     dataset,
@@ -54,6 +59,7 @@ function DroppedDataDrawerInner({dataset, interval}: DroppedDataDrawerProps) {
             <DroppedDataCategoryList
               droppedEvents={droppedEvents ?? []}
               acceptedEvents={acceptedEvents ?? []}
+              onInvestigate={onInvestigate}
             />
           </Stack>
         )}
