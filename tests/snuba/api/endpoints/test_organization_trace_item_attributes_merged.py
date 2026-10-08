@@ -273,6 +273,42 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
         assert attributes["shared.attribute"]["context"] == {}
         assert attributes["project"]["context"]["brief"]
 
+    def test_includes_internal_convention_attributes_when_user_is_staff(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(minutes=10).replace(microsecond=0),
+            tags={"dsc.trace_id": "internal"},
+        )
+        user = self.create_user(is_staff=True)
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.login_as(user=user)
+
+        response = self.do_request(query={"attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        assert "dsc.trace_id" in {attribute["name"] for attribute in response.data}
+
+    def test_hides_internal_convention_attributes_when_user_is_not_staff(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(minutes=10).replace(microsecond=0),
+            tags={"dsc.trace_id": "internal"},
+        )
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.login_as(user=user)
+
+        response = self.do_request(query={"attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        assert "dsc.trace_id" not in {attribute["name"] for attribute in response.data}
+
     def test_paginates_merged_results_when_per_page_is_provided(self) -> None:
         self._store_span_and_log()
 

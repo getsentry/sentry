@@ -181,6 +181,7 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
         )
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
+        include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
         sort = serialized["sort"]
         expand_context = "context" in serialized.get("expand", set())
         include_context = expand_context or sort.removeprefix("-") == "description"
@@ -226,7 +227,8 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
                         column_definitions,
                         trace_item_type,
                         include_internal,
-                        include_context,
+                        include_context=include_context,
+                        include_internal_convention_attributes=include_internal_convention_attributes,
                     ),
                 )
                 for dataset, trace_item_type, column_definitions, meta, attribute_type in tasks
