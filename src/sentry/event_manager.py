@@ -1688,11 +1688,10 @@ def _create_group(
     # drain rather than flushing on commit.
     with outbox_context(flush=False):
         publish_action(
-            FirstSeenAction(),
+            FirstSeenAction(first_seen=group.first_seen.isoformat()),
             source=ActionSource.SYSTEM,
             group_id=group.id,
             project=project,
-            actor=SYSTEM_ACTOR,
             idempotency_key=first_seen_idempotency_key(group.id),
         )
 
