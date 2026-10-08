@@ -33,13 +33,13 @@ import {
   TraceBreakdownRenderer,
   TraceIdRenderer,
 } from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
-import {SpanTable} from 'sentry/views/explore/tables/tracesTable/spansTable';
 import {
   BreakdownCell,
   EmptyStateText,
   EmptyValueContainer,
   WrappingText,
 } from 'sentry/views/explore/tables/tracesTable/styles';
+import {TraceSpansTable} from 'sentry/views/explore/tables/tracesTable/traceSpansTable';
 
 const TRACES_TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'trace', width: 'min-content'},
@@ -256,7 +256,7 @@ function TraceRow({
           <SpanTimeRenderer timestamp={trace.start} tooltipShowSeconds />
         </SimpleTable.RowCell>
       </SimpleTable.Row>
-      {expanded && <SpanTable trace={trace} />}
+      {expanded && <TraceSpansTable trace={trace} />}
     </Fragment>
   );
 }

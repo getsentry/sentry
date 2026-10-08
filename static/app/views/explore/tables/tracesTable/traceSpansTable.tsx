@@ -48,7 +48,7 @@ const SPAN_TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'timestamp', width: 'min-content'},
 ];
 
-export function SpanTable({trace}: {trace: TraceResult}) {
+export function TraceSpansTable({trace}: {trace: TraceResult}) {
   const organization = useOrganization();
 
   const query = useQueryParamsQuery();
