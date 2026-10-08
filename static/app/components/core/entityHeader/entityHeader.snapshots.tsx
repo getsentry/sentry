@@ -1,3 +1,5 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 
@@ -39,6 +41,29 @@ describe('EntityHeader', () => {
     viewport: 900,
     tags: {state: 'loading', area: 'core'},
   });
+
+  // A leading avatar is drawn at 20 inside a 24 box so it matches the discs in
+  // the people stack, which are 24 with a 2px border. Shown together, because
+  // the two being the same size is the whole point.
+  it.snapshot(
+    'avatar beside people',
+    () => (
+      <EntityHeader
+        title={{
+          ...props.title,
+          leadingGraphic: {type: 'user', user: UserFixture({id: '1', name: 'Alice'})},
+        }}
+        people={{
+          users: [
+            UserFixture({id: '2', name: 'Bob'}),
+            UserFixture({id: '3', name: 'Cara'}),
+          ],
+          label: 'Viewed by',
+        }}
+      />
+    ),
+    {viewport: 900, tags: {slots: 'avatar-people', area: 'core'}}
+  );
 
   it.snapshot('title only', () => <EntityHeader title={props.title} />, {
     viewport: 900,

@@ -119,27 +119,6 @@ describe('EntityHeader', () => {
       expect(graphic.querySelector('img')).toBeInTheDocument();
     });
 
-    it('draws a user avatar at the size the people slot shows, inside the same box', () => {
-      render(
-        <EntityHeader
-          title={{
-            label: 'Replay user',
-            value: 'Session',
-            leadingGraphic: {
-              type: 'user',
-              user: UserFixture({id: '1', name: 'Alice'}),
-            },
-          }}
-        />
-      );
-
-      const avatar = screen.getByText('A').closest('span')!;
-      expect(avatar).toHaveStyle({width: '20px', height: '20px'});
-
-      const slot = avatar.parentElement!;
-      expect(getEmotionRules(slot).some(rule => /width:\s*24px/.test(rule))).toBe(true);
-    });
-
     it('renders no project graphic when no platform is known', () => {
       render(
         <EntityHeader
@@ -370,8 +349,16 @@ describe('EntityHeader', () => {
     });
 
     it('gives a linked label the same metrics as an unlinked one', () => {
-      const hasLabelFontSize = (element: HTMLElement) =>
-        getEmotionRules(element).some(rule => /font-size:\s*12px/.test(rule));
+      // `Link` emits `text-box-trim` but no font size, so an anchor that does
+      // not carry the label's own text styles trims to whatever it inherits
+      // and the row's baseline moves when a stat resolves into a link.
+      //
+      // Compared against each other rather than against a number, so the two
+      // stay in step if the label's size is ever redesigned.
+      const fontSize = (element: HTMLElement) =>
+        getEmotionRules(element)
+          .join(' ')
+          .match(/font-size:\s*[^;]+/)?.[0];
 
       const {rerender} = render(
         <EntityHeader
@@ -382,7 +369,8 @@ describe('EntityHeader', () => {
           }}
         />
       );
-      expect(hasLabelFontSize(screen.getByText('Errors'))).toBe(true);
+      const plain = fontSize(screen.getByText('Errors'));
+      expect(plain).toBeDefined();
 
       rerender(
         <EntityHeader
@@ -396,7 +384,7 @@ describe('EntityHeader', () => {
         />
       );
 
-      expect(hasLabelFontSize(screen.getByRole('link', {name: '3 Errors'}))).toBe(true);
+      expect(fontSize(screen.getByRole('link', {name: '3 Errors'}))).toBe(plain);
     });
 
     it('drops null entries so callers can inline conditionals', () => {
