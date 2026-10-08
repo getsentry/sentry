@@ -985,7 +985,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         return fields
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data, user=None, **kwargs):
         """
         Get the (cached) "createmeta" from Jira to use as a "schema". Clean up
         the Jira issue by removing all fields that aren't enumerated by this
