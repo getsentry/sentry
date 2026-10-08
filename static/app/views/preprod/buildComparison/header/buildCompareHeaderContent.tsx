@@ -2,13 +2,16 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {
+  DropdownButton,
+  DropdownMenu,
+  type MenuItemProps,
+} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {
   IconCode,

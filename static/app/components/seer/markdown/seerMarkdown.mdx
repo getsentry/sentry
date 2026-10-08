@@ -16,6 +16,13 @@ import {EmbedStory} from './__stories__/embedStory';
 import {EventEmbedStory} from './__stories__/eventEmbedStory';
 import {LogEmbedStory} from './__stories__/logEmbedStory';
 import {MonitorEmbedStory} from './__stories__/monitorEmbedStory';
+import {
+  BaselineBlockDemo,
+  ListBlockPlacementDemo,
+  ListInlinePlacementDemo,
+  ListLeadingTagDemo,
+  TablePlacementDemo,
+} from './__stories__/placementStory';
 import {ProfileEmbedStory} from './__stories__/profileEmbedStory';
 import {ReleaseEmbedStory} from './__stories__/releaseEmbedStory';
 import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
@@ -51,57 +58,85 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 Every embed also renders at a third level, **`markdown`**, used when a reply is copied to the clipboard. A link embed emits that same link as markdown, a text embed keeps its formatting, and a widget — a chart, an issue table, a trace waterfall — keeps only its name, since its contents are live data. Each example below shows the result under **Copied as markdown**.
 
-### timestamp
+### alert
 
-<EmbedStory name="timestamp" />
-
-### docs
-
-<EmbedStory name="docs" />
-
-### dashboard
-
-<DashboardEmbedStory />
-
-### dsn
-
-<EmbedStory name="dsn" />
-
-### user
-
-<EmbedStory name="user" />
-
-### issue
-
-<EmbedStory name="issue" />
-
-### event
-
-<EventEmbedStory />
-
-### replay
-
-<ReplayEmbedStory />
-
-### release
-
-<ReleaseEmbedStory />
-
-### chart
-
-<EmbedStory name="chart" />
+<AlertEmbedStory />
 
 ### autofix
 
 <EmbedStory name="autofix" />
 
-### alert
+### chart
 
-<AlertEmbedStory />
+<EmbedStory name="chart" />
+
+### conversation
+
+<ConversationEmbedStory />
+
+### conversationsQuery
+
+<EmbedStory name="conversationsQuery" />
+
+### dashboard
+
+<DashboardEmbedStory />
+
+### docs
+
+<EmbedStory name="docs" />
+
+### dsn
+
+<EmbedStory name="dsn" />
+
+### errorsQuery
+
+<EmbedStory name="errorsQuery" />
+
+### event
+
+<EventEmbedStory />
+
+### issue
+
+<EmbedStory name="issue" />
+
+### issuesQuery
+
+<EmbedStory name="issuesQuery" />
+
+### log
+
+<LogEmbedStory />
+
+### logsQuery
+
+<EmbedStory name="logsQuery" />
+
+### metricsQuery
+
+<EmbedStory name="metricsQuery" />
 
 ### monitor
 
 <MonitorEmbedStory />
+
+### profile
+
+<ProfileEmbedStory />
+
+### release
+
+<ReleaseEmbedStory />
+
+### replay
+
+<ReplayEmbedStory />
+
+### replaysQuery
+
+<EmbedStory name="replaysQuery" />
 
 ### savedIssueView
 
@@ -111,6 +146,14 @@ Every embed also renders at a third level, **`markdown`**, used when a reply is 
 
 <SavedQueryEmbedStory />
 
+### spansQuery
+
+<EmbedStory name="spansQuery" />
+
+### timestamp
+
+<EmbedStory name="timestamp" />
+
 ### trace
 
 <TraceEmbedStory />
@@ -119,45 +162,55 @@ Every embed also renders at a third level, **`markdown`**, used when a reply is 
 
 <TraceEmbedStory name="traceWaterfall" />
 
-### profile
+### user
 
-<ProfileEmbedStory />
+<EmbedStory name="user" />
 
-### issuesQuery
+## Placement: what decides inline vs block
 
-<EmbedStory name="issuesQuery" />
+An embed renders as a block card when its tag is **alone on its line**, and inline when the
+tag **shares its line with prose**. That is the whole rule, and it holds the same way in a
+paragraph, a list item, or a table cell -- the container is not what decides. A list marker
+does not count as content, because marked strips it before the tag is ever looked at.
 
-### errorsQuery
+A table cell is inline always: markdown gives a cell no way to hold block content.
 
-<EmbedStory name="errorsQuery" />
+**Inline in a table.** Each embed is an anchor and sits in a cell the way a link does.
 
-### spansQuery
+<Storybook.Demo>
+  <TablePlacementDemo />
+</Storybook.Demo>
 
-<EmbedStory name="spansQuery" />
+**Inline in a list.** A bullet with a few words of lead-in keeps the reference inline.
 
-### logsQuery
+<Storybook.Demo>
+  <ListInlinePlacementDemo />
+</Storybook.Demo>
 
-<EmbedStory name="logsQuery" />
+**Also inline when the bullet opens with the tag.** This is the form a summary naturally
+takes -- lead with the issue, then say what about it. It reads the same as the one above,
+because the `-` is not content and the sentence continues past the tag.
 
-### log
+<Storybook.Demo>
+  <ListLeadingTagDemo />
+</Storybook.Demo>
 
-<LogEmbedStory />
+**A block card in a list, when you want one.** Give the tag its own line inside the item and
+it renders as a full card, nested as a sibling of the item's paragraph and keeping the
+list's indentation.
 
-### replaysQuery
+<Storybook.Demo>
+  <ListBlockPlacementDemo />
+</Storybook.Demo>
 
-<EmbedStory name="replaysQuery" />
+The same card at the top level, for comparison:
 
-### metricsQuery
+<Storybook.Demo>
+  <BaselineBlockDemo />
+</Storybook.Demo>
 
-<EmbedStory name="metricsQuery" />
-
-### conversation
-
-<ConversationEmbedStory />
-
-### conversationsQuery
-
-<EmbedStory name="conversationsQuery" />
+So: to reference something mid-sentence, write the sentence -- the embed follows. To show a
+card, give the tag a line of its own.
 
 ## Embed Architecture
 

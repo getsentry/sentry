@@ -1,14 +1,15 @@
 import {Children, useRef, useState, type ReactNode} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container as LayoutContainer} from '@sentry/scraps/layout';
+import {Grid, Container as LayoutContainer} from '@sentry/scraps/layout';
 
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 
+import {keyValueGridStyles} from './keyValueColumns';
+import {type KeyValueTableVariant} from './keyValueRow';
 import {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
@@ -16,13 +17,17 @@ import {
 
 interface KeyValueTableCardProps {
   /**
+   * Free-form content rendered below the rows, spanning the full card width.
+   */
+  children?: React.ReactNode;
+  /**
    * KeyValueTableDataRowProps items to be rendered in this card.
    */
-  contentItems: KeyValueTableDataRowProps[];
+  contentItems?: KeyValueTableDataRowProps[];
   /**
-   * If true, expands the left side of the cards to take up more space.
+   * Row props applied to every row, overridden by anything a content item sets.
    */
-  expandLeft?: boolean;
+  itemProps?: Partial<KeyValueTableDataRowProps>;
   /**
    *  Flag to enable alphabetical sorting by item subject. Uses given item ordering if false.
    */
@@ -35,18 +40,24 @@ interface KeyValueTableCardProps {
    * Content item length which, when exceeded, displays a 'Show more' option
    */
   truncateLength?: number;
+  /**
+   * Subject column typography and row padding. Defaults to `code`.
+   */
+  variant?: KeyValueTableVariant;
 }
 
 export function KeyValueTableCard({
-  contentItems,
+  children,
+  contentItems = [],
+  itemProps,
   title,
   truncateLength = Infinity,
   sortAlphabetically = false,
-  expandLeft = false,
+  variant = 'code',
 }: KeyValueTableCardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
-  if (contentItems.length === 0) {
+  if (contentItems.length === 0 && !children) {
     return null;
   }
 
@@ -59,13 +70,14 @@ export function KeyValueTableCard({
     : truncatedItems;
 
   return (
-    <KeyValueTableCardPanel>
-      {title && <KeyValueTableCardTitle>{title}</KeyValueTableCardTitle>}
-      {orderedItems.map((itemProps, index) => (
+    <CardPanel>
+      {title && <CardTitle>{title}</CardTitle>}
+      {orderedItems.map((contentItem, index) => (
         <KeyValueTableDataRow
-          expandLeft={expandLeft}
           key={String(index)}
+          variant={variant}
           {...itemProps}
+          {...contentItem}
         />
       ))}
       {contentItems.length > truncateLength && (
@@ -73,50 +85,52 @@ export function KeyValueTableCard({
           {isTruncated ? t('Show more...') : t('Show less')}
         </TruncateWrapper>
       )}
-    </KeyValueTableCardPanel>
+      {children && <CardBody>{children}</CardBody>}
+    </CardPanel>
   );
 }
 
 export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = useContainerColumnCount(containerRef);
 
   const cards = Children.toArray(children).filter(
     (child: ReactNode) => child !== null && child !== undefined
   );
 
   return (
-    <CardGridWrapper columnCount={columnCount} ref={containerRef}>
+    <Grid
+      align="start"
+      columns={`repeat(${columnCount}, 1fr)`}
+      gap="lg"
+      ref={containerRef}
+    >
       {splitIntoColumns(cards, columnCount).map((column, index) => (
-        <LayoutContainer column="span 1" key={index}>
-          {column}
-        </LayoutContainer>
+        <LayoutContainer key={index}>{column}</LayoutContainer>
       ))}
-    </CardGridWrapper>
+    </Grid>
   );
 }
 
-export const KeyValueTableCardPanel = styled(Panel)<{block?: boolean}>`
+const CardPanel = styled(Panel)`
+  ${keyValueGridStyles};
   padding: ${p => p.theme.space.sm};
-  display: ${p => (p.block ? 'block' : 'grid')};
-  column-gap: ${p => p.theme.space.lg};
-  grid-template-columns: fit-content(50%) 1fr;
-  font-size: ${p => p.theme.font.size.sm};
-
-  ${p =>
-    p.block &&
-    css`
-      pre {
-        margin: 0;
-      }
-    `}
 `;
 
-export const KeyValueTableCardTitle = styled('div')`
+const CardTitle = styled('div')`
   grid-column: span 2;
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.font.weight.sans.medium};
+`;
+
+const CardBody = styled('div')`
+  grid-column: 1 / -1;
+  min-width: 0;
+
+  pre {
+    margin: 0;
+  }
 `;
 
 const TruncateWrapper = styled('a')`
@@ -125,11 +139,4 @@ const TruncateWrapper = styled('a')`
   margin: ${p => p.theme.space.xs} 0;
   justify-content: center;
   font-family: ${p => p.theme.font.family.sans};
-`;
-
-const CardGridWrapper = styled('div')<{columnCount: number}>`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  gap: 10px;
 `;

@@ -119,6 +119,9 @@ class TwoFactorAuthView(BaseView):
         if not interfaces:
             return self.perform_signin(request, user)
 
+        if request.method == "GET":
+            return HttpResponseRedirect(auth.get_login_url())
+
         challenge = activation = None
         interface = self.negotiate_interface(request, interfaces)
 

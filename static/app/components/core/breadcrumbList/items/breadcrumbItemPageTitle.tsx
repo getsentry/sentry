@@ -1,14 +1,20 @@
 import {Fragment} from 'react';
 
+import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
 import type {BreadcrumbMenuActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
-import {Button, type ButtonProps, type LinkButtonProps} from '@sentry/scraps/button';
-import {LinkButton} from '@sentry/scraps/button';
+import {
+  Button,
+  type ButtonProps,
+  type LinkButtonProps,
+  LinkButton,
+} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
@@ -24,6 +30,7 @@ import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 type BreadcrumbTitleAction =
   | ({type: 'copy'} & BreadcrumbCopyActionProps)
   | ({type: 'menu'} & BreadcrumbMenuActionProps)
+  | {element: React.ReactElement<FeatureBadgeProps>; type: 'badge'}
   | {element: React.ReactElement<ButtonProps | LinkButtonProps>; type: 'button'};
 
 /**
@@ -45,6 +52,7 @@ function renderTrailingAction(action: BreadcrumbTitleAction) {
       const {type: _type, ...props} = action;
       return <BreadcrumbMenuAction {...props} />;
     }
+    case 'badge':
     case 'button':
       return action.element;
     default:
@@ -121,7 +129,7 @@ export function BreadcrumbItemPageTitle({
   const actions = renderTrailingActions(trailingActions);
 
   return (
-    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
+    <Flex align="center" gap="sm" height="32px" minWidth="32px">
       {pagination && (
         <Flex as="span" align="center">
           <Tooltip
@@ -176,15 +184,11 @@ export function BreadcrumbItemPageTitle({
           on the outer Flex above. */}
       <Container minWidth={0}>
         {containerProps => (
-          <InfoText
-            title={labelTooltip}
-            ellipsis
-            bold
-            variant="inherit"
-            {...containerProps}
-          >
-            {label}
-          </InfoText>
+          <Heading as="h1" variant="inherit" {...containerProps}>
+            <InfoText title={labelTooltip} ellipsis bold variant="inherit">
+              {label}
+            </InfoText>
+          </Heading>
         )}
       </Container>
       {actions}

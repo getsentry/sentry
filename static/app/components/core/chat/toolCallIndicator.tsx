@@ -1,4 +1,4 @@
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import {unreachable} from 'sentry/utils/unreachable';

@@ -42,6 +42,7 @@ from sentry.issues.action_log.types import (
     SetResolvedByAgeAction,
     SetResolvedInCommitAction,
     SetResolvedInReleaseAction,
+    SmartAssignmentCompletedAction,
     TriggerAutofixAction,
     UnassignAction,
     UnmergeDestinationAction,
@@ -60,9 +61,6 @@ ACTIVITY_TYPES_WITH_NO_ACTION: frozenset[int] = frozenset(
     (
         ActivityType.FIRST_SEEN.value,
         ActivityType.RELEASE.value,
-        # Internal signal that drives smart-assignment scoring/auto-assign off a
-        # workflow activity handler; not a user-facing group action.
-        ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
     )
 )
 
@@ -108,6 +106,7 @@ ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE: Mapping[int, type[GroupAction]] = {
     ActivityType.PULL_REQUEST_MERGED.value: PullRequestMergedAction,
     ActivityType.PULL_REQUEST_UNLINKED.value: PullRequestUnlinkedAction,
     ActivityType.TRIGGER_AUTOFIX.value: TriggerAutofixAction,
+    ActivityType.SMART_ASSIGNMENT_COMPLETED.value: SmartAssignmentCompletedAction,
 }
 
 ACTIVITY_TYPE_TO_ARG_TRANSLATIONS: Mapping[int, Mapping[str, str]] = {

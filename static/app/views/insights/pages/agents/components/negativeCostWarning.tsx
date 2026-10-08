@@ -5,7 +5,7 @@ import {tct} from 'sentry/locale';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 
 export const TOKEN_TROUBLESHOOTING_URL =
-  'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';
+  'https://docs.sentry.io/product/agents/costs/#troubleshooting';
 
 interface NegativeCostInfoProps {
   cost: number | string;

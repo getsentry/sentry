@@ -4,12 +4,13 @@ import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {AnimatedActivity} from 'sentry/components/animatedActivity';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -174,12 +175,15 @@ export function SecondFactorAuth({
           {otherMethods.length > 1 ? (
             <DropdownMenu
               size="xs"
-              triggerLabel={t('Use Different Method')}
-              triggerProps={{
-                disabled: isProcessing,
-                size: 'xs',
-                variant: 'transparent',
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  disabled={isProcessing}
+                  variant="transparent"
+                >
+                  {t('Use Different Method')}
+                </OverlayTrigger.Button>
+              )}
               items={otherMethods.map(method => ({
                 key: method.id,
                 label: METHOD_LABELS[method.id],

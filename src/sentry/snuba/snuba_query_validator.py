@@ -122,13 +122,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
 
-    def __init__(self, *args: Any, timeWindowSeconds: bool = False, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        # if true, time_window is interpreted as seconds.
-        # if false, time_window is interpreted as minutes.
-        # TODO: only accept time_window in seconds once AlertRuleSerializer is removed
-        self.time_window_seconds = timeWindowSeconds
-
     def validate_environment(self, value: str | None) -> Environment | None:
         """
         This is not using the `EnvironmentField` so we can inline create new envs
@@ -421,21 +414,19 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             )
 
     def _validate_time_window(self, value: int, dataset: Dataset) -> int:
-        time_window_seconds = value * 60 if not self.time_window_seconds else value
-
         if dataset == Dataset.Metrics:
-            if time_window_seconds not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
+            if value not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(
                     "Invalid Time Window: Allowed time windows for crash rate alerts are: "
                     "30min, 1h, 2h, 4h, 12h and 24h"
                 )
         if dataset == Dataset.EventsAnalyticsPlatform:
-            if time_window_seconds not in EAP_ALERTS_ALLOWED_TIME_WINDOWS:
+            if value not in EAP_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(
                     f"Invalid Time Window: Allowed time windows (in seconds) for this alert type are: "
                     f"{EAP_ALERTS_ALLOWED_TIME_WINDOWS}"
                 )
-        return time_window_seconds
+        return value
 
     def _validate_performance_dataset(self, dataset: Dataset) -> Dataset:
         # all generic metrics platform support is being deprecated, so we only allow transactions dataset

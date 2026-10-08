@@ -8,6 +8,8 @@ import omit from 'lodash/omit';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -16,8 +18,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {Count} from 'sentry/components/count';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -108,6 +108,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     setExpandedIndex,
     // we want to reset the sorting option and expanded index to the default
     // every time the breakdown function changes.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     breakdownFunction,
   ]);
 
@@ -437,13 +438,15 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
         </Tooltip>
         <DropdownMenu
           position="bottom-end"
-          triggerProps={{
-            icon: <IconEllipsis size="xs" />,
-            variant: 'transparent',
-            showChevron: false,
-            size: 'xs',
-            'aria-label': t('Example Profiles'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              icon={<IconEllipsis size="xs" />}
+              variant="transparent"
+              size="xs"
+              aria-label={t('Example Profiles')}
+            />
+          )}
           onOpenChange={isOpen => {
             if (isOpen) {
               trackAnalytics('profiling_views.landing.widget.open_list', {

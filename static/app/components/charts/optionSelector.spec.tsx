@@ -36,12 +36,8 @@ describe('Charts > OptionSelector (Multiple)', () => {
     );
   }
 
-  const renderComponent = () => {
-    return render(<TestComponent />);
-  };
-
   it('renders yAxisOptions with yAxisValue selected', async () => {
-    renderComponent();
+    render(<TestComponent />);
     expect(await screen.findByRole('option', {name: 'count()'})).toHaveAttribute(
       'aria-selected',
       'true'
@@ -57,7 +53,7 @@ describe('Charts > OptionSelector (Multiple)', () => {
   });
 
   it('calls onChange prop with new checkbox option state', async () => {
-    renderComponent();
+    render(<TestComponent />);
     await userEvent.click(screen.getByRole('option', {name: 'count()'}));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
     onChangeStub.mockClear();
@@ -79,7 +75,7 @@ describe('Charts > OptionSelector (Multiple)', () => {
   });
 
   it('does not uncheck options when clicked if only one option is currently selected', async () => {
-    renderComponent();
+    render(<TestComponent />);
     await userEvent.click(screen.getByRole('option', {name: 'count()'}));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
     await userEvent.click(screen.getByRole('option', {name: 'failure_count()'}));
@@ -87,7 +83,7 @@ describe('Charts > OptionSelector (Multiple)', () => {
   });
 
   it('only allows up to 3 options to be checked at one time', async () => {
-    renderComponent();
+    render(<TestComponent />);
     await userEvent.click(screen.getByRole('option', {name: 'count_unique(user)'}));
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',

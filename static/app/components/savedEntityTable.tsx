@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
@@ -139,7 +139,7 @@ SavedEntityTable.CellStar = function CellStar({
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   text-decoration-color: ${p => p.theme.tokens.border.primary};
   display: block;
   width: 100%;
@@ -151,11 +151,17 @@ const StyledLink = styled(Link)`
 SavedEntityTable.CellName = function CellName({
   children,
   to,
+  title,
 }: {
   children: ReactNode;
   to: string;
+  title?: ReactNode;
 }) {
-  return <StyledLink to={to}>{children}</StyledLink>;
+  return (
+    <Tooltip title={title} disabled={!title} showOnlyOnOverflow skipWrapper>
+      <StyledLink to={to}>{children}</StyledLink>
+    </Tooltip>
+  );
 };
 
 SavedEntityTable.CellProjects = function CellProjects({

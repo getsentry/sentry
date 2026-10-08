@@ -68,35 +68,33 @@ export function FeatureDisabled({
   const snippet = installText(features, featureName);
   const {copy} = useCopyToClipboard();
 
-  function renderHelp() {
-    return (
-      <Fragment>
-        <HelpText>
-          {tct(
-            `Enable this feature on your sentry installation by adding the
-              following configuration into your [configFile:sentry.conf.py].
-              See [configLink:the configuration documentation] for more
-              details.`,
-            {
-              configFile: <code />,
-              configLink: <ExternalLink href={CONFIG_DOCS_URL} />,
-            }
-          )}
-        </HelpText>
-        <CopyButton
-          variant="transparent"
-          icon={<IconCopy />}
-          onClick={() => copy(snippet)}
-          size="xs"
-        >
-          {t('Copy to Clipboard')}
-        </CopyButton>
-        <Pre onClick={e => selectText(e.target as HTMLElement)}>
-          <code>{snippet}</code>
-        </Pre>
-      </Fragment>
-    );
-  }
+  const help = (
+    <Fragment>
+      <HelpText>
+        {tct(
+          `Enable this feature on your sentry installation by adding the
+            following configuration into your [configFile:sentry.conf.py].
+            See [configLink:the configuration documentation] for more
+            details.`,
+          {
+            configFile: <code />,
+            configLink: <ExternalLink href={CONFIG_DOCS_URL} />,
+          }
+        )}
+      </HelpText>
+      <CopyButton
+        variant="transparent"
+        icon={<IconCopy />}
+        onClick={() => copy(snippet)}
+        size="xs"
+      >
+        {t('Copy to Clipboard')}
+      </CopyButton>
+      <Pre onClick={e => selectText(e.target as HTMLElement)}>
+        <code>{snippet}</code>
+      </Pre>
+    </Fragment>
+  );
 
   if (!alert) {
     const showDescription = hideHelpToggle || showHelp;
@@ -111,7 +109,7 @@ export function FeatureDisabled({
             </ToggleButton>
           )}
         </FeatureDisabledMessage>
-        {showDescription && <HelpDescription>{renderHelp()}</HelpDescription>}
+        {showDescription && <HelpDescription>{help}</HelpDescription>}
       </Fragment>
     );
   }
@@ -119,7 +117,7 @@ export function FeatureDisabled({
   const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
   return (
     <Alert.Container>
-      <AlertComponent variant="warning" expand={renderHelp()}>
+      <AlertComponent variant="warning" expand={help}>
         {message}
       </AlertComponent>
     </Alert.Container>

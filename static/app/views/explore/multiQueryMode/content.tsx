@@ -1,8 +1,9 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
@@ -11,7 +12,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -25,9 +25,8 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -59,12 +58,7 @@ function Content({datePageFilterProps}: ContentProps) {
   const totalQueryRows = queries.length;
   const id = decodeScalar(location.query.id);
 
-  const visitQuery = useVisitQuery();
-  useEffect(() => {
-    if (id) {
-      visitQuery(id);
-    }
-  }, [id, visitQuery]);
+  useVisitQuery(id);
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
 

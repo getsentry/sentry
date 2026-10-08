@@ -86,21 +86,16 @@ describe('RowSubtitle', () => {
     'installing',
     'choose-destination',
   ])('%s state', visualState => {
-    it('shows the provider description', () => {
-      renderSubtitle(visualState);
-      expect(
-        screen.getByText(/Get real-time alerts and triage issues without leaving Slack/)
-      ).toBeInTheDocument();
+    it('renders nothing', () => {
+      const {container} = renderSubtitle(visualState);
+      expect(container).toBeEmptyDOMElement();
     });
   });
 
   describe('install-forbidden state', () => {
-    it('shows the provider description and admin copy', () => {
+    it('shows the admin copy', () => {
       renderSubtitle('install-forbidden');
 
-      expect(
-        screen.getByText(/Get real-time alerts and triage issues without leaving Slack/)
-      ).toBeInTheDocument();
       expect(
         screen.getByText('Ask an organization admin to connect Slack.')
       ).toBeInTheDocument();

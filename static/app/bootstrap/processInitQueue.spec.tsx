@@ -7,43 +7,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 
 describe('processInitQueue', () => {
   describe('renderReact', () => {
-    it('renders password strength input', async () => {
-      window.__onSentryInit = [
-        {
-          name: 'passwordStrength',
-          input: '#password',
-          element: '#password-strength',
-        },
-      ];
-
-      render(
-        <div>
-          <input id="password" placeholder="password" />
-          <div id="password-strength" />
-        </div>
-      );
-
-      processInitQueue();
-
-      // Assert that password strength renders and reacts to user input
-      await userEvent.type(screen.getByPlaceholderText('password'), '!');
-      expect(await screen.findByText('Very Weak')).toBeInTheDocument();
-
-      // Type the rest of the password
-      await userEvent.type(
-        screen.getByPlaceholderText('password'),
-        '!!!!!supersecretpassword!!!!!!'
-      );
-      expect(await screen.findByText('Very Strong')).toBeInTheDocument();
-    });
-
     it('renders setup wizard', async () => {
       window.__onSentryInit = [
         {
@@ -113,27 +83,6 @@ describe('processInitQueue', () => {
       );
     });
 
-    it('renders WebAuthn Assert', async () => {
-      window.__onSentryInit = [
-        {
-          component: SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT,
-          container: '#webauthn-container',
-          name: 'renderReact',
-          props: {
-            mode: 'signin',
-          },
-        },
-      ];
-
-      render(<div id="webauthn-container" />);
-      processInitQueue();
-
-      // WebAuthn is not supported in the test environment
-      expect(
-        await screen.findByText(/Your browser does not support WebAuthn/)
-      ).toBeInTheDocument();
-    });
-
     it('renders superuser staff access form', async () => {
       window.__onSentryInit = [
         {
@@ -158,37 +107,35 @@ describe('processInitQueue', () => {
     });
   });
 
-  it('processes queued up items', () => {
-    const mock = jest.fn();
+  it('renders components queued before and after initialization', async () => {
     const init = {
-      name: 'onReady',
-      onReady: mock,
+      component: SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM,
+      container: '#first-staff-access-container',
+      name: 'renderReact',
     } as const;
 
+    render(
+      <div>
+        <div id="first-staff-access-container" />
+        <div id="second-staff-access-container" />
+      </div>
+    );
+    MockApiClient.addMockResponse({url: '/authenticators/', body: []});
     window.__onSentryInit = [init];
 
-    processInitQueue();
-    expect(mock).toHaveBeenCalledTimes(1);
+    await act(() => processInitQueue());
+    expect(await screen.findByText('COPS/CSM')).toBeInTheDocument();
 
-    processInitQueue();
-    expect(mock).toHaveBeenCalledTimes(1);
+    await processInitQueue();
+    act(() => {
+      window.__onSentryInit.push({
+        ...init,
+        container: '#second-staff-access-container',
+      });
+    });
 
-    window.__onSentryInit.push(init);
-    expect(mock).toHaveBeenCalledTimes(2);
-  });
-
-  it('is called after `processInitQueue` has already run', () => {
-    processInitQueue();
-    const mock = jest.fn();
-    const init = {
-      name: 'onReady',
-      onReady: mock,
-    } as const;
-
-    window.__onSentryInit.push(init);
-    expect(mock).toHaveBeenCalledTimes(1);
-
-    processInitQueue();
-    expect(mock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.getAllByText('COPS/CSM')).toHaveLength(2);
+    });
   });
 });

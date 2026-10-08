@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Grid} from '@sentry/scraps/layout';
 
 import {
@@ -12,16 +13,15 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -38,7 +38,7 @@ from sentry.snuba.events import Columns
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba
-from sentry.utils.dates import deprecated_utcnow
+from sentry.utils.dates import deprecated_utcnow, outside_retention_with_modified_start
 from sentry.utils.snuba import DATASETS, _prepare_start_end, bulk_snuba_queries, raw_snql_query
 from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
@@ -90,8 +90,11 @@ class SnubaEventStorage(EventStorage):
         referrer: str = "eventstore.get_events_snql",
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
+        *,
+        eager_load_bodies: bool = True,
+        extra_columns: Sequence[str] = (),
     ) -> list[Event]:
-        cols = self.__get_columns(dataset)
+        cols = [*self.__get_columns(dataset), *extra_columns]
 
         resolved_order_by = []
         order_by_col_names: set[str] = set()
@@ -222,7 +225,8 @@ class SnubaEventStorage(EventStorage):
 
         if "error" not in result:
             events = [self.__make_event(evt) for evt in result["data"]]
-            self.bind_nodes(events)
+            if eager_load_bodies:
+                self.bind_nodes(events)
             return events
 
         return []
@@ -800,6 +804,11 @@ class SnubaEventStorage(EventStorage):
 
         lower_bound = start or (event.datetime - timedelta(days=100))
         upper_bound = end or (event.datetime + timedelta(days=100))
+        expired, lower_bound = outside_retention_with_modified_start(
+            lower_bound, upper_bound, Organization(organization_id)
+        )
+        if expired:
+            return [None, None]
 
         def make_prev_timestamp_conditions(
             event: Event | GroupEvent,
