@@ -197,29 +197,27 @@ class ApplicationStateTest(TestCase):
         with patch.object(application_state, "default_store", self.store):
             yield
 
-    @pytest.mark.parametrize(
-        "name,value",
-        [
+    def test_state_round_trip_uses_existing_storage(self) -> None:
+        from sentry import application_state
+
+        for name, value in [
             ("sentry:system-token", "existing-system-token"),
             ("sentry:install-id", "existing-installation"),
             ("sentry:latest_version", "1.2.3"),
             ("sentry:last_worker_ping", 1234.5),
             ("sentry:last_worker_version", "1.2.3"),
             ("sentry:version-configured", "1.2.3"),
-        ],
-    )
-    def test_state_round_trip_uses_existing_storage(self, name, value) -> None:
-        from sentry import application_state
-
-        self.manager.set(name, value)
-        assert application_state.get(name) == value
-        assert application_state.set(name, value)
-        assert Option.objects.get(key=name).value == value
-        assert self.manager.get(name) == value
-        assert self.store.cache.get(self.manager.lookup_key(name).cache_key) == value
-        assert application_state.delete(name)
-        assert not Option.objects.filter(key=name).exists()
-        assert application_state.get(name) == ""
+        ]:
+            with self.subTest(name=name):
+                self.manager.set(name, value)
+                assert application_state.get(name) == value
+                assert application_state.set(name, value)
+                assert Option.objects.get(key=name).value == value
+                assert self.manager.get(name) == value
+                assert self.store.cache.get(self.manager.lookup_key(name).cache_key) == value
+                assert application_state.delete(name)
+                assert not Option.objects.filter(key=name).exists()
+                assert application_state.get(name) == ""
 
     def test_state_preserves_self_hosted_fallbacks(self) -> None:
         from sentry import application_state
@@ -243,26 +241,24 @@ class ApplicationStateTest(TestCase):
             with patch.object(options.default_manager, "_read_hook", side_effect=AssertionError):
                 assert application_state.get("sentry:system-token") == "existing-system-token"
 
-    @pytest.mark.parametrize(
-        "name",
-        [
+    def test_state_rejects_configuration_and_scoped_keys(self) -> None:
+        from sentry import application_state
+
+        for name in [
             "system.url-prefix",
             "sentry:skip-record-onboarding-tasks-if-complete",
             "sentry:_last_auto_resolve",
             "sentry:unknown",
             "getsentry:unknown",
-        ],
-    )
-    def test_state_rejects_configuration_and_scoped_keys(self, name) -> None:
-        from sentry import application_state
-
-        with pytest.raises(ValueError, match="Unknown application state key"):
-            application_state.get(name)
-        with pytest.raises(ValueError, match="Unknown application state key"):
-            application_state.set(name, "value")
-        with pytest.raises(ValueError, match="Unknown application state key"):
-            application_state.delete(name)
-        assert not Option.objects.filter(key=name).exists()
+        ]:
+            with self.subTest(name=name):
+                with pytest.raises(ValueError, match="Unknown application state key"):
+                    application_state.get(name)
+                with pytest.raises(ValueError, match="Unknown application state key"):
+                    application_state.set(name, "value")
+                with pytest.raises(ValueError, match="Unknown application state key"):
+                    application_state.delete(name)
+                assert not Option.objects.filter(key=name).exists()
 
     def test_state_does_not_coerce_values(self) -> None:
         from sentry import application_state
