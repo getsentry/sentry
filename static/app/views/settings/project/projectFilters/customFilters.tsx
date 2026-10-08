@@ -11,7 +11,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -85,21 +84,22 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
           <Text size="xs" variant="muted">
             {t('or')}
           </Text>
-          <Tooltip
-            title={
-              <Stack align="start" gap="xs">
-                {hidden.map((value, index) => (
-                  <Text key={index} monospace size="sm">
-                    {value}
-                  </Text>
-                ))}
-              </Stack>
-            }
-          >
-            <Tag variant="muted">
-              <Text size="sm">{tn('%s more', '%s more', hidden.length)}</Text>
-            </Tag>
-          </Tooltip>
+          <Tag variant="muted">
+            <InfoText
+              size="sm"
+              title={
+                <Stack align="start" gap="xs">
+                  {hidden.map((value, index) => (
+                    <Text key={index} monospace size="sm">
+                      {value}
+                    </Text>
+                  ))}
+                </Stack>
+              }
+            >
+              {tn('%s more', '%s more', hidden.length)}
+            </InfoText>
+          </Tag>
         </Fragment>
       )}
     </Flex>
@@ -292,7 +292,12 @@ function FilteredVolumeCells({
   return (
     <Fragment>
       <SimpleTable.RowCell>
-        <Container width={`${CHART_WIDTH}px`} height={`${CHART_HEIGHT}px`}>
+        <Container
+          width={`${CHART_WIDTH}px`}
+          height={`${CHART_HEIGHT}px`}
+          role="img"
+          aria-label={t('Filtered volume trend, peak %s', formatAbbreviatedNumber(peak))}
+        >
           <MiniBarChart
             stacked
             animateBars
@@ -510,7 +515,9 @@ export function CustomFilters({project}: {project: Project}) {
                     />
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
-                    <Text ellipsis>{filter.name}</Text>
+                    <InfoText mode="overflowOnly" title={filter.name}>
+                      {filter.name}
+                    </InfoText>
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
                     <Text ellipsis variant="muted">
