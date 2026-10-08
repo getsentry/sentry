@@ -638,7 +638,7 @@ def bind_ambiguous_org_context(
 
 def get_trace_id():
     span = traces.get_current_span()
-    if span is not None:
+    if isinstance(span, traces.StreamedSpan):
         return span.trace_id
 
     return None
