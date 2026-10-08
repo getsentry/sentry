@@ -6,6 +6,7 @@ import type {Location, LocationDescriptor} from 'history';
 
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {COL_WIDTH_MINIMUM, GridEditable} from 'sentry/components/tables/gridEditable';
@@ -120,14 +121,14 @@ export function TableView(props: TableViewProps) {
 
     if (isHeader) {
       if (hasAggregates) {
-        return [
-          <PrependHeader key="header-icon">
-            <IconStack size="sm" />
-          </PrependHeader>,
-        ];
+        return [<IconStack key="header-icon" size="sm" variant="muted" />];
       }
       if (!hasIdField) {
-        return [<PrependHeader key="header-event-id">{t('event id')}</PrependHeader>];
+        return [
+          <Text key="header-event-id" variant="muted">
+            {t('Event ID')}
+          </Text>,
+        ];
       }
       return [];
     }
@@ -662,10 +663,6 @@ function getProjectEventRedirectTarget(
     query: {...location.query, referrer: 'discover-events-table'},
   };
 }
-
-const PrependHeader = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;

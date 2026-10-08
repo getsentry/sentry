@@ -91,6 +91,8 @@ export interface ConversationModelUsage {
 
 export interface ConversationStats {
   endTimestamp: number;
+  errorToolNames: string[];
+  errors: number;
   generationDuration: number;
   inputTokens: number;
   llmCalls: number;
