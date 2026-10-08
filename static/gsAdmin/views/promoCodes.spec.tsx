@@ -75,7 +75,7 @@ describe('PromoCodes', () => {
     renderGlobalModal();
     expect(screen.getByRole('heading', {name: 'Add New Promo Code'})).toBeInTheDocument();
     await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Max claims'}), '10');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
     await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
     await waitFor(() => expect(create).toHaveBeenCalled());
@@ -103,7 +103,7 @@ describe('PromoCodes', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
     renderGlobalModal();
     await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Max claims'}), '10');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
     await userEvent.click(
       screen.getByLabelText('Set an expiration date for the promo code?')
     );
@@ -126,6 +126,43 @@ describe('PromoCodes', () => {
     );
   });
 
+  it('requires max claims to be a positive whole number', async () => {
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
+    const create = MockApiClient.addMockResponse({
+      url: '/promocodes/',
+      method: 'POST',
+      body: PromoCodeFixture({code: 'test-code'}),
+    });
+    render(<PromoCodes />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
+    const maxClaims = screen.getByRole('spinbutton', {name: 'Max claims'});
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    expect(await screen.findByText('Max claims is required')).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+
+    await userEvent.type(maxClaims, '1.5');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    expect(
+      await screen.findByText('Max claims must be a whole number')
+    ).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+
+    await userEvent.clear(maxClaims);
+    await userEvent.type(maxClaims, '10');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      '/promocodes/',
+      expect.objectContaining({data: expect.objectContaining({maxClaims: '10'})})
+    );
+  });
+
   it('accepts a decimal amount and rejects negative amounts', async () => {
     MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
     const create = MockApiClient.addMockResponse({
@@ -138,7 +175,7 @@ describe('PromoCodes', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
     renderGlobalModal();
     await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Max claims'}), '10');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
     const amount = screen.getByRole('spinbutton', {name: 'Amount'});
     await userEvent.type(amount, '-1');
     await userEvent.click(screen.getByRole('button', {name: 'Create'}));

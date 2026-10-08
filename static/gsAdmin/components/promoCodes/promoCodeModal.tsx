@@ -29,7 +29,12 @@ const promoCodeSchema = z
     duration: z.string(),
     amount: z.number().nonnegative('Amount must be zero or greater').nullable(),
     trialDays: z.string(),
-    maxClaims: z.string().min(1, 'Max claims is required'),
+    maxClaims: z
+      .number()
+      .int('Max claims must be a whole number')
+      .positive('Max claims must be greater than zero')
+      .nullable()
+      .refine(value => value !== null, 'Max claims is required'),
     newOnly: z.boolean(),
     setExpiration: z.boolean(),
     dateExpires: z.string(),
@@ -63,6 +68,7 @@ export function AddPromoCodeModal({
         data: {
           ...values,
           amount: values.amount === null ? '' : String(values.amount),
+          maxClaims: String(values.maxClaims),
           dateExpires: values.setExpiration ? values.dateExpires : null,
         },
       }),
@@ -89,13 +95,14 @@ export function AddPromoCodeModal({
       duration: promoCode?.duration ?? '1',
       amount: promoCode?.amount ? Number(promoCode.amount) : null,
       trialDays: String(promoCode?.trialDays ?? ''),
-      maxClaims: String(promoCode?.maxClaims ?? ''),
+      maxClaims: promoCode?.maxClaims ?? null,
       newOnly: promoCode?.newOnly ?? false,
       setExpiration: Boolean(promoCode?.dateExpires),
       dateExpires: promoCode?.dateExpires?.slice(0, 16) ?? '',
     },
     validators: {onDynamic: promoCodeSchema},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    onSubmit: ({value}) =>
+      mutation.mutateAsync(promoCodeSchema.parse(value)).catch(() => {}),
   });
 
   return (
@@ -198,7 +205,12 @@ export function AddPromoCodeModal({
                 hintText="The maximum number of accounts which can claim this code."
                 required
               >
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Number
+                  min={1}
+                  step={1}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
               </field.Layout.Stack>
             )}
           </form.AppField>
