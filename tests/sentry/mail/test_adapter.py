@@ -17,6 +17,7 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
+from sentry.digests.types import IdentifierKey
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
@@ -1599,6 +1600,9 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.backend.add.call_count == 1
+        record = digests.backend.add.call_args.args[1]
+        assert record.value.identifier_key == IdentifierKey.WORKFLOW
+        assert record.value.rules == [int(rule.data["actions"][0]["workflow_id"])]
         assert event.group
         mock_logger.info.assert_called_with(
             "mail.adapter.notification.%s",
