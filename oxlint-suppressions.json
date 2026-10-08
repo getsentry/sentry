@@ -1299,11 +1299,6 @@
       "count": 5
     }
   },
-  "static/app/components/tables/gridEditable/styles.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/components/tables/keyValueTable/keyValueTable.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
