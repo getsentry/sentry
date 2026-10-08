@@ -6,7 +6,12 @@ import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 
 import React, {type ReactElement} from 'react';
-import {act, configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+// eslint-disable-next-line no-restricted-imports
+import {
+  act,
+  configure as configureRtl,
+  getConfig as getRtlConfig,
+} from '@testing-library/react';
 import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
@@ -53,8 +58,25 @@ MotionGlobalConfig.skipAnimations = true;
  *   too little headroom on contended CI runners and causes intermittent
  *   "Unable to find an element" failures. Passing tests are not slowed down.
  *   See: https://testing-library.com/docs/dom-testing-library/api-configuration/#asyncutiltimeout
+ * - Don't print the DOM into errors that `findBy*` / `waitFor` throw away. They
+ *   retry their callback with expensive diagnostics disabled and, on timeout,
+ *   rebuild the last error through `getElementError` again, so failures still
+ *   show the DOM. Printing a large DOM on every retry is slow.
  */
-configureRtl({testIdAttribute: 'data-test-id', asyncUtilTimeout: 2000});
+const defaultGetElementError = getRtlConfig().getElementError;
+configureRtl({
+  testIdAttribute: 'data-test-id',
+  asyncUtilTimeout: 2000,
+  getElementError: (message, container) => {
+    const config = getRtlConfig() as {_disableExpensiveErrorDiagnostics?: boolean};
+    if (!config._disableExpensiveErrorDiagnostics) {
+      return defaultGetElementError(message, container);
+    }
+    const error = new Error(message ?? '');
+    error.name = 'TestingLibraryElementError';
+    return error;
+  },
+});
 
 /**
  * Mock (current) date to always be National Pasta Day
