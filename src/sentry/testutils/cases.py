@@ -126,7 +126,6 @@ from sentry.notifications.models.notificationsettingprovider import (
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.search.events.constants import (
@@ -3097,7 +3096,7 @@ class MonitorTestCase(APITestCase):
             **monitorenvironment_defaults,
         )
 
-    def _create_issue_alert_rule(self, monitor, exclude_slug_filter=False):
+    def _create_issue_alert_rule(self, monitor):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -3106,15 +3105,14 @@ class MonitorTestCase(APITestCase):
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
             },
         ]
-        if not exclude_slug_filter:
-            conditions.append(
-                {
-                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                    "key": "monitor.slug",
-                    "match": "eq",
-                    "value": monitor.slug,
-                },
-            )
+        conditions.append(
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": monitor.slug,
+            },
+        )
         actions = [
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",
@@ -3123,17 +3121,17 @@ class MonitorTestCase(APITestCase):
                 "uuid": str(uuid4()),
             },
         ]
-        rule = ProjectRuleCreator(
-            name="New Cool Rule",
+        rule = self.create_project_rule(
             project=self.project,
-            conditions=conditions,
+            name="New Cool Rule",
+            condition_data=conditions,
             filter_match="all",
             action_match="any",
-            actions=actions,
+            action_data=actions,
             frequency=5,
-            environment=self.environment.id,
-        ).run()
-        rule.update(source=RuleSource.CRON_MONITOR)
+            environment_id=self.environment.id,
+            source=RuleSource.CRON_MONITOR,
+        )
 
         config = monitor.config
         config["alert_rule_id"] = rule.id

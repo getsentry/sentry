@@ -25,9 +25,7 @@ from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode_of
-from sentry.users.services.user.service import user_service
-from sentry.workflow_engine.migration_helpers.alert_rule import (
+from sentry.testutils.helpers.metric_alert_migration import (
     PRIORITY_MAP,
     dual_write_alert_rule,
     get_action_filter,
@@ -37,7 +35,9 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
-from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
+from sentry.testutils.helpers.metric_alert_migration_utils import get_workflow_name
+from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -724,7 +724,7 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
         with pytest.raises(ValueError):
             migrate_metric_action(aarta_sentry_app_with_config)
 
-    @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
+    @mock.patch("sentry.testutils.helpers.metric_alert_migration.logger")
     def test_dual_write_metric_alert_trigger_action_no_type(
         self, mock_logger: mock.MagicMock
     ) -> None:
