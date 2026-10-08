@@ -35,6 +35,36 @@ class SearchAgentResultTarget(StrEnum):
     AGENT_SEARCH = "agent_search"
 
 
+class SearchAgentReferrer(StrEnum):
+    """Allowlist of callers that may start a search agent run.
+
+    Forwarded to Seer, which combines it with the strategy to pick the RPC referrer
+    (e.g. `assisted_query.mcp.traces`). Add a value here before a client sends it.
+    """
+
+    SEARCH_BAR = "search_bar"
+    MCP = "mcp"
+
+
+def resolve_referrer(request: Request, raw: str | None) -> SearchAgentReferrer | None:
+    """Pick the referrer to forward to Seer.
+
+    The Sentry MCP server is derived from the request (its user agent) and wins over
+    whatever the client declared. Otherwise a declared referrer is used if it is on the
+    allowlist; unknown values are dropped rather than rejected, so an outdated client
+    keeps working and Seer falls back to its default referrer.
+    """
+    if get_client_kind(request) == ClientKind.MCP:
+        return SearchAgentReferrer.MCP
+    if not raw:
+        return None
+    try:
+        return SearchAgentReferrer(raw)
+    except ValueError:
+        logger.warning("search_agent.unknown_referrer", extra={"referrer": raw})
+        return None
+
+
 def infer_result_target(request: Request) -> SearchAgentResultTarget:
     """Classify web UI requests as ``ui_search`` and all other callers as ``agent_search``."""
     if is_frontend_request(request):
@@ -64,6 +94,12 @@ class SearchAgentStartSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional configuration options.",
     )
+    referrer = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Which caller started the run (e.g. `search_bar`). Unknown values are ignored.",
+    )
 
     def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
         if value is None:
@@ -88,7 +124,7 @@ def send_search_agent_start_request(
     reflection_step: bool = False,
     code_mode: bool = False,
     result_target: SearchAgentResultTarget | None = None,
-    client_kind: ClientKind | None = None,
+    referrer: SearchAgentReferrer | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -114,9 +150,9 @@ def send_search_agent_start_request(
         options["metric_context"] = metric_context
     if result_target is not None:
         options["result_target"] = result_target.value
-    if client_kind is not None:
-        # Lets Seer pick a caller-specific referrer (e.g. MCP vs. search bar).
-        options["client_kind"] = client_kind.value
+    if referrer is not None:
+        # Seer combines this with the strategy to pick the RPC referrer.
+        options["source"] = referrer.value
     body["options"] = options
 
     return enqueue_seer_run(
@@ -164,7 +200,8 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         metric_context = options.get("metric_context")
         result_target = infer_result_target(request)
         sentry_sdk.set_tag("search_agent.result_target", result_target.value)
-        client_kind = get_client_kind(request)
+        referrer = resolve_referrer(request, validated_data.get("referrer"))
+        sentry_sdk.set_tag("search_agent.referrer", referrer.value if referrer else None)
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -229,7 +266,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                     actor=request.user,
                 ),
                 result_target=result_target,
-                client_kind=client_kind,
+                referrer=referrer,
             )
             return Response(
                 {
