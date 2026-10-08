@@ -122,8 +122,10 @@ export const HeaderCellContent = styled('div', {
   flex: 1;
   font: inherit;
   gap: ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space['2xs']};
   min-width: 0;
-  padding: 0;
+  overflow: hidden;
+  padding: ${p => p.theme.space['2xs']};
   text-align: inherit;
   text-transform: inherit;
 
