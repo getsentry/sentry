@@ -101,7 +101,8 @@ describe('useEventsTimeseriesSpotCheck', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    jest.spyOn(Math, 'random').mockReturnValue(0);
+    // The sample rate is 0 in tests, so return less than 0 to opt in
+    jest.spyOn(Math, 'random').mockReturnValue(-1);
     jest.spyOn(Sentry.logger, 'warn').mockImplementation(() => {});
   });
 
