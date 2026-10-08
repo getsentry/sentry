@@ -82,6 +82,7 @@ class GroupActionType(IntEnum):
     PULL_REQUEST_REOPENED = 31
     PULL_REQUEST_MERGED = 32
     PULL_REQUEST_UNLINKED = 33
+    FIRST_SEEN = 34
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -222,6 +223,19 @@ class ViewAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.VIEW
+
+
+class FirstSeenAction(GroupAction):
+    """The group was created. Published exactly once per group, keyed by first_seen_idempotency_key()."""
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.FIRST_SEEN
+
+
+def first_seen_idempotency_key(group_id: int) -> str:
+    # Shared by the live publish path and any backfill so they dedupe against each other.
+    return f"first_seen:{group_id}"
 
 
 class ResolveAction(GroupAction):
