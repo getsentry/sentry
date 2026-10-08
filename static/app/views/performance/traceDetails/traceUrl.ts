@@ -57,7 +57,7 @@ export function getTraceDetailsUrl({
   tab,
 }: {
   dateSelection: ReturnType<typeof normalizeDateTimeParams>;
-  location: Location;
+  location: Pick<Location, 'pathname' | 'query'>;
   organization: Organization;
   traceSlug: string;
   eventId?: string;

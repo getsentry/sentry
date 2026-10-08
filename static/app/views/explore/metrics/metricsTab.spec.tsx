@@ -215,6 +215,24 @@ describe('MetricsTabContent', () => {
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
   });
 
+  it('links sample traces without metric query params', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig,
+        organization,
+      }
+    );
+
+    const [traceLink] = await screen.findAllByRole('link', {name: /^[0-9a-f]{8}$/});
+    const traceUrl = new URL(traceLink!.getAttribute('href')!, 'https://sentry.io');
+
+    expect(traceUrl.pathname).toContain('/trace/');
+    expect(traceUrl.searchParams.has('metric')).toBe(false);
+  });
+
   it('copies the last edited metric when adding another metric', async () => {
     render(
       <ProviderWrapper>
