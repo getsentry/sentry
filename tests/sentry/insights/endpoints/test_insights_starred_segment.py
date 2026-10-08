@@ -20,8 +20,8 @@ class InsightsStarredSegmentTest(APITestCase, SnubaTestCase):
             "sentry-api-0-insights-starred-segments",
             kwargs={"organization_id_or_slug": self.org.slug},
         )
-        self.transactions_url = reverse(
-            "sentry-api-0-insights-starred-transactions",
+        self.service_spans_url = reverse(
+            "sentry-api-0-organization-starred-service-spans",
             kwargs={"organization_id_or_slug": self.org.slug},
         )
 
@@ -124,54 +124,52 @@ class InsightsStarredSegmentTest(APITestCase, SnubaTestCase):
                 project_id=other_project.id,
             ).exists()
 
-    def test_delete_with_query_params(self) -> None:
+    def test_legacy_route_delete_ignores_query_params(self) -> None:
         with self.feature(self.feature_name):
-            segment_name = "my_segment"
-            response = self.client.post(
-                self.url, data={"segment_name": segment_name, "project_id": self.project_ids[0]}
-            )
-            assert response.status_code == 200, response.content
-
             response = self.client.delete(
-                f"{self.url}?segment_name={segment_name}&project_id={self.project_ids[0]}"
+                f"{self.url}?segment_name=my_segment&project_id={self.project_ids[0]}"
             )
-            assert response.status_code == 200, response.content
+            assert response.status_code == 400
 
-            assert not InsightsStarredSegment.objects.filter(
-                segment_name=segment_name,
-            ).exists()
+    def test_service_spans_route_delete_ignores_body(self) -> None:
+        with self.feature(self.feature_name):
+            response = self.client.delete(
+                self.service_spans_url,
+                data={"service_span": "my_service_span", "project_id": self.project_ids[0]},
+            )
+            assert response.status_code == 400
 
     def test_delete_without_params(self) -> None:
         with self.feature(self.feature_name):
             response = self.client.delete(self.url)
             assert response.status_code == 400
 
-    def test_transactions_route_post_and_delete(self) -> None:
+    def test_service_spans_route_post_and_delete(self) -> None:
         with self.feature(self.feature_name):
             response = self.client.post(
-                self.transactions_url,
-                data={"transaction": "my_transaction", "project_id": self.project_ids[0]},
+                self.service_spans_url,
+                data={"service_span": "my_service_span", "project_id": self.project_ids[0]},
             )
             assert response.status_code == 200, response.content
             assert InsightsStarredSegment.objects.filter(
-                segment_name="my_transaction",
+                segment_name="my_service_span",
             ).exists()
 
             response = self.client.delete(
-                f"{self.transactions_url}?transaction=my_transaction&project_id={self.project_ids[0]}"
+                f"{self.service_spans_url}?service_span=my_service_span&project_id={self.project_ids[0]}"
             )
             assert response.status_code == 200, response.content
             assert not InsightsStarredSegment.objects.filter(
-                segment_name="my_transaction",
+                segment_name="my_service_span",
             ).exists()
 
-    def test_transactions_route_accepts_segment_name(self) -> None:
+    def test_service_spans_route_accepts_segment_name(self) -> None:
         with self.feature(self.feature_name):
             response = self.client.post(
-                self.transactions_url,
-                data={"segment_name": "my_transaction", "project_id": self.project_ids[0]},
+                self.service_spans_url,
+                data={"segment_name": "my_service_span", "project_id": self.project_ids[0]},
             )
             assert response.status_code == 200, response.content
             assert InsightsStarredSegment.objects.filter(
-                segment_name="my_transaction",
+                segment_name="my_service_span",
             ).exists()

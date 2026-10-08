@@ -216,7 +216,7 @@ from sentry.flags.endpoints.secrets import (
 )
 from sentry.insights.endpoints.starred_segments import (
     InsightsStarredSegmentsEndpoint,
-    InsightsStarredTransactionsEndpoint,
+    OrganizationStarredServiceSpansEndpoint,
 )
 from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
@@ -1538,12 +1538,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         InsightsStarredSegmentsEndpoint.as_view(),
         name="sentry-api-0-insights-starred-segments",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/insights/starred-transactions/$",
-        InsightsStarredTransactionsEndpoint.as_view(),
-        name="sentry-api-0-insights-starred-transactions",
-    ),
     # Explore
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/starred-service-spans/$",
+        OrganizationStarredServiceSpansEndpoint.as_view(),
+        name="sentry-api-0-organization-starred-service-spans",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/$",
         ExploreSavedQueriesEndpoint.as_view(),

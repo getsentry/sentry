@@ -69,8 +69,8 @@ KEY_TRANSACTION_PROJECT_PARAM = OpenApiParameter(
 class KeyTransactionEndpoint(KeyTransactionBase):
     """
     Legacy: team key transactions are only used by the AM1 performance pages. Newer plans
-    star transactions per user through `InsightsStarredTransactionsEndpoint`
-    (`insights/starred-transactions/`), so this endpoint is intentionally kept private.
+    star service spans per user through `OrganizationStarredServiceSpansEndpoint`
+    (`starred-service-spans/`), so this endpoint is intentionally kept private.
     """
 
     publish_status = {
@@ -260,8 +260,8 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 class KeyTransactionListEndpoint(KeyTransactionBase):
     """
     Legacy: team key transactions are only used by the AM1 performance pages. Newer plans
-    star transactions per user through `InsightsStarredTransactionsEndpoint`
-    (`insights/starred-transactions/`), so this endpoint is intentionally kept private.
+    star service spans per user through `OrganizationStarredServiceSpansEndpoint`
+    (`starred-service-spans/`), so this endpoint is intentionally kept private.
     """
 
     publish_status = {
