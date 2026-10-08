@@ -12,7 +12,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
@@ -152,7 +152,7 @@ export function SegmentSpansTable({
         />
       </Header>
 
-      <GridEditable
+      <DataGrid
         isLoading={isLoading}
         error={error}
         data={consolidatedData}

@@ -4,11 +4,11 @@ import type {Location} from 'history';
 
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {DataGrid, type GridColumnHeader} from 'sentry/components/tables/dataGrid';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/dataGrid/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -150,7 +150,7 @@ export function MobileOverviewTable({response, sort}: Props) {
       hasData={data.length > 0}
       isLoading={isLoading}
     >
-      <GridEditable
+      <DataGrid
         aria-label={t('Domains')}
         isLoading={isLoading}
         error={response.error}

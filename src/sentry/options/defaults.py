@@ -4374,7 +4374,7 @@ register(
 
 
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
-# human feedback resets the streak. See ``automated_iteration_cap_reached``.
+# human feedback resets the streak. See ``automated_streak_cap_reached``.
 register(
     "autofix.pr-iteration.max-iterations",
     type=Int,

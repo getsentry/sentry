@@ -25,7 +25,7 @@ import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateC
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {SpansTable} from 'sentry/views/explore/tables/spansTable';
-import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
+import {TracesTable} from 'sentry/views/explore/tables/tracesTable/tracesTable';
 
 interface BaseExploreTablesProps {
   setTab: (tab: Mode | Tab, reason: 'click' | 'effect') => void;

@@ -3,12 +3,14 @@ import {useTheme} from '@emotion/react';
 import {IconWarning} from '@sentry/icons/iconWarning';
 import moment from 'moment-timezone';
 
+import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
+
 import {Count} from 'sentry/components/count';
-import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,15 +30,7 @@ import {
   SpanTimeRenderer,
   TraceBreakdownContainer,
 } from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
-import {
-  MoreMatchingSpans,
-  SpanPanelContent,
-  SpanTablePanelItem,
-  StyledPanel,
-  StyledPanelHeader,
-  StyledPanelItem,
-  StyledSpanPanelItem,
-} from 'sentry/views/explore/tables/tracesTable/styles';
+import {SpanTableCell} from 'sentry/views/explore/tables/tracesTable/styles';
 import type {
   SpanResult,
   SpanResults,
@@ -46,7 +40,15 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 
 const ONE_MINUTE = 60 * 1000; // in milliseconds
 
-export function SpanTable({trace}: {trace: TraceResult}) {
+const SPAN_TABLE_COLUMNS: TableColumnConfig[] = [
+  {key: 'id', width: 'min-content'},
+  {key: 'description', width: 'auto'},
+  {key: 'breakdown', width: 'min-content'},
+  {key: 'duration', width: 'min-content'},
+  {key: 'timestamp', width: 'min-content'},
+];
+
+export function TraceSpansTable({trace}: {trace: TraceResult}) {
   const organization = useOrganization();
 
   const query = useQueryParamsQuery();
@@ -74,33 +76,34 @@ export function SpanTable({trace}: {trace: TraceResult}) {
   }, [spans, isPending, showErrorState]);
 
   return (
-    <SpanTablePanelItem span={6} overflow>
-      <StyledPanel>
-        <SpanPanelContent>
-          <StyledPanelHeader justify="start" lightText>
-            {t('Span ID')}
-          </StyledPanelHeader>
-          <StyledPanelHeader justify="start" lightText>
-            {t('Span Description')}
-          </StyledPanelHeader>
-          <StyledPanelHeader justify="end" lightText />
-          <StyledPanelHeader justify="end" lightText>
-            {t('Span Duration')}
-          </StyledPanelHeader>
-          <StyledPanelHeader justify="end" lightText>
-            {t('Timestamp')}
-          </StyledPanelHeader>
-          {isPending && (
-            <StyledPanelItem span={5} overflow>
-              <LoadingIndicator />
-            </StyledPanelItem>
-          )}
+    <SimpleTable.Row>
+      <SpanTableCell>
+        <SimpleTable
+          aria-label={t('Spans in trace')}
+          columns={SPAN_TABLE_COLUMNS}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Span ID')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Span Description')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell aria-label={t('Span Breakdown')} />
+              <SimpleTable.HeaderCell align="right">
+                {t('Span Duration')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell align="right">
+                {t('Timestamp')}
+              </SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {isPending && <SimpleTable.Loading />}
           {isError && ( // TODO: need an error state
-            <StyledPanelItem span={5} overflow>
-              <EmptyStreamWrapper>
-                <IconWarning variant="muted" size="lg" />
-              </EmptyStreamWrapper>
-            </StyledPanelItem>
+            <SimpleTable.Empty>
+              <IconWarning
+                data-test-id="spans-error-indicator"
+                variant="muted"
+                size="lg"
+              />
+            </SimpleTable.Empty>
           )}
           {data?.data.map(span => (
             <SpanRow
@@ -113,17 +116,21 @@ export function SpanTable({trace}: {trace: TraceResult}) {
             />
           ))}
           {hasData && spans.length < trace.matchingSpans && (
-            <MoreMatchingSpans span={5}>
-              {tct('[more][space]more [matching]spans can be found in the trace.', {
-                more: <Count value={trace.matchingSpans - spans.length} />,
-                space: <Fragment>&nbsp;</Fragment>,
-                matching: query ? 'matching ' : '',
-              })}
-            </MoreMatchingSpans>
+            <SimpleTable.Row>
+              <SimpleTable.RowCell column="1 / -1">
+                <Text variant="muted">
+                  {tct('[more][space]more [matching]spans can be found in the trace.', {
+                    more: <Count value={trace.matchingSpans - spans.length} />,
+                    space: <Fragment>&nbsp;</Fragment>,
+                    matching: query ? 'matching ' : '',
+                  })}
+                </Text>
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
           )}
-        </SpanPanelContent>
-      </StyledPanel>
-    </SpanTablePanelItem>
+        </SimpleTable>
+      </SpanTableCell>
+    </SimpleTable.Row>
   );
 }
 
@@ -142,8 +149,8 @@ function SpanRow({
 }) {
   const theme = useTheme();
   return (
-    <Fragment>
-      <StyledSpanPanelItem align="right">
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
         <SpanIdRenderer
           transactionId={span['transaction.id']}
           spanId={span.id}
@@ -159,15 +166,15 @@ function SpanRow({
             })
           }
         />
-      </StyledSpanPanelItem>
-      <StyledSpanPanelItem align="left" overflow>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <SpanDescriptionRenderer
           span={span}
           highlightTerms={highlightTerms}
           caseSensitiveHighlighting={caseSensitiveHighlighting}
         />
-      </StyledSpanPanelItem>
-      <StyledSpanPanelItem align="right">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <TraceBreakdownContainer>
           <SpanBreakdownSliceRenderer
             sliceName={span.project}
@@ -178,18 +185,17 @@ function SpanRow({
             theme={theme}
           />
         </TraceBreakdownContainer>
-      </StyledSpanPanelItem>
-      <StyledSpanPanelItem align="right">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         <PerformanceDuration milliseconds={span['span.duration']} abbreviation />
-      </StyledSpanPanelItem>
-
-      <StyledSpanPanelItem align="right">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         <SpanTimeRenderer
           timestamp={span['precise.finish_ts'] * 1000}
           tooltipShowSeconds
         />
-      </StyledSpanPanelItem>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 

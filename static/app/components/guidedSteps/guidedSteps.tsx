@@ -277,7 +277,7 @@ const StepWrapper = styled('div')`
     position: absolute;
     height: calc(100% + ${p => p.theme.space.xl});
     width: 1px;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     left: 17px;
   }

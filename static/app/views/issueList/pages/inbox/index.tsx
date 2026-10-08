@@ -749,7 +749,7 @@ function InboxIssueCard({
       >
         <InteractionStateLayer />
         <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">
-          <Flex align="center">
+          <Flex align="center" height="16px">
             {!group.hasSeen && (
               <StatusIndicator
                 variant="accent"

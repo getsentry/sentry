@@ -10,6 +10,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -27,11 +28,10 @@ import {
   prepareInputValueForSaving,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
+  DataGrid,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
+} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -326,7 +326,7 @@ export function TracesTable({
     : {};
 
   const tableComponent = (
-    <GridEditable
+    <DataGrid
       isLoading={tracesRequest.isPending}
       error={tracesRequest.error}
       data={tableData}

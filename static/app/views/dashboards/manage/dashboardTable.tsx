@@ -13,6 +13,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -23,11 +24,10 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
+  DataGrid,
   type GridColumnOrder,
   type GridColumnSort,
-} from 'sentry/components/tables/gridEditable';
+} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -414,7 +414,7 @@ function DashboardTable({
   };
 
   return (
-    <GridEditable
+    <DataGrid
       data={dashboards ?? []}
       columnOrder={columnOrder}
       grid={{

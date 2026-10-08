@@ -1296,12 +1296,7 @@
   },
   "static/app/components/stream/group.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 5
-    }
-  },
-  "static/app/components/tables/gridEditable/styles.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
+      "count": 4
     }
   },
   "static/app/components/tables/keyValueTable/keyValueTable.stories.tsx": {
@@ -2207,11 +2202,6 @@
   "static/app/views/explore/tables/tracesTable/fieldRenderers.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    }
-  },
-  "static/app/views/explore/tables/tracesTable/styles.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
     }
   },
   "static/app/views/explore/toolbar/toolbarVisualize.tsx": {
