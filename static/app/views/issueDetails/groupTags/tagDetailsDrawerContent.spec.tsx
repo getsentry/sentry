@@ -5,12 +5,16 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
 import {
+  act,
   render,
   screen,
   userEvent,
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
+
+import {Container} from '@sentry/scraps/layout';
 
 import type {TagValue, TagWithTopValues} from 'sentry/types/group';
 
@@ -18,6 +22,9 @@ import {TagDetailsDrawerContent} from './tagDetailsDrawerContent';
 
 const group = GroupFixture();
 const tags = TagsFixture();
+const pageLinks =
+  '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
+  '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
 const makeInitialRouterConfig = (tagKey: string) => ({
   location: {
@@ -45,6 +52,7 @@ describe('TagDetailsDrawerContent', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    jest.restoreAllMocks();
   });
 
   it('renders a list of tag values', async () => {
@@ -84,11 +92,7 @@ describe('TagDetailsDrawerContent', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
-      headers: {
-        Link:
-          '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
-          '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
-      },
+      headers: {Link: pageLinks},
     });
     const {router} = render(<TagDetailsDrawerContent group={group} />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
@@ -103,6 +107,54 @@ describe('TagDetailsDrawerContent', () => {
     await waitFor(() => {
       expect(router.location.query.tagDrawerCursor).toBe('0:100:0');
     });
+  });
+
+  it('sorts tag values by the clicked column header', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+    });
+    const dateSortRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+      match: [MockApiClient.matchQuery({sort: 'date'})],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    const countHeaderSort = screen
+      .getByRole('columnheader', {name: 'Count'})
+      .getAttribute('aria-sort');
+
+    await userEvent.click(screen.getByRole('link', {name: 'Last Seen'}));
+
+    expect(countHeaderSort).toBe('descending');
+    await waitFor(() => {
+      expect(router.location.query.tagDrawerSort).toBe('date');
+    });
+    expect(screen.getByRole('columnheader', {name: 'Last Seen'})).toHaveAttribute(
+      'aria-sort',
+      'descending'
+    );
+    expect(screen.getByRole('columnheader', {name: 'Count'})).not.toHaveAttribute(
+      'aria-sort'
+    );
+    expect(dateSortRequest).toHaveBeenCalled();
+  });
+
+  it('renders an empty state when the tag has no values', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: [],
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    expect(await screen.findByText('No tag values found')).toBeInTheDocument();
   });
 
   it('navigates to issue details events tab with correct query params', async () => {
@@ -180,6 +232,77 @@ describe('TagDetailsDrawerContent', () => {
     expect(
       await screen.findByText('There was an error loading tag details')
     ).toBeInTheDocument();
+  });
+
+  it('renders an error without pagination when the tag request fails', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/',
+      statusCode: 500,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+      headers: {Link: pageLinks},
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    expect(
+      await screen.findByText('There was an error loading tag details')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
+  });
+
+  it('hides pagination while the tag request is pending', async () => {
+    let resolveTagRequest = () => {};
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/',
+      body: tags.find(({key}) => key === 'user'),
+      asyncDelay: new Promise<void>(resolve => {
+        resolveTagRequest = resolve;
+      }),
+    });
+    const valuesRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+      headers: {Link: pageLinks},
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    await waitFor(() => expect(valuesRequest).toHaveBeenCalled());
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    const nextButtonWhilePending = screen.queryByRole('button', {name: 'Next'});
+    resolveTagRequest();
+
+    expect(nextButtonWhilePending).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
+  });
+
+  it('hides the Last Seen and Share columns when the container is narrow', async () => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(400);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+    });
+
+    render(
+      <Container containerType="inline-size">
+        <TagDetailsDrawerContent group={group} />
+      </Container>,
+      {initialRouterConfig: makeInitialRouterConfig('user')}
+    );
+
+    const table = await screen.findByRole('table', {name: 'Tag values'});
+    const rules = getEmotionRules(table).join('');
+
+    expect(rules).toContain("nth-child(2 of [role='cell'], [role='columnheader'])");
+    expect(rules).toContain("nth-child(4 of [role='cell'], [role='columnheader'])");
+    expect(rules).not.toContain("nth-child(3 of [role='cell'], [role='columnheader'])");
   });
 
   it('renders rounded percentages counts [996, 4], total 1000', async () => {
