@@ -2630,8 +2630,6 @@ GITHUB_EXTENDED_PERMISSIONS = DEAD
 GITHUB_ORGANIZATION = DEAD
 
 
-SUDO_URL = "sentry-sudo"
-
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
 # alerting the user of outdated SDKs.
 SENTRY_RELEASE_REGISTRY_BASEURL: str | None = None
