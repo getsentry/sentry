@@ -52,11 +52,6 @@ function OnboardingSkipModal({
       description: t('I prefer to set things up at my own pace.'),
     },
     {
-      value: 'marketing',
-      label: t('I thought the onboarding was marketing junk'),
-      description: t("I didn't realize this was where I connect my code."),
-    },
-    {
       value: 'just_skip',
       label: t('Just let me outta here okay'),
       description: t(

@@ -26,11 +26,17 @@ export function transformTimeSeriesResponseToSeries(
   widgetQuery: WidgetQuery
 ): WidgetSeries[] {
   const hasMultipleYAxes = new Set(data.timeSeries.map(({yAxis}) => yAxis)).size > 1;
+  const isGroupedQuery = widgetQuery.columns.length > 0;
 
   return data.timeSeries
     .toSorted((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0))
     .map(timeSeries => ({
-      seriesName: getLegacySeriesName(timeSeries, widgetQuery.name, hasMultipleYAxes),
+      seriesName: getLegacySeriesName(
+        timeSeries,
+        widgetQuery.name,
+        hasMultipleYAxes,
+        isGroupedQuery
+      ),
       data: timeSeries.values.map(item => ({
         name: item.timestamp,
         value: item.value ?? 0,
@@ -45,10 +51,12 @@ export function transformTimeSeriesResponseToSeries(
 function getLegacySeriesName(
   timeSeries: TimeSeries,
   alias: string | undefined,
-  hasMultipleYAxes: boolean
+  hasMultipleYAxes: boolean,
+  isGroupedQuery: boolean
 ): string {
   const {yAxis} = timeSeries;
-  const isGrouped = timeSeries.meta.isOther || (timeSeries.groupBy?.length ?? 0) > 0;
+  const isGrouped =
+    isGroupedQuery || timeSeries.meta.isOther || (timeSeries.groupBy?.length ?? 0) > 0;
 
   if (!isGrouped) {
     return alias ? `${alias}${SERIES_NAME_PART_DELIMITER}${yAxis}` : yAxis;

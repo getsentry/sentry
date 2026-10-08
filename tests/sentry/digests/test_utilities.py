@@ -125,12 +125,13 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         rule = self.create_project_rule(project=project, environment_id=development.id)
         workflow_id = int(rule.data["actions"][0]["workflow_id"])
         workflow = Workflow.objects.get(id=workflow_id)
-        workflow.update(environment_id=production.id)
+        workflow.update(name="Renamed workflow", environment_id=production.id)
 
         rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
 
         assert rendered_rule.legacy_rule_id == rule.id
         assert rendered_rule.workflow_id == workflow_id
+        assert rendered_rule.label == "Renamed workflow"
         assert rendered_rule.environment_id == production.id
 
     def test_get_rules_from_workflows_uses_unset_workflow_environment(self) -> None:
@@ -336,9 +337,11 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
         records = _get_records(self.project, (rule,), self.team1_events[0])
 
-        digest = build_digest(self.project, sort_records(records))[0]
+        with patch("sentry.digests.notifications.Rule.objects.in_bulk") as rule_in_bulk:
+            digest = build_digest(self.project, sort_records(records))[0]
 
         [digest_rule] = digest.keys()
+        rule_in_bulk.assert_not_called()
         assert digest_rule.legacy_rule_id == rule.id
         assert digest_rule.workflow_id == workflow_id
 
@@ -350,9 +353,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         with patch("sentry.digests.notifications.logger") as mock_logger:
             digest = build_digest(self.project, sort_records(records))[0]
 
-        [digest_rule] = digest.keys()
-        assert digest_rule.legacy_rule_id == rule.id
-        assert digest_rule.workflow_id is None
+        assert digest == {}
         mock_logger.error.assert_called_once_with(
             "digests.build_digest.rule_without_workflow",
             extra={"rule_id": rule.id, "project_id": self.project.id},
