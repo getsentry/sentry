@@ -72,7 +72,6 @@ import {
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 const TITLE = t('Inbox');
@@ -303,8 +302,7 @@ function InboxContent() {
   useReplayForCriticalFlow({flowName: 'issue_inbox', sampleRate: 1});
 
   const isDesktop = useResponsivePropValue({zero: false, '4xl': true});
-  const {layout} = usePrimaryNavigation();
-  const isMobile = layout === 'mobile';
+  const canShowEmptyState = useResponsivePropValue({zero: false, '2xl': true});
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
   const [{assignment: assignmentFilter, preview: selectedIssueId}, setInboxQueryState] =
@@ -327,6 +325,9 @@ function InboxContent() {
   );
   const assignmentCounts = useAssignmentCounts();
   const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
+  const showEmptyState = !selectedIssueId && isInboxEmpty && canShowEmptyState;
+  const showPreviewPane = Boolean(selectedIssueId) || showEmptyState;
+  const isSplitView = (isDesktop && Boolean(selectedIssueId)) || showEmptyState;
   const alternateInbox = getAlternateInbox(assignmentFilter, assignmentCounts);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
@@ -383,19 +384,19 @@ function InboxContent() {
       <Grid
         flex={1}
         minHeight={0}
-        columns={isDesktop ? 'max-content minmax(0, 1fr)' : 'minmax(0, 1fr)'}
+        columns={isSplitView ? 'max-content minmax(0, 1fr)' : 'minmax(0, 1fr)'}
       >
         <Stack
-          ref={isMobile ? undefined : resizableContainerRef}
+          ref={isSplitView ? resizableContainerRef : undefined}
           as="section"
           aria-label={t('Issue inbox')}
           position="relative"
-          width={isDesktop ? `${size}px` : '100%'}
+          style={{width: isSplitView ? `${size}px` : '100%'}}
           minWidth={0}
           minHeight={0}
           display={selectedIssueId && !isDesktop ? 'none' : 'flex'}
           background="primary"
-          borderRight="muted"
+          borderRight={isSplitView ? 'muted' : undefined}
         >
           <Flex
             as="header"
@@ -433,7 +434,7 @@ function InboxContent() {
             width="8px"
             radius="lg"
             position="absolute"
-            display={isDesktop ? 'block' : 'none'}
+            display={isSplitView ? 'block' : 'none'}
           >
             {props => (
               <ResizeHandle
@@ -453,7 +454,7 @@ function InboxContent() {
           minWidth={0}
           minHeight={0}
           overflow="hidden"
-          display={selectedIssueId || isDesktop ? 'flex' : 'none'}
+          display={showPreviewPane ? 'flex' : 'none'}
         >
           {selectedIssueId && (
             <Container
@@ -472,7 +473,7 @@ function InboxContent() {
             </Container>
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
-          {!selectedIssueId && isInboxEmpty && isDesktop && (
+          {showEmptyState && (
             <InboxEmptyState
               assignmentFilter={assignmentFilter}
               alternateInbox={alternateInboxAction}

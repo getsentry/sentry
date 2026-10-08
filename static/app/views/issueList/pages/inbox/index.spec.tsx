@@ -644,10 +644,20 @@ describe('InboxPage', () => {
   });
 
   it('restores the persisted Inbox pane width', () => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1200);
     localStorage.setItem('inbox-split-size', '550');
     mockSuccessfulSections();
+    mockIssuePreview();
 
-    render(<InboxPage />, {organization, initialRouterConfig});
+    render(<InboxPageInContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          ...initialRouterConfig.location,
+          query: {...initialRouterConfig.location.query, preview: fixProposedGroup.id},
+        },
+      },
+    });
 
     expect(screen.getByRole('region', {name: 'Issue inbox'})).toHaveStyle({
       width: '550px',
@@ -1497,7 +1507,7 @@ describe('InboxPage', () => {
   });
 
   it('shows one column without the empty state when the container is narrow', async () => {
-    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1016);
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(803);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [],
@@ -1515,6 +1525,22 @@ describe('InboxPage', () => {
     );
   });
 
+  it('shows the empty state at the 2xl container breakpoint', async () => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(900);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [],
+    });
+
+    render(<InboxPageInContainer />, {organization, initialRouterConfig});
+
+    expect(await screen.findByText('No Issues in your Inbox!')).toBeInTheDocument();
+    const inbox = screen.getByRole('region', {name: 'Issue inbox'});
+    expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
+      'grid-template-columns: max-content minmax(0, 1fr)'
+    );
+  });
+
   describe('on desktop', () => {
     beforeEach(() => {
       jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1200);
@@ -1522,6 +1548,37 @@ describe('InboxPage', () => {
 
     afterEach(() => {
       jest.restoreAllMocks();
+    });
+
+    it('fills the available width when there is no preview or empty state', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-count/',
+        body: {
+          [`issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 1,
+        },
+      });
+
+      render(<InboxPageInContainer />, {organization, initialRouterConfig});
+
+      const inbox = screen.getByRole('region', {name: 'Issue inbox'});
+      await waitFor(() => {
+        expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
+          'grid-template-columns: minmax(0, 1fr)'
+        );
+        expect(inbox).toHaveStyle({width: '100%'});
+      });
+      expect(
+        getEmotionRules(screen.getByRole('complementary', {name: 'Issue preview'})).join(
+          ''
+        )
+      ).toContain('display: none');
+      expect(
+        screen.queryByRole('heading', {name: 'No Issues in your Inbox!'})
+      ).not.toBeInTheDocument();
     });
 
     it('auto-selects the first issue', async () => {
