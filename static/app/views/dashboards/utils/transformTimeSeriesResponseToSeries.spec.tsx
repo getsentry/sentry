@@ -80,13 +80,21 @@ describe('transformTimeSeriesResponseToSeries', () => {
       expected: ['Alias > Chrome : count()', 'Alias > Chrome : p50(span.duration)'],
     },
     {
-      name: 'a group with no matching buckets',
+      name: 'a grouped query with no groups and a single y-axis',
       alias: 'Alias',
+      columns: ['browser'],
+      timeSeries: [makeTimeSeries('count()', {groupBy: null})],
+      expected: ['Alias : count()'],
+    },
+    {
+      name: 'a grouped query with no groups and multiple y-axes',
+      alias: 'Alias',
+      columns: ['browser'],
       timeSeries: [
-        makeTimeSeries('count()', {groupBy: chrome, order: 0}),
-        makeTimeSeries('count()', {groupBy: null, order: 1}),
+        makeTimeSeries('count()', {groupBy: null}),
+        makeTimeSeries('p50(span.duration)', {groupBy: null}),
       ],
-      expected: ['Alias : Chrome', 'Alias : '],
+      expected: ['Alias >  : count()', 'Alias >  : p50(span.duration)'],
     },
   ])(
     'matches events-stats series names for $name',
