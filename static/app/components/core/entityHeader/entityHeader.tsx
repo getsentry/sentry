@@ -193,9 +193,10 @@ export function EntityHeader({
                 role="list"
                 aria-label={metadata.label}
                 align="center"
-                gap="xl"
+                // No row gap: a wrapped properties row reads as one block, and
+                // the items carry their own line height.
+                gap="0 xl"
                 wrap="wrap"
-                margin="0"
                 minWidth={0}
                 minHeight={METADATA_TEXT_HEIGHT}
               >
