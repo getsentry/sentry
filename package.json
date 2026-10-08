@@ -232,7 +232,7 @@
     "@boundaries/eslint-plugin": "7.2.0",
     "@e18e/eslint-plugin": "0.8.0",
     "@emotion/server": "^11.11.0",
-    "@figma/code-connect": "^1.4.8",
+    "@figma/code-connect": "^2.0.1",
     "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@jest/types": "30.5.1",
