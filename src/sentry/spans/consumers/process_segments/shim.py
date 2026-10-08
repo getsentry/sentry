@@ -96,7 +96,7 @@ SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     "sentry.system": "system",
 }
 
-REQUEST_HEADERS_BY_ATTRIBUTE_NAME = {
+REQUEST_HEADERS_BY_ATTRIBUTE_NAME: dict[str, str] = {
     ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL: "User-Agent",
 }
 
@@ -113,6 +113,10 @@ KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
     REQUEST_HEADERS_BY_ATTRIBUTE_NAME.keys(),
     SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
+    *(
+        {RESOURCE_ATTRIBUTE_PREFIX + attribute_name for attribute_name in inner_dict}
+        for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()
+    ),
 )
 
 
@@ -255,6 +259,10 @@ def _get_full_url(segment_span: CompatibleSpan) -> str | None:
     host = attribute_value(segment_span, ATTRIBUTE_NAMES.SERVER_ADDRESS)
     if path in EMPTY_ATTRIBUTE_VALUES or host in EMPTY_ATTRIBUTE_VALUES:
         return None
+
+    host = str(host)
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"  # IPv6 literal
 
     scheme = attribute_value(segment_span, ATTRIBUTE_NAMES.URL_SCHEME) or "http"
     port = attribute_value(segment_span, ATTRIBUTE_NAMES.SERVER_PORT)

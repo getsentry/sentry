@@ -216,6 +216,22 @@ class TestBuildShimEventData:
         assert contexts["os"] == {"name": "Linux", "version": "6.8", "type": "os"}
         assert contexts["runtime"] == {"name": "go", "version": "go1.25.1", "type": "runtime"}
 
+    def test_excludes_resource_attributes_used_in_contexts_from_tags(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "resource.os.name": {"value": "Linux", "type": "string"},
+                "resource.process.runtime.name": {"value": "go", "type": "string"},
+                "resource.k8s.cluster.name": {"value": "dog-cluster", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+        tags = dict(event["tags"])
+
+        assert "resource.os.name" not in tags
+        assert "resource.process.runtime.name" not in tags
+        assert tags["resource.k8s.cluster.name"] == "dog-cluster"
+
     def test_span_attributes_take_precedence_over_resource_attributes(self) -> None:
         segment_span = build_segment_span(
             attributes={
@@ -433,29 +449,47 @@ class TestBuildShimEventData:
     @pytest.mark.parametrize(
         ("server_attributes", "expected_url"),
         (
-            ({"url.scheme": "https", "server.port": 443}, "https://dogs.are.great/dogpark"),
-            ({"url.scheme": "https", "server.port": 8443}, "https://dogs.are.great:8443/dogpark"),
-            ({"url.scheme": "http", "server.port": 80}, "http://dogs.are.great/dogpark"),
-            ({"server.port": 8080}, "http://dogs.are.great:8080/dogpark"),
+            (
+                {
+                    "url.scheme": {"value": "https", "type": "string"},
+                    "server.port": {"value": 443, "type": "integer"},
+                },
+                "https://dogs.are.great/dogpark",
+            ),
+            (
+                {
+                    "url.scheme": {"value": "https", "type": "string"},
+                    "server.port": {"value": 8443, "type": "integer"},
+                },
+                "https://dogs.are.great:8443/dogpark",
+            ),
+            (
+                {
+                    "url.scheme": {"value": "http", "type": "string"},
+                    "server.port": {"value": 80, "type": "integer"},
+                },
+                "http://dogs.are.great/dogpark",
+            ),
+            (
+                {"server.port": {"value": 8080, "type": "integer"}},
+                "http://dogs.are.great:8080/dogpark",
+            ),
             ({}, "http://dogs.are.great/dogpark"),
         ),
         ids=repr,
     )
     def test_reconstructs_full_url_from_server_span_attributes(
-        self, server_attributes: dict[str, Any], expected_url: str
+        self, server_attributes: Attributes, expected_url: str
     ) -> None:
         # HTTP server spans following the OTel semantic conventions have no `url.full`, only its
         # parts
-        attributes: Attributes = {
-            "url.path": {"value": "/dogpark", "type": "string"},
-            "server.address": {"value": "dogs.are.great", "type": "string"},
-        }
-        for attribute_name, value in server_attributes.items():
-            attributes[attribute_name] = {
-                "value": value,
-                "type": "integer" if isinstance(value, int) else "string",
+        segment_span = build_segment_span(
+            attributes={
+                "url.path": {"value": "/dogpark", "type": "string"},
+                "server.address": {"value": "dogs.are.great", "type": "string"},
+                **server_attributes,
             }
-        segment_span = build_segment_span(attributes=attributes)
+        )
 
         event = build_shim_event_data(segment_span, [segment_span])
 
@@ -473,6 +507,30 @@ class TestBuildShimEventData:
         event = build_shim_event_data(segment_span, [segment_span])
 
         assert event["request"]["url"] == "https://dogs.are.great/dogpark?ball=1"
+
+    @pytest.mark.parametrize(
+        ("server_address", "expected_url"),
+        (
+            ("::1", "http://[::1]:8080/dogpark"),
+            ("[::1]", "http://[::1]:8080/dogpark"),
+            ("2001:db8::7", "http://[2001:db8::7]:8080/dogpark"),
+        ),
+        ids=repr,
+    )
+    def test_wraps_ipv6_server_address_in_brackets(
+        self, server_address: str, expected_url: str
+    ) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "url.path": {"value": "/dogpark", "type": "string"},
+                "server.address": {"value": server_address, "type": "string"},
+                "server.port": {"value": 8080, "type": "integer"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["url"] == expected_url
 
     def test_does_not_reconstruct_url_without_server_address(self) -> None:
         segment_span = build_segment_span(
