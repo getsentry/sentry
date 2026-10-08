@@ -63,7 +63,5 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
             tags=set(data.tags) if data.tags else None,
             rules=rules,
             link_to_event=True,
-        ).build(
-            notification_uuid=data.notification_uuid,
-            decorate_link=link_decorator.decorate_url,
-        )
+            link_decorator=link_decorator,
+        ).build(notification_uuid=data.notification_uuid)

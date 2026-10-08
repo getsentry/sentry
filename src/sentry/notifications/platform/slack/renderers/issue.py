@@ -42,11 +42,9 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
             rules=[data.rule.to_rule()] if data.rule else None,
             notes=data.notes,
             link_to_event=True,
+            link_decorator=link_decorator,
         )
-        blocks_dict = builder.build(
-            notification_uuid=data.notification_uuid,
-            decorate_link=link_decorator.decorate_url,
-        )
+        blocks_dict = builder.build(notification_uuid=data.notification_uuid)
 
         return SlackRenderable(
             blocks=blocks_dict.get("blocks", []),

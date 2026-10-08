@@ -12,13 +12,17 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import Incident
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
-from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.issues import (
+    SlackIssuesMessageBuilder as BaseSlackIssuesMessageBuilder,
+)
 from sentry.integrations.slack.unfurl.dashboards import build_widget_timeseries_params
 from sentry.integrations.slack.unfurl.explore import _build_heatmap_query, _heatmap_y_buckets
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import discover, errors, transactions
 from sentry.testutils.cases import TestCase
@@ -34,6 +38,18 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 INTERVAL_COUNT = 300
 INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
+
+
+class SlackIssuesMessageBuilder(BaseSlackIssuesMessageBuilder):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(
+            *args,
+            **kwargs,
+            link_decorator=NotificationLinkDecorator.disabled(
+                source=NotificationSource.ISSUE,
+                provider=NotificationProviderKey.SLACK,
+            ),
+        )
 
 
 @pytest.mark.parametrize(

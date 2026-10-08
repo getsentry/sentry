@@ -13,7 +13,9 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
 )
 from sentry.integrations.slack.message_builder.issues import (
-    SlackIssuesMessageBuilder,
+    SlackIssuesMessageBuilder as BaseSlackIssuesMessageBuilder,
+)
+from sentry.integrations.slack.message_builder.issues import (
     build_actions,
     format_release_tag,
     get_context,
@@ -38,6 +40,8 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
@@ -53,6 +57,18 @@ from sentry.users.models.user import User
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
+
+
+class SlackIssuesMessageBuilder(BaseSlackIssuesMessageBuilder):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(
+            *args,
+            **kwargs,
+            link_decorator=NotificationLinkDecorator.disabled(
+                source=NotificationSource.ISSUE,
+                provider=NotificationProviderKey.SLACK,
+            ),
+        )
 
 
 def build_test_message_blocks(
