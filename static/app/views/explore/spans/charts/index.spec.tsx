@@ -141,16 +141,21 @@ describe('ExploreCharts', () => {
     function ControlledExploreCharts({
       yAxes,
       chartTypes,
+      seriesYAxes = yAxes,
     }: {
       yAxes: string[];
       chartTypes?: ChartType[];
+      // The y axes that returned a series. Defaults to every y axis.
+      seriesYAxes?: string[];
     }) {
       const timeseriesResult = useMemo(
         () =>
           timeseriesResultFixture({
-            data: Object.fromEntries(yAxes.map(yAxis => [yAxis, [timeSeriesFor(yAxis)]])),
+            data: Object.fromEntries(
+              seriesYAxes.map(yAxis => [yAxis, [timeSeriesFor(yAxis)]])
+            ),
           }),
-        [yAxes]
+        [seriesYAxes]
       );
       const [serialized, setSerialized] = useState<BaseVisualize[]>(() =>
         yAxes.map((yAxis, i) => ({yAxes: [yAxis], chartType: chartTypes?.[i]}))
@@ -244,6 +249,39 @@ describe('ExploreCharts', () => {
         ChartType.LINE,
       ]);
       useChartInfosPlottables.mockRestore();
+    });
+
+    it('keeps charts combined when a visualization returns no series', async () => {
+      render(
+        <ControlledExploreCharts
+          yAxes={['p50(span.duration)', 'p75(span.duration)']}
+          seriesYAxes={['p50(span.duration)']}
+        />,
+        {
+          organization: OrganizationFixture(),
+          initialRouterConfig: {
+            location: {pathname: '/', query: {combineCharts: 'true'}},
+          },
+        }
+      );
+
+      expect(await screen.findByLabelText('Split charts')).toBeInTheDocument();
+      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(1);
+    });
+
+    it('keeps charts combined when a refetch returns no series', async () => {
+      const yAxes = ['p50(span.duration)', 'p75(span.duration)'];
+      const {rerender} = render(<ControlledExploreCharts yAxes={yAxes} />, {
+        organization: OrganizationFixture(),
+        initialRouterConfig: {location: {pathname: '/', query: {combineCharts: 'true'}}},
+      });
+
+      expect(await screen.findByLabelText('Split charts')).toBeInTheDocument();
+
+      rerender(<ControlledExploreCharts yAxes={yAxes} seriesYAxes={[]} />);
+
+      expect(await screen.findByLabelText('Split charts')).toBeInTheDocument();
+      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(1);
     });
 
     it('does not combine visualizations with different units', async () => {

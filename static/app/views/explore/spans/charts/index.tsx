@@ -102,15 +102,14 @@ export function ExploreCharts({
 
   // Combining is only allowed when every visualization shares a value type,
   // so the combined chart always has a single Y axis. The type comes from the
-  // response meta, so hold the last known answer while a request is pending to
-  // keep the combined chart from splitting apart on every refetch.
+  // response meta, so hold the last known answer while a request is pending,
+  // or when no visualization returned a series, to keep the combined chart
+  // from splitting apart on every refetch.
   const sharedValueType = getSharedValueType(visualizes, timeseriesResult);
-  const previousSharedValueType = usePrevious(
-    sharedValueType,
-    timeseriesResult.isPending
-  );
+  const isValueTypeUnknown = timeseriesResult.isPending || sharedValueType === undefined;
+  const previousSharedValueType = usePrevious(sharedValueType, isValueTypeUnknown);
   const hasSharedValueType = defined(
-    timeseriesResult.isPending ? previousSharedValueType : sharedValueType
+    isValueTypeUnknown ? previousSharedValueType : sharedValueType
   );
 
   const hasMultipleVisualizes = visualizes.length > 1;
@@ -176,20 +175,25 @@ export function ExploreCharts({
 }
 
 /**
- * Returns the value type (e.g. `duration`) shared by every visualize, or
- * `undefined` when the types differ or are not known yet.
+ * Returns the value type (e.g. `duration`) shared by every visualize that has a
+ * series, `null` when the types differ, or `undefined` when no visualize has a
+ * series to read the type from. Visualizes without a series plot nothing, so
+ * they cannot introduce a second Y axis and are ignored.
  */
 function getSharedValueType(
   visualizes: readonly Visualize[],
   timeseriesResult: SortedTimeSeries
-): string | undefined {
+): string | null | undefined {
   const valueTypes = new Set(
-    visualizes.map(
-      visualize => timeseriesResult.data[visualize.yAxis]?.[0]?.meta.valueType
-    )
+    visualizes
+      .map(visualize => timeseriesResult.data[visualize.yAxis]?.[0]?.meta.valueType)
+      .filter(defined)
   );
-  if (valueTypes.size !== 1) {
+  if (valueTypes.size === 0) {
     return undefined;
+  }
+  if (valueTypes.size > 1) {
+    return null;
   }
   const [valueType] = valueTypes;
   return valueType;
