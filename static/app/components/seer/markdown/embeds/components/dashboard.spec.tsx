@@ -174,6 +174,30 @@ describe('dashboard embed', () => {
     unmount();
   });
 
+  it('renders gracefully when the API response omits the widgets field', async () => {
+    // Simulate a Seer-generated dashboard where the API response lacks `widgets`.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/123/',
+      body: {
+        id: '123',
+        title: 'Seer Dashboard',
+        filters: [],
+        dateCreated: new Date().toISOString(),
+        projects: undefined,
+        // `widgets` intentionally absent to reproduce the bug
+      },
+    });
+
+    renderEmbed({name: 'dashboard', data: {id: '123'}});
+
+    // Should show the dashboard title without crashing.
+    expect(
+      await screen.findByRole('button', {name: 'Seer Dashboard'}, {timeout: 5_000})
+    ).toBeInTheDocument();
+    // With zero widgets the empty-state message should appear.
+    expect(screen.getByText('This dashboard has no widgets.')).toBeInTheDocument();
+  });
+
   it('shows an error notice when dashboard details fail to load', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/123/',
