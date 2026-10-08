@@ -50,3 +50,13 @@ runs the scan daily, on manual dispatch, and on pushes to `master` that touch
 - `OPENROUTER_API_KEY` ← `REFACTOR_TASKS_OPENROUTER_API_KEY` secret.
 
 Both are repository secrets and must exist for the workflow to report.
+
+## PR check
+
+[`.github/workflows/refactor-tasks-prevention.yml`](../.github/workflows/refactor-tasks-prevention.yml)
+judges each PR's patch instead of the whole codebase. It narrows a sparse
+checkout of the merge commit to this folder plus the files the PR adds lines
+to, runs `scan`, and lists only the findings on added lines. Lint-path
+conventions (`detect_command`) are skipped there, since they need the full tree.
+
+The check is not required yet: violations fail its step, but not the check.

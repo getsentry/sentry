@@ -1,0 +1,51 @@
+name: '[NOT REQUIRED] refactor tasks prevention'
+# Judges each PR's patch against the .sentry-refactor-tasks conventions and
+# lists the violations it adds. refactor-tasks.yml is the other half: it scans
+# the existing codebase on a schedule and hands violations to Seer.
+on:
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  judge-patch:
+    name: Judge patch against conventions
+    # Fork PRs get no secrets, so there is no inference backend to judge with.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          # pull_request checks out the merge commit; HEAD^1 is the base branch
+          # tip, so depth 2 is enough to diff the patch.
+          fetch-depth: 2
+          # Only the conventions and the patched files are ever read. The
+          # script narrows the sparse checkout to those once it has the diff.
+          filter: blob:none
+          sparse-checkout: |
+            .sentry-refactor-tasks
+            .github/workflows/scripts
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version-file: '.node-version'
+
+      - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
+
+      - name: Judge patch
+        # Violations fail this step but not the check, while we find out how
+        # often the judge is right.
+        continue-on-error: true
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.REFACTOR_TASKS_OPENROUTER_API_KEY }}
+          INFERENCE_MODEL: haiku
+          SCAN_CONCURRENCY: '4'
+        run: node .github/workflows/scripts/refactor-tasks-prevention.ts
