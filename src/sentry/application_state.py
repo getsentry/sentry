@@ -37,7 +37,7 @@ _STRING_KEYS = frozenset(
 
 # Use the legacy storage shape so old and new application callers share cached
 # values during deployments. A zero TTL keeps state out of the local cache.
-def _key(name: StateKey) -> Key:
+def _key(name: str) -> Key:
     if name not in _STRING_KEYS and name != "sentry:last_worker_ping":
         raise ValueError(f"Unknown application state key: {name}")
     return Key(name, lambda: "", Any, DEFAULT_FLAGS, 0, 0, _make_cache_key(name), None)
@@ -89,3 +89,8 @@ def set(name: StateKey, value: str | float) -> bool:
 
 def delete(name: StateKey) -> bool:
     return default_store.delete(_key(name))
+
+
+# Cache repair copies persisted state without regenerating or coercing it.
+def sync_cache(name: str, value: str | float) -> bool:
+    return default_store.set_cache(_key(name), value)

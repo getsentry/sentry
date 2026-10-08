@@ -137,16 +137,22 @@ class OptionsManagerTest(TestCase):
         with pytest.raises(TypeError):
             self.manager.set("some-int", "0", coerce=False)
 
-    def test_legacy_key(self) -> None:
-        """
-        Allow sentry: prefixed keys without any registration
-        """
-        # These just shouldn't blow up since they are implicitly registered
-        assert self.manager.get("sentry:foo") == ""
-        self.manager.set("sentry:foo", "bar")
-        assert self.manager.get("sentry:foo") == "bar"
-        assert self.manager.delete("sentry:foo")
-        assert self.manager.get("sentry:foo") == ""
+    @pytest.mark.parametrize("key", ["sentry:foo", "getsentry:foo", "sentry:system-token"])
+    def test_unregistered_state_key(self, key: str) -> None:
+        with pytest.raises(UnknownOption):
+            self.manager.get(key)
+        with pytest.raises(UnknownOption):
+            self.manager.set(key, "bar")
+        with pytest.raises(UnknownOption):
+            self.manager.delete(key)
+        with pytest.raises(UnknownOption):
+            self.manager.isset(key)
+
+    def test_registered_prefixed_option(self) -> None:
+        self.manager.register("sentry:skip-record-onboarding-tasks-if-complete", default=False)
+        assert self.manager.get("sentry:skip-record-onboarding-tasks-if-complete") is False
+        self.manager.set("sentry:skip-record-onboarding-tasks-if-complete", True)
+        assert self.manager.get("sentry:skip-record-onboarding-tasks-if-complete") is True
 
     def test_types(self) -> None:
         self.manager.register("some-int", type=Int, default=0)
