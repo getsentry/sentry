@@ -352,7 +352,11 @@ jobs:
   backend-migration-tests:
     if: >-
       needs.files-changed.outputs.backend == 'true' &&
-      (github.event_name != 'pull_request' || needs.files-changed.outputs.migration_tests == 'true')
+      (
+        github.event_name != 'pull_request' ||
+        needs.files-changed.outputs.migration_tests == 'true' ||
+        needs.files-changed.outputs.skip_selective_testing == 'true'
+      )
     needs: files-changed
     name: backend migration tests
     runs-on: ubuntu-24.04
