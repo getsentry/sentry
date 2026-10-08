@@ -345,13 +345,26 @@ export function useSetQueryParamsVisualizes() {
 
       const iter = visualizes[Symbol.iterator]();
 
+      // Each entry replaces one chart, so the visualizes sharing a chart group
+      // take up a single slot. Otherwise the extra group members would pull
+      // later charts in front of the group bys between them.
+      let previousAggregateField: AggregateField | undefined;
       for (const aggregateField of queryParams.aggregateFields) {
         if (isVisualize(aggregateField)) {
+          const continuesChartGroup =
+            defined(aggregateField.chartGroup) &&
+            isVisualize(previousAggregateField) &&
+            previousAggregateField.chartGroup === aggregateField.chartGroup;
+          previousAggregateField = aggregateField;
+          if (continuesChartGroup) {
+            continue;
+          }
           const {value: visualize, done} = iter.next();
           if (!done) {
             aggregateFields.push(visualize);
           }
         } else if (isGroupBy(aggregateField)) {
+          previousAggregateField = aggregateField;
           aggregateFields.push(aggregateField);
         } else {
           throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
