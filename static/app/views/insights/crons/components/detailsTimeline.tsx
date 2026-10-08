@@ -273,6 +273,7 @@ const TimelineHeaderRow = styled(SimpleTable.HeaderRow)`
 const TimelineHeaderCell = styled(Table.HeadCell)`
   position: static;
   flex-direction: column;
+  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const TimelineOverlay = styled(GridLineOverlay)`
