@@ -145,7 +145,7 @@ def _compare_with_platform(
 
     try:
         data = build_data(legacy_render)
-        platform_payload = NotificationService.render_template(
+        platform_payload, _ = NotificationService.render_template(
             data=data, template=template_registry.get(data.source)(), provider=provider
         )
     except Exception as e:
