@@ -1001,58 +1001,30 @@ if (IS_PRODUCTION) {
   );
 }
 
-// The new cache never evicts entries. Minified chunks and their source maps are
-// keyed by hashed filename, so every build that writes the cache adds more.
-// Start over before it outgrows Vercel's 1.5GB build cache, which drops
-// node_modules along with it.
-const MAX_CACHE_BYTES = 1024 ** 3;
-
-function resetOversizedCache(location: string) {
-  if (!fs.existsSync(location)) {
-    return;
-  }
-  const size = fs
-    .readdirSync(location, {recursive: true, withFileTypes: true})
-    .filter(entry => entry.isFile())
-    .reduce(
-      (total, entry) => total + fs.statSync(path.join(entry.parentPath, entry.name)).size,
-      0
-    );
-  if (size > MAX_CACHE_BYTES) {
-    // eslint-disable-next-line no-console
-    console.log(`Rspack cache is ${Math.round(size / 1024 ** 2)}MB, starting over`);
-    fs.rmSync(location, {recursive: true, force: true});
-  }
-}
-
 // Cache rspack builds (CI and Vercel)
-// The new cache isn't in rspack's docs yet
-// https://github.com/web-infra-dev/rspack/pull/15690
 if (env.WEBPACK_CACHE_PATH) {
-  const cacheDirectory = path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH);
-  // Keep clear of the old persistent cache's `app-production` directory,
-  // the new cache fails to open when both share a location
-  const cacheName = `app-${WEBPACK_MODE}-new`;
-  // Only master deploys write the cache, preview deploys restore it from
-  // master. Avoids growing the cache on every branch and the memory spike
-  // from writing it on Vercel's 8GB build machines.
-  // https://rspack.rs/config/cache#readonly
-  const readonly = IS_DEPLOY_PREVIEW && env.NOW_GITHUB_COMMIT_REF !== 'master';
-
-  if (!readonly) {
-    resetOversizedCache(path.join(cacheDirectory, cacheName));
-  }
-
   appConfig.experiments = {...appConfig.experiments, newCache: true};
   appConfig.cache = {
     type: 'filesystem',
-    name: cacheName,
-    cacheDirectory,
+    // Keep clear of the old persistent cache's `app-production` directory,
+    // the new cache fails to open when both share a location
+    name: `app-${WEBPACK_MODE}-new`,
+    cacheDirectory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
     // Read entries from disk instead of holding the whole cache in memory
-    // https://rspack.rs/config/cache#maxmemorygenerations
     maxMemoryGenerations: 0,
-    readonly,
+    // Only master deploys write the cache, preview deploys restore it from
+    // master. Avoids growing the cache on every branch and the memory spike
+    // from writing it on Vercel's 8GB build machines.
+    readonly: IS_DEPLOY_PREVIEW && env.NOW_GITHUB_COMMIT_REF !== 'master',
   };
+
+  // Rspack never evicts old entries, start over before Vercel's 1.5GB build cache limit
+  const dir = path.join(appConfig.cache.cacheDirectory!, appConfig.cache.name!);
+  const files = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
+  const size = files.reduce((sum, f) => sum + fs.statSync(path.join(dir, f)).size, 0);
+  if (!appConfig.cache.readonly && size > 1024 ** 3) {
+    fs.rmSync(dir, {recursive: true, force: true});
+  }
 }
 
 export const configs = [appConfig, workerConfig];
