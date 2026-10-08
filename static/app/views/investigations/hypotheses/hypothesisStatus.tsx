@@ -76,9 +76,13 @@ function getHypothesisStatusDisplay(
     // Proposed, with nothing planned to test it yet.
     return {label: t('Formed'), variant: 'muted'};
   }
-  if (steps.every(hasRun)) {
-    // Every check has produced something; the verdict is what is missing.
-    return {label: t('Evidence checked'), variant: 'muted'};
+  if (steps.every(step => step.status === 'skipped' || hasRun(step))) {
+    return {
+      label: steps.some(step => step.status === 'skipped')
+        ? t('Checks finished')
+        : t('Evidence checked'),
+      variant: 'muted',
+    };
   }
   if (hypothesis.status === 'running') {
     return {label: t('Verifying…'), variant: 'accent'};

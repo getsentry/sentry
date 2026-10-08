@@ -1,9 +1,7 @@
 import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {TabList} from '@sentry/scraps/tabs';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -168,21 +166,11 @@ export function TransactionHeader({
 
   if (isInDomainView) {
     const headerProps = {
-      headerTitle: (
-        <Fragment>
-          {project && (
-            <IdBadge
-              project={project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: project.slug}}
-            />
-          )}
-          <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
-            <TransactionName>{transactionName}</TransactionName>
-          </Tooltip>
-        </Fragment>
-      ),
+      headerTitle: {
+        type: 'page-title' as const,
+        label: transactionName,
+        leadingGraphic: project && <IdBadge project={project} avatarSize={16} hideName />,
+      },
       hideDefaultTabs: true,
       tabs: {
         onTabChange,
@@ -295,11 +283,3 @@ export function TransactionHeader({
     </Layout.Header>
   );
 }
-
-const TransactionName = styled('div')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;

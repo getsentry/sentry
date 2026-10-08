@@ -2,12 +2,13 @@ import type {ReactNode} from 'react';
 import {Fragment, isValidElement, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,16 +16,19 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {
+  slowDBQuerySpanFromEvent,
+  resolveSlowDBQuerySpan,
+  type SlowDBQuerySpan,
+} from 'sentry/components/events/interfaces/performance/slowDBQuerySpan';
+import {
   extractSpanURLString,
   formatChangingQueryParameters,
   getSpanDuration,
   getSpanFieldBytes,
 } from 'sentry/components/events/interfaces/performance/spanMetrics';
 import {
-  getSpanCategory,
   getSpanHash,
   getSpanInfoFromTransactionEvent,
-  getSpanSentryGroupValue,
 } from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
@@ -36,6 +40,7 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
@@ -50,11 +55,12 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {traceItemDetailsApiOptions} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   MissingFrame,
   StackTraceMiniFrame,
@@ -417,7 +423,7 @@ const PREVIEW_COMPONENTS: Partial<
 > = {
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
   [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
-  [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
+  [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidenceFromEvent,
   [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
   [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
@@ -452,11 +458,26 @@ export function SpanEvidenceKeyValueList({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const spanInfo = getSpanInfoFromTransactionEvent(event);
-
   const typeId = event.occurrence?.type;
   const issueType = getIssueTypeFromOccurrenceType(typeId);
   const requiresSpanInfo = isTransactionBased(typeId) && isOccurrenceBased(typeId);
+
+  if (
+    issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY &&
+    organization.features.includes('issue-details-slow-query-span-data') &&
+    event.occurrence
+  ) {
+    return (
+      <SlowDBQueryEvidenceFromDataset
+        event={event}
+        organization={organization}
+        location={location}
+        projectSlug={projectSlug}
+      />
+    );
+  }
+
+  const spanInfo = getSpanInfoFromTransactionEvent(event);
 
   if (!issueType || (requiresSpanInfo && !spanInfo)) {
     return (
@@ -497,19 +518,67 @@ const isRequestEntry = (entry: Entry): entry is EntryRequest => {
   return entry.type === EntryType.REQUEST;
 };
 
+type SlowDBQueryEvidenceProps = Pick<
+  SpanEvidenceKeyValueListProps,
+  'event' | 'organization' | 'projectSlug' | 'location'
+>;
+
+function SlowDBQueryEvidenceFromEvent(props: SpanEvidenceKeyValueListProps) {
+  return (
+    <SlowDBQueryEvidence
+      {...props}
+      span={slowDBQuerySpanFromEvent(props.offendingSpans[0])}
+    />
+  );
+}
+
+function SlowDBQueryEvidenceFromDataset(props: SlowDBQueryEvidenceProps) {
+  const {event, organization, projectSlug} = props;
+  const offenderSpanId: string | undefined =
+    event.occurrence?.evidenceData.offenderSpanIds?.[0];
+  const traceId = event.contexts.trace?.trace_id;
+  const canFetch = !!offenderSpanId && !!traceId;
+
+  const spanQuery = useQuery({
+    ...traceItemDetailsApiOptions({
+      organizationSlug: organization.slug,
+      projectSlug: projectSlug ?? event.projectID,
+      traceItemId: canFetch ? offenderSpanId : '',
+      traceItemType: TraceItemDataset.SPANS,
+      traceId: traceId ?? '',
+      referrer: 'api.organization-trace-item-details',
+      // Use the occurrence's segment bounds, not the current page filters or
+      // detection time: the offending span can start much earlier in a long segment.
+      start: new Date(event.startTimestamp * 1000 - 1000).toISOString(),
+      end: new Date(event.endTimestamp * 1000 + 1000).toISOString(),
+    }),
+    retry: false,
+  });
+
+  if (canFetch && spanQuery.isPending) {
+    return <LoadingIndicator>{t('Loading span evidence…')}</LoadingIndicator>;
+  }
+
+  // Usable dataset evidence never needs the event's embedded span entries.
+  const span = resolveSlowDBQuerySpan(event, spanQuery.data);
+
+  return <SlowDBQueryEvidence {...props} span={span} />;
+}
+
 function SlowDBQueryEvidence({
   event,
-  offendingSpans,
+  span,
   organization,
   projectSlug,
   location,
-}: SpanEvidenceKeyValueListProps) {
-  const span = offendingSpans[0]!;
+}: SlowDBQueryEvidenceProps & {span: SlowDBQuerySpan | undefined}) {
   const hasExplore = organization.features.includes('visibility-explore-view');
 
-  const codeFilepath = getAttributeValue(span.data ?? {}, 'code.file.path', 'string');
-  const codeLineNumber = getAttributeValue(span.data ?? {}, 'code.line.number', 'number');
-  const codeFunction = getAttributeValue(span.data ?? {}, 'code.function', 'string');
+  if (!span) {
+    return <Text variant="muted">{t('Span evidence is unavailable.')}</Text>;
+  }
+
+  const {codeFilepath, codeLineNumber, codeFunction} = span;
 
   const queryValue = (
     <QueryCard>
@@ -525,7 +594,7 @@ function SlowDBQueryEvidence({
             event={event}
             frame={{
               filename: codeFilepath,
-              lineNo: codeLineNumber === undefined ? undefined : Number(codeLineNumber),
+              lineNo: codeLineNumber,
               function: codeFunction,
             }}
           />
@@ -536,8 +605,8 @@ function SlowDBQueryEvidence({
       <Flex gap="md" padding="md lg" borderTop="muted">
         <SpanSummaryLink
           op={span.op}
-          category={getSpanCategory(span)}
-          group={getSpanSentryGroupValue(span)}
+          category={span.category}
+          group={span.group}
           organization={organization}
         />
         {hasExplore && span.description && (
@@ -565,7 +634,9 @@ function SlowDBQueryEvidence({
     <PresortedKeyValueList
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
-        makeRow(t('Duration Impact'), getSingleSpanDurationImpact(event, span)),
+        ...(span.durationMs === undefined
+          ? []
+          : [makeRow(t('Duration Impact'), getDurationImpact(event, span.durationMs))]),
         makeRow(t('Slow DB Query'), queryValue),
       ]}
     />
@@ -740,11 +811,13 @@ function getSpanEvidenceValue(span: Span | null) {
 
   if (span.op && span.op.startsWith('db') && span.description) {
     return (
-      <NoPaddingClippedBox clipHeight={200}>
-        <StyledCodeSnippet language="sql">
-          {formatter.toString(span.description)}
-        </StyledCodeSnippet>
-      </NoPaddingClippedBox>
+      <Container padding="2xs 0">
+        <NoPaddingClippedBox clipHeight={200}>
+          <StyledCodeSnippet language="sql">
+            {formatter.toString(span.description)}
+          </StyledCodeSnippet>
+        </NoPaddingClippedBox>
+      </Container>
     );
   }
 

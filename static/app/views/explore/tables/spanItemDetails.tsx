@@ -179,7 +179,7 @@ function useSpanAttributesTreeActions() {
 
   return useCallback(
     (content: AttributesTreeContent) => {
-      const attribute = content.originalAttribute;
+      const attribute = content.original;
       if (!attribute) {
         return [];
       }

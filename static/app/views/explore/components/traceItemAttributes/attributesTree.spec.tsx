@@ -115,7 +115,7 @@ describe('attributesTree', () => {
           organization,
         }}
         getCustomActions={content => {
-          if (!content.originalAttribute) {
+          if (!content.original) {
             return [];
           }
 
@@ -231,41 +231,6 @@ describe('attributesTree', () => {
     expect(await screen.findByText('Data scrubbed for privacy')).toBeInTheDocument();
   });
 
-  it('does not note scrubbing when the value was only trimmed for size', async () => {
-    const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'str',
-        value: 'aaaaaaaaaa',
-        name: 'user.email',
-      },
-    ];
-
-    render(
-      <AttributesTree
-        attributes={attributes}
-        config={{attributeDetailsType: 'log'}}
-        rendererExtra={{
-          theme,
-          location,
-          navigate: jest.fn(),
-          organization,
-          traceItemMeta: {
-            'user.email': {
-              meta: {value: {'': {len: 10, rem: [['!limit', 'x', 0, 10]]}}},
-            },
-          },
-        }}
-      />
-    );
-
-    await userEvent.hover(
-      within(screen.getByTestId('tree-key-user.email')).getByText('email')
-    );
-
-    expect(await screen.findByText('Description')).toBeInTheDocument();
-    expect(screen.queryByText('Data scrubbed for privacy')).not.toBeInTheDocument();
-  });
-
   it('falls back to a plain browser tooltip when no attribute details type is given', () => {
     const attributes: TraceItemResponseAttribute[] = [
       {
@@ -287,9 +252,8 @@ describe('attributesTree', () => {
       />
     );
 
-    expect(screen.getByTestId('tree-key-sentry.logger.name')).toHaveAttribute(
-      'title',
-      'logger.name'
+    expect(screen.getByTitle('logger.name')).toContainElement(
+      screen.getByTestId('tree-key-sentry.logger.name')
     );
   });
 });

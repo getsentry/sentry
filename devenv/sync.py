@@ -147,7 +147,8 @@ def installed_pnpm(version: str, binroot: str) -> bool:
     ):
         return False
 
-    stdout = proc.run((f"{binroot}/pnpm", "--version"), stdout=True)
+    # Probe outside the project so pnpm reports its installed version without switching.
+    stdout = proc.run((f"{binroot}/pnpm", "--version"), cwd="/", stdout=True)
     installed_version = stdout.strip()
     return version == installed_version
 
