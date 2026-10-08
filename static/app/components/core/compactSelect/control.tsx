@@ -22,7 +22,7 @@ import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -254,6 +254,7 @@ export function Control<Value extends SelectKey>({
 }) {
   const {t} = useTranslation();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const pendingAutoFocus = useRef(false);
 
   const normalizedSearch = getSearchConfig(searchConfig);
   const searchEnabled = normalizedSearch !== undefined;
@@ -384,12 +385,19 @@ export function Control<Value extends SelectKey>({
     flipOptions,
     strategy,
     onOpenChange: open => {
+      pendingAutoFocus.current = open;
       onOpenChange?.(open);
 
       nextFrameCallback(() => {
         if (open) {
           // Force a overlay update, as sometimes the overlay is misaligned when opened
           updateOverlay?.();
+          // A child control may have taken focus before this frame.
+          if (!pendingAutoFocus.current) {
+            return;
+          }
+          pendingAutoFocus.current = false;
+
           // Focus on search box if present
           if (searchEnabled) {
             searchRef.current?.focus();
@@ -567,7 +575,8 @@ export function Control<Value extends SelectKey>({
     <ControlContext value={contextValue}>
       <Container width="max-content" position="relative" {...wrapperProps}>
         {trigger ? (
-          trigger(mergedTriggerProps, overlayIsOpen)
+          // TriggerProps constrains ref forwarding; the runtime element is a button.
+          trigger(mergedTriggerProps as TriggerProps, overlayIsOpen)
         ) : (
           <OverlayTrigger.Button {...mergedTriggerProps} />
         )}
@@ -579,6 +588,9 @@ export function Control<Value extends SelectKey>({
           {overlayIsOpen && (
             <StyledOverlay
               ref={menuRef}
+              onFocusCapture={() => {
+                pendingAutoFocus.current = false;
+              }}
               width={menuWidth ?? menuFullWidth}
               height={menuHeight}
               minWidth={menuMinWidth ?? overlayProps.style?.minWidth}
@@ -692,7 +704,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
           ? p.theme.space.xs
           : p.theme.space.sm}
     ${p => p.theme.space.lg};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   [data-menu-has-search='true'] > & {
@@ -796,7 +808,7 @@ const StyledPositionWrapper = styled(PositionWrapper, {
 `;
 
 const MenuFooter = styled('div')`
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   z-index: 2;

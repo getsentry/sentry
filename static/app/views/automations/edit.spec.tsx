@@ -17,6 +17,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {
@@ -269,6 +270,33 @@ describe('EditAutomation', () => {
       expect(router.location.pathname).toBe(
         `/organizations/${organization.slug}/monitors/alerts/${automation.id}/`
       )
+    );
+  });
+
+  it('shows one error toast when the update fails validation', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+      method: 'PUT',
+      statusCode: 400,
+      body: {
+        actionFilters: {type: ['Organization does not allow this action type: slack']},
+      },
+    });
+
+    render(<AutomationEdit />, {organization, initialRouterConfig});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Organization does not allow this action type: slack',
+        {duration: 10000}
+      );
+    });
+    expect(indicators.addErrorMessage).toHaveBeenCalledTimes(1);
+    expect(indicators.addErrorMessage).not.toHaveBeenCalledWith(
+      'Unknown error while saving'
     );
   });
 

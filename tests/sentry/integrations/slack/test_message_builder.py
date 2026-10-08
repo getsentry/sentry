@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
+import orjson
 from django.test import override_settings
 
 from sentry.grouping.grouptype import ErrorGroupType
@@ -66,6 +67,7 @@ def build_test_message_blocks(
     notes: str | None = None,
     rule: IssueAlertRule | None = None,
     legacy_rule_id: int | None = None,
+    workflow_id: int | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -81,7 +83,9 @@ def build_test_message_blocks(
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
     if rule:
-        if legacy_rule_id:
+        if workflow_id:
+            title_link += f"&workflow_id={workflow_id}&alert_type=issue"
+        elif legacy_rule_id:
             title_link += f"&alert_rule_id={legacy_rule_id}&alert_type=issue"
         else:
             title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
@@ -90,9 +94,9 @@ def build_test_message_blocks(
 
     if rule:
         if legacy_rule_id:
-            block_id = f'{{"issue":{group.id},"rule":{legacy_rule_id}}}'
+            block_id = f'{{"issue":{group.id},"rule":{legacy_rule_id},"workflow":{workflow_id}}}'
         else:
-            block_id = f'{{"issue":{group.id},"rule":{rule.id}}}'
+            block_id = f'{{"issue":{group.id},"workflow":{workflow_id}}}'
     else:
         block_id = f'{{"issue":{group.id}}}'
 
@@ -214,7 +218,9 @@ def build_test_message_blocks(
         blocks.append(notes_section)
 
     if rule:
-        if legacy_rule_id:
+        if workflow_id:
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/monitors/alerts/{workflow_id}/|{rule.label}>    Short ID: {group.qualified_short_id}"
+        elif legacy_rule_id:
             context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{legacy_rule_id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
         else:
             context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{rule.id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
@@ -388,7 +394,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             rule=rule,
             legacy_rule_id=rule.data["actions"][0]["legacy_rule_id"],
+            workflow_id=rule.data["actions"][0]["workflow_id"],
         )
+
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
             group, event.for_group(group), tags={"foo", "escape", "release"}
@@ -448,6 +456,18 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         assert SlackIssuesMessageBuilder(group).build() == test_message
+
+    def test_build_group_block_with_workflow_only(self) -> None:
+        rule = self.create_project_rule(project=self.project)
+        workflow_id = rule.data["actions"][0]["workflow_id"]
+        rule.data["actions"][0].pop("legacy_rule_id")
+
+        blocks = SlackIssuesMessageBuilder(self.group, rules=[rule]).build()["blocks"]
+
+        assert orjson.loads(blocks[0]["block_id"]) == {
+            "issue": self.group.id,
+            "workflow": workflow_id,
+        }
 
     def test_build_group_block_with_message(self) -> None:
         event_data = {

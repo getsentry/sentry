@@ -12,6 +12,8 @@ class AIConversationExamples:
                 "webUrl": "https://sentry.io/organizations/org-slug/explore/agents/conversations/01JQZ4W8X7J2Q9B4R5M6N7P8T9/?project=1",
                 "stats": {
                     "endTimestamp": 1743465601250,
+                    "errors": 0,
+                    "errorToolNames": [],
                     "generationDuration": 1250.0,
                     "inputTokens": 0,
                     "llmCalls": 1,
@@ -25,6 +27,7 @@ class AIConversationExamples:
                     "usageByModel": [
                         {
                             "model": "gpt-4o-mini-2024-07-18",
+                            "llmCalls": 1,
                             "inputTokens": 0,
                             "outputTokens": 0,
                             "totalTokens": 485,
@@ -56,8 +59,8 @@ class AIConversationExamples:
                         "gen_ai.operation.type": "ai_client",
                         "gen_ai.request.model": "gpt-4o-mini",
                         "gen_ai.response.model": "gpt-4o-mini-2024-07-18",
-                        "gen_ai.request.messages": '[{"role":"user","content":"What is the weather in San Francisco?"}]',
-                        "gen_ai.response.text": "It is currently 18°C and sunny in San Francisco.",
+                        "gen_ai.input.messages": '[{"role":"user","content":"What is the weather in San Francisco?"}]',
+                        "gen_ai.output.messages": '[{"role":"assistant","content":"It is currently 18°C and sunny in San Francisco."}]',
                         "gen_ai.usage.total_tokens": 485,
                         "gen_ai.cost.total_tokens": 0.0042,
                         "user.id": "123",
@@ -92,6 +95,7 @@ class AIConversationExamples:
                     "inputTokens": 320,
                     "outputTokens": 165,
                     "totalCost": 0.0042,
+                    "timeSpan": 2500.0,
                     "generationDuration": 1250.5,
                     "startTimestamp": 1743465600000,
                     "endTimestamp": 1743465602500,

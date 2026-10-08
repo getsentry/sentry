@@ -5,7 +5,6 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -45,6 +44,7 @@ import {
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
 import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
   InvestigationHypotheses,
@@ -54,6 +54,7 @@ import {updateInvestigationCache} from 'sentry/views/investigations/investigatio
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
@@ -297,24 +298,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Title>
-          <HeaderBreadcrumbs
-            align="center"
-            gap="sm"
-            minWidth={0}
-            data-test-id="investigation-breadcrumbs"
-            data-text-size="md"
-          >
-            <IconStack size="md" />
-            <HeaderBreadcrumbLink
-              to={`/organizations/${organization.slug}/explore/investigations/`}
-            >
-              {t('Investigations')}
-            </HeaderBreadcrumbLink>
-            <HeaderDivider>/</HeaderDivider>
-            <HeaderInvestigationTitle>{displayedTitle}</HeaderInvestigationTitle>
-            <DropdownMenu
-              items={[
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: displayedTitle,
+            trailingActions: {
+              type: 'menu',
+              items: [
                 {
                   key: 'copy-link',
                   label: t('Copy link'),
@@ -344,20 +335,21 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                       onConfirm: () => deleteMutation.mutate(investigation),
                     }),
                 },
-              ]}
-              triggerProps={{
-                size: 'sm',
-                showChevron: false,
-                variant: 'transparent',
-                icon: <IconEllipsis />,
-                'aria-label': t('Investigation actions'),
-              }}
-              position="bottom-end"
-              usePortal
-            />
-          </HeaderBreadcrumbs>
-        </Layout.Title>
-        <Container as="header" width="100%" padding="xl">
+              ],
+              triggerLabel: t('Investigation actions'),
+              triggerIcon: <IconEllipsis />,
+            },
+          }}
+          items={[
+            {
+              type: 'link',
+              label: t('Investigations'),
+              to: `/organizations/${organization.slug}/explore/investigations/`,
+              leadingGraphic: <IconStack size="md" />,
+            },
+          ]}
+        />
+        <Container as="header" width="100%" padding="xl xl 3xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid
               columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
@@ -404,6 +396,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     date: <DateTime date={investigation.dateUpdated} year />,
                   })}
                 </Text>
+                <InvestigationViewers
+                  investigationId={investigation.id}
+                  separator={<MetaDivider />}
+                />
               </Flex>
               <FeedbackButton
                 feedbackOptions={{
@@ -427,7 +423,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         </Container>
         <Layout.Body padding={{'screen:sm': '0 lg lg', 'screen:md': '0 xl lg'}}>
           <Layout.Main width="full">
-            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
+            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
               {/*
                * Only an agentic investigation has hypotheses, and `orchestration`
                * being present is the only thing that says one is: it is null for
@@ -435,43 +431,38 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                * 404s.
                */}
               {investigation.orchestration ? (
-                <Stack width="100%" minWidth={0} paddingBottom="xl">
-                  <InvestigationHypotheses
-                    investigationId={investigation.id}
-                    phase={investigation.orchestration.phase}
-                  />
-                </Stack>
+                <InvestigationHypotheses
+                  investigationId={investigation.id}
+                  phase={investigation.orchestration.phase}
+                  status={investigation.orchestration.status}
+                />
               ) : null}
 
-              <NotebookSummaryCard
+              <InvestigationSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
 
-              <Stack width="100%" minWidth={0}>
-                {visibleSummaryBlock ? (
-                  <InvestigationCell
-                    block={visibleSummaryBlock}
-                    canRun={investigation.status === 'active'}
-                    investigation={investigation}
-                  />
-                ) : null}
+              {visibleSummaryBlock ? (
+                <InvestigationCell
+                  block={visibleSummaryBlock}
+                  canRun={investigation.status === 'active'}
+                  investigation={investigation}
+                />
+              ) : null}
 
-                <Stack gap="xl">
-                  {visibleNotebookCells.map(block => (
-                    <InvestigationCell
-                      key={block.id}
-                      block={block}
-                      canRun={investigation.status === 'active'}
-                      investigation={investigation}
-                    />
-                  ))}
-                  {isAwaitingReportCell(investigation) ? (
-                    <InvestigationCellPlaceholder />
-                  ) : null}
-                </Stack>
-              </Stack>
-              <Container height="160px" flexShrink={0} aria-hidden />
+              {visibleNotebookCells.map(block => (
+                <InvestigationCell
+                  key={block.id}
+                  block={block}
+                  canRun={investigation.status === 'active'}
+                  investigation={investigation}
+                />
+              ))}
+              {isAwaitingReportCell(investigation) ? (
+                <InvestigationCellPlaceholder />
+              ) : null}
+              <Container height="128px" flexShrink={0} aria-hidden />
             </Stack>
           </Layout.Main>
         </Layout.Body>
@@ -537,45 +528,6 @@ function formatSourceType(sourceType: string) {
   }
   return sourceType.replaceAll('_', ' ');
 }
-
-const NotebookSummaryCard = styled(InvestigationSummaryCard)`
-  width: 100%;
-  margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const HeaderBreadcrumbs = styled(Flex)`
-  height: 32px;
-  overflow: hidden;
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  line-height: 32px;
-  white-space: nowrap;
-`;
-
-const HeaderBreadcrumbLink = styled(Link)`
-  overflow: hidden;
-  color: ${p => p.theme.tokens.content.secondary};
-  text-decoration-line: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.border.primary};
-  text-underline-offset: 5px;
-  text-overflow: ellipsis;
-`;
-
-const HeaderDivider = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const HeaderInvestigationTitle = styled('span')`
-  overflow: hidden;
-  color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-decoration-line: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.border.primary};
-  text-underline-offset: 5px;
-  text-overflow: ellipsis;
-`;
 
 const NotebookTitleInput = styled(Input)`
   width: 100%;

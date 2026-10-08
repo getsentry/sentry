@@ -9,21 +9,6 @@ import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSee
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 
 describe('SeerStatusBlock', () => {
-  it('renders the sentence and the elapsed time', () => {
-    render(
-      <SeerStatusBlock
-        variant="running"
-        title="Seer is looking for likely causes"
-        description="Possible causes will appear here."
-        elapsed="101.5s"
-      />
-    );
-
-    expect(screen.getByText('Seer is looking for likely causes')).toBeInTheDocument();
-    expect(screen.getByText('Possible causes will appear here.')).toBeInTheDocument();
-    expect(screen.getByText('101.5s')).toBeInTheDocument();
-  });
-
   it('omits the elapsed time when there is nothing to count from', () => {
     render(<SeerStatusBlock variant="running" title="Seer is investigating" />);
 

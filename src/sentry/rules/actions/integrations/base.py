@@ -15,11 +15,10 @@ from sentry.integrations.services.integration import (
 )
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.organization import OrganizationStatus
-from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationActionContext, RuleFuture
 from sentry.rules.actions import EventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.rules import RuleFuture
 from sentry.utils.tracing import start_span
 
 INTEGRATION_KEY = "integration"
@@ -110,7 +109,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
         self,
         event: GroupEvent,
         external_id: str,
-        rule: Rule | None = None,
+        context: NotificationActionContext | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
@@ -137,7 +136,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
                         project_id=event.project_id,
                         group_id=event.group_id,
                         notification_uuid=notification_uuid if notification_uuid else "",
-                        alert_id=rule.id if rule else None,
+                        alert_id=context.action_id if context else None,
                         category="issue_alert",
                     )
                 )
@@ -148,7 +147,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
             analytics.record(
                 AlertSentEvent(
                     provider=self.provider,
-                    alert_id=rule.id if rule else "",
+                    alert_id=context.action_id if context else "",
                     alert_type="issue_alert",
                     organization_id=event.organization.id,
                     project_id=event.project_id,

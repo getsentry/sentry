@@ -15,8 +15,12 @@ export function trackAmplitudeEvent(
   if (!ConfigStore.get('enableAnalytics')) {
     return;
   }
+  // Amplitude is only initialized for authenticated users, see analyticsInitUser
   const user = ConfigStore.get('user');
-  Amplitude.setUserId(user?.id ?? null);
+  if (!user) {
+    return;
+  }
+  Amplitude.setUserId(user.id);
 
   // Most of the time an event will be in the context of an org, and if so, we must attach
   // the org to the event to make amplitude's org-reporting work. To reduce the possibility

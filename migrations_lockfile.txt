@@ -9,17 +9,17 @@ ai_monitoring: 0002_add_date_updated_index
 
 discover: 0004_discover_starred_and_last_visited
 
-explore: 0014_add_explore_saved_formula
+explore: 0016_update_if_syntax_on_spans
 
 feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0005_increase_flag_max_length
 
-hybridcloud: 0042_cacheversion_key_drop
+hybridcloud: 0043_add_dashboard_create_scope
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0009_drop_producing_seer_run_index
+investigations: 0010_add_investigation_seen_and_comment
 
 monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0037_rename_agentic_triage_result
 
-sentry: 1190_release_new_id_unique_not_null
+sentry: 1208_sentryappinstallation_uuid_index
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
@@ -43,4 +43,4 @@ tempest: 0001_squashed_0003_use_encrypted_char_field
 
 uptime: 0056_encrypt_uptime_subscription_headers_body
 
-workflow_engine: 0120_replace_boolean_deescalation_comparisons
+workflow_engine: 0121_add_activation_id_to_detector_state

@@ -104,7 +104,9 @@ export function FeatureTourModal({
     });
   }, [steps, handleAdvance, doneText, doneUrl, handleClose]);
 
-  return <>{children({showModal: handleShow})}</>;
+  // showModal only reads refs when the child invokes it from an event handler.
+  // oxlint-disable-next-line react/refs
+  return children({showModal: handleShow});
 }
 
 type ContentsProps = ModalRenderProps &
@@ -117,22 +119,17 @@ function ModalContents({
   steps,
   doneText = t('Done'),
   doneUrl,
+  closeModal,
   onAdvance,
   openedAt,
-  closeModal,
 }: ContentsProps) {
   const [current, setCurrent] = useState(0);
-  // Keep a ref in sync so handleAdvance can read the latest value without
-  // it being a stale closure dependency.
-  const currentRef = useRef(current);
 
-  const handleAdvance = useCallback(() => {
-    const next = currentRef.current + 1;
-    currentRef.current = next;
+  const handleAdvance = () => {
+    const next = current + 1;
     setCurrent(next);
-    const duration = Date.now() - openedAt;
-    onAdvance?.(next, duration);
-  }, [onAdvance, openedAt]);
+    onAdvance?.(next, Date.now() - openedAt);
+  };
 
   const step = steps[current] === undefined ? steps[steps.length - 1]! : steps[current];
   const hasNext = steps[current + 1] !== undefined;

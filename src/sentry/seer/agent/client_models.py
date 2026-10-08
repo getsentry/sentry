@@ -95,6 +95,7 @@ class AgentFilePatch(BaseModel):
     repo_name: str
     patch: FilePatch
     diff: str = ""
+    code_url: str | None = None
 
     class Config:
         extra = "ignore"
@@ -174,6 +175,8 @@ class MemoryBlock(BaseModel):
     todos: list[TodoItem] | None = None
     tool_links: list[ToolLink | None] | None = None
     tool_results: list[ToolResult | None] | None = None
+    live_calls: list[dict[str, Any]] | None = None
+    progress: list[dict[str, Any]] | None = None
 
     class Config:
         extra = "ignore"

@@ -225,7 +225,7 @@ export function IntegrationExternalMappings(props: Props) {
             <SimpleTable.HeaderCell>
               {tct('Sentry [type]', {type})}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="right">
               <Button
                 data-test-id="add-mapping-button"
                 onClick={() => onCreate()}
@@ -281,15 +281,6 @@ export function IntegrationExternalMappings(props: Props) {
 
 const MappingTable = styled(SimpleTable)`
   overflow: visible;
-
-  [role='columnheader'] {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
-
-  [role='columnheader']:nth-child(4),
-  [role='cell']:nth-child(4) {
-    padding-right: ${p => p.theme.space.md};
-  }
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`

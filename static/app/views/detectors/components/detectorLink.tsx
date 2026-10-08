@@ -309,7 +309,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 const Separator = styled('span')`
   height: 10px;
   width: 1px;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.secondary};
   border-radius: 1px;
 `;

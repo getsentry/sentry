@@ -9,6 +9,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.monitors.models import (
@@ -175,6 +176,11 @@ class MonitorSerializerResponseOptional(TypedDict, total=False):
     alertRule: MonitorAlertRuleSerializerResponse
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "alertRule": "Deprecated issue alert configuration; use the dedicated Workflow APIs.",
+    }
+)
 class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     id: str
     name: str

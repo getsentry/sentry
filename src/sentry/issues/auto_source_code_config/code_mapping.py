@@ -8,6 +8,11 @@ from typing import Any, NamedTuple
 from django.db import IntegrityError, router, transaction
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.source_code_management.path import (
+    is_absolute_scm_path,
+    normalize_repository_source_root,
+    normalize_scm_path,
+)
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
     RepoTree,
@@ -311,6 +316,49 @@ class CodeMappingTreesHelper:
         return f"CodeMappingTreesHelper(trees={self.trees}, code_mappings={self.code_mappings})"
 
 
+def _path_relative_to_root(path: str, root: str) -> str | None:
+    if path == root:
+        return ""
+
+    root_prefix = f"{root.rstrip('/')}/"
+    if not path.startswith(root_prefix):
+        return None
+    return path[len(root_prefix) :]
+
+
+def _map_frame_path_to_source_path(
+    frame_path: str, stack_root: str, source_root: str
+) -> str | None:
+    if not frame_path.startswith(stack_root):
+        return None
+
+    is_directory_mapping = not stack_root or stack_root.endswith(("/", "\\"))
+    normalized_source_root = normalize_repository_source_root(source_root)
+    if normalized_source_root is None:
+        return None
+
+    mapped_path = frame_path.replace(stack_root, source_root, 1).replace("\\", "/").lstrip("/")
+
+    source_path = normalize_scm_path(mapped_path)
+    if (
+        source_path is None
+        or not source_path
+        or is_absolute_scm_path(source_path)
+        or source_path == ".."
+        or source_path.startswith("../")
+    ):
+        return None
+
+    if normalized_source_root:
+        if is_directory_mapping:
+            if _path_relative_to_root(source_path, normalized_source_root) is None:
+                return None
+        elif not source_path.startswith(normalized_source_root):
+            return None
+
+    return source_path
+
+
 def convert_stacktrace_frame_path_to_source_path(
     frame: EventFrame,
     code_mapping: RepositoryProjectPathConfig,
@@ -323,8 +371,6 @@ def convert_stacktrace_frame_path_to_source_path(
     If the code mapping does not apply to the frame, returns None.
     """
 
-    stack_root = code_mapping.stack_root
-
     # In most cases, code mappings get applied to frame.filename, but some platforms such as Java
     # contain folder info in other parts of the frame (e.g. frame.module="com.example.app.MainActivity"
     # gets transformed to "com/example/app/MainActivity.java"), so in those cases we use the
@@ -333,22 +379,20 @@ def convert_stacktrace_frame_path_to_source_path(
         try_munge_frame_path(frame=frame, platform=platform, sdk_name=sdk_name) or frame.filename
     )
 
-    if stacktrace_path and stacktrace_path.startswith(code_mapping.stack_root):
-        return (
-            stacktrace_path.replace(stack_root, code_mapping.source_root, 1)
-            .replace("\\", "/")
-            .lstrip("/")
+    candidate_paths = (
+        stacktrace_path,
+        frame.abs_path,
+    )
+    for candidate_path in candidate_paths:
+        if not candidate_path:
+            continue
+        source_path = _map_frame_path_to_source_path(
+            candidate_path,
+            code_mapping.stack_root,
+            code_mapping.source_root,
         )
-
-    # Some platforms only provide the file's name without folder paths, so we
-    # need to use the absolute path instead. If the code mapping has a non-empty
-    # stack_root value and it matches the absolute path, we do the mapping on it.
-    if frame.abs_path and frame.abs_path.startswith(code_mapping.stack_root):
-        return (
-            frame.abs_path.replace(stack_root, code_mapping.source_root, 1)
-            .replace("\\", "/")
-            .lstrip("/")
-        )
+        if source_path:
+            return source_path
 
     return None
 

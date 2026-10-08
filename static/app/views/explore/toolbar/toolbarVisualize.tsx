@@ -10,7 +10,6 @@ import {IconHide} from 'sentry/icons/iconHide';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -173,11 +172,6 @@ function ToolbarVisualizeItem({
 }: VisualizeDropdownProps) {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
-  const organization = useOrganization();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
-
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
     {search: debouncedSearch},
     'string'
@@ -218,12 +212,7 @@ function ToolbarVisualizeItem({
     traceItemType: TraceItemDataset.SPANS,
   });
 
-  // Filters only survive a swap to another aggregate that supports them, and are dropped
-  // entirely while the feature is off so that toggling it never leaves a stale filter.
-  const filter = useMemo(
-    () => (hasConditionalAggregates ? (parsedFunction?.filter ?? '') : ''),
-    [hasConditionalAggregates, parsedFunction?.filter]
-  );
+  const filter = parsedFunction?.filter ?? '';
 
   const onChangeAggregate = useCallback(
     (option: SelectOption<SelectKey>) => {
@@ -286,9 +275,9 @@ function ToolbarVisualizeItem({
     [onReplace, parsedFunction, visualize]
   );
 
-  const showFilterSearchBar =
-    hasConditionalAggregates &&
-    supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
+  );
 
   return (
     <ToolbarVisualizeDropdown

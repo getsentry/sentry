@@ -8,7 +8,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
@@ -924,21 +924,25 @@ export function getSeerExplorerAnalyticsBrowserSize(): {
 type SeerExplorerSidebarOrientation = 'right' | 'bottom';
 
 /**
- * Resolves the dock preference to a concrete orientation. `auto` docks right on
- * wide viewports (≥ `xl`) and on short landscape viewports (e.g. phones in
- * landscape), and bottom otherwise. Shared by the layout (to lay out the split)
- * and the provider (to persist the popped-out window's size to the right key).
+ * Resolves the dock preference to a concrete orientation. `auto` docks right
+ * whenever the split container is wide enough to fit both panes side by side
+ * (`fitsSideBySide`), and on short landscape viewports (e.g. phones in
+ * landscape) where a bottom dock has no room; bottom otherwise.
+ *
+ * `fitsSideBySide` is measured on the container that wraps *both* the app and
+ * Seer, not on the app pane (`#main`): the app pane shrinks when Seer docks
+ * right, so gating on its width would flip the dock back and forth.
  */
 export function useSeerExplorerSidebarOrientation(
-  sidebarPosition: SeerExplorerSidebarPosition
+  sidebarPosition: SeerExplorerSidebarPosition,
+  fitsSideBySide: boolean
 ): SeerExplorerSidebarOrientation {
   const theme = useTheme();
-  const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
   const isShortLandscape = useMedia(
     `(orientation: landscape) and (max-height: ${theme.breakpoints.xs})`
   );
   if (sidebarPosition === 'auto') {
-    return isWideScreen || isShortLandscape ? 'right' : 'bottom';
+    return fitsSideBySide || isShortLandscape ? 'right' : 'bottom';
   }
   return sidebarPosition;
 }

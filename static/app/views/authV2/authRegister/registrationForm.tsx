@@ -1,5 +1,4 @@
-import {Fragment, lazy, Suspense, useState, type ReactNode} from 'react';
-import {useDebouncedValue} from '@tanstack/react-pacer';
+import {Fragment, useState, type ReactNode} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -8,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {ProgressRing} from 'sentry/components/progressRing';
+import {PasswordStrengthIndicator} from 'sentry/components/passwordStrengthIndicator';
 import {IconHide} from 'sentry/icons/iconHide';
 import {IconShow} from 'sentry/icons/iconShow';
 import {t} from 'sentry/locale';
@@ -18,6 +17,7 @@ import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestEr
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import type {AuthenticatedResult} from 'sentry/views/authV2/authLogin/types';
 
 const schema = z.object({
   email: z.email(t('Enter a valid email address')),
@@ -30,20 +30,21 @@ type RegistrationValues = z.infer<typeof schema>;
 
 type Props = {
   hasNewsletter: boolean;
+  initialEmail?: string;
+  onSuccess?: (result: AuthenticatedResult) => void;
   secondaryAction?: ReactNode;
 };
 
-const PasswordStrengthRing = lazy(() =>
-  import('sentry/components/passwordStrength').then(module => ({
-    default: module.PasswordStrengthRing,
-  }))
-);
-
-export function RegistrationForm({hasNewsletter, secondaryAction}: Props) {
+export function RegistrationForm({
+  hasNewsletter,
+  initialEmail = '',
+  onSuccess,
+  secondaryAction,
+}: Props) {
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const mutation = useMutation({
     mutationFn: (value: RegistrationValues) =>
-      fetchMutation<{nextUri: string}>({
+      fetchMutation<AuthenticatedResult>({
         url: getApiUrl('/auth/register/'),
         method: 'POST',
         data: {
@@ -53,12 +54,13 @@ export function RegistrationForm({hasNewsletter, secondaryAction}: Props) {
           ...(hasNewsletter ? {subscribe: value.subscribe} : {}),
         },
       }),
-    onSuccess: result => testableWindowLocation.assign(result.nextUri),
+    onSuccess: result =>
+      onSuccess ? onSuccess(result) : testableWindowLocation.assign(result.nextUri),
   });
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {email: '', name: '', password: '', subscribe: false},
+    defaultValues: {email: initialEmail, name: '', password: '', subscribe: false},
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) =>
       mutation.mutateAsync(schema.parse(value)).catch((error: unknown) => {
@@ -115,7 +117,7 @@ export function RegistrationForm({hasNewsletter, secondaryAction}: Props) {
                   autoComplete="new-password"
                   trailingItems={
                     <Fragment>
-                      <RegistrationPasswordStrength value={field.state.value} />
+                      <PasswordStrengthIndicator value={field.state.value} />
                       <Button
                         size="xs"
                         variant="transparent"
@@ -174,29 +176,5 @@ export function RegistrationForm({hasNewsletter, secondaryAction}: Props) {
         </form.Subscribe>
       </Flex>
     </Stack>
-  );
-}
-
-function RegistrationPasswordStrength({value}: {value: string}) {
-  const [debouncedPassword] = useDebouncedValue(value, {wait: 100});
-
-  return (
-    <Suspense
-      fallback={
-        <ProgressRing
-          role="progressbar"
-          aria-label={t('Password strength')}
-          aria-valuenow={0}
-          aria-valuemin={0}
-          aria-valuemax={5}
-          aria-valuetext={t('No password entered')}
-          value={0}
-          maxValue={5}
-          size={18}
-        />
-      }
-    >
-      <PasswordStrengthRing value={debouncedPassword} />
-    </Suspense>
   );
 }

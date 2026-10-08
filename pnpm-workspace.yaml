@@ -1,4 +1,44 @@
 packages:
   - api-docs
+  - static/packages/scraps
   - static/oxlint/eslintPluginScraps
   - static/oxlint/eslintPluginSentry
+shamefullyHoist: true
+minimumReleaseAge: 720
+minimumReleaseAgeExclude:
+  - '@sentry/*'
+  - '@sentry-internal/*'
+  - solid-js@1.9.16
+overrides:
+  '@isaacs/brace-expansion': 5.0.1
+  diff@>=4.0.0 <4.0.4: 4.0.4
+  diff@>=5.0.0 <5.2.2: 5.2.2
+packageExtensions:
+  '@sentry/webpack-plugin@5.4.1':
+    peerDependenciesMeta:
+      webpack:
+        optional: true
+  compression-webpack-plugin@12.0.0:
+    peerDependenciesMeta:
+      webpack:
+        optional: true
+  style-loader@4.0.0:
+    peerDependenciesMeta:
+      webpack:
+        optional: true
+patchedDependencies:
+  zod@4.3.5: patches/zod@4.3.5.patch
+  zrender@6.1.0: patches/zrender@6.1.0.patch
+  css-tree@3.2.1: patches/css-tree@3.2.1.patch
+  jest-runtime@30.5.1: patches/jest-runtime@30.5.1.patch
+  jest-resolve@30.5.1: patches/jest-resolve@30.5.1.patch
+allowBuilds:
+  '@sentry-internal/node-cpu-profiler': true
+  '@sentry/cli': true
+  '@swc/core': true
+  core-js: true
+  esbuild: true
+  odiff-bin: true
+  unrs-resolver: true
+  '@parcel/watcher': false
+  es5-ext: false

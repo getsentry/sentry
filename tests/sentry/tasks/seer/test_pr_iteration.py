@@ -4,6 +4,7 @@ from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone
 from scm.errors import ResourceNotFound
 from scm.types import ReviewComment
 
@@ -17,14 +18,12 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.autofix.autofix_agent import (
-    PrIterationNoPullRequestException,
-)
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
 from sentry.seer.autofix.pr_iteration.emit import (
     BLOCKED_OUTCOMES_DATA_KEY,
+    FAILURE_REASON_DATA_KEY,
     PrIterationOutcome,
     bootstrap_iteration,
 )
@@ -44,6 +43,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.pr_iteration.logs import (
     LogCtxIteration,
     PrIterationLogContext,
@@ -62,23 +62,24 @@ from sentry.seer.autofix.pr_iteration.queue import (
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import (
     ALREADY_PAUSED_PR_ITERATION_COMMENT,
     STOP_PR_ITERATION_FAILED_COMMENT,
     STOPPED_PR_ITERATION_COMMENT,
-    UnsupportedProviderError,
     _build_review_feedback,
     _delete_own_comment_eyes_reaction,
+    _dropped_drain_reason,
     _ineligible_pr_iteration_comment_body,
-    _resolve_review_comment_threads,
     consume_queued_autofix_feedback,
     pause_pr_iteration_from_comment,
+    sweep_pr_iteration_details,
     trigger_consume_pr_iteration_feedback,
     trigger_pr_iteration_from_comment,
 )
 from sentry.testutils.cases import TestCase
 
+FEEDBACK_PATH = "sentry.seer.autofix.pr_iteration.feedback"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
@@ -159,7 +160,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             key="7",
         )
         if external_id is not None:
-            pr.update(external_id_str=external_id)
+            pr.update(external_id=external_id)
         return pr
 
     def _call(self) -> None:
@@ -250,8 +251,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         pr.refresh_from_db()
-        assert pr.external_id_str == "555"
-        assert pr.external_id == 555
+        assert pr.external_id == "555"
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_looks_up_a_non_numeric_provider_id(
@@ -268,8 +268,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             self.organization.id, "integrations:github", "pr_01abc"
         )
         pr.refresh_from_db()
-        assert pr.external_id_str == "pr_01abc"
-        assert pr.external_id is None
+        assert pr.external_id == "pr_01abc"
 
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_returns_when_get_pull_request_fails(
@@ -1114,12 +1113,12 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             group_id=self.group.id,
         )
         enqueue_autofix_feedback(
-            log_ctx=PrIterationLogContext(
+            log_ctx=PrIterationLogContext.for_run(
                 MagicMock(),
+                self._state(),
+                self.organization.id,
+                None,
                 iteration=LogCtxIteration.TRIGGERED,
-                run_state=self._state(),
-                organization_id=self.organization.id,
-                group_id=None,
             ),
             run_id=67890,
             organization_id=self.organization.id,
@@ -1559,12 +1558,12 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
     def _enqueue_ui_feedback(self, text: str) -> None:
         enqueue_autofix_feedback(
-            log_ctx=PrIterationLogContext(
+            log_ctx=PrIterationLogContext.for_run(
                 MagicMock(),
+                self._state(),
+                self.organization.id,
+                None,
                 iteration=LogCtxIteration.TRIGGERED,
-                run_state=self._state(),
-                organization_id=self.organization.id,
-                group_id=None,
             ),
             run_id=67890,
             organization_id=self.organization.id,
@@ -1612,8 +1611,6 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert completed.type == "ai.autofix.pr_iteration.feedback_batch.completed"
         assert completed.outcome == PrIterationOutcome.DRAIN_FAILED.value
         assert completed.feedback_count == 1
-        # The run state holds no iteration yet, so this one would have been the first.
-        assert completed.iteration_index == 1
         assert open_iterations(seer_run) == []
         # Logged as an error with the traceback, which is what reaches Sentry.
         error_call = mock_logger.error.call_args
@@ -1832,6 +1829,81 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             self._call()
 
         mock_trigger.assert_not_called()
+
+    def _human_iteration_block(self, idx: int) -> MemoryBlock:
+        return MemoryBlock(
+            id=f"iter{idx}",
+            message=Message(
+                role="assistant",
+                metadata={
+                    "step": "pr_iteration",
+                    "iteration_index": idx,
+                    "feedback": serialize_feedback([self._review_feedback(idx)]),
+                },
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_at_the_total_cap_is_dropped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # Human iterations break the streak, but the total cap still holds.
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._human_iteration_block(i) for i in range(1, 4)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with patch(f"{FEEDBACK_PATH}.MAX_TOTAL_ITERATIONS", 3):
+            self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_below_the_total_cap_is_triggered(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._human_iteration_block(i) for i in range(1, 3)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with patch(f"{FEEDBACK_PATH}.MAX_TOTAL_ITERATIONS", 3):
+            self._call()
+
+        mock_trigger.assert_called_once()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_human_feedback_at_the_total_cap_is_triggered(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._human_iteration_block(i) for i in range(1, 4)]
+        )
+        review = self._review_feedback(777)
+        mock_pop.return_value = [self._queued(review)]
+
+        with patch(f"{FEEDBACK_PATH}.MAX_TOTAL_ITERATIONS", 3):
+            self._call()
+
+        mock_trigger.assert_called_once()
+        _, kwargs = mock_trigger.call_args
+        assert [f.feedback_id for f in kwargs["feedback"]] == [review.feedback_id]
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -2164,12 +2236,13 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_a_fully_dropped_drain_closes_its_row(
+    def test_a_fully_dropped_drain_keeps_its_row_with_the_reason(
         self,
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
         _mock_trigger: MagicMock,
     ) -> None:
+        # The batch never runs, so its row keeps the reason for the sweep.
         seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
         stale, block = self._stale_feedback()
         mock_fetch.return_value = self._state(blocks=[block])
@@ -2178,7 +2251,9 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         self._call()
 
-        assert open_iterations(seer_run) == []
+        (row,) = open_iterations(seer_run)
+        assert row.triggered is True
+        assert row.data[FAILURE_REASON_DATA_KEY] == "already_processed"
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -2244,10 +2319,12 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._open_iteration_row()
         self._call()
 
-        (row,) = open_iterations(seer_run)
+        dropped_row, row = open_iterations(seer_run)
         assert mock_trigger.call_args.kwargs["iteration_id"] == row.id
         assert row.data["feedback_count"] == 1
         assert row.data["dropped_count"] == 0
+        assert FAILURE_REASON_DATA_KEY not in row.data
+        assert FAILURE_REASON_DATA_KEY in dropped_row.data
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -2336,12 +2413,12 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         self.log = MagicMock()
 
     def _log_ctx(self) -> PrIterationLogContext:
-        return PrIterationLogContext(
+        return PrIterationLogContext.for_run(
             self.log,
+            self._state(),
+            self.organization.id,
+            None,
             iteration=LogCtxIteration.TRIGGERED,
-            run_state=self._state(),
-            organization_id=self.organization.id,
-            group_id=None,
         )
 
     def _feedback(self) -> Feedback:
@@ -2600,6 +2677,45 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         assert decision == TriggerDecision(task=None, reason="hard_cap_reached")
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_refused_trigger_writes_its_reason_on_the_waiting_row(
+        self, _mock_apply: MagicMock
+    ) -> None:
+        # Nothing will drain this batch, so its row keeps the reason for the sweep.
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+        self._trigger(decision=TriggerDecision(task=None, reason="stale_head"))
+
+        (row,) = open_iterations(seer_run)
+        assert row.triggered is False
+        assert row.data[FAILURE_REASON_DATA_KEY] == "stale_head"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_scheduled_trigger_writes_no_reason(self, _mock_apply: MagicMock) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+        decision = self._trigger()
+
+        assert decision.task is ConsumeTask.Now
+        (row,) = open_iterations(seer_run)
+        assert FAILURE_REASON_DATA_KEY not in row.data
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_a_paused_run_returns_a_refusal(self, mock_apply: MagicMock) -> None:
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
@@ -2640,6 +2756,50 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
         mock_apply.assert_called_once()
         assert mock_apply.call_args.kwargs["countdown"] is None
+
+
+class DroppedDrainReasonTest(TestCase):
+    def test_a_head_that_moved_on_is_stale(self) -> None:
+        dropped = [{"id": "1", "reason": "stale_head"}, {"id": "2", "reason": "live_head_mismatch"}]
+
+        assert _dropped_drain_reason(dropped) == PrIterationOutcome.STALE_HEAD.value
+
+    def test_one_shared_reason_is_named(self) -> None:
+        dropped = [{"id": "1", "reason": "already_processed"}] * 2
+
+        assert _dropped_drain_reason(dropped) == "already_processed"
+
+    def test_a_mix_says_only_that_nothing_was_consumable(self) -> None:
+        dropped = [{"id": "1", "reason": "stale_head"}, {"id": "2", "reason": "already_processed"}]
+
+        assert _dropped_drain_reason(dropped) == PrIterationOutcome.NO_CONSUMABLE_FEEDBACK.value
+
+
+class SweepPrIterationDetailsTest(TestCase):
+    def test_an_aged_row_is_emitted_and_discarded(self) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=SeerRunState(
+                run_id=67890, blocks=[], status="completed", updated_at="2024-01-01T00:00:00Z"
+            ),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+        SeerRunPrIteration.objects.update(date_updated=timezone.now() - timedelta(days=2))
+
+        with (
+            patch("sentry.analytics.record") as mock_record,
+            patch(f"{TASK_PATH}.logger") as mock_logger,
+        ):
+            sweep_pr_iteration_details()
+
+        assert mock_record.call_args.args[0].outcome == PrIterationOutcome.NEVER_TRIGGERED.value
+        assert mock_logger.info.call_args.kwargs["extra"] == {
+            "discarded": 1,
+            "emitted": 1,
+            "backlog": 1,
+        }
 
 
 class _ReactionScmProtocols:
@@ -2770,145 +2930,6 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
         )
 
         mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
-
-
-class _ResolveThreadScmProtocols:
-    """Method surface matching the resolve protocols so ``spec`` MagicMocks
-    satisfy the ``@runtime_checkable`` ``isinstance`` guards."""
-
-    def get_thread_id_from_review_comment_unique_id(self, *args: Any, **kwargs: Any) -> Any: ...
-
-    def resolve_review_thread(self, *args: Any, **kwargs: Any) -> Any: ...
-
-    def get_pull_request_review_threads(self, *args: Any, **kwargs: Any) -> Any: ...
-
-
-class ResolveReviewCommentThreadsTest(TestCase):
-    def _scm(self) -> MagicMock:
-        return MagicMock(spec=_ResolveThreadScmProtocols)
-
-    def _thread(
-        self,
-        thread_id: str,
-        comment_unique_ids: list[str],
-        *,
-        is_resolved: bool = False,
-    ) -> dict[str, Any]:
-        return {
-            "id": thread_id,
-            "is_resolved": is_resolved,
-            "comments": [{"unique_id": uid} for uid in comment_unique_ids],
-        }
-
-    def _page(
-        self, threads: list[dict[str, Any]], next_cursor: str | None = None
-    ) -> dict[str, Any]:
-        return {"data": threads, "meta": {"next_cursor": next_cursor}}
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_resolves_matching_threads(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
-            [self._thread("PRRT_1", ["PRRC_a"]), self._thread("PRRT_2", ["PRRC_b"])]
-        )
-
-        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
-
-        assert result.resolved == 1
-        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_1")
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_dedupes_shared_thread(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
-            [self._thread("PRRT_1", ["PRRC_a", "PRRC_b"])]
-        )
-
-        result = _resolve_review_comment_threads(
-            scm, pr_number=7, comment_unique_ids=["PRRC_a", "PRRC_b"]
-        )
-
-        assert result.resolved == 1
-        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_1")
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_skips_already_resolved(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
-            [self._thread("PRRT_1", ["PRRC_a"], is_resolved=True)]
-        )
-
-        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
-
-        assert result.resolved == 0
-        assert result.already_resolved == 1
-        mock_scm_actions.resolve_review_thread.assert_not_called()
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_unknown_unique_id_not_found(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
-            [self._thread("PRRT_1", ["PRRC_a"])]
-        )
-
-        result = _resolve_review_comment_threads(
-            scm, pr_number=7, comment_unique_ids=["PRRC_missing"]
-        )
-
-        assert result.resolved == 0
-        assert result.not_found == 1
-        mock_scm_actions.resolve_review_thread.assert_not_called()
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_pages_until_exhausted(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        pages = [
-            self._page([self._thread("PRRT_1", ["PRRC_a"])], next_cursor="page-2"),
-            self._page([self._thread("PRRT_2", ["PRRC_b"])]),
-        ]
-
-        # Assert the cursor is threaded across pages, not ignored: the first page
-        # must start at ``after: null`` (empty cursor) and the second at page-1's
-        # next_cursor.
-        def get_threads(scm_arg: Any, pr_number_str: str, pagination: Any) -> dict[str, Any]:
-            if mock_scm_actions.get_pull_request_review_threads.call_count == 1:
-                assert pagination["cursor"] == ""
-                assert pagination["per_page"] == 100
-            else:
-                assert pagination["cursor"] == "page-2"
-            return pages[mock_scm_actions.get_pull_request_review_threads.call_count - 1]
-
-        mock_scm_actions.get_pull_request_review_threads.side_effect = get_threads
-
-        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_b"])
-
-        assert result.resolved == 1
-        assert mock_scm_actions.get_pull_request_review_threads.call_count == 2
-        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_2")
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_raises_for_unsupported_provider(self, mock_scm_actions: MagicMock) -> None:
-        # A mock missing one protocol method fails the isinstance guard.
-        scm = MagicMock(
-            spec=["resolve_review_thread", "get_thread_id_from_review_comment_unique_id"]
-        )
-
-        with pytest.raises(UnsupportedProviderError):
-            _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
-
-        mock_scm_actions.get_pull_request_review_threads.assert_not_called()
-        mock_scm_actions.resolve_review_thread.assert_not_called()
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_propagates_exceptions(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
-            [self._thread("PRRT_1", ["PRRC_a"])]
-        )
-        mock_scm_actions.resolve_review_thread.side_effect = RuntimeError("boom")
-
-        with pytest.raises(RuntimeError):
-            _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
 
 
 class BuildReviewFeedbackTest(TestCase):

@@ -16,12 +16,12 @@ import {
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
@@ -159,7 +159,7 @@ const Header = styled('div')`
   z-index: 1;
 
   > :last-child {
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
