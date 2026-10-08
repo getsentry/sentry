@@ -32,6 +32,7 @@ const config: Pick<DatasetConfig<any, any>, 'transformSeries'> = {
 describe('useEventsTimeseriesSpotCheck', () => {
   const pageFilters = PageFiltersFixture();
   const widget = WidgetFixture({
+    dashboardId: '42',
     displayType: DisplayType.LINE,
     queries: [
       {
@@ -120,7 +121,13 @@ describe('useEventsTimeseriesSpotCheck', () => {
       'Dashboard widget `/events-timeseries/` spot-check mismatch',
       expect.objectContaining({
         dataset: 'ourlogs',
-        differences: JSON.stringify([{reason: 'value'}]),
+        dashboardId: '42',
+        dashboardUrl: 'http://localhost/organizations/org-slug/dashboard/42/',
+        groupBy: '',
+        yAxis: 'count()',
+        differences: JSON.stringify([
+          {reason: 'value', legacyValue: 200, timeSeriesValue: 250},
+        ]),
       })
     );
   });

@@ -29,11 +29,10 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-from sentry import analytics, features, tsdb
+from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
 from sentry.api.client_kind import set_client_kind_attributes
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
@@ -511,15 +510,13 @@ class Endpoint(APIView):
                     self.args = args
                     self.kwargs = kwargs
 
-                    # Resolved solely to check the opt-in; everything else is
-                    # derived from the request. Both sources are conventions rather
-                    # than contracts, so the result is type-checked before use.
+                    # Attribution is scoped to endpoints that resolve an organization;
+                    # everything else is derived from the request. Both sources are
+                    # conventions rather than contracts, so the result is type-checked.
                     organization = kwargs.get("organization") or getattr(
                         request, "organization", None
                     )
-                    if isinstance(organization, (Organization, RpcOrganization)) and features.has(
-                        CLIENT_KIND_FEATURE_FLAG, organization, actor=request.user
-                    ):
+                    if isinstance(organization, (Organization, RpcOrganization)):
                         set_client_kind_attributes(request)
                 else:
                     handler = self.http_method_not_allowed

@@ -23,6 +23,8 @@ const BASE_SPAN = {
 
 const STATS: ConversationStats = {
   endTimestamp: 1_000_500,
+  errors: 0,
+  errorToolNames: [],
   generationDuration: 500,
   inputTokens: 70,
   llmCalls: 1,

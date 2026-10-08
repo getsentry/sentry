@@ -236,7 +236,7 @@ const config = defineConfig({
     },
     {
       name: 'import-js',
-      specifier: 'eslint-plugin-import',
+      specifier: 'eslint-plugin-import-x',
     },
     {
       name: 'react-js',
@@ -281,6 +281,9 @@ const config = defineConfig({
       defaultVersion: '19.2',
     },
     'import/resolver': {
+      typescript: {},
+    },
+    'import-x/resolver': {
       typescript: {},
     },
     // Analyze both static and dynamic imports for boundary checks.
@@ -1440,7 +1443,7 @@ const config = defineConfig({
         },
       },
     ],
-    // https://github.com/import-js/eslint-plugin-import/tree/main/docs/rules
+    // https://github.com/un-ts/eslint-plugin-import-x/tree/master/docs/rules
     'import-js/no-extraneous-dependencies': [
       'error',
       {
