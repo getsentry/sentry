@@ -56,6 +56,13 @@ describe('Table', () => {
     expect(within(table).getAllByRole('cell')).toHaveLength(3);
   });
 
+  it('takes a more specific role when given one', () => {
+    render(<TestTable aria-label="Tree" role="treegrid" />);
+
+    expect(screen.getByRole('treegrid', {name: 'Tree'})).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
   it.each([
     {
       name: 'sizes declared widths and lets the last column absorb slack',

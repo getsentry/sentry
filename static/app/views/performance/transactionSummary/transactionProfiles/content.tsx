@@ -183,7 +183,6 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                       frameFilter={frameFilter}
                       canvasPoolManager={canvasPoolManager}
                       canvasScheduler={scheduler}
-                      withoutBorders
                       profileType={PROFILE_TYPE}
                     />
                   )}

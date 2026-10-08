@@ -1,26 +1,19 @@
 import type React from 'react';
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {InfoTip} from '@sentry/scraps/info';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {
-  CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX,
-  CallTreeDynamicColumnsContainer,
-  CallTreeFixedColumnsContainer,
   CallTreeTable,
   CallTreeTableContainer,
-  CallTreeTableDynamicColumns,
-  CallTreeTableFixedColumns,
-  CallTreeTableGhostRow,
-  CallTreeTableHeader,
-  CallTreeTableHeaderButton,
+  CallTreeTableFrameCell,
   CallTreeTableRow,
+  CallTreeTableWeightCell,
   makeCallTreeTableSortFunction,
-  syncCallTreeTableScroll,
+  useCallTreeTable,
 } from 'sentry/components/profiling/flamegraph/callTreeTable';
-import {IconArrow} from 'sentry/icons';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {
   CanvasPoolManager,
@@ -29,10 +22,7 @@ import type {
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
-import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {relativeWeight} from 'sentry/utils/profiling/units/units';
 
 import {FlamegraphTreeContextMenu} from './flamegraphTreeContextMenu';
@@ -67,11 +57,6 @@ export function FlamegraphTreeTable({
   onBottomUpClick,
   onTopDownClick,
 }: FlamegraphTreeTableProps) {
-  const [scrollContainerRef, setFixedScrollContainerRef] =
-    useState<HTMLDivElement | null>(null);
-  const [dynamicScrollContainerRef, setDynamicScrollContainerRef] =
-    useState<HTMLDivElement | null>(null);
-
   const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
     'total weight'
   );
@@ -126,131 +111,19 @@ export function FlamegraphTreeTable({
     ]);
   }, [canvasPoolManager, clickedContextMenuNode, flamegraph]);
 
-  const fixedRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
-    useCallback(
-      (
-        r: any,
-        {
-          handleRowClick,
-          handleRowMouseEnter,
-          handleExpandTreeNode,
-          handleRowKeyDown,
-          selectedNodeIndex,
-        }: any
-      ) => {
-        return (
-          <CallTreeTableRow
-            key={r.key}
-            ref={n => {
-              r.ref = n;
-            }}
-            top={r.styles.top}
-            tabIndex={selectedNodeIndex === r.key ? 0 : 1}
-            onKeyDown={handleRowKeyDown}
-            onClick={handleRowClick}
-            onMouseEnter={handleRowMouseEnter}
-            onContextMenu={onRowContextMenu(r.item)}
-          >
-            <CallTreeTableFixedColumns
-              node={r.item}
-              type="time"
-              referenceNode={referenceNode}
-              totalWeight={r.item.node.node.totalWeight}
-              selfWeight={r.item.node.node.selfWeight}
-              relativeSelfWeight={relativeWeight(
-                referenceNode.node.totalWeight,
-                r.item.node.node.selfWeight
-              )}
-              relativeTotalWeight={relativeWeight(
-                referenceNode.node.totalWeight,
-                r.item.node.node.totalWeight
-              )}
-              frameColor={getFrameColor(r.item.node)}
-              formatDuration={flamegraph.formatter}
-              tabIndex={selectedNodeIndex === r.key ? 0 : 1}
-              onExpandClick={handleExpandTreeNode}
-            />
-          </CallTreeTableRow>
-        );
-      },
-      [referenceNode, flamegraph.formatter, getFrameColor, onRowContextMenu]
-    );
-
-  const dynamicRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
-    useCallback(
-      (
-        r: any,
-        {
-          handleRowClick,
-          handleRowMouseEnter,
-          handleExpandTreeNode,
-          handleRowKeyDown,
-          selectedNodeIndex,
-        }: any
-      ) => {
-        return (
-          <CallTreeTableRow
-            key={r.key}
-            ref={n => {
-              r.ref = n;
-            }}
-            top={r.styles.top}
-            tabIndex={selectedNodeIndex === r.key ? 0 : 1}
-            onKeyDown={handleRowKeyDown}
-            onClick={handleRowClick}
-            onMouseEnter={handleRowMouseEnter}
-            onContextMenu={onRowContextMenu(r.item)}
-          >
-            <CallTreeTableDynamicColumns
-              node={r.item}
-              type="time"
-              referenceNode={referenceNode}
-              frameColor={getFrameColor(r.item.node)}
-              formatDuration={flamegraph.formatter}
-              tabIndex={selectedNodeIndex === r.key ? 0 : 1}
-              onExpandClick={handleExpandTreeNode}
-            />
-          </CallTreeTableRow>
-        );
-      },
-      [referenceNode, flamegraph.formatter, getFrameColor, onRowContextMenu]
-    );
-  const onScrollToNode: UseVirtualizedTreeProps<FlamegraphFrame>['onScrollToNode'] =
-    useCallback(
-      (
-        node: VirtualizedTreeRenderedRow<FlamegraphFrame> | undefined,
-        scrollContainer: HTMLElement | HTMLElement[] | null,
-        coordinates?: {depth: number; top: number}
-      ) => {
-        syncCallTreeTableScroll({node, scrollContainer, coordinates});
-      },
-      []
-    );
-
-  const scrollContainers = useMemo(() => {
-    return [scrollContainerRef, dynamicScrollContainerRef].filter(c => !!c);
-  }, [dynamicScrollContainerRef, scrollContainerRef]);
-
   const {
     items: renderItems,
-    scrollContainerStyles: scrollContainerStyles,
-    containerStyles: fixedContainerStyles,
+    rowCount,
+    tableRef,
     handleSortingChange,
     handleScrollTo,
     handleExpandTreeNode,
     handleRowClick,
-    handleRowKeyDown,
-    handleRowMouseEnter,
-    selectedNodeIndex,
-    clickedGhostRowRef: clickedGhostRowRef,
-    hoveredGhostRowRef: hoveredGhostRowRef,
-  } = useVirtualizedTree({
+    getRowProps,
+  } = useCallTreeTable({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
-    onScrollToNode,
-    scrollContainer: scrollContainers,
-    rowHeight: 24,
     tree,
   });
 
@@ -279,120 +152,93 @@ export function FlamegraphTreeTable({
   }, [canvasScheduler, handleScrollTo]);
 
   return (
-    <FrameBar>
-      <CallTreeTable>
-        <CallTreeTableHeader>
-          <FrameWeightCell>
-            <CallTreeTableHeaderButton onClick={() => onSortChange('self weight')}>
-              <InteractionStateLayer />
-              <span>
-                {t('Self Time')}{' '}
-                <InfoTip
-                  title={t(
-                    'Self time is the amount of time spent by this function excluding the time spent by other functions called within it.'
-                  )}
-                  size="sm"
-                  position="top"
-                />
-              </span>
-              {sort === 'self weight' ? (
-                <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
-              ) : null}
-            </CallTreeTableHeaderButton>
-          </FrameWeightCell>
-          <FrameWeightCell>
-            <CallTreeTableHeaderButton onClick={() => onSortChange('total weight')}>
-              <InteractionStateLayer />
-              <span>
-                {t('Total Time')}{' '}
-                <InfoTip
-                  title={t(
-                    'Total time is the total amount of time spent by this function.'
-                  )}
-                  size="sm"
-                  position="top"
-                />
-              </span>
-              {sort === 'total weight' ? (
-                <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
-              ) : null}
-            </CallTreeTableHeaderButton>
-          </FrameWeightCell>
-          <div>
-            <CallTreeTableHeaderButton onClick={() => onSortChange('name')}>
-              <InteractionStateLayer />
-              {t('Frame')}{' '}
-              {sort === 'name' ? (
-                <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
-              ) : null}
-            </CallTreeTableHeaderButton>
-          </div>
-        </CallTreeTableHeader>
-        <CallTreeTableContainer ref={setTableParentContainer}>
-          <FlamegraphTreeContextMenu
-            onZoomIntoFrameClick={handleZoomIntoFrameClick}
-            onHighlightAllFramesClick={onHighlightAllOccurrencesClick}
-            contextMenu={contextMenu}
-            onBottomUpClick={onBottomUpClick}
-            onTopDownClick={onTopDownClick}
-          />
-          <CallTreeFixedColumnsContainer>
-            {/*
-          The order of these two matters because we want clicked state to
-          be on top of hover in cases where user is hovering a clicked row.
-           */}
-            <div ref={setFixedScrollContainerRef} style={scrollContainerStyles}>
-              <div style={fixedContainerStyles}>
-                {renderItems.map(r => {
-                  return fixedRenderRow(r, {
-                    handleRowClick: handleRowClick(r.key),
-                    handleRowMouseEnter: handleRowMouseEnter(r.key),
-                    handleExpandTreeNode,
-                    handleRowKeyDown,
-                    selectedNodeIndex,
-                  });
-                })}
-                <CallTreeTableGhostRow />
-              </div>
-            </div>
-          </CallTreeFixedColumnsContainer>
-          <CallTreeDynamicColumnsContainer>
-            {/*
-          The order of these two matters because we want clicked state to
-          be on top of hover in cases where user is hovering a clicked row.
-           */}
-            <div ref={setDynamicScrollContainerRef} style={scrollContainerStyles}>
-              <div style={fixedContainerStyles}>
-                {renderItems.map(r => {
-                  return dynamicRenderRow(r, {
-                    handleRowClick: handleRowClick(r.key),
-                    handleRowMouseEnter: handleRowMouseEnter(r.key),
-                    handleExpandTreeNode,
-                    handleRowKeyDown,
-                    selectedNodeIndex,
-                  });
-                })}
-              </div>
-            </div>
-          </CallTreeDynamicColumnsContainer>
-          <div ref={hoveredGhostRowRef} style={{zIndex: 0}} />
-          <div ref={clickedGhostRowRef} style={{zIndex: 0}} />
-        </CallTreeTableContainer>
+    <FrameBar ref={setTableParentContainer}>
+      <FlamegraphTreeContextMenu
+        onZoomIntoFrameClick={handleZoomIntoFrameClick}
+        onHighlightAllFramesClick={onHighlightAllOccurrencesClick}
+        contextMenu={contextMenu}
+        onBottomUpClick={onBottomUpClick}
+        onTopDownClick={onTopDownClick}
+      />
+      <CallTreeTable
+        ref={tableRef}
+        items={renderItems}
+        rowCount={rowCount}
+        header={
+          <Fragment>
+            <SimpleTable.HeaderCell
+              align="right"
+              handleSortClick={() => onSortChange('self weight')}
+              sort={sort === 'self weight' ? direction : undefined}
+            >
+              {t('Self Time')}{' '}
+              <InfoTip
+                title={t(
+                  'Self time is the amount of time spent by this function excluding the time spent by other functions called within it.'
+                )}
+                size="sm"
+                position="top"
+              />
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell
+              align="right"
+              handleSortClick={() => onSortChange('total weight')}
+              sort={sort === 'total weight' ? direction : undefined}
+            >
+              {t('Total Time')}{' '}
+              <InfoTip
+                title={t(
+                  'Total time is the total amount of time spent by this function.'
+                )}
+                size="sm"
+                position="top"
+              />
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell
+              handleSortClick={() => onSortChange('name')}
+              sort={sort === 'name' ? direction : undefined}
+            >
+              {t('Frame')}
+            </SimpleTable.HeaderCell>
+          </Fragment>
+        }
+      >
+        {renderItems.map(r => (
+          <CallTreeTableRow
+            key={r.key}
+            {...getRowProps(r)}
+            onClick={handleRowClick(r.key)}
+            onContextMenu={onRowContextMenu(r.item)}
+          >
+            <CallTreeTableWeightCell
+              relativeWeight={relativeWeight(
+                referenceNode.node.totalWeight,
+                r.item.node.node.selfWeight
+              )}
+            >
+              {flamegraph.formatter(r.item.node.node.selfWeight)}
+            </CallTreeTableWeightCell>
+            <CallTreeTableWeightCell
+              isApplicationFrame={r.item.node.node.frame.is_application}
+              relativeWeight={relativeWeight(
+                referenceNode.node.totalWeight,
+                r.item.node.node.totalWeight
+              )}
+            >
+              {flamegraph.formatter(r.item.node.node.totalWeight)}
+            </CallTreeTableWeightCell>
+            <CallTreeTableFrameCell
+              frameColor={getFrameColor(r.item.node)}
+              node={r.item}
+              onExpandClick={handleExpandTreeNode}
+            />
+          </CallTreeTableRow>
+        ))}
       </CallTreeTable>
     </FrameBar>
   );
 }
 
-const FrameBar = styled('div')`
-  overflow: auto;
-  width: 100%;
-  position: relative;
-  background-color: ${p => p.theme.tokens.background.tertiary};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  flex: 1 1 100%;
+const FrameBar = styled(CallTreeTableContainer)`
   grid-area: table;
-`;
-
-const FrameWeightCell = styled('div')`
-  width: ${CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX}px;
 `;

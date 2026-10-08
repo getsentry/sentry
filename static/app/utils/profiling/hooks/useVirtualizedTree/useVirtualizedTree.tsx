@@ -1,4 +1,12 @@
-import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -122,6 +130,11 @@ export function useVirtualizedTree<T extends TreeLike>(
   const theme = useTheme();
   const clickedGhostRowRef = useRef<HTMLDivElement | null>(null);
   const hoveredGhostRowRef = useRef<HTMLDivElement | null>(null);
+  const pendingScrollRef = useRef<{
+    depth: number;
+    index: number;
+    scrollTop: number;
+  } | null>(null);
 
   const [state, dispatch] = useReducer(VirtualizedTreeReducer, {
     scrollTop: 0,
@@ -491,10 +504,11 @@ export function useVirtualizedTree<T extends TreeLike>(
       // When we expand nodes, tree.expand will mutate the underlying tree which then
       // gets copied to the new tree instance. To get the right index, we need to read
       // it before any mutations are made
-      const previousNode = latestStateRef.current.selectedNodeIndex
-        ? (latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
-          null)
-        : null;
+      const previousNode =
+        latestStateRef.current.selectedNodeIndex === null
+          ? null
+          : (latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
+            null);
 
       latestTreeRef.current.expandNode(node, expand, opts);
       const newTree = new VirtualizedTree(
@@ -527,10 +541,11 @@ export function useVirtualizedTree<T extends TreeLike>(
       // When we sort nodes, tree.sort will mutate the underlying tree which then
       // gets copied to the new tree instance. To get the right index, we need to read
       // it before any mutations are made
-      const previousNode = latestStateRef.current.selectedNodeIndex
-        ? (latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
-          null)
-        : null;
+      const previousNode =
+        latestStateRef.current.selectedNodeIndex === null
+          ? null
+          : (latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
+            null);
 
       latestTreeRef.current.sort(sortFn);
       const newTree = new VirtualizedTree(
@@ -767,64 +782,48 @@ export function useVirtualizedTree<T extends TreeLike>(
         theme,
       });
 
-      const newMaxHeight = newTree.flattened.length * props.rowHeight;
-
-      // When a new view is larger than the previous view, we need to update the scroll height
-      // synchronously so that the view can be scrolled to its new position. If we don't do this,
-      // then the scrollTo(newScrollTop) will be clamped to the previous scroll height.
-      if (Array.isArray(props.scrollContainer)) {
-        props.scrollContainer.forEach(container => {
-          const firstChild = container?.childNodes?.[0] as HTMLElement | undefined;
-          if (!firstChild) {
-            return;
-          }
-
-          firstChild.style.height = `${newMaxHeight}px`;
-          firstChild.style.maxHeight = `${newMaxHeight}px`;
-        });
-      } else {
-        if (props.scrollContainer?.childNodes[0]) {
-          // Not exactly sure why we need the cast here, maybe we should limit HTMLElement to HTMLDivElement.
-          // https://stackoverflow.com/questions/58773652/ts2339-property-style-does-not-exist-on-type-element
-          const firstChild = props.scrollContainer?.childNodes?.[0] as
-            | HTMLElement
-            | undefined;
-
-          if (!firstChild) {
-            return;
-          }
-          // oxlint-disable-next-line react/immutability
-          firstChild.style.height = `${newMaxHeight}px`;
-          firstChild.style.maxHeight = `${newMaxHeight}px`;
-        }
-      }
-
-      if (Array.isArray(props.scrollContainer)) {
-        props.scrollContainer.forEach(container => {
-          container.scrollTo({
-            top: newScrollTop,
-          });
-        });
-      } else {
-        props.scrollContainer.scrollTo({
-          top: newScrollTop,
-        });
-      }
-
-      if (onScrollToNode) {
-        onScrollToNode(
-          latestItemsRef.current.find(item => item.key === newlyVisibleIndex),
-          props.scrollContainer,
-          {
-            top: newScrollTop,
-            depth: node.depth,
-          }
-        );
-      }
+      // A view larger than the previous one has to render before it can be
+      // scrolled to its new position, or the scroll is clamped to the previous
+      // scroll height, so the scroll waits for the next commit.
+      pendingScrollRef.current = {
+        depth: node.depth,
+        index: newlyVisibleIndex,
+        scrollTop: newScrollTop,
+      };
     },
 
-    [props.rowHeight, onScrollToNode, props.scrollContainer, theme]
+    [props.rowHeight, props.scrollContainer, theme]
   );
+
+  useLayoutEffect(() => {
+    const pendingScroll = pendingScrollRef.current;
+    if (!pendingScroll || !props.scrollContainer) {
+      return;
+    }
+
+    pendingScrollRef.current = null;
+
+    if (Array.isArray(props.scrollContainer)) {
+      props.scrollContainer.forEach(container => {
+        container.scrollTo({
+          top: pendingScroll.scrollTop,
+        });
+      });
+    } else {
+      props.scrollContainer.scrollTo({
+        top: pendingScroll.scrollTop,
+      });
+    }
+
+    onScrollToNode?.(
+      latestItemsRef.current.find(item => item.key === pendingScroll.index),
+      props.scrollContainer,
+      {
+        top: pendingScroll.scrollTop,
+        depth: pendingScroll.depth,
+      }
+    );
+  });
 
   // Basic required styles for the scroll container
   const scrollContainerStyles: React.CSSProperties = useMemo(() => {
