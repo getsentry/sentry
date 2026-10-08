@@ -11,6 +11,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AgenticSetup} from './agenticSetup';
+import {ManualSetupCard} from 'sentry/components/onboarding/manualSetupCard';
 import * as Storybook from 'sentry/stories';
 
 The host owns the run session, prompt, manual-setup action, analytics callbacks,
@@ -77,7 +78,7 @@ export function ProjectSetupExample() {
         onSelectSnippet={() => {}}
         feedbackSource="project-creation-agent-setup"
         issueLinkReferrer="project-creation-agentic-first-issue"
-        manualSetup={<Button>Set up manually</Button>}
+        manualSetup={<ManualSetupCard onSetupInBrowser={() => {}} />}
       />
     </Stack>
   );
