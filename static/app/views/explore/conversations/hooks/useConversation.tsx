@@ -123,6 +123,18 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
   );
 }
 
+/**
+ * A non-AI span that carries the conversation id and failed, e.g. a background
+ * job the agent enqueued. It's outside the agent, but dropping it would also
+ * drop its linked errors, hiding a failure the agent itself never saw.
+ */
+function isFailedDownstreamSpan(span: ConversationApiSpan): boolean {
+  if (isGenAiSpan(span)) {
+    return false;
+  }
+  return (span.errors?.length ?? 0) > 0 || span['span.status'].includes('error');
+}
+
 interface UseConversationResult {
   error: boolean;
   isLoading: boolean;
@@ -429,10 +441,12 @@ export function useConversation(
     }
 
     const traceMap = new Map<string, string>();
-    const genAiSpans = allSpans.filter(isGenAiSpan);
+    const conversationSpans = allSpans.filter(
+      span => isGenAiSpan(span) || isFailedDownstreamSpan(span)
+    );
     const nodeMap = new Map<string, AITraceSpanNode>();
 
-    const transformedNodes = genAiSpans.map(apiSpan => {
+    const transformedNodes = conversationSpans.map(apiSpan => {
       const node = createNodeFromApiSpan(apiSpan, nodeMap);
       nodeMap.set(node.id, node);
       traceMap.set(node.id, apiSpan.trace);
