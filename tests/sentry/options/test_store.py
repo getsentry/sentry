@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid1
 
@@ -200,14 +201,14 @@ class ApplicationStateTest(TestCase):
     def test_state_round_trip_uses_existing_storage(self) -> None:
         from sentry import application_state
 
-        for name, value in [
+        string_states: list[tuple[application_state.StringStateKey, str]] = [
             ("sentry:system-token", "existing-system-token"),
             ("sentry:install-id", "existing-installation"),
             ("sentry:latest_version", "1.2.3"),
-            ("sentry:last_worker_ping", 1234.5),
             ("sentry:last_worker_version", "1.2.3"),
             ("sentry:version-configured", "1.2.3"),
-        ]:
+        ]
+        for name, value in string_states:
             with self.subTest(name=name):
                 self.manager.set(name, value)
                 assert application_state.get(name) == value
@@ -218,6 +219,21 @@ class ApplicationStateTest(TestCase):
                 assert application_state.delete(name)
                 assert not Option.objects.filter(key=name).exists()
                 assert application_state.get(name) == ""
+
+    def test_timestamp_state_round_trip_uses_existing_storage(self) -> None:
+        from sentry import application_state
+
+        name = "sentry:last_worker_ping"
+        value = 1234.5
+        self.manager.set(name, value)
+        assert application_state.get("sentry:last_worker_ping") == value
+        assert application_state.set("sentry:last_worker_ping", value)
+        assert Option.objects.get(key=name).value == value
+        assert self.manager.get(name) == value
+        assert self.store.cache.get(self.manager.lookup_key(name).cache_key) == value
+        assert application_state.delete("sentry:last_worker_ping")
+        assert not Option.objects.filter(key=name).exists()
+        assert application_state.get("sentry:last_worker_ping") == ""
 
     def test_state_preserves_self_hosted_fallbacks(self) -> None:
         from sentry import application_state
@@ -244,13 +260,16 @@ class ApplicationStateTest(TestCase):
     def test_state_rejects_configuration_and_scoped_keys(self) -> None:
         from sentry import application_state
 
-        for name in [
+        invalid_names: list[str] = [
             "system.url-prefix",
             "sentry:skip-record-onboarding-tasks-if-complete",
             "sentry:_last_auto_resolve",
             "sentry:unknown",
             "getsentry:unknown",
-        ]:
+        ]
+        for invalid_name in invalid_names:
+            # Exercise runtime validation with names outside the typed contract.
+            name = cast(application_state.StateKey, invalid_name)
             with self.subTest(name=name):
                 with pytest.raises(ValueError, match="Unknown application state key"):
                     application_state.get(name)
@@ -263,9 +282,12 @@ class ApplicationStateTest(TestCase):
     def test_state_does_not_coerce_values(self) -> None:
         from sentry import application_state
 
+        # Exercise runtime validation without loosening the production API.
+        invalid_string = cast(str, 123)
+        invalid_timestamp = cast(float, "123")
         with pytest.raises(TypeError):
-            application_state.set("sentry:system-token", 123)
+            application_state.set("sentry:system-token", invalid_string)
         with pytest.raises(TypeError):
-            application_state.set("sentry:last_worker_ping", "123")
+            application_state.set("sentry:last_worker_ping", invalid_timestamp)
         assert not Option.objects.filter(key="sentry:system-token").exists()
         assert not Option.objects.filter(key="sentry:last_worker_ping").exists()
