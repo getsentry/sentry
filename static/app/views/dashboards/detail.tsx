@@ -9,7 +9,6 @@ import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {
@@ -74,7 +73,6 @@ import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {NavigationTypeGate} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeGate';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {AdjustedFiltersAlert} from './adjustedFiltersAlert';
@@ -1106,13 +1104,11 @@ class DashboardDetail extends Component<Props, State> {
               marginBottom="xl"
               height={{zero: 'auto', '3xl': '40px'}}
             >
-              <Layout.Title>
-                <DashboardTitle
-                  dashboard={modifiedDashboard ?? dashboard}
-                  onUpdate={this.setModifiedDashboard}
-                  isEditingDashboard={this.isEditingDashboard}
-                />
-              </Layout.Title>
+              <DashboardTitle
+                dashboard={modifiedDashboard ?? dashboard}
+                onUpdate={this.setModifiedDashboard}
+                isEditingDashboard={this.isEditingDashboard}
+              />
             </Grid>
             <OverrideHeader organization={organization} />
             <Stack gap="xl">
@@ -1178,28 +1174,13 @@ class DashboardDetail extends Component<Props, State> {
       <Stack flex={1}>
         <NoProjectMessage organization={organization}>
           {this.isEmbedded ? null : (
-            <Fragment>
-              <TopBar.Slot name="breadcrumbs">
-                <BreadcrumbList
-                  items={[
-                    {
-                      type: 'link',
-                      label: t('Dashboards'),
-                      to: `/organizations/${organization.slug}/dashboards/`,
-                    },
-                  ]}
-                />
-              </TopBar.Slot>
-              <TopBar.Slot name="title">
-                <DashboardBreadcrumbTitle
-                  dashboard={modifiedDashboard ?? dashboard}
-                  isPreview={this.isPreview}
-                  onDelete={this.onDelete(dashboard)}
-                  onRename={this.onRename}
-                  onChangeEditAccess={this.onChangeEditAccess}
-                />
-              </TopBar.Slot>
-            </Fragment>
+            <DashboardBreadcrumbTitle
+              dashboard={modifiedDashboard ?? dashboard}
+              isPreview={this.isPreview}
+              onDelete={this.onDelete(dashboard)}
+              onRename={this.onRename}
+              onChangeEditAccess={this.onChangeEditAccess}
+            />
           )}
           <Fragment>
             {/* Mirrors ExploreBodySearch, the sticky controls pattern shared by Logs,

@@ -139,6 +139,17 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
 
+    def test_create_notification_origin(self) -> None:
+        origin = self.handler.create_notification_origin(
+            self.detector, self.event_data, workflow_id=self.workflow.id
+        )
+
+        assert origin.label == self.workflow.name
+        assert self.workflow.environment is not None
+        assert origin.environment_id == self.workflow.environment.id
+        assert origin.workflow_id == self.workflow.id
+        assert origin.legacy_rule_id == self.rule.id
+
     def test_create_rule_instance_from_action_with_workflow_only(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         self.rule.delete()
@@ -466,6 +477,64 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
             "team": "team789",
             "priority": "",
         }
+
+    @mock.patch("sentry.integrations.opsgenie.client.logger")
+    @mock.patch("sentry.integrations.opsgenie.client.OpsgenieClient.send_notification")
+    def test_invoke_legacy_registry_links_to_workflow(
+        self, mock_send_notification: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        """
+        The workflow engine is the only path into the Opsgenie issue alert payload,
+        and every non-test invocation should carry its workflow id through to it.
+        """
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="test-app",
+            provider="opsgenie",
+            name="test-app",
+            metadata={
+                "api_key": "1234-ABCD",
+                "base_url": "https://api.opsgenie.com/",
+                "domain_name": "test-app.app.opsgenie.com",
+            },
+            oi_params={
+                "config": {
+                    "team_table": [
+                        {"id": "team789", "integration_key": "1234-ABCD", "team": "default team"},
+                    ]
+                },
+            },
+        )
+        action = self.create_action(
+            type=Action.Type.OPSGENIE,
+            integration_id=integration.id,
+            config={"target_identifier": "team789", "target_type": ActionTarget.SPECIFIC},
+            data={"priority": "P1"},
+        )
+        workflow = self.create_workflow()
+        # A dual-written legacy rule means the Rule also carries a legacy_rule_id.
+        legacy_rule = self.create_project_rule(project=self.project)
+        self.create_alert_rule_workflow(workflow=workflow, rule_id=legacy_rule.id)
+        group, _, group_event = self.create_group_event()
+        invocation = ActionInvocation(
+            event_data=WorkflowEventData(event=group_event, group=group),
+            action=action,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=workflow.id,
+        )
+
+        with self.options({"system.url-prefix": "http://example.com"}):
+            self.handler.invoke_legacy_registry(invocation)
+
+        mock_send_notification.assert_called_once()
+        details = mock_send_notification.call_args.kwargs["data"]["details"]
+        assert details["Triggering Workflows"] == workflow.name
+        assert (
+            details["Triggering Workflow URLs"]
+            == f"http://example.com/organizations/{self.organization.slug}/monitors/alerts/{workflow.id}/"
+        )
+        mock_logger.warning.assert_not_called()
 
 
 class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):

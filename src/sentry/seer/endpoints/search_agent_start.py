@@ -18,7 +18,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
-from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
+from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -165,16 +165,11 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         )
         project_ids = [project.id for project in projects]
 
-        has_feature = features.has(
-            "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        )
-        if strategy == "Issues":
-            has_feature = has_feature and features.has(
-                "organizations:gen-ai-issues-search",
-                organization,
-                actor=request.user,
-            )
-        if not has_feature:
+        if strategy == "Issues" and not features.has(
+            "organizations:gen-ai-issues-search",
+            organization,
+            actor=request.user,
+        ):
             return Response(
                 {"detail": "Feature flag not enabled"},
                 status=status.HTTP_403_FORBIDDEN,

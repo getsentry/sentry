@@ -1,16 +1,13 @@
 import {memo} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
-import type {SaveQueryModalProps} from 'sentry/components/modals/explore/saveQueryModal';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
@@ -22,7 +19,6 @@ import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const renderDisabled = (p: any) => (
   <Hovercard
@@ -38,34 +34,6 @@ const renderDisabled = (p: any) => (
     {p.children(p)}
   </Hovercard>
 );
-
-type SaveAsButtonProps = {
-  disabled: boolean;
-  onSave: SaveQueryModalProps['saveQuery'];
-  organization: Organization;
-};
-
-export function SaveAsButton({disabled, onSave, organization}: SaveAsButtonProps) {
-  return (
-    <Button
-      size="sm"
-      variant="primary"
-      aria-label={t('Save as')}
-      disabled={disabled}
-      onClick={() =>
-        openSaveQueryModal({
-          organization,
-          saveQuery: onSave,
-          traceItemDataset: TraceItemDataset.ERRORS,
-          source: 'errors',
-          showMessage: false,
-        })
-      }
-    >
-      {t('Save as')}
-    </Button>
-  );
-}
 
 type Props = {
   api: Client;
@@ -123,16 +91,6 @@ const SavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
     </Grid>
   );
 });
-
-export const IconUpdate = styled('div')`
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-
-  margin-right: ${p => p.theme.space.sm};
-  border-radius: 5px;
-  background-color: ${p => p.theme.colors.yellow400};
-`;
 
 function SavedQueryButtonGroupWithNavigate(props: Omit<Props, 'navigate'>) {
   const navigate = useNavigate();

@@ -15,6 +15,8 @@ from sentry.notifications.platform.templates.seer import (
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.agent.client_models import PendingUserInput
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
@@ -31,7 +33,9 @@ from sentry.seer.entrypoints.slack.messaging import (
     send_thread_update,
     update_existing_message,
 )
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 
@@ -179,6 +183,40 @@ class SlackAutofixEntrypointTest(TestCase):
                 organization_id=cache_payload["organization_id"],
                 data=ANY,
             )
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_pr_created_and_ready_for_review_post_one_slack_message(
+        self, mock_send_threaded_message, _mock_has_access
+    ):
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=self._get_entrypoint().create_autofix_cache_payload(),
+        )
+
+        # Non-draft PRs emit both signals back to back from the completion hook
+        with self.tasks():
+            for event_type in (
+                SentryAppEventType.SEER_PR_CREATED,
+                SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+            ):
+                process_autofix_updates(
+                    event_type=event_type,
+                    event_payload={**MOCK_SEER_WEBHOOKS[event_type], "group_id": self.group.id},
+                    organization_id=self.organization.id,
+                )
+
+        mock_send_threaded_message.assert_called_once_with(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            renderable=ANY,
+        )
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert "https://github.com/owner/repo/pull/123" in str(renderable["blocks"])
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
