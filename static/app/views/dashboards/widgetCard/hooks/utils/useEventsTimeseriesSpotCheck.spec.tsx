@@ -122,6 +122,7 @@ describe('useEventsTimeseriesSpotCheck', () => {
       expect.objectContaining({
         dataset: 'ourlogs',
         dashboardId: '42',
+        dashboardUrl: 'http://localhost/organizations/org-slug/dashboard/42/',
         groupBy: '',
         yAxis: 'count()',
         differences: JSON.stringify([
