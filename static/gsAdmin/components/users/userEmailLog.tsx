@@ -1,4 +1,5 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useState} from 'react';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -21,66 +22,60 @@ type Props = {
   user: User;
 };
 
+type EmailActivity = {
+  created: number;
+  email: string;
+  event: string;
+};
+
 export function UserEmailLog({user, Panel}: Props) {
-  const [loading, setLoading] = useState<boolean | null>(null);
-  const [error, setError] = useState(false);
   const [activeEmail, setActiveEmail] = useState(user.email);
-  const [results, setResults] = useState<any[]>([]);
   const [hideButton, setHideButton] = useState(false);
 
-  const fetchEmails = useCallback(async () => {
-    const apiKey = ConfigStore.get('getsentry.sendgridApiKey');
-    const path = `https://api.sendgrid.com/v3/email_activity?limit=25&email=${encodeURIComponent(
-      activeEmail
-    )}`;
-    setLoading(true);
-
-    try {
-      // TODO(dcramer): this doesnt cancel when a new request is made
-      const resp = await fetch(path, {headers: {Authorization: `Bearer ${apiKey}`}});
-
-      if (resp.ok) {
-        setError(false);
-        setResults(await resp.json());
-      } else {
-        setError(true);
+  // SendGrid is an external API, so it can't go through apiOptions and the Sentry API client
+  const {
+    data: results = [],
+    isPending,
+    isError,
+  } = useQuery({
+    queryKey: ['sendgrid-email-activity', activeEmail],
+    queryFn: async ({signal}): Promise<EmailActivity[]> => {
+      const apiKey = ConfigStore.get('getsentry.sendgridApiKey');
+      const resp = await fetch(
+        `https://api.sendgrid.com/v3/email_activity?limit=25&email=${encodeURIComponent(activeEmail)}`,
+        {headers: {Authorization: `Bearer ${apiKey}`}, signal}
+      );
+      if (!resp.ok) {
+        throw new Error(`SendGrid responded with ${resp.status}`);
       }
-    } catch {
-      setError(true);
-    }
+      return resp.json();
+    },
+    staleTime: 0,
+    retry: false,
+  });
 
-    setLoading(false);
-  }, [activeEmail]);
-
-  useEffect(() => {
-    fetchEmails();
-  }, [fetchEmails]);
-
-  const removeBounce = async (email: string) => {
-    const apiKey = ConfigStore.get('getsentry.sendgridApiKey');
-    const path = `https://api.sendgrid.com/v3/suppression/bounces/${encodeURIComponent(
-      email
-    )}`;
-
-    try {
-      const resp = await fetch(path, {
-        method: 'DELETE',
-        headers: {Authorization: `Bearer ${apiKey}`},
-      });
-
-      if (resp.ok) {
-        // eslint-disable-next-line no-alert
-        alert('success');
-        setHideButton(true);
-      } else {
-        // eslint-disable-next-line no-alert
-        alert(await resp.text());
+  const {mutate: removeBounce} = useMutation({
+    mutationFn: async (email: string) => {
+      const apiKey = ConfigStore.get('getsentry.sendgridApiKey');
+      const resp = await fetch(
+        `https://api.sendgrid.com/v3/suppression/bounces/${encodeURIComponent(email)}`,
+        {method: 'DELETE', headers: {Authorization: `Bearer ${apiKey}`}}
+      );
+      if (!resp.ok) {
+        throw new Error(await resp.text());
       }
-    } catch (err) {
+    },
+    onSuccess: () => {
       // eslint-disable-next-line no-alert
-      alert('fetch failed');
-    }
-  };
+      alert('success');
+      setHideButton(true);
+    },
+    onError: error => {
+      // fetch() rejects with a TypeError on network failure; anything else is SendGrid's error body
+      // eslint-disable-next-line no-alert
+      alert(error instanceof TypeError ? 'fetch failed' : error.message);
+    },
+  });
 
   const emailSelector = (
     <CompactSelect
@@ -105,13 +100,13 @@ export function UserEmailLog({user, Panel}: Props) {
           </tr>
         </thead>
         <tbody>
-          {loading ? (
+          {isPending ? (
             <tr>
               <td colSpan={4}>
                 <LoadingIndicator />
               </td>
             </tr>
-          ) : error ? (
+          ) : isError ? (
             <tr>
               <td colSpan={4}>
                 <Alert.Container>
