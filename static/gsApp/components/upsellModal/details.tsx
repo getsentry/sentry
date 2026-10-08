@@ -193,9 +193,7 @@ export function Details({onCloseModal, organization, source, subscription}: Prop
     return PERFORMANCE_FEATURES;
   }, [subscription.planDetails, shouldShowTeamFeatures]);
 
-  const initialHighlightedFeatureId = features.some(f => f.id === source)
-    ? source
-    : null;
+  const initialHighlightedFeatureId = features.some(f => f.id === source) ? source : null;
 
   const [highlightedFeatureId, setHighlightedFeatureId] = useState<string | null>(
     initialHighlightedFeatureId
@@ -226,7 +224,9 @@ export function Details({onCloseModal, organization, source, subscription}: Prop
   const selectFeature = useCallback(
     (feature: Feature) => {
       stopAutoRotate();
-      setHighlightedFeatureId(currentId => (feature.id === currentId ? null : feature.id));
+      setHighlightedFeatureId(currentId =>
+        feature.id === currentId ? null : feature.id
+      );
       setHasClickedFeature(true);
       trackGetsentryAnalytics('business_landing.clicked', {
         organization,
@@ -262,9 +262,15 @@ export function Details({onCloseModal, organization, source, subscription}: Prop
 
     const firstAutoRotate = () => {
       showNextFeature();
-      autoRotateIntervalRef.current = window.setInterval(showNextFeature, ROTATE_INTERVAL);
+      autoRotateIntervalRef.current = window.setInterval(
+        showNextFeature,
+        ROTATE_INTERVAL
+      );
     };
-    autoRotateTimeoutRef.current = window.setTimeout(firstAutoRotate, FIRST_ROTATE_TIMEOUT);
+    autoRotateTimeoutRef.current = window.setTimeout(
+      firstAutoRotate,
+      FIRST_ROTATE_TIMEOUT
+    );
 
     return () => {
       trackGetsentryAnalytics('business_landing.closed', {
