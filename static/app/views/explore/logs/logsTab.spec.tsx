@@ -1,4 +1,4 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {initializeLogsTest} from 'sentry-fixture/log';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -251,6 +251,43 @@ describe('LogsTabContent', () => {
     await screen.findByText('some log message1');
     expect(table).toHaveTextContent(/some log message1/);
     expect(table).toHaveTextContent(/some log message2/);
+  });
+
+  it('restores saved sorts when the selected columns are already in the URL', async () => {
+    localStorageWrapper.setItem(
+      'logs-params-v2',
+      JSON.stringify({
+        fields: ['timestamp', 'message'],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
+      })
+    );
+    const {[LOGS_SORT_BYS_KEY]: _sortBys, ...query} = initialRouterConfig.location.query;
+    const savedColumnsRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {...query, [LOGS_FIELDS_KEY]: ['timestamp', 'message']},
+      },
+    };
+
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: savedColumnsRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_SORT_BYS_KEY]).toBe('timestamp');
+    });
+    expect(eventTableMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({sort: 'timestamp'}),
+      })
+    );
   });
 
   it('removes invalid selected columns after validation', async () => {
@@ -688,9 +725,13 @@ describe('LogsTabContent', () => {
   it('refetches the chart and its dropped data annotations when the refresh button is clicked', async () => {
     PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: null});
     const droppedDataMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
+      url: `/organizations/${organization.slug}/events-dropped/`,
       method: 'GET',
-      body: {timeSeries: [TimeSeriesFixture()]},
+      body: {
+        meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
+        droppedEvents: [],
+        acceptedEvents: [],
+      },
       match: [
         MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
       ],
@@ -794,14 +835,15 @@ describe('LogsTabContent', () => {
   describe('dropped data layer', () => {
     function mockDroppedData() {
       return MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-timeseries/`,
+        url: `/organizations/${organization.slug}/events-dropped/`,
         method: 'GET',
         match: [
           MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
         ],
         body: {
-          timeSeries: [],
-          meta: {droppedAnnotations: [AnnotationFixture()], acceptedAnnotations: []},
+          meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
+          droppedEvents: [DroppedEventFixture()],
+          acceptedEvents: [],
         },
       });
     }
@@ -820,9 +862,12 @@ describe('LogsTabContent', () => {
 
       expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
       expect(droppedDataMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/events-timeseries/`,
+        `/organizations/${organization.slug}/events-dropped/`,
         expect.objectContaining({
-          query: expect.objectContaining({dataset: 'ourlogs', includeAnnotations: 1}),
+          query: expect.objectContaining({
+            dataset: 'ourlogs',
+            referrer: 'api.explore.dropped-data-annotations',
+          }),
         })
       );
     });

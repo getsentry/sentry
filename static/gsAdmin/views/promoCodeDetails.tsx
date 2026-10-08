@@ -1,6 +1,7 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {useModal} from '@sentry/scraps/modal';
 
 import {
@@ -17,7 +18,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {PromoCodeClaimants} from 'admin/components/promoCodes/promoCodeClaimants';
@@ -76,7 +76,7 @@ export function PromoCodeDetails() {
 
   const overviewPanel = (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Code">
           <code>{promoCode.code}</code>
         </DetailLabel>
@@ -87,8 +87,8 @@ export function PromoCodeDetails() {
           {promoCode.maxClaims ? ` / ${promoCode.maxClaims}` : null}
         </DetailLabel>
         <DetailLabel title="New Only">{promoCode.newOnly ? 'Yes' : 'No'}</DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DetailLabel title="Status">{titleCase(promoCode.status)}</DetailLabel>
         <DetailLabel title="Duration">{promoCode.duration}</DetailLabel>
         <DetailLabel title="Created">
@@ -100,7 +100,7 @@ export function PromoCodeDetails() {
         <DetailLabel title="Trial Duration">
           {promoCode.trialDays ? promoCode.trialDays + ' days' : 'N/A'}
         </DetailLabel>
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 

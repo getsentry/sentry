@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {useSearchParams} from 'react-router';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';

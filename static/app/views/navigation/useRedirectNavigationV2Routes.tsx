@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';

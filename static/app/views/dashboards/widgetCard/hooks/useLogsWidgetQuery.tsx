@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
@@ -36,6 +36,10 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
@@ -65,10 +69,6 @@ export function useLogsSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<LogsSeriesResponse[] | undefined>(undefined);
-  const hasMeasuredIngestionDelayUi = organization.features.includes(
-    'measured-ingestion-delay-ui'
-  );
   const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   const filteredWidget = useMemo(
@@ -94,7 +94,7 @@ export function useLogsSeriesQuery(
     return requestData;
   });
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: seriesRequestData.map(requestData => {
       if (!isEventsTimeseriesEnabled) {
         const {
@@ -154,11 +154,10 @@ export function useLogsSeriesQuery(
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData, {
-          includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
-        }),
+        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
       });
     }),
+    combine: combineWidgetQueryResults,
   });
 
   useEventsTimeseriesSpotCheck({
@@ -191,7 +190,6 @@ export function useLogsSeriesQuery(
     const timeseriesResults: Series[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
-    const rawData: LogsSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -199,7 +197,6 @@ export function useLogsSeriesQuery(
       }
 
       const responseData = q.data;
-      rawData[requestIndex] = responseData;
 
       const transformedResult = LogsConfig.transformSeries!(
         responseData,
@@ -235,30 +232,13 @@ export function useLogsSeriesQuery(
       }
     });
 
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
@@ -281,7 +261,6 @@ export function useLogsTableQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<LogsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -290,7 +269,7 @@ export function useLogsTableQuery(
   );
 
   // Check if organization has the async queue feature
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -338,6 +317,7 @@ export function useLogsTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetJsonQueryResults,
   });
 
   const transformedData = (() => {
@@ -355,7 +335,6 @@ export function useLogsTableQuery(
     }
 
     const tableResults: TableDataWithTitle[] = [];
-    const rawData: LogsTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
@@ -364,7 +343,6 @@ export function useLogsTableQuery(
       }
 
       const responseData = q.data.json;
-      rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
         ...LogsConfig.transformTable(
@@ -382,31 +360,12 @@ export function useLogsTableQuery(
       responsePageLinks = q.data.headers.Link;
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 

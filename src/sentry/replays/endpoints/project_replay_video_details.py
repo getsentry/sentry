@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
@@ -59,7 +60,8 @@ class ProjectReplayVideoDetailsEndpoint(ProjectReplayEndpoint):
         """Return a replay video."""
         self.check_replay_access(request, project)
 
-        segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
+        with handle_query_errors():
+            segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
         if not segment:
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
 

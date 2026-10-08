@@ -41,7 +41,6 @@ import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHa
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {useSpanWaiter} from 'sentry/views/insights/pages/onboardingUtils';
 
 function useOnboardingProject() {
@@ -65,7 +64,7 @@ function WaitingIndicator({project}: {project: Project}) {
   const spanRequest = useSpanWaiter({
     project,
     search: 'span.name:"gen_ai.*"',
-    referrer: Referrer.ONBOARDING,
+    referrer: 'api.insights.mcp.onboarding',
   });
   const {reloadProjects, fetching} = useProjects();
   const hasEvents = Boolean(spanRequest.data?.length);

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Outlet, useMatches} from 'react-router-dom';
+import {Outlet, useMatches} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
 import SeerConfigBug1 from 'sentry-images/spot/seer-config-bug-1.svg';

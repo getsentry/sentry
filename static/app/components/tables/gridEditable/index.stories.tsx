@@ -203,10 +203,8 @@ export default Storybook.story('GridEditable', story => {
     return (
       <Fragment>
         <p>
-          Passing
-          <Storybook.JSXProperty name="stickyHeader" value={Boolean} /> and{' '}
-          <Storybook.JSXProperty name="scrollable" value={Boolean} />
-          add sticky headers and table scrolling respectively
+          Passing <Storybook.JSXProperty name="stickyHeader" value={Boolean} /> keeps the
+          header in view while the table scrolls
         </p>
         <Storybook.SideBySide>
           <div>
@@ -218,7 +216,6 @@ export default Storybook.story('GridEditable', story => {
                 renderHeadCell,
                 renderBodyCell,
               }}
-              scrollable
               height="200px"
             />
           </div>
@@ -232,7 +229,6 @@ export default Storybook.story('GridEditable', story => {
                 renderBodyCell,
               }}
               stickyHeader
-              scrollable
               height="200px"
             />
           </div>

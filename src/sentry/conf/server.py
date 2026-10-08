@@ -1165,6 +1165,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
+    "statistical-detectors-detect-function-change-points": {
+        "task": "profiling:sentry.tasks.statistical_detectors.detect_function_change_points",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
     "seer-explorer-index": {
         "task": "seer:sentry.tasks.seer_explorer_index.schedule_explorer_index",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
@@ -1903,6 +1907,7 @@ SENTRY_SCOPES = {
     "alerts:read",
     "alerts:write",
     "dashboard:read",
+    "dashboard:create",
     "dashboard:write",
     "dashboard:delete",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
@@ -1946,8 +1951,14 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
     "dashboard:read": {"dashboard:read"},
-    "dashboard:write": {"dashboard:read", "dashboard:write"},
-    "dashboard:delete": {"dashboard:read", "dashboard:write", "dashboard:delete"},
+    "dashboard:create": {"dashboard:read", "dashboard:create"},
+    "dashboard:write": {"dashboard:read", "dashboard:create", "dashboard:write"},
+    "dashboard:delete": {
+        "dashboard:read",
+        "dashboard:create",
+        "dashboard:write",
+        "dashboard:delete",
+    },
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -1970,6 +1981,7 @@ SENTRY_TOKEN_ONLY_SCOPES = frozenset(
 GRANULAR_SCOPES = frozenset(
     [
         "dashboard:read",
+        "dashboard:create",
         "dashboard:write",
         "dashboard:delete",
     ]
@@ -2033,6 +2045,7 @@ SENTRY_SCOPE_SETS = (
     (
         ("dashboard:delete", "Read, write, and delete access to dashboards."),
         ("dashboard:write", "Read and write access to dashboards."),
+        ("dashboard:create", "Read and create access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
     (("openid", "Confirms authentication status and provides basic information."),),
@@ -2239,6 +2252,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
+            "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
         },
@@ -2274,6 +2288,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
+            "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
         },
@@ -2304,6 +2319,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
+            "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
         },
@@ -2341,6 +2357,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
+            "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
         },
@@ -2466,7 +2483,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
-    "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",

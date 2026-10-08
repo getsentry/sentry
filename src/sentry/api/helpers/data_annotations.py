@@ -48,14 +48,7 @@ def record_dropped_events_telemetry(
     sentry_sdk.set_attribute("dropped_events.had_drops", had_drops)
 
 
-DROPPED_OUTCOMES: tuple[Outcome, ...] = (
-    Outcome.FILTERED,
-    Outcome.RATE_LIMITED,
-    Outcome.INVALID,
-    Outcome.ABUSE,
-    Outcome.CLIENT_DISCARD,
-    Outcome.CARDINALITY_LIMITED,
-)
+DROPPED_OUTCOMES: tuple[Outcome, ...] = tuple(o for o in Outcome if o is not Outcome.ACCEPTED)
 
 
 DEFAULT_DROP_THRESHOLD = 1
@@ -65,11 +58,6 @@ DATASET_TO_CATEGORY: dict[object, DataCategory] = {
     OurLogs: DataCategory.LOG_ITEM,
     TraceMetrics: DataCategory.TRACE_METRIC,
     errors: DataCategory.ERROR,
-}
-
-# Only for logs dropped/accepted bytes outcome is emitted.
-DATASET_TO_BYTE_CATEGORY: dict[object, DataCategory] = {
-    OurLogs: DataCategory.LOG_BYTE,
 }
 
 _ACCEPTED_NAME = Outcome.ACCEPTED.api_name()
@@ -89,9 +77,12 @@ def _run_category_query(
 ) -> list[dict[str, Any]]:
     """Run one bucketed Outcomes query over a single category.
 
-    Includes both accepted and dropped outcomes, grouped by ``outcome`` and
-    ``reason`` so a caller can split accepted (the share denominator) from each
-    per-reason drop.
+    The query always fetches accepted plus every drop outcome, grouped by
+    ``outcome`` and ``reason``. It is deliberately not narrowed by the endpoint's
+    ``outcome``/``reason`` filters: accepted (the share denominator) must come
+    back in full regardless, so the caller fetches everything here and narrows
+    only the dropped rows afterward. ``group_by`` keeps each (outcome, reason)
+    drop separate while accepted collapses to one total per bucket.
     """
     query = QueryDefinition(
         fields=["sum(quantity)"],
@@ -100,6 +91,7 @@ def _run_category_query(
         organization_id=organization_id,
         project_ids=snuba_params.project_ids,
         interval=f"{rollup}s",
+        # ACCEPTED is the share denominator; the rest are the drop classifications.
         outcome=[Outcome.ACCEPTED.api_name(), *(o.api_name() for o in DROPPED_OUTCOMES)],
         group_by=["outcome", "reason"],
         category=[category.api_name()],
@@ -146,11 +138,20 @@ def get_dropped_data_annotations(
     rollup: int,
     *,
     threshold: int = DEFAULT_DROP_THRESHOLD,
+    outcome: str | None = None,
+    reason: str | None = None,
 ) -> tuple[list[Annotation], list[Annotation]]:
     """Build dropped and accepted data-fidelity annotations for a timeseries query.
     - ``dropped_annotations``: one per (bucket, outcome, reason) drop.
     - ``accepted_annotations``: one per bucket, carrying that bucket's accepted
       volume.
+
+    ``outcome`` and ``reason`` optionally narrow the *dropped* side to a single
+    classification: ``outcome`` is the top-level drop class (e.g. ``rate_limited``)
+    and ``reason`` the sub-classification within it (e.g. ``spike_protection``).
+    The accepted side is never filtered — it is the share denominator and carries
+    no outcome or reason — so a scoped request still returns the complete accepted
+    volume alongside the one dropped series.
 
     Buckets align to the chart because ``rollup`` is the interval the endpoint
     already resolved for the series.
@@ -172,33 +173,24 @@ def get_dropped_data_annotations(
         accepted_by_bucket = _accepted_by_bucket(item_rows)
         dropped_by_key = _dropped_by_bucket_reason(item_rows)
 
-        # Bytes are a logs-only dimension: query the paired byte category only
-        # when the dataset has one. Spans/metrics never emit byte outcomes.
-        byte_category = DATASET_TO_BYTE_CATEGORY.get(dataset)
-        accepted_bytes_by_bucket: dict[float, int] = {}
-        dropped_bytes_by_key: dict[tuple[float, str, str], int] = {}
-        if byte_category is not None:
-            byte_rows = _run_category_query(byte_category, snuba_params, rollup, organization_id)
-            accepted_bytes_by_bucket = _accepted_by_bucket(byte_rows)
-            dropped_bytes_by_key = _dropped_by_bucket_reason(byte_rows)
-
         dropped_annotations: list[Annotation] = []
-        for (bucket_start_ms, outcome, reason_key), dropped in dropped_by_key.items():
+        for (bucket_start_ms, bucket_outcome, reason_key), dropped in dropped_by_key.items():
             if dropped < threshold:
+                continue
+
+            if outcome is not None and bucket_outcome != outcome:
+                continue
+            if reason is not None and reason_key != reason:
                 continue
             annotation = Annotation(
                 type="system",
                 category=category.api_name(),
-                outcome=outcome,
+                outcome=bucket_outcome,
                 reason=reason_key,
                 start=bucket_start_ms,
                 end=bucket_start_ms + rollup * 1000,
                 eventCount=dropped,
             )
-            if byte_category is not None:
-                annotation["byteSize"] = dropped_bytes_by_key.get(
-                    (bucket_start_ms, outcome, reason_key), 0
-                )
             dropped_annotations.append(annotation)
 
         accepted_annotations: list[Annotation] = []
@@ -212,8 +204,6 @@ def get_dropped_data_annotations(
                 end=bucket_start_ms + rollup * 1000,
                 eventCount=accepted_by_bucket.get(bucket_start_ms, 0),
             )
-            if byte_category is not None:
-                annotation["byteSize"] = accepted_bytes_by_bucket.get(bucket_start_ms, 0)
             accepted_annotations.append(annotation)
 
         set_span_data(span, "dropped_annotation_count", len(dropped_annotations))

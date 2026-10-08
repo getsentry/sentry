@@ -1,7 +1,6 @@
 import {useState, type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
@@ -35,6 +34,7 @@ import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateD
 import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
 import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 /**
  * Star/unstar the dashboard. Sits beside the actions menu rather than inside it —
@@ -189,8 +189,9 @@ function DashboardTitle({
   ];
 
   return (
-    <BreadcrumbList.Title
-      item={{
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
         type: 'page-title',
         label: dashboard.title,
         trailingActions: [
@@ -218,6 +219,13 @@ function DashboardTitle({
             : null,
         ],
       }}
+      items={[
+        {
+          type: 'link',
+          label: t('Dashboards'),
+          to: `/organizations/${organization.slug}/dashboards/`,
+        },
+      ]}
     />
   );
 }
@@ -252,11 +260,19 @@ export function DashboardBreadcrumbTitle({
 
   if (isPreview) {
     return (
-      <BreadcrumbList.Title
-        item={{
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
           type: 'page-title',
           label: dashboard.title,
         }}
+        items={[
+          {
+            type: 'link',
+            label: t('Dashboards'),
+            to: `/organizations/${organization.slug}/dashboards/`,
+          },
+        ]}
       />
     );
   }

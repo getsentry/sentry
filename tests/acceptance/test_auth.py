@@ -1,7 +1,6 @@
 from selenium.webdriver.common.keys import Keys
 
 from sentry.testutils.cases import AcceptanceTestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import no_silo_test
 
 
@@ -16,19 +15,15 @@ class AuthTest(AcceptanceTestCase):
         self.browser.element('[aria-label="Email"]').send_keys(username)
         self.browser.element('[aria-label="Password"]').send_keys(password, Keys.ENTER)
 
-    @override_options({"auth.v2.enabled": True})
     def test_renders(self) -> None:
         self.browser.get("/auth/login/")
 
-    @override_options({"auth.v2.enabled": True})
     def test_no_credentials(self) -> None:
         self.enter_auth("", "")
 
-    @override_options({"auth.v2.enabled": True})
     def test_invalid_credentials(self) -> None:
         self.enter_auth("bad-username", "bad-username")
 
-    @override_options({"auth.v2.enabled": True})
     def test_success(self) -> None:
         email = "dummy@example.com"
         password = "dummy"

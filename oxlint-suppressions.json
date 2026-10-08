@@ -1,0 +1,3707 @@
+{
+  "static/app/components/acl/featureDisabled.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/acl/featureDisabledModal.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/actions/resolve.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/ai/chat/collapsibleContent.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/alerts/pageBanner.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/analyticsArea.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/arithmeticBuilder/token/deleteButton.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/arithmeticBuilder/token/function.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/arithmeticBuilder/token/grid.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/arithmeticBuilder/token/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/assigneeSelectorDropdown.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/avatarChooser/avatarCropper.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/avatarChooser/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/carousel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/charts/breakdownBars.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/charts/errorPanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/charts/groupStatusChart.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/charts/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/components/clippedBox.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/clippedBox.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/commitRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/confirm.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 10
+    }
+  },
+  "static/app/components/confirm.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/confirmDelete.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/components/container/accordion.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/container/negativeSpaceContainer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/container/stacked.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/contentSliderDiff/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/customCommitsResolutionModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/customIgnoreCountModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/customIgnoreDurationModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/customResolutionModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/droppedData/useDroppedDataDrawer.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/editableText.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/emptyStateWarning.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/emptyStateWarning.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/errors/detailedError.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/errors/notFound.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/breadcrumbs/breadcrumbsDrawer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/breadcrumbs/breadcrumbsTimeline.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/events/breadcrumbs/utils.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/contexts/contextIcon.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/eventAttachments.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/eventDrawer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/events/eventMessage.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/eventReplay/replayInlineOnboardingPanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/eventReplay/replayPreviewPlayer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/eventReplay/staticReplayPreview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/eventStatisticalDetector/eventDifferentialFlamegraph.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/events/featureFlags/cta/featureFlagCTAContent.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/featureFlags/onboarding/featureFlagOnboardingLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/events/featureFlags/onboarding/onboardingAdditionalFeatures.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/groupingInfo/groupingComponent.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/highlights/editHighlightsModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 6
+    }
+  },
+  "static/app/components/events/highlights/highlightsIconSummary.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/events/interfaces/crashContent/exception/content.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/crashContent/exception/mechanism.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/crashContent/exception/relatedExceptions.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/csp/help/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/debugMeta/debugImageDetails/generalInfo.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/debugMeta/index.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/frame/assembly.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/frame/context.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/events/interfaces/frame/openInContextLine.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/frame/stacktraceLinkModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/events/interfaces/performance/anrRootCause.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/sourceMapsDebuggerModal.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/sourceMapsDebuggerModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 31
+    }
+  },
+  "static/app/components/events/interfaces/spans/spanProfileDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/events/interfaces/stackTraceContext.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/threads.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/events/interfaces/threads/threadSelector/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/threads/threadSelector/option.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/interfaces/threads/threadSelector/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/traceEventDataSection.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/viewHierarchy/detailsPanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/viewHierarchy/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/events/viewHierarchy/node.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/events/viewHierarchy/wireframe.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/eventTitleError.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/featureFeedback/feedbackModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/featureShowcase.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 8
+    }
+  },
+  "static/app/components/feedback/feedbackItem/feedbackItemHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/feedback/feedbackItem/feedbackItemSection.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/feedback/feedbackItem/feedbackItemSection.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/feedback/feedbackItem/feedbackScreenshot.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/feedback/feedbackOnboarding/feedbackOnboardingLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/feedback/feedbackOnboarding/sidebar.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/feedback/list/feedbackListHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/feedback/list/feedbackListItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/feedback/summaryCategories/feedbackSummary.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/feedback/summaryCategories/feedbackSummaryCategories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/feedback/useDeleteFeedback.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/controls/multipleCheckbox.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/controls/radioGroup.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/forms/controls/rangeSlider/sliderAndInputWrapper.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/controls/rangeSlider/sliderLabel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/fieldGroup/controlState.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/fieldGroup/fieldHelp.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/fieldGroup/fieldLabel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/fields/choiceMapperField.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/fields/segmentedRadioField.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/fields/tableField.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/form.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/forms/formField/index.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/group/externalIssuesList/issueTrackerActions.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/group/externalIssuesList/linkedIssueRows.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/group/externalIssuesList/linkedPullRequests.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/group/inboxBadges/shortId.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/group/inboxBadges/timesTag.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/group/inboxBadges/unhandledTag.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/group/tagFacets/tagFacetsDistributionMeter.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/app/components/groupMetaRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/groupPreviewTooltip/evidencePreview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/groupPreviewTooltip/spanEvidencePreview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/groupPreviewTooltip/stackTracePreview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/guidedSteps/guidedSteps.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/components/hovercard.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/iconCircledNumber.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/idBadge/baseBadge.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/infiniteList/infiniteListItems.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/lastCommit.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/messagingIntegrations/addIntegrationRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/messagingIntegrations/messagingIntegrationModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/createNewIntegrationModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/createReleaseIntegrationModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/createTeamModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/dashboardWidgetQuerySelectorModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/modals/dataWidgetViewerModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/modals/demoEndModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/components/modals/demoSignUp.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/modals/diffModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/editOwnershipRulesModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/explore/saveQueryModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/modals/featureTourModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/modals/importDashboardFromFileModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/modals/insightChartModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/modals/inviteMembersModal/emailValue.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/inviteMembersModal/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/inviteMembersModal/inviteRowControl.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/inviteMissingMembersModal/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/issueOwnershipRuleModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/navigateToExternalLinkModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/components/modals/privateGamingSdkAccessModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/reprocessEventModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/sentryAppDetailsModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/teamAccessRequestModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/modals/widgetBuilder/addToDashboardModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboarding/frameworkSuggestionModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/onboarding/gettingStartedDoc/contentBlocks/defaultRenderers.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboarding/gettingStartedDoc/copyDsnField.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboarding/gettingStartedDoc/onboardingLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboarding/gettingStartedDoc/step.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/onboarding/onboardingContext.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/onboarding/productSelection.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboarding/scm/scmAlertOptionCard.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboarding/scm/scmCardButton.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboarding/stepper.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboardingWizard/content.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/onboardingWizard/modalTask.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/panels/panelFooter.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/performanceOnboarding/sidebar.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/components/pill.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/pills.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/pipeline/integrationAwsLambda/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/pipeline/usePipeline.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/placeholder.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/platformList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/platformPicker.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/profiling/arrayLinks.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/profiling/flamegraph/aggregateFlamegraphSidePanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/profiling/flamegraph/callTreeTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/profiling/flamegraph/collapsibleTimeline.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/profiling/flamegraph/flamegraphDrawer/flamegraphDrawer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/profiling/flamegraph/flamegraphLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/profiling/flamegraph/flamegraphToolbar/flamegraphToolbar.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/profiling/flamegraph/flamegraphTooltip.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/profiling/profilingContextMenu.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 6
+    }
+  },
+  "static/app/components/profiling/profilingOnboardingSidebar.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/progressMarker.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/projectList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/questionTooltip.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/breadcrumbs/breadcrumbIssueLink.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/breadcrumbs/breadcrumbItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/breadcrumbs/openReplayComparisonButton.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/breadcrumbs/replayComparisonModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/breadcrumbs/replayTimelineEvents.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/breadcrumbs/replayTimelineEvents.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/breadcrumbs/timeline.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/diff/learnMoreButton.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/diff/picker/crumbItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/diff/picker/diffTimestampPicker.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/diff/replayDiffChooser.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/diff/replayMutationTree.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/diff/replaySideBySideImageDiff.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/diff/utils.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/list/__stories__/replayListItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/player/bufferingOverlay.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/player/fastForwardBadge.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/player/zoomTrianges.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/preferences/replayPreferenceDropdown.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/replayContext.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/replayPlatformIcon.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/replayPlayer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/replayProcessingError.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/replayTagsTableRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/replayView.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/replays/table/deleteReplays.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/table/replayTableColumns.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/timeAndScrubberGrid.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/virtualizedGrid/bodyCell.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/virtualizedGrid/detailsSplitDivider.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/replaysOnboarding/sidebar.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/resourceCard.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/resultGrid.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/scoreCard.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/searchBar/searchDropdown.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/searchQueryBuilder/askSeer/components.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/searchQueryBuilder/askSeerCombobox/baseAskSeerComboBox.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/askSeerCombobox/queryTokens.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/index.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/tokenizedQueryGrid.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/tokens/combobox.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/tokens/deletableToken.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/tokens/filter/functionDescription.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/tokens/filter/specificDatePicker.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/tokens/filter/unstyledButton.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/searchQueryBuilder/tokens/filter/valueCombobox.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 7
+    }
+  },
+  "static/app/components/searchQueryBuilder/tokens/filter/valueListBox.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/searchQueryBuilder/tokens/filterKeyListBox/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/searchQueryBuilder/tokens/filterKeyListBox/utils.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/seer/autofixChatContext.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/seer/datadogPatConnectModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/seer/legacy/addAutofixRepoModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/seer/legacy/selectableRepoItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/seer/markdown/embeds/components/autofix.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/seer/seerAutomationProjectList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/selectMembers/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/shortId.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/sidebarSection.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/slider/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/splitDiff.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/stackTrace/exceptionGroup.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/stackTrace/frame/actions/chevron.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/stackTrace/frame/frameContent.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/stackTrace/frame/frameHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 10
+    }
+  },
+  "static/app/components/stackTrace/frame/frameVariablesGrid.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/stackTrace/issueStackTrace/issueSourceMapsDebuggerAction.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/stream/group.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/app/components/tables/gridEditable/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/tables/keyValueTable/keyValueTable.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/components/tables/keyValueTable/keyValueTableDataRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/timeline/index.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 6
+    }
+  },
+  "static/app/components/timeline/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/timeRangeSelector/dateRange.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/timeRangeSelector/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/tokenizedInput/token/deletableToken.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/tours/components.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/tours/startTour.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/versionHoverCard.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 7
+    }
+  },
+  "static/app/components/workflowEngine/form/automationBuilderRowLine.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/workflowEngine/form/fullHeightForm.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/workflowEngine/gridCell/titleCell.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/workflowEngine/ui/card.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/data/timezones.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/debug/notifications/components/debugNotificationsHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/debug/notifications/components/debugNotificationsLanding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/debug/notifications/components/debugNotificationsSearch.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/debug/notifications/views/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/gettingStartedDocs/node-awslambda/awslambdaArnSelector.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/icons/icons.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/icons/identityIcon.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/icons/pluginIcon.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/makeLazyloadComponent.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/scrapsProviders/datetime.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/stories/apiReference.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/stories/colorReference.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/stories/demo.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/stories/demo.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/stories/layout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/stories/props.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/stories/tokenReference.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/stories/view/expressiveCodeCopy.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/stories/view/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/stories/view/landing/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/stories/view/storyHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/stories/view/storySourceLinks.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/stories/view/storyTableOfContents.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/utils/discover/arrayValue.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/utils/discover/fieldRenderers.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/utils/discover/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/utils/list/listItemSelectedState.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/utils/performance/contexts/pageAlert.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/utils/replays/hooks/useShareReplayAtTimestamp.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/utils/useHoverOverlay.timing.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/utils/usePrevious.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/utils/usePrismTokens.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/utils/useResizableDrawer.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/utils/useSyncedLocalStorageState.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/admin/adminEnvironment.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/admin/adminMail.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/admin/adminPackages.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/admin/adminRelays.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/admin/adminWarnings.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/admin/installWizard/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/app/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/auth/layout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/authV2/useBrandedAuthLoading.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/automations/components/actionFilters/comparisonBranches.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/automations/components/actionFilters/subfiltersList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/automations/components/automationActionSummary.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/automations/components/automationHistoryList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/automations/components/automationListTable/connectedDetectors.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/automations/components/automationStatsChart.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/automations/components/conditionsPanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/automations/components/editConnectedMonitors.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/addWidget.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/editAccessModal.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/globalFilter/filterSelector.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/dashboards/globalFilter/numericFilterSelectorTrigger.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/releasesSelectControl.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/components/common/sectionHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/components/newWidgetBuilder.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/components/queryFilterBuilder.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/components/visualize/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/components/widgetTemplatesList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/dashboards/widgetCard/chart.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/widgetCard/toolbar.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/dashboards/widgetCard/tooltipIconTrigger.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/widgetCard/warningsList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/dashboards/widgets/common/widgetLoadingPanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/dashboards/widgets/tableWidget/tableWidgetVisualization.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/widgets/widget/widget.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/dashboards/widgets/widget/widgetDescription.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/dashboards/widgets/widget/widgetError.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/dataExport/dataDownload.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/detectors/components/connectAutomationsDrawer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/detectorListConnectedAutomations.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/detectorListTable/detectorTypeCell.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/detectorTypeForm.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/forms/common/schedulePreview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/detectors/components/forms/metric/metric.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/forms/metric/metricDetectorChart.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/forms/metric/queryFilterBuilder.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/forms/metric/resolveSection.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/forms/mobileBuild/detectSection.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/detectors/components/forms/uptime/detect/uptimeHeadersField.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/detectors/components/uptime/assertions/index.stories.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/uptime/assertions/opGroup.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/uptime/detailsTimelineLegend.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/detectors/components/uptime/uptimeAlertForm.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/uptime/uptimeChecksGrid.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/detectors/components/uptime/uptimeHeadersField.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/discover/eventDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/discover/landing.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/discover/querycard.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/discover/results/resultsChart.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/discover/results/sampleDataAlert.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/discover/table/cellAction.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/discover/table/columnEditCollection.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/discover/table/columnEditModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/discover/table/quickContext/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/components/attributeBreakdowns/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/components/chart/chartFooter.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/components/toolbar/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/contexts/logs/logsPageParams.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/exploreLocationQueryParamsProvider.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/explore/hooks/useAddToDashboard.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/logs/fieldRenderers.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/logs/logsAutoRefresh.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/logs/logsOnboarding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/logs/logsTimeTooltip.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/logs/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 6
+    }
+  },
+  "static/app/views/explore/metrics/hooks/useSaveMetricsMultiQuery.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/metrics/metricInfoTabs/metricInfoTabStyles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/metrics/metricsOnboarding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/metrics/metricToolbar/index.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/metrics/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/multiQueryMode/queryConstructors/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/multiQueryMode/queryRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/profiling/continuousProfileFlamegraph.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/profiling/landing/functionTrendsWidget.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/profiling/landing/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/app/views/explore/profiling/landingAggregateFlamegraph.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/explore/profiling/onboarding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/profiling/profileFlamechart.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/releases/detail/commitsAndFiles/fileChange.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/releases/detail/commitsAndFiles/releaseCommit.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/releases/detail/overview/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/releases/detail/overview/sidebar/commitAuthorBreakdown.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/releases/detail/overview/sidebar/deploys.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/releases/detail/overview/sidebar/projectReleaseDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/releases/detail/overview/sidebar/releaseAdoption.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/releases/detail/overview/sidebar/releaseStats.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/releases/detail/overview/sidebar/totalCrashFreeUsers.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/releases/drawer/releasesDrawerDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/releases/list/releaseCard/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/app/views/explore/releases/list/releaseCard/releaseCardCommits.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/releases/list/releaseCard/releaseCardProjectRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/releases/list/releaseCard/releaseCardStatsPeriod.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/replays/detail/ai/chapterList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/replays/detail/console/consoleLogRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/replays/detail/errorList/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/replays/detail/layout/replayLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/explore/replays/detail/memoryPanel/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/explore/replays/detail/network/details/components.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/explore/replays/detail/network/details/onboarding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/explore/replays/detail/ourlogs/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/replays/detail/timestampButton.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/replays/detail/virtualizedTableLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/replays/list.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/replays/list/replayIndexTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/replays/list/replayOnboardingPanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/replays/selectors/deadRageSelectorCards.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/replays/selectors/projectInfo.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/replays/selectors/selectorLink.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/savedQueries/exploreParams.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/savedQueries/savedQueriesLandingContent.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/savedQueries/savedQueriesTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/spans/charts/confidenceFooter.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/spans/charts/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/spans/content.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/spans/tour.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/tables/aggregateColumnEditorModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/tables/columnEditorModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/tables/fieldRenderer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/tables/tracesTable/fieldRenderers.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/explore/tables/tracesTable/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/toolbar/toolbarVisualize.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/browser/resources/components/sampleImages.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/browser/webVitals/components/webVitalDescription.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/insights/common/components/chartPanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/common/components/moduleLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/common/components/modulesOnboarding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/insights/common/components/spanDescription.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/common/components/textAlign.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/crons/components/checkInCell.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/crons/components/detailsSidebar.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/insights/crons/components/detailsTimelineLegend.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/insights/crons/components/monitorForm.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/crons/components/onboarding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/crons/components/overviewTimeline/monitorEnvironmentLabel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/crons/components/overviewTimeline/overviewRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 7
+    }
+  },
+  "static/app/views/insights/crons/components/processingErrors/monitorProcessingErrors.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/insights/crons/components/timezoneOverride.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/pages/agents/components/aiSpanTimeline.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/pages/agents/components/tokenBreakdownTooltip.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/pages/agents/components/tracesTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/pages/agents/onboarding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/insights/pages/domainViewHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/pages/mcp/onboarding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/insights/pages/platform/nextjs/deadRageClickWidget.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/pages/platform/nextjs/serverTree.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/insights/uptime/components/overviewTimeline/overviewRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/integrationOrganizationLink/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/investigations/statusBlock/seerStatusBlock.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/actions/shareModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 6
+    }
+  },
+  "static/app/views/issueDetails/activitySection/activityLineItem/actor.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/issueDetails/activitySection/activityLineItem/layout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/issueDetails/activitySection/activityLineItem/note.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/issueDetails/activitySection/activityLineItem/progressMarker/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/activitySection/activityLineItem/progressMarker/progressMarker.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/issueDetails/activitySection/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/issueDetails/divider.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/downtimeDuration.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/eventListTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/issueDetails/eventNavigation/issueDetailsEventNavigation.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/eventNavigation/issueDetailsJumpTo.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/eventNavigation/issueDetailsJumpTo.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/groupEventAttachments/screenshotCard.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/groupEventDetails/groupEventDetailsLoading.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/groupRelatedIssues/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/groupTags/tagDistribution.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/app/views/issueDetails/groupTags/tagDrawerContent.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/header/groupStatusSubtitle.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/header/issueIdBreadcrumb.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/issueCronCheckTimeline.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/issueDetails/issueTagsPreview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/issueDetails/issueUptimeCheckTimeline.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/issueDetails/occurrenceSummary.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/sidebar/firstLastSeenSection.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/sidebar/participantList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/issueDetails/sidebar/resources.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueList/actions/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueList/issueViews/createIssueViewModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueList/issueViews/issueViewsList/issueViewsList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/issueList/issueViews/renameIssueViewModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueList/newViewEmptyState.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/onboarding/components/firstEventFooter.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/onboarding/scmMessaging.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/organizationStats/teamInsights/teamIssuesAge.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/organizationStats/teamInsights/teamIssuesBreakdown.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/organizationStats/teamInsights/teamMisery.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/organizationStats/usageChart/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/organizationStats/usageStatsOrg.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/organizationStats/usageStatsPerMin.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/organizationStats/usageStatsProjects.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/eap/segmentSpansTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/landing/widgets/components/accordion.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/landing/widgets/components/performanceWidget.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/performance/landing/widgets/components/selectableList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/performance/landing/widgets/widgets/histogramWidget.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/landing/widgets/widgets/performanceScoreWidget.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/landing/widgets/widgets/singleFieldAreaWidget.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/performance/onboarding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceContextVitals.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/app/views/performance/traceDetails/traceDrawer/details/highlightedAttributes.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceDrawer/details/profiling/profilePreview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/description.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/performance/traceDetails/traceDrawer/details/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceDrawer/details/transaction/sections/breadCrumbs.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/performance/traceDetails/traceDrawer/tabs/traceAiSpans.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/performance/traceDetails/traceDrawer/traceDrawer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/app/views/performance/traceDetails/traceHeader/highlights.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/performance/traceDetails/traceOurlogs.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceRow/traceAutogroupedRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceRow/traceEAPSpanRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceRow/traceMissingInstrumentationRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceRow/traceRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceRow/traceUptimeCheckNode.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceRow/traceUptimeCheckTimingNode.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceSearch/traceSearchInput.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceShortcutsModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/performance/traceDetails/traceTypeWarnings/styles.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceWaterfallState.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/transactionSummary/transactionEvents/eapSampledEventsTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/transactionSummary/transactionEvents/operationSort.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/transactionSummary/transactionProfiles/content.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/performance/transactionSummary/transactionThresholdModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/buildComparison/header/buildCompareHeaderContent.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/buildComparison/main/sizeCompareSelectedBuilds.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/buildDetails/main/insights/insightInfoModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/components/appIcon.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/components/visualizations/appSizeLegend.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/preprod/components/visualizations/appSizeTreemap.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/snapshots/main/imageDisplay/diffImageDisplay.snapshots.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/snapshots/main/imageDisplay/singleImageDisplay.snapshots.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/snapshots/main/snapshotCards.snapshots.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 6
+    }
+  },
+  "static/app/views/preprod/snapshots/main/snapshotCards.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/preprod/snapshots/main/snapshotDiffBodies.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/snapshots/main/snapshotMainContent.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/snapshots/main/snapshotsToolbar.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/app/views/preprod/snapshots/sidebar/snapshotSidebarContent.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/preprod/snapshots/tagChip.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/projectInstall/createProject.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/projectInstall/issueAlertOptions.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/projectInstall/messagingIntegrationAlertRule.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/projectInstall/otherPlatformsInfo.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/projectsDashboard/deploys.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/projectsDashboard/noEvents.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/projectsDashboard/projectCard.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/projectsDashboard/useProjectStats.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/relocation/relocation.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/relocation/uploadBackup.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/routeError.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/seerExplorer/components/askUserQuestionBlock.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/seerExplorer/components/chat/toolUse.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/seerExplorer/components/emptyState.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/seerExplorer/components/explorerMenu.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/seerExplorer/components/fileDiffViewer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/seerExplorer/components/inputSection.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/seerExplorer/useSeerExplorerContext.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/seerExplorer/utils.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/seerExplorer/xray/seerXRayOverlay.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/seerWorkflows/overview/index.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/sentryAppExternalInstallation/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/account/accountAuthorizations.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/account/accountEmails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/account/accountIdentities.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/account/accountSecurity/accountSecurityDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/account/accountSecurity/components/u2fEnrolledDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/account/accountSecurity/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/account/apiApplications/details.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/account/apiApplications/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/account/notifications/notificationSettings.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/settings/account/notifications/notificationSettingsByEntity.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/account/notifications/weeklyReportProjectExclusions.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/components/dataScrubbing/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/components/dataScrubbing/modals/dataScrubFormModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/components/dataScrubbing/modals/form/eventIdField.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/components/dataScrubbing/modals/form/sourceField.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/components/dataScrubbing/modals/form/sourceField.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/components/dataScrubbing/modals/form/sourceSuggestionExamples.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/components/dataScrubbing/organizationRules.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/components/dataScrubbing/rules.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/components/settingsLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/components/settingsProjectItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/dynamicSampling/organizationSampleRateInput.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 7
+    }
+  },
+  "static/app/views/settings/dynamicSampling/organizationSampling.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/dynamicSampling/projectSampling.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/dynamicSampling/projectsEditTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/dynamicSampling/projectsPreviewTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/dynamicSampling/projectsTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/dynamicSampling/samplingBreakdown.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 6
+    }
+  },
+  "static/app/views/settings/dynamicSampling/samplingModeSwitchModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/featureFlags/changeTracking/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/featureFlags/changeTracking/newSecretHandler.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/featureFlags/changeTracking/organizationFeatureFlagsAuditLogTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationAuditLog/auditLogList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationAuth/providerItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/organizationDeveloperSettings/permissionsObserver.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLog.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationDeveloperSettings/sentryApplicationRow/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationIntegrations/detailedView/integrationLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/settings/organizationIntegrations/integrationCodeMappings.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationIntegrations/integrationListDirectory.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationIntegrations/integrationRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationIntegrations/integrationServerlessRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigForm.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationMembers/inviteBanner.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/settings/organizationMembers/inviteMember/orgRoleSelect.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationMembers/inviteRequestRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/app/views/settings/organizationMembers/organizationMemberRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/settings/organizationMembers/organizationMembersList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationRelay/list/cardHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationRepositories/components/scmRepositoryTable.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/organizationTeams/organizationTeams.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationTeams/teamDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationTeams/teamMembersRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationTeams/teamNotifications.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/project/preprod/statusCheckRuleItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/project/projectFilters/projectFiltersSettings.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/project/projectKeys/list/keyRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/project/projectOwnership/codeownerErrors.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/project/projectOwnership/ownerInput.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/project/projectOwnership/ownershipRulesTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/project/projectOwnership/viewCodeOwnerModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/project/tempest/DevKitSettings.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/project/tempest/EmptyState.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/projectDebugFiles/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/projectDebugFiles/sources/customRepositories/repository.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/projectProguard/projectProguardRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/projectSourceMaps/sourceMapsDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/settings/projectSourceMaps/sourceMapsList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/setupWizard/waitingForWizardToConnect.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/sharedGroupDetails/sharedGroupHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/unsubscribe/issue.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/unsubscribe/project.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/components/adminConfirmationModal.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 13
+    }
+  },
+  "static/gsAdmin/components/customerName.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/components/customers/customerIntegrationDebugDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/components/customers/customerOverview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 11
+    }
+  },
+  "static/gsAdmin/components/customers/customerStats.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/components/dropdownActions.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/components/eventUsers.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/components/pageHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/components/planList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsAdmin/components/provisionSubscriptionAction.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 6
+    }
+  },
+  "static/gsAdmin/components/selectableContainer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/components/toggleConsolePlatformsModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/components/users/userOverview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/gsAdmin/views/billingPlans.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 8
+    }
+  },
+  "static/gsAdmin/views/customerContractDetails.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsAdmin/views/debuggingTools.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsAdmin/views/dynamicSamplingPanel.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/views/giftRecurringCredits.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/gsAdmin/views/invoiceComparison.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/views/launchpadAdminPage.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsAdmin/views/layout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsAdmin/views/notFound.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/views/overview.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsAdmin/views/privateAPIs.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsAdmin/views/relocationCreate.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/ai/AiSetupDataConsent.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/gsApp/components/billingDetails/form.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/dataConsentModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/gsApp/components/features/disabledCustomInboundFilters.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/features/disabledDataForwarding.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/features/disabledDiscardGroup.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/features/disabledRateLimits.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/features/disabledSelectorItems.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/gsBanner.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/navBillingStatus.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsApp/components/productTrial/productTrialAlert.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/components/profiling/profilingUpgradeModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsApp/components/subscriptionSettingsLayout.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/superuser/superuserWarning.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/trialEndingModal.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  },
+  "static/gsApp/components/trialStartedSidebarItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/components/upgradeNowModal/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsApp/components/upgradeNowModal/modalSamePrice.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 4
+    }
+  },
+  "static/gsApp/components/upgradeNowModal/planTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/upsellModal/featureList.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/upsellModal/footer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/components/upsellModal/highlightedFeature.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/upsellModal/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/upsellProvider.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/overrides/disabledMemberView.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/overrides/integrationFeatures.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/overrides/memberListHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/overrides/orgStatsBanner.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/overrides/orgStatsProfilingBanner.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsApp/overrides/spendVisibility/enhancedUsageStatsOrganization.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/overrides/targetedOnboardingHeader.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/views/amCheckout/components/cartDiff.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsApp/views/amCheckout/components/unitTypeItem.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsApp/views/amCheckout/components/volumeSliders.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsApp/views/amCheckout/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/views/amCheckout/steps/productSelect.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/views/cancelSubscription.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsApp/views/invoiceDetails/index.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/views/legalAndCompliance/policyRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsApp/views/legalAndCompliance/termsAndConditions.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/views/seerAutomation/onboarding/onboardingLegacy.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/views/spikeProtection/components/accordionRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/views/subscriptionPage/recurringCredits.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/views/subscriptionPage/subscriptionUpsellBanner.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/views/subscriptionPage/trialAlert.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/gsApp/views/subscriptionPage/usageAlert.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/gsApp/views/subscriptionPage/usageOverview/components/productTrialRibbon.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/views/subscriptionPage/usageOverview/components/tableRow.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/views/subscriptionPage/usageTotalsTable.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "tests/js/sentry-test/nuqsTestingAdapter.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "tests/js/sentry-test/reactTestingLibrary.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  }
+}

@@ -188,6 +188,8 @@ vercel.json                                              @getsentry/owners-js-bu
 /.github/file-filters.yml                                @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 oxlint.config.ts                                         @getsentry/owners-js-build
+oxlint-suppressions.json                                 @getsentry/owners-js-build
+/scripts/custom-oxlint.ts                                @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
 /tests/js/test-balancer/                                 @getsentry/owners-js-build
@@ -196,10 +198,10 @@ tsconfig.*                                               @getsentry/owners-js-bu
 package.json                                             @getsentry/owners-js-deps
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
-## Design
-/static/fonts/                                           @getsentry/design
-/static/images/                                          @getsentry/design
-/src/sentry/static/                                      @getsentry/design
+## Product Design
+/static/fonts/                                           @getsentry/product-design
+/static/images/                                          @getsentry/product-design
+/src/sentry/static/                                      @getsentry/product-design
 
 # Owners by product feature
 #
@@ -355,8 +357,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
 
 
-/src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
-/tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_explore_formulas.py                          @getsentry/data-browsing
+/tests/sentry/api/endpoints/test_organization_explore_formulas.py                   @getsentry/data-browsing
 
 /src/sentry/api/endpoints/organization_traces.py                                    @getsentry/explore
 /tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/explore
