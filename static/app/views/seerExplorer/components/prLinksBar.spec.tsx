@@ -25,23 +25,41 @@ describe('PRLinksBar', () => {
   it('links a completed pull request', () => {
     render(<PRLinksBar repoPRStates={{[REPO]: makeState()}} />);
 
-    expect(screen.getByRole('button', {name: 'View PR'})).toHaveAttribute('href', PR_URL);
-    expect(screen.getByRole('link', {name: 'acme/web#482'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'acme/web#482'})).toHaveAttribute(
       'href',
       PR_URL
     );
   });
 
-  it('links an open pull request while changes are pushed to it', () => {
+  it('disables the button while the pull request is opening', async () => {
+    render(
+      <PRLinksBar
+        repoPRStates={{
+          [REPO]: makeState({
+            pr_creation_status: 'creating',
+            pr_number: null,
+            pr_url: null,
+          }),
+        }}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: REPO});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(button);
+    expect(await screen.findByText('Opening PR…')).toBeInTheDocument();
+  });
+
+  it('disables the button while changes are pushed to an open pull request', async () => {
     render(
       <PRLinksBar repoPRStates={{[REPO]: makeState({pr_creation_status: 'creating'})}} />
     );
 
-    expect(screen.getByText('Pushing changes…')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'acme/web#482'})).toHaveAttribute(
-      'href',
-      PR_URL
-    );
+    const button = screen.getByRole('button', {name: 'acme/web#482'});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(button).not.toHaveAttribute('href');
+    await userEvent.hover(button);
+    expect(await screen.findByText('Pushing changes…')).toBeInTheDocument();
   });
 
   it('shows the error when the pull request could not be opened', async () => {
@@ -58,14 +76,33 @@ describe('PRLinksBar', () => {
       />
     );
 
-    await userEvent.hover(screen.getByText('Could not open PR'));
+    const button = screen.getByRole('button', {name: REPO});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(button);
     expect(await screen.findByText('No write access to repository')).toBeInTheDocument();
   });
 
-  it('collapses the pull requests', async () => {
-    render(<PRLinksBar repoPRStates={{[REPO]: makeState()}} />);
+  it('still links a pull request whose push failed', async () => {
+    render(
+      <PRLinksBar
+        repoPRStates={{
+          [REPO]: makeState({
+            pr_creation_status: 'error',
+            pr_creation_error: 'Push rejected',
+          }),
+        }}
+      />
+    );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Pull requests (1)'}));
-    expect(screen.queryByText(REPO)).not.toBeInTheDocument();
+    const button = screen.getByRole('button', {name: 'acme/web#482'});
+    expect(button).toHaveAttribute('href', PR_URL);
+    await userEvent.hover(button);
+    expect(await screen.findByText('Push rejected')).toBeInTheDocument();
+  });
+
+  it('skips repos with no pull request', () => {
+    render(<PRLinksBar repoPRStates={{[REPO]: makeState({pr_creation_status: null})}} />);
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

@@ -57,6 +57,14 @@ const ERRORED = prState({
   title: 'chore: Raise worker memory limit',
 });
 
+const PUSH_FAILED = prState({
+  repo_name: 'acme/web',
+  pr_creation_error: 'Pushing to seer/add-service-tests was rejected by a branch rule.',
+  pr_creation_status: 'error',
+});
+
+const ALL_STATES = [COMPLETED, CREATING, UPDATING, ERRORED, PUSH_FAILED];
+
 function byRepo(...states: RepoPRState[]): Record<string, RepoPRState> {
   return Object.fromEntries(states.map(state => [state.repo_name, state]));
 }
@@ -94,9 +102,15 @@ export default Storybook.story('PRLinksBar', story => {
     </Frame>
   ));
 
+  story('Failed to push to an open PR', () => (
+    <Frame>
+      <PRLinksBar repoPRStates={byRepo(PUSH_FAILED)} />
+    </Frame>
+  ));
+
   story('Several repos', () => (
     <Frame>
-      <PRLinksBar repoPRStates={byRepo(COMPLETED, CREATING, UPDATING, ERRORED)} />
+      <PRLinksBar repoPRStates={byRepo(...ALL_STATES)} />
     </Frame>
   ));
 
@@ -118,7 +132,7 @@ const simulatedRun = (): SeerExplorerResponse => ({
   session: {
     status: 'completed',
     updated_at: new Date().toISOString(),
-    repo_pr_states: byRepo(COMPLETED, CREATING, UPDATING, ERRORED),
+    repo_pr_states: byRepo(...ALL_STATES),
     blocks: Array.from({length: 6}, (_, turn): Block[] => [
       {
         id: `question-${turn}`,
