@@ -64,6 +64,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias=constants.TIMESTAMP_PRECISE_ALIAS,
             internal_name="sentry.timestamp_precise",
+            internal_type=constants.INT,
             search_type="number",
         ),
         ResolvedAttribute(

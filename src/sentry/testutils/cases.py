@@ -3500,9 +3500,10 @@ class OurLogTestCase(BaseTestCase, TraceItemTestCase):
             attributes_proto["sentry.observed_timestamp_nanos"] = AnyValue(
                 int_value=int(timestamp.timestamp() * 1e9)
             )
-        attributes_proto["sentry.timestamp_precise"] = AnyValue(
-            int_value=int(timestamp.timestamp() * 1e9)
-        )
+        if "sentry.timestamp_precise" not in attributes:
+            attributes_proto["sentry.timestamp_precise"] = AnyValue(
+                int_value=int(timestamp.timestamp() * 1e9)
+            )
 
         return TraceItem(
             organization_id=organization.id,
