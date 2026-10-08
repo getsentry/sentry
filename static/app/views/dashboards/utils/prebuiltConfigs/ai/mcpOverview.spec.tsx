@@ -8,7 +8,7 @@ import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizat
 
 import {MCP_OVERVIEW_PREBUILT_CONFIG} from './mcpOverview';
 
-describe('MCP transport distribution', () => {
+describe('MCP transport charts', () => {
   const selection = PageFiltersFixture();
   const widget = MCP_OVERVIEW_PREBUILT_CONFIG.widgets.find(
     candidate => candidate.id === 'mcp-overview-transport-distribution'
@@ -25,6 +25,59 @@ describe('MCP transport distribution', () => {
   afterEach(() => {
     PageFiltersStore.reset();
   });
+
+  it.each([
+    {
+      transport: 'CustomHTTPTransport',
+      label: 'CustomHTTPTransport',
+      filter: 'mcp.transport:CustomHTTPTransport',
+    },
+    {transport: 'http', label: 'http', filter: 'mcp.transport:http'},
+    {transport: null, label: '(no value)', filter: '!has:mcp.transport'},
+  ])(
+    'links the reported MCP transport $label without requiring network data',
+    async ({transport, label, filter}) => {
+      const implementationWidget = MCP_OVERVIEW_PREBUILT_CONFIG.widgets.find(
+        candidate => candidate.id === 'mcp-overview-transport-implementation'
+      )!;
+      const seriesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {
+          [transport ?? 'None']: {
+            data: [[1, [{count: 10}]]],
+            meta: {fields: {'count()': 'integer'}, units: {}},
+          },
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          data: [{'mcp.transport': transport, 'count()': 10}],
+          meta: {fields: {'mcp.transport': 'string', 'count()': 'integer'}, units: {}},
+        },
+      });
+
+      render(
+        <VisualizationWidget widget={implementationWidget} selection={selection} />,
+        {
+          organization: OrganizationFixture({features: ['visibility-explore-view']}),
+        }
+      );
+
+      const link = await screen.findByRole('link', {name: label});
+      const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
+      expect(url.searchParams.get('query')).toBe(`span.op:mcp.server ${filter}`);
+      expect(seriesRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: ['mcp.transport', 'count()'],
+            query: 'span.op:mcp.server',
+          }),
+        })
+      );
+    }
+  );
 
   it.each([
     {
@@ -50,6 +103,24 @@ describe('MCP transport distribution', () => {
       transport: 'pipe',
       label: '(no value),pipe',
       filters: '!has:network.protocol.name network.transport:pipe',
+    },
+    {
+      protocol: null,
+      transport: null,
+      label: '(no value),(no value)',
+      filters: '!has:network.protocol.name !has:network.transport',
+    },
+    {
+      protocol: null,
+      transport: 'CustomHTTPTransport',
+      label: '(no value),CustomHTTPTransport',
+      filters: '!has:network.protocol.name network.transport:CustomHTTPTransport',
+    },
+    {
+      protocol: 'file',
+      transport: 'pipe',
+      label: 'file,pipe',
+      filters: 'network.protocol.name:file network.transport:pipe',
     },
   ])(
     'links $label to its complete breakdown',
@@ -96,8 +167,7 @@ describe('MCP transport distribution', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             field: ['network.protocol.name', 'network.transport', 'count()'],
-            query:
-              'span.op:mcp.server (has:network.protocol.name OR has:network.transport)',
+            query: 'span.op:mcp.server',
           }),
         })
       );
