@@ -62,7 +62,6 @@ from sentry.seer.assisted_query.traces_tools import (
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
 from sentry.seer.endpoints.seer_rpc import (
-    get_attributes_and_values,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
     get_organization_features,
@@ -120,7 +119,6 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "get_attribute_values_with_substring": seer_rpc(
         map_org_id_param(get_attribute_values_with_substring)
     ),
-    "get_attributes_and_values": seer_rpc(map_org_id_param(get_attributes_and_values)),
     "get_metric_metadata": seer_rpc(map_org_id_param(get_metric_metadata)),
     "get_event_filter_keys": seer_rpc(map_org_id_param(get_event_filter_keys)),
     "get_event_filter_key_values": seer_rpc(map_org_id_param(get_event_filter_key_values)),
