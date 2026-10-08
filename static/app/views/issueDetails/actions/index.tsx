@@ -347,6 +347,16 @@ export function GroupActions({
     organization.features.includes('inbound-filters-in-product-flows') &&
     (event?.type === EventOrGroupType.ERROR || event?.type === EventOrGroupType.DEFAULT);
   const hasFilterWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  // The API refuses writes without the plan feature, so say so up front instead
+  // of letting the modal fail on save. Same plan family as discard.
+  let addInboundFilterDisabledReason: string | undefined;
+  if (!project.features.includes('custom-inbound-filters')) {
+    addInboundFilterDisabledReason = t(
+      'Your plan does not include custom inbound filters'
+    );
+  } else if (!hasFilterWriteAccess) {
+    addInboundFilterDisabledReason = t('You need project write access to add filters');
+  }
 
   const onAddInboundFilter = async () => {
     if (!event) {
@@ -654,10 +664,8 @@ export function GroupActions({
               key: 'add-inbound-filter',
               label: t('Add Inbound Filter'),
               hidden: !canAddInboundFilter,
-              disabled: !hasFilterWriteAccess,
-              details: hasFilterWriteAccess
-                ? undefined
-                : t('You need project write access to add filters'),
+              disabled: addInboundFilterDisabledReason !== undefined,
+              details: addInboundFilterDisabledReason,
               onAction: onAddInboundFilter,
             },
             {
