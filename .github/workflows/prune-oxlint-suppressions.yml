@@ -22,13 +22,58 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          ref: master
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Prune suppression budgets
         run: pnpm run lint:js --prune
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pruned-oxlint-suppressions
+          path: oxlint-suppressions.json
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: prune
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pruned-oxlint-suppressions
+          path: ${{ runner.temp }}/pruned-oxlint-suppressions
+
+      - name: Validate suppression reductions
+        env:
+          PRUNED_FILE: ${{ runner.temp }}/pruned-oxlint-suppressions/oxlint-suppressions.json
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const original = JSON.parse(fs.readFileSync('oxlint-suppressions.json', 'utf8'));
+          const pruned = JSON.parse(fs.readFileSync(process.env.PRUNED_FILE, 'utf8'));
+          const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+          assert(isObject(pruned), 'Suppressions must be an object');
+          for (const [file, rules] of Object.entries(pruned)) {
+            assert(Object.hasOwn(original, file), `Unexpected file: ${file}`);
+            assert(isObject(rules), `Invalid rules: ${file}`);
+            for (const [rule, budget] of Object.entries(rules)) {
+              assert(Object.hasOwn(original[file], rule), `Unexpected rule: ${file} ${rule}`);
+              assert(isObject(budget) && Object.keys(budget).length === 1 && Object.hasOwn(budget, 'count'), `Invalid budget: ${file} ${rule}`);
+              assert(Number.isSafeInteger(budget.count) && budget.count >= 0 && budget.count <= original[file][rule].count, `Invalid count: ${file} ${rule}`);
+            }
+          }
+          fs.writeFileSync('oxlint-suppressions.json', JSON.stringify(pruned, null, 2) + '\n');
+          NODE
 
       - name: Get internal bot token
         id: bot
