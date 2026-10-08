@@ -38,19 +38,11 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
   const [prefs] = useReplayPrefs();
 
   const replayRecord = readerResult.replayRecord;
-  const isArchived = replayRecord?.is_archived ?? false;
-
   const viewers = useReplayViewers({replayRecord});
   const {isLive} = useLiveBadge({
     startedAt: replayRecord?.is_archived ? null : (replayRecord?.started_at ?? null),
     finishedAt: replayRecord?.is_archived ? null : (replayRecord?.finished_at ?? null),
   });
-
-  if (isArchived) {
-    return (
-      <EntityHeader title={{label: t('Session replay'), value: t('Deleted Replay')}} />
-    );
-  }
 
   const breadcrumbTab = {
     ...location,
@@ -215,7 +207,9 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
   return (
     <ReplayLoadingState
       readerResult={readerResult}
-      renderArchived={() => null}
+      renderArchived={() => (
+        <EntityHeader title={{label: t('Session replay'), value: t('Deleted Replay')}} />
+      )}
       renderError={() => null}
       renderThrottled={() => null}
       renderLoading={() => <EntityHeader {...buildProps(!replayRecord)} />}

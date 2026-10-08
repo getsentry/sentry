@@ -51,6 +51,31 @@ describe('ReplayDetailsEntityHeader', () => {
     });
   }
 
+  it('shows the archived header through the same precedence as the body', () => {
+    const replayRecord = {...replayRecordFixture(), is_archived: true};
+
+    render(
+      <ReplayDetailsEntityHeader
+        readerResult={
+          {
+            replayRecord,
+            errors: [],
+            replay: null,
+            isPending: false,
+            fetchError: undefined,
+            attachmentError: undefined,
+          } as unknown as ReturnType<typeof useLoadReplayReader>
+        }
+      />
+    );
+
+    // Routed by ReplayLoadingState rather than an early return, so the header
+    // and the body below it cannot disagree about which state won.
+    expect(
+      screen.getByRole('heading', {name: 'Session replay, Deleted Replay'})
+    ).toBeInTheDocument();
+  });
+
   it('reads viewers from the project slug, the key useMarkReplayViewed refetches', async () => {
     const replayRecord = replayRecordFixture();
     const viewedBy = mockViewedBy(replayRecord.id);
