@@ -31,7 +31,6 @@ def settings():
         SENTRY_SELF_HOSTED=False,
         SENTRY_SINGLE_ORGANIZATION=False,
         SENTRY_GITHUB_APP_CLIENT_ID="",
-        SENTRY_CONFIGURED_OPTION_SETTINGS=frozenset(),
         SENTRY_GITHUB_APP_CLIENT_SECRET="",
     )
 
@@ -695,13 +694,11 @@ def test_single_organization_modern_app_pair_preserves_empty_partner(
     ("MAILGUN_API_KEY", "mail.mailgun-api-key", "SENTRY_MAILGUN_API_KEY"),
 ])
 @pytest.mark.parametrize("value", ["", "deployment-secret"])
-@pytest.mark.parametrize("self_hosted", [False, True])
-def test_explicit_deployment_secret_is_not_replaced_by_legacy_alias(
-    settings, old_name, key, setting_name, value, self_hosted
+def test_saas_deployment_secret_is_not_replaced_by_legacy_alias(
+    settings, old_name, key, setting_name, value
 ) -> None:
-    settings.SENTRY_SELF_HOSTED = self_hosted
+    settings.SENTRY_SELF_HOSTED = False
     settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret"}
-    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({setting_name})
     setattr(settings, old_name, "legacy-secret")
     setattr(settings, setting_name, value)
 
@@ -721,7 +718,6 @@ def test_original_option_precedes_explicit_deployment_setting_and_alias(
 ) -> None:
     settings.SENTRY_SELF_HOSTED = True
     settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret", key: "option-secret"}
-    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({setting_name})
     setattr(settings, old_name, "legacy-secret")
     setattr(settings, setting_name, "deployment-secret")
 
@@ -736,7 +732,7 @@ def test_original_option_precedes_explicit_deployment_setting_and_alias(
     ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret", "SENTRY_AUTH_GOOGLE_CLIENT_SECRET"),
     ("MAILGUN_API_KEY", "mail.mailgun-api-key", "SENTRY_MAILGUN_API_KEY"),
 ])
-def test_untracked_legacy_secret_alias_retains_precedence(settings, old_name, key, setting_name) -> None:
+def test_self_hosted_legacy_secret_alias_retains_precedence(settings, old_name, key, setting_name) -> None:
     settings.SENTRY_SELF_HOSTED = True
     settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret"}
     setattr(settings, old_name, "legacy-secret")
@@ -750,17 +746,16 @@ def test_untracked_legacy_secret_alias_retains_precedence(settings, old_name, ke
     assert settings.SENTRY_OPTIONS[key] == "legacy-secret"
 
 
-@pytest.mark.parametrize("configured_options, configured_settings", [
-    ({"github-app.client-secret": "option-secret"}, frozenset()),
-    ({}, frozenset({"SENTRY_GITHUB_APP_CLIENT_SECRET"})),
+@pytest.mark.parametrize("configured_options", [
+    {"github-app.client-secret": "option-secret"},
+    {"github-app.client-secret": ""},
 ])
-def test_single_org_preserves_original_or_explicit_empty_app_secret(
-    settings, configured_options, configured_settings
+def test_single_org_preserves_original_app_secret_including_empty(
+    settings, configured_options
 ) -> None:
     settings.SENTRY_SELF_HOSTED = True
     settings.SENTRY_SINGLE_ORGANIZATION = True
     settings.SENTRY_OPTIONS = configured_options
-    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = configured_settings
     settings.SENTRY_GITHUB_APP_CLIENT_SECRET = ""
     settings.GITHUB_API_SECRET = "login-secret"
 
@@ -782,13 +777,11 @@ def test_single_org_preserves_original_or_explicit_empty_app_secret(
     ("SENTRY_ENABLE_EMAIL_REPLIES", "mail.enable-replies", "SENTRY_MAIL_ENABLE_REPLIES", False, True),
     ("SENTRY_SMTP_HOSTNAME", "mail.reply-hostname", "SENTRY_MAIL_REPLY_HOSTNAME", "", "legacy.example.invalid"),
 ])
-@pytest.mark.parametrize("self_hosted", [False, True])
-def test_explicit_empty_or_false_deployment_alias_target_is_preserved(
-    settings, old_name, key, setting_name, value, legacy_value, self_hosted
+def test_saas_empty_or_false_deployment_alias_target_is_preserved(
+    settings, old_name, key, setting_name, value, legacy_value
 ) -> None:
-    settings.SENTRY_SELF_HOSTED = self_hosted
+    settings.SENTRY_SELF_HOSTED = False
     settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret"}
-    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({setting_name})
     setattr(settings, old_name, legacy_value)
     setattr(settings, setting_name, value)
 
@@ -803,12 +796,11 @@ def test_explicit_empty_or_false_deployment_alias_target_is_preserved(
     ("github-app.client-id", "SENTRY_GITHUB_APP_CLIENT_ID", "GITHUB_APP_ID"),
     ("github-app.client-secret", "SENTRY_GITHUB_APP_CLIENT_SECRET", "GITHUB_API_SECRET"),
 ])
-def test_single_org_original_app_option_precedes_modern_and_login_setting(
+def test_single_org_original_app_option_keeps_self_hosted_login_precedence(
     settings, key, setting_name, login_setting
 ) -> None:
     settings.SENTRY_SELF_HOSTED = True
     settings.SENTRY_SINGLE_ORGANIZATION = True
-    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({setting_name})
     settings.SENTRY_OPTIONS = {key: "original-option"}
     setattr(settings, setting_name, "modern-value")
     setattr(settings, login_setting, "login-value")
@@ -824,14 +816,12 @@ def test_single_org_original_app_option_precedes_modern_and_login_setting(
 
     assert settings.SENTRY_OPTIONS[key] == "original-option"
     assert getattr(settings, setting_name) == "original-option"
-    assert getattr(settings, login_setting) == "original-option"
+    assert getattr(settings, login_setting) == "login-value"
 
 
 def test_single_org_explicit_both_empty_app_pair_is_not_backfilled(settings) -> None:
+    settings.SENTRY_SELF_HOSTED = False
     settings.SENTRY_SINGLE_ORGANIZATION = True
-    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({
-        "SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"
-    })
     settings.GITHUB_APP_ID = "login-client-id"
     settings.GITHUB_API_SECRET = "login-secret"
 
@@ -947,11 +937,8 @@ def test_saas_retired_deployment_alias_does_not_recreate_option(
     ("", "app-client-secret"),
     ("", ""),
 ])
-def test_single_org_owned_pair_selects_sso_including_empty(settings, app_id, app_secret) -> None:
+def test_saas_single_org_direct_pair_selects_sso_including_empty(settings, app_id, app_secret) -> None:
     settings.SENTRY_SINGLE_ORGANIZATION = True
-    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({
-        "SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"
-    })
     settings.SENTRY_GITHUB_APP_CLIENT_ID = app_id
     settings.SENTRY_GITHUB_APP_CLIENT_SECRET = app_secret
     settings.SENTRY_OPTIONS = {
@@ -965,9 +952,8 @@ def test_single_org_owned_pair_selects_sso_including_empty(settings, app_id, app
 
 
 @pytest.mark.parametrize("app_secret", ["", "app-secret"])
-def test_single_org_owned_secret_selects_sso_including_empty(settings, app_secret) -> None:
+def test_saas_single_org_direct_secret_selects_sso_including_empty(settings, app_secret) -> None:
     settings.SENTRY_SINGLE_ORGANIZATION = True
-    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({"SENTRY_GITHUB_APP_CLIENT_SECRET"})
     settings.SENTRY_GITHUB_APP_CLIENT_SECRET = app_secret
     settings.SENTRY_OPTIONS = {"github-login.client-secret": "login-secret"}
 
@@ -976,10 +962,9 @@ def test_single_org_owned_secret_selects_sso_including_empty(settings, app_secre
     assert settings.GITHUB_API_SECRET == app_secret
 
 
-def test_single_org_original_secret_selects_owned_sso(settings) -> None:
+def test_single_org_original_secret_keeps_self_hosted_login_precedence(settings) -> None:
     settings.SENTRY_SELF_HOSTED = True
     settings.SENTRY_SINGLE_ORGANIZATION = True
-    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({"SENTRY_GITHUB_APP_CLIENT_SECRET"})
     settings.SENTRY_GITHUB_APP_CLIENT_SECRET = "modern-secret"
     settings.SENTRY_OPTIONS = {
         "github-app.client-secret": "original-secret",
@@ -989,7 +974,7 @@ def test_single_org_original_secret_selects_owned_sso(settings) -> None:
     bootstrap_options(settings)
 
     assert settings.SENTRY_GITHUB_APP_CLIENT_SECRET == "original-secret"
-    assert settings.GITHUB_API_SECRET == "original-secret"
+    assert settings.GITHUB_API_SECRET == "login-secret"
 
 
 @pytest.mark.parametrize("app_id, app_secret", [
@@ -997,15 +982,11 @@ def test_single_org_original_secret_selects_owned_sso(settings) -> None:
     ("app-client-id", ""),
     ("", ""),
 ])
-@pytest.mark.parametrize("provenance", [frozenset(), frozenset({
-    "SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"
-})])
-def test_saas_single_org_direct_pair_is_authoritative_without_provenance(
-    settings, app_id, app_secret, provenance
+def test_saas_single_org_direct_pair_is_authoritative(
+    settings, app_id, app_secret
 ) -> None:
     settings.SENTRY_SELF_HOSTED = False
     settings.SENTRY_SINGLE_ORGANIZATION = True
-    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = provenance
     settings.SENTRY_GITHUB_APP_CLIENT_ID = app_id
     settings.SENTRY_GITHUB_APP_CLIENT_SECRET = app_secret
     settings.GITHUB_APP_ID = "legacy-login-id"

@@ -238,7 +238,7 @@ class OptionsStore:
 
     def get_last_update_channel(self, key) -> UpdateChannel | None:
         """
-        Gets how the option was last updated to check for drift.
+        Gets the update channel recorded for the stored option.
         """
         try:
             option = self.model.objects.get(key=key.name)

@@ -253,8 +253,6 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
             and k not in options
             and (
                 k in settings.SENTRY_OPTIONS
-                or {"SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"}
-                & settings.SENTRY_CONFIGURED_OPTION_SETTINGS
                 or settings.SENTRY_GITHUB_APP_CLIENT_ID
                 or settings.SENTRY_GITHUB_APP_CLIENT_SECRET
             )
@@ -299,11 +297,7 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # Single organization mode reuses the GitHub integration app for SSO. The
     # remap in initialize_app handles the option key; this handles the setting.
     if settings.SENTRY_SINGLE_ORGANIZATION:
-        if (
-            not settings.SENTRY_SELF_HOSTED
-            or {"SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"}
-            & settings.SENTRY_CONFIGURED_OPTION_SETTINGS
-        ):
+        if not settings.SENTRY_SELF_HOSTED:
             settings.GITHUB_APP_ID = settings.SENTRY_GITHUB_APP_CLIENT_ID
             settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
         else:
@@ -700,9 +694,6 @@ def apply_legacy_settings(settings: Any) -> None:
             # SaaS consumers use direct settings; retired keys must not be
             # recreated by a deprecated deployment alias.
             if not settings.SENTRY_SELF_HOSTED and new in self_hosted_options_mapper:
-                continue
-            # An explicit deployment assignment owns even an empty secret.
-            if effective_mapper.get(new) in settings.SENTRY_CONFIGURED_OPTION_SETTINGS:
                 continue
             warnings.warn(DeprecatedSettingWarning(old, "SENTRY_OPTIONS['%s']" % new))
             value = getattr(settings, old)

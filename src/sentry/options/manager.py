@@ -51,8 +51,6 @@ class UpdateChannel(Enum):
     APPLICATION = "application"
     # Any change made by the sentry Admin UI.
     ADMIN = "admin"
-    # Any change made by the Options Automator.
-    AUTOMATOR = "automator"
     # Any change made through the sentry CLI with the exceptions of
     # killswitches.
     CLI = "cli"
@@ -79,22 +77,6 @@ class NotWritableReason(Enum):
     # The option cannot be updated by a specific channel because it is missing
     # the required flag.
     CHANNEL_NOT_ALLOWED = "channel_not_allowed"
-    # The option could be updated but it drifted and the channel we are trying
-    # to update with cannot overwrite.
-    DRIFTED = "drifted"
-
-
-# In case there is drift between the value on the external source the
-# Options Automator maintains, the Automator is not allowed to overwrite
-# the drift in several cases. This map contains the forbidden transitions
-# of the last_updated_by column on the storage.
-FORBIDDEN_TRANSITIONS = {
-    UpdateChannel.UNKNOWN: {UpdateChannel.AUTOMATOR},
-    UpdateChannel.APPLICATION: {UpdateChannel.AUTOMATOR},
-    UpdateChannel.CLI: {UpdateChannel.AUTOMATOR},
-    UpdateChannel.KILLSWITCH: {UpdateChannel.AUTOMATOR},
-    UpdateChannel.ADMIN: {UpdateChannel.AUTOMATOR},
-}
 
 
 class UnknownOption(KeyError):
@@ -142,11 +124,8 @@ INVALID_COMBINATIONS = {
     FLAG_RATE | FLAG_BOOL,
     FLAG_BOOL | FLAG_SCALAR,
     FLAG_SCALAR | FLAG_RATE,
-    # An option being required does not strictly mean that it cannot be updated by
-    # the Automator. The issue is on why they exist. Most of them are set by the
-    # application itself during the first initialization.
-    # That flow cannot, like anything else in the application, cannot update the
-    # configMap
+    # Required values are written by the application during setup, so they
+    # cannot be externally managed SaaS runtime configuration.
     FLAG_AUTOMATOR_MODIFIABLE | FLAG_REQUIRED,
 }
 
@@ -161,7 +140,6 @@ DEFAULT_KEY_GRACE = 60
 # If a channel is not in the dictionary it does not have restrictions.
 WRITE_REQUIRED_FLAGS = {
     UpdateChannel.ADMIN: FLAG_ADMIN_MODIFIABLE,
-    UpdateChannel.AUTOMATOR: FLAG_AUTOMATOR_MODIFIABLE,
 }
 
 # Self-hosted setup and admin settings remain database-backed. SaaS serves
@@ -223,9 +201,6 @@ class OptionsManager:
         Set the value for an option. If the cache is unavailable the action will
         still succeed.
 
-        It also checks for drift and fails if the option value has drifted and the
-        `channel` is not authorized to overwrite.
-
         >>> from sentry import options
         >>> options.set('option', 'value')
         """
@@ -234,7 +209,7 @@ class OptionsManager:
         if self._is_saas_runtime_option(opt):
             raise AssertionError("%r cannot be changed at runtime" % key)
 
-        not_writable_reason = self.can_update(key, value, channel)
+        not_writable_reason = self.can_update(key, channel)
 
         # If an option isn't able to exist in the store or is immutable, we can't set it at runtime
         assert not_writable_reason not in [
@@ -245,12 +220,6 @@ class OptionsManager:
         assert not_writable_reason != NotWritableReason.OPTION_ON_DISK, (
             "%r cannot be changed at runtime because it is configured on disk" % key
         )
-        # Enforce that the option has not been changed by a different UpdateChannel
-        # that we cannot overwrite.
-        assert not_writable_reason != NotWritableReason.DRIFTED, (
-            f"Option {key} has drifted. Cannot overwrite"
-        )
-
         if coerce:
             value = opt.type(value)
         elif not opt.type.test(value):
@@ -544,28 +513,20 @@ class OptionsManager:
 
     def get_last_update_channel(self, key: str) -> UpdateChannel | None:
         """
-        Checks how the given key was last changed
-        (by automator, legacy, or CLI). SaaS runtime configuration has no legacy
-        update channel and returns None without reading storage.
+        Checks how the given key was last changed. SaaS runtime configuration has
+        no legacy update channel and returns None without reading storage.
         """
-        # TODO: Replace with a method that checks whether an update can
-        # be applied evaluating all the possible drift cases.
         opt = self.lookup_key(key)
         if self._is_saas_runtime_option(opt):
             return None
         return self.store.get_last_update_channel(opt)
 
-    def can_update(
-        self, key: str, value, channel: UpdateChannel, include_drift: bool = True
-    ) -> NotWritableReason | None:
+    def can_update(self, key: str, channel: UpdateChannel) -> NotWritableReason | None:
         """
-        Return the reason the provided channel cannot update the option
-        to the provided value or None if there is no reason and the update
-        is allowed.
+        Return why the channel cannot update the option, or None when allowed.
 
-        Drift detection requires reading the current value from the option
-        store. Pass ``include_drift=False`` to skip it and rely only on
-        the option's registration and flags.
+        Writability depends only on the option's registration, local deployment
+        configuration and update channel, without consulting stored values.
         """
 
         required_flag = WRITE_REQUIRED_FLAGS.get(channel)
@@ -582,35 +543,5 @@ class OptionsManager:
 
         if required_flag and not opt.has_any_flag({required_flag}):
             return NotWritableReason.CHANNEL_NOT_ALLOWED
-
-        if not include_drift:
-            return None
-
-        if not self.isset(key):
-            # If the option is not readonly and it is not stored in the
-            # option store it means we are relying on default. So we can
-            # update.
-            return None
-
-        # Judge drift against the stored value, never a read-hook override:
-        # writability is governed by what is actually in the legacy store.
-        stored_value = self.store.get(opt, silent=True)
-        if stored_value == value:
-            # In theory options could have any type so this equality may
-            # not be correct.
-            # In practice, this code is added to support the move towards
-            # configMap backed options, which will be restricted to types
-            # that allow for this equality: basic types, sets, list, maps.
-            # So even if this equality fails, in the worst case scenario
-            # we would not allow the update if there is a mismatch between
-            # the channels.
-            return None
-
-        last_updater = self.get_last_update_channel(key)
-        if last_updater is None:
-            return None
-        forbidden_states = FORBIDDEN_TRANSITIONS.get(last_updater)
-        if forbidden_states and channel in forbidden_states:
-            return NotWritableReason.DRIFTED
 
         return None

@@ -122,7 +122,7 @@ class TestSaasAuthoritativeOptions:
         assert manager.isset(key) is False
         assert manager.get_last_update_channel(key) is None
         assert manager.is_saas_runtime_option(key) is True
-        assert manager.can_update(key, True, UpdateChannel.APPLICATION) == NotWritableReason.READONLY
+        assert manager.can_update(key, UpdateChannel.APPLICATION) == NotWritableReason.READONLY
         with pytest.raises(AssertionError, match="cannot be changed at runtime"):
             manager.set(key, True)
         with pytest.raises(AssertionError, match="cannot be changed at runtime"):
@@ -132,12 +132,11 @@ class TestSaasAuthoritativeOptions:
         assert manager.isset(key) is True
 
     @pytest.mark.parametrize("channel", list(UpdateChannel))
-    @pytest.mark.parametrize("include_drift", [True, False])
     def test_all_write_channels_rejected(
-        self, manager: OptionsManager, channel: UpdateChannel, include_drift: bool
+        self, manager: OptionsManager, channel: UpdateChannel
     ) -> None:
         assert (
-            manager.can_update("runtime", "registered", channel, include_drift=include_drift)
+            manager.can_update("runtime", channel)
             == NotWritableReason.READONLY
         )
         with pytest.raises(AssertionError, match="cannot be changed at runtime"):
@@ -172,7 +171,7 @@ class TestSaasAuthoritativeOptions:
         with override_settings(SENTRY_OPTIONS={key: "disk"}):
             assert manager.get(key) == "disk"
             assert manager.isset(key) is True
-        assert manager.can_update(key, "new", UpdateChannel.APPLICATION) == NotWritableReason.READONLY
+        assert manager.can_update(key, UpdateChannel.APPLICATION) == NotWritableReason.READONLY
         with pytest.raises(AssertionError, match="cannot be changed at runtime"):
             manager.set(key, "new")
         with pytest.raises(AssertionError, match="cannot be changed at runtime"):
@@ -454,18 +453,15 @@ class OptionsManagerTest(TestCase):
         with pytest.raises(TypeError):
             self.manager.validate({"unknown": True})
 
-    def test_drifted(self) -> None:
+    def test_self_hosted_cli_can_overwrite_runtime_value(self) -> None:
         self.manager.register("option", flags=FLAG_AUTOMATOR_MODIFIABLE)
         # CLI should be able to update anything
         self.manager.set("option", "value", channel=UpdateChannel.CLI)
         assert self.manager.get("option") == "value"
 
-        with pytest.raises(AssertionError):
-            self.manager.set("option", "value2", channel=UpdateChannel.AUTOMATOR)
-
-        # Automator should be able to reset the channel of an option
-        # By leaving the value as it is.
-        self.manager.set("option", "value", channel=UpdateChannel.AUTOMATOR)
+        self.manager.set("option", "value2", channel=UpdateChannel.CLI)
+        assert self.manager.get("option") == "value2"
+        assert self.manager.get_last_update_channel("option") == UpdateChannel.CLI
 
     def test_flag_prioritize_disk(self) -> None:
         self.manager.register("prioritize_disk", flags=FLAG_PRIORITIZE_DISK)
@@ -498,12 +494,12 @@ class OptionsManagerTest(TestCase):
             flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
         )
         assert self.manager.get("prioritize_disk_falsy") == 1
-        assert self.manager.can_update("prioritize_disk_falsy", 0, UpdateChannel.AUTOMATOR) is None
+        assert self.manager.can_update("prioritize_disk_falsy", UpdateChannel.CLI) is None
 
         with self.settings(SENTRY_OPTIONS={"prioritize_disk_falsy": 0}):
             assert self.manager.get("prioritize_disk_falsy") == 0
             assert (
-                self.manager.can_update("prioritize_disk_falsy", 0, UpdateChannel.AUTOMATOR)
+                self.manager.can_update("prioritize_disk_falsy", UpdateChannel.CLI)
                 == NotWritableReason.OPTION_ON_DISK
             )
 
@@ -689,17 +685,12 @@ class OptionsManagerTest(TestCase):
         finally:
             self.manager.set_read_hook(None)
 
-    def test_read_hook_does_not_corrupt_can_update_drift(self) -> None:
-        # Writability/drift must be judged against the stored value, never a hook
-        # override. A CLI-set value re-asserted by the automator is allowed; if
-        # drift read the (different) hook value instead, it would falsely DRIFT.
+    def test_read_hook_does_not_affect_writability(self) -> None:
         self.manager.register("hooked", type=String, flags=FLAG_AUTOMATOR_MODIFIABLE)
-        self.manager.set("hooked", "stored", channel=UpdateChannel.CLI)
-        self.manager.set_read_hook(
-            lambda key, opt: "hook-value" if key == "hooked" else READ_HOOK_FALLBACK
-        )
+        self.manager.set_read_hook(Mock(side_effect=AssertionError("writability consulted hook")))
         try:
-            assert self.manager.can_update("hooked", "stored", UpdateChannel.AUTOMATOR) is None
+            with patch.object(self.store, "get", side_effect=AssertionError("store read")):
+                assert self.manager.can_update("hooked", UpdateChannel.CLI) is None
         finally:
             self.manager.set_read_hook(None)
             self.manager.unregister("hooked")

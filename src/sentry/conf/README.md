@@ -20,8 +20,6 @@ Self-hosted single organization mode reuses the GitHub integration app's client 
 secret for login when the app option keys are absent and the corresponding
 app settings are nonempty. When either modern app credential is configured,
 login settings never backfill the empty partner into the integration credentials.
-When deployment provenance selects the modern pair, GitHub login uses that pair
-including empty values after any original app option values are promoted.
 Original app option keys take precedence over direct app settings and
 synthetic login backfills. GitHub login option keys retain their login remap
 precedence. Plain bootstrap also copies the paired direct app
@@ -112,12 +110,9 @@ also deployment settings; they no longer change while the process is running.
 | `github-login.extended-permissions` | `GITHUB_EXTENDED_PERMISSIONS` |
 | `github-login.organization` | `GITHUB_ORGANIZATION` |
 
-Deployment settings writers temporarily record explicit assignments in
-`SENTRY_CONFIGURED_OPTION_SETTINGS`, an immutable internal set of setting names.
-This protects intentionally empty identifiers and secrets and false reply
-settings from deprecated aliases. Existing self-hosted legacy aliases keep their
-precedence unless their target is explicitly tracked. The provenance is removed
-when the deprecated writers and SaaS credential remaps are retired.
+SaaS deployment settings, including empty identifiers and secrets and false reply
+settings, are never replaced by deprecated deployment aliases. Self-hosted legacy
+aliases retain their existing precedence.
 
 ## Deployment prerequisites
 
@@ -151,24 +146,50 @@ that window closes and their backups are confirmed.
 After the settings rollout, SaaS single organization login always uses the direct
 integration app credential pair, including empty partners. Retired app option
 keys are neither promoted nor synthesized in SaaS. This remains true after the
-temporary provenance is removed. Self-hosted GitHub app remapping retains its
-legacy option and login precedence unless explicit deployment provenance selects
-the modern pair.
+temporary deployment ownership metadata is removed. Self-hosted GitHub app
+remapping retains its legacy option and login precedence.
 
-## Authoritative runtime reads and state
+## Runtime option API and command retirement
 
-SaaS options registered with `FLAG_AUTOMATOR_MODIFIABLE` resolve through the read
-hook, then `SENTRY_OPTIONS`, `SENTRY_DEFAULT_OPTIONS` and registered defaults.
-Reads, presence checks and update metadata never access the legacy store or
-cache. Explicit hook and disk values include `None`, empty strings and false.
-Unexpected read-hook failures propagate. SaaS setup wizard options use disk and
-defaults directly. Every write channel and deletion rejects both classes before
-storage mutation. Self-hosted configuration retains its store and permissions.
+SaaS options registered with `FLAG_AUTOMATOR_MODIFIABLE` resolve from the read
+hook when a value is set, then `SENTRY_OPTIONS`, `SENTRY_DEFAULT_OPTIONS`, and
+the registered default. They never read or populate the legacy store or cache.
+Explicit hook and disk values include `None`, empty strings and false. Unexpected
+read-hook failures propagate. SaaS setup wizard options resolve only from disk
+and defaults. Every write channel and deletion rejects both classes before
+storage mutation. Self-hosted options retain their existing storage and update
+permissions.
 
 Global state uses the six-key application state API and the existing store/cache.
-Unregistered `sentry:*` and `getsentry:*` runtime option names now reject; registered
+Unregistered `sentry:*` and `getsentry:*` runtime option names reject; registered
 runtime names and project/organization state remain supported. Audit all serving
 and operational callers and verify state cache repair before retiring prefix
-lookup. Roll back this cutover before reverting consumers to legacy options.
-Keep the command and update channel until final retirement after guarded row
-cleanup, fleet soak and rollback closure.
+lookup. Roll back the cutover before reverting consumers to legacy options.
+
+`can_update` now accepts `(key, channel)`. The requested value and `include_drift`
+arguments are removed because writability no longer depends on stored values or
+the previous update channel. `UpdateChannel.AUTOMATOR` and the `DRIFTED` rejection
+reason are removed. `APPLICATION`, `CLI`, `ADMIN`, `UNKNOWN`, and `KILLSWITCH`
+remain supported. `sentry configoptions` is retired; `sentry config` remains
+available for self-hosted option reads and writes. The three options used only
+by legacy audit and webhook presenters are unregistered.
+
+Deploy this final cleanup after the settings migration, authoritative SaaS
+read policy, and application state API have deployed everywhere and soaked.
+The independent change reporter must be delivering notifications, the legacy
+automator must be stopped, and value-preserving rollback must be rehearsed.
+Complete guarded row cleanup and confirm protected backups and rollback closure.
+
+Inventory both Option tables and prove that no retained row has
+`last_updated_by="automator"`, including application state and other protected
+rows. Removing known configuration rows does not prove this condition. A
+protected row with that metadata requires an operator decision; this cleanup
+neither deletes it nor rewrites its metadata. The remaining store, cache and
+synchronization task continue serving application state and self-hosted options.
+
+Deploy Sentry command and registration retirement before final GetSentry schema
+and client cleanup. The transitional GetSentry deployment writers define their
+own empty ownership set, so removing Sentry's default ownership setting does
+not prevent those writers from initializing. SaaS app credentials and aliases
+already use direct settings without that metadata. Remove the three presenter
+schema entries and their new namespace values after this Sentry retirement.

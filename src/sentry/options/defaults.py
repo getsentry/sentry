@@ -412,20 +412,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Flag Options
-register(
-    "flags:options-audit-log-is-enabled",
-    default=True,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-    type=Bool,
-)
-register(
-    "flags:options-audit-log-organization-id",
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-    type=Int,
-)
-
 # Replay Options
 #
 # Globally disables replay-video.
@@ -2839,12 +2825,6 @@ register(
     "statistical_detectors.throughput.threshold.functions",
     default=25,
     type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "options_automator_slack_webhook_enabled",
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
