@@ -11,7 +11,7 @@ from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
 from django.utils.functional import cached_property
 
-from sentry import options
+from sentry import application_state
 
 INTERNAL_NETWORKS = [
     ipaddress.ip_network(str(net), strict=False) for net in settings.INTERNAL_SYSTEM_IPS
@@ -26,10 +26,10 @@ def is_internal_ip(request: HttpRequest) -> bool:
 
 
 def get_system_token() -> str:
-    token = options.get("sentry:system-token")
+    token = application_state.get("sentry:system-token")
     if not token:
         token = secrets.token_hex()
-        options.set("sentry:system-token", token, channel=options.UpdateChannel.APPLICATION)
+        application_state.set("sentry:system-token", token)
     return token
 
 

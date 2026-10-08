@@ -13,7 +13,7 @@ from django.conf import settings
 from sentry.silo.base import SiloMode
 from sentry.utils.flag import record_option
 from sentry.utils.hashlib import md5_text
-from sentry.utils.types import Any, Type, type_from_value
+from sentry.utils.types import Type, type_from_value
 
 if TYPE_CHECKING:
     from sentry.options.store import GroupingInfo, Key, OptionsStore
@@ -262,14 +262,6 @@ class OptionsManager:
         try:
             return self.registry[key]
         except KeyError:
-            # HACK: Historically, Options were used for random ad hoc things.
-            # Fortunately, they all share the same prefix, 'sentry:', so
-            # we special case them here and construct a faux key until we migrate.
-            if key.startswith(("sentry:", "getsentry:")):
-                logger.debug("Using legacy key: %s", key, exc_info=True)
-                # History shows, there was an expectation of no types, and empty string
-                # as the default response value
-                return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
             raise UnknownOption(key)
 
     def make_key(

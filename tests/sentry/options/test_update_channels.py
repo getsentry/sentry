@@ -13,6 +13,7 @@ from sentry.options.manager import (
     FLAG_PRIORITIZE_DISK,
     NotWritableReason,
     OptionsManager,
+    UnknownOption,
     UpdateChannel,
 )
 from sentry.options.store import OptionsStore
@@ -141,19 +142,10 @@ def test_non_writable_options(
 
 
 @pytest.mark.django_db
-def test_legacy_option(manager) -> None:
-    """
-    Test the update process of legacy options.
-    These options are not registered so we cannot reuse the use cases
-    above.
-    """
-    manager.set("sentry:something", "val")
-    assert manager.get("sentry:something") == "val"
-
-    with pytest.raises(AssertionError):
-        manager.set("sentry:something_else", "val", channel=UpdateChannel.AUTOMATOR)
-
-    assert (
-        manager.can_update("sentry:something_else", "val", channel=UpdateChannel.AUTOMATOR)
-        == NotWritableReason.CHANNEL_NOT_ALLOWED
-    )
+def test_unregistered_state_option(manager) -> None:
+    with pytest.raises(UnknownOption):
+        manager.set("sentry:something", "val")
+    with pytest.raises(UnknownOption):
+        manager.set("getsentry:something", "val", channel=UpdateChannel.AUTOMATOR)
+    with pytest.raises(UnknownOption):
+        manager.can_update("sentry:something", "val", channel=UpdateChannel.AUTOMATOR)

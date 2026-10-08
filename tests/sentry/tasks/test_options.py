@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+from sentry import application_state
 from sentry.options import UnknownOption, default_manager, default_store
 from sentry.tasks.options import sync_options
 from sentry.testutils.cases import TestCase
@@ -35,3 +36,15 @@ class SyncOptionsTest(TestCase):
         sync_options(cutoff=60)
 
         assert not mock_set_cache.called
+
+
+    def test_repairs_application_state_cache(self) -> None:
+        application_state.set("sentry:system-token", "existing-system-token")
+        key = application_state._key("sentry:system-token")
+        default_store.delete_cache(key)
+
+        sync_options(cutoff=60)
+
+        with patch.object(default_store, "get_store", side_effect=AssertionError):
+            assert application_state.get("sentry:system-token") == "existing-system-token"
+        assert default_store.cache.get(key.cache_key) == "existing-system-token"

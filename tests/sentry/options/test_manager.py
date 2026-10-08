@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 from django.test import override_settings
 
-from sentry import options
+from sentry import application_state, options
 from sentry.options.manager import (
     DEFAULT_FLAGS,
     FLAG_ADMIN_MODIFIABLE,
@@ -179,19 +179,35 @@ class TestSaasAuthoritativeOptions:
             manager.delete(key)
 
     @pytest.mark.parametrize(
-        "key",
+        ("key", "value"),
         [
-            "sentry:system-token",
-            "sentry:install-id",
-            "sentry:latest_version",
-            "sentry:last_worker_ping",
-            "sentry:last_worker_version",
-            "sentry:version-configured",
-            "getsentry:state",
-            "legacy",
+            ("sentry:system-token", "stored"),
+            ("sentry:install-id", "stored"),
+            ("sentry:latest_version", "stored"),
+            ("sentry:last_worker_ping", 1.0),
+            ("sentry:last_worker_version", "stored"),
+            ("sentry:version-configured", "stored"),
         ],
     )
-    def test_application_state_keeps_store(self, manager: OptionsManager, key: str) -> None:
+    def test_application_state_keeps_store(self, manager: OptionsManager, key: str, value) -> None:
+        with pytest.raises(UnknownOption):
+            manager.is_saas_runtime_option(key)
+        manager.store.get.side_effect = None
+        manager.store.get.return_value = value
+        manager.store.set.side_effect = None
+        manager.store.delete.side_effect = None
+        with patch.object(application_state, "default_store", manager.store):
+            assert application_state.get(key) == value
+            application_state.set(key, value)
+            application_state.delete(key)
+        manager.store.set.assert_called_once()
+        assert manager.store.set.call_args.args[0].name == key
+        assert manager.store.set.call_args.args[1] == value
+        assert manager.store.set.call_args.kwargs["channel"] == UpdateChannel.APPLICATION
+        manager.store.delete.assert_called_once()
+
+    def test_nonruntime_option_keeps_store(self, manager: OptionsManager) -> None:
+        key = "legacy"
         assert manager.is_saas_runtime_option(key) is False
         manager.store.get.side_effect = None
         manager.store.get.return_value = "stored"
@@ -356,16 +372,22 @@ class OptionsManagerTest(TestCase):
         with pytest.raises(TypeError):
             self.manager.set("some-int", "0", coerce=False)
 
-    def test_legacy_key(self) -> None:
-        """
-        Allow sentry: prefixed keys without any registration
-        """
-        # These just shouldn't blow up since they are implicitly registered
-        assert self.manager.get("sentry:foo") == ""
-        self.manager.set("sentry:foo", "bar")
-        assert self.manager.get("sentry:foo") == "bar"
-        assert self.manager.delete("sentry:foo")
-        assert self.manager.get("sentry:foo") == ""
+    @pytest.mark.parametrize("key", ["sentry:foo", "getsentry:foo", "sentry:system-token"])
+    def test_unregistered_state_key(self, key: str) -> None:
+        with pytest.raises(UnknownOption):
+            self.manager.get(key)
+        with pytest.raises(UnknownOption):
+            self.manager.set(key, "bar")
+        with pytest.raises(UnknownOption):
+            self.manager.delete(key)
+        with pytest.raises(UnknownOption):
+            self.manager.isset(key)
+
+    def test_registered_prefixed_option(self) -> None:
+        self.manager.register("sentry:skip-record-onboarding-tasks-if-complete", default=False)
+        assert self.manager.get("sentry:skip-record-onboarding-tasks-if-complete") is False
+        self.manager.set("sentry:skip-record-onboarding-tasks-if-complete", True)
+        assert self.manager.get("sentry:skip-record-onboarding-tasks-if-complete") is True
 
     def test_types(self) -> None:
         self.manager.register("some-int", type=Int, default=0)
