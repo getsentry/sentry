@@ -1,11 +1,14 @@
 import {Fragment, useEffect, useState} from 'react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
+import {Text} from '@sentry/scraps/text';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {DateTime} from 'sentry/components/dateTime';
@@ -34,6 +37,7 @@ interface Props {
 }
 
 export function FlagDetailsDrawerContent({group}: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
@@ -84,9 +88,11 @@ export function FlagDetailsDrawerContent({group}: Props) {
   if (!flagLog.json.data.length) {
     return (
       <Stack align="center">
-        <StyledEmptyStateWarning withIcon={false} small>
-          {t('No audit logs were found for this feature flag.')}
-        </StyledEmptyStateWarning>
+        <Container padding="2xl">
+          <EmptyStateWarning withIcon={false} small>
+            {t('No audit logs were found for this feature flag.')}
+          </EmptyStateWarning>
+        </Container>
         <LinkButton
           size="sm"
           to={{
@@ -100,35 +106,55 @@ export function FlagDetailsDrawerContent({group}: Props) {
     );
   }
 
+  let rowIndex = 0;
+
   return (
     <Fragment>
-      <Table>
-        <Header>
-          <ColumnTitle>{t('Provider')}</ColumnTitle>
-          <ColumnTitle>{t('Flag Name')}</ColumnTitle>
-          <ColumnTitle>{t('Action')}</ColumnTitle>
-          <ColumnTitle>
+      <Grid
+        columns="0.4fr 0.7fr 0.3fr 0.5fr min-content"
+        gap={{zero: 'xs md', '5xl': 'xs xl'}}
+        position="relative"
+        left={`-${theme.space.md}`}
+        width={`calc(100% + ${theme.space.md} + ${theme.space.md})`}
+      >
+        <Grid column="1 / -1" columns="subgrid" borderBottom="primary" margin="0 md">
+          <Text as="div" wrap="nowrap" variant="muted" bold>
+            {t('Provider')}
+          </Text>
+          <Text as="div" wrap="nowrap" variant="muted" bold>
+            {t('Flag Name')}
+          </Text>
+          <Text as="div" wrap="nowrap" variant="muted" bold>
+            {t('Action')}
+          </Text>
+          <Text as="div" wrap="nowrap" variant="muted" bold>
             {sortArrow}
             {t('Date')}
-          </ColumnTitle>
-        </Header>
-        <Body>
+          </Text>
+        </Grid>
+        <Grid column="1 / -1" columns="subgrid">
           {flagLog.json.data.map((flag, i) => {
             const prev = flagLog.json.data[i - 1];
+            const showFirstSeen =
+              group.firstSeen > flag.createdAt &&
+              (i === 0 || (prev && prev.createdAt > group.firstSeen));
+            const firstSeenRowIndex = showFirstSeen ? rowIndex++ : undefined;
+            const flagRowIndex = rowIndex++;
 
             return (
               <Fragment key={`${flag.id}-${i}`}>
-                {group.firstSeen > flag.createdAt &&
-                (i === 0 ||
-                  (flagLog.json.data && prev && prev.createdAt > group.firstSeen)) ? (
-                  <GroupFirstSeenRow group={group} />
-                ) : null}
-                <FlagDetailsRow flagValue={flag} />
+                {firstSeenRowIndex === undefined ? null : (
+                  <GroupFirstSeenRow
+                    group={group}
+                    striped={firstSeenRowIndex % 2 === 1}
+                  />
+                )}
+                <FlagDetailsRow flagValue={flag} striped={flagRowIndex % 2 === 1} />
               </Fragment>
             );
           })}
-        </Body>
-      </Table>
+        </Grid>
+      </Grid>
       <Pagination
         pageLinks={pageLinks}
         onCursor={(cursor, path, query) => {
@@ -151,29 +177,50 @@ export function FlagDetailsDrawerContent({group}: Props) {
   );
 }
 
-function FlagDetailsRow({flagValue}: {flagValue: RawFlag}) {
+function FlagDetailsRow({flagValue, striped}: {flagValue: RawFlag; striped: boolean}) {
   return (
-    <Row>
-      <LeftAlignedValue>{flagValue.provider}</LeftAlignedValue>
-      <LeftAlignedValue>
-        <code>{flagValue.flag}</code>
-      </LeftAlignedValue>
-      {getFlagActionLabel(flagValue.action)}
-      <DateTime date={flagValue.createdAt} year timeZone />
-      <FlagValueActionsMenu flagValue={flagValue} />
-    </Row>
+    <RevealOnHover>
+      {props => (
+        <Grid
+          {...props}
+          column="1 / -1"
+          columns="subgrid"
+          align="center"
+          radius="xs"
+          padding="2xs md"
+          background={striped ? 'secondary' : undefined}
+        >
+          <Text as="div" align="left" variant="inherit">
+            {flagValue.provider}
+          </Text>
+          <code>{flagValue.flag}</code>
+          {getFlagActionLabel(flagValue.action)}
+          <DateTime date={flagValue.createdAt} year timeZone />
+          <FlagValueActionsMenu flagValue={flagValue} />
+        </Grid>
+      )}
+    </RevealOnHover>
   );
 }
 
-function GroupFirstSeenRow({group}: {group: Group}) {
+function GroupFirstSeenRow({group, striped}: {group: Group; striped: boolean}) {
   return (
-    <Row>
-      <LeftAlignedValue>{t('Issue First Seen')}</LeftAlignedValue>
-      <LeftAlignedValue />
-      <LeftAlignedValue />
+    <Grid
+      column="1 / -1"
+      columns="subgrid"
+      align="center"
+      radius="xs"
+      padding="2xs md"
+      background={striped ? 'secondary' : undefined}
+    >
+      <Text as="div" align="left" variant="inherit">
+        {t('Issue First Seen')}
+      </Text>
+      <Container />
+      <Container />
       <DateTime date={group.firstSeen} year timeZone />
       <div />
-    </Row>
+    </Grid>
   );
 }
 
@@ -184,96 +231,46 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
   const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <DropdownMenu
-      size="xs"
-      className={isVisible ? '' : 'invisible'}
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Flag Audit Log Actions Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-      }}
-      items={[
-        {
-          key: 'view-issues-true',
-          label: t('Search issues where this flag value is TRUE'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {query: `${makeFeatureFlagSearchKey(key)}:"true"`},
-          },
-        },
-        {
-          key: 'view-issues-false',
-          label: t('Search issues where this flag value is FALSE'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {query: `${makeFeatureFlagSearchKey(key)}:"false"`},
-          },
-        },
-        {
-          key: 'copy-value',
-          label: t('Copy flag value to clipboard'),
-          onAction: () =>
-            copy(flagValue.flag, {successMessage: t('Copied flag value to clipboard')}),
-        },
-      ]}
-    />
+    <Container column="5" justifySelf="end">
+      <RevealOnHover.Action visible={isVisible}>
+        <DropdownMenu
+          size="xs"
+          onOpenChange={isOpen => setIsVisible(isOpen)}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              aria-label={t('Flag Audit Log Actions Menu')}
+              icon={<IconEllipsis />}
+            />
+          )}
+          items={[
+            {
+              key: 'view-issues-true',
+              label: t('Search issues where this flag value is TRUE'),
+              to: {
+                pathname: `/organizations/${organization.slug}/issues/`,
+                query: {query: `${makeFeatureFlagSearchKey(key)}:"true"`},
+              },
+            },
+            {
+              key: 'view-issues-false',
+              label: t('Search issues where this flag value is FALSE'),
+              to: {
+                pathname: `/organizations/${organization.slug}/issues/`,
+                query: {query: `${makeFeatureFlagSearchKey(key)}:"false"`},
+              },
+            },
+            {
+              key: 'copy-value',
+              label: t('Copy flag value to clipboard'),
+              onAction: () =>
+                copy(flagValue.flag, {
+                  successMessage: t('Copied flag value to clipboard'),
+                }),
+            },
+          ]}
+        />
+      </RevealOnHover.Action>
+    </Container>
   );
 }
-
-const Table = styled('div')`
-  display: grid;
-  grid-template-columns: 0.4fr 0.7fr 0.3fr 0.5fr min-content;
-  column-gap: ${p => p.theme.space.md};
-  row-gap: ${p => p.theme.space.xs};
-  margin: 0 -${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    column-gap: ${p => p.theme.space.xl};
-  }
-`;
-
-const ColumnTitle = styled('div')`
-  white-space: nowrap;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const Body = styled('div')`
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-`;
-
-const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: 0 ${p => p.theme.space.md};
-`;
-
-const Row = styled(Body)`
-  &:nth-child(even) {
-    background: ${p => p.theme.tokens.background.secondary};
-  }
-  align-items: center;
-  border-radius: 4px;
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
-
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible {
-      visibility: visible;
-    }
-  }
-`;
-
-const LeftAlignedValue = styled('div')`
-  text-align: left;
-`;
-
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  padding: ${p => p.theme.space['2xl']};
-`;

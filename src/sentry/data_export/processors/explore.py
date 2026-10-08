@@ -48,7 +48,7 @@ def _spans_config(
     return SearchResolverConfig(
         auto_fields=True,
         use_aggregate_conditions=use_aggregate_conditions,
-        fields_acl=FieldsACL(functions={"time_spent_percentage"}),
+        fields_acl=FieldsACL(functions={"time_spent_percentage"}, attributes={"sentry.links"}),
         disable_aggregate_extrapolation=disable_extrapolation,
     )
 

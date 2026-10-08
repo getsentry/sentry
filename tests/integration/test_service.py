@@ -211,3 +211,85 @@ class IntegrationServiceTest(TestCase):
         )
 
         assert rpc_integration is None
+
+    @responses.activate
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
+    def test_refresh_permissions_reads_without_minting_a_token(self, mock_jwt):
+        """The point of this call is the permissions, not the token.
+
+        GitHub reports an installation's current permissions on the
+        installation itself, so the stored token is left alone.
+        """
+        integration = self.generate_integration(
+            metadata={
+                "access_token": "token_valid",
+                "expires_at": "2025-01-01T05:32:01Z",
+                "permissions": {"contents": "read"},
+            }
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/app/installations/github:1",
+            json={"id": 1, "permissions": {"contents": "write"}},
+            status=200,
+            content_type="application/json",
+        )
+
+        rpc_integration = integration_service.refresh_github_permissions(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        )
+
+        assert rpc_integration is not None
+        assert rpc_integration.metadata["permissions"] == {"contents": "write"}
+        assert rpc_integration.metadata["last_refresh_at"] == "2025-01-01T05:22:00+00:00"
+        assert rpc_integration.metadata["access_token"] == "token_valid"
+        assert rpc_integration.metadata["expires_at"] == "2025-01-01T05:32:01Z"
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.headers["Authorization"] == f"Bearer {self.jwt}"
+
+    def test_refresh_permissions_for_an_install_on_another_organization(self):
+        """An integration id alone is not enough to reach an installation.
+
+        The org has to actually have it installed, or a caller anywhere in the
+        codebase could mint tokens against someone else's install.
+        """
+        integration = self.create_integration(
+            organization=self.create_organization(owner=self.create_user()),
+            provider="github",
+            external_id="github:1",
+        )
+
+        assert (
+            integration_service.refresh_github_permissions(
+                integration_id=integration.id,
+                organization_id=self.organization.id,
+            )
+            is None
+        )
+
+    def test_refresh_permissions_for_an_unknown_integration(self):
+        integration = self.generate_integration()
+
+        assert (
+            integration_service.refresh_github_permissions(
+                integration_id=integration.id + 1000,
+                organization_id=self.organization.id,
+            )
+            is None
+        )
+
+    def test_refresh_permissions_for_a_disabled_integration(self):
+        integration = self.generate_integration()
+        with assume_test_silo_mode_of(Integration):
+            integration.status = ObjectStatus.DISABLED
+            integration.save()
+
+        assert (
+            integration_service.refresh_github_permissions(
+                integration_id=integration.id,
+                organization_id=self.organization.id,
+            )
+            is None
+        )

@@ -44,7 +44,7 @@ from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import get_group_substatus_text
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.types import GroupSubscriptionReason, NotificationOrigin
 from sentry.notifications.utils import get_interface_list
 from sentry.notifications.utils.links import (
     get_group_settings_link,
@@ -517,7 +517,13 @@ def digest(request: HttpRequest) -> HttpResponse:
     org = Organization(id=1, slug="example", name="Example Organization")
     project = Project(id=1, slug="example", name="Example Project", organization=org)
     rules = {
-        i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
+        i: NotificationOrigin(
+            label=f"Rule #{i}",
+            environment_id=None,
+            workflow_id=None,
+            legacy_rule_id=i,
+        )
+        for i in range(1, random.randint(2, 4))
     }
     groups = {}
     event_counts = {}

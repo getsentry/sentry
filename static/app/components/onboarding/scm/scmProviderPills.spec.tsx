@@ -48,9 +48,11 @@ describe('ScmProviderPills', () => {
       />
     );
 
-    expect(screen.getByText('GitHub')).toBeInTheDocument();
-    expect(screen.getByText('GitLab')).toBeInTheDocument();
-    expect(screen.getByText('Bitbucket')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add GitHub'})).toHaveTextContent('GitHub');
+    expect(screen.getByRole('button', {name: 'Add GitLab'})).toHaveTextContent('GitLab');
+    expect(screen.getByRole('button', {name: 'Add Bitbucket'})).toHaveTextContent(
+      'Bitbucket'
+    );
     expect(screen.queryByText('More')).not.toBeInTheDocument();
   });
 
@@ -101,7 +103,7 @@ describe('ScmProviderPills', () => {
     // Secondary providers are hidden behind the "More" dropdown
     expect(screen.queryByText('Bitbucket Server')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'More'}));
+    await userEvent.click(screen.getByRole('button', {name: 'More providers'}));
 
     expect(
       screen.getByRole('menuitemradio', {name: 'Bitbucket Server'})
@@ -127,7 +129,7 @@ describe('ScmProviderPills', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'More'}));
+    await userEvent.click(screen.getByRole('button', {name: 'More providers'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'}));
 
     expect(openPipelineModalSpy).toHaveBeenCalledTimes(1);
@@ -147,7 +149,7 @@ describe('ScmProviderPills', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'More'}));
+    await userEvent.click(screen.getByRole('button', {name: 'More providers'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'}));
 
     expect(trackSpy).toHaveBeenCalledWith(
@@ -170,7 +172,7 @@ describe('ScmProviderPills', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'More'}));
+    await userEvent.click(screen.getByRole('button', {name: 'More providers'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'}));
 
     expect(trackSpy).toHaveBeenCalledWith(

@@ -5,7 +5,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
@@ -204,91 +204,93 @@ export default function ProjectOwnership() {
           projectSlug={project.slug}
           codeowners={codeowners ?? []}
         />
-        {ownership && (
-          <ErrorBoundary mini>
-            <OwnershipRulesTable
-              projectRules={ownership.schema?.rules ?? []}
+        <Stack gap="xl">
+          {ownership && (
+            <ErrorBoundary mini>
+              <OwnershipRulesTable
+                projectRules={ownership.schema?.rules ?? []}
+                codeowners={codeowners ?? []}
+                actions={actionButtons}
+              />
+            </ErrorBoundary>
+          )}
+          <ProjectPermissionAlert project={project} />
+          {hasCodeowners && (
+            <CodeOwnerFileTable
+              project={project}
               codeowners={codeowners ?? []}
-              actions={actionButtons}
+              onDelete={handleCodeOwnerDeleted}
+              onUpdate={handleCodeOwnerUpdated}
+              disabled={disabled}
             />
-          </ErrorBoundary>
-        )}
-        <ProjectPermissionAlert project={project} />
-        {hasCodeowners && (
-          <CodeOwnerFileTable
-            project={project}
-            codeowners={codeowners ?? []}
-            onDelete={handleCodeOwnerDeleted}
-            onUpdate={handleCodeOwnerUpdated}
-            disabled={disabled}
-          />
-        )}
-        {ownership && !isOwnershipError ? (
-          <FieldGroup title={t('Issue Owners')}>
-            <AutoSaveForm
-              name="autoAssignment"
-              schema={ownershipSchema}
-              initialValue={ownership.autoAssignment}
-              mutationOptions={ownershipMutationOptions}
-            >
-              {field => (
-                <field.Layout.Row
-                  label={t('Prioritize Auto Assignment')}
-                  hintText={t(
-                    "When there's a conflict between suspect commit and ownership rules."
-                  )}
-                >
-                  <field.Select
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={disabled}
-                    options={[
-                      {
-                        value: 'Auto Assign to Suspect Commits',
-                        label: t('Auto-assign to suspect commits'),
-                      },
-                      {
-                        value: 'Auto Assign to Issue Owner',
-                        label: t('Auto-assign to issue owner'),
-                      },
-                      {
-                        value: 'Turn off Auto-Assignment',
-                        label: t('Turn off auto-assignment'),
-                      },
-                    ]}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveForm>
-            <AutoSaveForm
-              name="codeownersAutoSync"
-              schema={ownershipSchema}
-              initialValue={ownership.codeownersAutoSync}
-              mutationOptions={ownershipMutationOptions}
-            >
-              {field => (
-                <field.Layout.Row
-                  label={t('Sync changes from CODEOWNERS')}
-                  hintText={t(
-                    'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
-                  )}
-                >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={disabled || !(codeowners || []).length}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveForm>
-          </FieldGroup>
-        ) : (
-          <Alert.Container>
-            <Alert variant="danger" showIcon={false}>
-              {t('There was an error issue owner settings.')}
-            </Alert>
-          </Alert.Container>
-        )}
+          )}
+          {ownership && !isOwnershipError ? (
+            <FieldGroup title={t('Issue Owners')}>
+              <AutoSaveForm
+                name="autoAssignment"
+                schema={ownershipSchema}
+                initialValue={ownership.autoAssignment}
+                mutationOptions={ownershipMutationOptions}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('Prioritize Auto Assignment')}
+                    hintText={t(
+                      "When there's a conflict between suspect commit and ownership rules."
+                    )}
+                  >
+                    <field.Select
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={disabled}
+                      options={[
+                        {
+                          value: 'Auto Assign to Suspect Commits',
+                          label: t('Auto-assign to suspect commits'),
+                        },
+                        {
+                          value: 'Auto Assign to Issue Owner',
+                          label: t('Auto-assign to issue owner'),
+                        },
+                        {
+                          value: 'Turn off Auto-Assignment',
+                          label: t('Turn off auto-assignment'),
+                        },
+                      ]}
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+              <AutoSaveForm
+                name="codeownersAutoSync"
+                schema={ownershipSchema}
+                initialValue={ownership.codeownersAutoSync}
+                mutationOptions={ownershipMutationOptions}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('Sync changes from CODEOWNERS')}
+                    hintText={t(
+                      'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
+                    )}
+                  >
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={disabled || !(codeowners || []).length}
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
+            </FieldGroup>
+          ) : (
+            <Alert.Container>
+              <Alert variant="danger" showIcon={false}>
+                {t('There was an error issue owner settings.')}
+              </Alert>
+            </Alert.Container>
+          )}
+        </Stack>
       </SentryDocumentTitle>
     </FormSearch>
   );

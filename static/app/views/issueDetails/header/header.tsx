@@ -1,14 +1,17 @@
 import {Fragment} from 'react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-import {Flex, Grid} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {InfoText} from '@sentry/scraps/info';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {Count} from 'sentry/components/count';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -21,6 +24,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {AI_DETECTED_ISSUE_TYPES, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,6 +53,7 @@ interface GroupHeaderProps {
 }
 
 export function GroupHeader({event, group, project}: GroupHeaderProps) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
@@ -57,9 +62,9 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   const {count: eventCount, userCount} = group;
   const useGetMaxRetentionDays =
     getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
-  const maxRetentionDays = useGetMaxRetentionDays();
+  const maxRetentionDays = useGetMaxRetentionDays(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
-  const {title: primaryTitle} = getTitle(group);
+  const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -78,80 +83,121 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   return (
     <Fragment>
-      <Header>
+      <Container
+        as="header"
+        background="primary"
+        paddingTop="md"
+        paddingBottom="md"
+        css={cssTheme => css`
+          padding-inline: var(--issue-details-inset, ${cssTheme.space['2xl']});
+        `}
+      >
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <TopBar.Slot name="breadcrumbs">
-              <BreadcrumbList
-                items={[
-                  {
-                    type: 'link',
-                    label: t('Issues'),
-                    to: {
-                      pathname: `/organizations/${organization.slug}/issues/`,
-                      query,
-                    },
+            <TopBar.Slot
+              name="breadcrumbs"
+              title={issueItem}
+              items={[
+                {
+                  type: 'link',
+                  label: t('Issues'),
+                  to: {
+                    pathname: `/organizations/${organization.slug}/issues/`,
+                    query,
                   },
-                ]}
-              />
-            </TopBar.Slot>
-            <TopBar.Slot name="title">
-              <BreadcrumbList.Title item={issueItem} />
-            </TopBar.Slot>
+                },
+              ]}
+            />
             {hasErrorUpsampling && (
-              <Tooltip
-                title={t(
-                  'Error counts on this page have been upsampled based on your sampling rate.'
-                )}
-              >
-                <StyledTag variant="muted">{t('Errors Upsampled')}</StyledTag>
-              </Tooltip>
+              <Container display={{zero: 'none', sm: 'block'}}>
+                <Tooltip
+                  title={t(
+                    'Error counts on this page have been upsampled based on your sampling rate.'
+                  )}
+                >
+                  <Tag variant="muted">{t('Errors Upsampled')}</Tag>
+                </Tooltip>
+              </Container>
             )}
           </Flex>
           <Grid flow="column" align="center" gap="xs">
             <HeaderActions group={group} />
           </Grid>
         </Flex>
-        <HeaderGrid>
-          <Title>
-            <Tooltip title={primaryTitle} skipWrapper showOnlyOnOverflow delay={1000}>
-              <PrimaryTitle>{primaryTitle}</PrimaryTitle>
-            </Tooltip>
+        <Grid columns="minmax(150px, 1fr) auto auto" gap="0 xl" align="center">
+          <Grid columns="minmax(0, max-content) min-content" align="center" gap="sm">
+            <InfoText
+              title={stripAnsi(primaryTitle)}
+              mode="overflowOnly"
+              delay={1000}
+              size="xl"
+              bold
+            >
+              <AnsiText>{primaryTitle}</AnsiText>
+            </InfoText>
             {isAIDetectedIssue && <FeatureBadge type="new" />}
-          </Title>
-          <StatTitle>
-            {issueTypeConfig.eventAndUserCounts.enabled && (
-              <StatLink
-                to={`${baseUrl}events/${location.search}`}
-                aria-label={t('View events')}
+          </Grid>
+          <Container justifySelf="end">
+            {layoutProps => (
+              <Text
+                {...layoutProps}
+                as="div"
+                size="sm"
+                variant="muted"
+                bold
+                density="compressed"
               >
-                {t('Events (total)')}
-              </StatLink>
+                {issueTypeConfig.eventAndUserCounts.enabled && (
+                  <StatLink
+                    to={`${baseUrl}events/${location.search}`}
+                    aria-label={t('View events')}
+                  >
+                    {t('Events (total)')}
+                  </StatLink>
+                )}
+              </Text>
             )}
-          </StatTitle>
-          <StatTitle>
-            {issueTypeConfig.eventAndUserCounts.enabled &&
-              (userCount === 0 ? (
-                t('Users %s', userCountPeriod)
-              ) : (
-                <StatLink
-                  to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
-                  aria-label={t('View affected users')}
-                >
-                  {t('Users %s', userCountPeriod)}
-                </StatLink>
-              ))}
-          </StatTitle>
+          </Container>
+          <Container justifySelf="end">
+            {layoutProps => (
+              <Text
+                {...layoutProps}
+                as="div"
+                size="sm"
+                variant="muted"
+                bold
+                density="compressed"
+              >
+                {issueTypeConfig.eventAndUserCounts.enabled &&
+                  (userCount === 0 ? (
+                    t('Users %s', userCountPeriod)
+                  ) : (
+                    <StatLink
+                      to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
+                      aria-label={t('View affected users')}
+                    >
+                      {t('Users %s', userCountPeriod)}
+                    </StatLink>
+                  ))}
+              </Text>
+            )}
+          </Container>
           <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
-              <StatCount value={eventCount} aria-label={t('Event count')} />
-              <StatCount value={userCount} aria-label={t('User count')} />
+              <Text as="div" size="xl" density="compressed" align="right">
+                <Count value={eventCount} aria-label={t('Event count')} />
+              </Text>
+              <Text as="div" size="xl" density="compressed" align="right">
+                <Count value={userCount} aria-label={t('User count')} />
+              </Text>
             </Fragment>
           )}
-          <GroupStatusSubtitle group={group} project={project} />
-        </HeaderGrid>
-      </Header>
+          <Container column="1 / -1">
+            <GroupStatusSubtitle group={group} project={project} />
+          </Container>
+        </Grid>
+      </Container>
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}
         id={IssueDetailsTour.WORKFLOWS}
@@ -163,27 +209,46 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       >
         {tourProps => (
           <div {...tourProps}>
-            <ActionBar isComplete={isComplete} role="banner">
+            <ActionBar
+              justify="between"
+              gap="md"
+              wrap="wrap"
+              paddingTop="md"
+              paddingBottom="md"
+              borderBottom="primary"
+              position="relative"
+              background={isComplete ? undefined : 'primary'}
+              role="banner"
+            >
+              <Container
+                aria-hidden="true"
+                position="absolute"
+                top={0}
+                right={0}
+                left={`var(--issue-details-inset, ${theme.space['2xl']})`}
+                borderTop="primary"
+                pointerEvents="none"
+              />
               <GroupActions
                 group={group}
                 project={project}
                 disabled={disableActions}
                 event={event}
               />
-              <WorkflowActions>
-                <Workflow>
-                  {t('Priority')}
+              <Flex justify={{zero: 'start', '4xl': 'end'}} gap="0 xl" wrap="wrap">
+                <Flex align="center" gap="xs">
+                  <Text variant="muted">{t('Priority')}</Text>
                   <GroupPriority group={group} />
-                </Workflow>
-                <Workflow>
-                  {t('Assignee')}
+                </Flex>
+                <Flex align="center" gap="xs">
+                  <Text variant="muted">{t('Assignee')}</Text>
                   <GroupHeaderAssigneeSelector
                     group={group}
                     project={project}
                     event={event}
                   />
-                </Workflow>
-              </WorkflowActions>
+                </Flex>
+              </Flex>
             </ActionBar>
           </div>
         )}
@@ -191,6 +256,23 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
     </Fragment>
   );
 }
+
+const ActionBar = styled(Flex)`
+  padding-inline: var(--issue-details-inset, ${p => p.theme.space['2xl']});
+  transition: background 0.3s ease-in-out;
+
+  &:before {
+    z-index: -1;
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: linear-gradient(
+      to right,
+      ${p => p.theme.tokens.background.primary},
+      ${p => color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
+    );
+  }
+`;
 
 function HeaderActions({group}: {group: Group}) {
   const {feedback} = useFeedbackSDKIntegration();
@@ -229,111 +311,14 @@ function HeaderActions({group}: {group: Group}) {
   return null;
 }
 
-const Header = styled('header')`
-  background-color: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space.md}
-    var(--issue-details-inset, ${p => p.theme.space['2xl']});
-`;
-
-const HeaderGrid = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(150px, 1fr) auto auto;
-  column-gap: ${p => p.theme.space.xl};
-  align-items: center;
-`;
-
-const PrimaryTitle = styled('span')`
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 20px;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  flex-shrink: 0;
-`;
-
-const StatTitle = styled('div')`
-  display: block;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 1;
-  justify-self: flex-end;
-`;
-
-const StatLink = styled(Link)`
-  color: ${p => p.theme.tokens.content.secondary};
-  text-decoration: ${p => (p['aria-disabled'] ? 'none' : 'underline')};
-  text-decoration-style: dotted;
-`;
-
-const StatCount = styled(Count)`
-  display: block;
-  font-size: 20px;
-  line-height: 1;
-  text-align: right;
-`;
-
-const ActionBar = styled('div')<{isComplete: boolean}>`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  flex-wrap: wrap;
-  padding: ${p => p.theme.space.md}
-    var(--issue-details-inset, ${p => p.theme.space['2xl']});
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  position: relative;
-  transition: background 0.3s ease-in-out;
-  background: ${p => (p.isComplete ? 'transparent' : p.theme.tokens.background.primary)};
-  &:before {
-    z-index: -1;
-    position: absolute;
-    inset: 0;
-    content: '';
-    background: linear-gradient(
-      to right,
-      ${p => p.theme.tokens.background.primary},
-      ${p => color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
-    );
-  }
-  &:after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: var(--issue-details-inset, ${p => p.theme.space['2xl']});
-    bottom: unset;
-    height: 1px;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-    background: ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-const WorkflowActions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  column-gap: ${p => p.theme.space.xl};
-  flex-wrap: wrap;
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    justify-content: flex-start;
-  }
-`;
-
-const Workflow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const Title = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, max-content) min-content;
-  align-items: center;
-  column-gap: ${p => p.theme.space.sm};
-`;
-
-const StyledTag = styled(Tag)`
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    display: none;
-  }
-`;
+function StatLink({children, ...props}: LinkProps) {
+  return (
+    <Text variant="muted" underline={props['aria-disabled'] ? false : 'dotted'}>
+      {textProps => (
+        <Link {...props} {...textProps}>
+          {children}
+        </Link>
+      )}
+    </Text>
+  );
+}

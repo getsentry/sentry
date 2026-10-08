@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import omit from 'lodash/omit';
@@ -26,8 +26,6 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
-import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -42,7 +40,6 @@ import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/
 import {
   DashboardFilterKeys,
   DisplayType,
-  OnDemandExtractionState,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
@@ -56,11 +53,12 @@ import type {
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {VisualizationWidget} from './visualizationWidget';
 import {
   getMenuOptions,
-  useDiscoverSplitWarning,
   useDroppedColumnsWarning,
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
@@ -111,7 +109,6 @@ type Props = {
   onDuplicate?: () => void;
   onEdit?: () => void;
   onLegendSelectChanged?: () => void;
-  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   shouldResize?: boolean;
@@ -154,8 +151,9 @@ function WidgetCard(props: Props) {
 
   const widgetQueryError = getWidgetConfigError(props.widget, organization);
 
-  // Push widget metadata into the LLM context tree for Seer Explorer.
-  useLLMContext({
+  // Push widget metadata into the LLM context tree for Seer Explorer. The same
+  // object is the context when "Ask Seer" asks about this widget.
+  const widgetLLMContext = {
     title: props.widget.title,
     displayType: resolvedDisplayType,
     widgetType: props.widget.widgetType,
@@ -167,25 +165,20 @@ function WidgetCard(props: Props) {
       orderby: q.orderby,
     })),
     ...(widgetQueryError && {error: widgetQueryError}),
-  });
-
-  const onDataFetched = (newData: Data) => {
-    if (props.onDataFetched) {
-      props.onDataFetched({
-        tableResults: newData.tableResults,
-        timeseriesResultsTypes: newData.timeseriesResultsTypes,
-        timeseriesResultsUnits: newData.timeseriesResultsUnits,
-      });
-    }
-
-    setData(prevData => ({...prevData, ...newData}));
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setIsLoadingTextVisible(false);
   };
+  useLLMContext(widgetLLMContext);
+
+  const {openChatPrompt} = useSeerExplorerContext();
+  const askSeer = () =>
+    openChatPrompt({
+      prompt: props.widget.title
+        ? t('What would you like to know about the "%s" widget?', props.widget.title)
+        : t('What would you like to know about this widget?'),
+      context: widgetLLMContext,
+    });
+  const canAskSeer =
+    organization.features.includes('seer-explorer-chat-prompts') &&
+    isSeerExplorerEnabled(organization);
 
   const {
     api,
@@ -195,7 +188,6 @@ function WidgetCard(props: Props) {
     tableItemLimit,
     windowWidth,
     dashboardFilters,
-    onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
     legendOptions,
@@ -209,7 +201,29 @@ function WidgetCard(props: Props) {
     onWidgetTableResizeColumn,
     disableTableActions,
     widgetInterval,
+    onDataFetched,
   } = props;
+
+  const handleDataFetched = useCallback(
+    (newData: Data) => {
+      if (onDataFetched) {
+        onDataFetched({
+          tableResults: newData.tableResults,
+          timeseriesResultsTypes: newData.timeseriesResultsTypes,
+          timeseriesResultsUnits: newData.timeseriesResultsUnits,
+        });
+      }
+
+      setData(prevData => ({...prevData, ...newData}));
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setIsLoadingTextVisible(false);
+    },
+    [onDataFetched]
+  );
 
   if (widget.displayType === DisplayType.TOP_N) {
     // oxlint-disable-next-line react/immutability
@@ -220,8 +234,6 @@ function WidgetCard(props: Props) {
     query.aggregates.some(aggregate => aggregate.includes('session.duration'))
   );
 
-  const extractionStatus = useExtractionStatus({queryKey: widget});
-  const onDemandWarning = useOnDemandWarning({widget});
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
     widget,
     selection,
@@ -233,9 +245,8 @@ function WidgetCard(props: Props) {
     widget,
     dashboardFilters,
   });
-  const discoverSplitWarning = useDiscoverSplitWarning(widget);
 
-  const onDataFetchStart = () => {
+  const onDataFetchStart = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -245,7 +256,7 @@ function WidgetCard(props: Props) {
     timeoutRef.current = setTimeout(() => {
       setIsLoadingTextVisible(true);
     }, 3000);
-  };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -316,24 +327,13 @@ function WidgetCard(props: Props) {
     }
   };
 
-  const onDemandExtractionBadge =
-    extractionStatus === 'extracted'
-      ? t('Extracted')
-      : extractionStatus === 'not-extracted'
-        ? t('Not Extracted')
-        : undefined;
-
-  const badges = [onDemandExtractionBadge].filter(n => n !== undefined);
-
   const warnings = [
-    onDemandWarning,
     sessionDurationWarning,
     spanTimeRangeWarning,
     transactionsDeprecationWarning,
     droppedColumnsWarning,
     conflictingFilterWarning,
-    discoverSplitWarning,
-  ].filter(Boolean) as string[];
+  ].filter(Boolean);
 
   const actionsDisabled = Boolean(props.isPreview);
   const actionsMessage = actionsDisabled
@@ -352,7 +352,8 @@ function WidgetCard(props: Props) {
         props.onDelete,
         props.onDuplicate,
         props.onEdit,
-        data?.timeseriesResults
+        data?.timeseriesResults,
+        canAskSeer ? askSeer : undefined
       )
     : [];
 
@@ -397,7 +398,6 @@ function WidgetCard(props: Props) {
           <WidgetFrame
             title={widget.title}
             description={widget.description}
-            badgeProps={badges}
             warnings={warnings}
             actionsDisabled={actionsDisabled}
             error={widgetQueryError}
@@ -413,7 +413,7 @@ function WidgetCard(props: Props) {
               widget={widget}
               selection={selection}
               dashboardFilters={dashboardFilters}
-              onDataFetched={onDataFetched}
+              onDataFetched={handleDataFetched}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
@@ -441,7 +441,6 @@ function WidgetCard(props: Props) {
           description={
             widget.displayType === DisplayType.TEXT ? undefined : widget.description
           }
-          badgeProps={badges}
           warnings={warnings}
           actionsDisabled={actionsDisabled}
           error={widgetQueryError}
@@ -460,10 +459,9 @@ function WidgetCard(props: Props) {
             isMobile={isMobile}
             tableItemLimit={tableItemLimit}
             windowWidth={windowWidth}
-            onDataFetched={onDataFetched}
+            onDataFetched={handleDataFetched}
             dashboardFilters={dashboardFilters}
             chartGroup={DASHBOARD_CHART_GROUP}
-            onWidgetSplitDecision={onWidgetSplitDecision}
             shouldResize={shouldResize}
             onLegendSelectChanged={onLegendSelectChanged}
             legendOptions={legendOptions}
@@ -485,48 +483,13 @@ function WidgetCard(props: Props) {
 
 export default registerLLMContext('widget', withApi(withPageFilters(WidgetCard)));
 
-function useOnDemandWarning(props: {widget: TWidget}): string | null {
-  const organization = useOrganization();
-
-  if (!hasOnDemandMetricWidgetFeature(organization)) {
-    return null;
-  }
-  // oxfmt-ignore
-  const widgetContainsHighCardinality = props.widget.queries.some(
-    wq =>
-      wq.onDemand?.some(
-        d => d.extractionState === OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
-      )
-  );
-  // oxfmt-ignore
-  const widgetReachedSpecLimit = props.widget.queries.some(
-    wq =>
-      wq.onDemand?.some(
-        d => d.extractionState === OnDemandExtractionState.DISABLED_SPEC_LIMIT
-      )
-  );
-
-  if (widgetContainsHighCardinality) {
-    return t(
-      'This widget is using indexed data because it has a column with too many unique values.'
-    );
-  }
-
-  if (widgetReachedSpecLimit) {
-    return t(
-      "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
-    );
-  }
-
-  return null;
-}
-
 function useTimeRangeWarning({widget}: {widget: TWidget}) {
   const {
     selection: {datetime},
   } = usePageFilters();
   const useRetentionLimit =
     getOverride('react-hook:use-dashboard-dataset-retention-limit') ?? (() => null);
+  // oxlint-disable-next-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });

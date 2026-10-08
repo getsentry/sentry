@@ -68,7 +68,12 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   );
   const mutation = useMutation({
     mutationFn: (value: {cancel: number}) =>
-      fetchMutation({url: `${endpoint}?_=${signature}`, method: 'POST', data: value}),
+      fetchMutation({
+        url: endpoint,
+        method: 'POST',
+        options: {query: {_: signature}},
+        data: value,
+      }),
     onSuccess: () => {
       testableWindowLocation.assign('/auth/login/');
     },

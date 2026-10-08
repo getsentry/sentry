@@ -19,10 +19,8 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import RPC_DATASETS
 
 
@@ -157,105 +155,3 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
             )
 
         return Response(context)
-
-
-@cell_silo_endpoint
-class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-
-    def get(self, request: Request, organization: Organization) -> Response:
-        try:
-            snuba_params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response({})
-
-        orderby = self.get_orderby(request) or ["timestamp"]
-
-        with handle_query_errors():
-            result: EAPResponse | EventsResponse = get_eap_span_samples(
-                request, snuba_params, orderby
-            )
-
-        return Response(
-            self.handle_results_with_meta(
-                request,
-                organization,
-                snuba_params.project_ids,
-                {"data": result["data"], "meta": result["meta"]},
-                True,
-                Spans,
-            )
-        )
-
-
-def get_eap_span_samples(
-    request: Request, snuba_params: SnubaParams, orderby: list[str] | None
-) -> EAPResponse:
-    lower_bound = request.GET.get("lowerBound", 0)
-    first_bound = request.GET.get("firstBound")
-    second_bound = request.GET.get("secondBound")
-    upper_bound = request.GET.get("upperBound")
-    column = request.GET.get("column", "span.self_time")
-
-    if first_bound is None or second_bound is None:
-        raise ParseError("Must provide first and second bounds")
-
-    selected_columns = request.GET.getlist("additionalFields", []) + [
-        "project",
-        "transaction.span_id",
-        column,
-        "timestamp",
-        "span_id",
-        "profile.id",
-        "trace",
-    ]
-
-    query_string = request.query_params.get("query") or ""
-    bounds_query_string = f"{column}:>{lower_bound}ms {column}:<{upper_bound}ms {query_string}"
-
-    rpc_res = Spans.run_table_query(
-        params=snuba_params,
-        query_string=bounds_query_string,
-        config=SearchResolverConfig(),
-        offset=0,
-        limit=100,
-        sampling_mode=snuba_params.sampling_mode,
-        orderby=["-profile.id"],
-        referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
-        selected_columns=[
-            f"bounded_sample({column}, {lower_bound}, {first_bound}) as lower",
-            f"bounded_sample({column}, {first_bound}, {second_bound}) as middle",
-            f"bounded_sample({column}, {second_bound}{', ' if upper_bound else ''}{upper_bound}) as top",
-            "profile.id",
-            "id",
-        ],
-    )
-
-    span_ids = []
-
-    for row in rpc_res["data"]:
-        lower, middle, top = row["lower"], row["middle"], row["top"]
-        if lower:
-            span_ids.append(row["id"])
-        if middle:
-            span_ids.append(row["id"])
-        if top:
-            span_ids.append(row["id"])
-
-    samples_query_string = (
-        f"span_id:[{','.join(span_ids)}] {query_string}" if len(span_ids) > 0 else query_string
-    )
-
-    return Spans.run_table_query(
-        params=snuba_params,
-        config=SearchResolverConfig(use_aggregate_conditions=False),
-        offset=0,
-        limit=9,
-        sampling_mode=snuba_params.sampling_mode,
-        query_string=samples_query_string,
-        orderby=orderby,
-        referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-        selected_columns=selected_columns,
-    )

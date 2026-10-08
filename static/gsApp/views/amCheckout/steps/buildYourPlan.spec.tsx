@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
@@ -48,28 +49,20 @@ describe('BuildYourPlan', () => {
     });
   });
 
-  function renderCheckout(referrer?: string) {
-    let location = LocationFixture();
-    if (referrer) {
-      location = LocationFixture({
-        query: {
-          referrer,
-        },
-      });
-    }
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        location={location}
-        navigate={jest.fn()}
-      />,
-      {organization}
+  const routeProps = RouteComponentPropsFixture();
+
+  function ExampleAMCheckout({
+    location,
+  }: {
+    location: ComponentProps<typeof AMCheckout>['location'];
+  }) {
+    return (
+      <AMCheckout {...routeProps} api={api} location={location} navigate={jest.fn()} />
     );
   }
 
   it('renders', async () => {
-    renderCheckout();
+    render(<ExampleAMCheckout location={LocationFixture()} />, {organization});
 
     expect(await screen.findByText('Select a plan')).toBeInTheDocument();
     expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
@@ -83,17 +76,17 @@ describe('BuildYourPlan', () => {
       });
       SubscriptionStore.set(bizOrg.slug, businessSubscription);
 
-      renderCheckout();
+      render(<ExampleAMCheckout location={LocationFixture()} />, {organization});
 
-      const businessPlan = await screen.findByTestId('plan-option-am3_business');
+      const businessPlan = await screen.findByRole('radio', {name: 'Business'});
       expect(businessPlan).toBeInTheDocument();
       expect(within(businessPlan).getByText('Current')).toBeInTheDocument();
-      const teamPlan = screen.getByTestId('plan-option-am3_team');
+      const teamPlan = screen.getByRole('radio', {name: 'Team'});
       expect(within(teamPlan).queryByText('Current')).not.toBeInTheDocument();
     });
 
     it('can select plan', async () => {
-      renderCheckout();
+      render(<ExampleAMCheckout location={LocationFixture()} />, {organization});
 
       const teamPlan = await screen.findByRole('radio', {name: 'Team'});
       const businessPlan = screen.getByRole('radio', {name: 'Business'});

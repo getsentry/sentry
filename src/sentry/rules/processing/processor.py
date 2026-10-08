@@ -5,38 +5,13 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.models.rule import Rule
+from sentry.notifications.types import RuleFuture
 from sentry.rules import rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.rules import RuleFuture
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
-
-SLOW_CONDITION_MATCHES = ["event_frequency"]
-
-
-def get_match_function(match_name: str) -> Callable[..., bool] | None:
-    if match_name == "all":
-        return all
-    elif match_name == "any":
-        return any
-    elif match_name == "none":
-        return lambda bool_iter: not any(bool_iter)
-    return None
-
-
-def is_condition_slow(
-    condition: Mapping[str, Any],
-) -> bool:
-    """
-    Returns whether a condition is considered slow. Note that slow conditions in
-    the condition Mapping take on the form of EventFrequencyConditionData.
-    """
-    for slow_conditions in SLOW_CONDITION_MATCHES:
-        if slow_conditions in condition["id"]:
-            return True
-    return False
 
 
 def get_rule_type(condition: Mapping[str, Any]) -> str | None:
@@ -74,14 +49,10 @@ def activate_downstream_actions(
         str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
     ] = {}
 
-    instantiated_actions = 0
-
     for action in rule.data.get("actions", ()):
         action_inst = instantiate_action(rule, action)
         if not action_inst:
             continue
-
-        instantiated_actions += 1
 
         results = safe_execute(
             action_inst.after,

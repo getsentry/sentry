@@ -8,6 +8,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -153,6 +154,7 @@ function SidebarContent() {
     // Otherwise, pick a first project that has not sent a first transaction event.
     setCurrentProject(projectsWithoutFirstTransactionEvent[0]);
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     selection.projects,
     projects,
     projectsForOnboarding,
@@ -209,15 +211,16 @@ function SidebarContent() {
         <Heading>{t('Boost Performance')}</Heading>
         <DropdownMenu
           items={items}
-          triggerLabel={
-            <StyledIdBadge
-              project={currentProject}
-              avatarSize={16}
-              hideOverflow
-              disableLink
-            />
-          }
-          triggerProps={{'aria-label': currentProject.slug}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} aria-label={currentProject.slug}>
+              <StyledIdBadge
+                project={currentProject}
+                avatarSize={16}
+                hideOverflow
+                disableLink
+              />
+            </OverlayTrigger.Button>
+          )}
           position="bottom-end"
         />
         <OnboardingContent currentProject={currentProject} />

@@ -10,7 +10,6 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
@@ -50,7 +49,6 @@ type IssueListActionsProps = {
   selection: PageFilters;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
-  withColumns?: GroupListColumn[];
 };
 
 const animationProps: MotionNodeAnimationOptions = {
@@ -78,7 +76,6 @@ function ActionsBarPriority({
   onSelectStatsPeriod,
   statsPeriod,
   selection,
-  withColumns,
 }: {
   allInQuerySelected: boolean;
   anySelected: boolean;
@@ -97,7 +94,6 @@ function ActionsBarPriority({
   selection: PageFilters;
   statsPeriod: string;
   toggleSelectAllVisible: () => void;
-  withColumns?: GroupListColumn[];
 }) {
   const shouldDisplayActions = anySelected && !narrowViewport;
 
@@ -151,7 +147,6 @@ function ActionsBarPriority({
               selection={selection}
               statsPeriod={statsPeriod}
               isReprocessingQuery={displayReprocessingActions}
-              withColumns={withColumns}
             />
           </AnimatedHeaderItemsContainer>
         )}
@@ -171,7 +166,6 @@ export function IssueListActions({
   query,
   selection,
   statsPeriod,
-  withColumns,
 }: IssueListActionsProps) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -207,40 +201,26 @@ export function IssueListActions({
   const queryExcludingPerformanceIssues = `${query ?? ''} issue.category:error`;
 
   function handleDelete() {
-    actionSelectedGroups(itemIds => {
-      bulkDelete(
-        api,
-        {
+    actionSelectedGroups(async itemIds => {
+      try {
+        await bulkDelete(api, {
           orgId: organization.slug,
           itemIds,
           query: queryExcludingPerformanceIssues,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
-        },
-        {
-          complete: () => {
-            onDelete();
-          },
-        }
-      );
+        });
+      } catch {
+        // GroupStore already shows the error
+      } finally {
+        onDelete();
+      }
     });
   }
 
   function handleMerge() {
-    actionSelectedGroups(itemIds => {
-      mergeGroups(
-        api,
-        {
-          orgId: organization.slug,
-          itemIds,
-          query: queryExcludingPerformanceIssues,
-          project: selection.projects,
-          environment: selection.environments,
-          ...selection.datetime,
-        },
-        {}
-      );
+    actionSelectedGroups(async itemIds => {
       if (selection.projects[0]) {
         const trackProject = ProjectsStore.getById(`${selection.projects[0]}`);
         trackAnalytics('issues_stream.merged', {
@@ -250,6 +230,19 @@ export function IssueListActions({
           items_merged: allInQuerySelected ? 'all_in_query' : itemIds?.length,
           area,
         });
+      }
+
+      try {
+        await mergeGroups(api, {
+          orgId: organization.slug,
+          itemIds,
+          query: queryExcludingPerformanceIssues,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
+        });
+      } catch {
+        // GroupStore already shows the error
       }
     });
   }
@@ -295,7 +288,6 @@ export function IssueListActions({
         selectedProjectSlug={selectedProjectSlug}
         anySelected={anySelected}
         onSelectStatsPeriod={onSelectStatsPeriod}
-        withColumns={withColumns}
       />
       {!allResultsVisible && pageSelected && (
         <Alert system variant="info">

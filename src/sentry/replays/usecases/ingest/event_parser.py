@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import random
 import uuid
 from collections.abc import Callable, Iterator, MutableMapping
@@ -15,6 +16,7 @@ from sentry import options
 from sentry.logging.handlers import SamplingFilter
 from sentry.replays.lib.eap.write import Value, new_trace_item
 from sentry.utils import json
+from sentry.utils.safe import get_path
 from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.replays.event_parser")
@@ -316,10 +318,18 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
             return "ms"
 
 
-def get_timestamp_ms(event: dict[str, Any], event_type: EventType) -> float:
-    if get_timestamp_unit(event_type) == "s":
-        return float(event.get("timestamp", 0) * 1000)
-    return float(event.get("timestamp", 0))
+def get_timestamp_ms(event: Any, event_type: EventType) -> float | None:
+    """Return the event timestamp in milliseconds, or None if it is missing or malformed."""
+    timestamp = get_path(event, "timestamp")
+    if isinstance(timestamp, bool):
+        return None
+    try:
+        timestamp_f = float(timestamp)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(timestamp_f):
+        return None
+    return timestamp_f * 1000 if get_timestamp_unit(event_type) == "s" else timestamp_f
 
 
 #

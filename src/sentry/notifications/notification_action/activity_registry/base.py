@@ -39,7 +39,7 @@ def send_activity_notification(
     target: NotificationTarget,
 ) -> None:
     data = build_activity_notification_data(
-        activity, workflow_id=invocation.workflow_id, target=target
+        activity=activity, target=target, workflow_id=invocation.workflow_id
     )
     NotificationService[ActivityNotificationData](data=data).notify_target(target=target)
 
