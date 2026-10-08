@@ -6,13 +6,13 @@ import type {
   GridColumnSort,
 } from 'sentry/components/tables/dataGrid';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
   fieldAlignment,
   parseFunction,
 } from 'sentry/utils/discover/fields';
+import {encodeSort} from 'sentry/utils/queryString';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanFields} from 'sentry/views/insights/types';
 
