@@ -11,7 +11,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -481,7 +481,7 @@ export function Table({
                       }
                       isLoading={isLoading}
                     >
-                      <GridEditable
+                      <DataGrid
                         isLoading={isLoading}
                         data={tableData ? tableData.data : []}
                         columnOrder={columnOrder}

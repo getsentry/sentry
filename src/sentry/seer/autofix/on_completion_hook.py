@@ -7,6 +7,7 @@ import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 from pydantic import ValidationError
+from sentry_sdk import traces
 
 from sentry import analytics, features
 from sentry.analytics.events.autofix_events import (
@@ -73,7 +74,6 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
-from sentry.utils.tracing import start_span
 from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
@@ -130,15 +130,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             organization: The organization context
             run_id: The ID of the completed run
         """
-        with (
-            sentry_sdk.isolation_scope(),
-            start_span(
+        with sentry_sdk.isolation_scope():
+            traces.new_trace()
+            with traces.start_span(
                 name="autofix.on_completion_hook",
-                op="function",
-                transaction=True,
-            ),
-        ):
-            cls._execute(organization, run_id)
+                attributes={"sentry.op": "function"},
+                parent_span=None,
+            ):
+                cls._execute(organization, run_id)
 
     @classmethod
     def _execute(cls, organization: Organization, run_id: int) -> None:
