@@ -62,7 +62,7 @@ export function StaticReplayPreview({
       isFetching={isFetching}
       replay={replay}
     >
-      <PlayerContainer data-test-id="player-container">
+      <PlayerContainer>
         {replay?.hasProcessingErrors() ? (
           <ReplayProcessingError />
         ) : (

@@ -15,7 +15,7 @@ import type {InternalAppApiToken, User} from 'sentry/types/user';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailsContainer} from 'admin/components/detailsContainer';
+import {DetailsContainer, DetailsHeading} from 'admin/components/detailsContainer';
 import {prettyDate} from 'admin/utils';
 
 type Props = {
@@ -97,7 +97,7 @@ export function UserOverview({
             <ExternalLink href={sendgridUrl}>SendGrid</ExternalLink>
           </DetailLabel>
         </DescriptionList>
-        <h6>Admin</h6>
+        <DetailsHeading>Admin</DetailsHeading>
         <DescriptionList gap="md">
           <DetailLabel title="Superuser" yesNo={user.isSuperuser} />
           <DetailLabel title="Staff" yesNo={user.isStaff} />
@@ -111,7 +111,7 @@ export function UserOverview({
         </DescriptionList>
       </div>
       <div>
-        <h6>Identities</h6>
+        <DetailsHeading>Identities</DetailsHeading>
         {identities?.length ? (
           <DescriptionList gap="md">
             {identities.map(identity => (
@@ -151,7 +151,7 @@ export function UserOverview({
             </em>
           </p>
         )}
-        <h6>Authenticators</h6>
+        <DetailsHeading>Authenticators</DetailsHeading>
         {user.authenticators?.length ? (
           <DescriptionList gap="md">
             {user.authenticators.map(auth => (
@@ -180,7 +180,7 @@ export function UserOverview({
             </em>
           </p>
         )}
-        <h6>Auth Tokens</h6>
+        <DetailsHeading>Auth Tokens</DetailsHeading>
         {tokens.length ? (
           <SimpleTable
             columns={USER_TOKEN_COLUMNS}

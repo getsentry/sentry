@@ -5,7 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -391,13 +391,17 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
-export const ChevronButton = styled(Button)<{expanded: boolean}>`
-  display: none;
+export function ChevronButton(
+  props: React.ComponentProps<typeof Button> & {expanded: boolean}
+) {
+  return (
+    <Container as="span" display={{zero: 'none', '3xl': 'inline-flex'}}>
+      <StyledChevronButton {...props} />
+    </Container>
+  );
+}
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: inline-flex;
-  }
-
+const StyledChevronButton = styled(Button)<{expanded: boolean}>`
   ${p =>
     p.expanded &&
     css`

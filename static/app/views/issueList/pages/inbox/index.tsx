@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
@@ -17,7 +16,13 @@ import {FeatureBadge, Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Grid,
+  Stack,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
@@ -51,7 +56,6 @@ import {parseActorString} from 'sentry/utils/parseActorString';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -298,8 +302,7 @@ function InboxContent() {
   // Remove this once we roll out to more users
   useReplayForCriticalFlow({flowName: 'issue_inbox', sampleRate: 1});
 
-  const theme = useTheme();
-  const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
+  const isDesktop = useResponsivePropValue({zero: false, '3xl': true});
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -390,7 +393,7 @@ function InboxContent() {
           width={isMobile ? '100%' : `${size}px`}
           minWidth={0}
           minHeight={0}
-          display={selectedIssueId ? {'screen:xs': 'none', 'screen:md': 'flex'} : 'flex'}
+          display={selectedIssueId ? {zero: 'none', '3xl': 'flex'} : 'flex'}
           background="primary"
           borderRight="muted"
         >
@@ -450,11 +453,11 @@ function InboxContent() {
           minWidth={0}
           minHeight={0}
           overflow="hidden"
-          display={selectedIssueId ? 'flex' : {'screen:xs': 'none', 'screen:md': 'flex'}}
+          display={selectedIssueId ? 'flex' : {zero: 'none', '3xl': 'flex'}}
         >
           {selectedIssueId && (
             <Container
-              display={{'screen:xs': 'block', 'screen:md': 'none'}}
+              display={{zero: 'block', '3xl': 'none'}}
               padding="md"
               borderBottom="muted"
             >

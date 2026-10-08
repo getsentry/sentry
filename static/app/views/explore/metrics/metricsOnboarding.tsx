@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -71,8 +72,8 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <HeaderWrapper>
-                <HeaderText>
+              <Flex justify="between" gap="2xl" radius="md" padding="3xl">
+                <Container flex={{zero: '1', xl: '0.65'}}>
                   <Title>{t('Measure what matters with Application Metrics')}</Title>
                   <SubTitle>
                     {t(
@@ -80,9 +81,11 @@ function OnboardingPanel({
                     )}
                   </SubTitle>
                   {isUnsupportedPlatform && <div>{children}</div>}
-                </HeaderText>
-                <Image src={connectDotsImg} />
-              </HeaderWrapper>
+                </Container>
+                <Container display={{zero: 'none', xl: 'block'}}>
+                  <Image src={connectDotsImg} />
+                </Container>
+              </Flex>
               <Divider />
               <Body isUnsupportedPlatform={isUnsupportedPlatform}>
                 {!isUnsupportedPlatform && <Setup>{children}</Setup>}
@@ -310,22 +313,6 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const HeaderText = styled('div')`
-  flex: 0.65;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-  }
-`;
-
 const Setup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 
@@ -373,10 +360,6 @@ const Image = styled('img')`
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`

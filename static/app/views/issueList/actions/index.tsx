@@ -1,12 +1,11 @@
 import {Fragment, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -20,7 +19,6 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useApi} from 'sentry/utils/useApi';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useIssueSelectionActions,
@@ -181,8 +179,7 @@ export function IssueListActions({
     const uniqProjects = uniq(projects);
     return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
   }, [selectedIdsSet]);
-  const theme = useTheme();
-  const disableActions = useMedia(`(width < ${theme.breakpoints.sm})`);
+  const disableActions = useResponsivePropValue({zero: true, xl: false});
   const area = useAnalyticsArea();
   const numIssues = selectedIdsSet.size;
 

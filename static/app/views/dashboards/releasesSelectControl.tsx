@@ -80,76 +80,80 @@ export function ReleasesSelectControl({
   const activeReleasesSet = new Set(activeReleases);
 
   return (
-    <StyledCompactSelect
-      multiple
-      clearable
-      search={{onChange: searchDebouncer.maybeExecute}}
-      id={id}
-      disabled={isDisabled}
-      loading={loading}
-      menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
-      className={className}
-      options={[
-        {
-          value: '_releases',
-          label: tct('Sorted by [sortBy]', {
-            sortBy:
-              sortBy in RELEASES_SORT_OPTIONS
-                ? RELEASES_SORT_OPTIONS[sortBy as keyof typeof RELEASES_SORT_OPTIONS]
-                : sortBy,
-          }),
-          options: [
-            ...ALIASED_RELEASES,
-            ...activeReleases
-              .filter(version => version !== 'latest')
-              .map(version => {
-                // Find the release in the releases array to get dateCreated and count
-                const release = releases.find(r => r.version === version);
-                return {
-                  label: version,
-                  value: version,
-                  details: (
-                    <LabelDetails
-                      eventCount={release?.count}
-                      dateCreated={release?.dateCreated}
-                    />
-                  ),
-                };
-              }),
-            ...releases
-              .filter(({version}) => !activeReleasesSet.has(version))
-              .map(({version, dateCreated, count}) => {
-                return {
-                  label: version,
-                  value: version,
-                  details: <LabelDetails eventCount={count} dateCreated={dateCreated} />,
-                };
-              }),
-          ],
-        },
-      ]}
-      onChange={opts => setActiveReleases(opts.map(opt => opt.value as string))}
-      onOpenChange={setIsReleasesDropdownOpen}
-      onClose={() => {
-        resetSearch();
-        if (!isEqual(activeReleases, selectedReleases)) {
-          handleChangeFilter?.({
-            [DashboardFilterKeys.RELEASE]: activeReleases,
-          });
-        }
-      }}
-      value={activeReleases}
-      trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} icon={<IconReleases />}>
-          <ButtonLabelWrapper>
-            {triggerLabel}{' '}
-            {activeReleases.length > 1 && (
-              <StyledBadge variant="muted">{`+${activeReleases.length - 1}`}</StyledBadge>
-            )}
-          </ButtonLabelWrapper>
-        </OverlayTrigger.Button>
-      )}
-    />
+    <Container maxWidth={{zero: 'none', xl: '300px'}}>
+      <CompactSelect
+        multiple
+        clearable
+        search={{onChange: searchDebouncer.maybeExecute}}
+        id={id}
+        disabled={isDisabled}
+        loading={loading}
+        menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
+        className={className}
+        options={[
+          {
+            value: '_releases',
+            label: tct('Sorted by [sortBy]', {
+              sortBy:
+                sortBy in RELEASES_SORT_OPTIONS
+                  ? RELEASES_SORT_OPTIONS[sortBy as keyof typeof RELEASES_SORT_OPTIONS]
+                  : sortBy,
+            }),
+            options: [
+              ...ALIASED_RELEASES,
+              ...activeReleases
+                .filter(version => version !== 'latest')
+                .map(version => {
+                  // Find the release in the releases array to get dateCreated and count
+                  const release = releases.find(r => r.version === version);
+                  return {
+                    label: version,
+                    value: version,
+                    details: (
+                      <LabelDetails
+                        eventCount={release?.count}
+                        dateCreated={release?.dateCreated}
+                      />
+                    ),
+                  };
+                }),
+              ...releases
+                .filter(({version}) => !activeReleasesSet.has(version))
+                .map(({version, dateCreated, count}) => {
+                  return {
+                    label: version,
+                    value: version,
+                    details: (
+                      <LabelDetails eventCount={count} dateCreated={dateCreated} />
+                    ),
+                  };
+                }),
+            ],
+          },
+        ]}
+        onChange={opts => setActiveReleases(opts.map(opt => opt.value as string))}
+        onOpenChange={setIsReleasesDropdownOpen}
+        onClose={() => {
+          resetSearch();
+          if (!isEqual(activeReleases, selectedReleases)) {
+            handleChangeFilter?.({
+              [DashboardFilterKeys.RELEASE]: activeReleases,
+            });
+          }
+        }}
+        value={activeReleases}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} icon={<IconReleases />}>
+            <ButtonLabelWrapper>
+              {triggerLabel}{' '}
+              {activeReleases.length > 1 && (
+                <StyledBadge variant="muted">{`+${activeReleases.length - 1}`}</StyledBadge>
+              )}
+            </ButtonLabelWrapper>
+          </OverlayTrigger.Button>
+        )}
+      />
+    </Container>
   );
 }
 
@@ -176,12 +180,6 @@ function LabelDetails(props: LabelDetailsProps) {
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
-`;
-
-const StyledCompactSelect = styled(CompactSelect)`
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    max-width: 300px;
-  }
 `;
 
 const ButtonLabelWrapper = styled('span')`
