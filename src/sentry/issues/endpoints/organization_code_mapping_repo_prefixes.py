@@ -61,6 +61,9 @@ def _get_repo_prefixes(
         return None, Response({"detail": "Integration not found."}, status=404)
 
     installation = integration.get_installation(organization_id=organization.id)
+    repository_installation = (
+        installation if isinstance(installation, RepositoryIntegration) else None
+    )
     if not isinstance(installation, RepoTreesIntegration):
         return None, Response(
             {"detail": "Integration does not support repository trees."}, status=404
@@ -71,9 +74,9 @@ def _get_repo_prefixes(
         # Warm cache hit — skip the provider branch lookup entirely.
         files = cached
     else:
-        if isinstance(installation, RepositoryIntegration):
+        if repository_installation is not None:
             try:
-                branch = installation.get_repository_default_branch(repo)
+                branch = repository_installation.get_repository_default_branch(repo)
             except ApiError as e:
                 logger.warning(
                     "code_mapping_repo_prefixes.branch_lookup_error",
