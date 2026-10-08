@@ -94,8 +94,6 @@ def get_rate_limit_key(
         return None
 
     if is_api_token_auth(request_auth) and request_user:
-        # Sentry app tokens carry their installation's organization. ApiToken computes it
-        # with control silo queries, so it's left to the RPC fallback below.
         token_org_id = None
         if isinstance(request_auth, ApiToken):
             token_id = request_auth.id
