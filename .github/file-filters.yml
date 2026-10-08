@@ -168,6 +168,13 @@ migrations_added:
   - added:
       - 'src/sentry/**/migrations/*'
 
+# Migration tests only exercise migrations, so PRs only run them when these change.
+migration_tests:
+  - '.github/workflows/backend.yml'
+  - 'Makefile'
+  - 'src/**/migrations/**'
+  - 'tests/**/migrations/**'
+
 # These files will trigger our workflow to check if lockfile
 # updates are needed
 migration_lockfile:
