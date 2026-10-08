@@ -320,9 +320,20 @@ def update_existing_message(
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
             )
-
         except (IntegrationError, IntegrationConfigurationError) as e:
             lifecycle.record_halt(halt_reason=e)
+            return
+
+        record_sent(
+            NotificationTrackingContext(
+                source=data.source,
+                provider=NotificationProviderKey.SLACK,
+                category=template_registry.get(data.source).category,
+                notification_uuid=data.notification_uuid,
+                organization_id=data.organization_id,
+            ),
+            links=link_decorator.links,
+        )
 
 
 @all_silo_function
