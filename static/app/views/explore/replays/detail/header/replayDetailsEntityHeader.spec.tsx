@@ -3,7 +3,10 @@ import {duration} from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReplayNavigateEventFixture} from 'sentry-fixture/replay/helpers';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
-import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+import {
+  ArchivedReplayRecordFixture,
+  ReplayRecordFixture,
+} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -29,6 +32,31 @@ function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
   });
 }
 
+/**
+ * The reader result in the shape `useLoadReplayReader` actually returns, so a
+ * test that declares one state cannot drift from what the component consumes.
+ */
+function readerResultFixture(
+  overrides: Partial<ReturnType<typeof useLoadReplayReader>> = {}
+): ReturnType<typeof useLoadReplayReader> {
+  return {
+    attachments: [],
+    errors: [],
+    feedbackEvents: [],
+    fetchError: undefined,
+    attachmentError: undefined,
+    isError: false,
+    isPending: false,
+    status: 'success',
+    onRetry: jest.fn(),
+    projectSlug: project.slug,
+    replay: null,
+    replayId: '',
+    replayRecord: undefined,
+    ...overrides,
+  };
+}
+
 jest.useFakeTimers();
 describe('ReplayDetailsEntityHeader', () => {
   beforeEach(() => {
@@ -52,21 +80,10 @@ describe('ReplayDetailsEntityHeader', () => {
   }
 
   it('shows the archived header through the same precedence as the body', () => {
-    const replayRecord = {...replayRecordFixture(), is_archived: true};
+    const replayRecord = ArchivedReplayRecordFixture();
 
     render(
-      <ReplayDetailsEntityHeader
-        readerResult={
-          {
-            replayRecord,
-            errors: [],
-            replay: null,
-            isPending: false,
-            fetchError: undefined,
-            attachmentError: undefined,
-          } as unknown as ReturnType<typeof useLoadReplayReader>
-        }
-      />
+      <ReplayDetailsEntityHeader readerResult={readerResultFixture({replayRecord})} />
     );
 
     // Routed by ReplayLoadingState rather than an early return, so the header
@@ -81,18 +98,7 @@ describe('ReplayDetailsEntityHeader', () => {
     const viewedBy = mockViewedBy(replayRecord.id);
 
     render(
-      <ReplayDetailsEntityHeader
-        readerResult={
-          {
-            replayRecord,
-            errors: [],
-            replay: null,
-            isPending: false,
-            fetchError: undefined,
-            attachmentError: undefined,
-          } as unknown as ReturnType<typeof useLoadReplayReader>
-        }
-      />,
+      <ReplayDetailsEntityHeader readerResult={readerResultFixture({replayRecord})} />,
       {organization}
     );
 
@@ -108,18 +114,9 @@ describe('ReplayDetailsEntityHeader', () => {
 
     render(
       <ReplayDetailsEntityHeader
-        readerResult={
-          {
-            replayRecord,
-            errors: [],
-            // The window ReplayLoadingState routes to renderLoading: the
-            // record has landed, attachments and errors have not.
-            replay: null,
-            isPending: true,
-            fetchError: undefined,
-            attachmentError: undefined,
-          } as unknown as ReturnType<typeof useLoadReplayReader>
-        }
+        // The window ReplayLoadingState routes to renderLoading: the record
+        // has landed, attachments and errors have not.
+        readerResult={readerResultFixture({replayRecord, isPending: true})}
       />,
       {organization}
     );
