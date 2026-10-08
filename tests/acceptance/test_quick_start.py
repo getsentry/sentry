@@ -20,7 +20,7 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
-    @with_feature("organizations:onboarding")
+    @with_feature(["organizations:onboarding", "organizations:onboarding-scm-project-creation"])
     @override_settings(
         PRIVACY_URL="https://sentry.io/privacy/", TERMS_URL="https://sentry.io/terms/"
     )
@@ -32,9 +32,13 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
             self.browser.element('input[name="agreeTerms"]').click()
             self.browser.click('button[type="submit"]')
 
-            self.browser.wait_until_test_id("platform-javascript-react")
-            self.browser.click('[data-test-id="platform-javascript-react"')
-            self.browser.click('button[aria-label="Create Project"]')
+            self.browser.wait_until(xpath='//h4[text()="Repository"]')
+            self.browser.element('input[aria-autocomplete="list"]').send_keys("React")
+            react_option = '//p[@data-test-id="menu-list-item-label"][text()="React"]'
+            self.browser.wait_until(xpath=react_option)
+            self.browser.click(xpath=react_option)
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
+            self.browser.click(xpath='//button[contains(., "Create project")]')
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
 
