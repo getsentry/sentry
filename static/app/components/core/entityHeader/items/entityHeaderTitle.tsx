@@ -168,10 +168,7 @@ export function EntityHeaderTitle({
 
   const visibleTags = (tags ?? [])
     .map((tag, index) => ({tag, index}))
-    .filter(
-      (entry): entry is {index: number; tag: React.ReactElement<TagProps>} =>
-        entry.tag !== null
-    );
+    .filter(entry => entry.tag !== null);
 
   return (
     <Flex align="center" gap="sm" minWidth={0} minHeight={ROW_HEIGHT}>
