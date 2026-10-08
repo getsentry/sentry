@@ -13,6 +13,7 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
+from django.utils.module_loading import import_string
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
@@ -112,6 +113,7 @@ CURSOR_LINK_HEADER = (
 )
 
 DEFAULT_AUTHENTICATION = (
+    *map(import_string, settings.SENTRY_EXTRA_API_AUTHENTICATION),
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     AgentTokenAuthentication,

@@ -2381,6 +2381,11 @@ SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 # See discussion on https://github.com/getsentry/sentry/pull/20187
 SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
+# Import paths of extra API authentication classes, tried before Sentry's own.
+# They must return None for credentials they don't recognize, or Sentry's token
+# authentication never sees them.
+SENTRY_EXTRA_API_AUTHENTICATION: list[str] = []
+
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
 # rsbuild.config.ts is not part of Sentry's datafiles
