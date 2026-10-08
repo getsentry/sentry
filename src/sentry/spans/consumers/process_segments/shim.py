@@ -223,6 +223,9 @@ def _get_event_user(segment_span: CompatibleSpan) -> dict[str, Any] | None:
     if geo_data:
         user_data["geo"] = geo_data
 
+    if "id" in user_data:
+        user_data["id"] = str(user_data["id"])
+
     return user_data
 
 
@@ -246,6 +249,11 @@ def _get_event_request(segment_span: CompatibleSpan) -> dict[str, Any]:
             del request_data["data"]
 
     return request_data
+
+
+def _get_event_sdk(segment_span: CompatibleSpan) -> dict[str, Any]:
+    sdk_data = _extract_attribute_values(segment_span, SDK_FIELDS_BY_ATTRIBUTE_NAME)
+    return sdk_data if sdk_data.keys() == {"name", "version"} else {}
 
 
 def _get_detector_compatible_spans(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
@@ -308,7 +316,7 @@ def build_shim_event_data(
     if user_data:
         event["user"] = user_data
 
-    sdk_data = _extract_attribute_values(segment_span, SDK_FIELDS_BY_ATTRIBUTE_NAME)
+    sdk_data = _get_event_sdk(segment_span)
     if sdk_data:
         event["sdk"] = sdk_data
 

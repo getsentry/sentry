@@ -109,7 +109,7 @@ export function MetricDetails({
   if (isError) {
     return (
       <MetricsDetailsWrapper ref={ref}>
-        <LogDetailTableBodyCell colSpan={0}>
+        <LogDetailTableBodyCell>
           <EmptyStreamWrapper>
             <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </EmptyStreamWrapper>
@@ -121,7 +121,7 @@ export function MetricDetails({
   if (isTraceDetailsLoading || (isTraceMetaLoading && showTelemetry)) {
     return (
       <MetricsDetailsWrapper ref={ref}>
-        <LogDetailTableBodyCell colSpan={0}>
+        <LogDetailTableBodyCell>
           <LoadingIndicator />
         </LogDetailTableBodyCell>
       </MetricsDetailsWrapper>
@@ -143,7 +143,7 @@ export function MetricDetails({
 
   return (
     <MetricsDetailsWrapper ref={ref}>
-      <LogDetailTableBodyCell colSpan={0}>
+      <LogDetailTableBodyCell>
         <DetailsContent>
           {showTelemetry ? (
             <MetricDetailsTraceSummary

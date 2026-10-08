@@ -180,4 +180,9 @@ def trigger_action(
             # after the final attempt so giving up does not count as a task failure.
             if not _is_final_attempt():
                 raise RetryTaskError()
-            sentry_sdk.capture_exception(error)
+            # Notification handlers wrap retryable failures (e.g. ApiError) in RetryTaskError,
+            # so report the underlying error to keep issues grouped by what actually failed.
+            reported: BaseException = error
+            if isinstance(error, RetryTaskError) and error.__cause__ is not None:
+                reported = error.__cause__
+            sentry_sdk.capture_exception(reported)

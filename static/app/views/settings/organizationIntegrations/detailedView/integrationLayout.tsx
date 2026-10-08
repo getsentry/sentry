@@ -5,6 +5,7 @@ import startCase from 'lodash/startCase';
 import type {AlertProps} from '@sentry/scraps/alert';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
+import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
@@ -123,7 +124,7 @@ const TabsContainer = styled('div')`
 `;
 
 function Body({
-  integrationName,
+  title,
   alert,
   topSection,
   tabs,
@@ -131,13 +132,13 @@ function Body({
 }: {
   alert: React.ReactNode;
   content: React.ReactNode;
-  integrationName: string;
   tabs: React.ReactNode;
+  title: string | BreadcrumbTitleItem;
   topSection: React.ReactNode;
 }) {
   return (
     <Fragment>
-      <BreadcrumbTitle title={integrationName} />
+      <BreadcrumbTitle title={title} />
       {alert}
       {topSection}
       {tabs}

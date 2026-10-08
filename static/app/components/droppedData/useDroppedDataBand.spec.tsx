@@ -3,11 +3,12 @@ import type {
   CustomSeriesRenderItemAPI,
   CustomSeriesRenderItemParams,
 } from 'echarts';
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {
   BAND_HEIGHT,
   DROPPED_DATA_SERIES_ID,
@@ -15,14 +16,13 @@ import {
 } from 'sentry/components/droppedData/useDroppedDataBand';
 import {severityColor, withAlpha} from 'sentry/components/droppedData/utils';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};
 
 describe('useDroppedDataBand', () => {
-  it('returns an empty band when there are no annotations', () => {
+  it('returns an empty band when there are no dropped events', () => {
     const {result} = renderHookWithProviders(() =>
-      useDroppedDataBand({chartRef, droppedData: {droppedAnnotations: []}})
+      useDroppedDataBand({chartRef, droppedData: {droppedEvents: []}})
     );
 
     expect(result.current.droppedDataSeries).toBeNull();
@@ -38,11 +38,11 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataBandHeight).toBe(0);
   });
 
-  it('builds a series and reserves space when annotations are present', () => {
+  it('builds a series and reserves space when dropped events are present', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedData: {droppedAnnotations: [AnnotationFixture({eventCount: 10})]},
+        droppedData: {droppedEvents: [DroppedEventFixture({count: 10})]},
       })
     );
 
@@ -57,11 +57,11 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedAnnotations: [
-            AnnotationFixture({
+          droppedEvents: [
+            DroppedEventFixture({
               outcome: 'client_discard',
               reason: 'before_send',
-              eventCount: 10,
+              count: 10,
             }),
           ],
         },
@@ -76,13 +76,13 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedAnnotations: [
-            AnnotationFixture({start: 0, eventCount: 0}),
-            AnnotationFixture({start: 60_000, eventCount: 1}),
+          droppedEvents: [
+            DroppedEventFixture({start: 0, count: 0}),
+            DroppedEventFixture({start: 60_000, count: 1}),
           ],
-          acceptedAnnotations: [
-            AnnotationFixture({start: 0, eventCount: 100}),
-            AnnotationFixture({start: 60_000, eventCount: 99}),
+          acceptedEvents: [
+            DroppedEventFixture({start: 0, count: 100}),
+            DroppedEventFixture({start: 60_000, count: 99}),
           ],
         },
       })
@@ -98,8 +98,8 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedAnnotations: [AnnotationFixture({start: 0, eventCount: 0})],
-          acceptedAnnotations: [AnnotationFixture({start: 0, eventCount: 100})],
+          droppedEvents: [DroppedEventFixture({start: 0, count: 0})],
+          acceptedEvents: [DroppedEventFixture({start: 0, count: 100})],
         },
       })
     );
@@ -113,8 +113,8 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedAnnotations: [],
-          acceptedAnnotations: [AnnotationFixture({eventCount: 8000})],
+          droppedEvents: [],
+          acceptedEvents: [DroppedEventFixture({count: 8000})],
         },
       })
     );
@@ -137,7 +137,7 @@ describe('useDroppedDataBand', () => {
       const {result} = renderHookWithProviders(() =>
         useDroppedDataBand({
           chartRef,
-          droppedData: {droppedAnnotations: [AnnotationFixture({eventCount: 10})]},
+          droppedData: {droppedEvents: [DroppedEventFixture({count: 10})]},
         })
       );
 
@@ -192,10 +192,10 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedAnnotations: [
-            AnnotationFixture({start: 0, end: 60_000, eventCount: 10}),
-            AnnotationFixture({start: 0, end: 60_000, eventCount: 5, reason: 'quota'}),
-            AnnotationFixture({start: 60_000, end: 120_000, eventCount: 20}),
+          droppedEvents: [
+            DroppedEventFixture({start: 0, end: 60_000, count: 10}),
+            DroppedEventFixture({start: 0, end: 60_000, count: 5, reason: 'quota'}),
+            DroppedEventFixture({start: 60_000, end: 120_000, count: 20}),
           ],
         },
       })
@@ -247,11 +247,14 @@ describe('useDroppedDataBand', () => {
       };
     }
 
-    function renderShapes(dropped: Annotation[], accepted: Annotation[] = []) {
+    function renderShapes(
+      dropped: DroppedEventsBucket[],
+      accepted: DroppedEventsBucket[] = []
+    ) {
       const {result} = renderHookWithProviders(() =>
         useDroppedDataBand({
           chartRef,
-          droppedData: {droppedAnnotations: dropped, acceptedAnnotations: accepted},
+          droppedData: {droppedEvents: dropped, acceptedEvents: accepted},
         })
       );
 
@@ -275,11 +278,11 @@ describe('useDroppedDataBand', () => {
       });
     }
 
-    function bucket(minute: number, eventCount = 10) {
-      return AnnotationFixture({
+    function bucket(minute: number, count = 10) {
+      return DroppedEventFixture({
         start: minute * 60_000,
         end: (minute + 1) * 60_000,
-        eventCount,
+        count,
       });
     }
 

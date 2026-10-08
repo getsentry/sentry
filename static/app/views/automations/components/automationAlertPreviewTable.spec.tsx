@@ -32,7 +32,10 @@ describe('AutomationAlertPreviewTable', () => {
         ],
       },
     ];
-    const groupsRequest = MockApiClient.addMockResponse({url: groupsUrl, body: [group]});
+    const groupsRequest = MockApiClient.addMockResponse({
+      url: groupsUrl,
+      body: [{id: group.id, title: group.title, project: group.project}],
+    });
 
     render(
       <AutomationAlertPreviewTable
@@ -48,7 +51,13 @@ describe('AutomationAlertPreviewTable', () => {
     expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
     expect(groupsRequest).toHaveBeenCalledWith(
       groupsUrl,
-      expect.objectContaining({query: {group: [group.id], project: [1]}})
+      expect.objectContaining({
+        query: {
+          group: [group.id],
+          project: [1],
+          collapse: ['stats', 'unhandled'],
+        },
+      })
     );
   });
 });

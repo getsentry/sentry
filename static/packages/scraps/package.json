@@ -1,6 +1,6 @@
 {
   "name": "@sentry/scraps",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/getsentry/sentry.git",
@@ -64,7 +64,7 @@
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@rsbuild/plugin-react": "2.1.1",
     "@rslib/core": "1.0.3",
-    "@swc/core": "1.16.2",
+    "@swc/core": "1.16.13",
     "@swc/jest": "0.2.39",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",

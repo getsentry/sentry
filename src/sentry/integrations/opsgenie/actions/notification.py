@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator, Sequence
 from typing import cast
 
 import sentry_sdk
 
-from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import (
     OPSGENIE_DEFAULT_PRIORITY,
     OpsgenieClient,
@@ -14,7 +14,10 @@ from sentry.integrations.opsgenie.client import (
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.types import RuleFuture
 from sentry.rules.actions import IntegrationEventAction
+from sentry.rules.base import CallbackFuture
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
@@ -43,7 +46,9 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             },
         }
 
-    def after(self, event, notification_uuid: str | None = None):
+    def after(
+        self, event: GroupEvent, notification_uuid: str | None = None
+    ) -> Generator[CallbackFuture]:
         integration = self.get_integration()
         if not integration:
             logger.warning("Integration removed, but the rule still refers to it")
@@ -66,7 +71,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             )
             return
 
-        def send_notification(event, futures):
+        def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             installation = integration.get_installation(self.project.organization_id)
             try:
                 client: OpsgenieClient = installation.get_keyring_client(self.get_option("team"))
@@ -132,12 +137,4 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
 
         return self.label.format(
             account=self.get_integration_name(), team=team_name, priority=priority
-        )
-
-    def get_form_instance(self) -> OpsgenieNotifyTeamForm:
-        return OpsgenieNotifyTeamForm(
-            self.data,
-            org_id=self.project.organization_id,
-            integrations=self.get_integrations(),
-            teams=self.get_teams(),
         )

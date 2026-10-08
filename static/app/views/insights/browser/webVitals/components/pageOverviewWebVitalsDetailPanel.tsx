@@ -1,19 +1,20 @@
 import {useMemo} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import type {
-  GridColumnHeader,
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  DataGrid,
+  type GridColumnHeader,
+  type GridColumnOrder,
+  type GridColumnSortBy,
+} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -190,10 +191,15 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const renderHeadCell = (col: Column) => {
     if (col.key === 'webVital') {
-      return <ColumnLabel align="right" column={{name: `${webVital}`}} />;
+      return <ColumnLabel align="right" column={{name: `${webVital?.toUpperCase()}`}} />;
     }
     if (col.key === 'score' || col.key === 'measurements.score.inp') {
-      return <ColumnLabel align="center" column={{name: `${webVital} ${col.name}`}} />;
+      return (
+        <ColumnLabel
+          align="center"
+          column={{name: `${webVital?.toUpperCase()} ${col.name}`}}
+        />
+      );
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
       return <ColumnLabel align="center" column={col} />;
@@ -362,7 +368,7 @@ export function PageOverviewWebVitalsDetailPanel({
             )}
           </ChartContainer>
           <TableContainer>
-            <GridEditable
+            <DataGrid
               data={spansTableData}
               isLoading={isSpansLoading}
               columnOrder={

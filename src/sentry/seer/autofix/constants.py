@@ -73,6 +73,7 @@ class SeerAutomationSource(enum.Enum):
     POST_PROCESS = "post_process"
     AGENTIC_TRIAGE = "night_shift"
     NIGHT_SHIFT = AGENTIC_TRIAGE
+    FIRST_ASSIGNMENT = "first_assignment"
 
 
 class CodingAgentStatus(enum.StrEnum):

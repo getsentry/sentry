@@ -3,6 +3,7 @@ name: Scraps package
 on:
   pull_request:
     paths:
+      - '.craft.yml'
       - 'static/packages/scraps/**'
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
@@ -10,6 +11,7 @@ on:
   push:
     branches:
       - master
+      - 'scraps/release/**'
   workflow_dispatch:
 
 jobs:
@@ -23,3 +25,15 @@ jobs:
       - run: pnpm --dir static/packages/scraps typecheck
       - run: pnpm --dir static/packages/scraps test --ci --maxWorkers=2
       - run: pnpm --dir static/packages/scraps verify
+      - name: Pack release artifact
+        if: startsWith(github.ref, 'refs/heads/scraps/release/')
+        working-directory: static/packages/scraps
+        run: pnpm pack --pack-destination .artifacts
+      - name: Upload release artifact
+        if: startsWith(github.ref, 'refs/heads/scraps/release/')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scraps-tarball
+          path: static/packages/scraps/.artifacts/*.tgz
+          include-hidden-files: true
+          if-no-files-found: error

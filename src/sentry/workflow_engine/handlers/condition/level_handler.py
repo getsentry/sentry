@@ -1,8 +1,8 @@
 from typing import Any, Callable
 
 from sentry.constants import LOG_LEVELS, LogLevel, parse_log_level
-from sentry.rules import LEVEL_MATCH_CHOICES, MatchType
 from sentry.services.eventstore.models import GroupEvent
+from sentry.workflow_engine.handlers.condition.utils.match import LEVEL_MATCH_CHOICES, MatchType
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry

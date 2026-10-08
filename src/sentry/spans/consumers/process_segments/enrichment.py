@@ -3,7 +3,7 @@ from collections.abc import Iterator, Sequence
 from itertools import islice
 from typing import Any
 
-from sentry_conventions.attributes import ATTRIBUTE_NAMES
+from sentry_conventions.attributes import ATTRIBUTE_METADATA, ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.types import (
@@ -12,6 +12,7 @@ from sentry.spans.consumers.process_segments.types import (
     get_span_op,
     is_gen_ai_span,
 )
+from sentry.utils.attributes import get_attribute, get_attribute_value
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -28,10 +29,6 @@ SHARED_SENTRY_ATTRIBUTES = (
     "sentry.device.model",
     "sentry.device.brand",
     "sentry.device.name",
-    # TODO(mjq): Remove `sentry.browser.name` (deprecated in favor of
-    # `ATTRIBUTE_NAMES.BROWSER_NAME`) once everything is switched over to the new conventional
-    # attribute names. See BROWSE-535.
-    "sentry.browser.name",
     ATTRIBUTE_NAMES.BROWSER_NAME,
     "sentry.profiler_id",
     ATTRIBUTE_NAMES.SENTRY_SDK_NAME,
@@ -48,18 +45,7 @@ SHARED_SENTRY_ATTRIBUTES = (
     ATTRIBUTE_NAMES.USER_ID,
     ATTRIBUTE_NAMES.USER_IP_ADDRESS,
     ATTRIBUTE_NAMES.USER_NAME,
-    # Legacy user attributes, taken from sentry_tags.
-    # TODO(mjq): Remove these once everything is switched over to the new
-    # conventional attribute names. See BROWSE-535.
     "sentry.user",
-    "sentry.user.id",
-    "sentry.user.ip",
-    "sentry.user.username",
-    "sentry.user.email",
-    "sentry.user.geo.city",
-    "sentry.user.geo.country_code",
-    "sentry.user.geo.region",
-    "sentry.user.geo.subdivision",
     "sentry.user.geo.subregion",
 )
 
@@ -116,16 +102,20 @@ class TreeEnricher:
     def _attributes(self, span: SpanEvent) -> dict[str, Any]:
         attributes: dict[str, Any] = {**(span.get("attributes") or {})}
 
-        def get_value(key: str) -> Any:
-            attr: dict[str, Any] = attributes.get(key) or {}
-            return attr.get("value")
-
         if self._segment_span is not None:
             # Assume that Relay has extracted the shared tags into `data` on the
             # root span. Once `sentry_tags` is removed, the logic from
             # `extract_shared_tags` should be moved here.
             segment_attrs = self._segment_span.get("attributes") or {}
-            shared_attrs = {k: v for k, v in segment_attrs.items() if k in SHARED_SENTRY_ATTRIBUTES}
+            shared_attrs = {}
+            for key in SHARED_SENTRY_ATTRIBUTES:
+                metadata = ATTRIBUTE_METADATA.get(key)
+                candidates = metadata.keys if metadata is not None else (key,)
+                shared_attrs[key] = {
+                    candidate: attribute
+                    for candidate in candidates
+                    if (attribute := segment_attrs.get(candidate)) is not None
+                }
 
             is_mobile = attribute_value(self._segment_span, "sentry.mobile") == "true"
             mobile_start_type = _get_mobile_start_type(self._segment_span)
@@ -134,9 +124,12 @@ class TreeEnricher:
                 # NOTE: Like in Relay's implementation, shared tags are added at the
                 # very end. This does not have access to the shared tag value. We
                 # keep behavior consistent, although this should be revisited.
-                if get_value("sentry.thread.name") == MOBILE_MAIN_THREAD_NAME:
+                if get_attribute_value(attributes, "sentry.thread.name") == MOBILE_MAIN_THREAD_NAME:
                     attributes["sentry.main_thread"] = {"type": "string", "value": "true"}
-                if not get_value("sentry.app_start_type") and mobile_start_type:
+                if (
+                    not get_attribute_value(attributes, "sentry.app_start_type")
+                    and mobile_start_type
+                ):
                     attributes["sentry.app_start_type"] = {
                         "type": "string",
                         "value": mobile_start_type,
@@ -147,11 +140,14 @@ class TreeEnricher:
             if self._ttfd_ts is not None and span["end_timestamp"] <= self._ttfd_ts:
                 attributes["sentry.ttfd"] = {"type": "string", "value": "ttfd"}
 
-            for key, value in shared_attrs.items():
-                if attributes.get(key) is None:
-                    attributes[key] = value
+            for key, values in shared_attrs.items():
+                if get_attribute(attributes, key) is None:
+                    attributes.update(values)
 
-            if is_gen_ai_span(span) and ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME not in attributes:
+            if (
+                is_gen_ai_span(span)
+                and get_attribute_value(attributes, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME) is None
+            ):
                 if (agent_name := self._find_ancestor_agent_name(span)) is not None:
                     attributes[ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME] = {
                         "type": "string",
@@ -250,11 +246,9 @@ def _get_mobile_start_type(segment: SpanEvent) -> str | None:
     Check the measurements on the span to determine what kind of start type the
     event is.
     """
-    attributes = segment.get("attributes") or {}
-
-    if "app_start_cold" in attributes:
+    if attribute_value(segment, "app_start_cold") is not None:
         return "cold"
-    if "app_start_warm" in attributes:
+    if attribute_value(segment, "app_start_warm") is not None:
         return "warm"
 
     return None
