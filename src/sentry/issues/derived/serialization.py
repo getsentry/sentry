@@ -7,7 +7,6 @@ triggers pipeline processing, so callers see whatever the last processing pass
 materialized (possibly stale), mirroring every other derived-data consumer.
 """
 
-import logging
 from datetime import datetime
 from typing import TypedDict
 
@@ -22,13 +21,13 @@ from sentry.issues.derived.features import (
     STATUS,
     VIEW_COUNT,
 )
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.processing import PIPELINE
+from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.utils import metrics
-
-logger = logging.getLogger(__name__)
 
 
 class GroupDerivedDataResponse(TypedDict):
@@ -51,13 +50,6 @@ def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDa
     result: dict[int, GroupDerivedDataResponse] = {}
     served_by_status = {"fresh": 0, "stale_hash": 0, "invalidated": 0}
     for derived in GroupDerivedData.objects.filter(group_id__in=group_ids):
-        if derived.pipeline_hash is None:
-            served_by_status["invalidated"] += 1
-        elif derived.pipeline_hash == PIPELINE.pipeline_hash:
-            served_by_status["fresh"] += 1
-        else:
-            served_by_status["stale_hash"] += 1
-
         try:
             state = GroupDerivedDataStore.load(PIPELINE, derived)
             progress = state[PROGRESS]
@@ -72,11 +64,17 @@ def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDa
                 lastCompletedAutofixStep=state[LAST_COMPLETED_AUTOFIX_STEP].value,
                 lastProgressedAt=state[LAST_PROGRESSED_AT],
             )
-        except (TypeError, ValueError):
-            logger.exception(
-                "Failed to serialize group derived data",
-                extra={"group_id": derived.group_id},
+        except DerivedDataError as error:
+            report_derived_data_error(
+                error, derived=derived, operation="serialize", pipeline_hash=PIPELINE.pipeline_hash
             )
+        else:
+            if derived.pipeline_hash is None:
+                served_by_status["invalidated"] += 1
+            elif derived.pipeline_hash == PIPELINE.pipeline_hash:
+                served_by_status["fresh"] += 1
+            else:
+                served_by_status["stale_hash"] += 1
 
     for status, count in served_by_status.items():
         if count:
