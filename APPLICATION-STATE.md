@@ -14,6 +14,11 @@ application-generated values:
 
 `get()` returns the existing value without coercion. A missing row uses
 `SENTRY_OPTIONS`, then `SENTRY_DEFAULT_OPTIONS`, then the legacy empty string.
+Reads validate stored and configured values before returning or caching them.
+String keys require strings. Worker timestamp reads retain numeric values and
+legacy string fallbacks; booleans are not timestamps. Invalid types, including
+explicit configured `None`, raise `TypeError` without exposing the value.
+A `None` returned by the store remains a miss and uses the normal fallback.
 `set()` accepts strings for string keys and numbers for the worker timestamp,
 without coercing them. Mutations use the application update channel. Unknown
 keys, runtime configuration keys, and project or organization keys are rejected.

@@ -8,11 +8,118 @@ from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 from django.test import override_settings
 
+from sentry import application_state
 from sentry.models.options.option import Option
 from sentry.options.manager import OptionsManager, UpdateChannel
 from sentry.options.store import OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("sentry:system-token", 123),
+        ("sentry:install-id", ["invalid"]),
+        ("sentry:last_worker_ping", True),
+        ("sentry:last_worker_ping", [123]),
+    ],
+)
+def test_state_read_validation_rejects_invalid_stored_values(
+    name: application_state.StateKey, value: object
+) -> None:
+    store = MagicMock(spec=OptionsStore)
+    store.get.return_value = value
+    with patch.object(application_state, "default_store", store):
+        with pytest.raises(TypeError, match="Application state"):
+            application_state.get(name)
+    store.set_cache.assert_not_called()
+
+
+@pytest.mark.parametrize("setting_name", ["SENTRY_OPTIONS", "SENTRY_DEFAULT_OPTIONS"])
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("sentry:system-token", 123),
+        ("sentry:install-id", ["invalid"]),
+        ("sentry:last_worker_ping", True),
+        ("sentry:last_worker_ping", [123]),
+        ("sentry:system-token", None),
+        ("sentry:last_worker_ping", None),
+    ],
+)
+def test_state_read_validation_rejects_invalid_configured_values(
+    setting_name: str, name: application_state.StateKey, value: object
+) -> None:
+    store = MagicMock(spec=OptionsStore)
+    store.get.return_value = None
+    with (
+        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),
+        override_settings(**{setting_name: {name: value}}),
+        patch.object(application_state, "default_store", store),
+        pytest.raises(TypeError, match="Application state"),
+    ):
+        application_state.get(name)
+    store.set_cache.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("sentry:system-token", "existing-token"),
+        ("sentry:install-id", "existing-installation"),
+        ("sentry:latest_version", "1.2.3"),
+        ("sentry:last_worker_version", "1.2.3"),
+        ("sentry:version-configured", "1.2.3"),
+        ("sentry:last_worker_ping", 1234.5),
+        ("sentry:last_worker_ping", 1234),
+        ("sentry:last_worker_ping", ""),
+        ("sentry:last_worker_ping", "legacy-timestamp"),
+    ],
+)
+def test_state_read_validation_preserves_valid_stored_values(
+    name: application_state.StateKey, value: str | float
+) -> None:
+    store = MagicMock(spec=OptionsStore)
+    store.get.return_value = value
+    with patch.object(application_state, "default_store", store):
+        assert application_state.get(name) is value
+    store.set_cache.assert_not_called()
+
+
+@pytest.mark.parametrize("setting_name", ["SENTRY_OPTIONS", "SENTRY_DEFAULT_OPTIONS"])
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("sentry:install-id", "configured-installation"),
+        ("sentry:last_worker_ping", 1234.5),
+        ("sentry:last_worker_ping", 1234),
+        ("sentry:last_worker_ping", ""),
+    ],
+)
+def test_state_read_validation_preserves_valid_configured_values(
+    setting_name: str, name: application_state.StateKey, value: str | float
+) -> None:
+    store = MagicMock(spec=OptionsStore)
+    store.get.return_value = None
+    with (
+        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),
+        override_settings(**{setting_name: {name: value}}),
+        patch.object(application_state, "default_store", store),
+    ):
+        assert application_state.get(name) is value
+    assert store.set_cache.call_args.args[1] is value
+
+
+def test_state_read_validation_preserves_missing_value_fallback() -> None:
+    store = MagicMock(spec=OptionsStore)
+    store.get.return_value = None
+    with (
+        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),
+        patch.object(application_state, "default_store", store),
+    ):
+        assert application_state.get("sentry:last_worker_ping") == ""
+    assert store.set_cache.call_args.args[1] == ""
 
 
 @no_silo_test

@@ -5,7 +5,7 @@ callers. State never consults the runtime configuration read hook. Project and
 organization state belongs in their scoped stores.
 """
 
-from typing import Literal, cast, overload
+from typing import Literal, overload
 
 from django.conf import settings
 
@@ -43,6 +43,18 @@ def _key(name: StateKey) -> Key:
     return Key(name, lambda: "", Any, DEFAULT_FLAGS, 0, 0, _make_cache_key(name), None)
 
 
+# Legacy timestamps may use a string fallback. Validate stored and configured
+# state without coercion before returning it or caching a configured fallback.
+def _validate_read_value(name: StateKey, value: object) -> str | float:
+    if name in _STRING_KEYS:
+        if not isinstance(value, str):
+            raise TypeError(f"Application state {name} requires a string")
+        return value
+    if isinstance(value, str) or (isinstance(value, (int, float)) and not isinstance(value, bool)):
+        return value
+    raise TypeError(f"Application state {name} requires a timestamp or string fallback")
+
+
 @overload
 def get(name: StringStateKey) -> str: ...
 
@@ -55,7 +67,7 @@ def get(name: StateKey) -> str | float:
     key = _key(name)
     value = default_store.get(key)
     if value is not None:
-        return cast(str | float, value)
+        return _validate_read_value(name, value)
 
     # Preserve legacy self-hosted inputs and the empty-string default, including
     # caching misses to avoid repeatedly querying the database.
@@ -65,8 +77,9 @@ def get(name: StateKey) -> str | float:
         value = settings.SENTRY_DEFAULT_OPTIONS[name]
     else:
         value = ""
-    default_store.set_cache(key, value)
-    return cast(str | float, value)
+    validated_value = _validate_read_value(name, value)
+    default_store.set_cache(key, validated_value)
+    return validated_value
 
 
 @overload
