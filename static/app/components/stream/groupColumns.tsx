@@ -47,7 +47,7 @@ function getStreamGroupColumns({
   const columns: StreamGroupColumn[] = [];
 
   if (canSelect) {
-    columns.push({key: 'select', width: '32px'});
+    columns.push({key: 'select', width: 'max-content'});
   }
 
   columns.push({key: 'issue', width: 'minmax(0, 1fr)'});

@@ -102,7 +102,7 @@ function ActionsBarPriority({
       {columns.map(column => {
         if (column.key === 'select') {
           return (
-            <SimpleTable.HeaderCell key={column.key} interactive>
+            <SimpleTable.HeaderCell key={column.key}>
               <Checkbox
                 onChange={toggleSelectAllVisible}
                 checked={pageSelected || (anySelected ? 'indeterminate' : false)}
@@ -115,7 +115,7 @@ function ActionsBarPriority({
 
         if (shouldDisplayActions) {
           return column.key === 'issue' ? (
-            <SimpleTable.HeaderCell key={column.key} interactive variant="remaining">
+            <SimpleTable.HeaderCell key={column.key} variant="remaining">
               {displayReprocessingActions ? null : (
                 <Grid
                   width={{zero: 'auto', '4xl': '50%'}}
@@ -147,7 +147,7 @@ function ActionsBarPriority({
 
         if (column.key === 'graph') {
           return (
-            <SimpleTable.HeaderCell key={column.key} interactive>
+            <SimpleTable.HeaderCell key={column.key}>
               <TrendHeader
                 onSelectStatsPeriod={onSelectStatsPeriod}
                 selection={selection}
