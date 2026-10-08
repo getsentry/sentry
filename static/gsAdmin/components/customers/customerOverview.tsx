@@ -1027,7 +1027,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
         {productTrialCategories.length + productTrialAddOns.length > 0 && (
           <Fragment>
             <DetailsHeading>Product Trials</DetailsHeading>
-            <DescriptionList gap="md">
+            <DescriptionList gap="md" role="group" aria-label="Product Trials">
               {productTrialCategories.map(categoryInfo => {
                 const categoryName = getPlanCategoryName({
                   plan: customer.planDetails,
