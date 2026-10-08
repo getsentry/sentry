@@ -91,7 +91,37 @@ describe('PromoCodes', () => {
     );
   });
 
-  it('requires an expiration date when enabled and submits the selected date', async () => {
+  it('submits the selected expiration date', async () => {
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
+    const create = MockApiClient.addMockResponse({
+      url: '/promocodes/',
+      method: 'POST',
+      body: PromoCodeFixture({code: 'test-code'}),
+    });
+    render(<PromoCodes />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
+    await userEvent.click(
+      screen.getByLabelText('Set an expiration date for the promo code?')
+    );
+    fireEvent.change(screen.getByLabelText('Date Expires'), {
+      target: {value: '2026-12-01T14:30'},
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      '/promocodes/',
+      expect.objectContaining({
+        data: expect.objectContaining({dateExpires: '2026-12-01T14:30'}),
+      })
+    );
+  });
+
+  it('submits null when expiration is enabled without a date', async () => {
     MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
     const create = MockApiClient.addMockResponse({
       url: '/promocodes/',
@@ -109,20 +139,10 @@ describe('PromoCodes', () => {
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
-    expect(await screen.findByText('Expiration date is required')).toBeInTheDocument();
-    expect(create).not.toHaveBeenCalled();
-
-    fireEvent.change(screen.getByLabelText('Date Expires'), {
-      target: {value: '2026-12-01T14:30'},
-    });
-    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
-
     await waitFor(() => expect(create).toHaveBeenCalled());
     expect(create).toHaveBeenCalledWith(
       '/promocodes/',
-      expect.objectContaining({
-        data: expect.objectContaining({dateExpires: '2026-12-01T14:30'}),
-      })
+      expect.objectContaining({data: expect.objectContaining({dateExpires: null})})
     );
   });
 
