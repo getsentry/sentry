@@ -25,7 +25,7 @@ function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
     status: 'active',
     userEmail: 'hellboy@cutecats.io',
     userId: 1,
-    trialDays: 3,
+    trialDays: 0,
     ...params,
   };
 }
@@ -89,6 +89,33 @@ describe('PromoCodes', () => {
 
     expect(screen.getByRole('heading', {name: 'Edit cool_code'})).toBeInTheDocument();
     expect(screen.getByText('Once')).toBeInTheDocument();
+  });
+
+  it('shows saved trial days when editing a trial promo code', async () => {
+    MockApiClient.addMockResponse({
+      url: '/promocodes/cool_code/',
+      method: 'GET',
+      body: PromoCodeFixture({trialDays: 30}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/promocodes/cool_code/claimants/',
+      method: 'GET',
+      body: [],
+    });
+    render(<PromoCodeDetails />, {
+      initialRouterConfig: {
+        location: {pathname: '/_admin/promocodes/cool_code/'},
+        route: '/_admin/promocodes/:codeId/',
+      },
+    });
+    renderGlobalModal();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Promo Codes Actions'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Edit'}));
+
+    expect(screen.getByRole('spinbutton', {name: 'Trial Days'})).toHaveValue(30);
   });
 
   it('creates a promo code from the modal footer', async () => {
@@ -209,6 +236,40 @@ describe('PromoCodes', () => {
     expect(create).toHaveBeenCalledWith(
       '/promocodes/',
       expect.objectContaining({data: expect.objectContaining({maxClaims: '10'})})
+    );
+  });
+
+  it('accepts positive whole trial days and rejects decimals', async () => {
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
+    const create = MockApiClient.addMockResponse({
+      url: '/promocodes/',
+      method: 'POST',
+      body: PromoCodeFixture({code: 'test-code', trialDays: 30}),
+    });
+    render(<PromoCodes />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
+    await userEvent.click(screen.getByLabelText('Create trial promo code?'));
+    const trialDays = screen.getByRole('spinbutton', {name: 'Trial Days'});
+    await userEvent.type(trialDays, '1.5');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    expect(
+      await screen.findByText('Trial Days must be a whole number')
+    ).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+
+    await userEvent.clear(trialDays);
+    await userEvent.type(trialDays, '30');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      '/promocodes/',
+      expect.objectContaining({data: expect.objectContaining({trialDays: '30'})})
     );
   });
 

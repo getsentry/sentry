@@ -27,7 +27,11 @@ const promoCodeSchema = z.object({
   isTrialPromo: z.boolean(),
   duration: z.string(),
   amount: z.number().nonnegative('Amount must be zero or greater').nullable(),
-  trialDays: z.string(),
+  trialDays: z
+    .number()
+    .int('Trial Days must be a whole number')
+    .positive('Trial Days must be greater than zero')
+    .nullable(),
   maxClaims: z
     .number()
     .int('Max claims must be a whole number')
@@ -63,6 +67,7 @@ export function AddPromoCodeModal({
         data: {
           ...values,
           amount: values.amount === null ? '' : String(values.amount),
+          trialDays: values.trialDays === null ? '' : String(values.trialDays),
           maxClaims: String(values.maxClaims),
           dateExpires:
             values.setExpiration && values.dateExpires ? values.dateExpires : null,
@@ -87,10 +92,10 @@ export function AddPromoCodeModal({
     defaultValues: {
       code: promoCode?.code ?? '',
       campaign: promoCode?.campaign ?? '',
-      isTrialPromo: false,
+      isTrialPromo: Boolean(promoCode?.trialDays),
       duration: promoCode?.duration === 'once' ? '1' : (promoCode?.duration ?? '1'),
       amount: promoCode?.amount ? Number(promoCode.amount) : null,
-      trialDays: String(promoCode?.trialDays ?? ''),
+      trialDays: promoCode?.trialDays || null,
       maxClaims: promoCode?.maxClaims ?? null,
       newOnly: promoCode?.newOnly ?? false,
       setExpiration: Boolean(promoCode?.dateExpires),
@@ -153,7 +158,9 @@ export function AddPromoCodeModal({
                 <form.AppField name="trialDays">
                   {field => (
                     <field.Layout.Stack label="Trial Days">
-                      <field.Input
+                      <field.Number
+                        min={1}
+                        step={1}
                         value={field.state.value}
                         onChange={field.handleChange}
                         placeholder="e.g. 30"
