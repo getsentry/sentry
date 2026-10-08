@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
@@ -9,7 +10,7 @@ export type DetectorBooleanFieldProps = CommonDetectorFieldProps & {
   initialValue: boolean;
 };
 
-export function DetectorBooleanField({
+export const DetectorBooleanField = memo(function DetectorBooleanField({
   disabled,
   help,
   initialValue,
@@ -37,4 +38,4 @@ export function DetectorBooleanField({
       )}
     </AutoSaveForm>
   );
-}
+});
