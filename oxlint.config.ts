@@ -5,6 +5,8 @@ const coreComponentFiles = [
   'static/packages/scraps/src/**/*.{ts,tsx}',
 ];
 
+const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
+
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
@@ -13,6 +15,10 @@ export const incubator = defineConfig({
     {
       files: coreComponentFiles,
       rules: {'@sentry/scraps/prefer-primitives': 'off'},
+    },
+    {
+      files: testFiles,
+      rules: {'@sentry/prefer-fake-timers': 'error'},
     },
   ],
 });
@@ -204,8 +210,6 @@ const storyFilesPolicy = {
     },
   ],
 };
-
-const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
 
 /**
  * Import linting uses two complementary approaches:
