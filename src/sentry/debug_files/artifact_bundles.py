@@ -44,6 +44,11 @@ INDEXING_THRESHOLD = 3
 # query, so a mistyped value must not make every lookup expensive.
 URL_LOOKUP_MAX_CANDIDATE_BUNDLES_LIMIT = 10_000
 
+# Upper limit for `sourcemaps.artifact-bundles.debug-id-lookup.max-rows`. The debug-ID lookup
+# passes the bundle ids of up to that many rows to the next query, so a mistyped value must not
+# make every lookup expensive.
+DEBUG_ID_LOOKUP_MAX_ROWS_LIMIT = 10_000
+
 
 # We want to keep the bundle as being indexed for 600 seconds = 10 minutes. We might need to revise this number and
 # optimize it based on the time taken to perform the indexing (on average).
@@ -503,6 +508,23 @@ def get_artifact_bundles_containing_debug_id(
     """
     Returns the most recently uploaded artifact bundle containing the given `debug_id`.
     """
+    max_rows = min(
+        options.get("sourcemaps.artifact-bundles.debug-id-lookup.max-rows"),
+        DEBUG_ID_LOOKUP_MAX_ROWS_LIMIT,
+    )
+    if max_rows > 0:
+        bundle_ids = get_project_bundle_ids_containing_debug_id(project, debug_id, max_rows)
+        if bundle_ids is not None:
+            if not bundle_ids:
+                return set()
+            return set(
+                ArtifactBundle.objects.filter(
+                    id__in=bundle_ids, organization_id=project.organization.id
+                )
+                .values_list("id", "date_added")
+                .order_by("-date_last_modified", "-id")[:1]
+            )
+
     return set(
         ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
@@ -511,6 +533,39 @@ def get_artifact_bundles_containing_debug_id(
         )
         .values_list("id", "date_added")
         .order_by("-date_last_modified", "-id")[:1]
+    )
+
+
+def get_project_bundle_ids_containing_debug_id(
+    project: Project, debug_id: str, max_rows: int
+) -> list[int] | None:
+    """
+    Returns the ids of the project's bundles that contain the given `debug_id`, or `None` if the
+    debug ID has more than `max_rows` rows.
+
+    When the bundle, project and debug-ID tables are joined in a single query, Postgres may start
+    from every bundle of the project and check each one for the debug ID, which reads far more
+    rows than the debug ID has. Each query here starts from the debug ID or from the bundles it
+    found, whatever the table statistics say.
+    """
+    # A bundle has a row for each of its files with the debug ID, and other organizations may
+    # have uploaded the same file. One more row than we use tells whether the debug ID has more.
+    rows = list(
+        DebugIdArtifactBundle.objects.filter(debug_id=debug_id).values_list(
+            "artifact_bundle_id", flat=True
+        )[: max_rows + 1]
+    )
+    truncated = len(rows) > max_rows
+    metrics.incr("artifact_bundle_debug_id_lookup.rows", tags={"truncated": str(truncated).lower()})
+    if truncated:
+        return None
+    if not rows:
+        return []
+
+    return list(
+        ProjectArtifactBundle.objects.filter(
+            project_id=project.id, artifact_bundle_id__in=set(rows)
+        ).values_list("artifact_bundle_id", flat=True)
     )
 
 
