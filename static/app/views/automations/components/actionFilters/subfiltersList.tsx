@@ -22,7 +22,7 @@ import {
   MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
 
 function isAttributeSubfilter(subfilter: Subfilter): subfilter is AttributeSubfilter {
   return 'attribute' in subfilter;

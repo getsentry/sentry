@@ -26,7 +26,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.platform.shadow.capture import shadow_read
 from sentry.notifications.platform.types import NotificationSource
-from sentry.notifications.types import TEST_NOTIFICATION_ID, RuleFuture
+from sentry.notifications.types import TEST_NOTIFICATION_ID, NotificationOrigin, RuleFuture
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
@@ -217,38 +217,61 @@ class BaseIssueAlertHandler(ABC):
         :param workflow_id: The workflow ID that triggered this action
         :return: Rule instance
         """
+        origin = cls.create_notification_origin(detector, event_data, workflow_id)
+        data = cls.build_rule_data_from_action(action, detector, origin)
+
+        rule = Rule(
+            id=action.id,
+            project=detector.linked_project,
+            environment_id=origin.environment_id,
+            label=origin.label,
+            data=dict(data),
+            status=ObjectStatus.ACTIVE,
+            source=RuleSource.ISSUE,
+        )
+
+        return rule
+
+    @classmethod
+    def build_rule_data_from_action(
+        cls,
+        action: Action,
+        detector: Detector,
+        origin: NotificationOrigin,
+    ) -> RuleData:
+        action_blob = cls.build_rule_action_blob(action, detector.linked_project.organization.id)
+
+        if origin.legacy_rule_id == TEST_NOTIFICATION_ID:
+            action_blob["legacy_rule_id"] = TEST_NOTIFICATION_ID
+        else:
+            assert origin.workflow_id is not None
+            action_blob["workflow_id"] = origin.workflow_id
+            if origin.legacy_rule_id is not None:
+                action_blob["legacy_rule_id"] = origin.legacy_rule_id
+
+        if origin.legacy_rule_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
+            action_blob["skipDigests"] = True
+
+        return {"actions": [action_blob]}
+
+    @classmethod
+    def create_notification_origin(
+        cls,
+        detector: Detector,
+        event_data: WorkflowEventData,
+        workflow_id: WorkflowId,
+    ) -> NotificationOrigin:
         environment_id = event_data.workflow_env.id if event_data.workflow_env else None
+        label = detector.name
+        legacy_rule_id = None
 
-        data: RuleData = {
-            "actions": [
-                cls.build_rule_action_blob(action, detector.linked_project.organization.id)
-            ],
-        }
-        rule_id = None
-
-        label = None
-        # Attempt to query the workflow name for non-test notifications.
         if workflow_id != TEST_NOTIFICATION_ID:
             try:
                 workflow = Workflow.objects.get(id=workflow_id)
                 label = workflow.name
             except Workflow.DoesNotExist:
-                # If the workflow no longer exists, bail and use detector name
-                # as a fallback.
                 pass
 
-        if label is None:
-            label = detector.name
-        # Build link to the rule if it exists, otherwise build link to the workflow.
-        # FE will handle redirection if necessary from rule -> workflow
-
-        # If test event, just set the legacy rule id to -1
-        if workflow_id == TEST_NOTIFICATION_ID:
-            data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
-        else:
-            data["actions"][0]["workflow_id"] = workflow_id
-
-            # attempt to find legacy_rule_id from the alert rule workflow
             alert_rule_workflow = AlertRuleWorkflow.objects.filter(
                 workflow_id=workflow_id,
                 rule_id__isnull=False,
@@ -259,31 +282,21 @@ class BaseIssueAlertHandler(ABC):
                         id=alert_rule_workflow.rule_id,
                         project__organization_id=detector.linked_project.organization_id,
                     )
-                    rule_id = alert_rule_workflow.rule_id
+                    legacy_rule_id = alert_rule_workflow.rule_id
                 except Rule.DoesNotExist:
                     logger.exception(
                         "Rule not found when querying for AlertRuleWorkflow",
                         extra={"rule_id": alert_rule_workflow.rule_id},
                     )
 
-            if rule_id:
-                data["actions"][0]["legacy_rule_id"] = rule_id
-
-        if workflow_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
-            # mail action needs to have skipDigests set to True
-            data["actions"][0]["skipDigests"] = True
-
-        rule = Rule(
-            id=action.id,
-            project=detector.linked_project,
-            environment_id=environment_id,
+        return NotificationOrigin(
             label=label,
-            data=dict(data),
-            status=ObjectStatus.ACTIVE,
-            source=RuleSource.ISSUE,
+            environment_id=environment_id,
+            workflow_id=None if workflow_id == TEST_NOTIFICATION_ID else workflow_id,
+            legacy_rule_id=(
+                TEST_NOTIFICATION_ID if workflow_id == TEST_NOTIFICATION_ID else legacy_rule_id
+            ),
         )
-
-        return rule
 
     @staticmethod
     def get_rule_futures(

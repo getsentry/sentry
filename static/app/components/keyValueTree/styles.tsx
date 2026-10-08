@@ -1,43 +1,7 @@
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-
-export const TreeColumn = styled('div')`
-  display: grid;
-  grid-column-gap: ${p => p.theme.space['2xl']};
-  &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-left: ${p => p.theme.space.xl};
-    margin-left: -1px;
-  }
-  &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-right: ${p => p.theme.space.xl};
-  }
-`;
-
-export const TreeRow = styled('div')<{hasErrors: boolean}>`
-  border-radius: ${p => p.theme.space.xs};
-  padding-left: ${p => p.theme.space.md};
-  position: relative;
-  display: grid;
-  align-items: center;
-  grid-column: span 2;
-  column-gap: ${p => p.theme.space.lg};
-  grid-template-columns: subgrid;
-  :nth-child(odd) {
-    background-color: ${p =>
-      p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
-  }
-  color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
-  background-color: ${p =>
-    p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.primary};
-  box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.colors.red200 : 'transparent')};
-  &:focus-within {
-    z-index: 1;
-  }
-`;
 
 export const TreeSpacer = styled('div')<{hasStem: boolean; spacerCount: number}>`
   grid-column: span 1;
@@ -60,19 +24,23 @@ export const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
   margin-right: ${p => p.theme.space.xs};
 `;
 
-export const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
-  grid-column: 1 / 2;
+const trunkStyles = (p: {theme: Theme}) => css`
   display: grid;
-  height: 100%;
   align-items: center;
+  align-self: stretch;
+  /* Cancels KeyValueRow's vertical padding so branch stems connect between rows */
+  margin-block: calc(-1 * ${p.theme.space['2xs']});
+`;
+
+export const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
+  ${trunkStyles};
+  grid-column: 1 / 2;
   grid-template-columns: ${p => (p.spacerCount > 0 ? 'auto 1rem 1fr' : '1fr')};
 `;
 
 export const TreeValueTrunk = styled('div')`
+  ${trunkStyles};
   grid-column: 2 / 3;
-  display: grid;
-  height: 100%;
-  align-items: center;
   min-height: 22px;
   grid-column-gap: ${p => p.theme.space.xs};
   grid-template-columns: minmax(0, 1fr) auto;

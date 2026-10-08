@@ -1,4 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {
   getAriaSort,
@@ -42,6 +43,27 @@ describe('SortableHeaderCell', () => {
     await userEvent.click(screen.getByRole('link', {name: 'Duration'}));
 
     expect(onSort).toHaveBeenCalledTimes(1);
+  });
+
+  it('fills the cell with an aligned label when the column is not sorted', () => {
+    render(<SortableHeaderCell align="right">Duration</SortableHeaderCell>);
+
+    const rules = getEmotionRules(screen.getByText('Duration')).join('');
+
+    expect(rules).toContain('flex: 1');
+    expect(rules).toContain('text-align: right');
+  });
+
+  it('sizes the label to its content when the column is sorted', () => {
+    render(
+      <SortableHeaderCell align="right" direction="desc">
+        Duration
+      </SortableHeaderCell>
+    );
+
+    expect(getEmotionRules(screen.getByText('Duration')).join('')).not.toContain(
+      'flex: 1'
+    );
   });
 
   it('renders no indicator when the column is not sorted', () => {

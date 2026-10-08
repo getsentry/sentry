@@ -151,11 +151,12 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   *::before,
   *::after {
     scrollbar-width: thin;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     scrollbar-color: ${theme.tokens.graphics.neutral.moderate} transparent;
   }
 
   html {
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The scrollbar track matches the page background. */
     scrollbar-color: ${theme.tokens.graphics.neutral.moderate}
       ${theme.tokens.background.secondary};
   }

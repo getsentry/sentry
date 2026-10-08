@@ -693,7 +693,7 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
           ? p.theme.space.xs
           : p.theme.space.sm}
     ${p => p.theme.space.lg};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   [data-menu-has-search='true'] > & {
@@ -797,7 +797,7 @@ const StyledPositionWrapper = styled(PositionWrapper, {
 `;
 
 const MenuFooter = styled('div')`
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   z-index: 2;

@@ -1117,6 +1117,16 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When none of an event's debug IDs were uploaded, the source map debugger checks whether the
+# project has uploaded any file with a debug ID. With this set, it only checks the project's
+# newest bundles, up to this many, instead of reading the organization's debug-ID rows until one
+# is in a bundle of the project. 0 keeps the unbounded check. Capped at 10,000.
+register(
+    "sourcemaps.source-map-debug.debug-id-check-max-bundles",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
@@ -1144,11 +1154,65 @@ register(
     default=7,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Number of active, and of idle, bundles the URL lookup reads at most when
+# `sourcemaps.artifact-bundles.url-lookup.max-index-rows` is set. Lookups of releases with more
+# bundles than this are cut short even when the row budget isn't spent, which the
+# `artifact_bundle_url_lookup.candidates` metric tags as `truncated:candidates`. Capped at 10,000.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Fraction of the URL lookups cut short by the row budget or the bundle cap that are logged,
+# with the organization, project and release, to tell which releases lose files.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate",
+    type=Float,
+    default=0.01,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
 # debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
 register(
     "sourcemaps.artifact-bundles.index-skip-debug-id-names",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Decide whether a release is fully indexed from its newest bundles only, instead of
+# counting every bundle in the release on each artifact-lookup request.
+register(
+    "sourcemaps.artifact-bundles.bounded-indexing-state",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Seconds to cache the bundle count per release used by the upload task to decide whether
+# to index and backfill. 0 disables the cache.
+register(
+    "sourcemaps.artifact-bundles.indexing-state-cache-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Keep `date_added` up to date on `ArtifactBundle` only. Re-uploading or renewing a bundle then
+# no longer rewrites its debug-ID, release, project and URL index rows, whose `date_added`
+# nothing reads.
+register(
+    "sourcemaps.artifact-bundles.date-only-on-bundle",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When a bundle is uploaded again, update its debug-ID rows by bundle alone instead of by bundle
+# and organization, so that Postgres doesn't also read the organization's slice of that table's
+# organization index. Has no effect with `sourcemaps.artifact-bundles.date-only-on-bundle`,
+# which skips the update.
+register(
+    "sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -4310,7 +4374,7 @@ register(
 
 
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
-# human feedback resets the streak. See ``automated_iteration_cap_reached``.
+# human feedback resets the streak. See ``automated_streak_cap_reached``.
 register(
     "autofix.pr-iteration.max-iterations",
     type=Int,

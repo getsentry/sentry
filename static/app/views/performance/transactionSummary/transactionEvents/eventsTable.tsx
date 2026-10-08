@@ -11,7 +11,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -82,7 +82,7 @@ function makeCustomColumn(name: 'attachments' | 'minidump'): TableColumn<string>
 function OperationTitle({onClick}: TitleProps) {
   return (
     <div onClick={onClick}>
-      <span>{t('operation duration')}</span>
+      <span>{t('Operation duration')}</span>
       <StyledIconQuestion
         size="xs"
         position="top"
@@ -456,7 +456,7 @@ export function EventsTable({
                             totalEventsCount,
                           })
                         : null}
-                      <GridEditable
+                      <DataGrid
                         isLoading={
                           isTotalEventsLoading ||
                           isDiscoverQueryLoading ||

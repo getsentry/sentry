@@ -140,16 +140,19 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
     event_data = invocation.event_data
 
     handler = issue_alert_handler_registry.get(action.type)
-    rule_instance = handler.create_rule_instance_from_action(
-        action=action,
-        detector=detector,
-        event_data=event_data,
-        workflow_id=invocation.workflow_id,
+    origin = handler.create_notification_origin(
+        detector, event_data, workflow_id=invocation.workflow_id
+    )
+    rule_data = handler.build_rule_data_from_action(action, detector, origin)
+    rule = SerializableRuleProxy.from_origin(
+        origin,
+        action_id=action.id,
+        data=dict(rule_data),
+        project_id=detector.linked_project.id,
     )
     tags = action.data.get("tags", None)
     tag_list = [tag.strip() for tag in tags.split(",")] if tags else None
     notes = action.data.get("notes", None)
-    rule = SerializableRuleProxy.from_rule(rule_instance)
 
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
     occurrence_id = (

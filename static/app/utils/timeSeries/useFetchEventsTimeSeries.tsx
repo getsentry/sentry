@@ -6,9 +6,9 @@ import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {encodeSort} from 'sentry/utils/queryString';
 import {
   type AnyMutableSearch,
   formatSearchStringForQueryParam,
@@ -47,10 +47,6 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    * An array of tags by which to group the results. e.g., passing `["transaction"]` will group the results by the `"transaction"` tag. `["env", "transaction"]` will group by both the `"env"` and `"transaction"` tags.
    */
   groupBy?: Attribute[];
-  /**
-   * Whether to request measured ingestion delay metadata.
-   */
-  includeMeasuredIngestionDelayMetadata?: boolean;
   /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
@@ -122,7 +118,6 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     enabled,
     groupBy,
     extrapolate,
-    includeMeasuredIngestionDelayMetadata,
     query,
     sampling,
     caseInsensitive,
@@ -184,9 +179,6 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
-          includeMeasuredIngestionDelayMetadata: includeMeasuredIngestionDelayMetadata
-            ? 1
-            : undefined,
         },
         staleTime: Infinity,
       }

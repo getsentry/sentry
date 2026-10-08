@@ -6,11 +6,11 @@ import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
 
 import type {SelectValue} from '@sentry/scraps/select';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -40,7 +40,12 @@ import {
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {AggregationKey} from 'sentry/utils/fields';
-import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {
+  decodeList,
+  decodeScalar,
+  decodeSorts,
+  encodeSort,
+} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {WidgetType} from 'sentry/views/dashboards/types';
@@ -162,20 +167,6 @@ const decodeFields = (location: Location): Field[] => {
   });
 
   return parsed;
-};
-
-export const encodeSort = (sort: Sort): string => {
-  switch (sort.kind) {
-    case 'desc': {
-      return `-${sort.field}`;
-    }
-    case 'asc': {
-      return String(sort.field);
-    }
-    default: {
-      throw new Error('Unexpected sort type');
-    }
-  }
 };
 
 const encodeSorts = (sorts: readonly Sort[]): string[] => sorts.map(encodeSort);
