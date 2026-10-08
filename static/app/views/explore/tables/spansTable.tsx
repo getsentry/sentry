@@ -32,8 +32,9 @@ import {
   useSetQueryParamsFields,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
-import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
-import {SpanItemDetails} from 'sentry/views/explore/tables/spanItemDetails';
+
+import {FieldRenderer} from './fieldRenderer';
+import {SpanItemDetails} from './spanItemDetails';
 
 const SPAN_DETAILS_COLUMN_WIDTH = 40;
 
