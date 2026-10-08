@@ -383,14 +383,14 @@ function InboxContent() {
       <Grid
         flex={1}
         minHeight={0}
-        columns={isMobile ? 'minmax(0, 1fr)' : 'max-content minmax(0, 1fr)'}
+        columns={{zero: 'minmax(0, 1fr)', '3xl': 'max-content minmax(0, 1fr)'}}
       >
         <Stack
           ref={isMobile ? undefined : resizableContainerRef}
           as="section"
           aria-label={t('Issue inbox')}
           position="relative"
-          width={isMobile ? '100%' : `${size}px`}
+          width={{zero: '100%', '3xl': `${size}px`}}
           minWidth={0}
           minHeight={0}
           display={selectedIssueId ? {zero: 'none', '3xl': 'flex'} : 'flex'}
@@ -433,7 +433,7 @@ function InboxContent() {
             width="8px"
             radius="lg"
             position="absolute"
-            display={isMobile ? 'none' : undefined}
+            display={{zero: 'none', '3xl': 'block'}}
           >
             {props => (
               <ResizeHandle
