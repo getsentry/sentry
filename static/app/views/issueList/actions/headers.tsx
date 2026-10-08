@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import {HeaderContextMenu} from 'sentry/views/issueList/actions/headerContextMenu';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {useIssueDisplayProperties} from 'sentry/views/issueList/displayProperties';
 
@@ -57,25 +57,28 @@ export function Headers({
       ) : (
         <Fragment>
           {columns.includes('lastSeen') && (
-            <IssueStreamHeaderLabel
+            <HeaderContextMenu
+              column="lastSeen"
               display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'inline-block'}}
               align="right"
               width="86px"
             >
               {t('Last Seen')}
-            </IssueStreamHeaderLabel>
+            </HeaderContextMenu>
           )}
           {columns.includes('firstSeen') && (
-            <IssueStreamHeaderLabel
+            <HeaderContextMenu
+              column="firstSeen"
               display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'inline-block'}}
               align="right"
               width="50px"
             >
               {t('Age')}
-            </IssueStreamHeaderLabel>
+            </HeaderContextMenu>
           )}
           {columns.includes('graph') && (
-            <IssueStreamHeaderLabel
+            <HeaderContextMenu
+              column="graph"
               display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'flex'}}
               width="175px"
               flex="1"
@@ -100,43 +103,47 @@ export function Headers({
                   </GraphToggle>
                 </GraphToggles>
               </Flex>
-            </IssueStreamHeaderLabel>
+            </HeaderContextMenu>
           )}
           {columns.includes('event') && (
-            <IssueStreamHeaderLabel
+            <HeaderContextMenu
+              column="event"
               display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'inline-block'}}
               align="right"
               width="60px"
             >
               {t('Events')}
-            </IssueStreamHeaderLabel>
+            </HeaderContextMenu>
           )}
           {columns.includes('users') && (
-            <IssueStreamHeaderLabel
+            <HeaderContextMenu
+              column="users"
               display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'inline-block'}}
               align="right"
               width="60px"
             >
               {t('Users')}
-            </IssueStreamHeaderLabel>
+            </HeaderContextMenu>
           )}
           {columns.includes('priority') && (
-            <IssueStreamHeaderLabel
+            <HeaderContextMenu
+              column="priority"
               display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'inline-block'}}
               align="left"
               width="64px"
             >
               {t('Priority')}
-            </IssueStreamHeaderLabel>
+            </HeaderContextMenu>
           )}
           {columns.includes('assignee') && (
-            <IssueStreamHeaderLabel
+            <HeaderContextMenu
+              column="assignee"
               display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'inline-block'}}
               align="right"
               width="66px"
             >
               {t('Assignee')}
-            </IssueStreamHeaderLabel>
+            </HeaderContextMenu>
           )}
         </Fragment>
       )}

@@ -17,6 +17,7 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
+import {IssueDisplayPropertiesProvider} from 'sentry/views/issueList/displayProperties';
 import {
   IssueSelectionProvider,
   useIssueSelectionActions,
@@ -81,7 +82,9 @@ function WrappedComponent({
       <GlobalModal />
       <IssueSelectionProvider visibleGroupIds={groupIds}>
         <SelectionInitializer selectedIds={selectedIds} allSelected={allSelected} />
-        <IssueListActions {...defaultProps} {...props} groupIds={groupIds} />
+        <IssueDisplayPropertiesProvider>
+          <IssueListActions {...defaultProps} {...props} groupIds={groupIds} />
+        </IssueDisplayPropertiesProvider>
       </IssueSelectionProvider>
     </Fragment>
   );

@@ -10,7 +10,6 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -29,6 +28,7 @@ import {
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {ActionSet} from './actionSet';
+import {HeaderContextMenu} from './headerContextMenu';
 import {Headers} from './headers';
 import {
   BULK_LIMIT,
@@ -135,7 +135,7 @@ function ActionsBarPriority({
               />
             </HeaderButtonsWrapper>
           ) : (
-            <IssueStreamHeaderLabel hideDivider>{t('Issue')}</IssueStreamHeaderLabel>
+            <HeaderContextMenu hideDivider>{t('Issue')}</HeaderContextMenu>
           )}
         </AnimatePresence>
       )}
