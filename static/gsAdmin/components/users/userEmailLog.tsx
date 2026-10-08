@@ -152,4 +152,3 @@ export function UserEmailLog({user, Panel}: Props) {
     </Panel>
   );
 }
-}
