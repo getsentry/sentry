@@ -51,7 +51,7 @@
     "build": "rslib build",
     "verify": "node scripts/verify.mjs",
     "test": "jest --config jest.config.mjs",
-    "typecheck": "tsc --project tsconfig.test.json",
+    "typecheck": "tsc --build tsconfig.test.json",
     "prepack": "pnpm run build"
   },
   "dependencies": {
@@ -61,6 +61,7 @@
     "@types/react": "^19.0.0"
   },
   "devDependencies": {
+    "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@rsbuild/plugin-react": "2.1.1",
     "@rslib/core": "1.0.3",
