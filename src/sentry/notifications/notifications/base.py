@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import uuid
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 import sentry_sdk
@@ -133,11 +133,12 @@ class BaseNotification(abc.ABC):
 
     def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         context = getattr(self, "context", None)
-        if not context:
+        if not isinstance(context, Mapping):
             return None
-        # Context is attached dynamically by message builders. Keep the lookup
-        # behavior and tell callers the description is text.
-        return cast("str | None", context["text_description"])
+        description = context.get("text_description")
+        if isinstance(description, str):
+            return description
+        return None
 
     def get_unsubscribe_key(self) -> UnsubscribeContext | None:
         return None
