@@ -38,9 +38,9 @@ class SearchAgentResultTarget(StrEnum):
 class SearchAgentReferrer(StrEnum):
     """Allowlist of callers that may start a search agent run.
 
-    Forwarded to Seer as `options.api_referrer`; every caller gets its own
-    `assisted_query.<api_referrer>.<strategy>` RPC referrer there. To add a caller, add a
-    value here and to Seer's `ASSISTED_QUERY_API_REFERRERS`.
+    Forwarded to Seer as the run's source; every caller gets its own
+    `assisted_query.<source>.<strategy>` RPC referrer there. To add a caller, add a
+    value here and to Seer's `ASSISTED_QUERY_SOURCES`.
     """
 
     SEARCH_BAR = "search_bar"
@@ -150,7 +150,7 @@ def send_search_agent_start_request(
         options["result_target"] = result_target.value
     if referrer is not None:
         # Seer combines this with the strategy to pick the RPC referrer.
-        options["api_referrer"] = referrer.value
+        options["source"] = referrer.value
     body["options"] = options
 
     return enqueue_seer_run(

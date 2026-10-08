@@ -179,7 +179,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             organization,
             actor=request.user,
         )
-        options["api_referrer"] = resolve_referrer(request, validated_data.get("referrer")).value
+        options["source"] = resolve_referrer(request, validated_data.get("referrer")).value
         data = send_translate_agentic_request(
             organization.id,
             organization.slug,

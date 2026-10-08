@@ -91,7 +91,7 @@ class SendSearchAgentStartRequestTest(TestCase):
         for flag in ["cross_event", "reflection_step", "code_mode"]:
             assert sent_options[flag] is False
         assert "result_target" not in sent_options
-        assert "api_referrer" not in sent_options
+        assert "source" not in sent_options
 
     @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
     def test_flag_options_are_sent_to_seer(self, mock_request: Mock) -> None:
@@ -115,7 +115,7 @@ class SendSearchAgentStartRequestTest(TestCase):
             assert sent_options[flag] is True
         assert sent_options["model_name"] == "gpt-5"
         assert sent_options["result_target"] == "agent_search"
-        assert sent_options["api_referrer"] == "mcp"
+        assert sent_options["source"] == "mcp"
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
