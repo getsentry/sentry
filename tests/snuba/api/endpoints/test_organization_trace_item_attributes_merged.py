@@ -79,10 +79,26 @@ class TestMergeAttributesAcrossDatasets:
             }
         )
 
-        assert [
-            (attribute["attributeType"], attribute["attributeSource"]["source_type"])
-            for attribute in merged
-        ] == [("boolean", "sentry"), ("boolean", "user"), ("number", "user")]
+        assert merged == [
+            {
+                "name": "cache.hit",
+                "attributeType": "boolean",
+                "attributeSource": {"source_type": "sentry"},
+                "datasets": ["spans"],
+            },
+            {
+                "name": "cache.hit",
+                "attributeType": "boolean",
+                "attributeSource": {"source_type": "user"},
+                "datasets": ["spans"],
+            },
+            {
+                "name": "cache.hit",
+                "attributeType": "number",
+                "attributeSource": {"source_type": "user"},
+                "datasets": ["spans"],
+            },
+        ]
 
 
 def _merged_attribute(
