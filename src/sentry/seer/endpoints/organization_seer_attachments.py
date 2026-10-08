@@ -131,9 +131,7 @@ class OrganizationSeerAttachmentsEndpoint(OrganizationEndpoint):
     )
     def post(self, request: Request, organization: Organization) -> Response:
         require_explorer(request, organization)
-        if not features.has(
-            "organizations:seer-explorer-attachments", organization, actor=request.user
-        ):
+        if not features.has("organizations:seer-multimodal", organization, actor=request.user):
             raise PermissionDenied("Attachment uploads are not enabled.")
         check_attachment_rate_limits(request, organization)
         serializer = AttachmentUploadSerializer(data=request.data)

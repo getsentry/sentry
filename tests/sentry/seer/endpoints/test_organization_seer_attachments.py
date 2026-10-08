@@ -24,7 +24,7 @@ class OrganizationSeerAttachmentsTest(APITestCase):
         self.login_as(self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-attachments/"
 
-    @with_feature("organizations:seer-explorer-attachments")
+    @with_feature("organizations:seer-multimodal")
     @patch("sentry.seer.attachments.storage.put", return_value="key")
     @patch("sentry.seer.endpoints.organization_seer_attachments.scan_image")
     def test_scan_before_write(self, scan, put):
@@ -41,7 +41,7 @@ class OrganizationSeerAttachmentsTest(APITestCase):
         assert [call[0] for call in calls.mock_calls] == ["scan", "put"]
         scan.assert_called_once_with(data.getvalue())
 
-    @with_feature("organizations:seer-explorer-attachments")
+    @with_feature("organizations:seer-multimodal")
     @patch("sentry.seer.attachments.storage.put")
     def test_scan_failure_never_stored(self, put):
         data = BytesIO()
@@ -59,7 +59,7 @@ class OrganizationSeerAttachmentsTest(APITestCase):
         assert response.data == {"detail": "Try again.", "code": "scan_inconclusive"}
         put.assert_not_called()
 
-    @with_feature("organizations:seer-explorer-attachments")
+    @with_feature("organizations:seer-multimodal")
     @patch("sentry.seer.attachments.storage.put")
     def test_validation_failure_never_stored(self, put):
         response = self.client.post(
@@ -69,7 +69,7 @@ class OrganizationSeerAttachmentsTest(APITestCase):
         assert response.data["code"] == "invalid_utf8"
         put.assert_not_called()
 
-    @with_feature("organizations:seer-explorer-attachments")
+    @with_feature("organizations:seer-multimodal")
     def test_exactly_one_file(self):
         for names in ([], ["a.md", "b.md"]):
             response = self.client.post(
@@ -138,7 +138,7 @@ class OrganizationSeerAttachmentsTest(APITestCase):
             (100, 60),
         ]
 
-    @with_feature("organizations:seer-explorer-attachments")
+    @with_feature("organizations:seer-multimodal")
     @patch("sentry.seer.attachments.storage.put")
     @patch("sentry.seer.endpoints.organization_seer_attachments.ratelimits.backend.is_limited")
     def test_upload_rate_limited_before_storage(self, limited, put):
@@ -175,7 +175,7 @@ class OrganizationSeerAttachmentsTest(APITestCase):
     def test_upload_and_org_scoped_reads_with_uploads_disabled(self, scan):
         data = b"{not valid json, untouched\r\n"
         attachment = Attachment("original.JSON", "application/json", len(data), "json")
-        with self.feature("organizations:seer-explorer-attachments"):
+        with self.feature("organizations:seer-multimodal"):
             upload = self.client.post(
                 self.url,
                 {"file": SimpleUploadedFile(attachment.filename, data, "text/plain")},

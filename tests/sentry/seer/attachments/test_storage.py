@@ -1,6 +1,8 @@
+from collections.abc import Iterator
 from dataclasses import replace
 from datetime import timedelta
 from io import BytesIO
+from typing import Any
 from unittest.mock import ANY, Mock, patch
 
 import pytest
@@ -21,12 +23,12 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(autouse=True)
-def viewer():
+def viewer() -> Iterator[None]:
     with viewer_context_scope(ViewerContext(organization_id=123)):
         yield
 
 
-def metadata(**overrides):
+def metadata(**overrides: Any) -> Metadata:
     return Metadata(
         **{
             "content_type": "image/png",
@@ -43,15 +45,16 @@ def metadata(**overrides):
     )
 
 
-def test_bounded_client_disables_sdk_retries():
+def test_bounded_client_disables_sdk_retries() -> None:
     client = _create_client(timeout=2.0)
+    assert isinstance(client._pool.retries, urllib3.Retry)
     assert client._pool.retries.total == 0
     assert client._pool.retries.redirect == 0
     assert client._pool.timeout.connect_timeout == 2.0
     assert client._pool.timeout.read_timeout == 2.0
 
 
-def test_no_org_context_fails_closed():
+def test_no_org_context_fails_closed() -> None:
     with viewer_context_scope(ViewerContext()), pytest.raises(RuntimeError):
         storage.session()
 
@@ -59,19 +62,21 @@ def test_no_org_context_fails_closed():
 @pytest.mark.parametrize(
     "error",
     [
-        urllib3.exceptions.ReadTimeoutError(None, "/", "timeout"),
+        urllib3.exceptions.ReadTimeoutError(
+            urllib3.HTTPConnectionPool("localhost"), "/", "timeout"
+        ),
         RequestError("unavailable", 503, ""),
         RequestError("busy", 429, ""),
     ],
 )
-def test_transient_retry(error):
+def test_transient_retry(error: Exception) -> None:
     call = Mock(side_effect=[error, "ok"])
     assert storage.storage_request(call) == "ok"
     assert call.call_count == 2
 
 
 @pytest.mark.parametrize("status,attempts", [(403, 1), (503, 2)])
-def test_storage_failure_stops_retrying(status, attempts):
+def test_storage_failure_stops_retrying(status: int, attempts: int) -> None:
     call = Mock(side_effect=RequestError("failed", status, ""))
     with pytest.raises(AttachmentError) as exc:
         storage.storage_request(call)
@@ -80,7 +85,7 @@ def test_storage_failure_stops_retrying(status, attempts):
 
 
 @pytest.mark.parametrize("key", ["../key", "https://host/key", "a%2fb", "", "a" * 256])
-def test_invalid_keys(key):
+def test_invalid_keys(key: str) -> None:
     with (
         patch("sentry.seer.attachments.storage.session") as session,
         pytest.raises(AttachmentError),
@@ -100,12 +105,12 @@ def test_invalid_keys(key):
         {"size": None},
     ],
 )
-def test_unverified_metadata(overrides):
+def test_unverified_metadata(overrides: dict[str, Any]) -> None:
     with pytest.raises(AttachmentError):
         storage.from_metadata(metadata(**overrides))
 
 
-def test_metadata_cache_scoped_and_missing_not_cached():
+def test_metadata_cache_scoped_and_missing_not_cached() -> None:
     cache.clear()
     missing_key = "m" * 255
     with (
@@ -126,7 +131,7 @@ def test_metadata_cache_scoped_and_missing_not_cached():
     cache_set.assert_any_call(ANY, found[0], timeout=300)
 
 
-def test_batch_storage_failure_is_not_partial_success():
+def test_batch_storage_failure_is_not_partial_success() -> None:
     cache.clear()
     with (
         patch(
@@ -140,12 +145,12 @@ def test_batch_storage_failure_is_not_partial_success():
 
 
 @pytest.mark.parametrize("keys", [[], [str(n) for n in range(51)]])
-def test_batch_limit(keys):
+def test_batch_limit(keys: list[str]) -> None:
     with pytest.raises(AttachmentError):
         storage.metadata_batch(keys)
 
 
-def test_chat_always_uses_fresh_head():
+def test_chat_always_uses_fresh_head() -> None:
     cache.clear()
     with patch(
         "sentry.seer.attachments.storage.head",
@@ -162,7 +167,7 @@ def test_chat_always_uses_fresh_head():
     "keys,code",
     [(["a"] * 2, "duplicate_keys"), ([str(n) for n in range(6)], "too_many_attachments")],
 )
-def test_chat_key_limits(keys, code):
+def test_chat_key_limits(keys: list[str], code: str) -> None:
     with (
         patch("sentry.seer.attachments.storage.head") as head,
         pytest.raises(AttachmentError) as exc,
@@ -172,7 +177,7 @@ def test_chat_key_limits(keys, code):
     head.assert_not_called()
 
 
-def test_chat_image_only_and_aggregate_boundary():
+def test_chat_image_only_and_aggregate_boundary() -> None:
     attachment = replace(storage.from_metadata(metadata()), size=3 * 1024 * 1024)
     with patch("sentry.seer.attachments.storage.head", return_value=attachment):
         storage.validate_message(["a", "b", "c", "d"], "")
@@ -182,7 +187,7 @@ def test_chat_image_only_and_aggregate_boundary():
     assert exc.value.status_code == 413
 
 
-def test_nonimages_require_text():
+def test_nonimages_require_text() -> None:
     attachment = Attachment("file.md", "text/markdown", 10, "markdown")
     with patch("sentry.seer.attachments.storage.head", return_value=attachment):
         with pytest.raises(AttachmentError) as exc:
@@ -191,7 +196,7 @@ def test_nonimages_require_text():
     assert exc.value.code == "query_required"
 
 
-def test_current_limits_rechecked():
+def test_current_limits_rechecked() -> None:
     with (
         patch(
             "sentry.seer.attachments.storage.head", return_value=storage.from_metadata(metadata())
@@ -203,7 +208,7 @@ def test_current_limits_rechecked():
     assert exc.value.status_code == 413
 
 
-def test_read_closes_payload_on_error():
+def test_read_closes_payload_on_error() -> None:
     payload = BytesIO(b"short")
     retry_payload = BytesIO(b"short")
     with patch("sentry.seer.attachments.storage.session") as session:
@@ -218,7 +223,7 @@ def test_read_closes_payload_on_error():
     assert retry_payload.closed
 
 
-def test_objectstore_existing_client_settings_preserved():
+def test_objectstore_existing_client_settings_preserved() -> None:
     with (
         override_settings(
             SENTRY_OBJECTSTORE_CONFIG={

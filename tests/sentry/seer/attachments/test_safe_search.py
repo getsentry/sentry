@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -13,7 +14,7 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(autouse=True)
-def vision_settings():
+def vision_settings() -> Iterator[None]:
     with override_settings(
         SEER_ATTACHMENTS_VISION_PROJECT="test-project", SEER_ATTACHMENTS_VISION_LOCATION="us"
     ):
@@ -21,7 +22,7 @@ def vision_settings():
 
 
 @pytest.fixture
-def post():
+def post() -> Iterator[MagicMock]:
     with (
         patch(
             "sentry.seer.attachments.safe_search.google.auth.default",
@@ -33,7 +34,7 @@ def post():
         yield post
 
 
-def response(annotation=None, status=200):
+def response(annotation: dict[str, str] | None = None, status: int = 200) -> MagicMock:
     result = MagicMock(status_code=status)
     result.__enter__.return_value = result
     result.json.return_value = {
@@ -49,7 +50,7 @@ def response(annotation=None, status=200):
 
 @pytest.mark.parametrize("category", ["adult", "violence", "racy"])
 @pytest.mark.parametrize("rating", ["LIKELY", "VERY_LIKELY"])
-def test_blocking_ratings(post, category, rating):
+def test_blocking_ratings(post: MagicMock, category: str, rating: str) -> None:
     annotation = {"adult": "UNLIKELY", "violence": "UNLIKELY", "racy": "UNLIKELY", category: rating}
     post.return_value = response(annotation)
     with pytest.raises(AttachmentError) as exc:
@@ -59,7 +60,7 @@ def test_blocking_ratings(post, category, rating):
 
 
 @pytest.mark.parametrize("rating", ["VERY_UNLIKELY", "UNLIKELY", "POSSIBLE"])
-def test_acceptable_ratings_and_ignored_categories(post, rating):
+def test_acceptable_ratings_and_ignored_categories(post: MagicMock, rating: str) -> None:
     post.return_value = response(
         {
             "adult": rating,
@@ -83,7 +84,7 @@ def test_acceptable_ratings_and_ignored_categories(post, rating):
         None,
     ],
 )
-def test_inconclusive_responses(post, payload):
+def test_inconclusive_responses(post: MagicMock, payload: object) -> None:
     post.return_value.json.return_value = payload
     with pytest.raises(AttachmentError) as exc:
         scan_image(b"image")
@@ -92,7 +93,7 @@ def test_inconclusive_responses(post, payload):
 
 
 @pytest.mark.parametrize("location", ["us", "eu"])
-def test_regional_routing_and_timeout(post, location):
+def test_regional_routing_and_timeout(post: MagicMock, location: str) -> None:
     with override_settings(SEER_ATTACHMENTS_VISION_LOCATION=location):
         scan_image(b"image")
     assert post.call_args.args == (
@@ -110,7 +111,7 @@ def test_regional_routing_and_timeout(post, location):
 
 
 @pytest.mark.parametrize("location", ["", "global"])
-def test_no_global_fallback(post, location):
+def test_no_global_fallback(post: MagicMock, location: str) -> None:
     with override_settings(SEER_ATTACHMENTS_VISION_LOCATION=location):
         with pytest.raises(AttachmentError) as exc:
             scan_image(b"image")
@@ -122,14 +123,16 @@ def test_no_global_fallback(post, location):
     "failure",
     [requests.Timeout(), requests.ConnectionError(), response(status=429), response(status=503)],
 )
-def test_single_transient_retry(post, failure):
+def test_single_transient_retry(post: MagicMock, failure: Exception | MagicMock) -> None:
     post.side_effect = [failure, response()]
     scan_image(b"image")
     assert post.call_count == 2
 
 
 @pytest.mark.parametrize("failure,attempts", [(requests.Timeout(), 2), (response(status=403), 1)])
-def test_scan_failure_stops_retrying(post, failure, attempts):
+def test_scan_failure_stops_retrying(
+    post: MagicMock, failure: Exception | MagicMock, attempts: int
+) -> None:
     post.side_effect = [failure, failure]
     with pytest.raises(AttachmentError) as exc:
         scan_image(b"image")
@@ -137,14 +140,14 @@ def test_scan_failure_stops_retrying(post, failure, attempts):
     assert post.call_count == attempts
 
 
-def test_threshold_option(post):
+def test_threshold_option(post: MagicMock) -> None:
     with override_options({"seer.attachments.scan-racy-threshold": 3}):
         with pytest.raises(AttachmentError) as exc:
             scan_image(b"image")
     assert exc.value.code == "image_rejected"
 
 
-def test_no_hidden_sdk_retries():
+def test_no_hidden_sdk_retries() -> None:
     with (
         patch(
             "sentry.seer.attachments.safe_search.google.auth.default",
@@ -161,7 +164,7 @@ def test_no_hidden_sdk_retries():
 
 
 @pytest.mark.parametrize("threshold", [0, 6])
-def test_invalid_threshold_fails_closed(post, threshold):
+def test_invalid_threshold_fails_closed(post: MagicMock, threshold: int) -> None:
     with (
         override_options({"seer.attachments.scan-adult-threshold": threshold}),
         pytest.raises(AttachmentError) as exc,
