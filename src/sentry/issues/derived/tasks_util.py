@@ -13,6 +13,7 @@ from django.db.models import Max, Min
 from django.db.utils import OperationalError
 
 from sentry.issues.derived.check import CheckFailure, CheckId, CheckInvalidated, CheckResult
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
@@ -63,9 +64,11 @@ class SpawnState:
         mark_spawned(self.task_key, self.activation_id)
 
 
-def _record_check_result(result: CheckResult) -> None:
+def _record_check_result(result: CheckResult | DerivedDataError) -> None:
     outcome = "no_result" if isinstance(result, CheckInvalidated) else "success"
-    if isinstance(result, CheckFailure):
+    if isinstance(result, DerivedDataError):
+        outcome = "error"
+    elif isinstance(result, CheckFailure):
         outcome = "mismatch"
         logger.warning(
             "check_derived_data.mismatch",

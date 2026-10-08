@@ -1,15 +1,21 @@
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Literal
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.db.utils import OperationalError
 
 from sentry.issues.action_log.publish import publish_action
-from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
+from sentry.issues.action_log.types import (
+    ActionSource,
+    GroupActionActor,
+    GroupActionType,
+    ViewAction,
+)
 from sentry.issues.derived.check import CheckId, CheckTimeout
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.derived.heal_state import (
     CURRENT_STATE_VERSION,
@@ -23,6 +29,7 @@ from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
     _discover_stale_pipeline_hashes,
     check_fresh_derived_data_batch,
+    generate_group_derived_data,
     generate_project_derived_data,
     generate_project_derived_data_batch,
     heal_stale_derived_data,
@@ -133,6 +140,35 @@ class GenerateProjectDerivedDataStaleOnlyTest(DerivedDataTaskTestBase):
 
 @with_feature("projects:issue-action-log-write-to-db")
 class GenerateProjectDerivedDataBatchResumeTest(DerivedDataTaskTestBase):
+    def test_failed_groups_are_counted_in_batch_metrics(self) -> None:
+        bad, good = self.create_unprocessed_groups(2)
+        self.create_group_derived_data(bad, pipeline_hash="old")
+        self.create_group_derived_data(good, pipeline_hash="old")
+        self.create_group_action_log_entry(
+            bad, type=GroupActionType.RECONCILE_STATUS, data={"status": "invalid"}
+        )
+        with (
+            patch("sentry.issues.derived.tasks.metrics.incr") as incr,
+            patch("sentry.issues.derived.tasks.logger") as logger,
+        ):
+            generate_project_derived_data_batch(
+                project_id=self.project.id,
+                group_id_start=bad.id,
+                group_id_end=good.id + 1,
+                stale_only=False,
+            )
+        incr.assert_any_call(
+            "issues.derived.generate_project_groups_processed",
+            amount=1,
+            sample_rate=1.0,
+            tags={"result": "error"},
+        )
+        assert logger.info.call_args.kwargs["extra"]["errors"] == 1
+        assert GroupDerivedData.objects.get(group_id=bad.id).pipeline_hash == "old"
+        assert (
+            GroupDerivedData.objects.get(group_id=good.id).pipeline_hash == PIPELINE.pipeline_hash
+        )
+
     def test_resume_generation_id_not_applied_when_start_group_filtered_out(self) -> None:
         # A resume ``GenerationId`` identifies a specific group. If that
         # group is no longer in the batch queryset (e.g. under stale_only
@@ -1136,6 +1172,42 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
 @with_feature("projects:issue-action-log-write-to-db")
 class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
+    @override_options({"issues.derived.status-consistency-check-enabled": False})
+    def test_corrupt_row_does_not_abort_other_checks(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        ids = sorted(group.id for group in groups)
+        for group_id in ids:
+            process_group_log(group_id)
+        GroupDerivedData.objects.filter(group_id=ids[0]).update(data={"status": "invalid"})
+        with (
+            patch.object(check_fresh_derived_data_batch, "delay") as delay,
+            patch("sentry.issues.derived.tasks_util.metrics.incr") as incr,
+            patch("sentry.issues.derived.reporting.logger") as logger,
+        ):
+            check_fresh_derived_data_batch(group_id_start=ids[0], group_id_end=ids[-1] + 1)
+        delay.assert_not_called()
+        check_calls = [
+            call for call in incr.call_args_list if call.args[0] == "issues.derived.check_group"
+        ]
+        assert check_calls == [
+            call("issues.derived.check_group", sample_rate=1.0, tags={"result": "error"}),
+            call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
+        ]
+        logger.exception.assert_called_once()
+        assert logger.exception.call_args.kwargs["extra"]["operation"] == "check"
+
+    def test_check_database_failure_propagates(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        with (
+            patch(
+                "sentry.issues.derived.check.check_derived_data",
+                side_effect=OperationalError("offline"),
+            ),
+            pytest.raises(OperationalError),
+        ):
+            check_fresh_derived_data_batch(group_id_start=group.id, group_id_end=group.id + 1)
+
     def test_checks_only_fresh_rows_inline(self) -> None:
         groups = self.create_unprocessed_groups(3)
         group_ids = sorted(group.id for group in groups)
@@ -1571,6 +1643,32 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
 
 @with_feature("projects:issue-action-log-write-to-db")
 class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
+    def test_failed_groups_are_counted_in_batch_metrics(self) -> None:
+        bad, good = self.create_unprocessed_groups(2)
+        self.create_group_derived_data(bad, pipeline_hash="old")
+        self.create_group_derived_data(good, pipeline_hash="old")
+        self.create_group_action_log_entry(
+            bad, type=GroupActionType.RECONCILE_STATUS, data={"status": "invalid"}
+        )
+        with (
+            patch("sentry.issues.derived.tasks.metrics.incr") as incr,
+            patch("sentry.issues.derived.tasks.logger") as logger,
+        ):
+            regenerate_stale_derived_data_batch(
+                target_hash="old", group_id_start=bad.id, group_id_end=good.id + 1
+            )
+        incr.assert_any_call(
+            "issues.derived.regenerate_stale_groups_processed",
+            amount=1,
+            sample_rate=1.0,
+            tags={"result": "error"},
+        )
+        assert logger.info.call_args.kwargs["extra"]["errors"] == 1
+        assert GroupDerivedData.objects.get(group_id=bad.id).pipeline_hash == "old"
+        assert (
+            GroupDerivedData.objects.get(group_id=good.id).pipeline_hash == PIPELINE.pipeline_hash
+        )
+
     @staticmethod
     def _stale() -> str:
         return "0" * 16 if PIPELINE.pipeline_hash != "0" * 16 else "z" * 16
@@ -1848,3 +1946,29 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
 
         result = _discover_stale_pipeline_hashes(current, limit=3)
         assert result == ["a-hash", "b-hash", "y-hash"]
+
+
+@pytest.mark.parametrize("stage", ["decode", "aggregate", "encode"])
+def test_failed_generation_does_not_reschedule(
+    stage: Literal["decode", "aggregate", "encode"],
+) -> None:
+    with (
+        patch(
+            "sentry.issues.derived.promote.build_and_promote_derived_data",
+            side_effect=DerivedDataError(stage),
+        ),
+        patch.object(generate_group_derived_data, "delay") as delay,
+    ):
+        generate_group_derived_data(group_id=123)
+    delay.assert_not_called()
+
+
+def test_generation_database_failure_propagates() -> None:
+    with (
+        patch(
+            "sentry.issues.derived.promote.build_and_promote_derived_data",
+            side_effect=OperationalError("offline"),
+        ),
+        pytest.raises(OperationalError),
+    ):
+        generate_group_derived_data(group_id=123)
