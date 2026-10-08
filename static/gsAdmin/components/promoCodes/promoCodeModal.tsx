@@ -42,13 +42,10 @@ const promoCodeSchema = z
   })
   .superRefine((values, context) => {
     if (values.isTrialPromo) {
-      if (values.trialDays === null) {
-        context.addIssue({
-          code: 'custom',
-          path: ['trialDays'],
-          message: 'Trial Days is required',
-        });
-      } else if (!Number.isInteger(values.trialDays) || values.trialDays <= 0) {
+      if (
+        values.trialDays !== null &&
+        (!Number.isInteger(values.trialDays) || values.trialDays <= 0)
+      ) {
         context.addIssue({
           code: 'custom',
           path: ['trialDays'],
@@ -91,7 +88,9 @@ export function AddPromoCodeModal({
         data: {
           ...otherValues,
           ...(values.isTrialPromo
-            ? {trialDays: String(trialDays)}
+            ? trialDays === null
+              ? {}
+              : {trialDays: String(trialDays)}
             : {amount: String(amount)}),
           maxClaims: String(values.maxClaims),
           dateExpires:
@@ -200,7 +199,7 @@ export function AddPromoCodeModal({
               isTrialPromo ? (
                 <form.AppField name="trialDays">
                   {field => (
-                    <field.Layout.Stack label="Trial Days" required>
+                    <field.Layout.Stack label="Trial Days">
                       <field.Number
                         min={1}
                         step={1}

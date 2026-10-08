@@ -312,11 +312,6 @@ describe('PromoCodes', () => {
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
     await userEvent.click(screen.getByLabelText('Create trial promo code?'));
     const trialDays = screen.getByRole('spinbutton', {name: 'Trial Days'});
-    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
-
-    expect(await screen.findByText('Trial Days is required')).toBeInTheDocument();
-    expect(create).not.toHaveBeenCalled();
-
     await userEvent.type(trialDays, '1.5');
     await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
@@ -335,6 +330,35 @@ describe('PromoCodes', () => {
       expect.objectContaining({data: expect.objectContaining({trialDays: '30'})})
     );
     expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('amount');
+  });
+
+  it('omits blank trial days and shows the API requirement', async () => {
+    MockApiClient.addMockResponse({url: '/promocodes/', method: 'GET', body: []});
+    const create = MockApiClient.addMockResponse({
+      url: '/promocodes/',
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        non_field_errors: ['You must specify one and only one of Amount or Trial Days'],
+      },
+    });
+    render(<PromoCodes />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Promo Code'}));
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('textbox', {name: /Code \(ID\)/}), 'test-code');
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Max claims'}), '10');
+    await userEvent.click(screen.getByLabelText('Create trial promo code?'));
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('amount');
+    expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('trialDays');
+    await waitFor(() =>
+      expect(addErrorMessage).toHaveBeenCalledWith(
+        'You must specify one and only one of Amount or Trial Days'
+      )
+    );
   });
 
   it('accepts a decimal amount and rejects negative amounts', async () => {
