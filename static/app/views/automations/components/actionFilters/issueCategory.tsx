@@ -10,7 +10,7 @@ import {
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
 
 const GROUP_CATEGORY_CHOICES = VALID_ISSUE_CATEGORIES.map(issueCategory => ({
   value: ISSUE_CATEGORY_TO_GROUP_CATEGORY[issueCategory],

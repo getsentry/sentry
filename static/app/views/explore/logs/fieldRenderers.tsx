@@ -49,6 +49,7 @@ import {
   LogBasicRendererContainer,
   LogDate,
   LogsFilteredHelperText,
+  LogTimestamp,
   WrappingText,
   type getLogColors,
 } from 'sentry/views/explore/logs/styles';
@@ -164,7 +165,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
     : props.item.value;
 
   return (
-    <LogDate align={props.extra.align}>
+    <LogTimestamp align={props.extra.align}>
       <LogsTimestampTooltip
         timestamp={props.item.value!}
         attributes={props.extra.attributes}
@@ -173,7 +174,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
       >
         <DateTime seconds milliseconds date={timestampToUse} />
       </LogsTimestampTooltip>
-    </LogDate>
+    </LogTimestamp>
   );
 }
 

@@ -88,6 +88,7 @@ const config: Config.InitialOptions = {
   setupFiles: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-setup.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-framework.ts'],
 
+  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',

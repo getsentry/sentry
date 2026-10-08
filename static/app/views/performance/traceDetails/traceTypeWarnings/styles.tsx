@@ -150,7 +150,6 @@ const BannerBackground = styled('div')<{image: any}>`
 
 const TraceWarningComponents = {
   Banner,
-  BannerBackground,
 };
 
 export {TraceWarningComponents};

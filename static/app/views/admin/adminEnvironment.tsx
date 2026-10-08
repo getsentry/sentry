@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 type Data = {
   config: Array<[key: string, value: string]>;
@@ -22,6 +23,15 @@ type Data = {
 };
 
 export default function AdminEnvironment() {
+  return (
+    <Fragment>
+      <BreadcrumbTitle title={t('Environment')} />
+      <AdminEnvironmentContent />
+    </Fragment>
+  );
+}
+
+function AdminEnvironmentContent() {
   const {data, isPending, isError} = useApiQuery<Data>(
     [getApiUrl('/internal/environment/')],
     {
@@ -41,8 +51,6 @@ export default function AdminEnvironment() {
 
   return (
     <div>
-      <h3>{t('Environment')}</h3>
-
       {data?.environment ? (
         <dl className="vars">
           <VersionLabel>

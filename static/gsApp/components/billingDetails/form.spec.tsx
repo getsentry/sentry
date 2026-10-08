@@ -93,11 +93,15 @@ describe('BillingDetailsForm', () => {
     await screen.findByRole('textbox', {name: /VAT Number/i});
   });
 
-  it('renders extra button when provided', async () => {
-    const extraButton = <button type="button">Extra Action</button>;
-    render(<BillingDetailsForm {...defaultProps} extraButton={extraButton} />);
+  it('renders and handles cancel when provided', async () => {
+    const onCancel = jest.fn();
+    render(<BillingDetailsForm {...defaultProps} onCancel={onCancel} />);
 
-    await screen.findByRole('button', {name: 'Extra Action'});
+    const cancelButton = screen.getByRole('button', {name: 'Cancel'});
+    expect(screen.getByRole('button', {name: 'Save Changes'})).toBeInTheDocument();
+
+    await userEvent.click(cancelButton);
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   it('clears a stale region on save for countries without region choices', async () => {

@@ -8,6 +8,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import analytics, features, quotas
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
@@ -72,7 +73,6 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaTSResult
-from sentry.utils.tracing import set_span_data, start_span
 
 TOP_EVENTS_DATASETS = {
     discover,
@@ -176,7 +176,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.SORT,
             VisibilityParams.GROUP_BY,
             VisibilityParams.Y_AXIS,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.DISABLE_AGGREGATE_EXTRAPOLATION,
             VisibilityParams.PREVENT_METRIC_AGGREGATES,
             VisibilityParams.EXCLUDE_OTHER,
@@ -202,9 +202,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
         estimation only.
         """
-        with start_span(op="discover.endpoint", name="filter_params") as span:
-            set_span_data(span, "organization", organization)
-
+        with traces.start_span(
+            name="filter_params",
+            attributes={
+                "sentry.op": "discover.endpoint",
+                "organization": repr(organization),
+            },
+        ):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
 
@@ -236,9 +240,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
             snuba_params.granularity_secs = rollup
             axes = request.GET.getlist("yAxis", ["count()"])
-            include_measured_ingestion_delay_metadata = request.GET.get(
-                "includeMeasuredIngestionDelayMetadata"
-            ) is not None and features.has(
+            include_measured_ingestion_delay_metadata = features.has(
                 "organizations:measured-ingestion-delay-metadata",
                 organization,
                 actor=request.user,

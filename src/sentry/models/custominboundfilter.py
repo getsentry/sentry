@@ -15,6 +15,7 @@ class ConditionType(StrEnum):
     METRIC_NAME = "metric_name"
     RELEASE = "release"
     IP_ADDRESS = "ip_address"
+    GEO_COUNTRY_CODE = "geo_country_code"
 
 
 class DataType(StrEnum):
@@ -35,6 +36,12 @@ class LegacyFilter(StrEnum):
     ERROR_MESSAGE = "error-message"
     LOG_MESSAGE = "log-message"
     TRACE_METRIC_NAME = "trace-metric-name"
+
+
+# Bounds how many generic filters one project sends Relay. The API refuses to create a
+# filter past the cap, and the Relay config builder stops at it too so that rows made
+# some other way, e.g. before the cap or by a backfill, cannot blow up a project config.
+MAX_FILTERS_PER_PROJECT = 50
 
 
 @cell_silo_model

@@ -92,15 +92,18 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Literal, overload
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.db import router
 from django.utils import timezone
 from objectstore_client import TimeToLive
+from sentry_sdk import traces
 
 from sentry import models, nodestore, options, quotas
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
+from sentry.ingest.event_payload import get_event_payload_transport
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
@@ -120,7 +123,6 @@ from sentry.types.activity import ActivityType
 from sentry.utils import metrics, snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger("sentry.reprocessing")
 
@@ -171,7 +173,18 @@ def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
     if options.get("store.reprocessing-force-disable"):
         return
 
-    event_processing_store.store(dict(data), unprocessed=True)
+    data = dict(data)
+    try:
+        metrics.distribution(
+            "events.size.unprocessed",
+            len(orjson.dumps(data)),
+            tags={"platform": data.get("platform") or "null"},
+            unit="byte",
+        )
+    except Exception:
+        logger.warning("reprocessing2.unprocessed_size_metric_failed", exc_info=True)
+
+    event_processing_store.store(data, unprocessed=True)
 
 
 @dataclass
@@ -184,13 +197,19 @@ class ReprocessableEvent:
 def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
     from sentry.lang.native.processing import get_required_attachment_types
 
-    with start_span(op="reprocess_events.eventstore.get", name="reprocess_events.eventstore.get"):
+    with traces.start_span(
+        name="reprocess_events.eventstore.get",
+        attributes={"sentry.op": "reprocess_events.eventstore.get"},
+    ):
         event = eventstore.backend.get_event_by_id(project_id, event_id)
 
     if event is None:
         raise CannotReprocess("event.not_found")
 
-    with start_span(op="reprocess_events.nodestore.get", name="reprocess_events.nodestore.get"):
+    with traces.start_span(
+        name="reprocess_events.nodestore.get",
+        attributes={"sentry.op": "reprocess_events.nodestore.get"},
+    ):
         node_id = Event.generate_node_id(project_id, event_id)
         data = nodestore.backend.get(node_id, subkey="unprocessed")
 
@@ -230,20 +249,22 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     # consider minidumps because filestore just stays as-is after reprocessing
     # (we simply update group_id on the EventAttachment models in post_process)
     project = Project.objects.get_from_cache(id=project_id)
-    cache_key = cache_key_for_event(data)
+    attachment_cache_key = cache_key_for_event(data)
     attachment_objects = []
     for attachment_id, attachment in enumerate(attachments):
-        with start_span(
-            op="reprocess_event._maybe_copy_attachment_into_cache",
+        with traces.start_span(
             name="reprocess_event._maybe_copy_attachment_into_cache",
-        ) as span:
-            set_span_data(span, "attachment_id", attachment.id)
+            attributes={
+                "sentry.op": "reprocess_event._maybe_copy_attachment_into_cache",
+                "attachment_id": attachment.id,
+            },
+        ):
             attachment_objects.append(
                 _maybe_copy_attachment_into_cache(
                     project=project,
                     attachment_id=attachment_id,
                     attachment=attachment,
-                    cache_key=cache_key,
+                    cache_key=attachment_cache_key,
                     cache_timeout=CACHE_TIMEOUT,
                 )
             )
@@ -257,7 +278,8 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     set_path(
         data, "contexts", "reprocessing", "original_primary_hash", value=event.get_primary_hash()
     )
-    event_processing_store.store(data)
+    transport = get_event_payload_transport(data["event_id"])
+    cache_key = event_processing_store.store(data) if transport.cache else None
 
     preprocess_event_from_reprocessing(
         cache_key=cache_key,
@@ -405,9 +427,11 @@ def buffered_delete_old_primary_hash(
     if old_primary_hash is not None:
         sentry_sdk.set_attribute("old_primary_hash", old_primary_hash)
 
-    with start_span(
-        op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events",
+    with traces.start_span(
         name="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events",
+        attributes={
+            "sentry.op": "sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
+        },
     ):
         _send_delete_old_primary_hash_messages(
             project_id, group_id, old_primary_hashes, force_flush_batch

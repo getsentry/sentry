@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 from urllib3.connectionpool import HTTPConnectionPool
@@ -63,7 +64,6 @@ from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.settings import is_self_hosted
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +171,9 @@ def _trigger_autofix_task(
             sentry_sdk.capture_exception(e)
             return
 
-    with start_span(op="ai_summary.trigger_autofix", name="ai_summary.trigger_autofix"):
+    with traces.start_span(
+        name="ai_summary.trigger_autofix", attributes={"sentry.op": "ai_summary.trigger_autofix"}
+    ):
         try:
             group = Group.objects.get(id=group_id)
         except Group.DoesNotExist:
@@ -355,8 +357,9 @@ def get_and_update_group_fixability_score(
             extra={"group_id": group.id},
         )
 
-    with start_span(
-        op="ai_summary.generate_fixability_score", name="ai_summary.generate_fixability_score"
+    with traces.start_span(
+        name="ai_summary.generate_fixability_score",
+        attributes={"sentry.op": "ai_summary.generate_fixability_score"},
     ):
         issue_summary = _generate_fixability_score(group, summary=summary)
 
@@ -391,7 +394,7 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
 def run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
-    event: GroupEvent,
+    event: Event | GroupEvent,
     source: SeerAutomationSource,
 ) -> None:
     if source == SeerAutomationSource.ISSUE_DETAILS:
@@ -490,9 +493,7 @@ def _generate_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     force_event_id: str | None,
-    source: SeerAutomationSource,
     cache_key: str,
-    should_run_automation: bool = True,
 ) -> IssueSummary:
     """Core logic to generate and cache the issue summary."""
     serialized_event, event = _get_event(group, user, provided_event_id=force_event_id)
@@ -540,19 +541,14 @@ def _generate_summary(
     summary = IssueSummary(**issue_summary.dict(), event_id=event.event_id)
     cache.set(cache_key, summary.dict(), timeout=int(timedelta(days=7).total_seconds()))
 
-    if should_run_automation:
-        try:
-            run_automation(group, user, event, source)
-        except Exception:
-            logger.exception(
-                "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
-            )
-
     return summary
 
 
-def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
-    if source == SeerAutomationSource.ISSUE_DETAILS:
+def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource) -> None:
+    if source in {
+        SeerAutomationSource.ISSUE_DETAILS,
+        SeerAutomationSource.FIRST_ASSIGNMENT,
+    }:
         return
 
     quotas.backend.record_seer_run(
@@ -568,12 +564,11 @@ def get_issue_summary_lock_key(group_id: int) -> tuple[str, str]:
     return (f"ai-group-summary-v2-lock:{group_id}", "get_issue_summary")
 
 
-def get_issue_summary(
+def get_or_generate_issue_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser | None = None,
     force_event_id: str | None = None,
     source: SeerAutomationSource = SeerAutomationSource.ISSUE_DETAILS,
-    should_run_automation: bool = True,
 ) -> IssueSummary:
     """
     Get a cached AI issue summary or generate one.
@@ -597,9 +592,7 @@ def get_issue_summary(
             group,
             user,
             force_event_id,
-            source,
             cache_key,
-            should_run_automation,
         )
         _log_seer_scanner_billing_event(group, source)
         return summary
@@ -624,9 +617,7 @@ def get_issue_summary(
                 group,
                 user,
                 force_event_id,
-                source,
                 cache_key,
-                should_run_automation,
             )
             _log_seer_scanner_billing_event(group, source)
             return summary
