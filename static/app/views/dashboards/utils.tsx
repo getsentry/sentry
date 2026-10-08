@@ -508,7 +508,9 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
               return null;
             }
           })
-          .filter(filter => filter !== null);
+          .filter(
+            filter => filter !== null && filter.tag !== null && filter.tag !== undefined
+          );
       } else {
         dashboardFilters[key] = queryFilters;
       }
