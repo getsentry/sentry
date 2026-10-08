@@ -4,7 +4,7 @@ import logging
 import zoneinfo
 from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import UTC, tzinfo
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 
@@ -51,7 +51,7 @@ from sentry.notifications.utils.links import (
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.plugins.base.structs import Notification
-from sentry.services.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
@@ -99,12 +99,6 @@ class AlertRuleNotification(ProjectNotification):
         self.target_type = target_type
         self.target_identifier = target_identifier
         self.fallthrough_choice = fallthrough_choice
-        first_rule = notification.rules[0] if notification.rules else None
-        self.log_alert_id: int | None
-        if isinstance(first_rule, NotificationOrigin):
-            self.log_alert_id = first_rule.link_id
-        else:
-            self.log_alert_id = first_rule.id if first_rule is not None else None
         self.rules = [
             rule
             if isinstance(rule, NotificationOrigin)
@@ -219,7 +213,7 @@ class AlertRuleNotification(ProjectNotification):
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
-            "commits": get_commits(self.project, self.event),
+            "commits": get_commits(self.project, cast(Event, self.event)),
             "environment": environment,
             "slack_link": get_integration_link(
                 self.organization, IntegrationProviderSlug.SLACK.value, self.notification_uuid
@@ -363,10 +357,12 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
+        origin = self.rules[0] if self.rules else None
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "alert_id": self.log_alert_id,
+            "workflow_id": origin.workflow_id if origin else None,
+            "alert_id": origin.legacy_rule_id if origin else None,
             **super().get_log_params(recipient),
         }
 
