@@ -63,16 +63,34 @@ Use `EntityHeader` on a detail page — a single issue, trace, replay, release, 
 
 ```jsx
 <EntityHeader
-  title={{label: t('Replay user'), value: replay.user.display_name}}
-  people={{users: viewers, label: t('Viewed by')}}
+  title={{
+    label: 'Replay user',
+    value: 'anonymous@example.com',
+    tags: [
+      <Tag key="live" variant="success">
+        Live
+      </Tag>,
+    ],
+  }}
   stats={{
     label: 'Replay stats',
-    items: [{type: 'link', label: t('Errors'), value: errors.length, to: errorsTab}],
+    items: [
+      {type: 'text', label: 'Dead Clicks', value: 0},
+      {type: 'text', label: 'Rage Clicks', value: 2},
+      {type: 'link', label: 'Errors', value: 1, to: '/replays/1/?t_main=errors'},
+    ],
   }}
-  subtitle={replay.summary}
   metadata={{
-    label: t('Replay properties'),
-    items: [{label: t('Browser'), values: ['Chrome', '144.0.0']}],
+    label: 'Replay properties',
+    items: [
+      {
+        label: 'Started at',
+        values: ['Feb 11, 2026 10:56 CET'],
+        leadingGraphic: <IconCalendar size="md" />,
+      },
+      {label: 'Browser', values: ['Chrome', '144.0.0']},
+      {label: 'Operating system', values: ['Windows', '>=10']},
+    ],
   }}
 />
 ```
@@ -119,11 +137,21 @@ Skeleton widths are fixed per slot rather than configurable. A caller-supplied w
 
 ```jsx
 <EntityHeader
-  isLoading={!replayRecord}
-  title={{label: t('Replay user'), value: displayName}}
+  isLoading
+  title={{label: 'Replay user', value: 'anonymous@example.com'}}
   stats={{
     label: 'Replay stats',
-    items: [{type: 'text', label: t('Errors'), value: errors.length}],
+    items: [
+      {type: 'text', label: 'Dead Clicks', value: 0},
+      {type: 'text', label: 'Errors', value: 1},
+    ],
+  }}
+  metadata={{
+    label: 'Replay properties',
+    items: [
+      {label: 'Started at', values: ['Feb 11, 2026 10:56 CET']},
+      {label: 'Browser', values: ['Chrome', '144.0.0']},
+    ],
   }}
 />
 ```
@@ -208,7 +236,7 @@ leadingGraphic={{
   type: 'project',
   projects,
   label: t('%s projects', projects.length),
-  tooltip: <ProjectListTooltip projects={projects} />,
+  tooltip: projects.map(p => p.slug).join(', '),
 }}
 
 // Same badge, for a caller that has a platform but no project.
@@ -278,7 +306,7 @@ Colour says it navigates; an underline says it explains. A link label is accent-
   <EntityHeader
     title={{label: 'Issue type', value: 'ValueError'}}
     stats={{
-      label: 'Replay stats',
+      label: 'Issue stats',
       items: [
         {type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'},
         {
@@ -300,22 +328,28 @@ Colour says it navigates; an underline says it explains. A link label is accent-
 </Storybook.Demo>
 
 ```jsx
-stats={{label: 'Replay stats', items: [
-  {type: 'link', label: t('Events'), value: count, to: eventsTab},
-  {
-    type: 'text',
-    label: t('Users'),
-    value: userCount,
-    labelTooltip: t('Distinct users affected in the last 90 days.'),
-  },
-  {
-    type: 'link',
-    label: t('Dead Clicks'),
-    value: deadClicks,
-    to: replaysTab,
-    labelTooltip: t('A click that did not change anything on the page.'),
-  },
-]}}
+<EntityHeader
+  title={{label: 'Issue type', value: 'ValueError'}}
+  stats={{
+    label: 'Issue stats',
+    items: [
+      {type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'},
+      {
+        type: 'text',
+        label: 'Users',
+        value: 22,
+        labelTooltip: 'Distinct users affected in the last 90 days.',
+      },
+      {
+        type: 'link',
+        label: 'Dead Clicks',
+        value: 4,
+        to: '/issues/1/replays/',
+        labelTooltip: 'A click that did not change anything on the page.',
+      },
+    ],
+  }}
+/>
 ```
 
 ## People
@@ -388,13 +422,19 @@ A description list would tie each label to its value structurally, which sounds 
 </Storybook.Demo>
 
 ```jsx
-items={[
-  {label: t('Mechanism'), values: ['generic'], mode: 'full', variant: 'primary'},
-  {label: t('Level'), values: ['error'], mode: 'full', variant: 'muted'},
-  {label: t('Handling'), values: [t('Unhandled')], mode: 'full', variant: 'danger'},
-  {label: t('Status'), values: [t('Resolved')], mode: 'full', variant: 'success'},
-  {label: t('Trend'), values: [t('Regressed')], mode: 'full', variant: 'warning'},
-]}
+<EntityHeader
+  title={{label: 'Issue type', value: 'ValueError'}}
+  metadata={{
+    label: 'Issue properties',
+    items: [
+      {label: 'Mechanism', values: ['generic'], mode: 'full', variant: 'primary'},
+      {label: 'Level', values: ['error'], mode: 'full', variant: 'muted'},
+      {label: 'Handling', values: ['Unhandled'], mode: 'full', variant: 'danger'},
+      {label: 'Status', values: ['Resolved'], mode: 'full', variant: 'success'},
+      {label: 'Trend', values: ['Regressed'], mode: 'full', variant: 'warning'},
+    ],
+  }}
+/>
 ```
 
 The set is narrower than `ContentVariant` — `primary`, `muted`, `danger`, `success`, `warning` — because a tooltipped item also has to colour its underline, and `Tooltip` supports fewer. Keeping one list means the two cannot disagree.
