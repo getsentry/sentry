@@ -12,7 +12,7 @@ import {useExploreTracesTableApiOptions} from 'sentry/views/explore/hooks/useExp
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {TracesTable} from 'sentry/views/explore/tables/tracesTable';
+import {TracesTable} from 'sentry/views/explore/tables/tracesTable/tracesTable';
 
 jest.mock('sentry/utils/analytics');
 
