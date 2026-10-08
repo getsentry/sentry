@@ -149,7 +149,7 @@ function WidgetCard(props: Props) {
       ? DisplayType.AREA
       : props.widget.displayType;
 
-  const widgetQueryError = getWidgetConfigError(props.widget, organization);
+  const widgetQueryError = getWidgetConfigError(props.widget);
 
   // Push widget metadata into the LLM context tree for Seer Explorer. The same
   // object is the context when "Ask Seer" asks about this widget.

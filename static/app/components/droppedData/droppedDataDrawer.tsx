@@ -10,14 +10,18 @@ import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
+  interval?: string;
 }
 
-export function DroppedDataDrawer({dataset}: DroppedDataDrawerProps) {
+export function DroppedDataDrawer({dataset, interval}: DroppedDataDrawerProps) {
+  const [chartInterval] = useChartInterval();
   const {droppedEvents, acceptedEvents, isPending} = useDroppedData({
     dataset,
+    interval: interval ?? chartInterval,
   });
 
   return (

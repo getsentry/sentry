@@ -181,8 +181,8 @@ export function TracesTable({
       search: `${getAgentRunsFilter({negated: true})} trace:[${tracesData?.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
-        'count_if(gen_ai.operation.type,equals,ai_client)',
-        'count_if(gen_ai.operation.type,equals,tool)',
+        'count_if(`gen_ai.operation.type:ai_client`)',
+        'count_if(`gen_ai.operation.type:tool`)',
         'sum(gen_ai.usage.total_tokens)',
         'sum(gen_ai.cost.total_tokens)',
       ],
@@ -255,8 +255,8 @@ export function TracesTable({
       >
     >((acc, span) => {
       acc[span.trace] = {
-        llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
-        toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
+        llmCalls: Number(span['count_if(`gen_ai.operation.type:ai_client`)'] ?? 0),
+        toolCalls: Number(span['count_if(`gen_ai.operation.type:tool`)'] ?? 0),
         totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
         totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
         totalErrors: Number(errors[span.trace] ?? 0),

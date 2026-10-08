@@ -4,6 +4,7 @@ import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {AggregationKey} from 'sentry/utils/fields';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -15,6 +16,7 @@ import {
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {areAllVisualizesInvalidConditionalFilters} from 'sentry/views/explore/utils/conditionalAggregate';
 
 export const DEFAULT_LOGS_TIMESERIES_Y_AXIS = `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`;
 
@@ -35,7 +37,8 @@ export function useLogsTimeseriesRequest({
 }: UseLogsTimeseriesRequestOptions) {
   const logsSearch = useQueryParamsSearch();
   const groupBys = useQueryParamsGroupBys();
-  const visualizes = useQueryParamsVisualizes();
+  const visualizes = useQueryParamsVisualizes({validate: true});
+  const unvalidatedVisualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const [caseInsensitive] = useCaseInsensitivity();
@@ -51,20 +54,30 @@ export function useLogsTimeseriesRequest({
       );
     }
 
-    const orderby = aggregateSortBys.length
-      ? aggregateSortBys.map(formatSort)
-      : undefined;
-
     const yAxes = yAxesOverride ?? [
       ...new Set(visualizes.map(visualize => visualize.yAxis)),
     ];
+    const fields = [...groupBys.filter(Boolean), ...yAxes];
+
+    // Drop orderbys that point at series removed by `_if` validation.
+    const allowedFields = new Set(fields);
+    const validSortBys = aggregateSortBys.filter(sort => allowedFields.has(sort.field));
+    const orderby = aggregateSortBys.length
+      ? (validSortBys.length ? validSortBys : defaultAggregateSortBys(yAxes)).map(
+          formatSort
+        )
+      : undefined;
+
+    // Skip only when every series failed an `_if` filter.
+    const skippedForInvalidConditionalFilter =
+      !yAxesOverride && areAllVisualizesInvalidConditionalFilters(unvalidatedVisualizes);
 
     return {
-      enabled,
+      enabled: enabled && !skippedForInvalidConditionalFilter,
       search,
       yAxis: yAxes,
       interval,
-      fields: [...groupBys.filter(Boolean), ...yAxes],
+      fields,
       topEvents: topEventsLimit,
       orderby,
       caseInsensitive,
@@ -81,6 +94,7 @@ export function useLogsTimeseriesRequest({
     queryExtras,
     timeseriesIngestDelay,
     topEventsLimit,
+    unvalidatedVisualizes,
     visualizes,
     yAxesOverride,
   ]);

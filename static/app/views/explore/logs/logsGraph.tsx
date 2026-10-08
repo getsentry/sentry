@@ -70,6 +70,10 @@ import {
   getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
+import {
+  getConditionalFilterInvalidSeriesMessageForYAxis,
+  isConditionalAggregateYAxisValid,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -149,12 +153,17 @@ function Graph({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const {droppedEvents, acceptedEvents} = useDroppedData({
     dataset: DiscoverDatasets.OURLOGS,
+    interval,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.OURLOGS);
+  const openDroppedDataDrawer = useDroppedDataDrawer({dataset: DiscoverDatasets.OURLOGS});
   const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand =
     canShowDroppedData && isDroppedDataLayerOn && !tableIsEmpty && !tableIsPending;
+
+  // Invalid `_if` filters skip the backend request; surface that as a chart error
+  // instead of an empty/no-data state.
+  const hasValidConditionalFilter = isConditionalAggregateYAxisValid(aggregate);
 
   const chartInfo: ChartInfo = useMemo(() => {
     // If the table is empty or pending, we want to withhold the chart data.
@@ -163,16 +172,33 @@ function Graph({
     // the illusion the 2 are being queries in sync.
     const withholdData = tableIsEmpty || tableIsPending;
 
-    const series = withholdData ? [] : (timeseriesResult.data[aggregate] ?? []);
+    const series =
+      withholdData || !hasValidConditionalFilter
+        ? []
+        : (timeseriesResult.data[aggregate] ?? []);
     const isTopEvents = defined(topEventsLimit);
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
+    const resultForChart = (
+      hasValidConditionalFilter
+        ? {
+            ...timeseriesResult,
+            isPending: timeseriesResult.isPending || tableIsPending,
+          }
+        : {
+            ...timeseriesResult,
+            error: new Error(getConditionalFilterInvalidSeriesMessageForYAxis(aggregate)),
+            isError: true,
+            isPending: false,
+            isLoading: false,
+            isFetching: false,
+            isSuccess: false,
+            status: 'error' as const,
+          }
+    ) as ChartInfo['timeseriesResult'];
     return {
       chartType: visualize.chartType,
       series,
-      timeseriesResult: {
-        ...timeseriesResult,
-        isPending: timeseriesResult.isPending || tableIsPending,
-      } as ChartInfo['timeseriesResult'],
+      timeseriesResult: resultForChart,
       yAxis: aggregate,
       confidence: combineConfidenceForSeries(series),
       dataScanned: samplingMeta.dataScanned,
@@ -182,12 +208,13 @@ function Graph({
       topEvents: isTopEvents ? series.filter(s => !s.meta.isOther).length : undefined,
     };
   }, [
-    visualize.chartType,
-    timeseriesResult,
     aggregate,
-    topEventsLimit,
+    hasValidConditionalFilter,
     tableIsEmpty,
     tableIsPending,
+    timeseriesResult,
+    topEventsLimit,
+    visualize.chartType,
   ]);
 
   const plottables = useChartVisualizationPlottables(chartInfo);
@@ -314,11 +341,13 @@ function Graph({
         visualize.visible && (
           <ConfidenceFooter
             chartInfo={chartInfo}
-            // hold off on showing the chart while the table is loading
-            isLoading={timeseriesResult.isLoading || tableIsPending}
+            // Match chart pending state (includes table withhold + invalid `_if` errors).
+            isLoading={chartInfo.timeseriesResult.isPending}
             rawLogCounts={rawLogCounts}
             hasUserQuery={!!userQuery}
-            disabled={tableIsPending ? false : tableIsEmpty}
+            disabled={
+              !hasValidConditionalFilter || (tableIsPending ? false : tableIsEmpty)
+            }
           />
         )
       }
