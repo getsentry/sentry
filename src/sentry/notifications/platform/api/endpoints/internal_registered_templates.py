@@ -8,18 +8,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.notifications.platform.discord.provider import (
-    DiscordNotificationProvider,
-    DiscordRenderable,
-)
-from sentry.notifications.platform.email.provider import EmailNotificationProvider
-from sentry.notifications.platform.msteams.provider import (
-    MSTeamsNotificationProvider,
-    MSTeamsRenderable,
-)
+from sentry.notifications.platform.discord.provider import DiscordRenderable, DiscordRenderer
+from sentry.notifications.platform.email.provider import EmailRenderer
+from sentry.notifications.platform.msteams.provider import MSTeamsRenderable, MSTeamsRenderer
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -89,10 +83,15 @@ def serialize_email_preview[T: NotificationData](
     template: NotificationTemplate[T],
 ) -> dict[str, Any]:
     data = template.example_data
-    email = NotificationService.render_template(
+    rendered_template = template.render_example()
+    email = EmailRenderer.render(
         data=data,
-        template=template,
-        provider=EmailNotificationProvider,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source="preview",
+            provider=NotificationProviderKey.EMAIL,
+            notification_uuid=data.notification_uuid,
+        ),
     )
     return {
         "subject": email.subject,
@@ -105,10 +104,15 @@ def serialize_msteams_preview[T: NotificationData](
     template: NotificationTemplate[T],
 ) -> MSTeamsRenderable:
     data = template.example_data
-    return NotificationService.render_template(
+    rendered_template = template.render_example()
+    return MSTeamsRenderer.render(
         data=data,
-        template=template,
-        provider=MSTeamsNotificationProvider,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source="preview",
+            provider=NotificationProviderKey.MSTEAMS,
+            notification_uuid=data.notification_uuid,
+        ),
     )
 
 
@@ -116,10 +120,16 @@ def serialize_slack_preview[T: NotificationData](
     template: NotificationTemplate[T],
 ) -> dict[str, Any]:
     data = template.example_data
-    message = NotificationService.render_template(
+    rendered_template = template.render_example()
+    renderer = SlackNotificationProvider.get_renderer(data=data)
+    message = renderer.render(
         data=data,
-        template=template,
-        provider=SlackNotificationProvider,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source="preview",
+            provider=NotificationProviderKey.SLACK,
+            notification_uuid=data.notification_uuid,
+        ),
     )
 
     serialized_blocks = []
@@ -133,10 +143,15 @@ def serialize_discord_preview[T: NotificationData](
     template: NotificationTemplate[T],
 ) -> DiscordRenderable:
     data = template.example_data
-    return NotificationService.render_template(
+    rendered_template = template.render_example()
+    return DiscordRenderer.render(
         data=data,
-        template=template,
-        provider=DiscordNotificationProvider,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            source="preview",
+            provider=NotificationProviderKey.DISCORD,
+            notification_uuid=data.notification_uuid,
+        ),
     )
 
 
