@@ -119,7 +119,9 @@ class ProjectCodeOwners(Model):
             logger.warning({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
             return
 
-        associations, _ = build_codeowners_associations(self.raw, self.project)
+        associations, _ = build_codeowners_associations(
+            self.raw, self.project, self.repository_project_path_config
+        )
 
         issue_owner_rules = convert_codeowners_syntax(
             codeowners=self.raw,

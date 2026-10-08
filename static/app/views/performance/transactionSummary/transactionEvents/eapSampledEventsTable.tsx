@@ -7,6 +7,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Duration} from 'sentry/components/duration';
@@ -15,11 +16,8 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnHeader,
-} from 'sentry/components/tables/gridEditable';
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
+import {DataGrid, type GridColumnHeader} from 'sentry/components/tables/dataGrid';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -43,16 +41,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {
-  getColumnSort,
-  renderHeadCell,
-} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {getColumnSort} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {generateProfileLink} from 'sentry/views/performance/transactionSummary/utils';
 import {
   platformToPerformanceType,
@@ -114,6 +109,8 @@ const COLUMN_ORDER: SampledEventsColumn[] = [
   {key: 'replayId', name: t('Replay'), width: COL_WIDTH_UNDEFINED},
   {key: 'profile.id', name: t('Profile'), width: COL_WIDTH_UNDEFINED},
 ];
+
+const SORTABLE_FIELDS = ['request.method', 'span.duration', 'timestamp'] as const;
 
 type Props = {
   eventView: EventView;
@@ -226,7 +223,7 @@ export function SampledEventsTable({
 
   return (
     <Fragment>
-      <GridEditable
+      <DataGrid
         isLoading={isLoading || isMaxDurationLoading}
         error={error}
         data={consolidatedData}
@@ -237,6 +234,7 @@ export function SampledEventsTable({
               column,
               location,
               sort,
+              sortableFields: SORTABLE_FIELDS,
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderHeadCell: column => {
@@ -254,7 +252,7 @@ export function SampledEventsTable({
                 </Fragment>
               );
             }
-            return renderHeadCell({column});
+            return <ColumnLabel column={column} />;
           },
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, navigate, organization, theme),

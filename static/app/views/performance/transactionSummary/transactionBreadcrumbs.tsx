@@ -1,8 +1,6 @@
-import {Fragment} from 'react';
 import type {Location} from 'history';
 
 import {TeamAvatar} from '@sentry/scraps/avatar';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {IdBadge} from 'sentry/components/idBadge';
@@ -180,45 +178,40 @@ function TransactionBreadcrumbsContent({
   }).map(crumb => ({type: 'link' as const, ...crumb}));
 
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList items={parentItems} />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: transactionName,
-            leadingGraphic: project ? (
-              <IdBadge
-                disableLink
-                project={project}
-                avatarSize={16}
-                hideName
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              />
-            ) : (
-              <Placeholder width="16px" height="16px" />
-            ),
-            trailingActions: {
-              type: 'menu',
-              triggerLabel: t('Transaction Actions'),
-              triggerIcon: <IconEllipsis />,
-              items: [
-                starForTeamItem,
-                {
-                  key: 'set-transaction-threshold',
-                  label: t('Transaction Settings'),
-                  leadingItems: <IconSettings variant="muted" />,
-                  disabled: isThresholdLoading,
-                  onAction: openThresholdModal,
-                },
-              ],
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: transactionName,
+        leadingGraphic: project ? (
+          <IdBadge
+            disableLink
+            project={project}
+            avatarSize={16}
+            hideName
+            avatarProps={{hasTooltip: true, tooltip: project.slug}}
+          />
+        ) : (
+          <Placeholder width="16px" height="16px" />
+        ),
+        trailingActions: {
+          type: 'menu',
+          triggerLabel: t('Transaction Actions'),
+          triggerIcon: <IconEllipsis />,
+          items: [
+            starForTeamItem,
+            {
+              key: 'set-transaction-threshold',
+              label: t('Transaction Settings'),
+              leadingItems: <IconSettings variant="muted" />,
+              disabled: isThresholdLoading,
+              onAction: openThresholdModal,
             },
-          }}
-        />
-      </TopBar.Slot>
-    </Fragment>
+          ],
+        },
+      }}
+      items={parentItems}
+    />
   );
 }
 

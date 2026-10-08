@@ -2,17 +2,12 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections import namedtuple
 from collections.abc import Callable, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any, ClassVar
-
-from django import forms
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
 from sentry.models.project import Project
+from sentry.notifications.types import RuleFuture
 from sentry.services.eventstore.models import GroupEvent
-from sentry.snuba.dataset import Dataset
-from sentry.types.condition_activity import ConditionActivity
-from sentry.types.rules import RuleFuture
 
 if TYPE_CHECKING:
     from sentry.models.rule import Rule
@@ -47,10 +42,14 @@ by the rule's logic. Each rule condition may be associated with a form.
 - [ACTION:I want to group events when] [RULE:an event matches [FORM]]
 """
 
+
 # Encapsulates a reference to the callback, including arguments. The `key`
 # attribute may be specifically used to key the callbacks when they are
 # collated during rule processing.
-CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
+class CallbackFuture(NamedTuple):
+    callback: Callable[[GroupEvent, Sequence[RuleFuture]], None]
+    kwargs: dict[str, Any]
+    key: str | None
 
 
 class RuleBase(abc.ABC):
@@ -77,18 +76,8 @@ class RuleBase(abc.ABC):
     def get_option(self, key: str, default: str | None = None) -> Any:
         return self.data.get(key, default)
 
-    def get_form_instance(self) -> forms.Form | None:
-        return None
-
     def render_label(self) -> str:
         return self.label.format(**self.data)
-
-    def validate_form(self) -> bool:
-        form = self.get_form_instance()
-        if form is None:
-            return True
-        else:
-            return form.is_valid()
 
     def future(
         self,
@@ -97,27 +86,3 @@ class RuleBase(abc.ABC):
         **kwargs: Any,
     ) -> CallbackFuture:
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
-
-    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
-        return {}
-
-    def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
-    ) -> bool:
-        raise NotImplementedError
-
-
-class EventState:
-    def __init__(
-        self,
-        is_new: bool,
-        is_regression: bool,
-        is_new_group_environment: bool,
-        has_reappeared: bool,
-        has_escalated: bool,
-    ) -> None:
-        self.is_new = is_new
-        self.is_regression = is_regression
-        self.is_new_group_environment = is_new_group_environment
-        self.has_reappeared = has_reappeared
-        self.has_escalated = has_escalated

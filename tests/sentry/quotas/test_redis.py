@@ -6,64 +6,19 @@ from unittest import mock
 import pytest
 
 from sentry.constants import DataCategory
-from sentry.quotas.base import QuotaConfig, QuotaScope, build_metric_abuse_quotas
-from sentry.quotas.redis import RedisQuota, is_rate_limited
+from sentry.quotas.base import (
+    QuotaConfig,
+    QuotaDimension,
+    QuotaGroupBy,
+    QuotaScope,
+    build_metric_abuse_quotas,
+)
+from sentry.quotas.redis import RedisQuota
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES, UseCaseID
 from sentry.testutils.cases import TestCase
-from sentry.utils.redis import clusters
-
-
-def test_is_rate_limited_script() -> None:
-    now = int(time.time())
-
-    cluster = clusters.get("default")
-    client = cluster.get_local_client(next(iter(cluster.hosts)))
-
-    # The item should not be rate limited by either key.
-    assert list(
-        map(
-            bool,
-            is_rate_limited(("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120), client),
-        )
-    ) == [False, False]
-
-    # The item should be rate limited by the first key (1).
-    assert list(
-        map(
-            bool,
-            is_rate_limited(("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120), client),
-        )
-    ) == [True, False]
-
-    # The item should still be rate limited by the first key (1), but *not*
-    # rate limited by the second key (2) even though this is the third time
-    # we've checked the quotas. This ensures items that are rejected by a lower
-    # quota don't affect unrelated items that share a parent quota.
-    assert list(
-        map(
-            bool,
-            is_rate_limited(("foo", "r:foo", "bar", "r:bar"), (1, now + 60, 2, now + 120), client),
-        )
-    ) == [True, False]
-
-    assert client.get("foo") == b"1"
-    assert 59 <= client.ttl("foo") <= 60
-
-    assert client.get("bar") == b"1"
-    assert 119 <= client.ttl("bar") <= 120
-
-    # make sure "refund/negative" keys haven't been incremented
-    assert client.get("r:foo") is None
-    assert client.get("r:bar") is None
-
-    # Test that refunded quotas work
-    client.set("apple", 5)
-    # increment
-    is_rate_limited(("orange", "baz"), (1, now + 60), client)
-    # test that it's rate limited without refund
-    assert list(map(bool, is_rate_limited(("orange", "baz"), (1, now + 60), client))) == [True]
-    # test that refund key is used
-    assert list(map(bool, is_rate_limited(("orange", "apple"), (1, now + 60), client))) == [False]
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.redis import use_redis_cluster
+from sentry.utils.redis import redis_clusters
 
 
 class RedisQuotaTest(TestCase):
@@ -252,66 +207,31 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].limit == 15
         assert quotas[0].window == 60
 
-    @mock.patch("sentry.quotas.redis.is_rate_limited")
-    @mock.patch.object(RedisQuota, "get_quotas", return_value=[])
-    def test_bails_immediately_without_any_quota(
-        self, get_quotas: mock.MagicMock, is_rate_limited: mock.MagicMock
-    ) -> None:
-        result = self.quota.is_rate_limited(self.project)
-        assert not is_rate_limited.called
-        assert not result.is_limited
+    def test_per_monitor_quota_disabled(self) -> None:
+        self.get_monitor_quota.return_value = (15, 60)
+        quotas = self.quota.get_quotas(self.project)
+        assert not any(q.id == "mrl_env" for q in quotas)
 
-    @mock.patch.object(RedisQuota, "get_quotas")
-    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, False))
-    def test_not_limited_with_unlimited_quota(
-        self, mock_is_rate_limited: mock.MagicMock, mock_get_quotas: mock.MagicMock
-    ) -> None:
-        mock_get_quotas.return_value = (
-            QuotaConfig(
-                id="p",
-                scope=QuotaScope.PROJECT,
-                scope_id=1,
-                limit=None,
-                window=1,
-                reason_code="project_quota",
-            ),
-            QuotaConfig(
-                id="p",
-                scope=QuotaScope.PROJECT,
-                scope_id=2,
-                limit=1,
-                window=1,
-                reason_code="project_quota",
-            ),
+    @override_options(
+        {"crons.per_monitor_relay_quota.enabled": True, "crons.per_monitor_rate_limit": 6}
+    )
+    def test_per_monitor_quota(self) -> None:
+        self.get_monitor_quota.return_value = (15, 60)
+        quotas = self.quota.get_quotas(self.project)
+
+        quota = next(q for q in quotas if q.id == "mrl_env")
+        assert quota.scope == QuotaScope.PROJECT
+        assert quota.scope_id == str(self.project.id)
+        assert quota.categories == {DataCategory.MONITOR}
+        assert quota.limit == 6
+        assert quota.window == 60
+        assert quota.reason_code == "monitor_env_rate_limit"
+        assert quota.group_by == QuotaGroupBy(
+            max_cardinality=2000,
+            dimensions=(QuotaDimension.CHECK_IN_SLUG, QuotaDimension.CHECK_IN_ENVIRONMENT),
         )
-
-        assert not self.quota.is_rate_limited(self.project).is_limited
-
-    @mock.patch.object(RedisQuota, "get_quotas")
-    @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, True))
-    def test_limited_with_unlimited_quota(
-        self, mock_is_rate_limited: mock.MagicMock, mock_get_quotas: mock.MagicMock
-    ) -> None:
-        mock_get_quotas.return_value = (
-            QuotaConfig(
-                id="p",
-                scope=QuotaScope.PROJECT,
-                scope_id=1,
-                limit=None,
-                window=1,
-                reason_code="project_quota",
-            ),
-            QuotaConfig(
-                id="p",
-                scope=QuotaScope.PROJECT,
-                scope_id=2,
-                limit=1,
-                window=1,
-                reason_code="project_quota",
-            ),
-        )
-
-        assert self.quota.is_rate_limited(self.project).is_limited
+        # The project-wide monitor quota is still sent.
+        assert any(q.id == "mrl" for q in quotas)
 
     @mock.patch.object(RedisQuota, "get_quotas")
     def test_refund_defaults(self, mock_get_quotas: mock.MagicMock) -> None:
@@ -410,3 +330,48 @@ class RedisQuotaTest(TestCase):
 
         for key in attachment_keys:
             assert client.get(key) == b"100"
+
+
+@pytest.mark.usefixtures("_redis_cluster")
+class RedisClusterQuotaTest(TestCase):
+    @pytest.fixture
+    def _redis_cluster(self) -> Generator[None]:
+        with use_redis_cluster("quotas"):
+            self.quota.cluster.flushall()
+            yield
+            redis_clusters._clusters_str.pop("quotas", None)
+
+    @cached_property
+    def quota(self) -> RedisQuota:
+        return RedisQuota(cluster="quotas")
+
+    @mock.patch.object(RedisQuota, "get_quotas")
+    def test_refund(self, mock_get_quotas: mock.MagicMock) -> None:
+        quotas = [
+            QuotaConfig(
+                id="o",
+                scope=QuotaScope.ORGANIZATION,
+                limit=2,
+                window=60,
+                reason_code="org_quota",
+                categories=[DataCategory.ERROR],
+            ),
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=self.project.id,
+                limit=None,
+                window=60,
+                reason_code="project_quota",
+                categories=[DataCategory.ERROR],
+            ),
+        ]
+        mock_get_quotas.return_value = quotas
+        timestamp = time.time()
+
+        self.quota.refund(self.project, timestamp=timestamp)
+
+        org_id = self.project.organization_id
+        window = int((timestamp - org_id % 60) // 60)
+        assert self.quota.cluster.get(f"r:quota:o{{{org_id}}}:{window}") == "1"
+        assert self.quota.cluster.get(f"r:quota:p{{{org_id}}}{self.project.id}:{window}") == "1"

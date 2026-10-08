@@ -10,7 +10,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Badge} from '@sentry/scraps/badge';
+import {FeatureBadge, Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -22,7 +22,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -55,6 +54,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
@@ -149,7 +149,14 @@ export default function AutofixOverview() {
         }}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
-          <Layout.Title>{t('Autofix Overview')}</Layout.Title>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{
+              type: 'page-title',
+              label: t('Autofix Overview'),
+              trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+            }}
+          />
           {orgNeedsSeerTrial(organization) ? (
             <Stack gap="lg" padding="lg xl">
               <SeerTrialCTA />
@@ -333,7 +340,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   const [settledTeamIdsKey, setSettledTeamIdsKey] = useState<string | null>(null);
   useEffect(() => {
     if (!teamsLoading) {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
+      // eslint-disable-next-line react/set-state-in-effect
       setSettledTeamIdsKey(teamIdsKey);
     }
   }, [teamsLoading, teamIdsKey]);

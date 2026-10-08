@@ -1,18 +1,20 @@
 import {useMemo} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {
-  GridColumnHeader,
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
+import {
+  DataGrid,
+  type GridColumnHeader,
+  type GridColumnOrder,
+  type GridColumnSortBy,
+} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -47,7 +49,7 @@ import {
 } from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader;
@@ -188,20 +190,22 @@ export function PageOverviewWebVitalsDetailPanel({
   const spansSamplesColumnOrder = getSpansSamplesColumnOrder(webVital);
 
   const renderHeadCell = (col: Column) => {
-    if (col.key === 'transaction') {
-      return <NoOverflow>{col.name}</NoOverflow>;
-    }
     if (col.key === 'webVital') {
-      return <AlignRight>{`${webVital}`}</AlignRight>;
+      return <ColumnLabel align="right" column={{name: `${webVital?.toUpperCase()}`}} />;
     }
     if (col.key === 'score' || col.key === 'measurements.score.inp') {
-      return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+      return (
+        <ColumnLabel
+          align="center"
+          column={{name: `${webVital?.toUpperCase()} ${col.name}`}}
+        />
+      );
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
-      return <AlignCenter>{col.name}</AlignCenter>;
+      return <ColumnLabel align="center" column={col} />;
     }
 
-    return <NoOverflow>{col.name}</NoOverflow>;
+    return <ColumnLabel column={col} />;
   };
 
   const getFormattedDuration = (value: number) => {
@@ -364,7 +368,7 @@ export function PageOverviewWebVitalsDetailPanel({
             )}
           </ChartContainer>
           <TableContainer>
-            <GridEditable
+            <DataGrid
               data={spansTableData}
               isLoading={isSpansLoading}
               columnOrder={

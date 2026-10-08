@@ -152,6 +152,7 @@ function useChartZoomCancel(disabled?: boolean) {
     // oxlint-disable-next-line react/immutability
     document.body.removeEventListener('mouseup', handleMouseUp);
     document.body.removeEventListener('keydown', handleKeyDown, true);
+    // oxlint-disable-next-line react/memo-dependencies
   }, [handleKeyDown]);
 
   const handleMouseDown = useCallback(() => {

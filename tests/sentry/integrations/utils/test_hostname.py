@@ -15,6 +15,7 @@ class InstanceHostnameTest(TestCase):
                 "github.example.com",
             ),
             ("gitlab", {"instance": "gitlab.example.com"}, "gitlab.example.com"),
+            ("cursor_origin", {}, "cursor.com"),
         ]
         for provider, metadata, expected in cases:
             with self.subTest(provider=provider):

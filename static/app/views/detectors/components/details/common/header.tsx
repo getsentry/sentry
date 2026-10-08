@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {
   DisableDetectorAction,
   EditDetectorAction,
@@ -22,10 +23,22 @@ type DetectorDetailsHeaderProps = {
   useLocalDetailActions?: boolean;
 };
 
-function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
+function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
   const organization = useOrganization();
+  const project = useProjectFromId({project_id: detector.projectId ?? undefined});
+
   return (
-    <BreadcrumbList
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: detector.name,
+        leadingGraphic: project ? (
+          <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+        ) : (
+          <Placeholder width="16px" height="16px" />
+        ),
+      }}
       items={[
         {
           type: 'link',
@@ -39,19 +52,6 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
         },
       ]}
     />
-  );
-}
-
-function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
-  return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <DetectorDetailsBreadcrumbs detector={detector} />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title item={{type: 'page-title', label: detector.name}} />
-      </TopBar.Slot>
-    </Fragment>
   );
 }
 

@@ -43,10 +43,6 @@ class MsTeamsUnlinkIdentityView(MsTeamsIdentityLinkageView, UnlinkIdentityView):
     def no_identity_template(self) -> str | None:
         return "sentry/integrations/msteams/no-identity.html"
 
-    @property
-    def filter_by_user_id(self) -> bool:
-        return True
-
     def notify_on_success(
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:

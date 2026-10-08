@@ -1,17 +1,18 @@
 import {useCallback} from 'react';
-import {Outlet, useOutletContext} from 'react-router-dom';
+import {Outlet, useOutletContext} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Authenticator} from 'sentry/types/auth';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {UserEmail} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -20,26 +21,36 @@ const ENDPOINT = getApiUrl('/users/$userId/authenticators/', {path: {userId: 'me
 export default function AccountSecurityWrapper() {
   const api = useApi();
   const {authId} = useParams<{authId?: string}>();
+  const {links} = useLegacyStore(ConfigStore);
 
-  const orgRequest = useQuery({
-    queryKey: ['organizations'],
-    queryFn: (): Promise<OrganizationSummary[]> => fetchOrganizations(api),
-    staleTime: 0,
-  });
-  const {refetch: refetchOrganizations} = orgRequest;
-  const emailsRequest = useApiQuery<UserEmail[]>(
-    [getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}})],
-    {
+  const orgRequest = useQuery(
+    apiOptions.as<OrganizationSummary[]>()('/organizations/', {
+      // Organizations span every region, so list them from the control silo
+      host: links.sentryUrl,
       staleTime: 0,
-    }
+    })
   );
-  const authenticatorsRequest = useApiQuery<Authenticator[]>([ENDPOINT], {staleTime: 0});
+  const emailsRequest = useQuery(
+    apiOptions.as<UserEmail[]>()('/users/$userId/emails/', {
+      path: {userId: 'me'},
+      staleTime: 0,
+    })
+  );
+  const authenticatorsRequest = useQuery(
+    apiOptions.as<Authenticator[]>()('/users/$userId/authenticators/', {
+      path: {userId: 'me'},
+      staleTime: 0,
+    })
+  );
 
+  const {refetch: refetchOrganizations} = orgRequest;
+  const {refetch: refetchEmails} = emailsRequest;
+  const {refetch: refetchAuthenticators} = authenticatorsRequest;
   const handleRefresh = useCallback(() => {
     refetchOrganizations();
-    authenticatorsRequest.refetch();
-    emailsRequest.refetch();
-  }, [refetchOrganizations, authenticatorsRequest, emailsRequest]);
+    refetchAuthenticators();
+    refetchEmails();
+  }, [refetchOrganizations, refetchAuthenticators, refetchEmails]);
 
   const disableAuthenticatorMutation = useMutation({
     mutationFn: async (auth: Authenticator) => {

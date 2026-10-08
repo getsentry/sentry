@@ -10,6 +10,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationEndpoint,
+    organization_project_ids,
     service_error,
 )
 from sentry.investigations.endpoints.serializers import InvestigationDetailsSerializer
@@ -41,9 +42,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
             serialize(
                 investigation,
                 request.user,
-                InvestigationDetailsSerializer(
-                    accessible_project_ids=request.access.accessible_project_ids
-                ),
+                InvestigationDetailsSerializer(),
             )
         )
 
@@ -56,7 +55,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
         values = dict(validator.validated_data)
         expected_version = values.pop("investigation_version")
         requested_project_ids = values.pop("project_ids", None)
-        project_ids = request.access.accessible_project_ids
+        project_ids = organization_project_ids(organization)
         if requested_project_ids is not None and not set(requested_project_ids).issubset(
             project_ids
         ):
@@ -93,7 +92,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 serialize(
                     archived,
                     request.user,
-                    InvestigationDetailsSerializer(accessible_project_ids=project_ids),
+                    InvestigationDetailsSerializer(),
                 )
             )
         try:
@@ -112,7 +111,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
             serialize(
                 updated,
                 request.user,
-                InvestigationDetailsSerializer(accessible_project_ids=project_ids),
+                InvestigationDetailsSerializer(),
             )
         )
 

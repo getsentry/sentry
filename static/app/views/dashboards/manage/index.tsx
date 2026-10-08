@@ -15,11 +15,11 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
@@ -28,6 +28,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
@@ -37,7 +38,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
-import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {
+  CUSTOM_DASHBOARD_LABEL,
+  DashboardFilter,
+  PREBUILT_DASHBOARD_LABEL,
+} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
@@ -99,10 +104,13 @@ function ManageDashboards() {
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
-  const pageTitle = isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards');
-
-  const areAiFeaturesAllowed =
-    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
+  const isOnlyCustom =
+    hasPrebuiltDashboards && urlFilter === DashboardFilter.EXCLUDE_PREBUILT;
+  const pageTitle = isOnlyPrebuilt
+    ? PREBUILT_DASHBOARD_LABEL
+    : isOnlyCustom
+      ? CUSTOM_DASHBOARD_LABEL
+      : t('All Dashboards');
 
   const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
 
@@ -124,6 +132,7 @@ function ManageDashboards() {
         pin: 'favorites',
         per_page: DASHBOARD_TABLE_NUM_ROWS,
         ...(isOnlyPrebuilt ? {filter: DashboardFilter.ONLY_PREBUILT} : {}),
+        ...(isOnlyCustom ? {filter: DashboardFilter.EXCLUDE_PREBUILT} : {}),
       },
     }),
     select: selectJsonWithHeaders,
@@ -177,6 +186,7 @@ function ManageDashboards() {
     location.pathname,
     location.query,
     navigate,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     organization,
     sortOptions,
     hasUserLastVisited,
@@ -271,7 +281,7 @@ function ManageDashboards() {
         position="bottom-end"
         data-test-id="sort-by-select"
       />
-      {areAiFeaturesAllowed ? (
+      {areAiFeaturesAllowed(organization) ? (
         <DashboardCreateLimitWrapper>
           {({
             hasReachedDashboardLimit,
@@ -404,21 +414,26 @@ function ManageDashboards() {
           ) : (
             <Stack flex={1}>
               <NoProjectMessage organization={organization}>
-                <Layout.Title>
-                  {pageTitle}
-                  <PageHeadingQuestionTooltip
-                    docsUrl="https://docs.sentry.io/product/dashboards/"
-                    title={
-                      isOnlyPrebuilt
-                        ? t(
-                            'Dashboards built by Sentry to help monitor your application out of the box.'
-                          )
-                        : t(
-                            "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
-                          )
-                    }
-                  />
-                </Layout.Title>
+                <TopBar.Slot
+                  name="breadcrumbs"
+                  title={{
+                    type: 'page-title',
+                    label: pageTitle,
+                    labelTooltip: (
+                      <DocumentationHint docsUrl="https://docs.sentry.io/product/dashboards/">
+                        {isOnlyPrebuilt
+                          ? t(
+                              'Dashboards built by Sentry to help monitor your application out of the box.'
+                            )
+                          : isOnlyCustom
+                            ? t('Dashboards created by you and your team.')
+                            : t(
+                                "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                              )}
+                      </DocumentationHint>
+                    ),
+                  }}
+                />
                 <TopBar.Slot name="actions">
                   <Feature features="dashboards-import">
                     <Button

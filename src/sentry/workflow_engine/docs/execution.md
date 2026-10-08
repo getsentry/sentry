@@ -53,8 +53,9 @@ same after detector selection.
 
 ### 3. Evaluate each detector
 
-`process_detectors` obtains `detector.detector_handler` from the detector's registered
-`GroupType.detector_settings` and calls `evaluate(packet)`.
+`process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
+registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler,
+which delegates to the default or overridden `evaluate` methods that contain most of the detector's logic.
 
 One packet can produce:
 
@@ -63,10 +64,35 @@ One packet can produce:
 - Multiple results keyed by `DetectorGroupKey`
 
 A handler returns a mapping of group keys to `DetectorEvaluation` objects. An evaluation
-can contain an `IssueOccurrence`, a `StatusChangeMessage`, or `None`;
-`process_detectors` publishes only non-null results.
+can contain an `IssueOccurrence`, a `StatusChangeMessage`, or `None`. `process_detectors`
+routes non-null results according to the handler's `outcome`.
 
-### 4. Stateful detector orchestration
+### 4. Detector orchestration
+
+Every detector handler inherits [`DetectorHandler`](../handlers/detector/base.py). Its
+default `evaluate` is stateless; `StatefulDetectorHandler` replaces it with durable
+state and thresholds.
+
+#### Stateless (default)
+
+```mermaid
+flowchart TD
+    Packet[Receive DataPacket] --> Extract[Extract evaluation values]
+    Extract --> Group[Normalize to group key and value pairs]
+    Group --> Conditions[Evaluate detector condition group]
+    Conditions --> Priority[Select highest triggered priority]
+    Priority --> Ok{Priority is OK?}
+    Ok -->|Yes| Stop[No Issue Platform output]
+    Ok -->|No| Occurrence[Build IssueOccurrence]
+```
+
+Important semantics:
+
+- Each packet is evaluated independently. There is no dedupe, threshold, or durable
+  state.
+- `OK` produces no status-change message; the default path never resolves issues.
+
+#### Stateful
 
 Most threshold-based detectors inherit
 [`StatefulDetectorHandler`](../handlers/detector/stateful.py):
@@ -112,17 +138,22 @@ empty or passing `NONE` group can also trigger without a priority-bearing result
 therefore use the stateful handler's default `OK` priority. A missing trigger group is
 invalid and produces no transition.
 
-Custom detectors can inherit the smaller
-[`BaseDetectorHandler`](../handlers/detector/base.py) or implement
-[`DetectorHandler`](../handlers/detector/base.py) directly, but then they own more of
-this orchestration.
+Detectors that need a different flow inherit `DetectorHandler` and override `evaluate`,
+but then they own this orchestration. `BaseDetectorHandler` is only the abstract
+interface and is not a base for new detectors.
 
-### 5. Publish to Issue Platform
+### 5. Produce detector output
 
-`process_detectors` passes detector results to
-`create_issue_platform_payload` and
-[`produce_occurrence_to_kafka`](../../issues/producer.py). The payload type distinguishes
-occurrences from status changes.
+`process_detectors` invokes the detector handler's `on_complete` lifecycle callback with
+the detector and each evaluation. The default callback is
+`DetectorOutcome.ISSUE_PLATFORM.dispatch`; it resolves the registered outcome handler,
+whose `handle` method ignores evaluations without a result and passes the others to Issue
+Platform via [`produce_occurrence_to_kafka`](../../issues/producer.py). A detector can
+assign another supported outcome dispatcher or override `on_complete` for custom processing.
+
+Supported outcome implementations register their `DetectorOutcomeHandler` class with
+`@detector_outcome_registry.add(DetectorOutcome.<KEY>)`. The closed, typed set of keys
+lives in `supported_outcomes.py`; the registry maps each key to its handler implementation.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a

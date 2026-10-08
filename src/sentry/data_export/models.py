@@ -128,6 +128,7 @@ class ExportedData(Model):
             return
 
         data = DataExportSuccess(
+            organization_id=self.organization_id,
             export_url=url,
             expiration_date=self.date_expired,
         )
@@ -185,6 +186,7 @@ class ExportedData(Model):
             return
 
         data = DataExportFailure(
+            organization_id=self.organization_id,
             error_message=message,
             error_payload=self.payload,
             creation_date=self.date_added,

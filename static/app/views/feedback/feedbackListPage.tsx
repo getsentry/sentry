@@ -6,6 +6,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackFilters} from 'sentry/components/feedback/feedbackFilters';
 import {FeedbackItemLoader} from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -20,7 +21,6 @@ import {useRedirectToFeedbackFromEvent} from 'sentry/components/feedback/useRedi
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -176,6 +176,7 @@ export default function FeedbackListPage() {
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setSelectedItemIndex(null);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [pageFilters, searchQuery]);
 
   const handleJumpToSelectedItem = () => {
@@ -237,23 +238,25 @@ export default function FeedbackListPage() {
   );
 
   const hasFeedbackContent = hasSetupOneFeedback || hasSlug;
-  const titleContent = (
-    <Fragment>
-      {t('User Feedback')}
-      <PageHeadingQuestionTooltip
-        title={t(
-          'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
-        )}
-        docsUrl="https://docs.sentry.io/product/user-feedback/"
-      />
-    </Fragment>
-  );
 
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
         <FeedbackApiOptions organization={organization}>
-          <TopBar.Slot name="title">{titleContent}</TopBar.Slot>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{
+              type: 'page-title',
+              label: t('User Feedback'),
+              labelTooltip: (
+                <DocumentationHint docsUrl="https://docs.sentry.io/product/user-feedback/">
+                  {t(
+                    'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
+                  )}
+                </DocumentationHint>
+              ),
+            }}
+          />
           <TopBar.Slot name="feedback">
             <FeedbackButton
               size="sm"

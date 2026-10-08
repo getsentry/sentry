@@ -11,7 +11,6 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
-from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.utils.notifications import send_incident_alert_notification
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
@@ -21,6 +20,7 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
 )
 from sentry.notifications.notification_action.registry import metric_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
+from sentry.notifications.notification_action.utils import metric_alert_notification_data_factory
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
@@ -53,14 +53,6 @@ def _send_via_notification_platform(
     if notification_context.target_identifier is None:
         raise ValueError("Slack channel is None")
 
-    attachment_info = incident_attachment_info(
-        organization=organization,
-        alert_context=alert_context,
-        metric_issue_context=metric_issue_context,
-        notification_uuid=notification_uuid,
-        referrer="metric_alert_slack",
-    )
-
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", organization):
         try:
@@ -75,16 +67,14 @@ def _send_via_notification_platform(
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
-    data = MetricAlertNotificationData(
-        group_id=metric_issue_context.id,
-        organization_id=organization.id,
-        notification_uuid=notification_uuid,
-        action_id=notification_context.id,
+    data = metric_alert_notification_data_factory(
+        action_type=Action.Type.SLACK,
+        notification_context=notification_context,
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
         open_period_context=open_period_context,
-        new_status=metric_issue_context.new_status.value,
-        title=attachment_info["title"],
-        title_link=attachment_info["title_link"],
-        text=attachment_info["text"],
+        organization=organization,
+        notification_uuid=notification_uuid,
         chart_url=chart_url,
     )
 

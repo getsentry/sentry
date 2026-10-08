@@ -119,7 +119,7 @@ describe('LogsAggregateTable', () => {
       />,
       {initialRouterConfig}
     );
-    expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-error')).toBeInTheDocument();
   });
 
   it('renders a rate limit message and retry button when rate limited', async () => {
@@ -373,7 +373,11 @@ describe('LogsAggregateTable', () => {
       }
     );
 
-    await userEvent.click(screen.getByText('123'));
+    await userEvent.click(
+      within(screen.getByRole('cell', {name: '123'})).getByRole('button', {
+        name: 'Actions',
+      })
+    );
 
     expect(
       await screen.findByRole('menuitemradio', {name: 'Show values greater than'})

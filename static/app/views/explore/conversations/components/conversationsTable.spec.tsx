@@ -3,15 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {dragHandle} from 'sentry-test/dragMove';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {
-  COL_WIDTH_MINIMUM,
-  COL_WIDTH_UNDEFINED,
-} from 'sentry/components/tables/gridEditable';
+import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 
 import {
   collapseToolsColumnWhenUnused,
   ConversationsTable,
+  getConversationTimespan,
   getUserDisplayName,
   getVisibleToolCount,
   parseStoredColumnWidths,
@@ -53,8 +53,13 @@ function mockConversations(body: Array<Record<string, unknown>>) {
   });
 }
 
+function TestConversationsTable() {
+  const conversations = useConversations();
+  return <ConversationsTable conversations={conversations} />;
+}
+
 function renderTable() {
-  return render(<ConversationsTable />, {organization});
+  return render(<TestConversationsTable />, {organization});
 }
 
 describe('ConversationsTable', () => {
@@ -124,6 +129,37 @@ describe('ConversationsTable', () => {
     renderTable();
 
     expect(await screen.findByText('sarah@example.com')).toBeInTheDocument();
+  });
+
+  it('uses elapsed wall-clock time for the conversation timespan', () => {
+    expect(
+      getConversationTimespan({
+        ...BASE_CONVERSATION,
+        startTimestamp: 1_000,
+        endTimestamp: 421_000,
+      })
+    ).toBe(420_000);
+  });
+
+  it('uses generation duration for a single span with no elapsed timespan', () => {
+    expect(
+      getConversationTimespan({
+        ...BASE_CONVERSATION,
+        startTimestamp: 1_000,
+        endTimestamp: 1_000,
+        generationDuration: 750,
+      })
+    ).toBe(750);
+  });
+
+  it('clamps the conversation timespan when timestamps are out of order', () => {
+    expect(
+      getConversationTimespan({
+        ...BASE_CONVERSATION,
+        startTimestamp: 2_000,
+        endTimestamp: 1_000,
+      })
+    ).toBe(0);
   });
 
   it('uses the user ID when no other identifying fields are available', () => {
@@ -277,6 +313,7 @@ describe('ConversationsTable', () => {
       'descending'
     );
     expect(screen.queryByRole('button', {name: 'Conversation'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Timespan'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Tools'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Cost'}));

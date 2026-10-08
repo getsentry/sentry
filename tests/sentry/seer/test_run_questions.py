@@ -1,10 +1,68 @@
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from sentry.models.organization import Organization
+from sentry.seer.oneshot import call_seer_oneshot
 from sentry.seer.run_questions import QUESTIONS, get_run_questions
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
+
+
+class CallSeerOneShotTest(TestCase):
+    def test_establishes_viewer_context_for_request(self) -> None:
+        observed_contexts: list[ViewerContext | None] = []
+        response = Mock(status=200, data=b'{"result": {}}')
+
+        def make_request(*args: Any, **kwargs: Any) -> Mock:
+            observed_contexts.append(get_viewer_context())
+            return response
+
+        call_seer_oneshot(
+            make_request,
+            {"oneshot_id": "test", "payload": {}},
+            self.organization,
+            error_metric="seer.oneshot.error",
+            user_id=self.user.id,
+        )
+
+        assert observed_contexts == [
+            ViewerContext(
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                actor_type=ActorType.USER,
+            )
+        ]
+        assert get_viewer_context() is None
+
+    def test_preserves_existing_viewer_context(self) -> None:
+        existing_context = ViewerContext(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            user_id=self.user.id,
+            actor_type=ActorType.USER,
+        )
+        observed_contexts: list[ViewerContext | None] = []
+
+        def make_request(*args: Any, **kwargs: Any) -> Mock:
+            observed_contexts.append(get_viewer_context())
+            return Mock(status=200, data=b'{"result": {}}')
+
+        with viewer_context_scope(existing_context):
+            call_seer_oneshot(
+                make_request,
+                {"oneshot_id": "test", "payload": {}},
+                self.organization,
+                error_metric="seer.oneshot.error",
+                user_id=self.user.id,
+            )
+
+        assert observed_contexts == [existing_context]
 
 
 class GetRunQuestionsTest(TestCase):
