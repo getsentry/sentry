@@ -37,6 +37,8 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeContext,
     TraceItemAttributeKey,
     TraceItemAttributeSource,
+    TraceItemAttributeValidateResponse,
+    TraceItemAttributeValidationResult,
 )
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
@@ -50,7 +52,11 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
-from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -1562,6 +1568,7 @@ class OrganizationTraceItemAttributeValidateBodySerializer(serializers.Serialize
         min_length=1,
         max_length=100,
         required=True,
+        help_text="The attribute names to validate, between 1 and 100 per request.",
     )
 
 
@@ -1582,6 +1589,7 @@ def _check_attributes_exist(
     return check_attribute_names_exist(meta, attrs_by_type)
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
@@ -1589,17 +1597,60 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
     }
     owner = ApiOwner.DATA_BROWSING
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="validateOrganizationTraceItemAttributes",
+        summary="Validate Trace Item Attributes",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            OpenApiParameter(
+                name="itemType",
+                location="query",
+                required=True,
+                type=str,
+                enum=SUPPORTED_DATASETS,
+                description="The trace item dataset to validate the attributes against.",
+            ),
+        ],
+        request=OrganizationTraceItemAttributeValidateBodySerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "TraceItemAttributeValidateResponse", TraceItemAttributeValidateResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TraceItemAttributeExamples.VALIDATE_TRACE_ITEM_ATTRIBUTES,
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[TraceItemAttributeValidateResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
+        """
+        Check whether each attribute name can be queried on a trace item dataset.
+        Sentry-defined attributes are always valid. Custom attributes are only valid if
+        they have been seen in stored data for the requested projects and time range.
+        Valid attributes include their resolved type, and invalid ones include an error.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         query_serializer = OrganizationTraceItemAttributeValidateQuerySerializer(data=request.GET)
         if not query_serializer.is_valid():
-            return Response(query_serializer.errors, status=400)
+            return Response(as_validation_errors(query_serializer), status=400)
 
         serializer = OrganizationTraceItemAttributeValidateBodySerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         item_type = SupportedTraceItemType(query_serializer.validated_data["item_type"])
         attribute_names: list[str] = serializer.validated_data["attributes"]
@@ -1619,7 +1670,7 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
             definitions=definitions,
         )
 
-        results: dict[str, dict[str, Any]] = {}
+        results: dict[str, TraceItemAttributeValidationResult] = {}
         # Collect unknown (user tag) attributes that need storage validation
         unknown_attrs: list[tuple[str, Any]] = []
 

@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -190,10 +190,15 @@ export function PageOverviewWebVitalsDetailPanel({
 
   const renderHeadCell = (col: Column) => {
     if (col.key === 'webVital') {
-      return <ColumnLabel align="right" column={{name: `${webVital}`}} />;
+      return <ColumnLabel align="right" column={{name: `${webVital?.toUpperCase()}`}} />;
     }
     if (col.key === 'score' || col.key === 'measurements.score.inp') {
-      return <ColumnLabel align="center" column={{name: `${webVital} ${col.name}`}} />;
+      return (
+        <ColumnLabel
+          align="center"
+          column={{name: `${webVital?.toUpperCase()} ${col.name}`}}
+        />
+      );
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
       return <ColumnLabel align="center" column={col} />;

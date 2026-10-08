@@ -13,6 +13,7 @@ export interface AttributeDetailsProps {
   name: React.ReactNode;
   description?: React.ReactNode;
   isAddedBySentry?: boolean;
+  isInternal?: boolean;
   isScrubbed?: boolean;
   kind?: FieldKind;
   valueType?: FieldValueType;
@@ -21,6 +22,7 @@ export interface AttributeDetailsProps {
 export function AttributeDetails({
   description,
   isAddedBySentry,
+  isInternal,
   isScrubbed,
   kind,
   name,
@@ -45,6 +47,12 @@ export function AttributeDetails({
           <Stack gap="2xs">
             <Text variant="muted">{t('Description')}</Text>
             <Text>{description}</Text>
+          </Stack>
+        ) : null}
+        {isInternal ? (
+          <Stack gap="2xs">
+            <Text variant="muted">{t('Visibility')}</Text>
+            <Text>{t('Internal')}</Text>
           </Stack>
         ) : null}
       </Tooltip.Grid>

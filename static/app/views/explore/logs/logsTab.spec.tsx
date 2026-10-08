@@ -1,4 +1,4 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {initializeLogsTest} from 'sentry-fixture/log';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -725,9 +725,13 @@ describe('LogsTabContent', () => {
   it('refetches the chart and its dropped data annotations when the refresh button is clicked', async () => {
     PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: null});
     const droppedDataMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
+      url: `/organizations/${organization.slug}/events-dropped/`,
       method: 'GET',
-      body: {timeSeries: [TimeSeriesFixture()]},
+      body: {
+        meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
+        droppedEvents: [],
+        acceptedEvents: [],
+      },
       match: [
         MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
       ],
@@ -831,14 +835,15 @@ describe('LogsTabContent', () => {
   describe('dropped data layer', () => {
     function mockDroppedData() {
       return MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-timeseries/`,
+        url: `/organizations/${organization.slug}/events-dropped/`,
         method: 'GET',
         match: [
           MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
         ],
         body: {
-          timeSeries: [],
-          meta: {droppedAnnotations: [AnnotationFixture()], acceptedAnnotations: []},
+          meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
+          droppedEvents: [DroppedEventFixture()],
+          acceptedEvents: [],
         },
       });
     }
@@ -857,9 +862,12 @@ describe('LogsTabContent', () => {
 
       expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
       expect(droppedDataMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/events-timeseries/`,
+        `/organizations/${organization.slug}/events-dropped/`,
         expect.objectContaining({
-          query: expect.objectContaining({dataset: 'ourlogs', includeAnnotations: 1}),
+          query: expect.objectContaining({
+            dataset: 'ourlogs',
+            referrer: 'api.explore.dropped-data-annotations',
+          }),
         })
       );
     });
