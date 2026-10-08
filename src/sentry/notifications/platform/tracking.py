@@ -15,6 +15,7 @@ from sentry.analytics.events.notification_tracking import (
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationCategory,
+    NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSection,
@@ -89,9 +90,8 @@ def is_tracking_enabled(
 
 @dataclass
 class NotificationLinkDecorator:
-    source: NotificationSource | str
+    data: NotificationData
     provider: NotificationProviderKey | str
-    notification_uuid: str
     links: set[NotificationLink] = field(default_factory=set, init=False)
 
     def decorate_url(self, url: str) -> str:
@@ -100,7 +100,7 @@ class NotificationLinkDecorator:
         present in the notification. Other URLs and URLs that can't be decorated are returned
         unchanged and aren't included.
         """
-        if not is_tracking_enabled(self.source, self.provider):
+        if not is_tracking_enabled(self.data.source, self.provider):
             return url
 
         try:
@@ -113,8 +113,8 @@ class NotificationLinkDecorator:
                 if key not in ("referrer", "notification_uuid")
             ]
             query += [
-                ("referrer", f"{self.source}-{self.provider}"),
-                ("notification_uuid", self.notification_uuid),
+                ("referrer", f"{self.data.source}-{self.provider}"),
+                ("notification_uuid", self.data.notification_uuid),
             ]
             decorated = urlunsplit(parsed._replace(query=urlencode(query)))
         except Exception:
@@ -126,7 +126,7 @@ class NotificationLinkDecorator:
     def decorate_rendered_template(
         self, rendered_template: NotificationRenderedTemplate
     ) -> NotificationRenderedTemplate:
-        if not is_tracking_enabled(self.source, self.provider):
+        if not is_tracking_enabled(self.data.source, self.provider):
             return rendered_template
 
         def decorate_blocks(blocks: list[NotificationTextBlock]) -> list[NotificationTextBlock]:

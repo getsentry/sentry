@@ -88,9 +88,7 @@ class MetricAlertCardLegacyParityTest(MetricAlertHandlerBase):
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Metric Alert", body=[]),
             link_decorator=NotificationLinkDecorator(
-                source=data.source,
-                provider=NotificationProviderKey.MSTEAMS,
-                notification_uuid=data.notification_uuid,
+                data=data, provider=NotificationProviderKey.MSTEAMS
             ),
         )
 

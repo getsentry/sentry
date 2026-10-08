@@ -225,7 +225,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         build_data.assert_not_called()
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_renders_the_data_built_from_the_legacy_render(
         self, mock_render: mock.MagicMock
@@ -275,7 +276,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
 
     @mock.patch(f"{COMPARE_PATH}.sentry_sdk.capture_exception")
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_compare_error_is_captured(
         self, mock_render: mock.MagicMock, mock_capture: mock.MagicMock
@@ -291,7 +293,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         mock_capture.assert_called_once_with(mock_diff.side_effect)
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_match_records_timing(self, mock_render: mock.MagicMock) -> None:
         with mock.patch(f"{COMPARE_PATH}.metrics") as mock_metrics:
@@ -311,7 +314,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
 
     @mock.patch(
         f"{COMPARE_PATH}.NotificationService.render_template",
-        return_value={"type": "Card", "extra": 1},
+        return_value=({"type": "Card", "extra": 1}, set()),
     )
     def test_mismatch_log(self, mock_render: mock.MagicMock) -> None:
         invocation = self.create_invocation(Action.Type.MSTEAMS)
@@ -335,7 +338,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         }
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_compares_when_the_send_raises(self, mock_render: mock.MagicMock) -> None:
         error = RuntimeError("send failed")

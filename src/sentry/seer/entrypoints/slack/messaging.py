@@ -80,7 +80,7 @@ def send_thread_update(
         )
         provider = provider_registry.get(NotificationProviderKey.SLACK)
         template_cls = template_registry.get(data.source)
-        renderable, links = NotificationService.render_for_send(
+        renderable, links = NotificationService.render_template(
             data=data, template=template_cls(), provider=provider
         )
         try:
@@ -301,9 +301,7 @@ def update_existing_message(
         parsed_blocks = [Block.parse(block) for block in blocks]
         footer_extra_text = f"(ty <@{slack_user_id}>)" if slack_user_id else None
         link_decorator = NotificationLinkDecorator(
-            source=data.source,
-            provider=NotificationProviderKey.SLACK,
-            notification_uuid=data.notification_uuid,
+            data=data, provider=NotificationProviderKey.SLACK
         )
         footer_blocks = SeerSlackRenderer.render_footer_blocks(
             data=data,

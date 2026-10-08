@@ -33,6 +33,6 @@ class NotificationRenderer[RenderableT](Protocol):
         for the provider where the template cannot. For example, custom markdown formatting,
         provider-specific features like modals, etc. Custom renderers must use
         `link_decorator.decorate_url` for navigational links they create outside the rendered
-        template. The decorator does not decorate links for renders that won't be sent.
+        template.
         """
         ...

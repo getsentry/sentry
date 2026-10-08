@@ -36,9 +36,7 @@ class MSTeamsRendererTest(TestCase):
             data=data,
             rendered_template=rendered_template,
             link_decorator=NotificationLinkDecorator(
-                source=data.source,
-                provider=NotificationProviderKey.MSTEAMS,
-                notification_uuid=data.notification_uuid,
+                data=data, provider=NotificationProviderKey.MSTEAMS
             ),
         )
 

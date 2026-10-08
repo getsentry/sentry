@@ -315,7 +315,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             organization_id=self.organization.id,
         )
         data = MockNotification(message="test")
-        self.slack_renderable = NotificationService.render_template(
+        self.slack_renderable, _ = NotificationService.render_template(
             data=data,
             template=MockNotificationTemplate(),
             provider=SlackNotificationProvider,

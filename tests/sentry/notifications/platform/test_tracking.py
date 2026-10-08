@@ -34,6 +34,7 @@ from sentry.testutils.helpers.analytics import (
     get_last_analytics_event,
 )
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.notifications.platform import MockNotification
 
 ENABLED_OPTIONS = {"notifications.tracking.sources": ["activity-seer-rca-completed"]}
 
@@ -253,11 +254,12 @@ class DecorateRenderedTemplateTest(TestCase):
     def decorate_rendered_template(
         self, rendered_template: NotificationRenderedTemplate
     ) -> tuple[NotificationRenderedTemplate, set[NotificationLink]]:
-        decorator = NotificationLinkDecorator(
+        data = MockNotification(
+            message="test",
             source=NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
-            provider=NotificationProviderKey.EMAIL,
             notification_uuid=self.notification_uuid,
         )
+        decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.EMAIL)
         return decorator.decorate_rendered_template(rendered_template), decorator.links
 
     def test_decorates_sentry_links(self) -> None:

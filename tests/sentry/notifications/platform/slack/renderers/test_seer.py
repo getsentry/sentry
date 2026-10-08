@@ -40,11 +40,7 @@ from sentry.testutils.helpers.options import override_options
 
 
 def link_decorator(data: NotificationData) -> NotificationLinkDecorator:
-    return NotificationLinkDecorator(
-        source=data.source,
-        provider=NotificationProviderKey.SLACK,
-        notification_uuid=data.notification_uuid,
-    )
+    return NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
 
 
 def render_seer(

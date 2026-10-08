@@ -54,9 +54,7 @@ class SlackRendererTest(TestCase):
             data=data,
             rendered_template=rendered_template,
             link_decorator=NotificationLinkDecorator(
-                source=data.source,
-                provider=NotificationProviderKey.SLACK,
-                notification_uuid=data.notification_uuid,
+                data=data, provider=NotificationProviderKey.SLACK
             ),
         )
         rendererable_dict = [block.to_dict() for block in rendererable.get("blocks", [])]

@@ -75,9 +75,7 @@ class IssueCardLegacyParityTest(TestCase):
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
             link_decorator=NotificationLinkDecorator(
-                source=data.source,
-                provider=NotificationProviderKey.MSTEAMS,
-                notification_uuid=data.notification_uuid,
+                data=data, provider=NotificationProviderKey.MSTEAMS
             ),
         )
 

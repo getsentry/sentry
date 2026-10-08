@@ -125,7 +125,7 @@ class NotificationService[T: NotificationData]:
             # Update the lifecycle with the notification category now that we know it
             event_lifecycle.notification_category = template.category
             try:
-                renderable, links = NotificationService.render_for_send(
+                renderable, links = NotificationService.render_template(
                     data=self.data, template=template, provider=provider
                 )
             except Exception as e:
@@ -186,56 +186,17 @@ class NotificationService[T: NotificationData]:
         data: T,
         template: NotificationTemplate[T],
         provider: type[NotificationProvider[RenderableT]],
-    ) -> RenderableT:
-        link_decorator = NotificationLinkDecorator(
-            source="preview",
-            provider=provider.key,
-            notification_uuid=data.notification_uuid,
-        )
-        return cls._render_with_link_decorator(
-            data=data,
-            template=template,
-            provider=provider,
-            link_decorator=link_decorator,
-        )
-
-    @classmethod
-    def render_for_send[RenderableT](
-        cls,
-        data: T,
-        template: NotificationTemplate[T],
-        provider: type[NotificationProvider[RenderableT]],
     ) -> tuple[RenderableT, set[NotificationLink]]:
-        link_decorator = NotificationLinkDecorator(
-            source=data.source,
-            provider=provider.key,
-            notification_uuid=data.notification_uuid,
-        )
-        renderable = cls._render_with_link_decorator(
-            data=data,
-            template=template,
-            provider=provider,
-            link_decorator=link_decorator,
-        )
-        return renderable, set(link_decorator.links)
-
-    @classmethod
-    def _render_with_link_decorator[RenderableT](
-        cls,
-        *,
-        data: T,
-        template: NotificationTemplate[T],
-        provider: type[NotificationProvider[RenderableT]],
-        link_decorator: NotificationLinkDecorator,
-    ) -> RenderableT:
-        rendered_template = template.render(data=data)
+        """
+        Returns the renderable and the kinds of tracked link it contains.
+        """
+        link_decorator = NotificationLinkDecorator(data=data, provider=provider.key)
+        rendered_template = link_decorator.decorate_rendered_template(template.render(data=data))
         renderer = provider.get_renderer(data=data)
-        rendered_template = link_decorator.decorate_rendered_template(rendered_template)
-        return renderer.render(
-            data=data,
-            rendered_template=rendered_template,
-            link_decorator=link_decorator,
+        renderable = renderer.render(
+            data=data, rendered_template=rendered_template, link_decorator=link_decorator
         )
+        return renderable, link_decorator.links
 
     @staticmethod
     def _resolve_thread_context(
@@ -430,7 +391,7 @@ def notify_target_async(
         template = template_cls()
         lifecycle_metric.notification_category = template.category
         try:
-            renderable, links = NotificationService.render_for_send(
+            renderable, links = NotificationService.render_template(
                 data=notification_data, template=template, provider=provider
             )
         except Exception as e:

@@ -90,7 +90,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
                         provider.default_renderer, "render", wraps=provider.default_renderer.render
                     ) as render,
                 ):
-                    renderable, links = NotificationService.render_for_send(
+                    renderable, links = NotificationService.render_template(
                         data=data, template=template, provider=provider
                     )
                     rendered_template = render.call_args.kwargs["rendered_template"]
@@ -120,7 +120,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
             NotificationProviderKey.DISCORD,
         ):
             with self.subTest(provider=provider_key):
-                renderable, links = NotificationService.render_for_send(
+                renderable, links = NotificationService.render_template(
                     data=data,
                     template=template,
                     provider=provider_registry.get(provider_key),
@@ -154,7 +154,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
             NotificationProviderKey.DISCORD,
         ):
             with self.subTest(provider=provider_key):
-                renderable, links = NotificationService.render_for_send(
+                renderable, links = NotificationService.render_template(
                     data=data,
                     template=IssueNotificationTemplate(),
                     provider=provider_registry.get(provider_key),
@@ -164,14 +164,3 @@ class RenderTemplateLinkTrackingTest(TestCase):
                 assert f"referrer={NotificationSource.ISSUE}-{provider_key}" in text
                 assert f"notification_uuid={data.notification_uuid}" in text
                 assert links == {NotificationLink.ISSUE}
-
-    def test_render_template_does_not_decorate_links(self) -> None:
-        template = template_registry.get(NotificationSource.METRIC_ALERT)()
-
-        renderable = NotificationService.render_template(
-            data=template.example_data,
-            template=template,
-            provider=provider_registry.get(NotificationProviderKey.SLACK),
-        )
-
-        assert "notification_uuid=" not in "\n".join(get_strings(renderable))

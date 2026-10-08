@@ -87,11 +87,7 @@ def serialize_email_preview[T: NotificationData](
     email = EmailRenderer.render(
         data=data,
         rendered_template=rendered_template,
-        link_decorator=NotificationLinkDecorator(
-            source="preview",
-            provider=NotificationProviderKey.EMAIL,
-            notification_uuid=data.notification_uuid,
-        ),
+        link_decorator=NotificationLinkDecorator(data=data, provider=NotificationProviderKey.EMAIL),
     )
     return {
         "subject": email.subject,
@@ -109,9 +105,7 @@ def serialize_msteams_preview[T: NotificationData](
         data=data,
         rendered_template=rendered_template,
         link_decorator=NotificationLinkDecorator(
-            source="preview",
-            provider=NotificationProviderKey.MSTEAMS,
-            notification_uuid=data.notification_uuid,
+            data=data, provider=NotificationProviderKey.MSTEAMS
         ),
     )
 
@@ -125,11 +119,7 @@ def serialize_slack_preview[T: NotificationData](
     message = renderer.render(
         data=data,
         rendered_template=rendered_template,
-        link_decorator=NotificationLinkDecorator(
-            source="preview",
-            provider=NotificationProviderKey.SLACK,
-            notification_uuid=data.notification_uuid,
-        ),
+        link_decorator=NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK),
     )
 
     serialized_blocks = []
@@ -148,9 +138,7 @@ def serialize_discord_preview[T: NotificationData](
         data=data,
         rendered_template=rendered_template,
         link_decorator=NotificationLinkDecorator(
-            source="preview",
-            provider=NotificationProviderKey.DISCORD,
-            notification_uuid=data.notification_uuid,
+            data=data, provider=NotificationProviderKey.DISCORD
         ),
     )
 

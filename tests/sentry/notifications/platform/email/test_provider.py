@@ -43,11 +43,7 @@ def render_email(
     return EmailRenderer.render(
         data=data,
         rendered_template=rendered_template,
-        link_decorator=NotificationLinkDecorator(
-            source=data.source,
-            provider=NotificationProviderKey.EMAIL,
-            notification_uuid=data.notification_uuid,
-        ),
+        link_decorator=NotificationLinkDecorator(data=data, provider=NotificationProviderKey.EMAIL),
     )
 
 
