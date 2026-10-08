@@ -59,6 +59,18 @@ describe('transformTimeSeriesResponseToSeries', () => {
       expected: ['Chrome', '[TypeError,(no value)],None', 'Other'],
     },
     {
+      name: 'a group by value that collides with the Other bucket',
+      alias: '',
+      timeSeries: [
+        makeTimeSeries('count()', {
+          groupBy: [{key: 'browser', value: 'Other'}],
+          order: 0,
+        }),
+        makeTimeSeries('count()', {isOther: true, order: 1}),
+      ],
+      expected: ['Other (browser)', 'Other'],
+    },
+    {
       name: 'groups with multiple y-axes and an alias',
       alias: 'Alias',
       timeSeries: [
