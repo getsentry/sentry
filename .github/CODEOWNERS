@@ -185,7 +185,7 @@ requirements*.txt                                        @getsentry/owners-pytho
 pyproject.toml                                           @getsentry/owners-python-build
 .oxfmtrc.json                                            @getsentry/owners-js-build
 vercel.json                                              @getsentry/owners-js-build
-/.github/workflows/frontend.yml                          @getsentry/design-engineering
+/.github/workflows/frontend.yml                          @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 oxlint.config.ts                                         @getsentry/owners-js-build
