@@ -20,6 +20,8 @@ Single organization mode reuses the GitHub integration app's client ID and
 secret for login when the app option keys are absent and the corresponding
 app settings are nonempty. When either modern app credential is configured,
 login settings never backfill the empty partner into the integration credentials.
+When deployment provenance selects the modern pair, GitHub login uses that pair
+including empty values after any original app option values are promoted.
 Original app option keys take precedence over direct app settings and
 synthetic login backfills. GitHub login option keys retain their login remap
 precedence. Plain bootstrap also copies the paired direct app
