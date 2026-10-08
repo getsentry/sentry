@@ -5,7 +5,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventHydrationDiff} from 'sentry/components/events/eventHydrationDiff';
@@ -31,16 +30,13 @@ import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {ProguardSection} from 'sentry/components/events/interfaces/debugMeta/proguardSection';
-import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import {Request} from 'sentry/components/events/interfaces/request';
-import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
-import {Threads} from 'sentry/components/events/interfaces/threads';
 import {UptimeAssertionsSection} from 'sentry/components/events/interfaces/uptime/uptimeAssertionsSection';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
@@ -48,20 +44,15 @@ import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {t} from 'sentry/locale';
-import type {Entry, EntryMap, Event, EventTransaction} from 'sentry/types/event';
+import type {Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {
-  isJavascriptPlatform,
-  isMobilePlatform,
-  isNativePlatform,
-} from 'sentry/utils/platform';
+import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
@@ -69,6 +60,11 @@ import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/conf
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {
+  EntryErrorBoundary,
+  EventStackTraceEntries,
+  getEventEntryMap,
+} from 'sentry/views/issueDetails/groupEventDetails/eventStackTraceEntries';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 import {
   getHangProfileData,
@@ -102,17 +98,8 @@ export function EventDetailsContent({
   project,
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
-  const shouldUseNewStackTrace =
-    // New stack trace is currently only non-native platforms.
-    !isNativePlatform(event.platform);
   const tagsRef = useRef<HTMLDivElement>(null);
-  const eventEntries = useMemo(() => {
-    const {entries} = event;
-    return entries.reduce<Partial<EntryMap>>((entryMap, entry) => {
-      (entryMap as Record<string, Entry>)[entry.type] = entry;
-      return entryMap;
-    }, {});
-  }, [event]);
+  const eventEntries = useMemo(() => getEventEntryMap(event), [event]);
 
   const projectSlug = project.slug;
   const hasReplay = Boolean(getReplayIdFromEvent(event));
@@ -121,7 +108,6 @@ export function EventDetailsContent({
   const hangProfileData =
     mechanism === 'mx_hang_diagnostic' ? getHangProfileData(event) : null;
   const isMetricKitHang = hangProfileData !== null;
-  const groupingCurrentLevel = group?.metadata?.current_level;
   const isSampleError = useIsSampleEvent();
 
   useCopyIssueDetails(group, event);
@@ -189,57 +175,7 @@ export function EventDetailsContent({
               />
             </ErrorBoundary>
           )}
-          {defined(eventEntries[EntryType.EXCEPTION]) && (
-            <EntryErrorBoundary type={EntryType.EXCEPTION}>
-              {shouldUseNewStackTrace ? (
-                <IssueStackTrace
-                  event={event}
-                  values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
-                  projectSlug={project.slug}
-                  group={group}
-                />
-              ) : (
-                <Exception
-                  event={event}
-                  data={eventEntries[EntryType.EXCEPTION].data}
-                  projectSlug={project.slug}
-                  group={group}
-                  groupingCurrentLevel={groupingCurrentLevel}
-                />
-              )}
-            </EntryErrorBoundary>
-          )}
-          {issueTypeConfig.stacktrace.enabled &&
-            defined(eventEntries[EntryType.STACKTRACE]) && (
-              <EntryErrorBoundary type={EntryType.STACKTRACE}>
-                {shouldUseNewStackTrace ? (
-                  <IssueStackTrace
-                    event={event}
-                    stacktrace={eventEntries[EntryType.STACKTRACE].data}
-                    projectSlug={projectSlug}
-                    group={group}
-                  />
-                ) : (
-                  <StackTrace
-                    event={event}
-                    data={eventEntries[EntryType.STACKTRACE].data}
-                    projectSlug={projectSlug}
-                    groupingCurrentLevel={groupingCurrentLevel}
-                  />
-                )}
-              </EntryErrorBoundary>
-            )}
-          {defined(eventEntries[EntryType.THREADS]) && (
-            <EntryErrorBoundary type={EntryType.THREADS}>
-              <Threads
-                event={event}
-                data={eventEntries[EntryType.THREADS].data}
-                projectSlug={project.slug}
-                groupingCurrentLevel={groupingCurrentLevel}
-                group={group}
-              />
-            </EntryErrorBoundary>
-          )}
+          <EventStackTraceEntries event={event} group={group} project={project} />
         </Fragment>
       )}
       <ScreenshotDataSection event={event} projectSlug={project.slug} />
@@ -388,28 +324,4 @@ export function GroupEventDetailsContent({
   project,
 }: EventDetailsContentProps) {
   return <EventDetails event={event} group={group} project={project} />;
-}
-
-/**
- * The FoldSection by default wraps its children with an ErrorBoundary, preventing content
- * from crashing the whole page if an error occurs, but EventDataSection does not do this.
- */
-function EntryErrorBoundary({
-  children,
-  type,
-}: {
-  children: React.ReactNode;
-  type: EntryType;
-}) {
-  return (
-    <ErrorBoundary
-      customComponent={() => (
-        <EventDataSection type={type} title={type}>
-          <p>{t('There was an error rendering this data.')}</p>
-        </EventDataSection>
-      )}
-    >
-      {children}
-    </ErrorBoundary>
-  );
 }

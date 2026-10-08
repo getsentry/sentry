@@ -141,6 +141,66 @@ describe('IssuePreview', () => {
       url: `/organizations/${organization.slug}/replay-count/`,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/1/committers/`,
+      body: {committers: []},
+    });
+  });
+
+  it('shows the event stack trace without a collapse toggle', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config: null, sourceUrl: null, integrations: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: EventFixture({
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'TypeError',
+                  value: 'Cannot read properties of undefined',
+                  stacktrace: {
+                    frames: [
+                      FrameFixture({
+                        function: 'handleRequest',
+                        filename: 'src/handler.ts',
+                        lineNo: 42,
+                        inApp: true,
+                      }),
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    });
+
+    render(<IssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({hideAiFeatures: true}),
+    });
+
+    const section = await screen.findByRole('region', {name: 'Stack Trace'});
+    expect(
+      within(section).getByRole('heading', {name: 'Stack Trace'})
+    ).toBeInTheDocument();
+    expect(within(section).getByText('handleRequest')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Collapse Stack Trace Section'})
+    ).not.toBeInTheDocument();
   });
 
   it('shows Resolve and Archive without waiting for Seer setup when AI is hidden', async () => {

@@ -57,6 +57,7 @@ import {
   IssuePreviewSeerProvider,
   useIssuePreviewSeer,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
+import {IssuePreviewStackTrace} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewStackTrace';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
 
@@ -265,6 +266,11 @@ function IssuePreviewContent() {
         <LoadingIndicator />
       ) : (
         <Dividers>
+          {disableActions ? null : (
+            <ErrorBoundary mini>
+              <IssuePreviewStackTrace group={group} project={project} />
+            </ErrorBoundary>
+          )}
           {linkedPullRequests.data?.pullRequests.length ? (
             <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
               <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>

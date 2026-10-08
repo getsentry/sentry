@@ -1,10 +1,19 @@
-import React, {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
+import React, {
+  createContext,
+  Fragment,
+  use,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator, type SeparatorProps} from '@sentry/scraps/separator';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -116,7 +125,67 @@ function useScrollToSection(
   return scrollToSection;
 }
 
-export function FoldSection({
+const StaticFoldSectionContext = createContext(false);
+
+/**
+ * Renders descendant fold sections as always-open sections with a smaller
+ * title, for embedding issue details content outside of issue details.
+ */
+export function StaticFoldSections({children}: {children: React.ReactNode}) {
+  return <StaticFoldSectionContext value>{children}</StaticFoldSectionContext>;
+}
+
+export function FoldSection(props: FoldSectionProps) {
+  const isStatic = use(StaticFoldSectionContext);
+  return isStatic ? <StaticSection {...props} /> : <CollapsibleFoldSection {...props} />;
+}
+
+function StaticSection({
+  ref,
+  children,
+  title,
+  titleLabel,
+  actions,
+  titleTrailingItems,
+  sectionKey,
+  className,
+  additionalIdentifier = '',
+  dataTestId,
+}: FoldSectionProps) {
+  const accessibleTitle = titleLabel ?? (typeof title === 'string' ? title : sectionKey);
+
+  return (
+    <Fragment>
+      <Stack
+        as="section"
+        gap="md"
+        ref={ref}
+        id={sectionKey + additionalIdentifier}
+        className={className}
+        aria-label={accessibleTitle}
+        data-test-id={dataTestId ?? sectionKey + additionalIdentifier}
+      >
+        <Flex align="center" justify="between" gap="md" minHeight="28px">
+          {typeof title === 'string' ? (
+            <Heading as="h3" size="md">
+              {title}
+            </Heading>
+          ) : (
+            title
+          )}
+          <Flex align="center" gap="sm">
+            {titleTrailingItems}
+            {actions}
+          </Flex>
+        </Flex>
+        <ErrorBoundary mini>{children}</ErrorBoundary>
+      </Stack>
+      <SectionDivider orientation="horizontal" margin="lg 0" />
+    </Fragment>
+  );
+}
+
+function CollapsibleFoldSection({
   ref,
   children,
   title,
