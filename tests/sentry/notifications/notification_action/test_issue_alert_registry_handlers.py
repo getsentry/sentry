@@ -431,7 +431,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
         }
 
     def test_build_rule_action_blob_no_priority(self) -> None:
-        """Test that build_rule_action_blob handles missing priority"""
+        """Test that build_rule_action_blob falls back to the default when priority is missing"""
         self.action.data = {}
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
@@ -439,7 +439,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
             "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
             "account": "1234567890",
             "service": "service789",
-            "severity": "",
+            "severity": "default",
         }
 
 
@@ -467,7 +467,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
         }
 
     def test_build_rule_action_blob_no_priority(self) -> None:
-        """Test that build_rule_action_blob handles missing priority"""
+        """Test that build_rule_action_blob falls back to the default when priority is missing"""
         self.action.data = {}
         blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
 
@@ -475,7 +475,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
             "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
             "account": "1234567890",
             "team": "team789",
-            "priority": "",
+            "priority": "P3",
         }
 
     @mock.patch("sentry.integrations.opsgenie.client.logger")

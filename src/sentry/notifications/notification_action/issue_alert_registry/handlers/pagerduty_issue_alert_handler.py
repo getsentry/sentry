@@ -21,7 +21,7 @@ class PagerDutyIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
     def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         blob = OnCallDataBlob(**action.data)
-        return {"severity": blob.priority}
+        return {"severity": blob.priority or PAGERDUTY_DEFAULT_SEVERITY}
 
     @classmethod
     def render_label(
