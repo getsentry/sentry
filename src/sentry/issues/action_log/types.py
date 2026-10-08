@@ -228,6 +228,11 @@ class ViewAction(GroupAction):
 class FirstSeenAction(GroupAction):
     """The group was created. Published exactly once per group, keyed by first_seen_idempotency_key()."""
 
+    user_visible = True
+    # ISO 8601 Group.first_seen. Differs from the entry's date_added, which is when
+    # the outbox drained (or the backfill ran).
+    first_seen: str
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.FIRST_SEEN

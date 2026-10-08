@@ -10,6 +10,7 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
+from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
@@ -36,11 +37,13 @@ class FirstSeenActionLogTest(TestCase):
         with capture_action_log() as log:
             group_id = self._store()
 
+        group = Group.objects.get(id=group_id)
         log.assert_logged(
             FirstSeenAction,
             group_id=group_id,
             source=ActionSource.SYSTEM,
             actor=SYSTEM_ACTOR,
+            first_seen=group.first_seen.isoformat(),
         )
 
     def test_not_republished_for_existing_group(self) -> None:
@@ -68,7 +71,7 @@ class FirstSeenActionLogTest(TestCase):
         assert entry.project_id == self.project.id
         assert entry.actor_type == GroupActorType.SYSTEM
         assert entry.source == ActionSource.SYSTEM
-        assert entry.data == {}
+        assert entry.data == {"first_seen": Group.objects.get(id=group_id).first_seen.isoformat()}
 
     @with_feature({"projects:issue-action-log-write-to-db": False})
     def test_no_outbox_when_write_disabled(self) -> None:
@@ -82,7 +85,7 @@ class FirstSeenIdempotencyTest(TestCase):
         group = self.create_group()
         with outbox_runner():
             publish_action(
-                FirstSeenAction(),
+                FirstSeenAction(first_seen=group.first_seen.isoformat()),
                 source=ActionSource.SYSTEM,
                 group_id=group.id,
                 project=self.project,
@@ -92,7 +95,7 @@ class FirstSeenIdempotencyTest(TestCase):
         inserted = backfill_actions(
             entries=[
                 BackfillEntry(
-                    action=FirstSeenAction(),
+                    action=FirstSeenAction(first_seen=group.first_seen.isoformat()),
                     actor=SYSTEM_ACTOR,
                     source="backfill:first-seen",
                     date_added=group.first_seen,
