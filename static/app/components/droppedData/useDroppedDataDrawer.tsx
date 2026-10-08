@@ -11,7 +11,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
 
-export function useDroppedDataDrawer(dataset: DiscoverDatasets, interval?: string) {
+interface UseDroppedDataDrawerParams {
+  dataset: DiscoverDatasets;
+  interval?: string;
+}
+
+interface UseDroppedDataDrawerOptions {
+  enabled?: boolean;
+}
+
+export function useDroppedDataDrawer(
+  {dataset, interval}: UseDroppedDataDrawerParams,
+  {enabled = true}: UseDroppedDataDrawerOptions = {}
+) {
   const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
   const {pathname} = useLocation();
   const [isDrawerInUrl, setIsDrawerInUrl] = useQueryState(
@@ -21,7 +33,7 @@ export function useDroppedDataDrawer(dataset: DiscoverDatasets, interval?: strin
   const renderedIntervalRef = useRef(interval);
 
   useEffect(() => {
-    if (!isDrawerInUrl) {
+    if (!enabled || !isDrawerInUrl) {
       return;
     }
     const isStale = isDrawerOpen && renderedIntervalRef.current !== interval;
@@ -39,6 +51,7 @@ export function useDroppedDataDrawer(dataset: DiscoverDatasets, interval?: strin
       },
     });
   }, [
+    enabled,
     isDrawerInUrl,
     isDrawerOpen,
     isAnyDrawerOpen,

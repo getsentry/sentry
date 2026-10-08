@@ -208,8 +208,8 @@ export const ResultsChartContainer = memo(
     );
     const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
     const openDroppedDataDrawer = useDroppedDataDrawer(
-      DiscoverDatasets.ERRORS,
-      chartInterval
+      {dataset: DiscoverDatasets.ERRORS, interval: chartInterval},
+      {enabled: isErrorsDataset}
     );
     const canShowDroppedData =
       isErrorsDataset && hasDroppedData(droppedEvents, acceptedEvents);

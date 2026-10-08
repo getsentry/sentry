@@ -176,7 +176,7 @@ function Chart({
   const dataset = useSpansDataset();
   const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval});
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(dataset);
+  const openDroppedDataDrawer = useDroppedDataDrawer({dataset});
   const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
 

@@ -169,7 +169,9 @@ function Graph({
     interval,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.TRACEMETRICS);
+  const openDroppedDataDrawer = useDroppedDataDrawer({
+    dataset: DiscoverDatasets.TRACEMETRICS,
+  });
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);

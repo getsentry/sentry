@@ -34,8 +34,11 @@ function mockDroppedData(count: number, statsPeriod: string) {
   });
 }
 
-function DroppedDataTrigger({interval}: {interval?: string}) {
-  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.SPANS, interval);
+function DroppedDataTrigger({enabled, interval}: {enabled?: boolean; interval?: string}) {
+  const openDroppedDataDrawer = useDroppedDataDrawer(
+    {dataset: DiscoverDatasets.SPANS, interval},
+    {enabled}
+  );
   return <button onClick={openDroppedDataDrawer}>Open dropped data</button>;
 }
 
@@ -80,6 +83,25 @@ describe('useDroppedDataDrawer', () => {
     });
 
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+  });
+
+  it('does not open from the URL param when disabled', async () => {
+    const droppedDataRequest = mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger enabled={false} />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/discover/results/', query: {droppedData: 'true'}},
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Open dropped data'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('complementary', {name: 'Dropped Data'})
+    ).not.toBeInTheDocument();
+    expect(droppedDataRequest).not.toHaveBeenCalled();
   });
 
   it('opens a single drawer when several charts use the hook', async () => {
