@@ -67,7 +67,7 @@ class SearchAgentTranslateEndpointTest(APITestCase):
                 "cross_event": False,
                 "reflection_step": False,
                 "code_mode": False,
-                "source": "frontend",
+                "api_referrer": "frontend",
             },
         )
 
@@ -75,7 +75,7 @@ class SearchAgentTranslateEndpointTest(APITestCase):
         "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"
     )
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
-    def test_translate_forwards_mcp_source(self, mock_send_request: MagicMock) -> None:
+    def test_translate_forwards_mcp_api_referrer(self, mock_send_request: MagicMock) -> None:
         mock_send_request.return_value = {"query": "", "status": "ok"}
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
@@ -93,7 +93,7 @@ class SearchAgentTranslateEndpointTest(APITestCase):
         )
 
         assert response.status_code == status.HTTP_200_OK
-        assert mock_send_request.call_args.kwargs["options"]["source"] == "mcp"
+        assert mock_send_request.call_args.kwargs["options"]["api_referrer"] == "mcp"
 
     @patch(
         "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"
