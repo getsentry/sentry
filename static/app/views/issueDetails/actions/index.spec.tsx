@@ -3,6 +3,7 @@ import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceExc
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -243,6 +244,148 @@ describe('GroupActions', () => {
       expect(reprocessActionButton).toBeInTheDocument();
       await userEvent.click(reprocessActionButton);
       await waitFor(() => expect(onReprocessEventFunc).toHaveBeenCalled());
+    });
+  });
+
+  describe('add inbound filter', () => {
+    const filterOrg = OrganizationFixture({
+      ...organization,
+      features: [
+        'inbound-filters-v2',
+        'inbound-filters-v2-ui',
+        'inbound-filters-in-product-flows',
+      ],
+      access: [...organization.access, 'project:write'],
+    });
+    const filterProject = ProjectFixture({
+      ...project,
+      features: ['custom-inbound-filters'],
+    });
+    const event = EventStacktraceExceptionFixture({
+      title: 'Error: an error occurred',
+      release: ReleaseFixture({version: '2.41.0'}),
+      user: {ip_address: '203.0.113.7', geo: {country_code: 'US'}},
+    });
+    const createUrl = `/projects/${filterOrg.slug}/${project.slug}/custom-inbound-filters/`;
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [],
+      });
+    });
+
+    it('opens the filter modal with conditions from the event and saves the rest', async () => {
+      const createMock = MockApiClient.addMockResponse({
+        url: createUrl,
+        method: 'POST',
+        body: {},
+      });
+      MockApiClient.addMockResponse({url: createUrl, body: []});
+
+      render(
+        <Fragment>
+          <GlobalModal />
+          <GroupActions
+            group={group}
+            project={filterProject}
+            disabled={false}
+            event={event}
+          />
+        </Fragment>,
+        {organization: filterOrg}
+      );
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      );
+
+      const modal = await screen.findByRole('dialog');
+      expect(within(modal).getByText('Create Custom Filter')).toBeInTheDocument();
+      expect(within(modal).getByRole('textbox', {name: 'Name'})).toHaveValue(
+        'Error: an error occurred'
+      );
+      const values = within(modal).getAllByRole('textbox', {name: 'Condition value'});
+      expect(values.map(value => (value as HTMLTextAreaElement).value)).toEqual([
+        'Error',
+        'an error occurred',
+        'US',
+        '2.41.0',
+        '203.0.113.7',
+      ]);
+
+      const removeButtons = within(modal).getAllByRole('button', {
+        name: 'Remove condition',
+      });
+      await userEvent.click(removeButtons[4]!);
+      await userEvent.click(within(modal).getByRole('button', {name: 'Create Filter'}));
+
+      await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
+      expect(createMock.mock.calls[0][1].data).toEqual({
+        name: 'Error: an error occurred',
+        dataType: 'error',
+        conditions: [
+          {type: 'error_type', value: ['Error']},
+          {type: 'error_message', value: ['an error occurred']},
+          {type: 'geo_country_code', value: ['US']},
+          {type: 'release', value: ['2.41.0']},
+        ],
+      });
+      expect(analyticsSpy).toHaveBeenCalledWith(
+        'issue_details.action_clicked',
+        expect.objectContaining({action_type: 'add_inbound_filter'})
+      );
+    });
+
+    it('disables the action when the plan lacks custom inbound filters', async () => {
+      render(
+        <GroupActions group={group} project={project} disabled={false} event={event} />,
+        {organization: filterOrg}
+      );
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        screen.getByText('Your plan does not include custom inbound filters')
+      ).toBeInTheDocument();
+    });
+
+    it('hides the action without the in-product flows flag', async () => {
+      render(
+        <GroupActions group={group} project={project} disabled={false} event={event} />,
+        {
+          organization: OrganizationFixture({
+            ...filterOrg,
+            features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
+          }),
+        }
+      );
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Delete'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides the action while no event is shown', async () => {
+      render(
+        <GroupActions group={group} project={project} disabled={false} event={null} />,
+        {organization: filterOrg}
+      );
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Delete'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).not.toBeInTheDocument();
     });
   });
 
