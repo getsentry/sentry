@@ -20,6 +20,7 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import ReleaseStatus
 from sentry.signals import issue_unresolved
 from sentry.silo.base import SiloMode
+from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature, with_feature
@@ -46,13 +47,26 @@ fake_activity_data = {
 @django_db_all
 @pytest.mark.parametrize("finalized_order", [False, True], ids=["flag-off", "flag-on"])
 @pytest.mark.parametrize(
-    "latest_version, anchor_status, expected_resolution_version, expected_anchor_version",
+    "project_anchor, latest_version, anchor_status, expected_resolution_version, expected_anchor_version",
     [
-        pytest.param("app@1.0.2", ReleaseStatus.OPEN, "app@1.0.2", "app@1.0.2", id="semver"),
-        pytest.param("build-sha", ReleaseStatus.OPEN, "app@1.0.1", "app@1.0.0", id="date"),
-        pytest.param("build-sha", None, "app@1.0.1", "app@1.0.0", id="date-null-status"),
+        pytest.param(False, "app@1.0.2", ReleaseStatus.OPEN, "app@1.0.2", "app@1.0.2", id="semver"),
         pytest.param(
-            "build-sha", ReleaseStatus.ARCHIVED, "build-sha", None, id="date-no-eligible-anchor"
+            True,
+            "app@1.0.2",
+            ReleaseStatus.OPEN,
+            "app@1.0.2",
+            "app@1.0.2",
+            id="semver-project-anchor",
+        ),
+        pytest.param(False, "build-sha", ReleaseStatus.OPEN, "app@1.0.1", "app@1.0.0", id="date"),
+        pytest.param(False, "build-sha", None, "app@1.0.1", "app@1.0.0", id="date-null-status"),
+        pytest.param(
+            False,
+            "build-sha",
+            ReleaseStatus.ARCHIVED,
+            "build-sha",
+            None,
+            id="date-no-eligible-anchor",
         ),
     ],
 )
@@ -60,6 +74,7 @@ def test_resolve_next_release_skips_archived_successor(
     factories: Factories,
     default_group: Group,
     finalized_order: bool,
+    project_anchor: bool,
     latest_version: str,
     anchor_status: int | None,
     expected_resolution_version: str,
@@ -108,7 +123,12 @@ def test_resolve_next_release_skips_archived_successor(
     )
 
     with (
-        Feature({"organizations:release-resolution-finalized-order": finalized_order}),
+        Feature(
+            {
+                "organizations:release-resolution-finalized-order": finalized_order,
+                "organizations:release-resolution-project-anchor": project_anchor,
+            }
+        ),
         mock.patch.object(
             ExampleIntegration, "get_resolve_sync_action", return_value=ResolveSyncAction.RESOLVE
         ),
@@ -123,11 +143,17 @@ def test_resolve_next_release_skips_archived_successor(
     default_group.refresh_from_db()
     assert default_group.status == GroupStatus.RESOLVED
     newer = factories.create_release(project=project, version="app@1.0.3")
-    with Feature({"organizations:release-resolution-finalized-order": finalized_order}):
+    with Feature(
+        {
+            "organizations:release-resolution-finalized-order": finalized_order,
+            "organizations:release-resolution-project-anchor": project_anchor,
+        }
+    ):
         assert GroupResolution.has_resolution(default_group, anchor)
         assert not GroupResolution.has_resolution(default_group, newer)
 
     resolution = GroupResolution.objects.get(group=default_group)
+    assert resolution.status == GroupResolution.Status.resolved
     assert resolution.release.version == expected_resolution_version
     assert resolution.current_release_version == expected_anchor_version
     activity = Activity.objects.get(
@@ -176,6 +202,97 @@ class TestSyncStatusInbound(TestCase):
         group = Group.objects.get(id=group_id)
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
+
+    @with_feature("organizations:release-resolution-project-anchor")
+    @with_feature("organizations:release-resolution-finalized-order")
+    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
+    def test_next_release_waits_after_project_latest(
+        self, mock_get_resolve_sync_action: mock.MagicMock
+    ) -> None:
+        mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
+        now = django_timezone.now()
+        observed = self.create_release(
+            project=self.project,
+            version="observed",
+            date_added=now - timedelta(days=4),
+            status=None,
+        )
+        anchor = self.create_release(
+            project=self.project,
+            version="project-latest",
+            date_added=now - timedelta(days=5),
+            date_released=now - timedelta(days=2),
+            status=None,
+        )
+        late_old_build = self.create_release(
+            project=self.project,
+            version="late-old-build",
+            date_added=now - timedelta(days=1),
+            date_released=now - timedelta(days=6),
+            status=None,
+        )
+        archived = self.create_release(
+            project=self.project, version="app@999.9+999.9", status=ReleaseStatus.ARCHIVED
+        )
+        self.create_group_release(project=self.project, group=self.group, release=observed).update(
+            last_seen=now - timedelta(hours=1)
+        )
+        self.create_group_release(project=self.project, group=self.group, release=archived)
+        resolution = self.create_group_resolution(
+            group=self.group,
+            release=archived,
+            current_release_version=archived.version,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.resolved,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            )
+            org_integration.update(
+                config={"sync_status_inbound": True, "resolution_strategy": "resolve_next_release"}
+            )
+
+        sync_status_inbound(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            issue_key=TEST_ISSUE_KEY,
+            data=fake_data,
+        )
+
+        self.group.refresh_from_db()
+        resolution.refresh_from_db()
+        assert self.group.status == GroupStatus.RESOLVED
+        assert resolution.release_id == anchor.id
+        assert resolution.current_release_version == anchor.version
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.status == GroupResolution.Status.pending
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
+        assert activity.ident == str(resolution.id)
+        assert activity.data["inNextRelease"] is True
+        assert "version" not in activity.data
+        assert "current_release_version" not in activity.data
+        assert GroupResolution.has_resolution(self.group, observed)
+        assert GroupResolution.has_resolution(self.group, late_old_build)
+        assert GroupResolution.has_resolution(self.group, anchor)
+        clear_expired_resolutions(archived.id)
+        resolution.refresh_from_db()
+        assert resolution.status == GroupResolution.Status.pending
+
+        successor = self.create_release(project=self.project, version="successor")
+        clear_expired_resolutions(successor.id)
+        resolution.refresh_from_db()
+        activity.refresh_from_db()
+        assert resolution.release_id == successor.id
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.current_release_version == anchor.version
+        assert activity.data["version"] == successor.version
+        assert activity.data["provider"] == "Example"
+        assert GroupResolution.has_resolution(self.group, anchor)
+        assert not GroupResolution.has_resolution(self.group, successor)
 
     def _assert_resolve_activity_created(self, additional_data=None):
         activity = self.group.activity_set.filter(type=ActivityType.SET_RESOLVED.value).first()

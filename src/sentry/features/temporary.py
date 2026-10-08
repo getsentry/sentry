@@ -241,6 +241,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:profiling-function-trends", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Prefer finalized release dates for issue regression and next-release resolution.
     manager.add("organizations:release-resolution-finalized-order", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Start date-based next-release resolutions after the project's latest eligible release.
+    manager.add("organizations:release-resolution-project-anchor", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable replay AI summaries for mobile replays
     manager.add("organizations:replay-ai-summaries-mobile", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable replay AI summaries for web replays

@@ -107,8 +107,24 @@ def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
 
 
 class ReleaseModelManager(BaseManager["Release"]):
+    def get_latest_release(self, project: Project, *, use_finalized_order: bool) -> Release | None:
+        """Return the latest eligible date-based resolution anchor for a project."""
+        date_field = "release_order" if use_finalized_order else "date_added"
+        return (
+            self.filter(projects=project, organization_id=project.organization_id)
+            .filter(Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True))
+            .alias(release_order=Coalesce("date_released", "date_added"))
+            .order_by(f"-{date_field}", "-id")
+            .first()
+        )
+
     def get_next_release(
-        self, project: Project, current_release: Release, *, use_finalized_order: bool
+        self,
+        project: Project,
+        current_release: Release,
+        *,
+        use_finalized_order: bool,
+        use_legacy_sort: bool = False,
     ) -> Release:
         """Find the first release after the resolution's existing date-based anchor."""
         current_date = release_order_date(
@@ -125,7 +141,10 @@ class ReleaseModelManager(BaseManager["Release"]):
                 Q(**{f"{date_field}__gt": current_date})
                 | Q(**{date_field: current_date}, id__gt=current_release.id)
             )
-            .order_by("release_order", "id")[:1]
+            # Legacy issue anchors sorted by finalized date even when their
+            # candidate cutoff used creation date. Preserve that only for callers
+            # retaining the old behavior; project anchors use one consistent order.
+            .order_by("release_order" if use_legacy_sort else date_field, "id")[:1]
             .get()
         )
 

@@ -3,6 +3,7 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry import features
 from sentry.api.fields.actor import ActorField
 from sentry.api.helpers.group_index.validators.inbox_details import InboxDetailsValidator
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
@@ -124,4 +125,21 @@ class GroupValidator(serializers.Serializer[Group]):
         attrs = super().validate(attrs)
         if len(attrs) > 1 and "discard" in attrs:
             raise serializers.ValidationError("Other attributes cannot be updated when discarding")
+        if attrs.get("status") == "resolvedInNextRelease" and not attrs.get(
+            "statusDetails", {}
+        ).get("inNextRelease"):
+            project = self.context["project"]
+            if features.has(
+                "organizations:release-resolution-project-anchor", project.organization
+            ):
+                from sentry.api.helpers.group_index.update import get_release_to_resolve_by
+
+                if get_release_to_resolve_by(project) is None:
+                    raise serializers.ValidationError(
+                        {
+                            "status": [
+                                "No release data present in the system to form a basis for 'Next Release'"
+                            ]
+                        }
+                    )
         return attrs

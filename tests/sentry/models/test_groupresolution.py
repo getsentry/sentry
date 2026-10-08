@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.models.group import Group
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.release import Release
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature, with_feature
@@ -12,13 +13,14 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
+@pytest.mark.parametrize("project_anchor", [False, True])
 @pytest.mark.parametrize(
     "resolution_type",
     [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release],
     ids=["specific-release", "next-release"],
 )
 def test_finalized_release_order(
-    factories: Factories, default_group: Group, resolution_type: int
+    factories: Factories, default_group: Group, resolution_type: int, project_anchor: bool
 ) -> None:
     now = timezone.now()
     project = default_group.project
@@ -45,15 +47,48 @@ def test_finalized_release_order(
     )
 
     # Registration order is the reverse of finalized order for both events.
-    with Feature({"organizations:release-resolution-finalized-order": False}):
+    with Feature(
+        {
+            "organizations:release-resolution-finalized-order": False,
+            "organizations:release-resolution-project-anchor": project_anchor,
+        }
+    ):
         assert not GroupResolution.has_resolution(default_group, older)
         assert GroupResolution.has_resolution(default_group, newer)
-    with Feature("organizations:release-resolution-finalized-order"):
+    with Feature(
+        {
+            "organizations:release-resolution-finalized-order": True,
+            "organizations:release-resolution-project-anchor": project_anchor,
+        }
+    ):
         assert GroupResolution.has_resolution(default_group, older)
         assert not GroupResolution.has_resolution(default_group, newer)
 
 
 class GroupResolutionTest(TestCase):
+    @with_feature("organizations:release-resolution-project-anchor")
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_project_anchor_ties_and_stale_dates(self) -> None:
+        now = timezone.now()
+        earlier = self.create_release(version="earlier", date_added=now)
+        anchor = self.create_release(version="anchor", date_added=now)
+        later = self.create_release(version="later", date_added=now)
+        self.create_group_resolution(
+            group=self.group,
+            release=anchor,
+            current_release_version=anchor.version,
+            type=GroupResolution.Type.in_next_release,
+        )
+        assert GroupResolution.has_resolution(self.group, earlier)
+        assert GroupResolution.has_resolution(self.group, anchor)
+        assert not GroupResolution.has_resolution(self.group, later)
+
+        stale_anchor = Release.objects.get(id=anchor.id)
+        anchor.update(date_released=now - timedelta(days=1))
+        # An event on the starting release must remain covered even if its
+        # cached release object predates the finalization update.
+        assert GroupResolution.has_resolution(self.group, stale_anchor)
+
     def setUp(self) -> None:
         super().setUp()
         self.old_release = self.create_release(

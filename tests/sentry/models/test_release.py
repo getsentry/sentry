@@ -106,13 +106,22 @@ class NextReleaseOrderingTest(TestCase):
         late_old_release = self.create_release(
             version="old", date_added=now - timedelta(days=1), date_released=now - timedelta(days=5)
         )
+        created_next = self.create_release(
+            version="created-next", date_added=now - timedelta(days=2), date_released=now
+        )
         assert (
             Release.objects.get_next_release(self.project, current, use_finalized_order=True)
             == next_release
         )
         assert (
-            Release.objects.get_next_release(self.project, current, use_finalized_order=False)
+            Release.objects.get_next_release(
+                self.project, current, use_finalized_order=False, use_legacy_sort=True
+            )
             == late_old_release
+        )
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=False)
+            == created_next
         )
 
     def test_current_release_uses_its_finalized_date(self) -> None:
