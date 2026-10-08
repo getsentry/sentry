@@ -1,0 +1,39 @@
+{
+  "name": "@sentry-internal/gs-app",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@amplitude/analytics-browser": "^1.5.3",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@react-aria/utils": "3.34.1",
+    "@sentry-internal/app": "workspace:*",
+    "@sentry/core": "11.0.0",
+    "@sentry/icons": "workspace:*",
+    "@sentry/react": "11.0.0",
+    "@sentry/scraps": "workspace:*",
+    "@stripe/react-stripe-js": "^3.9.2",
+    "@stripe/stripe-js": "^5.10.0",
+    "@tanstack/react-query": "5.101.4",
+    "color": "5.0.2",
+    "dompurify": "3.4.16",
+    "echarts": "6.1.0",
+    "framer-motion": "12.38.0",
+    "js-cookie": "3.0.7",
+    "lodash": "^4.18.1",
+    "moment-timezone": "0.6.2",
+    "query-string": "7.0.1",
+    "react": "19.3.0",
+    "react-router": "6.30.6",
+    "reflux": "0.4.1",
+    "zod": "4.3.5"
+  },
+  "devDependencies": {
+    "@types/history": "^3.2.5",
+    "@types/js-cookie": "3.0.6",
+    "@types/lodash": "^4.17.24",
+    "@types/react": "19.3.0",
+    "@types/reflux": "0.4.1",
+    "sentry": "workspace:*"
+  }
+}
