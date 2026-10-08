@@ -1,0 +1,43 @@
+name: prefer-primitives
+severity: warning
+tags: [migration, scraps, frontend]
+
+why: |
+  Existing custom layout and text styles duplicate Scraps components. The
+  @sentry/scraps/prefer-primitives lint rule blocks new violations, while
+  oxlint-suppressions.json records the remaining migration work.
+
+detect: |
+  Run @sentry/scraps/prefer-primitives on the files listed for that rule in
+  oxlint-suppressions.json, including tests. Report live lint messages and
+  source lines, without applying the committed suppression counts.
+
+fix: |
+  Read the lint message and replace the reported element or styled component
+  with the named Scraps component. Check static/packages/scraps/README.md and
+  the component implementation for supported props.
+
+  Import Container, Flex, Grid, or Stack from @sentry/scraps/layout; Text or
+  Heading from @sentry/scraps/text; and Button from @sentry/scraps/button, as
+  directed by the finding. Move supported styles into component props. Preserve
+  DOM semantics with the appropriate element prop, accessibility attributes,
+  refs, event handlers, layout, responsive behavior, and existing CSS tokens.
+  Keep any custom styling that the component cannot express. Do not turn every
+  styled element into the same component or change behavior to satisfy lint.
+
+  Run the relevant component tests and inspect the affected UI when the change
+  can alter its appearance. Record the starting revision with git rev-parse HEAD before editing.
+  Run pnpm run lint:js --prune to reduce the existing counts, then run
+  pnpm run lint:js --ci --base <starting-revision>. These commands scan all files.
+  Confirm the rule's counts decrease in oxlint-suppressions.json and the
+  detector no longer reports the fixed callsites. A source-only fix leaves
+  stale suppression counts. Do not add allowances, enroll new violations, or
+  add lint-disable comments.
+
+examples:
+  bad:
+    - '<div style={{display: "flex"}}>{children}</div>'
+  good:
+    - '<Flex>{children}</Flex>'
+
+detect_command: 'SENTRY_OXLINT_TYPEAWARE=false bash {convention_dir}/no-deprecated-callsite.detect.sh {repo_path} @sentry/scraps/prefer-primitives --baseline'
