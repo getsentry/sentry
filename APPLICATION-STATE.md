@@ -31,6 +31,11 @@ not consult the runtime options read hook or register state as configuration.
 The system token keeps its existing value and generation behavior; changing
 `SECRET_KEY` does not derive or replace it.
 
+Before deploying this API, verify that existing non-null stored values in both
+Option tables and explicitly configured fallbacks for all six keys have the
+declared types. An invalid value blocks deployment until its owner approves
+remediation. This change performs no coercion or state rewrite.
+
 `_last_auto_resolve` and `resolve_age` already use ProjectOption storage and
 stay scoped to their projects. The registered
 `sentry:skip-record-onboarding-tasks-if-complete` key remains a runtime option.
