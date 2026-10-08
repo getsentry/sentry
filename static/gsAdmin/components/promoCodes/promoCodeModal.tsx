@@ -21,18 +21,23 @@ type Props = ModalRenderProps & {
   promoCode?: PromoCode;
 };
 
-const promoCodeSchema = z.object({
-  code: z.string().min(5, 'Code must be at least 5 characters'),
-  campaign: z.string(),
-  isTrialPromo: z.boolean(),
-  duration: z.string(),
-  amount: z.number().nonnegative('Amount must be zero or greater').nullable(),
-  trialDays: z.string(),
-  maxClaims: z.string().min(1, 'Max claims is required'),
-  newOnly: z.boolean(),
-  setExpiration: z.boolean(),
-  dateExpires: z.string(),
-});
+const promoCodeSchema = z
+  .object({
+    code: z.string().min(5, 'Code must be at least 5 characters'),
+    campaign: z.string(),
+    isTrialPromo: z.boolean(),
+    duration: z.string(),
+    amount: z.number().nonnegative('Amount must be zero or greater').nullable(),
+    trialDays: z.string(),
+    maxClaims: z.string().min(1, 'Max claims is required'),
+    newOnly: z.boolean(),
+    setExpiration: z.boolean(),
+    dateExpires: z.string(),
+  })
+  .refine(values => !values.setExpiration || Boolean(values.dateExpires), {
+    path: ['dateExpires'],
+    message: 'Expiration date is required',
+  });
 
 const durationOptions = Array.from({length: 12}, (_, index) => ({
   value: String(index + 1),
@@ -55,7 +60,11 @@ export function AddPromoCodeModal({
           ? getApiUrl('/promocodes/$code/', {path: {code: promoCode.code}})
           : getApiUrl('/promocodes/'),
         method: promoCode ? 'PUT' : 'POST',
-        data: {...values, amount: values.amount === null ? '' : String(values.amount)},
+        data: {
+          ...values,
+          amount: values.amount === null ? '' : String(values.amount),
+          dateExpires: values.setExpiration ? values.dateExpires : null,
+        },
       }),
     onSuccess: newCode => {
       onSubmit?.(newCode);
