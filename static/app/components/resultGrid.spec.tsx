@@ -121,13 +121,11 @@ describe('ResultGrid', () => {
   });
 
   it('shows the error state when the fetch itself rejects', async () => {
-    // The API client swallows a fetch-level rejection without running either
-    // callback, so the grid has to observe requestPromise to leave loading.
-    jest.spyOn(Client.prototype, 'request').mockReturnValue({
-      requestPromise: Promise.reject(new Error('Failed to fetch')),
-      alive: true,
-      cancel: () => {},
-    });
+    // A fetch-level failure (blocked request, network error) rejects
+    // requestPromise, which must move the grid out of its loading state.
+    jest
+      .spyOn(Client.prototype, 'requestPromise')
+      .mockRejectedValue(new Error('Failed to fetch'));
 
     render(<ExampleBasicResultGrid />);
     const alert = await screen.findByText('Something bad happened :/');

@@ -13,7 +13,7 @@ import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
 import {DocIntegrations} from 'admin/views/docIntegrations';
 
 describe('Doc Integrations', () => {
-  it('renders', () => {
+  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: '/doc-integrations/',
       method: 'GET',
@@ -25,6 +25,7 @@ describe('Doc Integrations', () => {
     expect(
       screen.getByRole('heading', {name: 'Document Integrations'})
     ).toBeInTheDocument();
+    expect(await screen.findByText('No results')).toBeInTheDocument();
   });
 });
 

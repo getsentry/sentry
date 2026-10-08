@@ -1015,11 +1015,20 @@ export function ResultGrid({
     const activeCell = cell;
     const token = fetchTokenRef.current;
 
-    const activeRequest = api.request(cellEndpoint(activeCell), {
-      method,
-      host: activeCell ? activeCell.locality_url : undefined,
-      data: queryParams,
-      success: (data, _, resp) => {
+    const fetchActiveCell = async () => {
+      try {
+        const [data, , resp] = await api.requestPromise(cellEndpoint(activeCell), {
+          method,
+          host: activeCell ? activeCell.locality_url : undefined,
+          data: queryParams,
+          includeAllArgs: true,
+        });
+
+        // A newer fetch superseded this one while it was in flight.
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
+
         const rows = rowsFromData?.(data, activeCell) ?? data;
         const rowsArray = Array.isArray(rows) ? rows : [];
 
@@ -1066,23 +1075,19 @@ export function ResultGrid({
         if (missingExactMatch || probeAllRegions) {
           probeOtherRegions({...queryParams, query}, activeCell);
         }
-      },
-      error: res => {
+      } catch (err) {
+        // requestPromise rejects on error responses and on failed fetches (a
+        // blocked request, a network failure). Requests aborted by api.clear()
+        // never settle, and a superseded fetch is ignored via the token.
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
         setResults(prev => ({...prev, loading: false, error: true}));
-        onError?.(res);
-      },
-    });
-
-    // The API client swallows a rejection of the fetch itself (a blocked
-    // request, a network failure) without running either callback, which would
-    // leave the grid stuck on its loading state. Surface it as an error here.
-    // An abort from api.clear() also lands here, but the fetch token was
-    // already bumped by then, so a superseded request is ignored.
-    activeRequest?.requestPromise?.catch(() => {
-      if (token === fetchTokenRef.current) {
-        setResults(prev => ({...prev, loading: false, error: true}));
+        onError?.(err);
       }
-    });
+    };
+
+    void fetchActiveCell();
   });
 
   // A fetch is driven by the URL when `useQueryString` is on, and by the local
