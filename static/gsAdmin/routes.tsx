@@ -1,6 +1,7 @@
 import type {SentryRouteObject} from 'sentry/router/types';
 import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 
+import {AdminAccessGate} from 'admin/components/adminAccessGate';
 import {BeaconDetails} from 'admin/views/beaconDetails';
 import {Beacons} from 'admin/views/beacons';
 import {BillingAdmins} from 'admin/views/billingAdmins';
@@ -42,10 +43,18 @@ import {SentryEmployees} from 'admin/views/sentryEmployees';
 import {UserDetails} from 'admin/views/userDetails';
 import {Users} from 'admin/views/users';
 
+function AdminRoot() {
+  return (
+    <AdminAccessGate>
+      <Layout />
+    </AdminAccessGate>
+  );
+}
+
 function buildRoutes() {
   const routes: SentryRouteObject = {
     path: '/_admin/',
-    component: Layout,
+    component: AdminRoot,
     children: [
       {
         index: true,

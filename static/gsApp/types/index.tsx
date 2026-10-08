@@ -41,6 +41,7 @@ declare global {
  */
 declare module 'sentry/types/system' {
   interface Config {
+    'getsentry.adminAccessMode'?: 'staff' | 'superuser';
     'getsentry.amplitudeApiKey'?: string;
     'getsentry.googleMapsApiKey'?: string;
     'getsentry.stripePublishKey'?: string;
