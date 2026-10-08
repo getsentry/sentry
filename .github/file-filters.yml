@@ -168,19 +168,6 @@ migrations_added:
   - added:
       - 'src/sentry/**/migrations/*'
 
-# Migration tests only exercise migrations, so they only need to run on PRs
-# that touch migrations, their tests, or the migration test harness.
-migration_tests:
-  - *backend_dependencies
-  - '.github/workflows/backend.yml'
-  - 'Makefile'
-  - 'migrations_lockfile.txt'
-  - 'src/sentry/**/migrations/**'
-  - 'src/sentry/new_migrations/**'
-  - 'src/sentry/testutils/cases.py'
-  - 'src/sentry/testutils/pytest/**'
-  - 'tests/**/migrations/**'
-
 # These files will trigger our workflow to check if lockfile
 # updates are needed
 migration_lockfile:

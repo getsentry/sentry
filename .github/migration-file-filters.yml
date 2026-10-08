@@ -1,0 +1,46 @@
+# Used by the `files-changed` job in backend.yml. Kept separate from
+# file-filters.yml because this step lists matched files, and listing every
+# filter in file-filters.yml can blow past step output limits on large PRs.
+
+# Migration tests only exercise migrations, so they only need to run on PRs
+# that touch migrations, their tests, or the migration test harness.
+migration_tests:
+  - '.github/migration-file-filters.yml'
+  - '.github/workflows/backend.yml'
+  - 'Makefile'
+  - 'migrations_lockfile.txt'
+  - 'pyproject.toml'
+  - 'requirements-*.txt'
+  - 'uv.lock'
+  - 'src/**/migrations/**'
+  - 'src/sentry/new_migrations/**'
+  - 'src/sentry/testutils/cases.py'
+  - 'src/sentry/testutils/pytest/**'
+  - 'tests/**/migrations/**'
+
+# Python files that look migration-related. Each one must be covered by
+# `migration_tests` or `migration_paths_unrelated`, otherwise the
+# `migration paths guard` job fails so the filter can't silently go stale.
+migration_like_paths:
+  - '**/*[mM]igration*.py'
+  - '**/*[mM]igration*/**/*.py'
+
+# Migration-named code that Django migrations don't depend on, so changing it
+# doesn't need the migration test suite.
+migration_paths_unrelated:
+  - 'fixtures/safe_migrations_apps/**'
+  - 'src/sentry/auth/idpmigration.py'
+  - 'src/sentry/debug_files/objectstore_migration/**'
+  - 'src/sentry/management/commands/makemigrations.py'
+  - 'src/sentry/runner/commands/migrations.py'
+  - 'src/sentry/utils/locking/backends/migration.py'
+  - 'src/sentry/workflow_engine/migration_helpers/**'
+  - 'tests/sentry/auth/test_idpmigration.py'
+  - 'tests/sentry/db/postgres/schema/safe_migrations/**'
+  - 'tests/sentry/debug_files/objectstore_migration/**'
+  - 'tests/sentry/new_migrations/**'
+  - 'tests/sentry/runner/commands/test_migrations.py'
+  - 'tests/sentry/utils/locking/backends/test_migration.py'
+  - 'tests/sentry/workflow_engine/migration_helpers/**'
+  - 'tests/tools/test_migrations_compare.py'
+  - 'tools/migrations/**'
