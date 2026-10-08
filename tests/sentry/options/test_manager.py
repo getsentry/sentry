@@ -372,16 +372,17 @@ class OptionsManagerTest(TestCase):
         with pytest.raises(TypeError):
             self.manager.set("some-int", "0", coerce=False)
 
-    @pytest.mark.parametrize("key", ["sentry:foo", "getsentry:foo", "sentry:system-token"])
-    def test_unregistered_state_key(self, key: str) -> None:
-        with pytest.raises(UnknownOption):
-            self.manager.get(key)
-        with pytest.raises(UnknownOption):
-            self.manager.set(key, "bar")
-        with pytest.raises(UnknownOption):
-            self.manager.delete(key)
-        with pytest.raises(UnknownOption):
-            self.manager.isset(key)
+    def test_unregistered_state_key(self) -> None:
+        for key in ["sentry:foo", "getsentry:foo", "sentry:system-token"]:
+            with self.subTest(key=key):
+                with pytest.raises(UnknownOption):
+                    self.manager.get(key)
+                with pytest.raises(UnknownOption):
+                    self.manager.set(key, "bar")
+                with pytest.raises(UnknownOption):
+                    self.manager.delete(key)
+                with pytest.raises(UnknownOption):
+                    self.manager.isset(key)
 
     def test_registered_prefixed_option(self) -> None:
         self.manager.register("sentry:skip-record-onboarding-tasks-if-complete", default=False)
