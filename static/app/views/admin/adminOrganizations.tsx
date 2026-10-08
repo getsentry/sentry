@@ -7,7 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -17,6 +17,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 const COLUMNS: TableColumnConfig[] = [{key: 'organization', width: 'minmax(0, 1fr)'}];
 
@@ -53,7 +54,7 @@ export default function AdminOrganizations() {
 
   return (
     <Stack gap="xl">
-      <Heading as="h3">{t('Organizations')}</Heading>
+      <BreadcrumbTitle title={t('Organizations')} />
       <Flex align="center" gap="md" wrap="wrap">
         <Container flexGrow={1} minWidth="240px">
           {containerProps => (
