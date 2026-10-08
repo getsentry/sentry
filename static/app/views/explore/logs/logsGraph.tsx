@@ -149,9 +149,10 @@ function Graph({
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const {droppedEvents, acceptedEvents} = useDroppedData({
     dataset: DiscoverDatasets.OURLOGS,
+    interval,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.OURLOGS);
+  const openDroppedDataDrawer = useDroppedDataDrawer({dataset: DiscoverDatasets.OURLOGS});
   const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand =
     canShowDroppedData && isDroppedDataLayerOn && !tableIsEmpty && !tableIsPending;
