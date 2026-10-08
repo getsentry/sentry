@@ -10,6 +10,7 @@ from sentry import features, options
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.pullrequest import PullRequest
 from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
+from sentry.seer.autofix.coding_agent_telemetry import record_handoff_event
 from sentry.seer.endpoints.utils import get_seer_run
 from sentry.seer.milestones import reconcile_pull_requests_merged_milestone
 from sentry.seer.models.run import SeerRun, SeerRunCodingAgentHandoff, SeerRunPullRequest
@@ -170,6 +171,12 @@ def link_resolved_pull_request_to_seer_run(
             logger.exception(
                 "seer.pr_link.milestone_failed",
                 extra={**log_context, "pull_request_id": pull_request.id},
+            )
+        if coding_agent_handoff is not None:
+            record_handoff_event(
+                event="pr_created",
+                handoff=coding_agent_handoff,
+                pull_request=pull_request,
             )
 
     return pull_request

@@ -137,6 +137,8 @@ class TestLaunchCodingAgents(TestCase):
         assert handoff.extras["agent_url"] == "https://cursor.sh/agent"
         # The launch is the only point that knows which repo row the agent got.
         assert handoff.extras["repo_external_id"] == "123"
+        assert handoff.extras["repository"] == "owner/repo"
+        assert handoff.extras["auto_create_pr"] is False
         assert handoff.status == "pending"
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")

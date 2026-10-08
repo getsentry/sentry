@@ -10,6 +10,7 @@ from typing import NamedTuple
 
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import parse_pull_request_url
+from sentry.seer.autofix.coding_agent_telemetry import record_handoff_event
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
@@ -52,6 +53,8 @@ def create_seer_run_coding_agent_handoff(
     state: CodingAgentState,
     *,
     repo_external_id: str,
+    repository: str = "",
+    auto_create_pr: bool = False,
 ) -> None:
     """Record the agent Seer just handed ``run_id`` off to.
 
@@ -68,16 +71,22 @@ def create_seer_run_coding_agent_handoff(
             logger.info("seer.coding_agent_handoff.run_not_found", extra=log_context)
             return
 
-        extras: SeerRunCodingAgentHandoffExtras = {"agent_url": state.agent_url}
+        extras: SeerRunCodingAgentHandoffExtras = {
+            "agent_url": state.agent_url,
+            "repository": repository,
+            "auto_create_pr": auto_create_pr,
+            "agent_name": state.name,
+        }
         if repo_external_id:
             extras["repo_external_id"] = repo_external_id
-        SeerRunCodingAgentHandoff.objects.create(
+        handoff = SeerRunCodingAgentHandoff.objects.create(
             seer_run=seer_run,
             provider=state.provider.value,
             agent_id=state.id,
             status=state.status.value,
             extras=extras,
         )
+        record_handoff_event(event="launched", handoff=handoff)
     except Exception:
         logger.exception("seer.coding_agent_handoff.create_failed", extra=log_context)
 
@@ -111,6 +120,7 @@ def sync_coding_agent_status(
         logger.info("seer.coding_agent_handoff.not_found", extra=log_context)
 
     if handoff is not None:
+        previous_status = handoff.status
         run_id = handoff.seer_run.seer_run_state_id
         try:
             group_id = handoff.seer_run.agent.group_id
@@ -128,6 +138,17 @@ def sync_coding_agent_status(
                 handoff.extras = extras
                 update_fields.append("extras")
             handoff.save(update_fields=update_fields)
+            lifecycle_events = {
+                CodingAgentStatus.PENDING: "rescheduled",
+                CodingAgentStatus.COMPLETED: "completed",
+                CodingAgentStatus.FAILED: "failed",
+            }
+            if previous_status != status.value and status in lifecycle_events:
+                record_handoff_event(
+                    event=lifecycle_events[status],
+                    handoff=handoff,
+                    result=result,
+                )
         except Exception:
             logger.exception("seer.coding_agent_handoff.update_failed", extra=log_context)
             if handoff.provider != CodingAgentProviderType.CURSOR_BACKGROUND_AGENT.value:

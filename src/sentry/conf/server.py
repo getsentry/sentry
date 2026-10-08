@@ -2498,6 +2498,11 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 
 CLAUDE_CODE_CLIENT_CLASS: str | None = None
 
+# Optional DSN for the normalized coding-agent handoff lifecycle stream. In
+# production this points at the same project that receives Claude Managed Agents'
+# OpenTelemetry export so lifecycle spans can be joined by anthropic.session.id.
+SEER_CODING_AGENT_TELEMETRY_DSN: str | None = os.environ.get("SEER_CODING_AGENT_TELEMETRY_DSN")
+
 SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,

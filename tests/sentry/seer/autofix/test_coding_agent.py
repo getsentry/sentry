@@ -908,7 +908,11 @@ class TestPollClaudeCodeAgents(TestCase):
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_attributes_pr_on_completion(
-        self, mock_integration_service, mock_import_string, mock_sync_status, mock_attribute
+        self,
+        mock_integration_service,
+        mock_import_string,
+        mock_sync_status,
+        mock_attribute,
     ):
         """A completed Claude session with a PR is attributed to the Claude agent, and both
         Seer's state and the Sentry-side SeerRunCodingAgentHandoff row are synced in one call."""
