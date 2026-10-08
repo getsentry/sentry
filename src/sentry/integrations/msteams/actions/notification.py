@@ -56,7 +56,8 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             return
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
-            rules = [f.rule for f in futures]
+            contexts = [future.context for future in futures]
+            rules = [context.origin for context in contexts]
             card = MSTeamsIssueMessageBuilder(
                 event.group, event, rules, integration
             ).build_group_card(notification_uuid=notification_uuid)
@@ -72,8 +73,8 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
                     client.send_card(channel, card)
                 except (ApiError, IntegrationError) as e:
                     record_lifecycle_termination_level(lifecycle, e)
-            rule = rules[0] if rules else None
-            self.record_notification_sent(event, channel, rule, notification_uuid)
+            context = contexts[0] if contexts else None
+            self.record_notification_sent(event, channel, context, notification_uuid)
 
         key = f"msteams:{integration.id}:{channel}"
 

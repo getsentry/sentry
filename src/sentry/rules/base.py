@@ -6,7 +6,7 @@ from collections.abc import Callable, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
 from sentry.models.project import Project
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationActionContext, RuleFuture
 from sentry.services.eventstore.models import GroupEvent
 
 if TYPE_CHECKING:
@@ -59,12 +59,17 @@ class RuleBase(abc.ABC):
         self,
         project: Project,
         data: MutableMapping[str, Any] | None = None,
+        context: NotificationActionContext | None = None,
         rule: Rule | None = None,
     ) -> None:
+        if context is not None and rule is not None:
+            raise ValueError("Specify notification context or legacy rule, not both")
+        if rule is not None:
+            context = NotificationActionContext.from_legacy_rule(rule)
         self.project = project
         self.data = data or {}
         self.had_data = data is not None
-        self.rule = rule
+        self.context = context
 
     id: ClassVar[str]
     label: ClassVar[str]
