@@ -301,16 +301,97 @@ describe('ProjectFilters', () => {
     expect(mock.mock.calls[0][1].data.subfilters.toSorted()).toEqual([
       'android',
       'chrome',
+      'chrome_mobile',
       'edge',
+      'edge_mobile',
       'firefox',
+      'firefox_mobile',
       'ie',
       'opera',
       'opera_mini',
+      'opera_mobile',
       'safari',
+      'safari_mobile',
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'None'}));
     expect(mock.mock.calls[1][1].data.subfilters).toEqual([]);
+  });
+
+  it('can toggle a mobile legacy browser', async () => {
+    renderComponent();
+
+    const mock = createFilterMock('legacy-browsers');
+    const safariMobile = await screen.findByRole('checkbox', {
+      name: 'Safari Mobile Version 15 and lower',
+    });
+    expect(safariMobile).not.toBeChecked();
+
+    await userEvent.click(safariMobile);
+    expect(safariMobile).toBeChecked();
+    expect(mock.mock.calls[0][1].data.subfilters.toSorted()).toEqual([
+      'ie',
+      'safari',
+      'safari_mobile',
+    ]);
+  });
+
+  it('can select all mobile or all desktop legacy browsers', async () => {
+    renderComponent();
+
+    const mock = createFilterMock('legacy-browsers');
+
+    await userEvent.click(await screen.findByRole('button', {name: 'All mobile'}));
+    expect(mock.mock.calls[0][1].data.subfilters.toSorted()).toEqual([
+      'android',
+      'chrome_mobile',
+      'edge_mobile',
+      'firefox_mobile',
+      'ie',
+      'opera_mini',
+      'opera_mobile',
+      'safari',
+      'safari_mobile',
+    ]);
+
+    await userEvent.click(screen.getByRole('button', {name: 'All desktop'}));
+    expect(mock.mock.calls[1][1].data.subfilters.toSorted()).toEqual([
+      'android',
+      'chrome',
+      'chrome_mobile',
+      'edge',
+      'edge_mobile',
+      'firefox',
+      'firefox_mobile',
+      'ie',
+      'opera',
+      'opera_mini',
+      'opera_mobile',
+      'safari',
+      'safari_mobile',
+    ]);
+
+    // A second click on a complete column clears that column.
+    await userEvent.click(screen.getByRole('button', {name: 'All mobile'}));
+    expect(mock.mock.calls[2][1].data.subfilters.toSorted()).toEqual([
+      'chrome',
+      'edge',
+      'firefox',
+      'ie',
+      'opera',
+      'safari',
+    ]);
+  });
+
+  it('only shows deprecated legacy browsers while they are active', async () => {
+    renderComponent();
+
+    expect(
+      await screen.findByRole('checkbox', {name: 'Safari Version 15 and lower'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {name: 'Safari Version 5 and lower (deprecated)'})
+    ).not.toBeInTheDocument();
   });
 
   it('saves the ip address filter on blur from the filters section', async () => {

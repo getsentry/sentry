@@ -1,13 +1,5 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import iconAndroid from 'sentry-logos/logo-android.svg';
-import iconChrome from 'sentry-logos/logo-chrome.svg';
-import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg';
-import iconFirefox from 'sentry-logos/logo-firefox.svg';
-import iconIe from 'sentry-logos/logo-ie.svg';
-import iconOpera from 'sentry-logos/logo-opera.svg';
-import iconSafari from 'sentry-logos/logo-safari.svg';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -19,7 +11,7 @@ import {
   FormSearch,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
@@ -42,6 +34,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CustomFilters} from './customFilters';
+import {getInitialSubfilters, LegacyBrowserFilter} from './legacyBrowserFilter';
 
 const filterDescriptions = {
   'browser-extensions': {
@@ -79,213 +72,6 @@ const filterDescriptions = {
   },
 };
 
-const LEGACY_BROWSER_SUBFILTERS = {
-  chrome: {
-    icon: iconChrome,
-    title: 'Chrome',
-    helpText: 'Version 110 and lower',
-    legacy: false,
-  },
-  safari: {
-    icon: iconSafari,
-    title: 'Safari',
-    helpText: 'Version 15 and lower',
-    legacy: false,
-  },
-  safari_pre_6: {
-    icon: iconSafari,
-    helpText: '(Deprecated) Version 5 and lower',
-    title: 'Safari',
-    legacy: true,
-  },
-  firefox: {
-    icon: iconFirefox,
-    title: 'Firefox',
-    helpText: 'Version 110 and lower',
-    legacy: false,
-  },
-  android: {
-    icon: iconAndroid,
-    title: 'Android',
-    helpText: 'Version 3 and lower',
-    legacy: false,
-  },
-  android_pre_4: {
-    icon: iconAndroid,
-    helpText: '(Deprecated) Version 3 and lower',
-    title: 'Android',
-    legacy: true,
-  },
-  edge: {
-    icon: iconEdgeLegacy,
-    title: 'Edge',
-    helpText: 'Version 110 and lower',
-    legacy: false,
-  },
-  edge_pre_79: {
-    icon: iconEdgeLegacy,
-    helpText: '(Deprecated) Version 18 and lower',
-    title: 'Edge (Legacy)',
-    legacy: true,
-  },
-  ie: {
-    icon: iconIe,
-    title: 'Internet Explorer',
-    helpText: 'Version 11 and lower',
-    legacy: false,
-  },
-  ie_pre_9: {
-    icon: iconIe,
-    helpText: '(Deprecated) Version 8 and lower',
-    title: 'Internet Explorer',
-    legacy: true,
-  },
-  ie9: {
-    icon: iconIe,
-    helpText: '(Deprecated) Version 9',
-    title: 'Internet Explorer',
-    legacy: true,
-  },
-  ie10: {
-    icon: iconIe,
-    helpText: '(Deprecated) Version 10',
-    title: 'Internet Explorer',
-    legacy: true,
-  },
-  ie11: {
-    icon: iconIe,
-    helpText: '(Deprecated) Version 11',
-    title: 'Internet Explorer',
-    legacy: true,
-  },
-  opera: {
-    icon: iconOpera,
-    title: 'Opera',
-    helpText: 'Version 99 and lower',
-    legacy: false,
-  },
-  opera_pre_15: {
-    icon: iconOpera,
-    helpText: '(Deprecated) Version 14 and lower',
-    title: 'Opera',
-    legacy: true,
-  },
-  opera_mini: {
-    icon: iconOpera,
-    title: 'Opera Mini',
-    helpText: 'Version 34 and lower',
-    legacy: false,
-  },
-  opera_mini_pre_8: {
-    icon: iconOpera,
-    helpText: '(Deprecated) Version 8 and lower',
-    title: 'Opera Mini',
-    legacy: true,
-  },
-};
-
-type LegacyBrowserSubfilterKeys = Array<keyof typeof LEGACY_BROWSER_SUBFILTERS>;
-
-function getActiveSubfilters(): string[] {
-  return Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-    key =>
-      !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS].legacy
-  );
-}
-
-function getInitialSubfilters(active: boolean | string[]): string[] {
-  switch (active) {
-    case true:
-      return getActiveSubfilters();
-    case false:
-      return [];
-    default:
-      return active;
-  }
-}
-
-function LegacyBrowserFilterRow({
-  subfilters,
-  disabled,
-  hintText,
-  indicator,
-  label,
-  onToggle,
-}: {
-  hintText: React.ReactNode;
-  label: React.ReactNode;
-  onToggle: (newSubfilters: string[]) => void;
-  subfilters: string[];
-  disabled?: boolean;
-  indicator?: React.ReactNode;
-}) {
-  const subfilterSet = new Set(subfilters);
-
-  const toggleSubfilter = (subfilter: string) => {
-    const newSet = new Set(subfilterSet);
-
-    if (newSet.has(subfilter)) {
-      newSet.delete(subfilter);
-    } else {
-      newSet.add(subfilter);
-    }
-
-    onToggle([...newSet]);
-  };
-
-  return (
-    <Stack flexGrow={1} width="100%">
-      <Flex align="center" gap="xs" justify="between">
-        <Flex align="center" gap="xs">
-          {label}
-          <Grid flow="column" align="center" gap="md">
-            <Button
-              variant="link"
-              onClick={() => onToggle(getActiveSubfilters())}
-              disabled={disabled}
-            >
-              {t('All')}
-            </Button>
-            <Button variant="link" onClick={() => onToggle([])} disabled={disabled}>
-              {t('None')}
-            </Button>
-          </Grid>
-        </Flex>
-        {indicator}
-      </Flex>
-      {hintText}
-      <Grid columns={{zero: '1fr', md: '1fr 1fr'}} gap="lg" paddingTop="xl">
-        {(Object.keys(LEGACY_BROWSER_SUBFILTERS) as LegacyBrowserSubfilterKeys)
-          .filter(key => {
-            if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
-              return true;
-            }
-            return subfilterSet.has(key);
-          })
-          .map(key => {
-            const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
-            return (
-              <FilterGridItem key={key}>
-                <FilterGridIcon src={subfilter.icon} />
-                <div>
-                  <FilterTitle>{subfilter.title}</FilterTitle>
-                  <FilterDescription>{subfilter.helpText}</FilterDescription>
-                </div>
-                <Switch
-                  aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                  checked={subfilterSet.has(key)}
-                  disabled={disabled}
-                  onChange={() => toggleSubfilter(key)}
-                  size="lg"
-                />
-              </FilterGridItem>
-            );
-          })}
-      </Grid>
-    </Stack>
-  );
-}
-
 const booleanFilterSchema = z.object({
   'browser-extensions': z.boolean(),
   localhost: z.boolean(),
@@ -298,7 +84,9 @@ const projectBooleanSchema = z.object({
   'filters:chunk-load-error': z.boolean(),
 });
 
-const legacyBrowserSchema = z.object({'legacy-browsers': z.array(z.string())});
+const legacyBrowserSchema = z.object({
+  'legacy-browsers': z.array(z.string()),
+});
 
 const blacklistedIpsSchema = z.object({
   'filters:blacklisted_ips': z.string(),
@@ -750,7 +538,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
                       {field => (
                         <field.Base disabled={!hasAccess}>
                           {(baseProps, {indicator}) => (
-                            <LegacyBrowserFilterRow
+                            <LegacyBrowserFilter
                               subfilters={field.state.value}
                               disabled={baseProps.disabled}
                               hintText={
@@ -899,28 +687,3 @@ export function ProjectFiltersSettings({project, params}: Props) {
     </FormSearch>
   );
 }
-
-const FilterGridItem = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr max-content;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-  background: ${p => p.theme.tokens.background.secondary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.lg};
-`;
-
-const FilterGridIcon = styled('img')`
-  width: 38px;
-  height: 38px;
-`;
-
-const FilterTitle = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const FilterDescription = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-`;
