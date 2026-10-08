@@ -6,7 +6,7 @@ import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
 
-import {BaseFieldImpl, type BaseFieldProps} from './baseField';
+import {BaseFieldImpl, getLabelId, type BaseFieldProps} from './baseField';
 
 export function RangeField({
   field,
@@ -24,6 +24,7 @@ export function RangeField({
     disabled?: boolean | string;
   }) {
   const autoSaveContext = useAutoSaveContext();
+  const labelId = getLabelId(field);
 
   return (
     <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
@@ -31,6 +32,7 @@ export function RangeField({
         <Fragment>
           <Slider
             {...fieldProps}
+            aria-labelledby={labelId}
             {...props}
             value={value}
             onChange={onChange}

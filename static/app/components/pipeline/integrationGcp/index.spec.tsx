@@ -20,6 +20,10 @@ describe('GcpSaGenerationStep', () => {
       <GcpSaGenerationStep {...makeSaGenerationStepProps({stepData: {sentrySaEmail}})} />
     );
 
+    expect(screen.getByRole('link', {name: 'documentation'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/integrations/debugging/gcp-seer/'
+    );
     expect(screen.getByDisplayValue(sentrySaEmail)).toBeInTheDocument();
     expect(screen.getByText('Set up in Google Cloud')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();

@@ -1,4 +1,5 @@
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+
 import {
   ActionMenuTrigger,
   generateAction,

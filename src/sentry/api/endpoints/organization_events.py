@@ -19,6 +19,10 @@ from sentry.api.helpers.error_upsampling import (
     transform_orderby_for_error_upsampling,
     transform_query_columns_for_error_upsampling,
 )
+from sentry.api.helpers.ingestion_delay import (
+    get_ingestion_delay_status,
+    serialize_ingestion_status,
+)
 from sentry.api.paginator import EAPPageTokenPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
@@ -32,6 +36,8 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
+from sentry.ingestion_delay.meta import IngestionMeta
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -55,6 +61,7 @@ from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
@@ -81,6 +88,11 @@ SAVED_QUERY_DATASET_MAP = {
 # TODO: Adjust this once we make a decision in the DACI for global views restriction
 # Do not add more referrers to this list as it is a temporary solution
 GLOBAL_VIEW_ALLOWLIST = {Referrer.API_ISSUES_ISSUE_EVENTS.value}
+DATASET_TO_FORMULA_DATASET = {
+    Spans: ExploreSavedQueryDataset.SPANS,
+    OurLogs: ExploreSavedQueryDataset.OURLOGS,
+    TraceMetrics: ExploreSavedQueryDataset.METRICS,
+}
 
 
 class DiscoverDatasetSplitException(Exception):
@@ -104,7 +116,9 @@ class EventsMeta(TypedDict, total=False):
     discoverSplitDecision: Any
     dataScanned: str
     bytesScanned: int
+    routingHint: str
     debug_info: Any
+    ingestion: IngestionMeta
 
 
 # Only used for api docs
@@ -139,6 +153,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
             "organizations:events-endpoint-transactions-discover-blocked",
+            "organizations:measured-ingestion-delay-metadata",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -175,7 +190,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             VisibilityParams.FIELD,
             VisibilityParams.PER_PAGE,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
             VisibilityParams.ALLOW_AGGREGATE_CONDITIONS,
@@ -202,6 +217,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         The `field` query parameter determines what fields will be selected in the `data` and `meta` keys of the endpoint response.
         - The `data` key contains a list of results row by row that match the `query` made
         - The `meta` key contains information about the response, including the unit or type of the fields requested
+        - EAP table results may include `meta.routingHint`. Pass this opaque value unchanged as
+          `routing_hint` when fetching item details for a row in this response. It identifies how
+          the table query was routed and is omitted when no hint is available.
         """
         if not self.has_feature(organization, request):
             return Response(
@@ -587,14 +605,30 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     actor=request.user,
                 )
 
+                if scoped_dataset in DATASET_TO_FORMULA_DATASET and features.has(
+                    "organizations:explore-saved-formulas", organization, actor=request.user
+                ):
+                    saved_formulas = {
+                        formula.name: formula
+                        for formula in ExploreSavedFormula.objects.filter(
+                            organization=organization,
+                            dataset=DATASET_TO_FORMULA_DATASET[scoped_dataset],
+                        ).prefetch_related("variables")
+                    }
+                else:
+                    saved_formulas = None
+
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
-                        fields_acl=FieldsACL(functions={"time_spent_percentage"}),
+                        fields_acl=FieldsACL(
+                            functions={"time_spent_percentage"}, attributes={"sentry.links"}
+                        ),
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
+                        saved_formulas=saved_formulas,
                     )
                 elif scoped_dataset == OurLogs:
                     return SearchResolverConfig(
@@ -602,6 +636,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
+                        saved_formulas=saved_formulas,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -614,6 +649,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
+                        saved_formulas=saved_formulas,
                     )
                 elif scoped_dataset == ProfileFunctions:
                     # profile_functions uses aggregate conditions
@@ -713,12 +749,19 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         paginator, cursor_cls = paginator_factory(dataset)
 
-        max_per_page = 9999 if dataset in (OurLogs, TraceMetrics) else None
+        max_per_page = 9999 if dataset in RPC_DATASETS else None
+
+        # Only the EAP RPC datasets can measure ingestion delay, and only the item types the
+        # outcomes lookup understands. The rest would just log an unsupported item type.
+
+        include_measured_ingestion_delay_metadata = batch_features.get(
+            "organizations:measured-ingestion-delay-metadata", False
+        )
 
         def _handle_results(results):
             # Apply error upsampling for regular Events API
             self.handle_error_upsampling(snuba_params.project_ids, results)
-            return self.handle_results_with_meta(
+            handled = self.handle_results_with_meta(
                 request,
                 organization,
                 snuba_params.project_ids,
@@ -726,6 +769,15 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 standard_meta=True,
                 dataset=dataset,
             )
+            if (
+                include_measured_ingestion_delay_metadata
+                and isinstance(dataset, type)
+                and issubclass(dataset, RPCBase)
+            ):
+                status = get_ingestion_delay_status(dataset, snuba_params)
+                if status is not None:
+                    handled["meta"]["ingestion"] = serialize_ingestion_status(status)
+            return handled
 
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them

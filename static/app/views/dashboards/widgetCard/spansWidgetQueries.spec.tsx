@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -117,6 +118,47 @@ describe('spansWidgetQueries', () => {
     );
 
     expect(await screen.findByText('high')).toBeInTheDocument();
+  });
+
+  it('calculates the confidence from events-timeseries when enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            meta: {
+              valueType: 'integer',
+              valueUnit: null,
+              interval: 1000,
+              dataScanned: 'partial',
+            },
+            values: [
+              {timestamp: 1000, value: 1, confidence: 'low'},
+              {timestamp: 2000, value: 2, confidence: 'low'},
+              {timestamp: 3000, value: 3, confidence: 'low'},
+            ],
+          }),
+        ],
+      },
+    });
+
+    render(
+      <SpansWidgetQueries widget={widget} dashboardFilters={{}}>
+        {({confidence, dataScanned}) => (
+          <div>
+            {confidence}:{dataScanned}
+          </div>
+        )}
+      </SpansWidgetQueries>,
+      {
+        organization: OrganizationFixture({
+          features: ['dashboards-widgets-use-events-timeseries'],
+        }),
+      }
+    );
+
+    expect(await screen.findByText('low:partial')).toBeInTheDocument();
   });
 
   it('triggers a normal mode request for charts', async () => {

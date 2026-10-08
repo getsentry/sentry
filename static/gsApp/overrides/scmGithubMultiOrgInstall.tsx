@@ -1,9 +1,9 @@
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   buildInstallationMenuItems,
   NEW_INSTALL_KEY,
@@ -46,7 +46,7 @@ export function ScmGithubMultiOrgInstall({
   );
 
   return (
-    <Stack gap="lg" align="start">
+    <Stack gap="lg" align="start" width="100%">
       {needsUpgrade && (
         <Alert
           variant="warning"

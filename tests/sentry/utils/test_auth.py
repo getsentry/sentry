@@ -12,7 +12,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.utils.auth import (
-    REACT_AUTH_COOKIE,
     EmailAuthBackend,
     SsoSession,
     construct_link_with_query,
@@ -132,22 +131,9 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(request)
         assert result == "http://orgslug.testserver/foobar/"
 
-    def test_pending_2fa(self) -> None:
+    def test_pending_2fa_with_react_auth_by_default(self) -> None:
         request = self._make_request()
         request.session["_pending_2fa"] = [1234, 1234, 1234]
-        result = get_login_redirect(request)
-        assert result == reverse("sentry-2fa-dialog")
-
-        request = self._make_request()
-        request.subdomain = "orgslug"
-        request.session["_pending_2fa"] = [1234, 1234, 1234]
-        result = get_login_redirect(request)
-        assert result == f"http://orgslug.testserver{reverse('sentry-2fa-dialog')}"
-
-    def test_pending_2fa_with_react_auth(self) -> None:
-        request = self._make_request()
-        request.session["_pending_2fa"] = [1234, 1234, 1234]
-        request.COOKIES[REACT_AUTH_COOKIE] = "1"
 
         result = get_login_redirect(request)
 

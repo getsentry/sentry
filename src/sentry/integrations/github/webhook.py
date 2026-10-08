@@ -20,6 +20,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from sentry_sdk import traces
 
 from sentry import analytics, options
 from sentry.analytics.events.pr_iteration_events import (
@@ -65,7 +66,7 @@ from sentry.issues.action_log import (
     resolve_action_actor,
 )
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -109,7 +110,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-from sentry.utils.tracing import set_span_tag, start_span
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
@@ -776,9 +776,7 @@ class PushEventWebhook(GitHubWebhook):
                         if commit_author is not None:
                             authors[author_email] = commit_author
 
-            # TODO(dcramer): we need to deal with bad values here, but since
-            # its optional, lets just throw it out for now
-            if len(author_email) > 75:
+            if len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                 author = None
             else:
                 if author_email not in authors:
@@ -1276,7 +1274,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                         "provider_updated_at": provider_updated_at,
                         "state": state,
                         "draft": draft,
-                        "external_id": pull_request["id"],
+                        "external_id": str(pull_request["id"]),
                     },
                     event_state=state,
                     event_updated_at=provider_updated_at,
@@ -1503,11 +1501,16 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         # Create a new transaction for each webhook event to ensure separate traces
         transaction_name = f"github.webhook.{github_event.value}"
-        with start_span(
-            op="webhook", name=transaction_name, source="component", transaction=True
-        ) as span:
-            set_span_tag(span, "github_event", github_event.value)
-
+        traces.new_trace()
+        with traces.start_span(
+            name=transaction_name,
+            attributes={
+                "sentry.op": "webhook",
+                "sentry.span.source": "component",
+                "github_event": github_event.value,
+            },
+            parent_span=None,
+        ):
             github_delivery_id = request.META.get("HTTP_X_GITHUB_DELIVERY")
             if github_delivery_id is not None:
                 github_delivery_id = str(github_delivery_id)
@@ -1525,9 +1528,9 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                     github_delivery_id=github_delivery_id,
                 )
 
-        # Publish the request to the unified SCM (source control management) subscription's
-        # platform. This is a replacement for the handlers defined above. Handlers should be
-        # defined as consumers of the SCM subscriptions Kafka topic.
+        # Publish the request to the unified SCM event stream, which normalizes the event
+        # and dispatches a Taskbroker task for each registered listener. New handlers should
+        # register with scm_event_stream and be imported in sentry/scm/stream.py.
         #
         # NOTE: Publication of the event assumes the event has been properly authorized (as it has
         #       been above).

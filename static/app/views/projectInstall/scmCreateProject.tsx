@@ -7,10 +7,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
-import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {ScmAlertFrequencySection} from 'sentry/components/onboarding/scm/scmAlertFrequencySection';
@@ -40,6 +38,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
 import {
   WIZARD_STORAGE_KEY,
@@ -186,10 +185,15 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
   // Clear state derived from the repository when the repo changes. Platform,
   // features, and the project-details form are repo-dependent (auto-detection
-  // seeds the platform, which in turn seeds the project name).
+  // seeds the platform, which in turn seeds the project name). The restored
+  // created project is too: the reuse check skips the repository link, so a
+  // new repository must create a new project (mirrors onboarding's
+  // clearDerivedState).
   const handleClearDerivedState = useCallback(() => {
     setState(s => ({
       ...s,
+      createdProjectId: undefined,
+      createdProjectSlug: undefined,
       selectedPlatform: undefined,
       selectedFeatures: undefined,
       projectDetailsForm: undefined,
@@ -250,11 +254,9 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     onComplete: handleComplete,
   });
 
-  const submitTooltipText = form.submitTooltipText;
-
   // A real form so Enter in the project name field submits through the
-  // Create project button (implicit submission), which stays a no-op while
-  // the button is disabled.
+  // Create project button (implicit submission). form.submit() is a no-op
+  // while canSubmit is false.
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     form.submit();
@@ -277,7 +279,10 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 radius="lg"
                 layout
               >
-                <Layout.Title>{t('Create a new project')}</Layout.Title>
+                <TopBar.Slot
+                  name="breadcrumbs"
+                  title={{type: 'page-title', label: t('Create a new project')}}
+                />
 
                 <MotionStack gap="md" paddingBottom="2xl" layout="position">
                   <Heading as="h1">{t('Create a project')}</Heading>
@@ -375,8 +380,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   />
                 </MotionContainer>
               </MotionStack>
-              {/* Page-level CTA: disabled until a platform and project details are
-              ready. */}
               <MotionStack
                 gap="md"
                 maxWidth={CREATE_PROJECT_MAX_WIDTH}
@@ -385,17 +388,19 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
               >
                 <ProjectCreationErrorAlert error={form.error} />
                 <Flex justify="end">
-                  <Tooltip title={submitTooltipText} disabled={!submitTooltipText}>
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      disabled={!form.canSubmit}
-                      busy={form.isBusy}
-                      icon={<IconProject />}
-                    >
-                      {t('Create project')}
-                    </Button>
-                  </Tooltip>
+                  {/* aria-disabled rather than disabled so the CTA stays
+                  focusable and the tooltip that says what is missing opens on
+                  keyboard focus. */}
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    aria-disabled={!form.canSubmit}
+                    busy={form.isBusy}
+                    icon={<IconProject />}
+                    tooltipProps={{title: form.submitTooltipText}}
+                  >
+                    {t('Create project')}
+                  </Button>
                 </Flex>
               </MotionStack>
             </LayoutGroup>

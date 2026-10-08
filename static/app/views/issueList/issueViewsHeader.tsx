@@ -1,12 +1,11 @@
 import {Fragment, type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {InfoTip} from '@sentry/scraps/info';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -30,12 +29,17 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
   realtimeActive: boolean;
-  title: ReactNode;
+  title: string;
+  badge?: FeatureBadgeProps['type'];
   description?: ReactNode;
   headerActions?: ReactNode;
 };
 
-function PageTitle({title, description}: {title: ReactNode; description?: ReactNode}) {
+function PageTitle({
+  title,
+  description,
+  badge,
+}: Pick<IssueViewsHeaderProps, 'title' | 'description' | 'badge'>) {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
@@ -50,14 +54,26 @@ function PageTitle({title, description}: {title: ReactNode; description?: ReactN
   }
 
   if (groupSearchView) {
-    return <Layout.Title>{groupSearchView?.name ?? title}</Layout.Title>;
+    return (
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{type: 'page-title', label: groupSearchView?.name ?? title}}
+      />
+    );
   }
 
   return (
-    <Layout.Title>
-      {title}
-      {description && <InfoTip position="right" size="sm" title={description} />}
-    </Layout.Title>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: title,
+        labelTooltip: description,
+        trailingActions: badge
+          ? {type: 'badge', element: <FeatureBadge type={badge} />}
+          : undefined,
+      }}
+    />
   );
 }
 
@@ -202,6 +218,7 @@ function IssueViewEditMenu() {
 
 export function IssueViewsHeader({
   title,
+  badge,
   description,
   realtimeActive,
   onRealtimeChange,
@@ -226,7 +243,7 @@ export function IssueViewsHeader({
 
   return (
     <Fragment>
-      <PageTitle title={title} description={description} />
+      <PageTitle title={title} description={description} badge={badge} />
       <TopBar.Slot name="actions">
         {headerActions}
         {realtimeButton}

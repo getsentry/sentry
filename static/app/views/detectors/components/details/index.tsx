@@ -11,13 +11,30 @@ import {FallbackDetectorDetails} from 'sentry/views/detectors/components/details
 import {MetricDetectorDetails} from 'sentry/views/detectors/components/details/metric';
 import {MobileBuildDetectorDetails} from 'sentry/views/detectors/components/details/mobileBuild';
 import {UptimeDetectorDetails} from 'sentry/views/detectors/components/details/uptime';
+import {detectorToLLMContext} from 'sentry/views/detectors/utils/detectorLLMContext';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type DetectorDetailsContentProps = {
   detector: Detector;
   project: Project;
 };
 
-export function DetectorDetailsContent({detector, project}: DetectorDetailsContentProps) {
+/**
+ * Only the facts the node's own data cannot state. The monitor's type and
+ * settings are reported as fields, so they are not restated here.
+ */
+const CONTEXT_HINT =
+  'Sentry monitor detail page, for the one monitor named below. connectedAlertIds are the ' +
+  'alerts this monitor notifies through; they are `workflows` in the API. Use search_events ' +
+  'or issue search scoped to this project to see what it has actually been firing on.';
+
+function DetectorDetailsContentInner({detector, project}: DetectorDetailsContentProps) {
+  useLLMContext({
+    contextHint: CONTEXT_HINT,
+    ...detectorToLLMContext(detector, project.slug),
+  });
+
   const detectorType = detector.type;
   switch (detectorType) {
     case 'metric_issue':
@@ -37,7 +54,7 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
       );
     case 'monitor_check_in_failure':
       return (
-        <PageFiltersContainer>
+        <PageFiltersContainer shouldForceProject forceProject={project}>
           <CronDetectorDetails detector={detector} project={project} />
         </PageFiltersContainer>
       );
@@ -64,3 +81,8 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
       );
   }
 }
+
+export const DetectorDetailsContent = registerLLMContext(
+  'monitor-detail',
+  DetectorDetailsContentInner
+);

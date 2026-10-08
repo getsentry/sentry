@@ -64,8 +64,13 @@ function DatadogCredentialsStep({
     <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
-          {t(
-            'Enter an organization-level Datadog API key and application key so Seer can access your Datadog telemetry.'
+          {tct(
+            'Enter an organization-level Datadog API key and application key so Seer can access your Datadog telemetry. Refer to the [link:documentation] for more setup guidance.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/integrations/debugging/datadog-seer/" />
+              ),
+            }
           )}
         </Text>
         <form.Field name="site">

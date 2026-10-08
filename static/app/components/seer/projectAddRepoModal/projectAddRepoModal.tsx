@@ -95,6 +95,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       .min(1, {message: t('Please add at least one repository')}),
     agentOption: z.custom<AutofixAgentSelectOption>(),
     stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
+    prIteration: z.boolean(),
   });
 
   const saveMutation = useMutateAutofixProject();
@@ -107,6 +108,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       repoEntries: [] as Array<{branch: string; repoId: string}>,
       agentOption,
       stoppingPoint,
+      prIteration: true,
     },
     validators: [
       {
@@ -397,6 +399,21 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                     onChange={field.handleChange}
                     options={stoppingPointOptions}
                   />
+                </field.Layout.Row>
+              )}
+            </form.Field>
+
+            <Separator orientation="horizontal" />
+
+            <form.Field name="prIteration">
+              {field => (
+                <field.Layout.Row
+                  label={t('Auto-Iterate on PRs')}
+                  hintText={t(
+                    'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
+                  )}
+                >
+                  <field.Switch checked={field.value} onChange={field.handleChange} />
                 </field.Layout.Row>
               )}
             </form.Field>

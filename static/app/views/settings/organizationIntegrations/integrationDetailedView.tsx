@@ -7,12 +7,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -29,6 +27,7 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import {
   openGithubPermissionsUpdateModal,
   useAutoOpenPermissionsModal,
@@ -51,6 +50,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import type {
   AlertType,
@@ -121,6 +121,11 @@ function IntegrationUpgradeButton({
       provider={provider}
       organization={organization}
       onAddIntegration={onInstall}
+      modalParams={
+        provider.key === 'slack'
+          ? getSlackUpgradeModalParams(outdatedConfiguration.missingFeatures)
+          : undefined
+      }
       analyticsParams={{
         view: 'integrations_directory_integration_detail',
         already_installed: true,
@@ -283,11 +288,7 @@ export default function IntegrationDetailedView() {
     return 'Not Installed';
   }, [configurations]);
   const integrationName = provider?.name ?? '';
-  const navigationTabTitle = (
-    <Layout.Title>
-      <Text as="span">{tabTitles[displayedTab]}</Text>
-    </Layout.Title>
-  );
+  const navigationTabTitle = <BreadcrumbTitle title={tabTitles[displayedTab]} />;
   const featureData = useMemo(() => {
     return provider?.metadata.features ?? [];
   }, [provider]);
@@ -441,6 +442,8 @@ export default function IntegrationDetailedView() {
               provider,
               type: integrationType,
               installStatus: installationStatus,
+              // Auto-open must wait for fresh workspaces, not consume stale cache data.
+              configurations: isConfigurationsFetching ? undefined : configurations,
               analyticsParams: {
                 view: 'integrations_directory_integration_detail',
                 already_installed: installationStatus !== 'Not Installed',
@@ -475,6 +478,8 @@ export default function IntegrationDetailedView() {
       organization,
       integrationSlug,
       location.search,
+      configurations,
+      isConfigurationsFetching,
     ]
   );
 
@@ -620,9 +625,8 @@ export default function IntegrationDetailedView() {
 
   return (
     <SentryDocumentTitle title={integrationName}>
-      {navigationTabTitle}
       <IntegrationLayout.Body
-        integrationName={integrationName}
+        title={tabTitles[displayedTab]}
         alert={<FirstPartyIntegrationAlert integrations={configurations} hideCTA />}
         topSection={
           <IntegrationLayout.TopSection

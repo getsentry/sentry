@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {z} from 'zod';
 
@@ -9,7 +9,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
@@ -37,7 +36,7 @@ function StaticSections({project}: {project: Project}) {
   return (
     <Fragment>
       <Container>
-        <FormSection step={1} title={t('Detect')}>
+        <FormSection title={t('Detect')}>
           <Text as="p">
             {tct(
               'An error issue will be created when a new issue group is detected. [link:Manage Grouping Rules]',
@@ -53,7 +52,7 @@ function StaticSections({project}: {project: Project}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection step={2} title={t('Assign')}>
+        <FormSection title={t('Assign')}>
           <Text as="p">
             {tct(
               'Sentry will attempt to automatically assign new issues based on [link:Ownership Rules].',
@@ -69,7 +68,7 @@ function StaticSections({project}: {project: Project}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection step={3} title={t('Prioritize')}>
+        <FormSection title={t('Prioritize')}>
           <Text as="p">
             {tct(
               'New error issues are prioritized based on log level. [link:Learn more about Issue Priority]',
@@ -83,7 +82,7 @@ function StaticSections({project}: {project: Project}) {
         </FormSection>
       </Container>
       <Container>
-        <FormSection step={4} title={t('Resolve')}>
+        <FormSection title={t('Resolve')}>
           <Text as="p">
             {tct(
               'Issues may be automatically resolved based on [link:Auto Resolve Settings].',
@@ -152,21 +151,22 @@ export function EditExistingErrorDetectorForm({
   return (
     <EditLayout>
       <ScrapsForm form={form}>
-        <TopBar.Slot name="title">
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: t('Monitors'),
-                to: makeMonitorBasePathname(organization.slug),
-              },
-              {
-                label: getDetectorTypeLabel(detector.type),
-                to: makeMonitorTypePathname(organization.slug, detector.type),
-              },
-              {label: detector.name},
-            ]}
-          />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: detector.name}}
+          items={[
+            {
+              type: 'link',
+              label: t('Monitors'),
+              to: makeMonitorBasePathname(organization.slug),
+            },
+            {
+              type: 'link',
+              label: getDetectorTypeLabel(detector.type),
+              to: makeMonitorTypePathname(organization.slug, detector.type),
+            },
+          ]}
+        />
         <AutomationFeedbackButton />
 
         <EditLayout.Body>
@@ -175,7 +175,6 @@ export function EditExistingErrorDetectorForm({
             <AutomateSection
               form={form}
               fields={{workflowIds: 'workflowIds'}}
-              step={5}
               project={project}
             />
           </Stack>

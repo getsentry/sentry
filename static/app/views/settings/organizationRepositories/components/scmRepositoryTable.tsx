@@ -8,21 +8,21 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconChevron,
@@ -34,6 +34,7 @@ import {
 } from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
+import type {AvatarProject} from 'sentry/types/project';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import type {
@@ -505,14 +506,22 @@ function RepoMappings({
   slugs,
   mappingsLoading,
   action,
+  onProjectClick,
 }: {
   mappingsLoading: boolean | undefined;
   slugs: string[];
   action?: React.ReactNode;
+  onProjectClick?: (project: AvatarProject) => void;
 }) {
   return (
     <Flex align="center" gap="2xs">
-      {slugs.length > 0 && <ProjectList projectSlugs={slugs} maxVisibleProjects={3} />}
+      {slugs.length > 0 && (
+        <ProjectList
+          projectSlugs={slugs}
+          maxVisibleProjects={3}
+          onProjectClick={onProjectClick}
+        />
+      )}
       {mappingsLoading && slugs.length === 0 && (
         <Placeholder width="60px" height="16px" />
       )}
@@ -559,7 +568,7 @@ function VirtualizedRepoList({
     [visibleRepos]
   );
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: visibleRepos.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ESTIMATED_REPO_ROW_HEIGHT,
@@ -586,9 +595,9 @@ function VirtualizedRepoList({
         column={outerColumn}
         columns={outerColumns}
         position="relative"
-        style={{height: virtualizer.getTotalSize()}}
+        style={{height: totalSize}}
       >
-        {virtualizer.getVirtualItems().map(virtualItem => {
+        {virtualItems.map(virtualItem => {
           const repo = visibleRepos[virtualItem.index]!;
           const nameMatch = repoMatches?.[repo.id]?.find(m => m.key === 'name');
           const isLast = virtualItem.index === visibleRepos.length - 1;
@@ -618,7 +627,7 @@ function VirtualizedRepoList({
                 align="center"
                 justify="between"
                 gap="sm"
-                padding={nested ? 'xs xl xs 0' : 'xs lg'}
+                padding={nested ? 'md xl md 0' : 'md lg'}
                 style={{transform: `translateY(${virtualItem.start}px)`}}
               >
                 <Flex align="center" gap="sm" minWidth="0">
@@ -645,6 +654,11 @@ function VirtualizedRepoList({
                     slugs={mappedProjectSlugsByRepoId[repo.id] ?? []}
                     mappingsLoading={mappingsLoading}
                     action={installation.repoActions?.(repo)}
+                    onProjectClick={
+                      installation.onMappedProjectClick
+                        ? project => installation.onMappedProjectClick!(repo, project)
+                        : undefined
+                    }
                   />
                 )}
               </RepoRow>

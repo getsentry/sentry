@@ -6,14 +6,15 @@ import partial from 'lodash/partial';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Duration} from 'sentry/components/duration';
 import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {FileSize} from 'sentry/components/fileSize';
@@ -238,8 +239,6 @@ export const DURATION_UNITS = {
   day: 1000 * 60 * 60 * 24,
   week: 1000 * 60 * 60 * 24 * 7,
 };
-
-export const PERCENTAGE_UNITS = ['ratio', 'percent'];
 
 /**
  * A mapping of field types to their rendering function.
@@ -501,15 +500,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           <DropdownMenu
             position="left"
             size="xs"
-            triggerProps={{
-              showChevron: false,
-              icon: (
-                <Fragment>
-                  <IconDownload variant="primary" size="sm" />
-                  <DownloadCount>{items.length}</DownloadCount>
-                </Fragment>
-              ),
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                icon={
+                  <Fragment>
+                    <IconDownload variant="primary" size="sm" />
+                    <DownloadCount>{items.length}</DownloadCount>
+                  </Fragment>
+                }
+                aria-label={t('Download attachments')}
+              />
+            )}
             items={items}
           />
         </RightAlignedContainer>

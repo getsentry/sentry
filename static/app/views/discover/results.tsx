@@ -1,4 +1,4 @@
-import {Component, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Component, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -8,23 +8,20 @@ import omit from 'lodash/omit';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {CursorHandler} from '@sentry/scraps/pagination';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
+import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {Banner} from 'sentry/components/banner';
 import {Confirm} from 'sentry/components/confirm';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -76,6 +73,7 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {useGlobalAlerts, type AddAlert} from 'sentry/views/app/globalAlerts';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -83,12 +81,11 @@ import {
   DEFAULT_EVENT_VIEW,
   DEFAULT_EVENT_VIEW_MAP,
 } from 'sentry/views/discover/results/data';
-import ResultsChart from 'sentry/views/discover/results/resultsChart';
+import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
 import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';
-import {IconUpdate, SaveAsDropdown} from 'sentry/views/discover/savedQuery';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
@@ -102,14 +99,17 @@ import {
 } from 'sentry/views/discover/savedQuery/utils';
 import Table from 'sentry/views/discover/table';
 import {
+  canCreateAlerts,
   generateTitle,
-  getDiscoverDeprecation,
-  getDiscoverDeprecationEnabled,
-  getTransactionsDeprecation,
+  getCreateAlertFromViewUrl,
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
+import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
@@ -376,12 +376,11 @@ export class Results extends Component<Props, State> {
   // on this results page, so hard-block every transactions query (table, chart,
   // total count, and tags) and point users to their migrated queries instead.
   isTransactionsUnsupported() {
-    const {organization, location} = this.props;
+    const {location} = this.props;
     const {savedQueryDataset} = this.state;
     return (
-      getDiscoverDeprecation(organization) &&
       getDatasetFromLocationOrSavedQueryDataset(location, savedQueryDataset) ===
-        DiscoverDatasets.TRANSACTIONS
+      DiscoverDatasets.TRANSACTIONS
     );
   }
 
@@ -410,7 +409,7 @@ export class Results extends Component<Props, State> {
           mode,
           referrer: 'errors',
           resultCount: totals,
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
         });
       }
@@ -422,7 +421,7 @@ export class Results extends Component<Props, State> {
           mode,
           referrer: 'errors',
           resultCount: 0,
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
           error: err instanceof Error ? err : true,
         });
@@ -614,11 +613,11 @@ export class Results extends Component<Props, State> {
 
   getDocumentTitle(): string {
     const {eventView} = this.state;
-    const {isHomepage, organization} = this.props;
+    const {isHomepage} = this.props;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView, isHomepage, organization});
+    return generateTitle({eventView, isHomepage});
   }
 
   setError = (error: string, errorCode: number) => {
@@ -647,8 +646,7 @@ export class Results extends Component<Props, State> {
   };
 
   render() {
-    const {organization, location, selection, api, setSavedQuery, isHomepage} =
-      this.props;
+    const {organization, location, selection, setSavedQuery, isHomepage} = this.props;
     const {
       eventView,
       error,
@@ -660,7 +658,6 @@ export class Results extends Component<Props, State> {
       savedQueryDataset,
       showQueryIncompatibleWithDataset,
       showUnparameterizedBanner,
-      splitDecision,
       tips,
     } = this.state;
     const hasDatasetSelectorFeature = hasDatasetSelector(organization);
@@ -686,7 +683,6 @@ export class Results extends Component<Props, State> {
             eventView={eventView}
             yAxis={yAxisArray}
             isHomepage={isHomepage}
-            splitDecision={splitDecision}
           />
           <Layout.Body>
             <Top width="full">
@@ -709,19 +705,6 @@ export class Results extends Component<Props, State> {
                 savedQueryDataset={savedQueryDataset}
                 selection={selection}
               />
-              {savedQueryDataset === SavedQueryDatasets.ERRORS &&
-                !getDiscoverDeprecationEnabled(organization) &&
-                getTransactionsDeprecation(organization) &&
-                // so we know the transaction migration is done before showing this banner
-                organization.features.includes('expose-migrated-discover-queries') && (
-                  <Alert.Container>
-                    <Alert variant="info">
-                      {t(
-                        'Discover \u2192 Errors will be moving soon to Explore \u2192 Errors. Same functionality, just even easier to find.'
-                      )}
-                    </Alert>
-                  </Alert.Container>
-                )}
 
               {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
@@ -745,8 +728,7 @@ export class Results extends Component<Props, State> {
                   organization={organization}
                   location={location}
                 >
-                  <ResultsChart
-                    api={api}
+                  <ResultsChartContainer
                     organization={organization}
                     eventView={eventView}
                     location={location}
@@ -1087,7 +1069,6 @@ function DiscoverContextMenu({
   eventView,
   location,
   savedQuery,
-  yAxis,
   isHomepage,
   setSavedQuery,
 }: {
@@ -1095,7 +1076,6 @@ function DiscoverContextMenu({
   location: Location;
   organization: Organization;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
-  yAxis: string[];
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 }) {
@@ -1136,44 +1116,7 @@ function DiscoverContextMenu({
       ? 'saved-query'
       : 'prebuilt-query';
 
-  const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
-    location,
-    savedQuery?.queryDataset
-  );
-  const deprecatingTransactionsDataset =
-    currentDataset === DiscoverDatasets.TRANSACTIONS &&
-    organization.features.includes('discover-saved-queries-deprecation');
-
-  const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
-
   const items: MenuItemProps[] = [];
-
-  if (organization.features.includes('dashboards-edit')) {
-    items.push({
-      key: 'add-to-dashboard',
-      label: t('Add to Dashboard'),
-      disabled: deprecatingTransactionsDataset,
-      tooltipOptions: {},
-      tooltip:
-        deprecatingTransactionsDataset && getTransactionDeprecationMessage(tracesUrl),
-      onAction: () => {
-        handleAddQueryToDashboard({
-          organization,
-          location,
-          eventView,
-          query: savedQuery,
-          yAxis,
-          widgetType: hasDatasetSelector(organization)
-            ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre...
-              SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
-                getSavedQueryDataset(organization, location, savedQuery)
-              ]
-            : undefined,
-          source: DashboardWidgetSource.DISCOVERV2,
-        });
-      },
-    });
-  }
 
   if (organization.features.includes('discover-query')) {
     if (isDefault) {
@@ -1273,6 +1216,7 @@ function SaveQueryButton({
   yAxis,
   setSavedQuery,
   errorCode,
+  isHomepage,
 }: {
   errorCode: number;
   eventView: EventView;
@@ -1280,36 +1224,21 @@ function SaveQueryButton({
   organization: Organization;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
+  isHomepage?: boolean;
   savedQuery?: SavedQuery;
 }) {
   const api = useApi();
   const navigate = useNavigate();
-  const [queryName, setQueryName] = useState('');
+  const {projects} = useProjects();
+  const {starQuery} = useStarQuery();
 
-  const {isNewQuery, isEditingQuery} = useMemo(() => {
-    if (!savedQuery) {
-      return {isNewQuery: true, isEditingQuery: false};
+  // Whether the current view is an existing saved query
+  const isSavedQuery = useMemo(() => {
+    if (isHomepage || !savedQuery || !defined(eventView.id)) {
+      return false;
     }
-    const savedEventView = EventView.fromSavedQuery(savedQuery);
-    if (savedEventView.id !== eventView.id) {
-      return {isNewQuery: false, isEditingQuery: false};
-    }
-    const isEqualQuery = eventView.isEqualTo(savedEventView);
-    const isEqualYAxis = isEqual(
-      yAxis,
-      savedQuery.yAxis
-        ? typeof savedQuery.yAxis === 'string'
-          ? [savedQuery.yAxis]
-          : savedQuery.yAxis
-        : ['count()']
-    );
-    return {isNewQuery: false, isEditingQuery: !isEqualQuery || !isEqualYAxis};
-  }, [eventView, savedQuery, yAxis]);
-
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    setQueryName('');
-  }, [eventView.id]);
+    return EventView.fromSavedQuery(savedQuery).id === eventView.id;
+  }, [eventView, savedQuery, isHomepage]);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
     location,
@@ -1320,102 +1249,182 @@ function SaveQueryButton({
     organization.features.includes('discover-saved-queries-deprecation');
   const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
 
-  const handleCreate = useCallback(
-    (event: React.MouseEvent | React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!queryName) {
-        return;
+  const handleCreate = async ({name, starred}: {name: string; starred?: boolean}) => {
+    const nextEventView = eventView.clone();
+    nextEventView.name = name;
+    // The save query modal shows its own success and error messages
+    const createdSavedQuery = await handleCreateSavedQuery(
+      api,
+      organization,
+      nextEventView,
+      yAxis,
+      !eventView.id
+    );
+    if (starred) {
+      try {
+        await starQuery(
+          {
+            queryId: Number(createdSavedQuery.id),
+            queryType: SavedQueryType.DISCOVER,
+          },
+          true
+        );
+      } catch (err) {
+        Sentry.captureException(err);
       }
-      const nextEventView = eventView.clone();
-      nextEventView.name = queryName;
-      handleCreateSavedQuery(api, organization, nextEventView, yAxis, !eventView.id).then(
-        (sq: SavedQuery) => {
-          const view = EventView.fromSavedQuery(sq);
-          Banner.dismiss('discover');
-          setQueryName('');
-          navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
-        }
-      );
-    },
-    [api, navigate, organization, eventView, yAxis, queryName]
-  );
-
-  const handleUpdate = (event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    handleUpdateSavedQuery(api, organization, eventView, yAxis).then((sq: SavedQuery) => {
-      const view = EventView.fromSavedQuery(sq);
-      setSavedQuery(sq);
-      setQueryName('');
-      navigate(view.getResultsViewShortUrlTarget(organization));
-    });
+    }
+    const view = EventView.fromSavedQuery(createdSavedQuery);
+    Banner.dismiss('discover');
+    navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
+    return {id: createdSavedQuery.id};
   };
 
+  const handleUpdate = async () => {
+    const updatedSavedQuery = await handleUpdateSavedQuery(
+      api,
+      organization,
+      eventView,
+      yAxis
+    );
+    const view = EventView.fromSavedQuery(updatedSavedQuery);
+    setSavedQuery(updatedSavedQuery);
+    navigate(view.getResultsViewShortUrlTarget(organization));
+  };
+
+  const deprecationTooltip = deprecatingTransactionsDataset
+    ? getTransactionDeprecationMessage(tracesUrl)
+    : undefined;
+  const disableSave =
+    !organization.features.includes('discover-query') ||
+    (errorCode >= 400 && errorCode < 500) ||
+    deprecatingTransactionsDataset;
+
+  const items: MenuItemProps[] = [];
+
+  if (isSavedQuery) {
+    items.push({
+      key: 'update-query',
+      label: t('Existing Query'),
+      textValue: t('Existing Query'),
+      disabled: disableSave,
+      tooltip: deprecationTooltip,
+      onAction: () => {
+        // handleUpdateQuery already shows an error message on failure
+        handleUpdate().catch(() => {});
+      },
+    });
+  }
+
+  items.push({
+    key: 'save-query',
+    label: t('New Query'),
+    textValue: t('New Query'),
+    disabled: disableSave,
+    tooltip: deprecationTooltip,
+    onAction: () => {
+      openSaveQueryModal({
+        organization,
+        saveQuery: handleCreate,
+        traceItemDataset: TraceItemDataset.ERRORS,
+        source: 'errors',
+        showMessage: false,
+      });
+    },
+  });
+
+  const shouldHideCreateAlert =
+    currentDataset === DiscoverDatasets.TRANSACTIONS &&
+    (deprecateTransactionAlerts(organization) ||
+      organization.features.includes('discover-saved-queries-deprecation'));
+
+  if (!shouldHideCreateAlert) {
+    let alertType: MetricAlertType | undefined;
+    let alertEventView = eventView;
+    if (hasDatasetSelector(organization)) {
+      if (currentDataset === DiscoverDatasets.ERRORS) {
+        alertType = 'num_errors';
+      } else if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
+        alertType = 'throughput';
+        alertEventView = eventView.clone();
+        alertEventView.query = eventView.query
+          ? `(${eventView.query}) AND (event.type:transaction)`
+          : 'event.type:transaction';
+      }
+    }
+
+    const canCreateAlert = canCreateAlerts(organization, projects);
+    items.push({
+      ...getSaveAsAlertMenuItem({
+        to: getCreateAlertFromViewUrl({
+          projects,
+          eventView: alertEventView,
+          organization,
+          referrer: 'discover',
+          alertType,
+        }),
+        disabled: !canCreateAlert,
+        onAction: () => {
+          trackAnalytics('discover_v2.create_alert_clicked', {
+            organization,
+            status: 'success',
+          });
+        },
+      }),
+      label: t('Monitor'),
+      textValue: t('Monitor'),
+      tooltip: canCreateAlert
+        ? undefined
+        : t('Ask your organization owner or manager to enable alerts access for you.'),
+    });
+  }
+
+  if (organization.features.includes('dashboards-edit')) {
+    items.push({
+      key: 'add-to-dashboard',
+      label: t('Dashboard widget'),
+      textValue: t('Dashboard widget'),
+      disabled: deprecatingTransactionsDataset,
+      tooltip: deprecationTooltip,
+      onAction: () => {
+        handleAddQueryToDashboard({
+          organization,
+          location,
+          eventView,
+          query: savedQuery,
+          yAxis,
+          widgetType: hasDatasetSelector(organization)
+            ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre...
+              SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                getSavedQueryDataset(organization, location, savedQuery)
+              ]
+            : undefined,
+          source: DashboardWidgetSource.DISCOVERV2,
+        });
+      },
+    });
+  }
+
   return (
-    <Feature organization={organization} features="discover-query">
-      {({hasFeature}) => {
-        const disabled = !hasFeature || (errorCode >= 400 && errorCode < 500);
-
-        if (!isNewQuery && !isEditingQuery) {
-          return null;
-        }
-
-        if (!isNewQuery && isEditingQuery) {
-          return (
-            <Fragment>
-              <Tooltip
-                title={
-                  deprecatingTransactionsDataset &&
-                  getTransactionDeprecationMessage(tracesUrl)
-                }
-              >
-                <Button
-                  onClick={handleUpdate}
-                  data-test-id="discover2-savedquery-button-update"
-                  disabled={disabled || deprecatingTransactionsDataset}
-                  size="sm"
-                >
-                  <IconUpdate />
-                  {t('Save Changes')}
-                </Button>
-              </Tooltip>
-              <Tooltip
-                disabled={
-                  currentDataset !== DiscoverDatasets.TRANSACTIONS ||
-                  !organization.features.includes('discover-saved-queries-deprecation')
-                }
-                title={getTransactionDeprecationMessage(tracesUrl)}
-              >
-                <SaveAsDropdown
-                  queryName={queryName}
-                  onChangeInput={e => setQueryName(e.currentTarget.value)}
-                  modifiedHandleCreateQuery={handleCreate}
-                  disabled={disabled || deprecatingTransactionsDataset}
-                />
-              </Tooltip>
-            </Fragment>
-          );
-        }
-
-        return (
-          <Tooltip
-            disabled={
-              currentDataset !== DiscoverDatasets.TRANSACTIONS ||
-              !organization.features.includes('discover-saved-queries-deprecation')
-            }
-            title={getTransactionDeprecationMessage(tracesUrl)}
-          >
-            <SaveAsDropdown
-              queryName={queryName}
-              onChangeInput={e => setQueryName(e.currentTarget.value)}
-              modifiedHandleCreateQuery={handleCreate}
-              disabled={disabled || deprecatingTransactionsDataset}
-            />
-          </Tooltip>
-        );
-      }}
-    </Feature>
+    <DropdownMenu
+      items={items}
+      position="bottom-end"
+      offset={4}
+      trigger={triggerProps => (
+        <Button
+          {...triggerProps}
+          size="sm"
+          variant="primary"
+          aria-label={t('Save as')}
+          onClick={e => {
+            e.stopPropagation();
+            e.preventDefault();
+            triggerProps.onClick?.(e);
+          }}
+        >
+          {t('Save as')}
+        </Button>
+      )}
+    />
   );
 }
 
@@ -1438,41 +1447,11 @@ function DiscoverPageFilters({
   yAxis: string[];
   isHomepage?: boolean;
 }) {
-  const {projects} = useProjects();
   // use the same data category as spans so the time period options across discover and traces are the same
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.ERRORS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-
-  const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
-    location,
-    savedQuery?.queryDataset
-  );
-
-  const shouldHideCreateAlert =
-    currentDataset === DiscoverDatasets.TRANSACTIONS &&
-    (deprecateTransactionAlerts(organization) ||
-      organization.features.includes('discover-saved-queries-deprecation'));
-
-  let alertType: any;
-  let buttonEventView = eventView;
-  if (hasDatasetSelector(organization)) {
-    alertType = defined(currentDataset)
-      ? // @ts-expect-error TS(2339): Property 'discover' does not exist on type '{ tran...
-        {
-          [DiscoverDatasets.TRANSACTIONS]: 'throughput',
-          [DiscoverDatasets.ERRORS]: 'num_errors',
-        }[currentDataset]
-      : undefined;
-
-    if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
-      buttonEventView = eventView.clone();
-      buttonEventView.query = eventView.query
-        ? `(${eventView.query}) AND (event.type:transaction)`
-        : 'event.type:transaction';
-    }
-  }
 
   return (
     <Flex
@@ -1487,31 +1466,11 @@ function DiscoverPageFilters({
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <Flex gap="md" align="center">
-        {!shouldHideCreateAlert && (
-          <GuideAnchor target="create_alert_from_discover">
-            <CreateAlertFromViewButton
-              eventView={buttonEventView}
-              organization={organization}
-              projects={projects}
-              onClick={() => {
-                trackAnalytics('discover_v2.create_alert_clicked', {
-                  organization,
-                  status: 'success',
-                });
-              }}
-              referrer="discover"
-              size="sm"
-              data-test-id="discover2-create-from-discover"
-              alertType={alertType}
-            />
-          </GuideAnchor>
-        )}
         <DiscoverContextMenu
           organization={organization}
           eventView={eventView}
           location={location}
           savedQuery={savedQuery}
-          yAxis={yAxis}
           isHomepage={isHomepage}
           setSavedQuery={setSavedQuery}
         />
@@ -1523,6 +1482,7 @@ function DiscoverPageFilters({
           yAxis={yAxis}
           setSavedQuery={setSavedQuery}
           errorCode={errorCode}
+          isHomepage={isHomepage}
         />
       </Flex>
     </Flex>
@@ -1625,7 +1585,7 @@ export default function ResultsContainer() {
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
     >
-      <AiQueryProvider>
+      <AiQueryProvider strategy="Errors">
         <SavedQueryAPI
           addAlert={addAlert}
           api={api}

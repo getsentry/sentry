@@ -13,7 +13,7 @@ import {type z} from 'zod';
 import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
 import {useFormErrorMapper} from '@sentry/scraps/form/formErrorContext';
 import {useScrapsForm, type BoundFieldComponents} from '@sentry/scraps/form/scrapsForm';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 

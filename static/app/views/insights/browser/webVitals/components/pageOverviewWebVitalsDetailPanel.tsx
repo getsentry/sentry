@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,6 +7,7 @@ import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -47,7 +48,7 @@ import {
 } from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader;
@@ -188,20 +189,22 @@ export function PageOverviewWebVitalsDetailPanel({
   const spansSamplesColumnOrder = getSpansSamplesColumnOrder(webVital);
 
   const renderHeadCell = (col: Column) => {
-    if (col.key === 'transaction') {
-      return <NoOverflow>{col.name}</NoOverflow>;
-    }
     if (col.key === 'webVital') {
-      return <AlignRight>{`${webVital}`}</AlignRight>;
+      return <ColumnLabel align="right" column={{name: `${webVital?.toUpperCase()}`}} />;
     }
     if (col.key === 'score' || col.key === 'measurements.score.inp') {
-      return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+      return (
+        <ColumnLabel
+          align="center"
+          column={{name: `${webVital?.toUpperCase()} ${col.name}`}}
+        />
+      );
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
-      return <AlignCenter>{col.name}</AlignCenter>;
+      return <ColumnLabel align="center" column={col} />;
     }
 
-    return <NoOverflow>{col.name}</NoOverflow>;
+    return <ColumnLabel column={col} />;
   };
 
   const getFormattedDuration = (value: number) => {

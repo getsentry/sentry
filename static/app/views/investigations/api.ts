@@ -18,6 +18,7 @@ import type {
   InvestigationOrchestrationCommandResponse,
   InvestigationOrchestrationCommandVariables,
   InvestigationTitleGeneration,
+  InvestigationViewer,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
 
@@ -97,6 +98,30 @@ export function investigationTitleGenerationQueryOptions(
       staleTime: 0,
     }
   );
+}
+
+/**
+ * Records a presence heartbeat and returns the other viewers, active ones first,
+ * up to `limit`. `total` counts all of them.
+ */
+export function investigationPresenceQueryOptions(
+  organizationSlug: string,
+  investigationId: string,
+  limit: number
+) {
+  return apiOptions.as<{
+    heartbeatIntervalMs: number;
+    total: number;
+    viewers: InvestigationViewer[];
+  }>()('/organizations/$organizationIdOrSlug/investigations/$investigationId/presence/', {
+    path: {
+      organizationIdOrSlug: organizationSlug,
+      investigationId,
+    },
+    query: {limit},
+    method: 'PUT',
+    staleTime: 0,
+  });
 }
 
 /**
@@ -268,32 +293,6 @@ function useInvestigationMutation<TData, TVariables>(
   });
 }
 
-/**
- * Start an empty investigation.
- *
- * A `source` with no `templateKey` is what makes the server build an agentic
- * run rather than a bare notebook, so this is the field that decides whether
- * the investigation ever has hypotheses. A manual source carries no prompt yet,
- * so the run opens `awaiting_input` and waits for one.
- */
-export function useCreateInvestigationMutation(
-  organizationSlug: string,
-  options?: MutationOptions<InvestigationListItem, void>
-) {
-  return useInvestigationMutation(
-    organizationSlug,
-    () =>
-      fetchMutation<InvestigationListItem>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
-          path: {organizationIdOrSlug: organizationSlug},
-        }),
-        method: 'POST',
-        data: {title: 'Untitled investigation', source: {type: 'manual'}},
-      }),
-    options
-  );
-}
-
 export function useLaunchInvestigationMutation(
   organizationSlug: string,
   options?: MutationOptions<InvestigationDetail, MetricOpenPeriodInvestigationSource>
@@ -359,7 +358,7 @@ export function useRenameInvestigationMutation(
         }
 
         return {
-          headers: current.headers,
+          ...current,
           json: {
             ...updated,
             // Preserve newer optimistic block state while the rename was in flight.
@@ -508,8 +507,7 @@ export function useRunInvestigationBlockMutation(
 
 export function useUpdateInvestigationBlockPromptMutation(
   organizationSlug: string,
-  investigationId: string,
-  options?: MutationOptions<InvestigationBlock, UpdateBlockPromptVariables>
+  investigationId: string
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -517,8 +515,7 @@ export function useUpdateInvestigationBlockPromptMutation(
     investigationId
   );
 
-  return useMutation({
-    ...options,
+  return useMutation<InvestigationBlock, Error, UpdateBlockPromptVariables>({
     mutationFn: ({block, investigationVersion, prompt}) =>
       fetchMutation<InvestigationBlock>({
         url: getApiUrl(
@@ -538,7 +535,7 @@ export function useUpdateInvestigationBlockPromptMutation(
           generationPrompt: prompt,
         },
       }),
-    onSuccess: async (updatedBlock, variables, onMutateResult, context) => {
+    onSuccess: (updatedBlock, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
@@ -555,11 +552,9 @@ export function useUpdateInvestigationBlockPromptMutation(
             }
           : current
       );
-      await options?.onSuccess?.(updatedBlock, variables, onMutateResult, context);
     },
-    onError: async (error, variables, onMutateResult, context) => {
+    onError: async () => {
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      await options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }

@@ -50,6 +50,7 @@ function Label(props: {
     : {
         as: 'label' as const,
         htmlFor: fieldId,
+        id: labelId,
       };
 
   return (

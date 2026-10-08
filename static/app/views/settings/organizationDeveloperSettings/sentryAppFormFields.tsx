@@ -4,7 +4,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 const nameFieldGroup = defineAppFieldGroup(({strict}) => ({name: strict<string>()}));
 
@@ -99,7 +98,6 @@ function WebhookUrlFieldImpl({
   required,
   onValueChange,
 }: WebhookUrlFieldProps) {
-  const organization = useOrganization();
   const fieldLabel = label ?? WEBHOOK_URL_DEFAULT_PROPS.label;
   const fieldHint = hint ?? WEBHOOK_URL_DEFAULT_PROPS.hint;
   const fieldPlaceholder = placeholder ?? WEBHOOK_URL_DEFAULT_PROPS.placeholder;
@@ -121,7 +119,6 @@ function WebhookUrlFieldImpl({
             onChange={field.handleChange}
             placeholder={fieldPlaceholder}
             trailingItems={
-              organization.features.includes('sentry-apps-claude-routine-webhooks') &&
               CLAUDE_ROUTINE_URL_REGEX.test(field.value) ? (
                 <Tooltip
                   title={t(

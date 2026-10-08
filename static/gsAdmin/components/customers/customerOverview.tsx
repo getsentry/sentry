@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -24,7 +25,6 @@ import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDat
 import {CustomerContact} from 'admin/components/customerContact';
 import {CustomerStatus} from 'admin/components/customerStatus';
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {ExtendProductTrialAction} from 'admin/components/extendProductTrialAction';
 import {getLogQuery} from 'admin/utils';
@@ -110,7 +110,7 @@ function SoftCapTypeDetail({
 function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
   return (
     <div>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Balance">
           {formatBalance(customer.accountBalance)}
           {customer.type === BillingType.INVOICED && (
@@ -163,7 +163,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
             yesNo={customer.msaUpdatedForDataConsent}
           />
         )}
-      </DetailList>
+      </DescriptionList>
     </div>
   );
 }
@@ -194,7 +194,7 @@ function ReservedData({customer}: ReservedDataProps) {
         return (
           <Fragment key={category}>
             <h6>{categoryName}</h6>
-            <DetailList>
+            <DescriptionList gap="md">
               <DetailLabel title={`Reserved ${categoryName}`}>
                 {formatReservedWithUnits(categoryHistory.reserved, category)}
               </DetailLabel>
@@ -241,7 +241,7 @@ function ReservedData({customer}: ReservedDataProps) {
                   })}
                 </DetailLabel>
               }
-            </DetailList>
+            </DescriptionList>
           </Fragment>
         );
       })}
@@ -284,7 +284,7 @@ function ReservedBudgetData({
   return (
     <Fragment>
       <h6>{budgetName}</h6>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Reserved Budget">
           {displayPriceWithCents({cents: reservedBudget.reservedBudget})}
         </DetailLabel>
@@ -298,7 +298,7 @@ function ReservedBudgetData({
           })}{' '}
           ({(reservedBudget.percentUsed * 100).toFixed(2)}%)
         </DetailLabel>
-      </DetailList>
+      </DescriptionList>
     </Fragment>
   );
 }
@@ -344,7 +344,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   return (
     <div data-test-id="seer-plan-summary">
       <h6>Seer</h6>
-      <DetailList>
+      <DescriptionList gap="md">
         {!seatStatus && !legacyStatus && (
           <DetailLabel title="Plan">
             <Tag variant="muted">
@@ -407,7 +407,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
               ) : null)}
           </Fragment>
         )}
-      </DetailList>
+      </DescriptionList>
     </div>
   );
 }
@@ -613,6 +613,156 @@ function DynamicSampling({organization}: {organization: Organization}) {
   );
 }
 
+function TrialManagementActions({
+  category,
+  apiName,
+  customer,
+  onAction,
+  trialName,
+  isAdminOnly = false,
+}: {
+  apiName: string;
+  category: DataCategory;
+  customer: Subscription;
+  onAction: (data: Record<string, unknown>) => void;
+  trialName: string;
+  isAdminOnly?: boolean;
+}) {
+  const formattedApiName = upperFirst(apiName);
+  const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
+  const activeProductTrial = getActiveProductTrial(
+    customer.productTrials ?? [],
+    category
+  );
+  const hasActiveProductTrial = !!activeProductTrial;
+  // NOTE: we add 1 day to the end date because the trial end date is inclusive
+  // and diff() can't return a value less than 0
+  const lessThanOneDayLeft =
+    moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
+  const hasUsedProductTrial =
+    hasActiveProductTrial ||
+    getProductTrial(customer.productTrials ?? [], category)?.isStarted;
+  const isEnterprisePlan = !!customer.planDetails?.isEnterprise;
+  // Every Seer product trial (whether triggered via a plan category or the
+  // Seer/Legacy Seer add-on) resolves to one of these billed categories, so a
+  // single category check covers both entry points.
+  const isSeerProductTrial = [
+    DataCategory.SEER_USER,
+    DataCategory.SEER_AUTOFIX,
+    DataCategory.SEER_SCANNER,
+  ].includes(category);
+  // Enterprise plans: only Seer product trials can be started from _admin.
+  // Allow Trial and Stop/Extend stay available for any in-flight non-Seer trial.
+  const blockEnterpriseNonSeerStart = isEnterprisePlan && !isSeerProductTrial;
+  const enterpriseNonSeerStartTooltip =
+    'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.';
+
+  const handleExtendTrial = () => {
+    if (!activeProductTrial) {
+      return;
+    }
+    openAdminConfirmModal({
+      header: <h4>Extend {formattedTrialName} Trial</h4>,
+      confirmText: 'Extend Trial',
+      renderModalSpecificContent: deps => (
+        <ExtendProductTrialAction
+          activeProductTrial={activeProductTrial}
+          apiName={apiName}
+          trialName={formattedTrialName}
+          {...deps}
+        />
+      ),
+      onConfirm: onAction,
+    });
+  };
+
+  return (
+    <DetailLabel key={apiName} title={formattedTrialName}>
+      <Stack gap="md" align="start">
+        <Tag
+          variant={
+            lessThanOneDayLeft
+              ? 'promotion'
+              : hasActiveProductTrial
+                ? 'success'
+                : hasUsedProductTrial
+                  ? 'warning'
+                  : 'info'
+          }
+        >
+          {hasActiveProductTrial
+            ? `Active (until ${moment.utc(activeProductTrial.endDate).format('MMM D, YYYY')} UTC)`
+            : hasUsedProductTrial
+              ? 'Used'
+              : 'Available'}
+        </Tag>
+        <Flex align="center" wrap="wrap" gap="md">
+          <Button
+            size="xs"
+            onClick={() => onAction({[`allowTrial${formattedApiName}`]: true})}
+            disabled={!hasUsedProductTrial || hasActiveProductTrial}
+            tooltipProps={{
+              title: hasActiveProductTrial
+                ? `A product trial is currently active for ${formattedTrialName}`
+                : hasUsedProductTrial
+                  ? isAdminOnly
+                    ? `Reset trial eligibility for ${formattedTrialName}`
+                    : `Allow customer to start a new trial for ${formattedTrialName}`
+                  : `A product trial is already available for ${formattedTrialName}`,
+            }}
+          >
+            Allow Trial
+          </Button>
+          <Button
+            size="xs"
+            onClick={() => onAction({[`startTrial${formattedApiName}`]: true})}
+            disabled={
+              blockEnterpriseNonSeerStart || hasActiveProductTrial || hasUsedProductTrial
+            }
+            tooltipProps={{
+              title: blockEnterpriseNonSeerStart
+                ? enterpriseNonSeerStartTooltip
+                : hasActiveProductTrial
+                  ? `A product trial is currently active for ${formattedTrialName}`
+                  : hasUsedProductTrial
+                    ? `No product trial is available for ${formattedTrialName}`
+                    : `Start the 14-day ${formattedTrialName} product trial`,
+            }}
+          >
+            Start Trial
+          </Button>
+          <Button
+            size="xs"
+            onClick={() => onAction({[`stopTrial${formattedApiName}`]: true})}
+            disabled={!hasActiveProductTrial || lessThanOneDayLeft}
+            tooltipProps={{
+              title: lessThanOneDayLeft
+                ? 'Current product trial will end in less than one day'
+                : hasActiveProductTrial
+                  ? `Stop the current product trial for ${formattedTrialName}`
+                  : `No product trial is active for ${formattedTrialName}`,
+            }}
+          >
+            Stop Trial
+          </Button>
+          <Button
+            size="xs"
+            onClick={handleExtendTrial}
+            disabled={!hasActiveProductTrial}
+            tooltipProps={{
+              title: hasActiveProductTrial
+                ? `Extend the current ${formattedTrialName} product trial`
+                : `No active product trial to extend for ${formattedTrialName}`,
+            }}
+          >
+            Extend Trial
+          </Button>
+        </Flex>
+      </Stack>
+    </DetailLabel>
+  );
+}
+
 export function CustomerOverview({customer, onAction, organization}: Props) {
   const runAction = (data: Record<string, unknown>) => {
     onAction(data).catch(() => {
@@ -664,12 +814,6 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     addOn => addOn.isAvailable
   );
 
-  const categoryHasUsedProductTrial = (category: DataCategory) => {
-    const trial = getProductTrial(customer.productTrials ?? [], category);
-
-    return trial?.isStarted;
-  };
-
   const updateCustomerStatus = (action: string) => {
     const data = {
       [action]: true,
@@ -678,154 +822,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     runAction(data);
   };
 
-  const isEnterprisePlan = !!customer.planDetails?.isEnterprise;
-  // Every Seer product trial (whether triggered via a plan category or the
-  // Seer/Legacy Seer add-on) resolves to one of these billed categories, so a
-  // single category check covers both entry points.
-  const isSeerProductTrial = (category: DataCategory) =>
-    [
-      DataCategory.SEER_USER,
-      DataCategory.SEER_AUTOFIX,
-      DataCategory.SEER_SCANNER,
-    ].includes(category);
-
-  const getTrialManagementActions = (
-    category: DataCategory,
-    apiName: string,
-    trialName: string,
-    isAdminOnly = false
-  ) => {
-    const formattedApiName = upperFirst(apiName);
-    const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
-    const activeProductTrial = getActiveProductTrial(
-      customer.productTrials ?? [],
-      category
-    );
-    const hasActiveProductTrial = !!activeProductTrial;
-    // NOTE: we add 1 day to the end date because the trial end date is inclusive
-    // and diff() can't return a value less than 0
-    const lessThanOneDayLeft =
-      moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
-    const hasUsedProductTrial =
-      hasActiveProductTrial || categoryHasUsedProductTrial(category);
-    // Enterprise plans: only Seer product trials can be started from _admin.
-    // Allow Trial and Stop/Extend stay available for any in-flight non-Seer trial.
-    const blockEnterpriseNonSeerStart = isEnterprisePlan && !isSeerProductTrial(category);
-    const enterpriseNonSeerStartTooltip =
-      'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.';
-
-    const handleExtendTrial = () => {
-      if (!activeProductTrial) {
-        return;
-      }
-      openAdminConfirmModal({
-        header: <h4>Extend {formattedTrialName} Trial</h4>,
-        confirmText: 'Extend Trial',
-        renderModalSpecificContent: deps => (
-          <ExtendProductTrialAction
-            activeProductTrial={activeProductTrial}
-            apiName={apiName}
-            trialName={formattedTrialName}
-            {...deps}
-          />
-        ),
-        onConfirm: runAction,
-      });
-    };
-
-    return (
-      <DetailLabel key={apiName} title={formattedTrialName}>
-        <Stack gap="md">
-          <StyledTag
-            variant={
-              lessThanOneDayLeft
-                ? 'promotion'
-                : hasActiveProductTrial
-                  ? 'success'
-                  : hasUsedProductTrial
-                    ? 'warning'
-                    : 'info'
-            }
-          >
-            {hasActiveProductTrial
-              ? `Active (until ${moment.utc(activeProductTrial.endDate).format('MMM D, YYYY')} UTC)`
-              : hasUsedProductTrial
-                ? 'Used'
-                : 'Available'}
-          </StyledTag>
-          <Flex align="center" wrap="wrap" gap="md">
-            <Button
-              size="xs"
-              onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
-              disabled={!hasUsedProductTrial || hasActiveProductTrial}
-              tooltipProps={{
-                title: hasActiveProductTrial
-                  ? `A product trial is currently active for ${formattedTrialName}`
-                  : hasUsedProductTrial
-                    ? isAdminOnly
-                      ? `Reset trial eligibility for ${formattedTrialName}`
-                      : `Allow customer to start a new trial for ${formattedTrialName}`
-                    : `A product trial is already available for ${formattedTrialName}`,
-              }}
-            >
-              Allow Trial
-            </Button>
-            <Button
-              size="xs"
-              onClick={() => updateCustomerStatus(`startTrial${formattedApiName}`)}
-              disabled={
-                blockEnterpriseNonSeerStart ||
-                hasActiveProductTrial ||
-                hasUsedProductTrial
-              }
-              tooltipProps={{
-                title: blockEnterpriseNonSeerStart
-                  ? enterpriseNonSeerStartTooltip
-                  : hasActiveProductTrial
-                    ? `A product trial is currently active for ${formattedTrialName}`
-                    : hasUsedProductTrial
-                      ? `No product trial is available for ${formattedTrialName}`
-                      : `Start the 14-day ${formattedTrialName} product trial`,
-              }}
-            >
-              Start Trial
-            </Button>
-            <Button
-              size="xs"
-              onClick={() => updateCustomerStatus(`stopTrial${formattedApiName}`)}
-              disabled={!hasActiveProductTrial || lessThanOneDayLeft}
-              tooltipProps={{
-                title: lessThanOneDayLeft
-                  ? 'Current product trial will end in less than one day'
-                  : hasActiveProductTrial
-                    ? `Stop the current product trial for ${formattedTrialName}`
-                    : `No product trial is active for ${formattedTrialName}`,
-              }}
-            >
-              Stop Trial
-            </Button>
-            <Button
-              size="xs"
-              onClick={handleExtendTrial}
-              disabled={!hasActiveProductTrial}
-              tooltipProps={{
-                title: hasActiveProductTrial
-                  ? `Extend the current ${formattedTrialName} product trial`
-                  : `No active product trial to extend for ${formattedTrialName}`,
-              }}
-            >
-              Extend Trial
-            </Button>
-          </Flex>
-        </Stack>
-      </DetailLabel>
-    );
-  };
-
   return (
     <DetailsContainer>
       <div>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Status">
             <CustomerStatus customer={customer} />
             {isTrial(customer) && (
@@ -852,31 +852,31 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               </span>
             )}
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
 
         <h6>Subscription</h6>
         <SubscriptionSummary customer={customer} onAction={onAction} />
         <ReservedData customer={customer} />
         <ReservedBudgetsData customer={customer} />
         <h6>PCSS</h6>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Custom Price PCSS">
             {typeof customer.customPricePcss === 'number'
               ? displayPriceWithCents({cents: customer.customPricePcss})
               : 'None'}
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
         <h6>Total</h6>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Custom Price (Total)">
             {typeof customer.customPrice === 'number'
               ? displayPriceWithCents({cents: customer.customPrice})
               : 'None'}
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
       </div>
       <div>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Short name">
             <ExternalLink href={orgUrl}>{customer.slug}</ExternalLink>
           </DetailLabel>
@@ -916,10 +916,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             {organization.samplingMode ?? 'n/a'}
           </DetailLabel>
           <DynamicSampling organization={organization} />
-        </DetailList>
+        </DescriptionList>
 
         <h6>Linked Accounts</h6>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Stripe ID">
             {customer.stripeCustomerID ? (
               <ExternalLink
@@ -991,10 +991,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               {customer.id}
             </ExternalLink>
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
 
         <h6>Queries</h6>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Looker">
             <ExternalLink
               href={`https://sentryio.cloud.looker.com/dashboards/724?Organization%20ID=${customer.id}`}
@@ -1023,38 +1023,50 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               Auth
             </ExternalLink>
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
         {productTrialCategories.length + productTrialAddOns.length > 0 && (
           <Fragment>
             <h6>Product Trials</h6>
-            <ProductTrialsDetailListContainer>
+            <DescriptionList gap="md">
               {productTrialCategories.map(categoryInfo => {
                 const categoryName = getPlanCategoryName({
                   plan: customer.planDetails,
                   category: categoryInfo.plural,
                   title: true,
                 });
-                return getTrialManagementActions(
-                  categoryInfo.plural,
-                  categoryInfo.plural,
-                  categoryName,
-                  !!categoryInfo.adminOnlyProductTrialFeature
+                return (
+                  <TrialManagementActions
+                    key={categoryInfo.plural}
+                    category={categoryInfo.plural}
+                    apiName={categoryInfo.plural}
+                    customer={customer}
+                    onAction={runAction}
+                    trialName={categoryName}
+                    isAdminOnly={!!categoryInfo.adminOnlyProductTrialFeature}
+                  />
                 );
               })}
               {productTrialAddOns.map(addOn => {
                 const category = getBilledCategory(customer, addOn.apiName);
                 if (category) {
-                  return getTrialManagementActions(
-                    category,
-                    addOn.apiName,
-                    addOn.apiName === AddOnCategory.LEGACY_SEER
-                      ? addOn.productName + ' (Legacy)'
-                      : addOn.productName
+                  return (
+                    <TrialManagementActions
+                      key={addOn.apiName}
+                      category={category}
+                      apiName={addOn.apiName}
+                      customer={customer}
+                      onAction={runAction}
+                      trialName={
+                        addOn.apiName === AddOnCategory.LEGACY_SEER
+                          ? addOn.productName + ' (Legacy)'
+                          : addOn.productName
+                      }
+                    />
                   );
                 }
                 return null;
               })}
-            </ProductTrialsDetailListContainer>
+            </DescriptionList>
           </Fragment>
         )}
         <Fragment>
@@ -1106,25 +1118,6 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
   );
 }
 
-const ProductTrialsDetailListContainer = styled(DetailList)`
-  align-items: baseline;
-  dt {
-    justify-self: start;
-    display: flex;
-    align-items: center;
-    min-height: 38px;
-  }
-  dd {
-    display: flex;
-    align-items: center;
-    min-height: 38px;
-  }
-`;
-
-const StyledTag = styled(Tag)`
-  width: fit-content;
-`;
-
 type ThresholdLabelProps = {
   children: React.ReactNode;
   label: string;
@@ -1134,12 +1127,12 @@ type ThresholdLabelProps = {
 function ThresholdLabel({label, positive, children}: ThresholdLabelProps) {
   return (
     <Fragment>
-      <dt>{label}:</dt>
+      <DescriptionList.Term>{label}</DescriptionList.Term>
       <ThresholdValue positive={positive}>{children}</ThresholdValue>
     </Fragment>
   );
 }
 
-const ThresholdValue = styled('dd')<{positive: boolean}>`
+const ThresholdValue = styled(DescriptionList.Details)<{positive: boolean}>`
   color: ${p => (p.positive ? p.theme.colors.green500 : p.theme.colors.red500)};
 `;

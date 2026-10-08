@@ -1,4 +1,4 @@
-import {Navigate} from 'react-router-dom';
+import {Navigate} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';

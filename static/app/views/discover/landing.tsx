@@ -11,7 +11,6 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 
 import Feature from 'sentry/components/acl/feature';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -33,7 +32,7 @@ import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import QueryList from './queryList';
-import {getDiscoverDeprecation, getPrebuiltQueries} from './utils';
+import {getPrebuiltQueries} from './utils';
 
 const SORT_OPTIONS = [
   {label: t('My Queries'), value: 'myqueries'},
@@ -186,24 +185,19 @@ function DiscoverLanding() {
       features="discover-query"
       renderDisabled={() => <NoAccess />}
     >
-      <SentryDocumentTitle
-        title={getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')}
-        orgSlug={organization.slug}
-      >
+      <SentryDocumentTitle title={t('Errors')} orgSlug={organization.slug}>
         <Stack flex={1}>
-          <TopBar.Slot name="title">
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: getDiscoverDeprecation(organization)
-                    ? t('Errors')
-                    : t('Discover'),
-                  to: getDiscoverLandingUrl(organization),
-                },
-                {label: t('Saved Queries')},
-              ]}
-            />
-          </TopBar.Slot>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{type: 'page-title', label: t('Saved Queries')}}
+            items={[
+              {
+                type: 'link',
+                label: t('Errors'),
+                to: getDiscoverLandingUrl(organization),
+              },
+            ]}
+          />
           <Layout.Body>
             <Layout.Main width="full">
               <Grid
@@ -258,38 +252,20 @@ function DiscoverLanding() {
                 <LoadingError message={error.message} />
               ) : (
                 <QueriesContainer>
-                  {organization.features.includes('expose-migrated-discover-queries') &&
-                    (getDiscoverDeprecation(organization) ? (
-                      <Alert variant="info">
-                        {tct(
-                          'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
-                          {
-                            exploreLink: (
-                              <Link
-                                to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                              />
-                            ),
-                          }
-                        )}
-                      </Alert>
-                    ) : (
-                      organization.features.includes(
-                        'expose-migrated-discover-queries'
-                      ) && (
-                        <Alert variant="info">
-                          {tct(
-                            'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
-                            {
-                              exploreLink: (
-                                <Link
-                                  to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                                />
-                              ),
-                            }
-                          )}
-                        </Alert>
-                      )
-                    ))}
+                  {organization.features.includes('expose-migrated-discover-queries') && (
+                    <Alert variant="info">
+                      {tct(
+                        'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
+                        {
+                          exploreLink: (
+                            <Link
+                              to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                            />
+                          ),
+                        }
+                      )}
+                    </Alert>
+                  )}
                   <QueryList
                     pageLinks={savedQueriesPageLinks ?? ''}
                     savedQueries={savedQueries}

@@ -303,7 +303,8 @@ class ReactPageViewTest(TestCase):
                 assert self.client.session["activeorg"] == other_org.slug
             else:
                 assert response.redirect_chain == [
-                    (f"http://{other_org.slug}.testserver/auth/login/{other_org.slug}/", 302)
+                    (f"http://{other_org.slug}.testserver/auth/login/{other_org.slug}/", 302),
+                    (f"http://testserver/auth/login/{other_org.slug}/", 302),
                 ]
                 assert "activeorg" not in self.client.session
 

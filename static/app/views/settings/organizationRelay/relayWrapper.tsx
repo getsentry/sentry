@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 import {z} from 'zod';
 
@@ -18,7 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Relay, RelayActivity} from 'sentry/types/relay';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
@@ -70,7 +70,6 @@ export function RelayWrapper() {
   const {openModal} = useModal();
 
   const organization = useOrganization();
-  const api = useApi();
   const [relays, setRelays] = useState(organization.trustedRelays ?? []);
 
   const disabled = !organization.access.includes('org:write');
@@ -80,7 +79,6 @@ export function RelayWrapper() {
       <Add
         {...modalProps}
         savedRelays={relays}
-        api={api}
         orgSlug={organization.slug}
         onSubmitSuccess={response => {
           addSuccessMessage(t('Successfully added Relay public key'));
@@ -202,7 +200,6 @@ export function RelayWrapper() {
           orgSlug={organization.slug}
           disabled={disabled}
           relays={relays}
-          api={api}
           registerKeyAction={undefined}
           onRelaysChange={setRelays}
         />
@@ -215,11 +212,9 @@ function RelayUsageList({
   relays,
   orgSlug,
   disabled,
-  api,
   onRelaysChange,
   registerKeyAction,
 }: {
-  api: ReturnType<typeof useApi>;
   disabled: boolean;
   onRelaysChange: (relays: Relay[]) => void;
   orgSlug: Organization['slug'];
@@ -241,6 +236,34 @@ function RelayUsageList({
     }
   );
 
+  const {mutate: deleteRelay} = useMutation({
+    mutationFn: ({
+      publicKey,
+      currentRelays,
+    }: {
+      currentRelays: Relay[];
+      publicKey: string;
+    }) => {
+      const trustedRelays = currentRelays
+        .filter(relay => relay.publicKey !== publicKey)
+        .map(relay => omit(relay, ['created', 'lastModified']));
+      return fetchMutation<Organization>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
+        method: 'PUT',
+        data: {trustedRelays},
+      });
+    },
+    onSuccess: response => {
+      addSuccessMessage(t('Successfully deleted Relay public key'));
+      onRelaysChange(response.trustedRelays ?? []);
+    },
+    onError: () => {
+      addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
+    },
+  });
+
   const handleOpenEditDialog = (publicKey: string) => {
     const editRelay = relays.find(relay => relay.publicKey === publicKey);
 
@@ -252,7 +275,6 @@ function RelayUsageList({
       <Edit
         {...modalProps}
         savedRelays={relays}
-        api={api}
         orgSlug={orgSlug}
         relay={editRelay}
         onSubmitSuccess={response => {
@@ -261,28 +283,6 @@ function RelayUsageList({
         }}
       />
     ));
-  };
-
-  const handleDeleteRelay = async (publicKey: string) => {
-    const trustedRelays = relays
-      .filter(relay => relay.publicKey !== publicKey)
-      .map(relay => omit(relay, ['created', 'lastModified']));
-
-    try {
-      const response = await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
-        {
-          method: 'PUT',
-          data: {trustedRelays},
-        }
-      );
-      addSuccessMessage(t('Successfully deleted Relay public key'));
-      onRelaysChange(response.trustedRelays ?? []);
-    } catch {
-      addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
-    }
   };
 
   if (isPending) {
@@ -301,7 +301,7 @@ function RelayUsageList({
       registerKeyAction={registerKeyAction}
       onEdit={publicKey => () => handleOpenEditDialog(publicKey)}
       onRefresh={() => refetch()}
-      onDelete={publicKey => () => handleDeleteRelay(publicKey)}
+      onDelete={publicKey => () => deleteRelay({publicKey, currentRelays: relays})}
     />
   );
 }

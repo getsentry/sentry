@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
@@ -299,8 +300,7 @@ export function WizardProjectSelection({
                   options={platformOptions}
                   trigger={triggerProps => (
                     <OverlayTrigger.Button
-                      {...triggerProps}
-                      {...baseProps}
+                      {...mergeProps(triggerProps, baseProps)}
                       icon={
                         selectedPlatform ? (
                           <PlatformIcon platform={selectedPlatform} size={16} alt="" />
@@ -360,8 +360,7 @@ export function WizardProjectSelection({
                     options={orgOptions}
                     trigger={triggerProps => (
                       <OverlayTrigger.Button
-                        {...triggerProps}
-                        {...baseProps}
+                        {...mergeProps(triggerProps, baseProps)}
                         icon={
                           selectedOrg ? (
                             <OrganizationAvatar size={16} organization={selectedOrg} />
@@ -412,8 +411,7 @@ export function WizardProjectSelection({
                       options={sortedProjectOptions}
                       trigger={triggerProps => (
                         <OverlayTrigger.Button
-                          {...triggerProps}
-                          {...baseProps}
+                          {...mergeProps(triggerProps, baseProps)}
                           icon={
                             isCreateProjectSelected ? (
                               <IconAdd />
@@ -501,8 +499,7 @@ export function WizardProjectSelection({
                               }
                               trigger={triggerProps => (
                                 <OverlayTrigger.Button
-                                  {...triggerProps}
-                                  {...baseProps}
+                                  {...mergeProps(triggerProps, baseProps)}
                                   icon={
                                     selectedTeam ? (
                                       <IdBadge
