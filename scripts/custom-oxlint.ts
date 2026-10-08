@@ -20,7 +20,7 @@ import {createRequire} from 'node:module';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {parseArgs} from 'node:util';
 
 import type {OxlintConfig} from 'oxlint';
@@ -302,9 +302,12 @@ async function rawScan(directory: string, allowed: Set<string>, policy: string) 
     );
     const rule = canonicalRule(`${match[1]}/${match[2]}`);
     assert(allowed.has(rule), `Unexpected oxlint rule ${rule}`);
-    const file = path.isAbsolute(diagnostic.filename)
-      ? path.relative(directory, diagnostic.filename)
+    const filename = diagnostic.filename.startsWith('file:')
+      ? fileURLToPath(diagnostic.filename)
       : diagnostic.filename;
+    const file = path.isAbsolute(filename)
+      ? path.relative(directory, filename)
+      : filename;
     assert(validPath(file), `Invalid diagnostic path ${file}`);
     const {span} = diagnostic.labels[0]!;
     const rules = (counts[file] ??= Object.create(null));

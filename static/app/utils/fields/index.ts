@@ -1013,9 +1013,9 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
 ];
 
 /**
- * Span aggregates that EAP generates an `_if` combinator for. Used by Explore series
- * filters and equation builders. See `SPAN_AGGREGATE_COMBINATORS` in
- * `src/sentry/search/eap/spans/aggregates.py`.
+ * Aggregates that EAP generates an `_if` combinator for. Used by Explore series
+ * filters and equation builders. See `SPAN_AGGREGATE_COMBINATORS` and
+ * `LOG_AGGREGATE_COMBINATORS` under `src/sentry/search/eap/`.
  */
 export const EXPLORE_FILTERABLE_AGGREGATES: AggregationKey[] = [
   AggregationKey.COUNT,
