@@ -25,7 +25,7 @@ function makeSeries(): TimeSeries {
         timestamp: INCOMPLETE_TIMESTAMP,
         value: 2,
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       },
     ],
   };

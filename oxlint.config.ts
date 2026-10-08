@@ -1,4 +1,21 @@
-import {defineConfig} from 'oxlint';
+import {defineConfig, type OxlintConfig} from 'oxlint';
+
+const coreComponentFiles = [
+  'static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}',
+  'static/packages/scraps/src/**/*.{ts,tsx}',
+];
+
+// incubator rules disallow new violations from being introduced
+// but suppress pre-existing violations on `master`
+export const incubator = defineConfig({
+  rules: {'@sentry/scraps/prefer-primitives': 'error'},
+  overrides: [
+    {
+      files: coreComponentFiles,
+      rules: {'@sentry/scraps/prefer-primitives': 'off'},
+    },
+  ],
+});
 
 const IS_PRECOMMIT =
   process.env.SENTRY_PRECOMMIT !== undefined &&
@@ -189,10 +206,6 @@ const storyFilesPolicy = {
 };
 
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
-const coreComponentFiles = [
-  'static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}',
-  'static/packages/scraps/src/**/*.{ts,tsx}',
-];
 
 /**
  * Import linting uses two complementary approaches:
@@ -748,6 +761,7 @@ const config = defineConfig({
           'analyze-styled\\.ts$',
           'type-coverage\\.ts$',
           'type-coverage-diff\\.ts$',
+          '^custom-oxlint\\.ts$',
           'AiSetupDataConsent\\.tsx$',
           'CredentialRow\\.tsx$',
           'DevKitSettings\\.tsx$',
@@ -1732,7 +1746,7 @@ const config = defineConfig({
       // Re-enable these rules when Scraps has its own stricter lint config.
       rules: {
         'boundaries/no-unknown-files': 'off',
-        'eslint/no-shadow': 'off',
+        'no-shadow': 'off',
       },
     },
     {
@@ -1949,8 +1963,49 @@ const config = defineConfig({
       },
       excludeFiles: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
     },
+    ...incubator.overrides,
   ],
 });
 
-export const oxlintIgnorePatterns = config.ignorePatterns ?? [];
-export default config;
+const enrolledRules = new Set(
+  [incubator, ...incubator.overrides].flatMap(({rules}) =>
+    Object.entries(rules ?? {})
+      .filter(([, options]) => {
+        const severity = Array.isArray(options) ? options[0] : options;
+        return severity !== 'off' && severity !== 0;
+      })
+      .map(([rule]) => rule)
+  )
+);
+function setIncubatorSeverity(rules: OxlintConfig['rules']) {
+  const configured = {...rules};
+  const severity = process.env.SENTRY_OXLINT_ENFORCE === 'true' ? 'error' : 'warn';
+  for (const [rule, options] of Object.entries(configured)) {
+    const current = Array.isArray(options) ? options[0] : options;
+    if (!enrolledRules.has(rule) || current === 'off' || current === 0) {
+      continue;
+    }
+    const next = typeof current === 'number' ? (severity === 'error' ? 2 : 1) : severity;
+    if (Array.isArray(options)) {
+      const updated = structuredClone(options);
+      updated[0] = next;
+      configured[rule] = updated;
+    } else {
+      configured[rule] = next;
+    }
+  }
+  return configured;
+}
+export default defineConfig({
+  ...config,
+  rules: setIncubatorSeverity({
+    ...Object.fromEntries(
+      Object.entries(config.rules).filter(([rule]) => !enrolledRules.has(rule))
+    ),
+    ...incubator.rules,
+  }),
+  overrides: config.overrides.map(override => ({
+    ...override,
+    rules: setIncubatorSeverity(override.rules),
+  })),
+});

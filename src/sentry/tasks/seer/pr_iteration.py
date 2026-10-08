@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Sequence
-from dataclasses import dataclass
+from collections.abc import Sequence
 from datetime import timedelta
 from enum import StrEnum
 from typing import Any, NamedTuple
@@ -11,7 +10,6 @@ from uuid import uuid4
 import sentry_sdk
 from scm import actions as scm_actions
 from scm.errors import ResourceNotFound, SCMError
-from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
 from scm.types import (
     Author,
@@ -25,19 +23,17 @@ from scm.types import (
     GetPullRequestCommentReactionsProtocol,
     GetPullRequestProtocol,
     GetPullRequestReviewProtocol,
-    GetPullRequestReviewThreadsProtocol,
     GetRepositoryUserPermissionProtocol,
     GetReviewCommentReactionsProtocol,
     GetReviewCommentsProtocol,
     PaginationParams,
     Reaction,
     ReactionResult,
-    ResolveReviewThreadProtocol,
     ResourceId,
     Review,
     ReviewComment,
-    ReviewThread,
 )
+from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
@@ -125,7 +121,6 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -203,7 +198,7 @@ def _organization_for_gate(run_id: int, organization_id: int) -> Organization | 
         return None
 
 
-@trace
+@traces.trace
 def trigger_consume_pr_iteration_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -621,7 +616,7 @@ def _hand_off_exhausted_cap(
         )
 
 
-@trace
+@traces.trace
 def _drain_queued_autofix_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -1026,73 +1021,6 @@ def _delete_own_comment_eyes_reaction(
         logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
 
 
-class UnsupportedProviderError(Exception):
-    """The SCM provider can't resolve review threads."""
-
-
-@dataclass
-class ResolveReviewThreadsResult:
-    resolved: int = 0
-    already_resolved: int = 0
-    not_found: int = 0
-
-
-def _resolve_review_comment_threads(
-    scm: SourceCodeManager,
-    *,
-    pr_number: int,
-    comment_unique_ids: Collection[str],
-) -> ResolveReviewThreadsResult:
-    """Resolve the review threads of this iteration's inline comments (CW-1688).
-
-    Raises ``UnsupportedProviderError`` when the provider lacks the review-thread
-    protocols, and lets SCM failures propagate; the caller logs both with its own
-    run/org/repo context.
-    """
-    if not (
-        isinstance(scm, ResolveReviewThreadProtocol)
-        and isinstance(scm, GetPullRequestReviewThreadsProtocol)
-    ):
-        raise UnsupportedProviderError(type(scm).__name__)
-
-    threads: list[ReviewThread] = []
-    # Empty starting cursor so GitHub's GraphQL first page is `after: null`.
-    for page in iter_all_pages(
-        lambda pagination: scm_actions.get_pull_request_review_threads(
-            scm, str(pr_number), pagination
-        ),
-        per_page=100,
-        cursor="",
-    ):
-        threads.extend(page["data"])
-
-    thread_by_comment: dict[str, ReviewThread] = {}
-    for thread in threads:
-        for comment in thread["comments"]:
-            unique_id = comment.get("unique_id")
-            if unique_id is not None:
-                thread_by_comment[unique_id] = thread
-
-    outcome = ResolveReviewThreadsResult()
-    thread_ids_to_resolve: set[ResourceId] = set()
-    already_resolved_ids: set[ResourceId] = set()
-    for comment_unique_id in comment_unique_ids:
-        owning_thread = thread_by_comment.get(comment_unique_id)
-        if owning_thread is None:
-            outcome.not_found += 1
-            continue
-        if owning_thread["is_resolved"]:
-            already_resolved_ids.add(owning_thread["id"])
-        else:
-            thread_ids_to_resolve.add(owning_thread["id"])
-
-    outcome.already_resolved = len(already_resolved_ids)
-    for thread_id in thread_ids_to_resolve:
-        scm_actions.resolve_review_thread(scm, str(pr_number), str(thread_id))
-        outcome.resolved += 1
-    return outcome
-
-
 def _comment_pr_iteration_ineligible(
     scm: SourceCodeManager,
     *,
@@ -1425,21 +1353,21 @@ def trigger_pr_iteration_from_comment(
     four the flow is followed by, and it is joined to the others by the ids in
     ``pr_iteration.tracing`` rather than by the trace it was queued from.
     """
-    with (
-        sentry_sdk.isolation_scope(),
-        start_span(
+
+    with sentry_sdk.isolation_scope():
+        traces.new_trace()
+        with traces.start_span(
             name="pr_iteration.trigger_from_comment",
-            op="function",
-            transaction=True,
-        ),
-    ):
-        _trigger_pr_iteration_from_comment(
-            organization_id=organization_id,
-            repo_id=repo_id,
-            integration_id=integration_id,
-            pr_number=pr_number,
-            feedback=feedback,
-        )
+            attributes={"sentry.op": "function"},
+            parent_span=None,
+        ):
+            _trigger_pr_iteration_from_comment(
+                organization_id=organization_id,
+                repo_id=repo_id,
+                integration_id=integration_id,
+                pr_number=pr_number,
+                feedback=feedback,
+            )
 
 
 def _trigger_pr_iteration_from_comment(
@@ -1727,7 +1655,7 @@ def _build_review_feedback(
     source, the review's own representation.
 
     ``author_is_bot`` marks the resulting feedback as automated so it counts
-    toward the automated-iteration streak cap (see ``automated_iteration_cap_reached``).
+    toward the automated-iteration streak cap (see ``automated_streak_cap_reached``).
     """
     feedback: list[Feedback] = []
 
@@ -1801,25 +1729,25 @@ def trigger_pr_iteration_from_review(
     four the flow is followed by, and it is joined to the others by the ids in
     ``pr_iteration.tracing`` rather than by the trace it was queued from.
     """
-    with (
-        sentry_sdk.isolation_scope(),
-        start_span(
+
+    with sentry_sdk.isolation_scope():
+        traces.new_trace()
+        with traces.start_span(
             name="pr_iteration.trigger_from_review",
-            op="function",
-            transaction=True,
-        ),
-    ):
-        _trigger_pr_iteration_from_review(
-            organization_id=organization_id,
-            repo_id=repo_id,
-            integration_id=integration_id,
-            pr_number=pr_number,
-            review_id=review_id,
-            author_username=author_username,
-            author_external_id=author_external_id,
-            author_is_bot=author_is_bot,
-            delivery_authenticated=delivery_authenticated,
-        )
+            attributes={"sentry.op": "function"},
+            parent_span=None,
+        ):
+            _trigger_pr_iteration_from_review(
+                organization_id=organization_id,
+                repo_id=repo_id,
+                integration_id=integration_id,
+                pr_number=pr_number,
+                review_id=review_id,
+                author_username=author_username,
+                author_external_id=author_external_id,
+                author_is_bot=author_is_bot,
+                delivery_authenticated=delivery_authenticated,
+            )
 
 
 def _trigger_pr_iteration_from_review(

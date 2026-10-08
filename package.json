@@ -14,17 +14,18 @@
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
     "test": "node scripts/test.js --watch",
-    "test-ci": "node scripts/test.js --ci --maxWorkers=75% --colors",
+    "test-ci": "node scripts/testCi.js",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "node scripts/test.js --bail --findRelatedTests -u",
     "test-staged": "node scripts/test.js --findRelatedTests $(git diff --name-only --cached)",
-    "lint": "pnpm run lint:format && pnpm run lint:js && pnpm run lint:css",
-    "lint:js": "oxlint",
+    "lint": "pnpm run lint:deps && pnpm run lint:format && pnpm run lint:js && pnpm run lint:css",
+    "lint:deps": "sherif --ignore-rule root-package-dependencies",
+    "lint:js": "node scripts/custom-oxlint.ts",
     "lint:js:changed": "run-on-changed",
     "lint:css": "stylelint '**/*.[jt]sx'",
     "lint:format": "oxfmt --check",
     "fix": "pnpm run fix:format && pnpm run fix:oxlint",
-    "fix:oxlint": "oxlint --fix",
+    "fix:oxlint": "pnpm run lint:js --fix",
     "fix:format": "oxfmt",
     "dev": "pnpm install --frozen-lockfile && sentry devserver",
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_UI_HOT_RELOAD=1 node scripts/dev-ui-server.ts",
@@ -276,6 +277,7 @@
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.19.0",
     "run-on-changed": "0.4.0",
+    "sherif": "1.13.0",
     "sirv": "^3.0.2",
     "stylelint": "16.26.1",
     "stylelint-config-recommended": "^14.0.1",
@@ -306,53 +308,7 @@
       "current node"
     ]
   },
-  "packageManager": "pnpm@10.30.2",
-  "pnpm": {
-    "overrides": {
-      "@isaacs/brace-expansion": "5.0.1",
-      "diff@>=4.0.0 <4.0.4": "4.0.4",
-      "diff@>=5.0.0 <5.2.2": "5.2.2"
-    },
-    "packageExtensions": {
-      "@sentry/webpack-plugin@5.4.1": {
-        "peerDependenciesMeta": {
-          "webpack": {
-            "optional": true
-          }
-        }
-      },
-      "compression-webpack-plugin@12.0.0": {
-        "peerDependenciesMeta": {
-          "webpack": {
-            "optional": true
-          }
-        }
-      },
-      "style-loader@4.0.0": {
-        "peerDependenciesMeta": {
-          "webpack": {
-            "optional": true
-          }
-        }
-      }
-    },
-    "onlyBuiltDependencies": [
-      "@sentry-internal/node-cpu-profiler",
-      "@sentry/cli",
-      "@swc/core",
-      "core-js",
-      "esbuild",
-      "odiff-bin",
-      "unrs-resolver"
-    ],
-    "patchedDependencies": {
-      "zod@4.3.5": "patches/zod@4.3.5.patch",
-      "zrender@6.1.0": "patches/zrender@6.1.0.patch",
-      "css-tree@3.2.1": "patches/css-tree@3.2.1.patch",
-      "jest-runtime@30.5.1": "patches/jest-runtime@30.5.1.patch",
-      "jest-resolve@30.5.1": "patches/jest-resolve@30.5.1.patch"
-    }
-  },
+  "packageManager": "pnpm@12.10.1",
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000"
 }

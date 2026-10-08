@@ -162,7 +162,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
   cursor: pointer;
   /* vertical line connecting items */
   &:not(:last-child) {
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background-image: linear-gradient(
       ${p => p.theme.tokens.border.primary},
       ${p => p.theme.tokens.border.primary}

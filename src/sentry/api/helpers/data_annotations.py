@@ -60,11 +60,6 @@ DATASET_TO_CATEGORY: dict[object, DataCategory] = {
     errors: DataCategory.ERROR,
 }
 
-# Only for logs dropped/accepted bytes outcome is emitted.
-DATASET_TO_BYTE_CATEGORY: dict[object, DataCategory] = {
-    OurLogs: DataCategory.LOG_BYTE,
-}
-
 _ACCEPTED_NAME = Outcome.ACCEPTED.api_name()
 
 
@@ -178,16 +173,6 @@ def get_dropped_data_annotations(
         accepted_by_bucket = _accepted_by_bucket(item_rows)
         dropped_by_key = _dropped_by_bucket_reason(item_rows)
 
-        # Bytes are a logs-only dimension: query the paired byte category only
-        # when the dataset has one. Spans/metrics never emit byte outcomes.
-        byte_category = DATASET_TO_BYTE_CATEGORY.get(dataset)
-        accepted_bytes_by_bucket: dict[float, int] = {}
-        dropped_bytes_by_key: dict[tuple[float, str, str], int] = {}
-        if byte_category is not None:
-            byte_rows = _run_category_query(byte_category, snuba_params, rollup, organization_id)
-            accepted_bytes_by_bucket = _accepted_by_bucket(byte_rows)
-            dropped_bytes_by_key = _dropped_by_bucket_reason(byte_rows)
-
         dropped_annotations: list[Annotation] = []
         for (bucket_start_ms, bucket_outcome, reason_key), dropped in dropped_by_key.items():
             if dropped < threshold:
@@ -206,10 +191,6 @@ def get_dropped_data_annotations(
                 end=bucket_start_ms + rollup * 1000,
                 eventCount=dropped,
             )
-            if byte_category is not None:
-                annotation["byteSize"] = dropped_bytes_by_key.get(
-                    (bucket_start_ms, bucket_outcome, reason_key), 0
-                )
             dropped_annotations.append(annotation)
 
         accepted_annotations: list[Annotation] = []
@@ -223,8 +204,6 @@ def get_dropped_data_annotations(
                 end=bucket_start_ms + rollup * 1000,
                 eventCount=accepted_by_bucket.get(bucket_start_ms, 0),
             )
-            if byte_category is not None:
-                annotation["byteSize"] = accepted_bytes_by_bucket.get(bucket_start_ms, 0)
             accepted_annotations.append(annotation)
 
         set_span_data(span, "dropped_annotation_count", len(dropped_annotations))
