@@ -1,12 +1,16 @@
+import {Fragment, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {Button} from '@sentry/scraps/button';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
@@ -119,6 +123,37 @@ describe('VisualizationWidget breakdown series labels', () => {
     });
 
     expect(screen.getByRole('link', {name: 'my_transaction'})).toBeInTheDocument();
+  });
+});
+
+describe('VisualizationWidget memoization', () => {
+  function EditableWidget() {
+    const [widget, setWidget] = useState(spansBreakdownWidget);
+    return (
+      <Fragment>
+        <Button onClick={() => setWidget(w => ({...w, title: `${w.title}!`}))}>
+          Rename
+        </Button>
+        <Button onClick={() => setWidget(w => ({...w, displayType: DisplayType.AREA}))}>
+          Change type
+        </Button>
+        <VisualizationWidget widget={widget} selection={selection} />
+      </Fragment>
+    );
+  }
+
+  it('does not re-render the chart when only the title changes', async () => {
+    render(<EditableWidget />, {organization: OrganizationFixture()});
+
+    // Let the releases request settle so its re-render isn't counted below
+    await waitFor(() => expect(TimeSeriesWidgetVisualization).toHaveBeenCalledTimes(2));
+    jest.mocked(TimeSeriesWidgetVisualization).mockClear();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Rename'}));
+    expect(TimeSeriesWidgetVisualization).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Change type'}));
+    expect(TimeSeriesWidgetVisualization).toHaveBeenCalled();
   });
 });
 

@@ -64,7 +64,7 @@ describe('ConfigureIntegration settings tab', () => {
 
   const githubProvider = OrganizationIntegrationsFixture().provider;
 
-  it('shows the integration name as a link in the header', async () => {
+  it('shows the external domain as a settings row even without other configuration', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'sentry-demos',
       domainName: 'github.com/sentry-demos',
@@ -75,11 +75,22 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure();
 
-    expect(await screen.findByRole('link', {name: 'sentry-demos'})).toHaveAttribute(
-      'href',
-      'https://github.com/sentry-demos'
+    const heading = await screen.findByRole('heading', {name: 'sentry-demos'});
+    expect(screen.getByRole('tab', {name: 'Settings'})).toHaveAttribute(
+      'aria-selected',
+      'true'
     );
-    expect(screen.queryByText('github.com/sentry-demos')).not.toBeInTheDocument();
+    expect(screen.getByText('Organization Integration Settings')).toBeInTheDocument();
+    expect(screen.getByText('Integration URL')).toBeInTheDocument();
+    const link = screen.getByRole('link', {name: 'github.com/sentry-demos'});
+    expect(link).toHaveAttribute('href', 'https://github.com/sentry-demos');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(heading).not.toContainElement(link);
+    expect(screen.queryByRole('link', {name: 'sentry-demos'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', {name: 'Code Mappings'}));
+    expect(
+      screen.queryByRole('link', {name: 'github.com/sentry-demos'})
+    ).not.toBeInTheDocument();
   });
 
   it('links the configurations crumb to the provider configurations tab', async () => {
@@ -99,7 +110,7 @@ describe('ConfigureIntegration settings tab', () => {
     );
   });
 
-  it('uses a full domain URL without adding another protocol', async () => {
+  it('keeps the protocol when the external domain is a full URL', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'Azure DevOps',
       domainName: 'https://example.visualstudio.com/',
@@ -113,10 +124,11 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure('vsts');
 
-    expect(await screen.findByRole('link', {name: 'Azure DevOps'})).toHaveAttribute(
-      'href',
-      'https://example.visualstudio.com/'
-    );
+    expect(await screen.findByText('Azure DevOps')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'https://example.visualstudio.com/'})
+    ).toHaveAttribute('href', 'https://example.visualstudio.com/');
+    expect(screen.queryByRole('link', {name: 'Azure DevOps'})).not.toBeInTheDocument();
   });
 
   it('shows the PagerDuty integration name without a link for a subdomain', async () => {
@@ -134,6 +146,7 @@ describe('ConfigureIntegration settings tab', () => {
     renderConfigure('pagerduty');
 
     expect(await screen.findByText('PagerDuty')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'example-account'})).not.toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'PagerDuty'})).not.toBeInTheDocument();
   });
 
@@ -160,6 +173,7 @@ describe('ConfigureIntegration settings tab', () => {
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},
         configOrganization: [],
+        domainName: null,
       })
     );
 

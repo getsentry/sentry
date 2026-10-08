@@ -138,6 +138,7 @@ class AgentRunOptions(TypedDict):
     is_context_engine_enabled: NotRequired[bool]
     enable_bash_mode: NotRequired[bool]
     enable_coding: NotRequired[bool]
+    enable_pr_context_tools: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
@@ -699,3 +700,18 @@ def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     )
     result = location + preamble + "\n".join(_render_node(node, 0) for node in selected)
     return _normalize_wildcard_operators(result)
+
+
+def chat_prompt_to_markdown(chat_prompt: str, context: Any) -> str:
+    """Render an "Ask Seer" prompt and its context as a page-context section.
+
+    It is appended to `on_page_context`, so it reaches the agent as untrusted page data.
+    """
+    lines = [
+        "## Chat Prompt",
+        "The user was shown this question in the UI and is replying to it:",
+        *(f"> {line}" for line in chat_prompt.splitlines()),
+    ]
+    if context is not None:
+        lines.append(_render_node({"nodeType": "chat prompt context", "data": context}, 2))
+    return "\n".join(lines)

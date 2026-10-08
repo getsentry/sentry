@@ -5,12 +5,12 @@ const isProductionMode = process.argv.includes('--production');
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
-  // Invitation components are staged ahead of the branded invitation route.
-  'static/app/views/authV2/acceptOrganizationInvite/invitation{AccountBadge,Authentication,Status}.tsx',
   // scraps has all index.tsx file as separate entry points
   'static/app/components/core/*/index.tsx',
-  // defined in rspack.config.ts pipelines
+  // defined in rsbuild.config.ts pipelines
   'static/app/utils/setupStatics.tsx',
+  // Source-scoped Rspack/Jest aliases use this runtime entry; TS uses types.d.ts.
+  'static/app/utils/reactRouterV6/index.ts',
   'static/app/serviceWorker/worker/worker.ts',
   // scripts are entry points
   'scripts/*.ts',
@@ -48,6 +48,8 @@ const storyBookEntryPoints = [
 ];
 
 const config: KnipConfig = {
+  // Scraps has its own TypeScript configuration and test suite.
+  ignoreWorkspaces: ['static/packages/scraps'],
   workspaces: {
     '.': {
       entry: [
@@ -72,12 +74,9 @@ const config: KnipConfig = {
         '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
-        'core-js',
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
-        // Loaded dynamically from the import/resolver setting in oxlint.config.ts.
-        'eslint-import-resolver-typescript',
         'zrender', // used in echarts
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,

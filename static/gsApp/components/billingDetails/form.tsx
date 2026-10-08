@@ -42,13 +42,10 @@ type Props = {
    */
   analyticsEvent?: GetsentryEventKey;
   /**
-   * Extra button to render in the form footer.
-   */
-  extraButton?: React.ReactNode;
-  /**
    * Initial form data.
    */
   initialData?: BillingDetails;
+  onCancel?: () => void;
   onSubmitError?: (error: any) => void;
 };
 
@@ -221,7 +218,7 @@ export function BillingDetailsForm({
   onSubmitError,
   onSubmitSuccess,
   organization,
-  extraButton,
+  onCancel,
   analyticsEvent,
 }: Props) {
   const [submitDisabled, setSubmitDisabled] = useState(true);
@@ -318,7 +315,7 @@ export function BillingDetailsForm({
         onSubmitSuccess={handleSubmit}
         onSubmitError={err => onSubmitError?.(err)}
         initialData={transformedInitialData}
-        extraButton={extraButton}
+        onCancel={onCancel}
       >
         <BillingDetailsFormFields
           form={form}

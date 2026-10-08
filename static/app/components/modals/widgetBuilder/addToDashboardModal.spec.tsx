@@ -275,7 +275,7 @@ describe('add to dashboard modal', () => {
           environment: [],
           interval: '1m',
           orderby: '',
-          partial: true,
+          partial: '1',
           project: [1],
           query: ' release:"abc@v1.2.0" ',
           statsPeriod: '1h',

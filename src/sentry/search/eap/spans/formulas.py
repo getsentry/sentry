@@ -20,7 +20,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.search.eap import constants
-from sentry.search.eap.aggregate_utils import resolve_key_eq_value_filter
+from sentry.search.eap.aggregate_utils import if_query_validator, resolve_key_eq_value_filter
 from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     FormulaDefinition,
@@ -115,6 +115,31 @@ def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bina
         right=Column(
             aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_SUM, key=divisor, extrapolation_mode=extrapolation_mode
+            )
+        ),
+    )
+
+
+def elapsed_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    trace_filter = cast(TraceItemFilter, args[0])
+    timestamp = cast(AttributeKey, args[1])
+    extrapolation_mode = settings["extrapolation_mode"]
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_MAX,
+                key=timestamp,
+                filter=trace_filter,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_SUBTRACT,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_MIN,
+                key=timestamp,
+                filter=trace_filter,
+                extrapolation_mode=extrapolation_mode,
             )
         ),
     )
@@ -1210,6 +1235,20 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=division,
         is_aggregate=True,
+    ),
+    "elapsed_if": FormulaDefinition(
+        default_search_type="number",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
+            AttributeArgumentDefinition(
+                attribute_types={"string"},
+                validator=literal_validator(["timestamp"]),
+            ),
+        ],
+        formula_resolver=elapsed_if,
+        is_aggregate=True,
+        private=True,
     ),
     "time_spent_percentage": FormulaDefinition(
         default_search_type="percentage",

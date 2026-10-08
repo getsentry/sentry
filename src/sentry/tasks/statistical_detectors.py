@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -40,7 +40,11 @@ from sentry.statistical_detectors.algorithm import (
 )
 from sentry.statistical_detectors.base import DetectorPayload
 from sentry.statistical_detectors.detector import RegressionDetector
-from sentry.statistical_detectors.redis import RedisDetectorStore
+from sentry.statistical_detectors.redis import (
+    FUNCTION_CHANGE_POINT_BATCH_SIZE,
+    FunctionChangePointQueue,
+    RedisDetectorStore,
+)
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.utils import compute_delay
@@ -62,6 +66,7 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 FUNCTIONS_PER_PROJECT = 50
 FUNCTIONS_PER_BATCH = 1_000
+CHANGE_POINTS_PER_BATCH = 10
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
@@ -219,36 +224,75 @@ def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) 
     trends = FunctionRegressionDetector.redirect_escalations(trends, start_time)
     trends = FunctionRegressionDetector.limit_regressions_by_project(trends)
 
-    delay = 12  # hours
-    delayed_start = start_time + timedelta(hours=delay)
+    delayed_start = start_time + timedelta(hours=12)
+    queue = FunctionChangePointQueue()
 
     for regression_chunk in chunked(trends, FUNCTIONS_PER_BATCH):
-        detect_function_change_points.apply_async(
-            args=[
-                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start.isoformat(),
-            ],
-            # delay the check by delay hours because we want to make sure there
-            # will be enough data after the potential change point to be confident
-            # that a change has occurred
-            countdown=delay * 60 * 60,
+        queue.enqueue_many(
+            [
+                (bundle.payload.project_id, bundle.payload.group, delayed_start)
+                for bundle in regression_chunk
+            ]
         )
 
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_function_change_points",
     namespace=profiling_tasks,
+    processing_deadline_duration=60,
 )
 def detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: str, *args, **kwargs
+    functions_list: list[tuple[int, int]] | None = None,
+    start: str | None = None,
+    *args,
+    **kwargs,
 ) -> None:
-    start_time = datetime.fromisoformat(start)
+    if not options.get("statistical_detectors.enable"):
+        return
 
-    _detect_function_change_points(functions_list, start_time, *args, **kwargs)
+    # Legacy version of this job.
+    if functions_list is not None and start is not None:
+        _detect_function_change_points(
+            functions_list, datetime.fromisoformat(start), *args, **kwargs
+        )
+        return
+
+    queue = FunctionChangePointQueue()
+    due = queue.claim_due(django_timezone.now())
+    for candidates in chunked(due, CHANGE_POINTS_PER_BATCH):
+        process_function_change_points.apply_async(
+            args=[
+                [
+                    (project_id, function, candidate_start.isoformat())
+                    for project_id, function, candidate_start in candidates
+                ]
+            ]
+        )
+        queue.acknowledge(candidates)
+
+    if len(due) == FUNCTION_CHANGE_POINT_BATCH_SIZE:
+        detect_function_change_points.apply_async()
+
+
+@instrumented_task(
+    name="sentry.tasks.statistical_detectors.process_function_change_points",
+    namespace=profiling_tasks,
+    processing_deadline_duration=5 * 60,
+    wait_for_delivery=True,
+)
+def process_function_change_points(candidates: list[tuple[int, str, str]]) -> None:
+    candidates_by_start: dict[datetime, list[tuple[int, str]]] = {}
+    for project_id, function, candidate_start in candidates:
+        candidates_by_start.setdefault(datetime.fromisoformat(candidate_start), []).append(
+            (project_id, function)
+        )
+
+    for start_time, functions_list in candidates_by_start.items():
+        _detect_function_change_points(functions_list, start_time)
 
 
 def _detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: datetime, *args, **kwargs
+    functions_list: Sequence[tuple[int, int | str]], start: datetime, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return

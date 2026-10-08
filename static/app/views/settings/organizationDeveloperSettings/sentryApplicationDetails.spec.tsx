@@ -79,18 +79,15 @@ describe('Sentry Application Details', () => {
     it('saves', async () => {
       renderComponent();
 
-      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
-      await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
-
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Webhook URL'}),
-        'https://webhook.com'
-      );
-
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Redirect URL'}),
-        'https://webhook.com/setup'
-      );
+      // Paste instead of typing: every keystroke re-renders the whole form.
+      await userEvent.click(screen.getByRole('textbox', {name: 'Name'}));
+      await userEvent.paste('Test App');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Author'}));
+      await userEvent.paste('Sentry');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Webhook URL'}));
+      await userEvent.paste('https://webhook.com');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Redirect URL'}));
+      await userEvent.paste('https://webhook.com/setup');
 
       await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
       await userEvent.paste('{}');
@@ -150,16 +147,14 @@ describe('Sentry Application Details', () => {
     it('saves webhook headers', async () => {
       render(<SentryApplicationDetails />, {initialRouterConfig});
 
-      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
-      await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Webhook URL'}),
-        'https://webhook.com'
-      );
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Webhook Headers'}),
-        'X-Example: value'
-      );
+      await userEvent.click(screen.getByRole('textbox', {name: 'Name'}));
+      await userEvent.paste('Test App');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Author'}));
+      await userEvent.paste('Sentry');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Webhook URL'}));
+      await userEvent.paste('https://webhook.com');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Webhook Headers'}));
+      await userEvent.paste('X-Example: value');
 
       await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
@@ -210,10 +205,8 @@ describe('Sentry Application Details', () => {
 
       expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeDisabled();
 
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Webhook URL'}),
-        'https://example.com'
-      );
+      await userEvent.click(screen.getByRole('textbox', {name: 'Webhook URL'}));
+      await userEvent.paste('https://example.com');
       expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeEnabled();
 
       await userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}));
@@ -229,7 +222,8 @@ describe('Sentry Application Details', () => {
 
       renderComponent();
 
-      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Name'}));
+      await userEvent.paste('Test App');
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Issue & Event'}),
         'Read'
@@ -246,14 +240,11 @@ describe('Sentry Application Details', () => {
     it('notes the payload transform when the URL fires a Claude routine', async () => {
       render(<SentryApplicationDetails />, {
         initialRouterConfig,
-        organization: OrganizationFixture({
-          features: ['sentry-apps-claude-routine-webhooks'],
-        }),
       });
 
       const webhookInput = screen.getByRole('textbox', {name: 'Webhook URL'});
-      await userEvent.type(
-        webhookInput,
+      await userEvent.click(webhookInput);
+      await userEvent.paste(
         'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire'
       );
 
@@ -262,7 +253,9 @@ describe('Sentry Application Details', () => {
         await screen.findByText(/automatically format your webhook payloads/)
       ).toBeInTheDocument();
 
-      await userEvent.type(webhookInput, '/extra');
+      // Clicking puts the caret at the end, so this appends to the URL.
+      await userEvent.click(webhookInput);
+      await userEvent.paste('/extra');
       expect(screen.queryByText('Claude routine')).not.toBeInTheDocument();
     });
 
@@ -274,9 +267,7 @@ describe('Sentry Application Details', () => {
         },
         route: '/settings/:orgId/developer-settings/new-internal/',
       };
-      const organization = OrganizationFixture({
-        features: ['sentry-apps-creation-templates'],
-      });
+      const organization = OrganizationFixture();
 
       it('prefills the form from the template', async () => {
         render(<SentryApplicationDetails />, {
@@ -346,14 +337,14 @@ describe('Sentry Application Details', () => {
           organization,
         });
 
-        await userEvent.type(
-          screen.getByRole('textbox', {name: 'Anthropic Routine URL'}),
+        await userEvent.click(
+          screen.getByRole('textbox', {name: 'Anthropic Routine URL'})
+        );
+        await userEvent.paste(
           'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire'
         );
-        await userEvent.type(
-          screen.getByRole('textbox', {name: 'Routine Token'}),
-          'sk-ant-oat01-test'
-        );
+        await userEvent.click(screen.getByRole('textbox', {name: 'Routine Token'}));
+        await userEvent.paste('sk-ant-oat01-test');
         await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
         expect(createAppRequest).toHaveBeenCalledWith(
@@ -390,10 +381,8 @@ describe('Sentry Application Details', () => {
           organization,
         });
 
-        await userEvent.type(
-          screen.getByRole('textbox', {name: 'Routine Token'}),
-          'sk-ant-oat01-test'
-        );
+        await userEvent.click(screen.getByRole('textbox', {name: 'Routine Token'}));
+        await userEvent.paste('sk-ant-oat01-test');
         await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
         expect(await screen.findByText('This field is required')).toBeInTheDocument();
@@ -412,14 +401,12 @@ describe('Sentry Application Details', () => {
           organization,
         });
 
-        await userEvent.type(
-          screen.getByRole('textbox', {name: 'Anthropic Routine URL'}),
-          'https://example.com/webhook'
+        await userEvent.click(
+          screen.getByRole('textbox', {name: 'Anthropic Routine URL'})
         );
-        await userEvent.type(
-          screen.getByRole('textbox', {name: 'Routine Token'}),
-          'sk-ant-oat01-test'
-        );
+        await userEvent.paste('https://example.com/webhook');
+        await userEvent.click(screen.getByRole('textbox', {name: 'Routine Token'}));
+        await userEvent.paste('sk-ant-oat01-test');
         await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
         expect(
@@ -442,24 +429,16 @@ describe('Sentry Application Details', () => {
           organization,
         });
 
-        await userEvent.type(
-          screen.getByRole('textbox', {name: 'Anthropic Routine URL'}),
+        await userEvent.click(
+          screen.getByRole('textbox', {name: 'Anthropic Routine URL'})
+        );
+        await userEvent.paste(
           'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire'
         );
         await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
         expect(await screen.findByText('This field is required')).toBeInTheDocument();
         expect(createAppRequest).not.toHaveBeenCalled();
-      });
-
-      it('ignores templates without the templates feature', () => {
-        render(<SentryApplicationDetails />, {
-          initialRouterConfig: templateRouterConfig,
-          organization: OrganizationFixture(),
-        });
-
-        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
-        expect(screen.queryByText('Trigger a Claude routine')).not.toBeInTheDocument();
       });
 
       it('returns to a blank form from the template header', async () => {
@@ -829,11 +808,9 @@ describe('Sentry Application Details', () => {
     it('updates app with correct data', async () => {
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});
+      // clear() leaves the emptied field focused for the paste.
       await userEvent.clear(screen.getByRole('textbox', {name: 'Redirect URL'}));
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Redirect URL'}),
-        'https://hello.com/'
-      );
+      await userEvent.paste('https://hello.com/');
 
       await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
       await userEvent.paste('{}');

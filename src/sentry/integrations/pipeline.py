@@ -120,10 +120,21 @@ def ensure_integration(
     integration, created = Integration.objects.get_or_create(
         provider=key, external_id=data["external_id"], defaults=defaults
     )
-    if not created and overwrite_existing_integration:
+    if not created and (overwrite_existing_integration or not _has_live_installations(integration)):
         integration.update(**defaults)
 
     return integration
+
+
+def _has_live_installations(integration: Integration) -> bool:
+    # Uninstalling only removes the OrganizationIntegration, leaving the
+    # Integration row behind. Once no organization is using it, the stored
+    # global fields are stale and safe to replace on the next install.
+    return (
+        OrganizationIntegration.objects.filter(integration_id=integration.id)
+        .exclude(status__in=[ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS])
+        .exists()
+    )
 
 
 class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):

@@ -6,6 +6,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from django.conf import settings
+from django.utils.crypto import constant_time_compare
 from rest_framework import status as status_
 from rest_framework.request import Request
 from slack_sdk.signature import SignatureVerifier
@@ -237,7 +238,8 @@ class SlackRequest:
         )
 
     def _check_verification_token(self, verification_token: str) -> bool:
-        return self.data.get("token") == verification_token
+        token = self.data.get("token")
+        return isinstance(token, str) and constant_time_compare(token, verification_token)
 
     def validate_integration(self) -> None:
         if not self._integration:

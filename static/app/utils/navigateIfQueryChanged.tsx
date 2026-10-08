@@ -1,4 +1,4 @@
-import type {NavigateOptions} from 'react-router-dom';
+import type {NavigateOptions} from 'react-router';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 

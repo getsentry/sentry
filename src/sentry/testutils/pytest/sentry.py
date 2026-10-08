@@ -16,6 +16,8 @@ from unittest import mock
 import pytest
 import sentry_sdk
 from django.conf import settings
+from redis.exceptions import RedisError
+from rediscluster.exceptions import RedisClusterException
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
@@ -283,7 +285,14 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": xdist.get_redis_db()}}}},
+            "redis.clusters": {
+                "default": {"hosts": {0: {"db": xdist.get_redis_db()}}},
+                "cluster": {
+                    "is_redis_cluster": True,
+                    "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7006)],
+                    "key_prefix": xdist.get_redis_cluster_key_prefix(),
+                },
+            },
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.secret-key": "a" * 52,
@@ -334,8 +343,6 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.BITBUCKET_CONSUMER_SECRET = "123"
     settings.SENTRY_OPTIONS["github-login.client-id"] = "abc"
     settings.SENTRY_OPTIONS["github-login.client-secret"] = "123"
-    # this isn't the real secret
-    settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
     # Configure control backend settings for storage
     settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"
@@ -439,10 +446,16 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     newsletter.backend.test_only__downcast_to(DummyNewsletter).clear()
 
-    from sentry.utils.redis import clusters
+    from sentry.utils.redis import clusters, pop_used_key_prefix_clients
 
     with clusters.get("default").all() as client:
         client.flushdb()
+
+    for cluster_client in pop_used_key_prefix_clients():
+        try:
+            cluster_client.flushdb()
+        except (RedisError, RedisClusterException):
+            pass
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption

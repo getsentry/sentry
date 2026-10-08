@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {isAppleDevice} from '@react-aria/utils';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
@@ -31,6 +31,7 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -534,47 +535,50 @@ export function ProjectPageFilter({
   // oxlint-disable-next-line react/preserve-manual-memoization
   const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
-  const canWrite = organization.access.includes('project:write');
+  const canCreateProject = useCanCreateProject();
 
   const hasUnstaggedChanges =
     xor(stagedSelect.value, committedSelectionIntent.ids).length > 0;
 
-  const menuFooterContent =
-    selectionLimitExceeded || canWrite || hasUnstaggedChanges ? (
-      <Stack gap="md" direction="column">
-        {selectionLimitExceeded && (
-          <MenuComponents.Alert variant="warning">
-            {tct(
-              "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
-              {
-                limit: SELECTION_COUNT_LIMIT,
-                count: stagedSelect.value.length,
-              }
-            )}
-          </MenuComponents.Alert>
-        )}
-        <Flex gap="md" align="center" justify={canWrite ? 'between' : 'end'}>
-          {canWrite ? (
-            <MenuComponents.CTALinkButton
-              icon={<IconAdd />}
-              to={makeProjectsPathname({path: '/new/', organization})}
+  const menuFooterContent = (
+    <Stack gap="md" direction="column">
+      {selectionLimitExceeded && (
+        <MenuComponents.Alert variant="warning">
+          {tct(
+            "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
+            {
+              limit: SELECTION_COUNT_LIMIT,
+              count: stagedSelect.value.length,
+            }
+          )}
+        </MenuComponents.Alert>
+      )}
+      <Flex gap="md" align="center" justify="between">
+        <MenuComponents.CTALinkButton
+          icon={<IconAdd />}
+          to={makeProjectsPathname({path: '/new/', organization})}
+          onClick={handleApply}
+          disabled={!canCreateProject}
+          tooltipProps={{
+            title: canCreateProject
+              ? undefined
+              : t('Only project or team admins can create projects'),
+          }}
+        >
+          {t('Create Project')}
+        </MenuComponents.CTALinkButton>
+        {hasUnstaggedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <MenuComponents.CancelButton onClick={handleCancel} />
+            <MenuComponents.ApplyButton
+              disabled={selectionLimitExceeded}
               onClick={handleApply}
-            >
-              {t('Create Project')}
-            </MenuComponents.CTALinkButton>
-          ) : undefined}
-          {hasUnstaggedChanges ? (
-            <Flex gap="md" align="center" justify="end">
-              <MenuComponents.CancelButton onClick={handleCancel} />
-              <MenuComponents.ApplyButton
-                disabled={selectionLimitExceeded}
-                onClick={handleApply}
-              />
-            </Flex>
-          ) : null}
-        </Flex>
-      </Stack>
-    ) : null;
+            />
+          </Flex>
+        ) : null}
+      </Flex>
+    </Stack>
+  );
 
   return (
     <CompactSelect
