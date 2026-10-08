@@ -1,5 +1,3 @@
-import type {FocusTrap} from 'focus-trap';
-
 import type {ApiResult} from 'sentry/types/api';
 
 import type {ParntershipAgreementType} from './overrides';
@@ -20,31 +18,15 @@ export enum SentryInitRenderReactComponent {
   SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 
-export type OnSentryInitConfiguration =
-  | {
-      element: string;
-      input: string;
-      name: 'passwordStrength';
-    }
-  | {
-      component: SentryInitRenderReactComponent;
-      container: string;
-      name: 'renderReact';
-      props?: Record<string, any>;
-    }
-  | {
-      name: 'onReady';
-      onReady: (globals: Record<string, any>) => void;
-    };
+export type OnSentryInitConfiguration = {
+  component: SentryInitRenderReactComponent;
+  container: string;
+  name: 'renderReact';
+  props?: Record<string, any>;
+};
 
 declare global {
   interface Window {
-    /**
-     * Primary entrypoint for rendering the sentry app. This is typically
-     * called in the django templates, or in the case of the EXPERIMENTAL_SPA,
-     * after config hydration.
-     */
-    SentryRenderApp: () => void;
     /**
      * Used to close tooltips for testing purposes.
      */
@@ -58,9 +40,6 @@ declare global {
     /**
      * This allows our server-rendered templates to push configuration that should be
      * run after we render our main application.
-     *
-     * An example of this is dynamically importing the `passwordStrength` module only
-     * on the organization login page.
      */
     __onSentryInit:
       | OnSentryInitConfiguration[]
@@ -77,16 +56,6 @@ declare global {
      */
     __sentryGlobalStaticPrefix: string;
 
-    // typing currently used for demo add on
-    // TODO: improve typing
-    SentryApp?: {
-      ConfigStore: any;
-      Modal: any;
-      getModalPortal: () => HTMLElement;
-      modalFocusTrap?: {
-        current?: FocusTrap | null;
-      };
-    };
     /**
      * Is the UI running as dev-ui proxy.
      * Used by webpack-devserver + html-webpack

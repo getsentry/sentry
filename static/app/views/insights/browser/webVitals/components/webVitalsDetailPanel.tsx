@@ -142,10 +142,17 @@ export function WebVitalsDetailPanel({
       return <ColumnLabel column={col} />;
     }
     if (col.key === 'webVital') {
-      return <ColumnLabel align="right" column={{name: `${webVital} P75`}} />;
+      return (
+        <ColumnLabel align="right" column={{name: `${webVital?.toUpperCase()} P75`}} />
+      );
     }
     if (col.key === 'score') {
-      return <ColumnLabel align="center" column={{name: `${webVital} ${col.name}`}} />;
+      return (
+        <ColumnLabel
+          align="center"
+          column={{name: `${webVital?.toUpperCase()} ${col.name}`}}
+        />
+      );
     }
     if (col.key === 'opportunity') {
       return (

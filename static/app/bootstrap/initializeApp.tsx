@@ -1,5 +1,4 @@
 import './legacyTwitterBootstrap';
-import './exportGlobals';
 
 import type {Config} from 'sentry/types/system';
 import {CAN_MARK} from 'sentry/utils/analytics';

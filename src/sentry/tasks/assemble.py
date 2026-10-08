@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import posixpath
 import re
 import tempfile
 import uuid
+from collections import Counter
 from datetime import datetime
 from typing import IO, TYPE_CHECKING, NamedTuple
 
@@ -21,7 +23,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.debug_files.artifact_bundles import (
     INDEXING_THRESHOLD,
-    get_bundles_indexing_state,
+    get_cached_bundles_indexing_state,
     index_artifact_bundles_for_release,
 )
 from sentry.debug_files.tasks import backfill_artifact_bundle_db_indexing
@@ -396,6 +398,16 @@ UNEXPANDED_ENV_VAR_RE = re.compile(
 ENV_VAR_NAME_RE = re.compile(r"[A-Z]+(?:_[A-Z]+)+")
 
 
+def get_url_extension(url: str) -> str:
+    """
+    Returns the lowercased extension of the file name in `url`, like ".js" or ".map", "" when it
+    has none, and "other" when it is longer than 10 characters.
+    """
+    file_name = url.split("?", 1)[0].split("#", 1)[0].rsplit("/", 1)[-1]
+    extension = posixpath.splitext(file_name)[1].lower()
+    return extension if len(extension) <= 10 else "other"
+
+
 def get_placeholder_release_kind(release: str) -> str | None:
     """
     Returns which kind of placeholder build tooling sent as the release name when no release was set
@@ -639,6 +651,28 @@ class ArtifactBundlePostAssembler:
             "tasks.assemble.artifact_bundle.placeholder_release",
             tags={"kind": kind, "outcome": outcome},
         )
+        # The metric can't say which organizations upload these bundles, or what the files that
+        # keep the release are. We log the types and extensions of those files, not their names,
+        # which can contain customer paths.
+        files_without_debug_ids = self.archive.get_files_without_debug_ids()
+        logger.info(
+            "assemble.artifact_bundle.placeholder_release",
+            extra={
+                "organization_id": self.organization.id,
+                "project_ids": self.project_ids,
+                "kind": kind,
+                "outcome": outcome,
+                "artifact_count": self.archive.artifact_count,
+                "has_debug_ids": self.archive.has_debug_ids(),
+                "files_without_debug_ids": len(files_without_debug_ids),
+                "types_without_debug_ids": dict(
+                    Counter(info.get("type") or "none" for _, info in files_without_debug_ids)
+                ),
+                "extensions_without_debug_ids": dict(
+                    Counter(get_url_extension(url) for url, _ in files_without_debug_ids)
+                ),
+            },
+        )
 
     @traces.trace
     def _create_or_update_artifact_bundle(
@@ -737,7 +771,7 @@ class ArtifactBundlePostAssembler:
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
 
-        (total_bundles, indexed_bundles) = get_bundles_indexing_state(
+        (total_bundles, indexed_bundles) = get_cached_bundles_indexing_state(
             self.organization, release, dist
         )
 

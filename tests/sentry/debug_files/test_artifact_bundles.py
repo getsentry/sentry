@@ -3,14 +3,18 @@ import zipfile
 from datetime import datetime, timedelta
 from hashlib import sha1
 from io import BytesIO
+from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from sentry.debug_files.artifact_bundles import (
     get_artifact_bundles_containing_url,
+    get_bundles_indexing_state,
+    get_cached_bundles_indexing_state,
     get_redis_cluster_for_artifact_bundles,
     index_urls_in_bundle,
+    query_artifact_bundles_containing_file,
 )
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -178,6 +182,181 @@ class ArtifactLookupTest(TestCase):
         assert indexed[2].artifact_bundle == bundles[1]
         assert indexed[3].url == "~/path/to/other2.js"
         assert indexed[3].artifact_bundle == bundles[2]
+
+    @override_options({"sourcemaps.artifact-bundles.indexing-state-cache-ttl": 60})
+    def test_indexing_artifacts_with_cached_indexing_state(self) -> None:
+        self.clear_cache()
+
+        for i in range(4):
+            bundle = make_compressed_zip_file(
+                {
+                    "path/in/zip/foo": {
+                        "url": f"~/path/to/app{i}.js",
+                        "content": f"app_idx{i}".encode(),
+                    },
+                }
+            )
+            with self.tasks():
+                upload_bundle(bundle, self.project, "1.0.0")
+
+        # Counts below the threshold are not cached, so the third upload still indexes and
+        # backfills the release, and the fourth one is indexed using the cached counts.
+        assert len(get_artifact_bundles(self.project, "1.0.0")) == 4
+        assert len(get_indexed_files(self.project, "1.0.0")) == 4
+        assert get_bundles_indexing_state(self.organization, "1.0.0", "") == (4, 4)
+
+
+class GetCachedBundlesIndexingStateTest(TestCase):
+    def setUp(self) -> None:
+        get_redis_cluster_for_artifact_bundles().flushall()
+
+    def create_bundles(self, count: int) -> None:
+        for _ in range(count):
+            artifact_bundle = self.create_artifact_bundle(
+                artifact_count=1,
+                indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            )
+            ReleaseArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                artifact_bundle=artifact_bundle,
+                release_name="1.0.0",
+                dist_name="",
+            )
+
+    def test_not_cached_by_default(self) -> None:
+        self.create_bundles(3)
+        assert get_cached_bundles_indexing_state(self.organization, "1.0.0", "") == (3, 0)
+
+        self.create_bundles(1)
+        assert get_cached_bundles_indexing_state(self.organization, "1.0.0", "") == (4, 0)
+
+    @override_options({"sourcemaps.artifact-bundles.indexing-state-cache-ttl": 60})
+    def test_cached_from_threshold(self) -> None:
+        self.create_bundles(3)
+        assert get_cached_bundles_indexing_state(self.organization, "1.0.0", "") == (3, 0)
+
+        self.create_bundles(1)
+        assert get_cached_bundles_indexing_state(self.organization, "1.0.0", "") == (3, 0)
+        # Other releases and dists are cached separately.
+        assert get_cached_bundles_indexing_state(self.organization, "1.0.0", "dist") == (0, 0)
+        assert get_cached_bundles_indexing_state(self.organization, "2.0.0", "") == (0, 0)
+
+    @override_options({"sourcemaps.artifact-bundles.indexing-state-cache-ttl": 60})
+    def test_not_cached_below_threshold(self) -> None:
+        self.create_bundles(2)
+        assert get_cached_bundles_indexing_state(self.organization, "1.0.0", "") == (2, 0)
+
+        self.create_bundles(1)
+        assert get_cached_bundles_indexing_state(self.organization, "1.0.0", "") == (3, 0)
+
+
+class QueryArtifactBundlesContainingFileTest(TestCase):
+    def setUp(self) -> None:
+        self.release_name = "1.0.0"
+        self.dist_name = ""
+
+    def create_bundle(self, indexed: bool, urls: tuple[str, ...] = ()) -> ArtifactBundle:
+        indexing_state = (
+            ArtifactBundleIndexingState.WAS_INDEXED
+            if indexed
+            else ArtifactBundleIndexingState.NOT_INDEXED
+        )
+        artifact_bundle = self.create_artifact_bundle(
+            artifact_count=max(len(urls), 1),
+            indexing_state=indexing_state.value,
+            date_last_modified=timezone.now(),
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            artifact_bundle=artifact_bundle,
+            release_name=self.release_name,
+            dist_name=self.dist_name,
+        )
+        if indexed:
+            for url in urls:
+                ArtifactBundleIndex.objects.create(
+                    organization_id=self.organization.id,
+                    artifact_bundle=artifact_bundle,
+                    url=url,
+                    date_added=artifact_bundle.date_added,
+                )
+        return artifact_bundle
+
+    def query(self, url: str) -> set[tuple[int, str]]:
+        return set(
+            query_artifact_bundles_containing_file(
+                self.project, self.release_name, self.dist_name, url, None
+            )
+        )
+
+    @override_options({"sourcemaps.artifact-bundles.bounded-indexing-state": True})
+    def test_bounded_indexing_state_without_bundles(self) -> None:
+        self.create_bundle(indexed=False)
+
+        assert self.query("/path/to/app") != set()
+        self.release_name = "2.0.0"
+        assert self.query("/path/to/app") == set()
+
+    @override_options({"sourcemaps.artifact-bundles.bounded-indexing-state": True})
+    def test_bounded_indexing_state_below_threshold(self) -> None:
+        bundle1 = self.create_bundle(indexed=False)
+        bundle2 = self.create_bundle(indexed=False)
+
+        assert self.query("/path/to/app") == {(bundle1.id, "release"), (bundle2.id, "release")}
+
+    @override_options({"sourcemaps.artifact-bundles.bounded-indexing-state": True})
+    def test_bounded_indexing_state_fully_indexed(self) -> None:
+        bundle1 = self.create_bundle(indexed=True, urls=("~/path/to/app.js",))
+        self.create_bundle(indexed=True, urls=("~/path/to/other.js",))
+        self.create_bundle(indexed=True, urls=("~/path/to/third.js",))
+
+        with patch(
+            "sentry.debug_files.artifact_bundles.get_bundles_indexing_state"
+        ) as indexing_state:
+            assert self.query("/path/to/app") == {(bundle1.id, "index")}
+            assert self.query("/path/to/missing") == set()
+        assert not indexing_state.called
+
+    @override_options({"sourcemaps.artifact-bundles.bounded-indexing-state": True})
+    def test_bounded_indexing_state_newest_bundle_not_indexed(self) -> None:
+        bundle1 = self.create_bundle(indexed=True, urls=("~/path/to/app.js",))
+        bundle2 = self.create_bundle(indexed=True, urls=("~/path/to/other.js",))
+        bundle3 = self.create_bundle(indexed=True, urls=("~/path/to/third.js",))
+        bundle4 = self.create_bundle(indexed=False)
+
+        # The newest bundles are added, and the index match takes precedence.
+        assert self.query("/path/to/app") == {
+            (bundle1.id, "index"),
+            (bundle2.id, "release"),
+            (bundle3.id, "release"),
+            (bundle4.id, "release"),
+        }
+
+    @override_options({"sourcemaps.artifact-bundles.bounded-indexing-state": True})
+    def test_bounded_indexing_state_ignores_older_unindexed_bundles(self) -> None:
+        self.create_bundle(indexed=False)
+        newer = [self.create_bundle(indexed=True, urls=(f"~/path/to/app{i}.js",)) for i in range(5)]
+
+        # The unindexed bundle is older than the five newest ones, which the full count would
+        # have added although they are indexed.
+        assert self.query("/path/to/app3") == {(newer[3].id, "index")}
+
+    def test_full_count_by_default(self) -> None:
+        self.create_bundle(indexed=False)
+        newer = [self.create_bundle(indexed=True, urls=(f"~/path/to/app{i}.js",)) for i in range(5)]
+
+        assert self.query("/path/to/app3") == {
+            (newer[0].id, "release"),
+            (newer[1].id, "release"),
+            (newer[2].id, "release"),
+            (newer[3].id, "index"),
+            (newer[4].id, "release"),
+        }
 
 
 class IndexUrlsInBundleTest(TestCase):
@@ -624,3 +803,136 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             == set()
         )
         assert self.lookup("/path/to/app") == {bundle.id}
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
+            "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles": 2,
+        }
+    )
+    def test_url_lookup_candidate_cap(self) -> None:
+        oldest = self.create_bundle()
+        older = self.create_bundle()
+        newest = self.create_bundle()
+        for bundle, name in ((oldest, "oldest"), (older, "older"), (newest, "newest")):
+            self.index_url(bundle, f"~/path/to/{name}.js")
+
+        # The budget covers all three bundles, but the lookup reads only the two newest.
+        assert self.lookup("/path/to/newest") == {newest.id}
+        assert self.lookup("/path/to/older") == {older.id}
+        assert self.lookup("/path/to/oldest") == set()
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
+            "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles": 2,
+            "system.debug-files-renewal-age-threshold-days": 7,
+            "sourcemaps.artifact-bundles.url-lookup.active-margin-days": 7,
+        }
+    )
+    def test_url_lookup_candidate_cap_reaches_idle_bundles(self) -> None:
+        idle = self.create_bundle(date_added=timezone.now() - timedelta(days=50))
+        older = self.create_bundle()
+        newer = self.create_bundle()
+        for bundle, name in ((idle, "idle"), (older, "older"), (newer, "newer")):
+            self.index_url(bundle, f"~/path/to/{name}.js")
+
+        with patch("sentry.debug_files.artifact_bundles.metrics") as metrics:
+            # There are exactly as many active bundles as the cap, so the idle one is scanned too.
+            assert self.lookup("/path/to/idle") == {idle.id}
+
+        metrics.incr.assert_any_call(
+            "artifact_bundle_url_lookup.candidates", tags={"truncated": "false"}
+        )
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
+            "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles": 0,
+        }
+    )
+    def test_url_lookup_candidate_cap_reads_at_least_one_bundle(self) -> None:
+        older = self.create_bundle()
+        newer = self.create_bundle()
+        self.index_url(older, "~/path/to/app.js")
+        self.index_url(newer, "~/path/to/app.js")
+
+        assert self.lookup("/path/to/app") == {newer.id}
+
+    @override_options(
+        {
+            # Each bundle has 5 files, so the budget covers two bundles.
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 10,
+            "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate": 1.0,
+        }
+    )
+    def test_url_lookup_truncated_by_budget_is_logged(self) -> None:
+        for _ in range(3):
+            self.create_bundle()
+
+        with (
+            patch("sentry.debug_files.artifact_bundles.metrics") as metrics,
+            patch("sentry.debug_files.artifact_bundles.logger") as logger,
+        ):
+            self.lookup("/path/to/app")
+
+        metrics.incr.assert_any_call(
+            "artifact_bundle_url_lookup.candidates", tags={"truncated": "budget"}
+        )
+        logger.info.assert_called_once_with(
+            "artifact_bundle_url_lookup.truncated",
+            extra={
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "release": self.release_name,
+                "dist": self.dist_name,
+                "truncated_by": "budget",
+                "max_index_rows": 10,
+                "max_candidate_bundles": 1000,
+                "index_rows": 10,
+                "candidates": 2,
+            },
+        )
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
+            "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles": 2,
+            "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate": 0.0,
+        }
+    )
+    def test_url_lookup_truncated_by_candidate_cap(self) -> None:
+        for _ in range(3):
+            self.create_bundle()
+
+        with (
+            patch("sentry.debug_files.artifact_bundles.metrics") as metrics,
+            patch("sentry.debug_files.artifact_bundles.logger") as logger,
+        ):
+            self.lookup("/path/to/app")
+
+        metrics.incr.assert_any_call(
+            "artifact_bundle_url_lookup.candidates", tags={"truncated": "candidates"}
+        )
+        # Not sampled.
+        logger.info.assert_not_called()
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
+            "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate": 1.0,
+        }
+    )
+    def test_url_lookup_not_truncated(self) -> None:
+        self.create_bundle()
+
+        with (
+            patch("sentry.debug_files.artifact_bundles.metrics") as metrics,
+            patch("sentry.debug_files.artifact_bundles.logger") as logger,
+        ):
+            self.lookup("/path/to/app")
+
+        metrics.incr.assert_any_call(
+            "artifact_bundle_url_lookup.candidates", tags={"truncated": "false"}
+        )
+        logger.info.assert_not_called()

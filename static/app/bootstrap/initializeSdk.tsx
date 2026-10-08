@@ -21,6 +21,9 @@ import type {Config} from 'sentry/types/system';
 import {addUIElementTagToSegmentSpan} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
+// Server-rendered templates use the SDK to report errors.
+window.Sentry = Sentry;
+
 let lastEventId: string | undefined;
 
 export function getLastEventId(): string | undefined {

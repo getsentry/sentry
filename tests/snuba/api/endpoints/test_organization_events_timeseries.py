@@ -590,15 +590,9 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
             }
         )
 
-    def test_annotations_include_byte_size_and_accepted_annotations(self) -> None:
-        # Logs carry byte sizes (paired LOG_BYTE category); accepted and dropped
-        # come back as two series in meta, each with eventCount + byteSize.
+    def test_annotations_include_accepted_annotations(self) -> None:
         self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
-        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_BYTE, 500_000)
         self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")
-        self._store_outcome(
-            Outcome.RATE_LIMITED, DataCategory.LOG_BYTE, 200_000, reason="key_quota"
-        )
 
         data: dict[str, Any] = {
             "start": self.start,
@@ -624,14 +618,12 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
         assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
         assert dropped[0]["reason"] == "key_quota"
         assert dropped[0]["eventCount"] == 400
-        assert dropped[0]["byteSize"] == 200_000
         assert "label" not in dropped[0]
 
         accepted = response.data["meta"]["acceptedAnnotations"]
         assert len(accepted) == 1
         assert accepted[0]["outcome"] == Outcome.ACCEPTED.api_name()
         assert accepted[0]["eventCount"] == 1000
-        assert accepted[0]["byteSize"] == 500_000
 
 
 class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):

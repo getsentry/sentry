@@ -540,27 +540,6 @@ def _resolve_default_branch(
     return None
 
 
-def _build_pr_iteration_step_args(
-    group: Group,
-    *,
-    run_id: int | None,
-    feedback: Sequence[Feedback] | None,
-    commit_author: SeerCommitAuthor | None,
-    iteration_id: int | None,
-) -> PrIterationStepArgs:
-    run_state = get_autofix_run_state(group, run_id) if run_id is not None else None
-    if run_state is None or not run_state.repo_pr_states:
-        raise PrIterationNoPullRequestException()
-
-    return PrIterationStepArgs(
-        iteration_index=get_open_iteration_index(run_state),
-        iteration_id=iteration_id,
-        feedback=serialize_feedback(feedback) if feedback else None,
-        commit_author=json.dumps(commit_author) if commit_author is not None else None,
-        pr_urls={pr.repo_name: pr.pr_url for pr in run_state.repo_pr_states.values() if pr.pr_url},
-    )
-
-
 def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None:
     preference = read_preference_from_sentry_db(group.project)
     # Imported lazily to avoid a circular import: sentry.scm pulls in the
@@ -690,12 +669,22 @@ def trigger_autofix_agent(
             elif step == AutofixStep.CODE_CHANGES:
                 step_args = CodeChangesStepArgs(should_run_repo_checks=enable_bash_mode)
             elif step == AutofixStep.PR_ITERATION:
-                step_args = _build_pr_iteration_step_args(
-                    group,
-                    run_id=run_id,
-                    feedback=feedback,
-                    commit_author=commit_author,
+                iteration_run_state = (
+                    get_autofix_run_state(group, run_id) if run_id is not None else None
+                )
+                if iteration_run_state is None or not iteration_run_state.repo_pr_states:
+                    raise PrIterationNoPullRequestException()
+
+                step_args = PrIterationStepArgs(
+                    iteration_index=get_open_iteration_index(iteration_run_state),
                     iteration_id=iteration_id,
+                    feedback=serialize_feedback(feedback) if feedback else None,
+                    commit_author=json.dumps(commit_author) if commit_author is not None else None,
+                    pr_urls={
+                        pr.repo_name: pr.pr_url
+                        for pr in iteration_run_state.repo_pr_states.values()
+                        if pr.pr_url
+                    },
                 )
                 feature_iteration_index = step_args.iteration_index
             else:
