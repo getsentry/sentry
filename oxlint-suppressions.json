@@ -3454,11 +3454,6 @@
       "count": 4
     }
   },
-  "static/gsApp/components/billingDetails/form.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/gsApp/components/dataConsentModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
