@@ -200,15 +200,16 @@ export const ResultsChartContainer = memo(
     const {customMeasurements} = useContext(CustomMeasurementsContext);
 
     const isErrorsDataset = eventView.dataset === DiscoverDatasets.ERRORS;
+    const chartInterval = getResultsChartInterval(eventView, location);
     const {droppedEvents, acceptedEvents} = useDroppedData(
-      {
-        dataset: DiscoverDatasets.ERRORS,
-        interval: getResultsChartInterval(eventView, location),
-      },
+      {dataset: DiscoverDatasets.ERRORS, interval: chartInterval},
       {enabled: isErrorsDataset}
     );
     const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-    const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.ERRORS);
+    const openDroppedDataDrawer = useDroppedDataDrawer(
+      DiscoverDatasets.ERRORS,
+      chartInterval
+    );
     const canShowDroppedData =
       isErrorsDataset && hasDroppedData(droppedEvents, acceptedEvents);
     const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;

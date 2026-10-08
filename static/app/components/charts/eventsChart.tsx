@@ -140,6 +140,7 @@ function Chart({
       chartRef,
       droppedData,
       utc: zoomRenderProps.utc,
+      yAxisIndex: 1,
     }
   );
   const onDroppedDataClick = droppedData?.onClick;

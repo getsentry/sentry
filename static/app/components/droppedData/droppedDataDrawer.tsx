@@ -14,13 +14,14 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
+  interval?: string;
 }
 
-export function DroppedDataDrawer({dataset}: DroppedDataDrawerProps) {
-  const [interval] = useChartInterval();
+export function DroppedDataDrawer({dataset, interval}: DroppedDataDrawerProps) {
+  const [chartInterval] = useChartInterval();
   const {droppedEvents, acceptedEvents, isPending} = useDroppedData({
     dataset,
-    interval,
+    interval: interval ?? chartInterval,
   });
 
   return (
