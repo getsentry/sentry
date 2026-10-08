@@ -357,30 +357,28 @@ describe('AutomationNewSettings', () => {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), label);
     };
 
+    // Paste rather than type: every keystroke re-renders the whole form, so
+    // typing character by character dominated this test's runtime.
     await addAction('Slack');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByRole('textbox', {name: 'Target'}));
+    await userEvent.paste('#alerts');
 
     await addAction('Slack (Staging)');
     {
       const stagingTargets = screen.getAllByRole('textbox', {name: 'Target'});
       const stagingTarget = stagingTargets.at(-1);
       expect(stagingTarget).toBeDefined();
-      await userEvent.type(stagingTarget!, '#staging-alerts', {
-        delay: null,
-      });
+      await userEvent.click(stagingTarget!);
+      await userEvent.paste('#staging-alerts');
     }
 
     await addAction('Discord');
-    await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByPlaceholderText('channel ID or URL'));
+    await userEvent.paste('123');
 
     await addAction('MS Teams');
-    await userEvent.type(screen.getByPlaceholderText('channel name'), 'alerts-team', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByPlaceholderText('channel name'));
+    await userEvent.paste('alerts-team');
 
     await addAction('Pagerduty');
     await addAction('Opsgenie');
