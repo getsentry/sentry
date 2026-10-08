@@ -391,6 +391,7 @@ function InboxContent() {
           as="section"
           aria-label={t('Issue inbox')}
           position="relative"
+          // useResizable writes an inline width, so the full-width state must override it inline.
           style={{width: isSplitView ? `${size}px` : '100%'}}
           minWidth={0}
           minHeight={0}
