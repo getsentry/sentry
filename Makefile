@@ -134,6 +134,24 @@ test-python-ci:
 		-o junit_suite_name=pytest
 	@echo ""
 
+# Only collect migration test dirs to avoid collecting the whole suite just to
+# deselect everything but `-m migrations`.
+test-migrations-ci:
+	@echo "--> Running CI Python migration tests"
+	python3 -b -m pytest \
+		$$(find tests -type d -name migrations -not -path 'tests/acceptance/*' | sort) \
+		-m migrations \
+		--migrations \
+		--reruns 0 \
+		--fail-slow=150s \
+		--reuse-db \
+		--json-report \
+		--json-report-file=".artifacts/pytest.json" \
+		--json-report-omit=log \
+		--junit-xml=.artifacts/pytest.junit.xml \
+		-o junit_suite_name=pytest
+	@echo ""
+
 test-backend-ci-with-coverage:
 	@echo "--> Running CI Python tests with coverage"
 	python3 -b -m pytest \

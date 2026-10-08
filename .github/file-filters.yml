@@ -173,6 +173,7 @@ migrations_added:
 migration_tests:
   - *backend_dependencies
   - '.github/workflows/backend.yml'
+  - 'Makefile'
   - 'migrations_lockfile.txt'
   - 'src/sentry/**/migrations/**'
   - 'src/sentry/new_migrations/**'
