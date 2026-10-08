@@ -360,6 +360,7 @@ from sentry.issues.endpoints import (
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
     GroupTombstoneEndpoint,
+    OrganizationCodeMappingRepoPrefixesEndpoint,
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
@@ -371,6 +372,7 @@ from sentry.issues.endpoints import (
     OrganizationIssuesCountEndpoint,
     OrganizationIssuesWithSupergroupsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
+    ProjectCodeMappingStackPrefixesEndpoint,
     ProjectEventDetailsEndpoint,
     ProjectEventsEndpoint,
     ProjectGroupIndexEndpoint,
@@ -1456,6 +1458,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/derive-code-mappings/$",
         OrganizationDeriveCodeMappingsEndpoint.as_view(),
         name="sentry-api-0-organization-derive-code-mappings",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/code-mapping-prefixes/repo/$",
+        OrganizationCodeMappingRepoPrefixesEndpoint.as_view(),
+        name="sentry-api-0-organization-code-mapping-repo-prefixes",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/code-mappings/(?P<config_id>[^/]+)/$",
@@ -3354,6 +3361,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-link/$",
         ProjectStacktraceLinkEndpoint.as_view(),
         name="sentry-api-0-project-stacktrace-link",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/code-mapping-prefixes/stack/$",
+        ProjectCodeMappingStackPrefixesEndpoint.as_view(),
+        name="sentry-api-0-project-code-mapping-stack-prefixes",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-source-context/$",
