@@ -277,10 +277,17 @@ const TimelineHeaderCell = styled(Table.HeadCell)`
 `;
 
 const TimelineOverlay = styled(GridLineOverlay)`
-  inset: 0 0 0 ${ENVIRONMENT_COLUMN_WIDTH - 1}px;
+  inset: 0 0 0 ${ENVIRONMENT_COLUMN_WIDTH}px;
   width: auto;
   height: auto;
-  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 -1px;
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+    pointer-events: none;
+  }
 `;
 
 // The negative margin keeps the row from growing when the button appears on hover.
