@@ -172,6 +172,44 @@ describe('EventNavigation', () => {
     });
   });
 
+  describe('open periods button', () => {
+    const metricGroup = GroupFixture({
+      id: group.id,
+      issueCategory: IssueCategory.METRIC,
+      issueType: IssueType.METRIC_ISSUE,
+    });
+
+    function renderMetricNav(org: typeof organization) {
+      return render(
+        <GroupDataContextProvider group={metricGroup} project={metricGroup.project}>
+          <IssueEventNavigation {...defaultProps} group={metricGroup} />
+        </GroupDataContextProvider>,
+        {initialRouterConfig: routerConfigForTab(Tab.DETAILS), organization: org}
+      );
+    }
+
+    it('links to the open periods list for metric issues', () => {
+      renderMetricNav(organization);
+
+      expect(screen.getByRole('button', {name: /More Open Periods/})).toHaveAttribute(
+        'href',
+        expect.stringContaining(TabPaths[Tab.OPEN_PERIODS])
+      );
+    });
+
+    it('hides the open periods list when each firing opens its own metric issue', () => {
+      renderMetricNav(
+        OrganizationFixture({
+          features: ['discover-basic', 'workflow-engine-rotate-activation-id'],
+        })
+      );
+
+      expect(
+        screen.queryByRole('button', {name: /More Open Periods/})
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('issue content navigation', () => {
     const seerOrganization = OrganizationFixture({
       features: ['discover-basic', 'autofix-page'],
