@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import datetime
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 from zlib import compress
 
 from sentry.models.file import File
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.replays.scripts.delete_replays import delete_replays
+from sentry.replays.scripts.delete_replays import delete_replay_ids, delete_replays
 from sentry.replays.testutils import (
     mock_replay,
     mock_rrweb_div_helloworld,
@@ -20,6 +20,12 @@ from sentry.replays.testutils import (
 from sentry.testutils.cases import ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.utils.json import dumps_htmlsafe
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 class TestDeleteReplays(ReplaysSnubaTestCase):
@@ -328,7 +334,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
         self.assert_recording_not_deleted(replay_id_outside_timerange)
 
     @patch("sentry.replays.scripts.delete_replays.delete_seer_replay_data")
-    def test_deletion_replays_seer_delete_gated(self, mock_delete_seer: object) -> None:
+    def test_deletion_replays_seer_delete_gated(self, mock_delete_seer: MagicMock) -> None:
         to_delete = uuid4().hex
         self.store_replay_segments(
             to_delete,
@@ -356,6 +362,16 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             self.project.id,
             datetime.datetime.now() - datetime.timedelta(seconds=10),
         )
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            assert get_viewer_context() == ViewerContext(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                actor_type=ActorType.SYSTEM,
+            )
+
+        mock_delete_seer.side_effect = assert_viewer_context
+
         with self.feature("organizations:replay-ai-summaries"), TaskRunner():
             delete_replays(
                 project_id=self.project.id,
@@ -366,8 +382,51 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
                 end_utc=self.default_end_time,
                 dry_run=False,
             )
-        assert mock_delete_seer.call_count >= 1  # type: ignore[attr-defined]
+        assert mock_delete_seer.call_count >= 1
         # The replay ids passed to Seer are canonical dashed UUIDs.
-        _, _, passed_ids = mock_delete_seer.call_args[0]  # type: ignore[attr-defined]
+        _, _, passed_ids = mock_delete_seer.call_args[0]
         for replay_id in passed_ids:
             assert "-" in replay_id
+        assert get_viewer_context() is None
+
+    @patch("sentry.replays.scripts.delete_replays.delete_seer_replay_data")
+    def test_deletion_replays_seer_delete_preserves_viewer_context(
+        self, mock_delete_seer: MagicMock
+    ) -> None:
+        original_context = ViewerContext(
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            actor_type=ActorType.USER,
+        )
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            assert get_viewer_context() == ViewerContext(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                user_id=self.user.id,
+                actor_type=ActorType.USER,
+            )
+
+        mock_delete_seer.side_effect = assert_viewer_context
+
+        with viewer_context_scope(original_context):
+            delete_replay_ids(
+                project_id=self.project.id,
+                organization_id=self.organization.id,
+                rows=[
+                    {
+                        "retention_days": 90,
+                        "replay_id": str(uuid4()),
+                        "max_segment_id": 0,
+                        "timestamp": datetime.datetime.now(),
+                    }
+                ],
+                has_seer_data=True,
+                total_replays=1,
+                archive=False,
+                delete_blobs=False,
+            )
+            assert get_viewer_context() == original_context
+
+        mock_delete_seer.assert_called_once()
+        assert get_viewer_context() is None
