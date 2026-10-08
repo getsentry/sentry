@@ -500,12 +500,12 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   // Used to extract selected aggregates and parameters from the fields
   const stringFields = fields?.map(generateFieldAsString);
 
-  const fieldErrors = error?.queries?.find(
-    (queryError: any) => queryError?.fields
-  )?.fields;
-  const aggregateErrors = error?.queries?.find(
-    (aggregateError: any) => aggregateError?.aggregates
-  )?.aggregates;
+  const fieldErrors = Array.isArray(error?.queries)
+    ? error.queries.find((queryError: any) => queryError?.fields)?.fields
+    : undefined;
+  const aggregateErrors = Array.isArray(error?.queries)
+    ? error.queries.find((aggregateError: any) => aggregateError?.aggregates)?.aggregates
+    : undefined;
 
   const canDrag =
     fields?.length &&
