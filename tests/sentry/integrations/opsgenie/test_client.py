@@ -4,8 +4,13 @@ import orjson
 import pytest
 import responses
 
-from sentry.integrations.opsgenie.client import OpsgenieClient
+from sentry.integrations.opsgenie.client import (
+    MAX_FEATURE_FLAGS_DETAIL_LENGTH,
+    OpsgenieClient,
+    format_feature_flags_detail,
+)
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.feature_flags import EventFeatureFlag
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.testutils.asserts import (
@@ -114,6 +119,65 @@ class OpsgenieClientTest(APITestCase):
             "source": "Sentry",
         }
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @responses.activate
+    def test_send_notification_with_feature_flags(self) -> None:
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/alerts",
+            json={"result": "Request will be processed", "took": 1, "requestId": "hello-world"},
+        )
+
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "warning",
+                "platform": "python",
+                "culprit": "foo.bar",
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "new-checkout", "result": True},
+                            {"flag": "dark-mode", "result": False},
+                        ]
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group is not None
+
+        rule = self.create_project_rule(name="my rule")
+        client: OpsgenieClient = self.installation.get_keyring_client("team-123")
+        with self.options({"system.url-prefix": "http://example.com"}):
+            payload = client.build_issue_alert_payload(
+                data=event,
+                rules=[rule],
+                event=event,
+                group=group,
+                priority="P2",
+            )
+            client.send_notification(payload)
+
+        payload = orjson.loads(responses.calls[0].request.body)
+        assert payload["details"]["Feature Flags"] == "new-checkout: true, dark-mode: false"
+        assert payload["details"]["Sentry ID"] == str(group.id)
+
+    def test_format_feature_flags_detail(self) -> None:
+        assert format_feature_flags_detail([]) is None
+        assert (
+            format_feature_flags_detail(
+                [EventFeatureFlag("a", "true"), EventFeatureFlag("b", "variant-1")]
+            )
+            == "a: true, b: variant-1"
+        )
+
+        many_flags = [EventFeatureFlag(f"flag-{i:04d}", "true") for i in range(1000)]
+        detail = format_feature_flags_detail(many_flags)
+        assert detail is not None
+        assert len(detail) == MAX_FEATURE_FLAGS_DETAIL_LENGTH
+        assert detail.endswith("...")
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
