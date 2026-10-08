@@ -270,7 +270,6 @@ def test_classify_link_logs_unclassified_sentry_pages(url: str) -> None:
     )
 
 
-@override_options(ENABLED_OPTIONS)
 class DecorateRenderedTemplateTest(TestCase):
     referrer = "activity-seer-rca-completed-email"
     notification_uuid = "0b1c3a4e-7d0f-4b8a-9b6e-0c7a2f3d5e61"
@@ -278,7 +277,9 @@ class DecorateRenderedTemplateTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.enterContext(override_options({"system.url-prefix": "https://sentry.io"}))
+        self.enterContext(
+            override_options({**ENABLED_OPTIONS, "system.url-prefix": "https://sentry.io"})
+        )
 
     def decorate_rendered_template(
         self, rendered_template: NotificationRenderedTemplate
