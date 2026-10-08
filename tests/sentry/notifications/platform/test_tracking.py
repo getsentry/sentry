@@ -247,9 +247,16 @@ def test_classify_link(url: str, expected: NotificationLink) -> None:
     mock_logger.error.assert_not_called()
 
 
-def test_classify_link_logs_unclassified_sentry_pages() -> None:
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://acme.sentry.io/dashboards/1/?q=x",
+        "https://sentry.io/organizations/acme/dashboards/1/?q=x",
+    ],
+)
+def test_classify_link_logs_unclassified_sentry_pages(url: str) -> None:
     with mock.patch("sentry.notifications.platform.tracking.logger") as mock_logger:
-        assert classify_link("https://acme.sentry.io/dashboards/1/?q=x") == NotificationLink.OTHER
+        assert classify_link(url) == NotificationLink.OTHER
     mock_logger.error.assert_called_once_with(
         "notifications.tracking.unclassified_link", extra={"path": "/dashboards/1/"}
     )
