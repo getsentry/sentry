@@ -15,6 +15,7 @@ export type Finding = {
   line_start: number;
   pattern_name: string;
   severity: 'error' | 'warning' | 'info';
+  snippet: string;
 };
 
 /**
@@ -81,18 +82,52 @@ export function sparsePatterns(files: string[], lintConventionFiles: string[]): 
 }
 
 /**
- * The scanner judges whole files, so keep only findings that touch a line this
- * patch adds. Violations that were already there are the fixes loop's job.
+ * Lines in a finding's span that its snippet quotes verbatim. Snippets are
+ * often abbreviated (`{ ... }`), and lines with no word characters (`}`,
+ * `/**`) recur everywhere, so neither can say where the violation is.
  */
-export function findingsInPatch(
-  findings: Finding[],
-  added: Map<string, LineRange[]>
-): Finding[] {
-  return findings.filter(finding =>
-    added
-      .get(finding.file)
-      ?.some(range => range.start <= finding.line_end && finding.line_start <= range.end)
+export function quotedLines(finding: Finding, fileContent: string): number[] {
+  const quoted = new Set(
+    finding.snippet
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => /\w/.test(line))
   );
+  const lines = fileContent.split('\n');
+  const result: number[] = [];
+  for (
+    let line = finding.line_start;
+    line <= Math.min(finding.line_end, lines.length);
+    line++
+  ) {
+    if (quoted.has(lines[line - 1]!.trim())) {
+      result.push(line);
+    }
+  }
+  return result;
+}
+
+/**
+ * The scanner judges each file whole, so it also reports violations the base
+ * branch already had; those are the fixes loop's job. A violation is new when
+ * the patch adds a line its snippet quotes. Overlapping the span is not
+ * enough: editing one line inside an existing class component must not
+ * re-report the class.
+ */
+export function introducedFindings(
+  findings: Finding[],
+  added: Map<string, LineRange[]>,
+  readFile: (path: string) => string
+): Finding[] {
+  return findings.filter(finding => {
+    const ranges = added.get(finding.file);
+    return (
+      ranges !== undefined &&
+      quotedLines(finding, readFile(finding.file)).some(line =>
+        ranges.some(range => range.start <= line && line <= range.end)
+      )
+    );
+  });
 }
 
 function lintConventionFiles(): string[] {
@@ -173,7 +208,9 @@ function main() {
     throw new Error(`refactor-tasks scan exited with ${scan.status ?? scan.signal}`);
   }
 
-  const findings = findingsInPatch(JSON.parse(scan.stdout) as Finding[], added);
+  const findings = introducedFindings(JSON.parse(scan.stdout) as Finding[], added, path =>
+    readFileSync(path, 'utf8')
+  );
   if (findings.length === 0) {
     console.log('No convention violations on lines added by this patch.');
     return;

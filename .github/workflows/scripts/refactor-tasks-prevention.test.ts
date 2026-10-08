@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import {describe, it} from 'node:test';
 
 import {
-  findingsInPatch,
+  introducedFindings,
   parseAddedLines,
+  quotedLines,
   sparsePatterns,
   type Finding,
 } from './refactor-tasks-prevention.ts';
@@ -56,7 +57,12 @@ index 7777777..8888888 100644
 +after();
 `;
 
-function makeFinding(file: string, line_start: number, line_end: number): Finding {
+function makeFinding(
+  file: string,
+  line_start: number,
+  line_end: number,
+  snippet: string
+): Finding {
   return {
     confidence: 'high',
     explanation: 'explanation',
@@ -65,6 +71,7 @@ function makeFinding(file: string, line_start: number, line_end: number): Findin
     line_start,
     pattern_name: 'no-class-components',
     severity: 'warning',
+    snippet,
   };
 }
 
@@ -108,26 +115,67 @@ describe('sparsePatterns', () => {
   });
 });
 
-describe('findingsInPatch', () => {
-  const added = new Map([['static/app/modified.tsx', [{start: 11, end: 13}]]]);
+// Line 4 edits the body of a class that already existed; lines 8-10 add a
+// new render helper.
+const MODIFIED_FILE = [
+  'class Legacy extends Component<Props> {',
+  '  state = {open: false};',
+  '  render() {',
+  '    return <div>{this.props.label}</div>;',
+  '  }',
+  '}',
+  '',
+  'function renderThing(props: Props) {',
+  '  return render(<Thing {...props} />);',
+  '}',
+].join('\n');
 
-  it('keeps findings that overlap an added line', () => {
-    const findings = [
-      makeFinding('static/app/modified.tsx', 13, 20),
-      makeFinding('static/app/modified.tsx', 5, 11),
-    ];
-    assert.deepEqual(findingsInPatch(findings, added), findings);
+const existingClass = makeFinding(
+  'static/app/modified.tsx',
+  1,
+  6,
+  'class Legacy extends Component<Props> {\n  ...\n}'
+);
+const newHelper = makeFinding(
+  'static/app/modified.tsx',
+  8,
+  10,
+  'function renderThing(props: Props) {\n  return render(<Thing {...props} />);\n}'
+);
+
+describe('quotedLines', () => {
+  it('finds the snippet lines in the span, ignoring elisions and bare punctuation', () => {
+    assert.deepEqual(quotedLines(existingClass, MODIFIED_FILE), [1]);
+    assert.deepEqual(quotedLines(newHelper, MODIFIED_FILE), [8, 9]);
+  });
+});
+
+describe('introducedFindings', () => {
+  const added = new Map([
+    [
+      'static/app/modified.tsx',
+      [
+        {start: 4, end: 4},
+        {start: 8, end: 10},
+      ],
+    ],
+  ]);
+  const readFile = () => MODIFIED_FILE;
+
+  it('keeps a violation whose quoted lines the patch adds', () => {
+    assert.deepEqual(introducedFindings([newHelper], added, readFile), [newHelper]);
   });
 
-  it('drops findings on untouched lines or files', () => {
+  it('drops an existing violation when the patch only edits inside its span', () => {
+    assert.deepEqual(introducedFindings([existingClass], added, readFile), []);
+  });
+
+  it('drops findings in files the patch does not add lines to', () => {
     assert.deepEqual(
-      findingsInPatch(
-        [
-          makeFinding('static/app/modified.tsx', 1, 10),
-          makeFinding('static/app/modified.tsx', 14, 30),
-          makeFinding('static/app/untouched.tsx', 11, 13),
-        ],
-        added
+      introducedFindings(
+        [{...newHelper, file: 'static/app/untouched.tsx'}],
+        added,
+        readFile
       ),
       []
     );
