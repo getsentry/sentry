@@ -22,16 +22,23 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {ProgressState} from 'sentry/types/group';
-import {useMedia} from 'sentry/utils/useMedia';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 
 import InboxPage from './index';
 
-jest.mock('sentry/utils/useMedia');
+function InboxPageInContainer() {
+  return (
+    <Container containerType="inline-size">
+      <InboxPage />
+    </Container>
+  );
+}
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
@@ -132,7 +139,6 @@ describe('InboxPage', () => {
 
   beforeEach(() => {
     Element.prototype.scrollIntoView = jest.fn();
-    jest.mocked(useMedia).mockReturnValue(false);
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -1490,14 +1496,18 @@ describe('InboxPage', () => {
 
   describe('on desktop', () => {
     beforeEach(() => {
-      jest.mocked(useMedia).mockImplementation(query => query.startsWith('(min-width:'));
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1200);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
     });
 
     it('auto-selects the first issue', async () => {
       mockSuccessfulSections();
       mockIssuePreview();
 
-      const {router, unmount} = render(<InboxPage />, {
+      const {router, unmount} = render(<InboxPageInContainer />, {
         organization,
         initialRouterConfig,
       });
@@ -1523,7 +1533,7 @@ describe('InboxPage', () => {
       mockAllSections();
       mockIssuePreview();
 
-      const {router} = render(<InboxPage />, {
+      const {router} = render(<InboxPageInContainer />, {
         organization: seerOrganization,
         initialRouterConfig: {
           location: {
@@ -1557,7 +1567,7 @@ describe('InboxPage', () => {
         body: [],
       });
 
-      render(<InboxPage />, {
+      render(<InboxPageInContainer />, {
         organization: seerOrganization,
         initialRouterConfig,
       });
@@ -1578,7 +1588,7 @@ describe('InboxPage', () => {
         },
       });
 
-      const {router} = render(<InboxPage />, {
+      const {router} = render(<InboxPageInContainer />, {
         organization: seerOrganization,
         initialRouterConfig,
       });
@@ -1613,7 +1623,7 @@ describe('InboxPage', () => {
       );
       mockIssuePreview();
 
-      const {router} = render(<InboxPage />, {
+      const {router} = render(<InboxPageInContainer />, {
         organization: seerOrganization,
         initialRouterConfig,
       });
