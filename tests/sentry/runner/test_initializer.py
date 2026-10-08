@@ -30,6 +30,8 @@ def settings():
         SENTRY_EMAIL_BACKEND_ALIASES={"dummy": "alias-for-dummy"},
         SENTRY_SELF_HOSTED=False,
         SENTRY_SINGLE_ORGANIZATION=False,
+        SENTRY_CONFIGURED_OPTION_SETTINGS=frozenset(),
+        SENTRY_GITHUB_APP_CLIENT_SECRET="",
     )
 
 
@@ -393,3 +395,87 @@ def test_bind_cache_to_option_store_without_options_cache() -> None:
 
         # Should use 'default' cache when 'options' doesn't exist
         assert default_store.cache == caches["default"]
+
+
+@pytest.mark.parametrize("old_name, key, setting_name", [
+    ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret", "SENTRY_AUTH_GOOGLE_CLIENT_SECRET"),
+    ("MAILGUN_API_KEY", "mail.mailgun-api-key", "SENTRY_MAILGUN_API_KEY"),
+])
+@pytest.mark.parametrize("value", ["", "deployment-secret"])
+@pytest.mark.parametrize("self_hosted", [False, True])
+def test_explicit_deployment_secret_is_not_replaced_by_legacy_alias(
+    settings, old_name, key, setting_name, value, self_hosted
+) -> None:
+    settings.SENTRY_SELF_HOSTED = self_hosted
+    settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret"}
+    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({setting_name})
+    setattr(settings, old_name, "legacy-secret")
+    setattr(settings, setting_name, value)
+
+    bootstrap_options(settings)
+    apply_legacy_settings(settings)
+
+    assert getattr(settings, setting_name) == value
+    assert key not in settings.SENTRY_OPTIONS
+
+
+@pytest.mark.parametrize("old_name, key, setting_name", [
+    ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret", "SENTRY_AUTH_GOOGLE_CLIENT_SECRET"),
+    ("MAILGUN_API_KEY", "mail.mailgun-api-key", "SENTRY_MAILGUN_API_KEY"),
+])
+def test_original_option_precedes_explicit_deployment_setting_and_alias(
+    settings, old_name, key, setting_name
+) -> None:
+    settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret", key: "option-secret"}
+    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({setting_name})
+    setattr(settings, old_name, "legacy-secret")
+    setattr(settings, setting_name, "deployment-secret")
+
+    bootstrap_options(settings)
+    apply_legacy_settings(settings)
+
+    assert getattr(settings, setting_name) == "option-secret"
+    assert settings.SENTRY_OPTIONS[key] == "option-secret"
+
+
+@pytest.mark.parametrize("old_name, key, setting_name", [
+    ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret", "SENTRY_AUTH_GOOGLE_CLIENT_SECRET"),
+    ("MAILGUN_API_KEY", "mail.mailgun-api-key", "SENTRY_MAILGUN_API_KEY"),
+])
+def test_untracked_legacy_secret_alias_retains_precedence(settings, old_name, key, setting_name) -> None:
+    settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret"}
+    setattr(settings, old_name, "legacy-secret")
+    setattr(settings, setting_name, "deployment-secret")
+
+    bootstrap_options(settings)
+    with pytest.warns(DeprecatedSettingWarning):
+        apply_legacy_settings(settings)
+
+    assert getattr(settings, setting_name) == "legacy-secret"
+    assert settings.SENTRY_OPTIONS[key] == "legacy-secret"
+
+
+@pytest.mark.parametrize("configured_options, configured_settings", [
+    ({"github-app.client-secret": "option-secret"}, frozenset()),
+    ({}, frozenset({"SENTRY_GITHUB_APP_CLIENT_SECRET"})),
+])
+def test_single_org_preserves_original_or_explicit_empty_app_secret(
+    settings, configured_options, configured_settings
+) -> None:
+    settings.SENTRY_SINGLE_ORGANIZATION = True
+    settings.SENTRY_OPTIONS = configured_options
+    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = configured_settings
+    settings.SENTRY_GITHUB_APP_CLIENT_SECRET = ""
+    settings.GITHUB_API_SECRET = "login-secret"
+
+    with (
+        pytest.warns(DeprecatedSettingWarning),
+        patch.dict(
+            "sentry.runner.initializer.options_mapper",
+            {"github-app.client-id": "GITHUB_APP_ID", "github-app.client-secret": "GITHUB_API_SECRET"},
+        ),
+    ):
+        bootstrap_options(settings)
+
+    assert settings.SENTRY_OPTIONS.get("github-app.client-secret", "") == settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+    assert settings.SENTRY_GITHUB_APP_CLIENT_SECRET != "login-secret"

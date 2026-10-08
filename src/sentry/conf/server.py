@@ -2605,6 +2605,9 @@ SENTRY_PROFILES_FILE_STORAGE_CONFIG: dict[str, Any] = {
 }
 SENTRY_CONTROL_FILE_STORAGE_BACKEND = ""
 SENTRY_CONTROL_FILE_STORAGE_CONFIG: dict[str, Any] = {}
+# Deployment writers record explicit settings while deprecated aliases coexist.
+# Remove this provenance after those writers and their legacy remaps are retired.
+SENTRY_CONFIGURED_OPTION_SETTINGS: frozenset[str] = frozenset()
 SENTRY_AUTH_FLY_CLIENT_SECRET = ""
 SENTRY_AUTH_GOOGLE_CLIENT_SECRET = ""
 SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY = ""
