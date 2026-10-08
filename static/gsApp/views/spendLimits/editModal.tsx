@@ -89,7 +89,12 @@ function BudgetUpdateError({error, plan}: {error: UpdateError; plan: Plan}) {
   );
 }
 
-function SpendLimitsEditModal({Footer, closeModal, organization, subscription}: Props) {
+export function SpendLimitsEditModal({
+  Footer,
+  closeModal,
+  organization,
+  subscription,
+}: Props) {
   const api = useApi();
 
   const [currentOnDemandBudget] = useState<OnDemandBudgets>(() => ({
@@ -201,5 +206,3 @@ const OffsetBody = styled('div')`
     margin: -${p => p.theme.space['2xl']};
   }
 `;
-
-export default SpendLimitsEditModal;
