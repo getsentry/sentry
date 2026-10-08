@@ -8,7 +8,7 @@ import {z} from 'zod';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {InfoText} from '@sentry/scraps/info';
+import {InfoTip} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
@@ -54,9 +54,15 @@ type ConditionType =
   | 'release'
   | 'ip_address';
 
+// How a condition applies its values. `matches` keeps the data that matches any of
+// them; `does_not_match` keeps only the data that matches none of them.
+type ConditionOperator = 'matches' | 'does_not_match';
+
 type CustomInboundFilterCondition = {
   type: ConditionType;
   value: string[];
+  // Absent on filters stored before the operator existed. Those match.
+  operator?: ConditionOperator;
 };
 
 // Shape returned by the custom inbound filters API.
@@ -83,6 +89,7 @@ type DataTypeOption = {label: string; value: FilterDataType};
 // A single editable condition row in the modal. The API stores a list of
 // values per condition; the row edits them as one text with a value per line.
 type ConditionFormValue = {
+  operator: ConditionOperator;
   property: ConditionType;
   value: string;
 };
@@ -178,6 +185,25 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
 };
 
 const CONDITION_TYPES = Object.keys(CONDITIONS) as [ConditionType, ...ConditionType[]];
+
+// Declaration order is the order of the operator dropdown, and the first one is the
+// default of a new row.
+const OPERATORS: Record<ConditionOperator, string> = {
+  matches: t('matches'),
+  does_not_match: t('does not match'),
+};
+
+const CONDITION_OPERATORS = Object.keys(OPERATORS) as [
+  ConditionOperator,
+  ...ConditionOperator[],
+];
+
+const OPERATOR_OPTIONS = CONDITION_OPERATORS.map(value => ({
+  value,
+  label: OPERATORS[value],
+}));
+
+const DEFAULT_OPERATOR = CONDITION_OPERATORS[0];
 const FILTER_DATA_TYPES = Object.keys(DATA_TYPES) as [
   FilterDataType,
   ...FilterDataType[],
@@ -230,7 +256,7 @@ function getAvailableDataTypeOptions(organization: Organization): DataTypeOption
 }
 
 function emptyCondition(property: ConditionType): ConditionFormValue {
-  return {property, value: ''};
+  return {property, operator: DEFAULT_OPERATOR, value: ''};
 }
 
 // The values of a condition row, one per non-empty line of its text.
@@ -248,6 +274,7 @@ const filterSchema = z.object({
     .array(
       z.object({
         property: z.enum(CONDITION_TYPES),
+        operator: z.enum(CONDITION_OPERATORS),
         value: z
           .string()
           .refine(
@@ -281,6 +308,7 @@ function getDataTypeLabel(filter: CustomInboundFilter): string {
 function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
   const conditions = filter.conditions.map(condition => ({
     property: condition.type,
+    operator: condition.operator ?? DEFAULT_OPERATOR,
     value: condition.value.join('\n'),
   }));
   const dataType = getFilterDataType(filter);
@@ -298,6 +326,7 @@ function formValuesToConditions(
 ): CustomInboundFilterCondition[] {
   return values.conditions.map(condition => ({
     type: condition.property,
+    operator: condition.operator,
     value: splitConditionValues(condition.value),
   }));
 }
@@ -372,16 +401,24 @@ function ValueTag({value}: {value: string}) {
   );
 }
 
-// One condition of a filter: its property, then the values any of which matches.
+// One condition of a filter: its property, then the values any of which matches. A
+// negated condition says so between the two; a plain one reads as "matches" without
+// the word.
 function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}) {
   const visible = condition.value.slice(0, MAX_VISIBLE_VALUES);
   const hidden = condition.value.slice(MAX_VISIBLE_VALUES);
+  const operator = condition.operator ?? DEFAULT_OPERATOR;
 
   return (
     <Flex wrap="wrap" gap="xs" align="center">
       <Text size="sm" variant="muted">
         {getCondition(condition.type).label}
       </Text>
+      {operator !== DEFAULT_OPERATOR && (
+        <Text size="sm" variant="danger">
+          {OPERATORS[operator]}
+        </Text>
+      )}
       {visible.map((value, index) => (
         <Fragment key={index}>
           {index > 0 && (
@@ -463,7 +500,7 @@ function CustomFilterModal({
           </Heading>
           <Text variant="muted" size="sm">
             {t(
-              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. Put one pattern per line to match any of them.'
+              'Sentry only filters data that meets every condition below. Each value is a glob pattern, so * matches any text. Put one pattern per line: a condition matches when any of them does.'
             )}
           </Text>
         </Stack>
@@ -543,7 +580,7 @@ function CustomFilterModal({
                             }}
                             columns={{
                               zero: '1fr max-content',
-                              md: '160px max-content 1fr max-content',
+                              md: '160px 190px 1fr max-content',
                             }}
                             gap={{zero: 'xs md', md: 'md'}}
                             align="start"
@@ -561,17 +598,25 @@ function CustomFilterModal({
                                 )}
                               </form.AppField>
                             </Container>
-                            <Flex
-                              area="matches"
-                              align="center"
-                              height={{zero: 'auto', md: theme.form.md.height}}
-                            >
-                              <InfoText
-                                variant="muted"
+                            <Flex area="matches" align="center" gap="xs">
+                              <Container flex={1}>
+                                <form.AppField name={`conditions[${index}].operator`}>
+                                  {operatorField => (
+                                    <operatorField.Select
+                                      aria-label={t('Condition operator')}
+                                      clearable={false}
+                                      options={OPERATOR_OPTIONS}
+                                      value={operatorField.state.value}
+                                      onChange={value =>
+                                        operatorField.handleChange(value)
+                                      }
+                                    />
+                                  )}
+                                </form.AppField>
+                              </Container>
+                              <InfoTip
                                 title={getMatchDescription(condition.property, dataType)}
-                              >
-                                {t('matches')}
-                              </InfoText>
+                              />
                             </Flex>
                             <Container area="value">
                               <form.AppField name={`conditions[${index}].value`}>
@@ -869,6 +914,7 @@ function matchesQuery(filter: CustomInboundFilter, query: string) {
     getDataTypeLabel(filter),
     ...filter.conditions.flatMap(condition => [
       getCondition(condition.type).label,
+      OPERATORS[condition.operator ?? DEFAULT_OPERATOR],
       ...condition.value,
     ]),
   ];

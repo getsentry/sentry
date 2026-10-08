@@ -48,7 +48,7 @@ describe('ProjectFilters', () => {
 
   type CustomInboundFilter = {
     active: boolean;
-    conditions: Array<{type: string; value: string[]}>;
+    conditions: Array<{type: string; value: string[]; operator?: string}>;
     dateCreated: string;
     dateUpdated: string;
     id: string;
@@ -677,7 +677,13 @@ describe('ProjectFilters', () => {
           data: {
             name: 'Block noisy messages',
             dataType: 'error',
-            conditions: [{type: 'error_message', value: ['*timeout*', '*refused*']}],
+            conditions: [
+              {
+                type: 'error_message',
+                operator: 'matches',
+                value: ['*timeout*', '*refused*'],
+              },
+            ],
           },
         })
       )
@@ -705,6 +711,49 @@ describe('ProjectFilters', () => {
     expect(screen.getAllByRole('textbox', {name: 'Condition value'})).toHaveLength(1);
     expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue(
       '1.*\n2.*\n3.*\n4.*\n5.*'
+    );
+  });
+
+  it('shows and edits a condition that must not match', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Everything but production',
+        conditions: [{type: 'release', operator: 'does_not_match', value: ['prod-*']}],
+      }),
+    ]);
+
+    expect(await screen.findByText('Everything but production')).toBeInTheDocument();
+    expect(screen.getByText('does not match')).toBeInTheDocument();
+    expect(screen.getByText('prod-*')).toBeInTheDocument();
+
+    const editMock = MockApiClient.addMockResponse({
+      url: `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+      method: 'PUT',
+      body: CustomInboundFilterFixture({id: '1', name: 'Everything but production'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
+    expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Condition operator'})).toBeInTheDocument();
+    expect(screen.getAllByText('does not match')).toHaveLength(2);
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition operator'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'matches'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() =>
+      expect(editMock).toHaveBeenCalledWith(
+        `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            name: 'Everything but production',
+            dataType: 'error',
+            conditions: [{type: 'release', operator: 'matches', value: ['prod-*']}],
+          },
+        })
+      )
     );
   });
 
@@ -799,7 +848,7 @@ describe('ProjectFilters', () => {
           data: {
             name: 'Block spam messages',
             dataType: 'error',
-            conditions: [{type: 'error_message', value: ['spam']}],
+            conditions: [{type: 'error_message', operator: 'matches', value: ['spam']}],
           },
         })
       )
@@ -848,8 +897,8 @@ describe('ProjectFilters', () => {
             name: 'Undefined type errors',
             dataType: 'error',
             conditions: [
-              {type: 'error_message', value: ['*undefined*']},
-              {type: 'error_type', value: ['TypeError']},
+              {type: 'error_message', operator: 'matches', value: ['*undefined*']},
+              {type: 'error_type', operator: 'matches', value: ['TypeError']},
             ],
           },
         })
@@ -946,7 +995,9 @@ describe('ProjectFilters', () => {
           data: {
             name: 'Updated name',
             dataType: 'error',
-            conditions: [{type: 'error_message', value: ['*Error*']}],
+            conditions: [
+              {type: 'error_message', operator: 'matches', value: ['*Error*']},
+            ],
           },
         })
       )
@@ -1128,7 +1179,7 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
 
-    await userEvent.hover(screen.getByText('matches'));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
     expect(
       await screen.findByText(/Matches the exception message of an error/)
     ).toBeInTheDocument();
@@ -1137,7 +1188,7 @@ describe('ProjectFilters', () => {
     // explanation.
     await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Error Type'}));
-    await userEvent.hover(screen.getByText('matches'));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
     expect(
       await screen.findByText(/Matches the exception type of an error/)
     ).toBeInTheDocument();
@@ -1146,14 +1197,14 @@ describe('ProjectFilters', () => {
     // follows the selected data type.
     await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
-    await userEvent.hover(screen.getByText('matches'));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
     expect(
       await screen.findByText('Matches the release of the error.')
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
-    await userEvent.hover(screen.getByText('matches'));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
     expect(
       await screen.findByText('Matches the release attribute of the log.')
     ).toBeInTheDocument();
@@ -1200,7 +1251,7 @@ describe('ProjectFilters', () => {
           data: {
             name: 'Bad release',
             dataType: 'all',
-            conditions: [{type: 'release', value: ['1.2.*']}],
+            conditions: [{type: 'release', operator: 'matches', value: ['1.2.*']}],
           },
         })
       )
@@ -1261,7 +1312,7 @@ describe('ProjectFilters', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
     expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getByText('matches'));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
     expect(
       await screen.findByText('Matches the release of any data type.')
     ).toBeInTheDocument();
