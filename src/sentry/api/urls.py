@@ -55,6 +55,9 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributeValidateEndpoint,
     OrganizationTraceItemAttributeValuesEndpoint,
 )
+from sentry.api.endpoints.organization_trace_item_attributes_merged import (
+    OrganizationTraceItemAttributesMergedEndpoint,
+)
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
     OrganizationTraceItemsAttributesRankedEndpoint,
 )
@@ -1830,6 +1833,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/$",
         OrganizationTraceItemAttributesEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attributes",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/merged/$",
+        OrganizationTraceItemAttributesMergedEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attributes-merged",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/validate/$",

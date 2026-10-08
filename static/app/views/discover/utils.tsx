@@ -2,11 +2,11 @@ import type {Location, LocationDescriptor} from 'history';
 import * as Papa from 'papaparse';
 
 import type {SelectValue} from '@sentry/scraps/select';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';

@@ -8,9 +8,10 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
+import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {encodeSort} from 'sentry/utils/queryString';
 import {
   useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,

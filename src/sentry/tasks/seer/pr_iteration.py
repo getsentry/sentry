@@ -33,6 +33,7 @@ from scm.types import (
     Review,
     ReviewComment,
 )
+from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
@@ -46,10 +47,7 @@ from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
-from sentry.seer.autofix.autofix_agent import (
-    PrIterationNoPullRequestException,
-    trigger_autofix_agent,
-)
+from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
@@ -88,6 +86,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     block_iteration_for_missing_permissions,
@@ -120,7 +119,6 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +196,7 @@ def _organization_for_gate(run_id: int, organization_id: int) -> Organization | 
         return None
 
 
-@trace
+@traces.trace
 def trigger_consume_pr_iteration_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -616,7 +614,7 @@ def _hand_off_exhausted_cap(
         )
 
 
-@trace
+@traces.trace
 def _drain_queued_autofix_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -1353,21 +1351,21 @@ def trigger_pr_iteration_from_comment(
     four the flow is followed by, and it is joined to the others by the ids in
     ``pr_iteration.tracing`` rather than by the trace it was queued from.
     """
-    with (
-        sentry_sdk.isolation_scope(),
-        start_span(
+
+    with sentry_sdk.isolation_scope():
+        traces.new_trace()
+        with traces.start_span(
             name="pr_iteration.trigger_from_comment",
-            op="function",
-            transaction=True,
-        ),
-    ):
-        _trigger_pr_iteration_from_comment(
-            organization_id=organization_id,
-            repo_id=repo_id,
-            integration_id=integration_id,
-            pr_number=pr_number,
-            feedback=feedback,
-        )
+            attributes={"sentry.op": "function"},
+            parent_span=None,
+        ):
+            _trigger_pr_iteration_from_comment(
+                organization_id=organization_id,
+                repo_id=repo_id,
+                integration_id=integration_id,
+                pr_number=pr_number,
+                feedback=feedback,
+            )
 
 
 def _trigger_pr_iteration_from_comment(
@@ -1655,7 +1653,7 @@ def _build_review_feedback(
     source, the review's own representation.
 
     ``author_is_bot`` marks the resulting feedback as automated so it counts
-    toward the automated-iteration streak cap (see ``automated_iteration_cap_reached``).
+    toward the automated-iteration streak cap (see ``automated_streak_cap_reached``).
     """
     feedback: list[Feedback] = []
 
@@ -1729,25 +1727,25 @@ def trigger_pr_iteration_from_review(
     four the flow is followed by, and it is joined to the others by the ids in
     ``pr_iteration.tracing`` rather than by the trace it was queued from.
     """
-    with (
-        sentry_sdk.isolation_scope(),
-        start_span(
+
+    with sentry_sdk.isolation_scope():
+        traces.new_trace()
+        with traces.start_span(
             name="pr_iteration.trigger_from_review",
-            op="function",
-            transaction=True,
-        ),
-    ):
-        _trigger_pr_iteration_from_review(
-            organization_id=organization_id,
-            repo_id=repo_id,
-            integration_id=integration_id,
-            pr_number=pr_number,
-            review_id=review_id,
-            author_username=author_username,
-            author_external_id=author_external_id,
-            author_is_bot=author_is_bot,
-            delivery_authenticated=delivery_authenticated,
-        )
+            attributes={"sentry.op": "function"},
+            parent_span=None,
+        ):
+            _trigger_pr_iteration_from_review(
+                organization_id=organization_id,
+                repo_id=repo_id,
+                integration_id=integration_id,
+                pr_number=pr_number,
+                review_id=review_id,
+                author_username=author_username,
+                author_external_id=author_external_id,
+                author_is_bot=author_is_bot,
+                delivery_authenticated=delivery_authenticated,
+            )
 
 
 def _trigger_pr_iteration_from_review(

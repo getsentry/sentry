@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {initializeLogsTest} from 'sentry-fixture/log';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -254,6 +255,109 @@ describe('LogsToolbar', () => {
           JSON.stringify(aggregateField)
         )
       );
+    });
+
+    describe('conditional aggregates', () => {
+      const organizationWithConditionalAggregates = OrganizationFixture({
+        features: [...organization.features, 'explore-conditional-aggregates'],
+      });
+      const SERIES_FILTER_PLACEHOLDER = 'Filter logs for this series';
+
+      function visualizeYAxesFromRouter(router: {
+        location: {query: Record<string, unknown>};
+      }) {
+        const aggregateField = router.location.query.aggregateField;
+        const fields = Array.isArray(aggregateField)
+          ? aggregateField
+          : aggregateField
+            ? [aggregateField]
+            : [];
+        return fields.flatMap(field => {
+          const parsed = JSON.parse(String(field));
+          return parsed.yAxes ?? [];
+        });
+      }
+
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/recent-searches/`,
+          method: 'GET',
+          body: [],
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/recent-searches/`,
+          method: 'POST',
+          body: [],
+        });
+      });
+
+      it('hides the series filter without the feature', async () => {
+        render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
+
+        const section = screen.getByTestId('section-visualizes');
+
+        expect(
+          await within(section).findByRole('button', {name: 'count'})
+        ).toBeInTheDocument();
+        expect(
+          within(section).queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
+        ).not.toBeInTheDocument();
+      });
+
+      it('turns a series filter into an _if aggregate', async () => {
+        const {router} = render(<LogsToolbar />, {
+          organization: organizationWithConditionalAggregates,
+          additionalWrapper: Wrapper,
+        });
+
+        const section = screen.getByTestId('section-visualizes');
+        const filterInput = await within(section).findByPlaceholderText(
+          SERIES_FILTER_PLACEHOLDER
+        );
+
+        await userEvent.click(filterInput);
+        await userEvent.paste('severity:error');
+        await userEvent.keyboard('{Enter}');
+
+        await waitFor(() => {
+          expect(visualizeYAxesFromRouter(router)).toEqual([
+            'count_if(`severity:error`,message)',
+          ]);
+        });
+      });
+
+      it('keeps an existing filter when switching between filterable aggregates', async () => {
+        const {router} = render(<LogsToolbar />, {
+          organization: organizationWithConditionalAggregates,
+          additionalWrapper: Wrapper,
+          initialRouterConfig: {
+            location: {
+              pathname: '/explore/logs/',
+              query: {
+                aggregateField: [
+                  JSON.stringify({groupBy: ''}),
+                  JSON.stringify({
+                    yAxes: ['count_if(`severity:error`,message)'],
+                  }),
+                ],
+              },
+            },
+          },
+        });
+
+        const section = screen.getByTestId('section-visualizes');
+
+        await userEvent.click(
+          await within(section).findByRole('button', {name: 'count'})
+        );
+        await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+        await waitFor(() => {
+          expect(visualizeYAxesFromRouter(router)).toEqual([
+            'avg_if(`severity:error`,bar)',
+          ]);
+        });
+      });
     });
   });
 
