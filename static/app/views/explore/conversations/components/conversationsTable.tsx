@@ -62,7 +62,7 @@ const ROW_HEIGHT = 63;
 
 type ColumnKey =
   | 'conversation'
-  | 'duration'
+  | 'timeSpan'
   | 'messages'
   | 'errors'
   | 'cost'
@@ -71,7 +71,7 @@ type ColumnKey =
 
 const COLUMN_ORDER: ColumnKey[] = [
   'conversation',
-  'duration',
+  'timeSpan',
   'messages',
   'errors',
   'cost',
@@ -83,7 +83,7 @@ const COLUMN_ORDER: ColumnKey[] = [
 // have sensible starting widths that the user can drag to resize.
 const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
   conversation: {name: t('Conversation'), width: COL_WIDTH_UNDEFINED},
-  duration: {name: t('Timespan'), width: 120},
+  timeSpan: {name: t('Timespan'), width: 120},
   messages: {name: t('Messages'), width: 120},
   errors: {name: t('Errors'), width: 100},
   cost: {name: t('Cost'), width: 120},
@@ -94,6 +94,7 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
 
 const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
+  timeSpan: CONVERSATION_FIELDS.timeSpan.key,
   messages: CONVERSATION_FIELDS.messages.key,
   errors: CONVERSATION_FIELDS.errors.key,
   cost: CONVERSATION_FIELDS.totalCost.key,
@@ -110,17 +111,10 @@ type ColumnWidths = Partial<Record<ColumnKey, number>>;
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
 
-export function getConversationTimespan(
-  conversation: Pick<
-    Conversation,
-    'startTimestamp' | 'endTimestamp' | 'generationDuration'
-  >
+export function getConversationTimeSpan(
+  conversation: Pick<Conversation, 'timeSpan' | 'generationDuration'>
 ): number {
-  const elapsedDuration = conversation.endTimestamp - conversation.startTimestamp;
-  if (elapsedDuration < 0) {
-    return 0;
-  }
-  return elapsedDuration || conversation.generationDuration;
+  return conversation.timeSpan || conversation.generationDuration;
 }
 
 export function normalizeUserField(value: string | null | undefined): string | null {
@@ -364,11 +358,11 @@ function BodyCell({
   switch (column.key) {
     case 'conversation':
       return <ConversationCell conversation={conversation} />;
-    case 'duration':
+    case 'timeSpan':
       return (
         <Text tabular>
           <PerformanceDuration
-            milliseconds={getConversationTimespan(conversation)}
+            milliseconds={getConversationTimeSpan(conversation)}
             abbreviation
           />
         </Text>
