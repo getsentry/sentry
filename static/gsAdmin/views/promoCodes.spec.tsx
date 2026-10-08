@@ -67,33 +67,39 @@ describe('PromoCodes', () => {
     expect(await screen.findByRole('link', {name: 'Created By'})).toBeEmptyDOMElement();
   });
 
-  it('selects the saved duration when editing a promo code', async () => {
-    MockApiClient.addMockResponse({
-      url: '/promocodes/cool_code/',
-      method: 'GET',
-      body: PromoCodeFixture({duration: 'once'}),
-    });
-    MockApiClient.addMockResponse({
-      url: '/promocodes/cool_code/claimants/',
-      method: 'GET',
-      body: [],
-    });
-    render(<PromoCodeDetails />, {
-      initialRouterConfig: {
-        location: {pathname: '/_admin/promocodes/cool_code/'},
-        route: '/_admin/promocodes/:codeId/',
-      },
-    });
-    renderGlobalModal();
+  it.each([
+    ['once', 'Once'],
+    ['three_times', '3 Months'],
+  ])(
+    'selects the saved %s duration when editing a promo code',
+    async (duration, label) => {
+      MockApiClient.addMockResponse({
+        url: '/promocodes/cool_code/',
+        method: 'GET',
+        body: PromoCodeFixture({duration}),
+      });
+      MockApiClient.addMockResponse({
+        url: '/promocodes/cool_code/claimants/',
+        method: 'GET',
+        body: [],
+      });
+      render(<PromoCodeDetails />, {
+        initialRouterConfig: {
+          location: {pathname: '/_admin/promocodes/cool_code/'},
+          route: '/_admin/promocodes/:codeId/',
+        },
+      });
+      renderGlobalModal();
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Promo Codes Actions'})
-    );
-    await userEvent.click(screen.getByRole('option', {name: 'Edit'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Promo Codes Actions'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Edit'}));
 
-    expect(screen.getByRole('heading', {name: 'Edit cool_code'})).toBeInTheDocument();
-    expect(screen.getByText('Once')).toBeInTheDocument();
-  });
+      expect(screen.getByRole('heading', {name: 'Edit cool_code'})).toBeInTheDocument();
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+  );
 
   it('shows saved trial days when editing a trial promo code', async () => {
     MockApiClient.addMockResponse({
@@ -120,6 +126,85 @@ describe('PromoCodes', () => {
     await userEvent.click(screen.getByRole('option', {name: 'Edit'}));
 
     expect(screen.getByRole('spinbutton', {name: 'Trial Days'})).toHaveValue(30);
+  });
+
+  it('clears the saved amount when changing a code to a trial promo', async () => {
+    MockApiClient.addMockResponse({
+      url: '/promocodes/cool_code/',
+      method: 'GET',
+      body: PromoCodeFixture({trialDays: 0}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/promocodes/cool_code/claimants/',
+      method: 'GET',
+      body: [],
+    });
+    const update = MockApiClient.addMockResponse({
+      url: '/promocodes/cool_code/',
+      method: 'PUT',
+      body: PromoCodeFixture({amount: '0.00', trialDays: 30}),
+    });
+    render(<PromoCodeDetails />, {
+      initialRouterConfig: {
+        location: {pathname: '/_admin/promocodes/cool_code/'},
+        route: '/_admin/promocodes/:codeId/',
+      },
+    });
+    renderGlobalModal();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Promo Codes Actions'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Edit'}));
+    await userEvent.click(screen.getByLabelText('Create trial promo code?'));
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Trial Days'}), '30');
+    await userEvent.click(screen.getByRole('button', {name: 'Update'}));
+
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(update.mock.calls[0]?.[1]?.data).toEqual(
+      expect.objectContaining({amount: null, trialDays: '30'})
+    );
+    expect(update.mock.calls[0]?.[1]?.data).not.toHaveProperty('duration');
+  });
+
+  it('clears saved trial days when changing a code to an amount promo', async () => {
+    MockApiClient.addMockResponse({
+      url: '/promocodes/cool_code/',
+      method: 'GET',
+      body: PromoCodeFixture({amount: '0.00', trialDays: 30}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/promocodes/cool_code/claimants/',
+      method: 'GET',
+      body: [],
+    });
+    const update = MockApiClient.addMockResponse({
+      url: '/promocodes/cool_code/',
+      method: 'PUT',
+      body: PromoCodeFixture({amount: '29.00', trialDays: 0}),
+    });
+    render(<PromoCodeDetails />, {
+      initialRouterConfig: {
+        location: {pathname: '/_admin/promocodes/cool_code/'},
+        route: '/_admin/promocodes/:codeId/',
+      },
+    });
+    renderGlobalModal();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Promo Codes Actions'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Edit'}));
+    await userEvent.click(screen.getByLabelText('Create trial promo code?'));
+    const amount = screen.getByRole('spinbutton', {name: 'Amount'});
+    await userEvent.clear(amount);
+    await userEvent.type(amount, '29');
+    await userEvent.click(screen.getByRole('button', {name: 'Update'}));
+
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(update.mock.calls[0]?.[1]?.data).toEqual(
+      expect.objectContaining({amount: '29', trialDays: null, duration: '1'})
+    );
   });
 
   it('creates a promo code from the modal footer', async () => {
@@ -330,6 +415,7 @@ describe('PromoCodes', () => {
       expect.objectContaining({data: expect.objectContaining({trialDays: '30'})})
     );
     expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('amount');
+    expect(create.mock.calls[0]?.[1]?.data).not.toHaveProperty('duration');
   });
 
   it('omits blank trial days and shows the API requirement', async () => {

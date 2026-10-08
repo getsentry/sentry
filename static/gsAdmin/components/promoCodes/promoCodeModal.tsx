@@ -63,7 +63,22 @@ const promoCodeSchema = z
     }
   });
 
-const durationOptions = Array.from({length: 12}, (_, index) => ({
+const apiDurationValues = [
+  'once',
+  'twice',
+  'three_times',
+  'four_times',
+  'five_times',
+  'six_times',
+  'seven_times',
+  'eight_times',
+  'nine_times',
+  'ten_times',
+  'eleven_times',
+  'twelve_times',
+];
+
+const durationOptions = apiDurationValues.map((_, index) => ({
   value: String(index + 1),
   label: index === 0 ? 'Once' : `${index + 1} Months`,
 }));
@@ -77,9 +92,11 @@ export function AddPromoCodeModal({
   closeModal,
 }: Props) {
   const navigate = useNavigate();
+  const savedDurationIndex = apiDurationValues.indexOf(promoCode?.duration ?? '');
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof promoCodeSchema>) => {
-      const {amount, trialDays, ...otherValues} = values;
+      const {amount, trialDays, duration, isTrialPromo, setExpiration, ...otherValues} =
+        values;
       return fetchMutation<PromoCode>({
         url: promoCode
           ? getApiUrl('/promocodes/$code/', {path: {code: promoCode.code}})
@@ -87,14 +104,15 @@ export function AddPromoCodeModal({
         method: promoCode ? 'PUT' : 'POST',
         data: {
           ...otherValues,
-          ...(values.isTrialPromo
+          ...(promoCode ? (isTrialPromo ? {amount: null} : {trialDays: null}) : {}),
+          ...(isTrialPromo
             ? trialDays === null
               ? {}
               : {trialDays: String(trialDays)}
             : {amount: String(amount)}),
+          ...(!isTrialPromo && {duration}),
           maxClaims: String(values.maxClaims),
-          dateExpires:
-            values.setExpiration && values.dateExpires ? values.dateExpires : null,
+          dateExpires: setExpiration && values.dateExpires ? values.dateExpires : null,
         },
       });
     },
@@ -135,7 +153,10 @@ export function AddPromoCodeModal({
       code: promoCode?.code ?? '',
       campaign: promoCode?.campaign ?? '',
       isTrialPromo: Boolean(promoCode?.trialDays),
-      duration: promoCode?.duration === 'once' ? '1' : (promoCode?.duration ?? '1'),
+      duration:
+        savedDurationIndex === -1
+          ? (promoCode?.duration ?? '1')
+          : String(savedDurationIndex + 1),
       amount: promoCode?.amount ? Number(promoCode.amount) : null,
       trialDays: promoCode?.trialDays || null,
       maxClaims: promoCode?.maxClaims ?? null,
