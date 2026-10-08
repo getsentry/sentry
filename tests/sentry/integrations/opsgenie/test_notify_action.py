@@ -6,7 +6,7 @@ import responses
 
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction
+from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction, OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.analytics import OpsgenieIntegrationNotificationSent
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import ApiError
@@ -160,12 +160,22 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     def test_valid_team_selected(self) -> None:
         rule = self.get_rule(data={"account": self.integration.id, "team": self.team1["id"]})
-        form = rule.get_form_instance()
+        form = OpsgenieNotifyTeamForm(
+            rule.data,
+            org_id=rule.project.organization_id,
+            integrations=rule.get_integrations(),
+            teams=rule.get_teams(),
+        )
         assert form.is_valid()
 
     def test_invalid_int_id(self) -> None:
         rule = self.get_rule(data={"account": "blah", "team": self.team1["id"]})
-        form = rule.get_form_instance()
+        form = OpsgenieNotifyTeamForm(
+            rule.data,
+            org_id=rule.project.organization_id,
+            integrations=rule.get_integrations(),
+            teams=rule.get_teams(),
+        )
         assert not form.is_valid()
 
     @responses.activate
@@ -214,7 +224,12 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
 
         rule = self.get_rule(data={"account": self.integration.id, "team": team2["id"]})
 
-        form = rule.get_form_instance()
+        form = OpsgenieNotifyTeamForm(
+            rule.data,
+            org_id=rule.project.organization_id,
+            integrations=rule.get_integrations(),
+            teams=rule.get_teams(),
+        )
         assert not form.is_valid()
         assert len(form.errors) == 1
 

@@ -32,7 +32,7 @@ const TRANSPARENT_COLOR = 'transparent';
 // Diagonal slash drawn across an empty/transparent swatch. `halfWidth` is the
 // half-thickness of the line in px, so larger swatches can use a bolder slash.
 const slashGradient = (theme: Theme, halfWidth: number) => css`
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background-image: linear-gradient(
     to top right,
     transparent calc(50% - ${halfWidth + 1}px),

@@ -128,6 +128,23 @@ describe('Seer log embed', () => {
     );
   });
 
+  it('renders an ANSI-colored message without escape codes', async () => {
+    mockLogDetails([
+      {
+        name: OurLogKnownFieldKey.MESSAGE,
+        type: 'str',
+        value: '\x1B[31mPayment\x1B[0m provider timed out',
+      },
+      ...ATTRIBUTES.slice(1),
+    ]);
+
+    renderLog();
+
+    const colored = await screen.findByText('Payment');
+    expect(colored.style.color).toContain('color-mix(in srgb,');
+    expect(colored.parentElement).toHaveTextContent(/^Payment provider timed out$/);
+  });
+
   it('renders on a page that never initialized page filters', async () => {
     // Seer renders from the organization layout, so it appears on plenty of
     // pages that mount no PageFiltersContainer -- the stories page among them.

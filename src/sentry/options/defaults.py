@@ -284,12 +284,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
-    "auth.v2.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -917,6 +911,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+register(
+    "msteams.personal-installation-link.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Tenant-specific OAuth authority, required for single-tenant Azure Bots.
 # Empty (default) keeps the historical multi-tenant botframework.com authority.
 register("msteams.tenant-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1110,11 +1109,113 @@ register(
 )
 
 
+# Before the artifact-lookup endpoint falls back to its two legacy `ReleaseFile` queries, check
+# that the release has any `ReleaseFile` for the requested dist, and skip both when it has none.
+register(
+    "sourcemaps.artifact-lookup.skip-legacy-without-release-files",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When none of an event's debug IDs were uploaded, the source map debugger checks whether the
+# project has uploaded any file with a debug ID. With this set, it only checks the project's
+# newest bundles, up to this many, instead of reading the organization's debug-ID rows until one
+# is in a bundle of the project. 0 keeps the unbounded check. Capped at 10,000.
+register(
+    "sourcemaps.source-map-debug.debug-id-check-max-bundles",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Upper bound on the number of `ArtifactBundleIndex` rows a single URL lookup in the
+# artifact-lookup endpoint scans. Releases that have more indexed files than this scan
+# their active bundles (uploaded or renewed recently) first, then the others, newest
+# first, until the budget is spent. 0 disables the limit and scans every bundle.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.max-index-rows",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Days added to `system.debug-files-renewal-age-threshold-days` to decide which bundles
+# count as active for the URL lookup. A bundle in use is renewed once it is older than the
+# threshold, so the margin must cover the time between lookups of a bundle in use.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.active-margin-days",
+    type=Int,
+    default=7,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of active, and of idle, bundles the URL lookup reads at most when
+# `sourcemaps.artifact-bundles.url-lookup.max-index-rows` is set. Lookups of releases with more
+# bundles than this are cut short even when the row budget isn't spent, which the
+# `artifact_bundle_url_lookup.candidates` metric tags as `truncated:candidates`. Capped at 10,000.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Fraction of the URL lookups cut short by the row budget or the bundle cap that are logged,
+# with the organization, project and release, to tell which releases lose files.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate",
+    type=Float,
+    default=0.01,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
+# debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
+register(
+    "sourcemaps.artifact-bundles.index-skip-debug-id-names",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Decide whether a release is fully indexed from its newest bundles only, instead of
+# counting every bundle in the release on each artifact-lookup request.
+register(
+    "sourcemaps.artifact-bundles.bounded-indexing-state",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Seconds to cache the bundle count per release used by the upload task to decide whether
+# to index and backfill. 0 disables the cache.
+register(
+    "sourcemaps.artifact-bundles.indexing-state-cache-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Keep `date_added` up to date on `ArtifactBundle` only. Re-uploading or renewing a bundle then
+# no longer rewrites its debug-ID, release, project and URL index rows, whose `date_added`
+# nothing reads.
+register(
+    "sourcemaps.artifact-bundles.date-only-on-bundle",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When a bundle is uploaded again, update its debug-ID rows by bundle alone instead of by bundle
+# and organization, so that Postgres doesn't also read the organization's slice of that table's
+# organization index. Has no effect with `sourcemaps.artifact-bundles.date-only-on-bundle`,
+# which skips the update.
+register(
+    "sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -1454,21 +1555,6 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "seer.smart_assignment.prefetch_rollout_rate",
-    type=Float,
-    default=0.5,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Fuzzy resolution always runs after an exact email miss so its proposal can be
-# inspected. This controls whether that proposal is used in the delivered prediction.
-register(
-    "seer.smart_assignment.fuzzy_user_matching.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Spread child run_auto_transition_issues_* tasks across this many seconds
 # after each schedule tick, to smooth burst load (DB/signals/queues).
 register(
@@ -1683,6 +1769,21 @@ register(
     type=Any,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "store.enable-inline-payloads",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Suppresses working-cache keys only for events entering in the inline cohort.
+# Keyless events remain inline after rollout changes; keyed events keep writing.
+# Unprocessed backups and cleanup remain in Redis.
+register(
+    "store.disable-processing-store",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "post_process.get-autoassign-owners",
@@ -2831,6 +2932,14 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Sends relay a quota that limits each monitor environment to
+# `crons.per_monitor_rate_limit` check-ins per minute.
+register(
+    "crons.per_monitor_relay_quota.enabled",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Deterministic % of check-ins that use the seat-acceptance timeout wrapper.
 # Keyed on project id. Default 0.0 so deploy is a no-op until dialed up via
 # sentry-options-automator.
@@ -3572,6 +3681,25 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Number of alerts per variant per day whose legacy payload is compared with the notification
+# platform's render of it. A variant is the source, provider, and the alert attributes the legacy
+# renderers branch on. 0 disables the comparison. Independent of the platform-rollout options above.
+register(
+    "notifications.platform.shadow-render.variant-daily-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notification sources that record engagement tracking (sent and engagement events).
+# Sources become metric tags, so this list is also what keeps those tags bounded.
+register(
+    "notifications.tracking.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Options - End
 
 
@@ -3799,14 +3927,6 @@ register(
     "uptime.config-drift.cycle-hours",
     type=Int,
     default=24,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
-register(
-    "uptime.config-drift.repair",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4254,7 +4374,7 @@ register(
 
 
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
-# human feedback resets the streak. See ``automated_iteration_cap_reached``.
+# human feedback resets the streak. See ``automated_streak_cap_reached``.
 register(
     "autofix.pr-iteration.max-iterations",
     type=Int,
@@ -4467,6 +4587,24 @@ register(
 register(
     "debug-files.objectstore-migration.enabled",
     default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Treat artifact bundles uploaded with the release name "undefined", "null" or "" as uploaded
+# without a release, when every file in the bundle can be found by debug ID. Build tooling sends
+# these names when no release was set or detected.
+register(
+    "sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# The same for release names that are an unexpanded environment variable, such as `$GITHUB_SHA`,
+# or the bare name of one, such as `VERCEL_GIT_COMMIT_SHA`.
+register(
+    "sourcemaps.artifact-bundles.assemble.ignore-env-var-releases",
+    default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
