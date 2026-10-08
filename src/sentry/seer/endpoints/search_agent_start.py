@@ -50,15 +50,6 @@ class SearchAgentReferrer(StrEnum):
 
 
 def resolve_referrer(request: Request, raw: str | None) -> SearchAgentReferrer:
-    """Pick the referrer to forward to Seer. Every run gets one.
-
-    The Sentry MCP server is derived from the request (its user agent) and wins over
-    whatever the client declared. Otherwise a declared referrer is used if it is on the
-    allowlist; unknown values are logged and dropped rather than rejected, so an
-    outdated client keeps working. Undeclared callers fall back to `search_bar` for the
-    web UI (its only caller today) and `api` for everything else, so a new API caller
-    never lands in the search bar's bucket.
-    """
     if get_client_kind(request) == ClientKind.MCP:
         return SearchAgentReferrer.MCP
     if raw:
