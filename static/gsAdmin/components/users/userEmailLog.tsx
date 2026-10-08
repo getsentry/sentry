@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -21,52 +21,42 @@ type Props = {
   user: User;
 };
 
-type State = {
-  activeEmail: string;
-  error: boolean;
-  hideButton: boolean;
-  loading: boolean | null;
-  results: any[];
-};
+export function UserEmailLog({user, Panel}: Props) {
+  const [loading, setLoading] = useState<boolean | null>(null);
+  const [error, setError] = useState(false);
+  const [activeEmail, setActiveEmail] = useState(user.email);
+  const [results, setResults] = useState<any[]>([]);
+  const [hideButton, setHideButton] = useState(false);
 
-export class UserEmailLog extends Component<Props, State> {
-  state: State = {
-    loading: null,
-    error: false,
-    activeEmail: this.props.user.email,
-    results: [],
-    hideButton: false,
-  };
-
-  componentDidMount() {
-    this.fetchEmails();
-  }
-
-  fetchEmails = async () => {
-    const {activeEmail} = this.state;
+  const fetchEmails = useCallback(async () => {
     const apiKey = ConfigStore.get('getsentry.sendgridApiKey');
     const path = `https://api.sendgrid.com/v3/email_activity?limit=25&email=${encodeURIComponent(
       activeEmail
     )}`;
-    this.setState({loading: true});
+    setLoading(true);
 
     try {
       // TODO(dcramer): this doesnt cancel when a new request is made
       const resp = await fetch(path, {headers: {Authorization: `Bearer ${apiKey}`}});
 
       if (resp.ok) {
-        this.setState({error: false, results: await resp.json()});
+        setError(false);
+        setResults(await resp.json());
       } else {
-        this.setState({error: true});
+        setError(true);
       }
     } catch {
-      this.setState({error: true});
+      setError(true);
     }
 
-    this.setState({loading: false});
-  };
+    setLoading(false);
+  }, [activeEmail]);
 
-  removeBounce = async (email: string) => {
+  useEffect(() => {
+    fetchEmails();
+  }, [fetchEmails]);
+
+  const removeBounce = async (email: string) => {
     const apiKey = ConfigStore.get('getsentry.sendgridApiKey');
     const path = `https://api.sendgrid.com/v3/suppression/bounces/${encodeURIComponent(
       email
@@ -81,98 +71,85 @@ export class UserEmailLog extends Component<Props, State> {
       if (resp.ok) {
         // eslint-disable-next-line no-alert
         alert('success');
-        this.setState({hideButton: true});
+        setHideButton(true);
       } else {
         // eslint-disable-next-line no-alert
         alert(await resp.text());
       }
-    } catch (error) {
+    } catch (err) {
       // eslint-disable-next-line no-alert
       alert('fetch failed');
     }
   };
 
-  changeActiveEmail = (email: string) => this.setState({activeEmail: email});
-
-  renderNoResults = () => (
-    <tr>
-      <td colSpan={4}>No results found</td>
-    </tr>
+  const emailSelector = (
+    <CompactSelect
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} prefix="Results for" size="xs" />
+      )}
+      value={activeEmail}
+      options={user.emails.map(e => ({value: e.email, label: e.email}))}
+      onChange={opt => setActiveEmail(opt.value)}
+    />
   );
 
-  renderResults = () =>
-    this.state.results.map((data, idx) => {
-      const date = new Date(data.created * 1000);
-      return (
-        <tr key={idx}>
-          <td>{data.event}</td>
-          <td data-label="Email">
-            {data.email}
-            {data.event === 'bounce' && !this.state.hideButton && (
-              <Button variant="danger" onClick={this.removeBounce.bind(this, data.email)}>
-                remove bounce
-              </Button>
-            )}
-          </td>
-          <td data-label="Date">{date.toDateString()}</td>
-          <td data-label="Time" style={{textAlign: 'right'}}>
-            {date.toLocaleTimeString()}
-          </td>
-        </tr>
-      );
-    });
-
-  render() {
-    const {user, Panel} = this.props;
-    const {activeEmail} = this.state;
-
-    const emailSelector = (
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} prefix="Results for" size="xs" />
-        )}
-        value={activeEmail}
-        options={user.emails.map(e => ({value: e.email, label: e.email}))}
-        onChange={opt => this.changeActiveEmail(opt.value)}
-      />
-    );
-
-    return (
-      <Panel extraActions={emailSelector}>
-        <ResultTable>
-          <thead>
+  return (
+    <Panel extraActions={emailSelector}>
+      <ResultTable>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Email</th>
+            <th>Date</th>
+            <th style={{width: 150, textAlign: 'right'}}>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
             <tr>
-              <th>Status</th>
-              <th>Email</th>
-              <th>Date</th>
-              <th style={{width: 150, textAlign: 'right'}}>Time</th>
+              <td colSpan={4}>
+                <LoadingIndicator />
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {this.state.loading ? (
-              <tr>
-                <td colSpan={4}>
-                  <LoadingIndicator />
-                </td>
-              </tr>
-            ) : this.state.error ? (
-              <tr>
-                <td colSpan={4}>
-                  <Alert.Container>
-                    <Alert variant="danger" showIcon={false}>
-                      There was a problem loading SendGrid details
-                    </Alert>
-                  </Alert.Container>
-                </td>
-              </tr>
-            ) : this.state.results.length === 0 ? (
-              this.renderNoResults()
-            ) : (
-              this.renderResults()
-            )}
-          </tbody>
-        </ResultTable>
-      </Panel>
-    );
-  }
+          ) : error ? (
+            <tr>
+              <td colSpan={4}>
+                <Alert.Container>
+                  <Alert variant="danger" showIcon={false}>
+                    There was a problem loading SendGrid details
+                  </Alert>
+                </Alert.Container>
+              </td>
+            </tr>
+          ) : results.length === 0 ? (
+            <tr>
+              <td colSpan={4}>No results found</td>
+            </tr>
+          ) : (
+            results.map((data, idx) => {
+              const date = new Date(data.created * 1000);
+              return (
+                <tr key={idx}>
+                  <td>{data.event}</td>
+                  <td data-label="Email">
+                    {data.email}
+                    {data.event === 'bounce' && !hideButton && (
+                      <Button variant="danger" onClick={() => removeBounce(data.email)}>
+                        remove bounce
+                      </Button>
+                    )}
+                  </td>
+                  <td data-label="Date">{date.toDateString()}</td>
+                  <td data-label="Time" style={{textAlign: 'right'}}>
+                    {date.toLocaleTimeString()}
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </ResultTable>
+    </Panel>
+  );
+}
 }
