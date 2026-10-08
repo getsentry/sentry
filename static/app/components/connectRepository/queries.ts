@@ -1,10 +1,5 @@
 import {useMemo} from 'react';
-import {
-  useInfiniteQuery,
-  useQueries,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -16,7 +11,6 @@ import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import type {
   Integration,
   IntegrationRepository,
-  Repository,
   RepositoryProjectPathConfig,
 } from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
@@ -64,6 +58,7 @@ export type RepoSelectOption = SelectValue<string> & {
   integrationId: string;
   repositoryId: string;
   defaultBranch?: string | null;
+  externalId?: string;
   providerKey?: string;
 };
 
@@ -163,27 +158,6 @@ export function useEditRepoInfo({
   return {defaultBranch, isPending};
 }
 
-// Builds a RepoSelectOption from an integration repo and its matching Sentry
-// repository record. Returns null when the Sentry repo hasn't been imported yet.
-function buildRepoSelectOption(
-  integration: Integration,
-  repo: IntegrationRepository,
-  sentryRepo: Repository | undefined
-): RepoSelectOption | null {
-  if (!sentryRepo) {
-    return null;
-  }
-  return {
-    value: `${integration.id}:${repo.identifier}`,
-    label: repo.name,
-    leadingItems: getIntegrationIcon(integration.provider.key, 'sm'),
-    defaultBranch: repo.defaultBranch,
-    providerKey: integration.provider.key,
-    integrationId: integration.id,
-    repositoryId: sentryRepo.id,
-  };
-}
-
 export function useGroupedRepoOptions(orgSlug: string): {
   groupedOptions: RepoGroup[];
   isPending: boolean;
@@ -202,16 +176,6 @@ export function useGroupedRepoOptions(orgSlug: string): {
   );
   useFetchAllPages({result: orgReposQuery});
 
-  const sentryRepoByIntegrationAndExternalId = useMemo(() => {
-    const map = new Map<string, Repository>();
-    for (const page of orgReposQuery.data?.pages ?? []) {
-      for (const repo of page.json) {
-        map.set(`${repo.integrationId}:${repo.externalId}`, repo);
-      }
-    }
-    return map;
-  }, [orgReposQuery.data]);
-
   const activeIntegrations = useMemo(
     () =>
       integrations.filter(
@@ -220,36 +184,44 @@ export function useGroupedRepoOptions(orgSlug: string): {
     [integrations]
   );
 
-  const integrationRepoResults = useQueries({
-    queries: activeIntegrations.map(i => integrationReposOptions(orgSlug, i.id)),
-  });
+  const integrationById = useMemo(
+    () => new Map(activeIntegrations.map(i => [i.id, i])),
+    [activeIntegrations]
+  );
 
-  const groupedOptions = activeIntegrations.flatMap((integration, idx) => {
-    if (integrationRepoResults[idx]?.isPending) {
-      return [];
+  const groupedOptions = useMemo(() => {
+    const groupMap = new Map<string, RepoGroup>();
+    for (const page of orgReposQuery.data?.pages ?? []) {
+      for (const repo of page.json) {
+        const integration = integrationById.get(repo.integrationId);
+        if (!integration) {
+          continue;
+        }
+        const option: RepoSelectOption = {
+          value: repo.id,
+          label: repo.name,
+          leadingItems: getIntegrationIcon(integration.provider.key, 'sm'),
+          providerKey: integration.provider.key,
+          integrationId: repo.integrationId,
+          repositoryId: repo.id,
+          externalId: repo.externalId,
+        };
+        let group = groupMap.get(repo.integrationId);
+        if (!group) {
+          group = {label: integration.name, options: []};
+          groupMap.set(repo.integrationId, group);
+        }
+        group.options.push(option);
+      }
     }
-    const options = (integrationRepoResults[idx]?.data?.repos ?? []).flatMap(repo => {
-      const option = buildRepoSelectOption(
-        integration,
-        repo,
-        sentryRepoByIntegrationAndExternalId.get(`${integration.id}:${repo.externalId}`)
-      );
-      return option ? [option] : [];
-    });
-    return options.length > 0 ? [{label: integration.name, options}] : [];
-  });
+    return Array.from(groupMap.values());
+  }, [orgReposQuery.data, integrationById]);
 
   const isOrgReposPending = !orgReposQuery.isError && orgReposQuery.isPending;
 
-  // Keep the spinner until at least one group can render so the select
-  // doesn't flash empty while the first integration request is in-flight.
-  const waitingForFirstIntegrationGroup =
-    groupedOptions.length === 0 && integrationRepoResults.some(r => r.isPending);
-
   return {
     groupedOptions,
-    isPending:
-      isIntegrationsPending || isOrgReposPending || waitingForFirstIntegrationGroup,
+    isPending: isIntegrationsPending || isOrgReposPending,
   };
 }
 

@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -17,6 +17,7 @@ import {PathMappingList} from 'sentry/components/connectRepository/pathMappingLi
 import {
   projectCodeMappingsOptions,
   saveProjectRepoConnection,
+  useEditRepoInfo,
   useGroupedRepoOptions,
   useInvalidateRepoQueries,
   type RepoSelectOption,
@@ -56,6 +57,17 @@ export function ConnectRepositoryForm({
   );
   const invalidateQueries = useInvalidateRepoQueries(organization.slug);
 
+  // Resolve the selected repo's default branch via a targeted search request.
+  // defaultBranchFromMappings=null signals "no existing mapping branch" and
+  // always triggers the lookup; undefined skips it when nothing is selected.
+  const {defaultBranch, isPending: isBranchPending} = useEditRepoInfo({
+    orgSlug: organization.slug,
+    integrationId: selectedOption?.integrationId ?? null,
+    externalId: selectedOption?.externalId ?? null,
+    repoName: selectedOption?.label,
+    defaultBranchFromMappings: selectedOption ? null : undefined,
+  });
+
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
@@ -80,6 +92,19 @@ export function ConnectRepositoryForm({
       closeModal();
     },
   });
+
+  // Once the branch lookup resolves, back-fill the seeded path mapping so the
+  // branch input shows the real default rather than an empty string.
+  useEffect(() => {
+    if (!selectedOption || isBranchPending) {
+      return;
+    }
+    form.setFieldValue('pathMappings', [
+      {stackRoot: '', sourceRoot: '', branch: defaultBranch ?? ''},
+    ]);
+    // Only run when the selected repo or its resolved branch changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOption?.value, isBranchPending]);
 
   const intro = (
     <Text as="p">
@@ -106,7 +131,7 @@ export function ConnectRepositoryForm({
         key={selectedOption.value}
         form={form}
         providerKey={selectedOption.providerKey}
-        defaultBranch={selectedOption.defaultBranch ?? undefined}
+        defaultBranch={defaultBranch ?? undefined}
         existingMappings={existingMappings}
       />
     </Container>
@@ -127,9 +152,7 @@ export function ConnectRepositoryForm({
       onChange={option => {
         const repo = option as RepoSelectOption | null;
         setSelectedOption(repo);
-        form.setFieldValue('pathMappings', [
-          {stackRoot: '', sourceRoot: '', branch: repo?.defaultBranch ?? ''},
-        ]);
+        form.setFieldValue('pathMappings', [{stackRoot: '', sourceRoot: '', branch: ''}]);
         saveMutation.reset();
       }}
       placeholder={t('Search repositories')}
@@ -145,6 +168,7 @@ export function ConnectRepositoryForm({
         {pathMappings => {
           const canSave =
             selectedOption !== null &&
+            !isBranchPending &&
             pathMappings.length > 0 &&
             !codeMappingsPending &&
             !codeMappingsError &&
