@@ -257,6 +257,10 @@ describe('GroupActions', () => {
       ],
       access: [...organization.access, 'project:write'],
     });
+    const filterProject = ProjectFixture({
+      ...project,
+      features: ['custom-inbound-filters'],
+    });
     const event = EventStacktraceExceptionFixture({
       title: 'Error: an error occurred',
       release: ReleaseFixture({version: '2.41.0'}),
@@ -282,7 +286,12 @@ describe('GroupActions', () => {
       render(
         <Fragment>
           <GlobalModal />
-          <GroupActions group={group} project={project} disabled={false} event={event} />
+          <GroupActions
+            group={group}
+            project={filterProject}
+            disabled={false}
+            event={event}
+          />
         </Fragment>,
         {organization: filterOrg}
       );
@@ -327,6 +336,21 @@ describe('GroupActions', () => {
         'issue_details.action_clicked',
         expect.objectContaining({action_type: 'add_inbound_filter'})
       );
+    });
+
+    it('disables the action when the plan lacks custom inbound filters', async () => {
+      render(
+        <GroupActions group={group} project={project} disabled={false} event={event} />,
+        {organization: filterOrg}
+      );
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Add Inbound Filter'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        screen.getByText('Your plan does not include custom inbound filters')
+      ).toBeInTheDocument();
     });
 
     it('hides the action without the in-product flows flag', async () => {
