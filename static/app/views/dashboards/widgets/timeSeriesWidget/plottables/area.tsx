@@ -13,10 +13,18 @@ import {
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
-export class Area extends ContinuousTimeSeries implements Plottable {
+interface AreaConfig extends ContinuousTimeSeriesConfig {
+  /**
+   * Stack name. Areas are always stacked; areas with different stack names
+   * are stacked separately and overlap instead of being summed together.
+   */
+  stack?: string;
+}
+
+export class Area extends ContinuousTimeSeries<AreaConfig> implements Plottable {
   #timeSeriesAndIsIncomplete: Array<[TimeSeries, boolean]>;
 
-  constructor(timeSeries: TimeSeries, config?: ContinuousTimeSeriesConfig) {
+  constructor(timeSeries: TimeSeries, config?: AreaConfig) {
     super(timeSeries, config);
 
     this.#timeSeriesAndIsIncomplete = segmentTimeSeriesByIncompleteData(timeSeries);
@@ -56,7 +64,9 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     };
 
     // ECharts groups stacks by name, even when series use different Y axes.
-    const stackPrefix = plottingOptions.yAxisPosition;
+    const stackPrefix = config.stack
+      ? `${config.stack}-${plottingOptions.yAxisPosition}`
+      : plottingOptions.yAxisPosition;
 
     this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete], index) => {
       if (isIncomplete) {

@@ -133,7 +133,7 @@ export function ChartContextMenu({
           ui_source: 'chart',
           organization,
         });
-        return addToDashboard(visualizeIndex);
+        return addToDashboard(visualizeIndex, {includeChartGroup: true});
       },
     });
 

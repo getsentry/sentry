@@ -45,11 +45,15 @@ export function ToolbarVisualizeHeader() {
 }
 
 interface ToolbarVisualizeDropdownProps {
-  aggregateOptions: Array<SelectOption<SelectKey>>;
   fieldOptions: Array<SelectOption<SelectKey>>;
-  onChangeAggregate: (option: SelectOption<SelectKey>) => void;
   onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
   parsedFunction: ParsedFunction | null;
+  aggregateOptions?: Array<SelectOption<SelectKey>>;
+  /**
+   * Replaces the default single-select aggregate dropdown, e.g. to allow
+   * selecting several aggregates at once.
+   */
+  aggregateSelect?: ReactNode;
   deleteLabel?: string;
   dragColumnId?: number;
   fieldDefinitionType?: GetFieldDefinitionType;
@@ -60,6 +64,7 @@ interface ToolbarVisualizeDropdownProps {
   filterSearchBar?: ReactNode;
   label?: ReactNode;
   loading?: boolean;
+  onChangeAggregate?: (option: SelectOption<SelectKey>) => void;
   onClose?: () => void;
   onDelete?: () => void;
   onSearch?: (search: string) => void;
@@ -67,7 +72,8 @@ interface ToolbarVisualizeDropdownProps {
 
 export function ToolbarVisualizeDropdown({
   dragColumnId,
-  aggregateOptions,
+  aggregateOptions = [],
+  aggregateSelect,
   fieldOptions,
   onChangeAggregate,
   onChangeArgument,
@@ -114,15 +120,17 @@ export function ToolbarVisualizeDropdown({
         overflow="visible"
       >
         <Flex gap="md" align="center" width="100%">
-          <AggregateCompactSelect
-            search
-            options={aggregateOptions.map(option => ({
-              ...option,
-              trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
-            }))}
-            value={parsedFunction?.name ?? ''}
-            onChange={onChangeAggregate}
-          />
+          {aggregateSelect ?? (
+            <AggregateCompactSelect
+              search
+              options={aggregateOptions.map(option => ({
+                ...option,
+                trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
+              }))}
+              value={parsedFunction?.name ?? ''}
+              onChange={option => onChangeAggregate?.(option)}
+            />
+          )}
           {aggregateDefinition?.parameters?.map((param, index) => {
             return (
               <FieldCompactSelect
