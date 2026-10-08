@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
 import type {Location} from 'history';
@@ -17,7 +18,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';

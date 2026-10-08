@@ -1,7 +1,7 @@
+import {IconSlashForward} from '@sentry/icons/iconSlashForward';
+
 import type {Responsive} from '@sentry/scraps/layout';
 import {Container, Flex} from '@sentry/scraps/layout';
-
-import {IconSlashForward} from 'sentry/icons';
 
 interface BreadcrumbDividerComboProps {
   children: React.ReactNode;

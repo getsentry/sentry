@@ -1,6 +1,11 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {useMatches} from 'react-router';
 import {isAppleDevice} from '@react-aria/utils';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAllProjects} from '@sentry/icons/iconAllProjects';
+import {IconMyProjects} from '@sentry/icons/iconMyProjects';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconSettings} from '@sentry/icons/iconSettings';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
 
@@ -20,13 +25,6 @@ import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/pr
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
-import {
-  IconAdd,
-  IconAllProjects,
-  IconMyProjects,
-  IconOpen,
-  IconSettings,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

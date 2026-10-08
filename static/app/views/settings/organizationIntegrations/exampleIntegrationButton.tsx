@@ -1,6 +1,7 @@
+import {IconGithub} from '@sentry/icons/iconGithub';
+
 import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 
-import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {

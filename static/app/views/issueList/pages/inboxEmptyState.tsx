@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
+import {IconClock} from '@sentry/icons/iconClock';
 
 import starryVoidImg from 'sentry-images/spot/starry-void.png';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
 
-import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

@@ -1,6 +1,8 @@
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import * as Sentry from '@sentry/react';
 
-import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import type {CandidateProcessingInfo} from 'sentry/types/debugImage';
 import {CandidateProcessingStatus} from 'sentry/types/debugImage';
 

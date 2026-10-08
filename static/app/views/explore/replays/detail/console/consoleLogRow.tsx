@@ -1,11 +1,13 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import classNames from 'classnames';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';

@@ -2,6 +2,7 @@ import type {RefObject} from 'react';
 import {createContext, useContext, useEffect, useMemo, useReducer, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import * as echarts from 'echarts/core';
 import type {
   TooltipFormatterCallback,
@@ -30,7 +31,6 @@ import {
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconWarning} from 'sentry/icons';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,

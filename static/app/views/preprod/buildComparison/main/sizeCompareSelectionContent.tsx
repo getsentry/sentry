@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {IconSearch} from '@sentry/icons/iconSearch';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
@@ -10,7 +11,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';

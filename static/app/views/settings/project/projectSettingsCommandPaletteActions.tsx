@@ -1,26 +1,24 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconChat} from '@sentry/icons/iconChat';
+import {IconCode} from '@sentry/icons/iconCode';
+import {IconFile} from '@sentry/icons/iconFile';
+import {IconFilter} from '@sentry/icons/iconFilter';
+import {IconGlobe} from '@sentry/icons/iconGlobe';
+import {IconGroup} from '@sentry/icons/iconGroup';
+import {IconLock} from '@sentry/icons/iconLock';
+import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconProject} from '@sentry/icons/iconProject';
+import {IconReleases} from '@sentry/icons/iconReleases';
+import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconSiren} from '@sentry/icons/iconSiren';
+import {IconStack} from '@sentry/icons/iconStack';
+import {IconTag} from '@sentry/icons/iconTag';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {
-  IconChat,
-  IconCode,
-  IconFile,
-  IconFilter,
-  IconGlobe,
-  IconGroup,
-  IconLock,
-  IconPlay,
-  IconProject,
-  IconReleases,
-  IconSeer,
-  IconSettings,
-  IconSiren,
-  IconStack,
-  IconTag,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

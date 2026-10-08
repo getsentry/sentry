@@ -1,9 +1,11 @@
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconInfo} from '@sentry/icons/iconInfo';
+
 import {InlineCode} from '@sentry/scraps/code';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconCheckmark, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
 const AGENT_CAPABILITIES = [

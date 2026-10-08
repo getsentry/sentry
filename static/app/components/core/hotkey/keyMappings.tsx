@@ -1,15 +1,13 @@
 import {isMac} from '@react-aria/utils';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconCommand} from '@sentry/icons/iconCommand';
+import {IconControl} from '@sentry/icons/iconControl';
+import {IconOption} from '@sentry/icons/iconOption';
+import {IconReturn} from '@sentry/icons/iconReturn';
+import {IconShift} from '@sentry/icons/iconShift';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import * as Sentry from '@sentry/react';
 
-import {
-  IconArrow,
-  IconCommand,
-  IconControl,
-  IconOption,
-  IconReturn,
-  IconShift,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 // All non-canonical key names map to their canonical form here

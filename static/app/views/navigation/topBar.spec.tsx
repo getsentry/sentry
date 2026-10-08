@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {IconStack} from '@sentry/icons/iconStack';
 import {expectTypeOf} from 'expect-type';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -8,8 +9,6 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-
-import {IconStack} from 'sentry/icons';
 
 import {TopBar} from './topBar';
 

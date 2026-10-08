@@ -1,4 +1,6 @@
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconSliders} from '@sentry/icons/iconSliders';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -15,8 +17,6 @@ import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCom
 import {LearnMoreButton} from 'sentry/components/replays/diff/learnMoreButton';
 import {DiffTimestampPicker} from 'sentry/components/replays/diff/picker/diffTimestampPicker';
 import {ReplayDiffChooser} from 'sentry/components/replays/diff/replayDiffChooser';
-import {IconSliders} from 'sentry/icons';
-import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';

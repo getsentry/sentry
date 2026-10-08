@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconSubtract} from '@sentry/icons/iconSubtract';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 
-import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';

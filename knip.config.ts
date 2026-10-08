@@ -48,8 +48,8 @@ const storyBookEntryPoints = [
 ];
 
 const config: KnipConfig = {
-  // Scraps has its own TypeScript configuration and test suite.
-  ignoreWorkspaces: ['static/packages/scraps'],
+  // These packages have their own TypeScript configurations and test suites.
+  ignoreWorkspaces: ['static/packages/scraps', 'static/packages/icons'],
   workspaces: {
     '.': {
       entry: [

@@ -98,7 +98,7 @@ interface CMDKActionProps {
 
 ```tsx
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
-import {IconIssues} from 'sentry/icons';
+import {IconIssues} from '@sentry/icons/iconIssues';
 
 <CMDKAction
   display={{

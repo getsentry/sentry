@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
+import {IconSettings} from '@sentry/icons/iconSettings';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
-
-import {IconSettings} from 'sentry/icons';
 
 interface BuildProcessingProps {
   message: string;

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -9,7 +10,6 @@ import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
 import {AnrFrameAction} from './anrFrameAction';

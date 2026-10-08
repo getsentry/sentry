@@ -1,5 +1,9 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconSearch} from '@sentry/icons/iconSearch';
 import {useMutation} from '@tanstack/react-query';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
@@ -12,7 +16,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconChevron, IconDownload, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

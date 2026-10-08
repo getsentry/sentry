@@ -1,10 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconFlag} from '@sentry/icons/iconFlag';
 
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {

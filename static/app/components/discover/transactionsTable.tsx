@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconProfiling} from '@sentry/icons/iconProfiling';
 import type {Location, LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -10,7 +11,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

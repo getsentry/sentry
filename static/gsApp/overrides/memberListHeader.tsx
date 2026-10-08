@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/iconBusiness';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {Button} from '@sentry/scraps/button';
 
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {IconBusiness, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';

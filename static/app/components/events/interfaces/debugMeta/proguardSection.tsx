@@ -1,7 +1,8 @@
+import {IconOpen} from '@sentry/icons/iconOpen';
+
 import {LinkButton} from '@sentry/scraps/button';
 
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EntryDebugMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';

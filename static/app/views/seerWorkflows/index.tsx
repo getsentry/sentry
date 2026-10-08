@@ -1,4 +1,11 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {IconBot} from '@sentry/icons/iconBot';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconFilter} from '@sentry/icons/iconFilter';
+import {IconUser} from '@sentry/icons/iconUser';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
@@ -21,15 +28,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconBot,
-  IconCheckmark,
-  IconChevron,
-  IconClose,
-  IconFilter,
-  IconUser,
-  IconWarning,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';

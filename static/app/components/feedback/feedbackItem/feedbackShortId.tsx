@@ -1,6 +1,7 @@
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
 import queryString from 'query-string';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -9,7 +10,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

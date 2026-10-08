@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
 import type {LocationDescriptor} from 'history';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -9,7 +10,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';

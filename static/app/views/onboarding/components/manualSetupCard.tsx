@@ -1,4 +1,6 @@
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconSliders} from '@sentry/icons/iconSliders';
 
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -8,7 +10,6 @@ import {
   SETUP_CARD_MARKER_PX,
 } from 'sentry/components/onboarding/consts';
 import {ScmCardButton} from 'sentry/components/onboarding/scm/scmCardButton';
-import {IconChevron, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface ManualSetupCardProps {

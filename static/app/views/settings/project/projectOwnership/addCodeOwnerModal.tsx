@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconNot} from '@sentry/icons/iconNot';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -13,7 +15,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   CodeOwner,

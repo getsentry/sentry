@@ -1,11 +1,13 @@
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconFire} from '@sentry/icons/iconFire';
+import {IconWarning} from '@sentry/icons/iconWarning';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Flex} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 interface AlertBadgeProps {

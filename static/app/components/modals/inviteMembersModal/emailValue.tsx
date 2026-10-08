@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import type {MultiValueProps, OptionTypeBase} from '@sentry/scraps/select';
 import {components as selectComponents} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconWarning} from 'sentry/icons';
 
 import type {InviteStatus} from './types';
 

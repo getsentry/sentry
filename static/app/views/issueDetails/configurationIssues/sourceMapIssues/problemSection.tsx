@@ -1,8 +1,9 @@
+import {IconInfo} from '@sentry/icons/iconInfo';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface ProblemSectionProps {

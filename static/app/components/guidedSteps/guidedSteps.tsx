@@ -8,13 +8,13 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
 import orderBy from 'lodash/orderBy';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
 
-import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {usePrevious} from 'sentry/utils/usePrevious';

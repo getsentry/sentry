@@ -1,6 +1,7 @@
 import type React from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Container} from '@sentry/scraps/layout';
@@ -11,7 +12,6 @@ import {
   StepType,
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export const StepTitles: Record<StepType, string> = {

@@ -1,10 +1,11 @@
 import {useMemo, type ReactNode} from 'react';
+import {IconCode} from '@sentry/icons/iconCode';
+import {IconDownload} from '@sentry/icons/iconDownload';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {PercentChange} from 'sentry/components/percentChange';
-import {IconCode, IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {MetricCard} from 'sentry/views/preprod/components/metricCard';

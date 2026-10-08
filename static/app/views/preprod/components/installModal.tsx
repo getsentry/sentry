@@ -1,11 +1,11 @@
 import {css} from '@emotion/react';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {InstallDetailsContent} from 'sentry/views/preprod/components/installDetailsContent';
 

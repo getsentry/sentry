@@ -1,5 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconFilter} from '@sentry/icons/iconFilter';
+import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSort} from '@sentry/icons/iconSort';
+import {IconTimer} from '@sentry/icons/iconTimer';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -35,7 +40,6 @@ import {
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
 import {useFocusControl} from 'sentry/components/events/useFocusControl';
-import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

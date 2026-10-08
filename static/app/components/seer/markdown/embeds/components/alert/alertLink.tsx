@@ -1,9 +1,10 @@
+import {IconSiren} from '@sentry/icons/iconSiren';
+
 import {
   ResourceLink,
   type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';

@@ -1,8 +1,9 @@
+import {IconBusiness} from '@sentry/icons/iconBusiness';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconFlag} from '@sentry/icons/iconFlag';
+
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 
-import {IconBusiness} from 'sentry/icons';
-import {IconClock} from 'sentry/icons/iconClock';
-import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 

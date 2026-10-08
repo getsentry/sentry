@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconSubtract} from '@sentry/icons/iconSubtract';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
@@ -14,7 +15,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {TeamRoleSelect} from 'sentry/components/teamRoleSelect';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
-import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';

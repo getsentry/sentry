@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -13,7 +14,6 @@ import {BooleanField as NewBooleanField} from 'sentry/components/forms/fields/bo
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';

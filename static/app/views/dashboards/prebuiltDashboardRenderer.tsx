@@ -1,4 +1,5 @@
 import {useLayoutEffect} from 'react';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +11,6 @@ import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
-import {IconClose} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

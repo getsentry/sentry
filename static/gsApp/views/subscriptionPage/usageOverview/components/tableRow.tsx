@@ -1,13 +1,16 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconLock} from '@sentry/icons/iconLock';
+import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ProgressRing} from 'sentry/components/progressRing';
-import {IconClock, IconLock, IconPlay, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';

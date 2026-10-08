@@ -1,5 +1,6 @@
 import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/iconPlay';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -7,7 +8,6 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
-import {IconPlay} from 'sentry/icons';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useOrganization} from 'sentry/utils/useOrganization';

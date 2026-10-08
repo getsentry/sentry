@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconSentry} from '@sentry/icons/iconSentry';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
@@ -9,7 +11,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconSentry, IconWarning} from 'sentry/icons';
 import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils/defined';
 

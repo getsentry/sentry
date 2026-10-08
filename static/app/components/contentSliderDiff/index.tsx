@@ -1,11 +1,11 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconGrabbable} from '@sentry/icons/iconGrabbable';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container} from '@sentry/scraps/layout';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
-import {IconGrabbable} from 'sentry/icons';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 

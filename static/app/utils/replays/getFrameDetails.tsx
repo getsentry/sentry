@@ -1,4 +1,23 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconCursorArrow} from '@sentry/icons/iconCursorArrow';
+import {IconFire} from '@sentry/icons/iconFire';
+import {IconFix} from '@sentry/icons/iconFix';
+import {IconFocus} from '@sentry/icons/iconFocus';
+import {IconHappy} from '@sentry/icons/iconHappy';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconInput} from '@sentry/icons/iconInput';
+import {IconKeyDown} from '@sentry/icons/iconKeyDown';
+import {IconLightning} from '@sentry/icons/iconLightning';
+import {IconLocation} from '@sentry/icons/iconLocation';
+import {IconMegaphone} from '@sentry/icons/iconMegaphone';
+import {IconMeh} from '@sentry/icons/iconMeh';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconSad} from '@sentry/icons/iconSad';
+import {IconSort} from '@sentry/icons/iconSort';
+import {IconTap} from '@sentry/icons/iconTap';
+import {IconTerminal} from '@sentry/icons/iconTerminal';
+import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWifi} from '@sentry/icons/iconWifi';
 
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -6,27 +25,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {CrumbErrorTitle} from 'sentry/components/replays/breadcrumbs/errorTitle';
 import {SelectorList} from 'sentry/components/replays/breadcrumbs/selectorList';
-import {
-  IconCursorArrow,
-  IconFire,
-  IconFix,
-  IconFocus,
-  IconHappy,
-  IconInfo,
-  IconInput,
-  IconKeyDown,
-  IconLightning,
-  IconLocation,
-  IconMegaphone,
-  IconMeh,
-  IconRefresh,
-  IconSad,
-  IconSort,
-  IconTap,
-  IconTerminal,
-  IconWarning,
-  IconWifi,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {explodeSlug} from 'sentry/utils';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';

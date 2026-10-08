@@ -1,7 +1,8 @@
+import {IconDownload} from '@sentry/icons/iconDownload';
+
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
-import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ExploreExportModal} from 'sentry/views/explore/components/exports/exploreExportModal';
 import type {

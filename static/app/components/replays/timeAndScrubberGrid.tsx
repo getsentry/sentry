@@ -1,6 +1,8 @@
 import {useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconSubtract} from '@sentry/icons/iconSubtract';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -12,7 +14,6 @@ import {TimelineTooltip} from 'sentry/components/replays/breadcrumbs/replayTimel
 import {ReplayCurrentTime} from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import {useTimelineMouseTracking} from 'sentry/components/replays/player/useTimelineMouseTracking';
-import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useTimelineScale} from 'sentry/utils/replays/hooks/useTimelineScale';

@@ -1,4 +1,5 @@
 import {createContext, use} from 'react';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
@@ -10,7 +11,6 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
-import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface RetryableAutofixSectionContextValue {

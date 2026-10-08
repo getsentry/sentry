@@ -1,6 +1,7 @@
 import {isValidElement, memo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import type {
   EChartsOption,
   LegendComponentOption,
@@ -25,7 +26,6 @@ import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';

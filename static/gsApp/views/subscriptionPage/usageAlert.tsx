@@ -1,9 +1,10 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconFire} from '@sentry/icons/iconFire';
+import {IconStats} from '@sentry/icons/iconStats';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 
-import {IconFire, IconStats} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';

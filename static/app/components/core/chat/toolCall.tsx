@@ -1,5 +1,6 @@
 import {Fragment, type MouseEvent, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconSpan} from '@sentry/icons/iconSpan';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -7,7 +8,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconSpan} from 'sentry/icons';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ClippedDetail} from './clippedDetail';

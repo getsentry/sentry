@@ -5,6 +5,7 @@ on:
     paths:
       - '.craft.yml'
       - 'static/packages/scraps/**'
+      - 'static/packages/icons/**'
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
       - 'tsconfig.base.json'
@@ -16,6 +17,16 @@ on:
   workflow_dispatch:
 
 jobs:
+  icons:
+    name: icons-package-verify
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter @sentry/icons typecheck
+      - run: pnpm --filter @sentry/icons test --ci --maxWorkers=2
+      - run: pnpm --filter @sentry/icons verify
   verify:
     name: scraps-package-verify
     runs-on: ubuntu-24.04

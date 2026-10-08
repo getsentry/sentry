@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCode} from '@sentry/icons/iconCode';
 
 import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyFrameLink} from 'sentry/components/events/interfaces/frame/copyFrameLink';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
-import {IconCode} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';

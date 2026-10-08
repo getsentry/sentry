@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconAdd} from '@sentry/icons/iconAdd';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
@@ -13,7 +14,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
-import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';

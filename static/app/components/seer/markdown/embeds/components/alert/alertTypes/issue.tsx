@@ -1,3 +1,4 @@
+import {IconSiren} from '@sentry/icons/iconSiren';
 import {useQuery} from '@tanstack/react-query';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {EnabledStatusIndicator} from 'sentry/components/seer/markdown/embeds/com
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconSiren} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';

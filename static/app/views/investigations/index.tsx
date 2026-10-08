@@ -1,4 +1,6 @@
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconStar} from '@sentry/icons/iconStar';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
@@ -29,8 +31,6 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconStar} from 'sentry/icons';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

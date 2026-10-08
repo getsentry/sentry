@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import type {SVGIconDirection} from '@sentry/icons/svgIcon';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconChevron} from 'sentry/icons';
-import type {SVGIconDirection} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
 interface AccordionItemContent {

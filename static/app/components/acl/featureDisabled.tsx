@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconCopy} from '@sentry/icons/iconCopy';
 
 import type {AlertProps} from '@sentry/scraps/alert';
 import {Alert} from '@sentry/scraps/alert';
@@ -7,7 +9,6 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {CONFIG_DOCS_URL} from 'sentry/constants';
-import {IconChevron, IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {selectText} from 'sentry/utils/selectText';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

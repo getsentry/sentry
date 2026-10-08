@@ -1,3 +1,5 @@
+import {IconCopy} from '@sentry/icons/iconCopy';
+
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -5,7 +7,6 @@ import {useAuthToken} from 'sentry/components/onboarding/gettingStartedDoc/authT
 import {useTabSelectionsMap} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {stepsToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 

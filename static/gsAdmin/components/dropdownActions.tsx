@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
+import {IconNot} from '@sentry/icons/iconNot';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
-import {IconNot} from 'sentry/icons';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 

@@ -1,5 +1,7 @@
 import type {CSSProperties} from 'react';
 import {Fragment, useCallback} from 'react';
+import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -10,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackAssignedTo} from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import {useFeedbackActions} from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
-import {IconCopy, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

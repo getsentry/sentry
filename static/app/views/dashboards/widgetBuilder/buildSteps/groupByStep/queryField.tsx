@@ -1,6 +1,7 @@
 import {Fragment, useMemo, type ReactNode} from 'react';
 import type {DraggableAttributes, DraggableSyntheticListeners} from '@dnd-kit/core';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/iconDelete';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
@@ -8,7 +9,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DEPRECATED_FIELDS, type QueryFieldValue} from 'sentry/utils/discover/fields';
 import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';

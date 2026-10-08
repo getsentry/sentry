@@ -1,8 +1,9 @@
+import {IconBusiness} from '@sentry/icons/iconBusiness';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
-import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

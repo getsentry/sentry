@@ -1,6 +1,9 @@
 import LazyLoad from 'react-lazyload';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconFire} from '@sentry/icons/iconFire';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import type {Location} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -17,7 +20,6 @@ import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';

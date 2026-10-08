@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
 
 import {MenuListItem} from '@sentry/scraps/menuListItem';
 import {CheckWrap} from '@sentry/scraps/select';
 
-import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils/defined';
 
 import type {components as selectComponents} from './reactSelectWrapper';

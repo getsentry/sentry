@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconUser} from '@sentry/icons/iconUser';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import partition from 'lodash/partition';
 
@@ -9,7 +10,6 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';

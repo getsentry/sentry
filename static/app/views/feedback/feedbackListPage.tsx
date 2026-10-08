@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconSiren} from '@sentry/icons/iconSiren';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
@@ -22,7 +23,6 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

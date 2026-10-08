@@ -1,3 +1,7 @@
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconStar} from '@sentry/icons/iconStar';
 import type {Location} from 'history';
 
 import {TeamAvatar} from '@sentry/scraps/avatar';
@@ -9,7 +13,6 @@ import {
   useTeamKeyTransactions,
 } from 'sentry/components/performance/teamKeyTransactionsManager';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCheckmark, IconEllipsis, IconSettings, IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

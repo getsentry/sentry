@@ -1,15 +1,13 @@
 import type {ReactNode} from 'react';
+import {IconCircleCheckmark} from '@sentry/icons/iconCircleCheckmark';
+import {IconCircleDashed} from '@sentry/icons/iconCircleDashed';
+import {IconFatal} from '@sentry/icons/iconFatal';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {
-  IconCircleCheckmark,
-  IconCircleDashed,
-  IconFatal,
-  IconWarning,
-} from 'sentry/icons';
 
 /**
  * Where an agentic run has got to, as one line the viewer can read without

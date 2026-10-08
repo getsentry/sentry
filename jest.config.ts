@@ -309,6 +309,7 @@ const config: Config.InitialOptions = {
   testPathIgnorePatterns: [
     '<rootDir>/tests/sentry/lang/javascript/',
     '<rootDir>/static/packages/scraps/',
+    '<rootDir>/static/packages/icons/',
   ],
   // Coding agents check out nested git worktrees under .claude/worktrees/, each a
   // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual

@@ -1,11 +1,10 @@
+import {IconBitbucket} from '@sentry/icons/iconBitbucket';
+import {IconGithub} from '@sentry/icons/iconGithub';
+import {IconGitlab} from '@sentry/icons/iconGitlab';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconVsts} from '@sentry/icons/iconVsts';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import * as Sentry from '@sentry/react';
-
-import {IconBitbucket} from 'sentry/icons/iconBitbucket';
-import {IconGithub} from 'sentry/icons/iconGithub';
-import {IconGitlab} from 'sentry/icons/iconGitlab';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconVsts} from 'sentry/icons/iconVsts';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 const PROVIDER_ICONS = {
   github: IconGithub,

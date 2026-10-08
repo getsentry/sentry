@@ -1,7 +1,7 @@
+import {IconSearch} from '@sentry/icons/iconSearch';
+
 import {Container} from '@sentry/scraps/layout';
 import {components as selectComponents} from '@sentry/scraps/select';
-
-import {IconSearch} from 'sentry/icons';
 
 /**
  * Custom Control that prepends a search icon inside a Select input.

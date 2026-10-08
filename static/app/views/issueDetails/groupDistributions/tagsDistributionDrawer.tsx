@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {IconSort} from '@sentry/icons/iconSort';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {
   EventNavigator,
   Header,
 } from 'sentry/components/events/eventDrawer';
-import {IconSort} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';

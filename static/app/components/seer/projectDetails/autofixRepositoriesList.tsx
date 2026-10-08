@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/iconAdd';
 import {useInfiniteQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
@@ -15,7 +16,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
 import {AutofixRepositoriesItem} from 'sentry/components/seer/projectDetails/autofixRepositoriesItem';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

@@ -5,6 +5,7 @@ import {useOption} from '@react-aria/listbox';
 import {mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {ControlContext, HighlightText, LeadWrap} from '@sentry/scraps/compactSelect';
@@ -13,8 +14,6 @@ import {
   MenuListItem,
   type MenuListItemProps,
 } from '@sentry/scraps/menuListItem';
-
-import {IconCheckmark} from 'sentry/icons';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;

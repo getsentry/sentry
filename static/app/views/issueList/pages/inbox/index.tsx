@@ -8,6 +8,9 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconPullRequest} from '@sentry/icons/iconPullRequest';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryStates} from 'nuqs';
@@ -37,7 +40,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import {ProgressState, type Group} from 'sentry/types/group';

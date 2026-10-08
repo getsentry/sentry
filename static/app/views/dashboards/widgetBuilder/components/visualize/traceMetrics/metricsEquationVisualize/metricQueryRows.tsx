@@ -1,10 +1,10 @@
 import {type RefObject, useCallback, useEffect, useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/iconAdd';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';

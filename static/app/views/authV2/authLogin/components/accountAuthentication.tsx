@@ -1,11 +1,13 @@
 import {Fragment, useCallback} from 'react';
+import {IconGithub} from '@sentry/icons/iconGithub';
+import {IconGoogle} from '@sentry/icons/iconGoogle';
+import {IconVsts} from '@sentry/icons/iconVsts';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {slot} from '@sentry/scraps/slot';
 import {Text} from '@sentry/scraps/text';
 
-import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
 import {EmailAuth} from 'sentry/views/authV2/authLogin/components/emailAuth';

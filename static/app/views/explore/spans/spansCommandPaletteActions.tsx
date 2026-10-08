@@ -1,4 +1,6 @@
 import {useMemo} from 'react';
+import {IconFilter} from '@sentry/icons/iconFilter';
+import {IconSpan} from '@sentry/icons/iconSpan';
 import orderBy from 'lodash/orderBy';
 
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
@@ -9,7 +11,6 @@ import {
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconFilter, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';

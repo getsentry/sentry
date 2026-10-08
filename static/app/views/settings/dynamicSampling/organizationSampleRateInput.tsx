@@ -1,12 +1,12 @@
 import type React from 'react';
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconEdit} from '@sentry/icons/iconEdit';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';

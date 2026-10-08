@@ -1,3 +1,5 @@
+import {IconSearch} from '@sentry/icons/iconSearch';
+
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Hotkey} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
@@ -7,7 +9,6 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';

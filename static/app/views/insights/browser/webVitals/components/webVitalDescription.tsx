@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';

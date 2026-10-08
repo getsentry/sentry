@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
+import {IconFire} from '@sentry/icons/iconFire';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
-import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';

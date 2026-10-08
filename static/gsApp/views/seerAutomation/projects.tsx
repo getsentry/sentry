@@ -1,4 +1,5 @@
 import {Outlet} from 'react-router';
+import {IconSettings} from '@sentry/icons/iconSettings';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
@@ -7,7 +8,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SeerProjectTable} from 'sentry/components/seer/projectTable/seerProjectTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconSettings} from 'sentry/icons/iconSettings';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

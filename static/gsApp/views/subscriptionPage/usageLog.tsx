@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconCircleFill} from '@sentry/icons/iconCircleFill';
 import {useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
 
@@ -16,7 +17,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {Timeline} from 'sentry/components/timeline';
-import {IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';

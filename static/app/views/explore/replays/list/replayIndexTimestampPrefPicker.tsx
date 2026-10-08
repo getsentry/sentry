@@ -1,8 +1,9 @@
+import {IconSettings} from '@sentry/icons/iconSettings';
+
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {REPLAY_TIMESTAMP_OPTIONS} from 'sentry/components/replays/preferences/replayPreferences';
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';

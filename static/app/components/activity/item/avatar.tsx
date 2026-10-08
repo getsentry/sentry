@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconSentry} from '@sentry/icons/iconSentry';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconSentry} from 'sentry/icons';
 import type {AvatarUser} from 'sentry/types/user';
 
 type Props = {

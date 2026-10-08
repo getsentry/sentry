@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconChevron} from '@sentry/icons/iconChevron';
 
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
@@ -17,7 +18,6 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChevron} from 'sentry/icons';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';

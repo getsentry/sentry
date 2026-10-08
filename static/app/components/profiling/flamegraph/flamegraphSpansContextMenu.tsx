@@ -1,4 +1,7 @@
 import {Fragment} from 'react';
+import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconCopyId} from '@sentry/icons/iconCopyId';
+import {IconOpen} from '@sentry/icons/iconOpen';
 
 import {
   ProfilingContextMenu,
@@ -7,7 +10,6 @@ import {
   ProfilingContextMenuItemButton,
   ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/profilingContextMenu';
-import {IconCopy, IconCopyId, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';

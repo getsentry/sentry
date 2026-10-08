@@ -1,9 +1,9 @@
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconSubtract} from '@sentry/icons/iconSubtract';
 import moment from 'moment-timezone';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {IconCheckmark, IconSubtract} from 'sentry/icons';
 
 import type {Policy} from 'getsentry/types';
 

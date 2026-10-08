@@ -1,4 +1,5 @@
 import {lazy} from 'react';
+import {IconPlay} from '@sentry/icons/iconPlay';
 import queryString from 'query-string';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
@@ -15,7 +16,6 @@ import {
   defineSeerEmbed,
   type EmbedOutput,
 } from 'sentry/components/seer/markdown/embeds/utils';
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';

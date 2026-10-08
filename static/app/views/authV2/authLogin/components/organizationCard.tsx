@@ -1,13 +1,13 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {Avatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconClose} from 'sentry/icons';
 import {IdentityIcon} from 'sentry/icons/identityIcon';
 import {t, tct} from 'sentry/locale';
 import {useMedia} from 'sentry/utils/useMedia';

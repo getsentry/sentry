@@ -1,8 +1,9 @@
+import {IconPlay} from '@sentry/icons/iconPlay';
+
 import {
   ResourceLink,
   type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

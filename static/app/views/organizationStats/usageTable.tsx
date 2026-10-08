@@ -1,5 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -12,7 +15,6 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {Panel} from 'sentry/components/panels/panel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';

@@ -1,4 +1,10 @@
 import {useEffect, useMemo, useRef, type ComponentType, type ReactNode} from 'react';
+import {IconBug} from '@sentry/icons/iconBug';
+import {IconCode} from '@sentry/icons/iconCode';
+import {IconList} from '@sentry/icons/iconList';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {useIsFetching, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -33,12 +39,6 @@ import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
 import {resourceLinkMarkdown} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconBug} from 'sentry/icons/iconBug';
-import {IconCode} from 'sentry/icons/iconCode';
-import {IconList} from 'sentry/icons/iconList';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconPullRequest} from 'sentry/icons/iconPullRequest';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';

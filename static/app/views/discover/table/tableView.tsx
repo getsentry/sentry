@@ -1,6 +1,7 @@
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStack} from '@sentry/icons/iconStack';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 
@@ -11,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {COL_WIDTH_MINIMUM, GridEditable} from 'sentry/components/tables/gridEditable';
 import {Truncate} from 'sentry/components/truncate';
-import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

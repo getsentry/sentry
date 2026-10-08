@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/iconAdd';
 import {
   useQuery,
   useQueryClient,
@@ -21,7 +22,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration, RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';

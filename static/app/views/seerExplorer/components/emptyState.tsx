@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 

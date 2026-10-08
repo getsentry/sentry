@@ -1,4 +1,8 @@
 import {Fragment} from 'react';
+import {IconMerge} from '@sentry/icons/iconMerge';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+import {IconPullRequestClosed} from '@sentry/icons/iconPullRequestClosed';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -8,7 +12,6 @@ import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
-import {IconMerge, IconOpen, IconPullRequest, IconPullRequestClosed} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import {MarkedText} from 'sentry/utils/marked/markedText';

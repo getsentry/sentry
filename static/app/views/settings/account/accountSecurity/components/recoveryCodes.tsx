@@ -1,5 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconPrint} from '@sentry/icons/iconPrint';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -12,7 +14,6 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconDownload, IconPrint} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {

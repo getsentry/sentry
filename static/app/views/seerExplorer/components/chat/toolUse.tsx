@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconLink} from '@sentry/icons/iconLink';
 import type {LocationDescriptor} from 'history';
 
 import {
@@ -23,7 +24,6 @@ import {
   RESOURCE_KIND_ICON,
   type ResourceKind,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

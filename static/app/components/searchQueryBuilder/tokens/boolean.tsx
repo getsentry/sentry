@@ -5,6 +5,7 @@ import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -26,7 +27,6 @@ import type {
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 

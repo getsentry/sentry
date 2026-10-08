@@ -1,4 +1,7 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -30,9 +33,6 @@ import {RepositoryWritePermissionButton} from 'sentry/components/events/autofix/
 import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconSeer} from 'sentry/icons/iconSeer';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

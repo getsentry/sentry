@@ -1,12 +1,12 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
+import {SvgIcon} from '@sentry/icons/svgIcon';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {IconClose} from 'sentry/icons';
-import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
 interface Props {

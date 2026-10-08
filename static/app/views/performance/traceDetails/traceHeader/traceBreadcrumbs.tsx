@@ -1,6 +1,9 @@
+import {IconCopyId} from '@sentry/icons/iconCopyId';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconOpen} from '@sentry/icons/iconOpen';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCopyId, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

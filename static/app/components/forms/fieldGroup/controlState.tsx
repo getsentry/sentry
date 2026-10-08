@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Spinner} from 'sentry/components/forms/spinner';
-import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
 
 interface ControlStateProps {

@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
+import {IconAllProjects} from '@sentry/icons/iconAllProjects';
+import {IconMyProjects} from '@sentry/icons/iconMyProjects';
 import {PlatformIcon} from 'platformicons';
 
 import {Container, Stack} from '@sentry/scraps/layout';
-
-import {IconAllProjects, IconMyProjects} from 'sentry/icons';
 
 export interface ProjectsBadgeProps {
   /**

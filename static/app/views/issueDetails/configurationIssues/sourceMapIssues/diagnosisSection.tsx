@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {IconOpen} from '@sentry/icons/iconOpen';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
@@ -8,7 +9,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import type {SourceMapDebugResponse} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
 function getDiagnosisMessage(data: SourceMapDebugResponse | undefined): ReactNode | null {

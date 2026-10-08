@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
+import {IconMail} from '@sentry/icons/iconMail';
 
-import {IconMail} from 'sentry/icons';
 import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {ActionType} from 'sentry/types/workflowEngine/actions';

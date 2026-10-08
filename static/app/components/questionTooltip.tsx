@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconQuestion} from '@sentry/icons/iconQuestion';
+import {SvgIcon, type SVGIconProps} from '@sentry/icons/svgIcon';
 
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {IconInfo, IconQuestion} from 'sentry/icons';
-import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 
 interface QuestionProps extends Partial<
   Pick<

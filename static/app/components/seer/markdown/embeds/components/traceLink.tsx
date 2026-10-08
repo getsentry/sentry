@@ -1,3 +1,4 @@
+import {IconSpan} from '@sentry/icons/iconSpan';
 import queryString from 'query-string';
 
 import {
@@ -5,7 +6,6 @@ import {
   type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';

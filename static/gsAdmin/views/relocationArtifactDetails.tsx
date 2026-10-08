@@ -1,8 +1,9 @@
+import {IconFile} from '@sentry/icons/iconFile';
+
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconFile} from 'sentry/icons/iconFile';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
 import {useApiQuery} from 'sentry/utils/queryClient';

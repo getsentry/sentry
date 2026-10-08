@@ -1,9 +1,10 @@
+import {IconOpen} from '@sentry/icons/iconOpen';
+
 import {LinkButton} from '@sentry/scraps/button';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {platforms} from 'sentry/data/platforms';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

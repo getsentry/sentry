@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {useResizeObserver} from '@react-aria/utils';
+import {IconTelescope} from '@sentry/icons/iconTelescope';
 import {keepPreviousData} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -16,7 +17,6 @@ import {Count} from 'sentry/components/count';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerPanelActions} from 'sentry/components/events/autofix/v3/seerPanelActions';
 import {TourElement} from 'sentry/components/tours/components';
-import {IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

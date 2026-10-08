@@ -1,6 +1,9 @@
 import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -8,7 +11,6 @@ import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {IconChevron, IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {PendingUserInput, Block} from 'sentry/views/seerExplorer/types';

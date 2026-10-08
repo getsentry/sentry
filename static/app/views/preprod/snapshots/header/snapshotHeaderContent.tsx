@@ -1,8 +1,12 @@
+import {IconCode} from '@sentry/icons/iconCode';
+import {IconCommit} from '@sentry/icons/iconCommit';
+import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+import {IconStack} from '@sentry/icons/iconStack';
+
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';

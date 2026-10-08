@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconFatal} from '@sentry/icons/iconFatal';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
@@ -22,8 +24,6 @@ import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replay
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconFatal} from 'sentry/icons/iconFatal';
 import {t, tct} from 'sentry/locale';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';

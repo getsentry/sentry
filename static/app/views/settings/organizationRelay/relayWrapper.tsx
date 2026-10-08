@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {IconAdd} from '@sentry/icons/iconAdd';
 import {useMutation} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 import {z} from 'zod';
@@ -12,7 +13,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';

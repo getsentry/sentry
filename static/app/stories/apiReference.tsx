@@ -1,14 +1,14 @@
 import {Fragment, useMemo, useState} from 'react';
 import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconSearch} from '@sentry/icons/iconSearch';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChevron} from 'sentry/icons';
-import {IconSearch} from 'sentry/icons/iconSearch';
 import {Section} from 'sentry/stories/layout';
 import {fzf} from 'sentry/utils/search/fzf';
 

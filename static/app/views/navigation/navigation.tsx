@@ -1,5 +1,11 @@
 import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
+import {IconCompass} from '@sentry/icons/iconCompass';
+import {IconDashboard} from '@sentry/icons/iconDashboard';
+import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconSiren} from '@sentry/icons/iconSiren';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {Stack, Flex} from '@sentry/scraps/layout';
@@ -8,14 +14,6 @@ import {SizeProvider} from '@sentry/scraps/sizeContext';
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
-import {
-  IconCompass,
-  IconDashboard,
-  IconGraph,
-  IconIssues,
-  IconSettings,
-  IconSiren,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';

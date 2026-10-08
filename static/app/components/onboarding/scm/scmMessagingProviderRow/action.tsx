@@ -1,13 +1,13 @@
 import type {Ref} from 'react';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconEdit} from '@sentry/icons/iconEdit';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconDelete} from 'sentry/icons/iconDelete';
-import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 
 import type {RowVisualState} from './types';

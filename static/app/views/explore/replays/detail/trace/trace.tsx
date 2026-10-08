@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconSad} from '@sentry/icons/iconSad';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator as Loading} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';

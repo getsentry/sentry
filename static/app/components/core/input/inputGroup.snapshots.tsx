@@ -1,7 +1,7 @@
+import {IconSearch} from '@sentry/icons/iconSearch';
+
 import {InputGroup} from '@sentry/scraps/input';
 import type {InputProps} from '@sentry/scraps/input';
-
-import {IconSearch} from 'sentry/icons';
 
 describe('InputGroup', () => {
   it.snapshot.each<InputProps['size']>(['md', 'sm', 'xs'])(

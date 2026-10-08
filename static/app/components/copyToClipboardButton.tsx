@@ -1,6 +1,7 @@
+import {IconCopy} from '@sentry/icons/iconCopy';
+
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
-import {IconCopy} from 'sentry/icons';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface CopyToClipboardButtonProps extends Omit<

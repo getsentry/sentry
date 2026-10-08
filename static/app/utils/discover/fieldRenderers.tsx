@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDownload} from '@sentry/icons/iconDownload';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
 
@@ -25,7 +26,6 @@ import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {UserMisery} from 'sentry/components/userMisery';
 import {Version} from 'sentry/components/version';
-import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';

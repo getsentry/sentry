@@ -1,4 +1,8 @@
 import {useMemo} from 'react';
+import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -13,10 +17,6 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import {IconCopy} from 'sentry/icons/iconCopy';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconPullRequest} from 'sentry/icons/iconPullRequest';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

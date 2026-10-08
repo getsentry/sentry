@@ -1,4 +1,8 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconPause} from '@sentry/icons/iconPause';
+import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconStar} from '@sentry/icons/iconStar';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
@@ -6,7 +10,6 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
-import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

@@ -1,3 +1,14 @@
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconReceipt} from '@sentry/icons/iconReceipt';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconThumb} from '@sentry/icons/iconThumb';
+import {IconTimer} from '@sentry/icons/iconTimer';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';
@@ -14,19 +25,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
-import {
-  IconCheckmark,
-  IconDelete,
-  IconDownload,
-  IconEllipsis,
-  IconInfo,
-  IconOpen,
-  IconReceipt,
-  IconRefresh,
-  IconSettings,
-  IconThumb,
-  IconTimer,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarUser} from 'sentry/types/user';

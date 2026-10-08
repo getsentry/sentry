@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/iconBusiness';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
@@ -10,7 +11,6 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

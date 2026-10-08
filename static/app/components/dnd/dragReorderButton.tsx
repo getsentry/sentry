@@ -1,6 +1,7 @@
+import {IconGrabbable} from '@sentry/icons/iconGrabbable';
+
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
-import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IconSize} from 'sentry/utils/theme';
 

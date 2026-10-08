@@ -1,4 +1,13 @@
 import {Fragment, useState, type ReactNode} from 'react';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconBug} from '@sentry/icons/iconBug';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconCode} from '@sentry/icons/iconCode';
+import {IconList} from '@sentry/icons/iconList';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -19,17 +28,6 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {Placeholder} from 'sentry/components/placeholder';
-import {
-  IconAdd,
-  IconBug,
-  IconChevron,
-  IconCode,
-  IconList,
-  IconOpen,
-  IconPullRequest,
-  IconRefresh,
-  IconSeer,
-} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

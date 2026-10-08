@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconProfiling} from '@sentry/icons/iconProfiling';
 import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -21,7 +23,6 @@ import {
   GridEditable,
   type GridColumnHeader,
 } from 'sentry/components/tables/gridEditable';
-import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';

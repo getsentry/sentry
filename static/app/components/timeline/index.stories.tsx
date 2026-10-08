@@ -1,5 +1,11 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconCursorArrow} from '@sentry/icons/iconCursorArrow';
+import {IconDashboard} from '@sentry/icons/iconDashboard';
+import {IconFire} from '@sentry/icons/iconFire';
+import {IconSentry} from '@sentry/icons/iconSentry';
+import {IconSort} from '@sentry/icons/iconSort';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -7,14 +13,6 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {DateTime} from 'sentry/components/dateTime';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';
-import {
-  IconClock,
-  IconCursorArrow,
-  IconDashboard,
-  IconFire,
-  IconSentry,
-  IconSort,
-} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Timeline', story => {

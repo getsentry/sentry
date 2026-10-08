@@ -2,6 +2,9 @@ import type {ReactNode} from 'react';
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCursorArrow} from '@sentry/icons/iconCursorArrow';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconPlay} from '@sentry/icons/iconPlay';
 import type {LocationDescriptor} from 'history';
 import invariant from 'invariant';
 
@@ -22,9 +25,6 @@ import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseBu
 import {NumericDropdownFilter} from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import {OSBrowserDropdownFilter} from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';

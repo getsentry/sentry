@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
+import {IconSettings} from '@sentry/icons/iconSettings';
 
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
 import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';

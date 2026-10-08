@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconProfiling} from '@sentry/icons/iconProfiling';
 import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -11,7 +13,6 @@ import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
-import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';

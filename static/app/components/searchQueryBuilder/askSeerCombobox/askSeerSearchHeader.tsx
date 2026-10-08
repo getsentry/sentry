@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
+import {IconExclamation} from '@sentry/icons/iconExclamation';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconExclamation, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface SeerSearchHeaderProps {

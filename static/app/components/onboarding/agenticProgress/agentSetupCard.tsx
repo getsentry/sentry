@@ -1,4 +1,5 @@
 import {useRef} from 'react';
+import {IconBot} from '@sentry/icons/iconBot';
 
 import {Tag} from '@sentry/scraps/badge';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -13,7 +14,6 @@ import {
   SETUP_CARD_ICON_SIZE,
   SETUP_CARD_MARKER_PX,
 } from 'sentry/components/onboarding/consts';
-import {IconBot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectText} from 'sentry/utils/selectText';
 import {useOrganization} from 'sentry/utils/useOrganization';

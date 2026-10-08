@@ -1,5 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconArrow} from '@sentry/icons/iconArrow';
 import * as Sentry from '@sentry/react';
 import {
   mutationOptions,
@@ -24,7 +26,6 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   Integration,

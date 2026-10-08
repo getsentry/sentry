@@ -1,5 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconContract} from '@sentry/icons/iconContract';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconExpand} from '@sentry/icons/iconExpand';
+import {IconGraph} from '@sentry/icons/iconGraph';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -12,7 +17,6 @@ import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
 import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconClock, IconContract, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

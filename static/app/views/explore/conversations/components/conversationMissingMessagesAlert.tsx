@@ -1,9 +1,11 @@
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconCopy} from '@sentry/icons/iconCopy';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconClose, IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

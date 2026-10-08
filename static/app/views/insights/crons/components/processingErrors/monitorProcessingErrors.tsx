@@ -1,5 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconClose} from '@sentry/icons/iconClose';
 import groupBy from 'lodash/groupBy';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,7 +16,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
-import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {

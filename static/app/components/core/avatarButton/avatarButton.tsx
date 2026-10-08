@@ -1,5 +1,6 @@
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconUser} from '@sentry/icons/iconUser';
 import type {DistributedOmit} from 'type-fest';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
@@ -7,8 +8,6 @@ import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
-
-import {IconUser} from 'sentry/icons';
 
 import {useAvatarColors} from './useAvatarColors';
 

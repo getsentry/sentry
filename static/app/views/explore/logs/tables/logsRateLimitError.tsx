@@ -1,7 +1,9 @@
+import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconWarning} from '@sentry/icons/iconWarning';
+
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import {IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 

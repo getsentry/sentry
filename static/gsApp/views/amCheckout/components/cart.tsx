@@ -1,6 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconLightning} from '@sentry/icons/iconLightning';
+import {IconLock} from '@sentry/icons/iconLock';
+import {IconSentry} from '@sentry/icons/iconSentry';
 import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
@@ -13,7 +17,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

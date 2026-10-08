@@ -1,5 +1,11 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconLock} from '@sentry/icons/iconLock';
+import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconTimer} from '@sentry/icons/iconTimer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -21,14 +27,6 @@ import {Pill} from 'sentry/components/pill';
 import {Pills} from 'sentry/components/pills';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {
-  IconChevron,
-  IconClock,
-  IconInfo,
-  IconLock,
-  IconPlay,
-  IconTimer,
-} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {EntryThreads, Event, ExceptionType, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';

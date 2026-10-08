@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconProject} from '@sentry/icons/iconProject';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
@@ -19,7 +21,6 @@ import {
   filterAliases,
 } from 'sentry/data/platformPickerCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
-import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';

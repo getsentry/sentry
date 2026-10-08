@@ -1,10 +1,10 @@
+import {IconDelete} from '@sentry/icons/iconDelete';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm, withFieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';

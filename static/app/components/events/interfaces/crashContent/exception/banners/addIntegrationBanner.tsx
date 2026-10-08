@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
 
@@ -7,7 +8,6 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface AddIntegrationBannerProps {

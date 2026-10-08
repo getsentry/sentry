@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/iconDelete';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';

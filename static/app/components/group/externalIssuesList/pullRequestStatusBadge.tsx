@@ -1,16 +1,15 @@
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCircle} from '@sentry/icons/iconCircle';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconMerge} from '@sentry/icons/iconMerge';
+import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+import {IconPullRequestClosed} from '@sentry/icons/iconPullRequestClosed';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
+
 import {Badge} from '@sentry/scraps/badge';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  IconCheckmark,
-  IconCircle,
-  IconClose,
-  IconMerge,
-  IconPullRequest,
-  IconPullRequestClosed,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {
   PullRequestChecksStatus,

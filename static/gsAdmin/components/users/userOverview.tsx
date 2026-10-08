@@ -1,3 +1,4 @@
+import {IconNot} from '@sentry/icons/iconNot';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -8,7 +9,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconNot} from 'sentry/icons';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';

@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useEffectEvent} from 'react';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -10,7 +11,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ProgressRing} from 'sentry/components/progressRing';
-import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {

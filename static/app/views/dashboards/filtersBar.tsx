@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
+import {IconClock} from '@sentry/icons/iconClock';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -18,7 +19,6 @@ import {
   RELEASES_SORT_OPTIONS,
   ReleasesSortOption,
 } from 'sentry/constants/releases';
-import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';

@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {IconSearch} from '@sentry/icons/iconSearch';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {InputGroup} from '@sentry/scraps/input';
@@ -28,7 +29,6 @@ import {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

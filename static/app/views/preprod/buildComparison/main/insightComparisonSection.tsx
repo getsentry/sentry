@@ -1,11 +1,11 @@
 import {useMemo, useState} from 'react';
+import {IconCopy} from '@sentry/icons/iconCopy';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Heading} from '@sentry/scraps/text';
 
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';

@@ -1,5 +1,11 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCircle} from '@sentry/icons/iconCircle';
+import {IconCircleCheckmark} from '@sentry/icons/iconCircleCheckmark';
+import {IconCircleDashed} from '@sentry/icons/iconCircleDashed';
+import {IconFatal} from '@sentry/icons/iconFatal';
+import {IconNot} from '@sentry/icons/iconNot';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import {AnimatePresence, motion, type MotionProps} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -11,14 +17,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconCircle,
-  IconCircleCheckmark,
-  IconCircleDashed,
-  IconFatal,
-  IconNot,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
 import {useProjects} from 'sentry/utils/useProjects';

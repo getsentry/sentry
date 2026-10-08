@@ -1,5 +1,9 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCommit} from '@sentry/icons/iconCommit';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconGithub} from '@sentry/icons/iconGithub';
+import {IconMail} from '@sentry/icons/iconMail';
 import * as qs from 'query-string';
 
 import {Button} from '@sentry/scraps/button';
@@ -17,7 +21,6 @@ import {Card} from 'sentry/components/card';
 import {Carousel} from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {MissingMember, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

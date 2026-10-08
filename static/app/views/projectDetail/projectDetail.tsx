@@ -1,4 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconSiren} from '@sentry/icons/iconSiren';
 import pick from 'lodash/pick';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';
@@ -20,7 +24,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconEllipsis, IconIssues, IconSettings, IconSiren} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';

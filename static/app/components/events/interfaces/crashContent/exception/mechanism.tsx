@@ -1,6 +1,7 @@
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/iconOpen';
 import forOwn from 'lodash/forOwn';
 
 import {ExternalLink} from '@sentry/scraps/link';
@@ -9,7 +10,6 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Pill} from 'sentry/components/pill';
 import {Pills} from 'sentry/components/pills';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';

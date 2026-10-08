@@ -1,7 +1,8 @@
+import {IconInfo} from '@sentry/icons/iconInfo';
+
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {IconInfo} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {OrgRole, TeamRole} from 'sentry/types/organization';
 

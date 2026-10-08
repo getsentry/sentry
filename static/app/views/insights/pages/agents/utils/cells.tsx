@@ -1,10 +1,11 @@
+import {IconFire} from '@sentry/icons/iconFire';
+
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconFire} from 'sentry/icons';
 
 export function ErrorCell({
   value,

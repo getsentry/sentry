@@ -1,3 +1,4 @@
+import {IconProject} from '@sentry/icons/iconProject';
 import moment from 'moment-timezone';
 import {PlatformIcon} from 'platformicons';
 
@@ -6,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
-import {IconProject} from 'sentry/icons';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 type Props = {

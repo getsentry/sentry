@@ -7,6 +7,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {Button} from '@sentry/scraps/button';
 import {Image, type ImageProps} from '@sentry/scraps/image';
@@ -14,7 +15,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type ShowcaseContextValue = {

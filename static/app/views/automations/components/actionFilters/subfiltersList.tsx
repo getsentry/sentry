@@ -1,6 +1,8 @@
 import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconDelete} from '@sentry/icons/iconDelete';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectValue} from '@sentry/scraps/select';
@@ -9,7 +11,6 @@ import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/auto
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   DataConditionType,

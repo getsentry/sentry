@@ -1,3 +1,5 @@
+import {IconSearch} from '@sentry/icons/iconSearch';
+
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {
   QueryEmbedChart,
@@ -13,7 +15,6 @@ import {
   eventRowKey,
   QueryEmbedTable,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';

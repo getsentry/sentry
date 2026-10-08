@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconExpand} from '@sentry/icons/iconExpand';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Panel} from 'sentry/components/panels/panel';
-import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {

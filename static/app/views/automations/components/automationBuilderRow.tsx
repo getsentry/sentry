@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/iconDelete';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface RowProps {

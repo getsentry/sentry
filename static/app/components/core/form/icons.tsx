@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
-import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
 
 const spin = keyframes`

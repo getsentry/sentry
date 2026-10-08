@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
 
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {IconChevron} from 'sentry/icons';
 
 const CHEVRON_SLOT_SIZE = 24;
 

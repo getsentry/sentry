@@ -1,8 +1,11 @@
+import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconStats} from '@sentry/icons/iconStats';
+import {IconUpgrade} from '@sentry/icons/iconUpgrade';
+
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
-import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';

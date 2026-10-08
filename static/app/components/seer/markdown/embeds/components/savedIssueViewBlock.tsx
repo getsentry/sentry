@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {IconStar} from '@sentry/icons/iconStar';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/
 import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
 import {QueryEmbedIssueList} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedIssueList';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';

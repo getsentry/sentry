@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
-import {IconClose} from 'sentry/icons';
 import {defined} from 'sentry/utils/defined';
 
 interface DeleteButtonProps {

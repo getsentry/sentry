@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useLocation, useOutlet} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconSentry} from '@sentry/icons/iconSentry';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import {InitialLoadingIndicator} from 'sentry/components/initialLoadingIndicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconSentry} from 'sentry/icons';
 
 import {useBrandedArtworkLoading} from './useBrandedArtworkLoading';
 import {BrandedAuthLoadingProvider} from './useBrandedAuthLoading';

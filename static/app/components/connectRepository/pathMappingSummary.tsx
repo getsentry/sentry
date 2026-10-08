@@ -1,11 +1,14 @@
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconBranch} from '@sentry/icons/iconBranch';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconArrow, IconBranch, IconChevron, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {AccentPathSegment} from './accentPathSegment';

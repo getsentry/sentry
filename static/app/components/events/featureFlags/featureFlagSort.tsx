@@ -1,8 +1,9 @@
+import {IconSort} from '@sentry/icons/iconSort';
+
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {type OrderBy} from 'sentry/components/events/featureFlags/utils';
-import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface Props {

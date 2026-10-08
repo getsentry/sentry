@@ -1,4 +1,7 @@
 import {Fragment} from 'react';
+import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconSliders} from '@sentry/icons/iconSliders';
+import {IconTag} from '@sentry/icons/iconTag';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,7 +10,6 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

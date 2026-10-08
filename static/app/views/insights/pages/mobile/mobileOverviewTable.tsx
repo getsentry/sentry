@@ -1,4 +1,5 @@
 import {useTheme, type Theme} from '@emotion/react';
+import {IconStar} from '@sentry/icons/iconStar';
 import type {Location} from 'history';
 
 import type {CursorHandler} from '@sentry/scraps/pagination';
@@ -8,7 +9,6 @@ import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
-import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';

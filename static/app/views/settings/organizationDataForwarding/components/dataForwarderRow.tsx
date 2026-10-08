@@ -1,9 +1,11 @@
+import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconEdit} from '@sentry/icons/iconEdit';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconDelete, IconEdit} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

@@ -1,5 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconFix} from '@sentry/icons/iconFix';
+import {IconGraphBar} from '@sentry/icons/iconGraphBar';
+import {IconLock} from '@sentry/icons/iconLock';
 import {useMutation} from '@tanstack/react-query';
 import missionControl from 'getsentry-images/missionControl.jpg';
 
@@ -10,8 +14,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {IconClose, IconFix, IconLock} from 'sentry/icons';
-import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

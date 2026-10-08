@@ -1,4 +1,9 @@
 import type {ComponentType} from 'react';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconGlobe} from '@sentry/icons/iconGlobe';
+import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconSiren} from '@sentry/icons/iconSiren';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -12,8 +17,6 @@ import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/m
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconClock, IconGlobe, IconGraph, IconSiren} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {
   CronDetector,

@@ -1,5 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -18,7 +20,6 @@ import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/u
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';

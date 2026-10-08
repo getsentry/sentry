@@ -1,6 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconExclamation} from '@sentry/icons/iconExclamation';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import moment, {type Moment} from 'moment-timezone';
@@ -10,7 +11,6 @@ import {Alert} from '@sentry/scraps/alert';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {Hovercard} from 'sentry/components/hovercard';
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
-import {IconExclamation} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {StatusPageComponent, type StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';

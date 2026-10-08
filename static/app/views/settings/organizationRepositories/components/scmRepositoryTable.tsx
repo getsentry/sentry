@@ -8,6 +8,12 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconSliders} from '@sentry/icons/iconSliders';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -24,14 +30,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconChevron,
-  IconDelete,
-  IconEllipsis,
-  IconInfo,
-  IconOpen,
-  IconSliders,
-} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';

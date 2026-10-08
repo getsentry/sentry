@@ -1,10 +1,10 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/iconInfo';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SortableHeaderCell} from 'sentry/components/tables/sortableHeaderCell';
-import {IconInfo} from 'sentry/icons';
 
 type BaseRecord = Record<string, unknown>;
 export interface SortConfig<RecordType extends BaseRecord> {

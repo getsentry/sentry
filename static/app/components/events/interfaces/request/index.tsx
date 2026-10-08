@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {IconOpen} from '@sentry/icons/iconOpen';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
@@ -17,7 +18,6 @@ import {
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
 import {Truncate} from 'sentry/components/truncate';
-import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';

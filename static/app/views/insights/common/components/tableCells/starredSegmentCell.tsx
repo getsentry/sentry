@@ -1,9 +1,9 @@
+import {IconStar} from '@sentry/icons/iconStar';
 import {useQueryClient} from '@tanstack/react-query';
 import type {Simplify} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FlexContainer} from 'sentry/utils/discover/styles';

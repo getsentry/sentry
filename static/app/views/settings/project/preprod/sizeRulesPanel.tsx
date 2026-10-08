@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/iconAdd';
 
 import seerConfigBugSvg from 'sentry-images/spot/seer-config-bug-1.svg';
 
@@ -11,7 +12,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

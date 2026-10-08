@@ -1,12 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconUser} from '@sentry/icons/iconUser';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 

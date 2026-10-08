@@ -1,4 +1,9 @@
 import {Fragment} from 'react';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconTimer} from '@sentry/icons/iconTimer';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -18,13 +23,6 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  IconCheckmark,
-  IconClose,
-  IconDownload,
-  IconTimer,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';

@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
 import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -10,7 +11,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {GcpVerificationResults} from 'sentry/components/gcpVerificationResults';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';

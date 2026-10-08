@@ -1,9 +1,10 @@
+import {IconDashboard} from '@sentry/icons/iconDashboard';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Tag} from '@sentry/scraps/badge';
 
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
-import {IconDashboard} from 'sentry/icons';
 
 function renderBlock(props: Partial<Parameters<typeof SeerEmbedBlock>[0]> = {}) {
   return render(

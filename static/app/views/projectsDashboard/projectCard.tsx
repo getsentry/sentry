@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconSettings} from '@sentry/icons/iconSettings';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -19,7 +21,6 @@ import {
   Title,
   Trend,
 } from 'sentry/components/scoreCard';
-import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';

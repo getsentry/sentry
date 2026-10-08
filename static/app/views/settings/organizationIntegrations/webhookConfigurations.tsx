@@ -1,4 +1,6 @@
 import {useMemo} from 'react';
+import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconSettings} from '@sentry/icons/iconSettings';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -15,7 +17,6 @@ import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel} from 'sentry/components/panels/panel';
-import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';

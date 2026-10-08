@@ -1,9 +1,9 @@
+import {IconClose} from '@sentry/icons/iconClose';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export function InsightsRedirectNotice({children}: {children: React.ReactNode}) {

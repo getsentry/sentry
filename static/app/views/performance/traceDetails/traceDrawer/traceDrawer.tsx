@@ -1,10 +1,12 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCircleFill} from '@sentry/icons/iconCircleFill';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconPin} from '@sentry/icons/iconPin';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconCircleFill, IconClose, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   cancelAnimationTimeout,

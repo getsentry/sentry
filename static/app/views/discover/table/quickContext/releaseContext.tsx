@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconNot} from '@sentry/icons/iconNot';
 import {useQuery} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';
@@ -7,7 +8,6 @@ import {AvatarList} from '@sentry/scraps/avatar';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {Panel} from 'sentry/components/panels/panel';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {ReleaseWithHealth} from 'sentry/types/release';

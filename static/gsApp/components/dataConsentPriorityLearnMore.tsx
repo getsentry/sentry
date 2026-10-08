@@ -1,12 +1,12 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {Button} from '@sentry/scraps/button';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {getOrganizationAge} from 'sentry/utils/getOrganizationAge';

@@ -1,26 +1,24 @@
 import type {ComponentType, ReactNode} from 'react';
 import {css} from '@emotion/react';
+import {IconChat} from '@sentry/icons/iconChat';
+import {IconCode} from '@sentry/icons/iconCode';
+import {IconCompass} from '@sentry/icons/iconCompass';
+import {IconDashboard} from '@sentry/icons/iconDashboard';
+import {IconDocs} from '@sentry/icons/iconDocs';
+import {IconFire} from '@sentry/icons/iconFire';
+import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconList} from '@sentry/icons/iconList';
+import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconProfiling} from '@sentry/icons/iconProfiling';
+import {IconSiren} from '@sentry/icons/iconSiren';
+import {IconSpan} from '@sentry/icons/iconSpan';
+import {IconTable} from '@sentry/icons/iconTable';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {isSafeHref} from '@sentry/scraps/markdown';
 
-import {
-  IconChat,
-  IconCode,
-  IconCompass,
-  IconDashboard,
-  IconDocs,
-  IconFire,
-  IconIssues,
-  IconList,
-  IconPlay,
-  IconProfiling,
-  IconSiren,
-  IconSpan,
-  IconTable,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
 /**

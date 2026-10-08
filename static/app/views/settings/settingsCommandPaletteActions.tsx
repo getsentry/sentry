@@ -1,8 +1,12 @@
 import {useMemo, type ReactNode} from 'react';
+import {IconLock} from '@sentry/icons/iconLock';
+import {IconMail} from '@sentry/icons/iconMail';
+import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconSubscribed} from '@sentry/icons/iconSubscribed';
+import {IconUser} from '@sentry/icons/iconUser';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {IconLock, IconMail, IconSettings, IconSubscribed, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useOrganization} from 'sentry/utils/useOrganization';

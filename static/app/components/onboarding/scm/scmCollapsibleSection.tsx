@@ -1,12 +1,12 @@
 import {useId, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
-import {IconChevron} from 'sentry/icons';
 
 interface ScmCollapsibleSectionProps {
   children: React.ReactNode;

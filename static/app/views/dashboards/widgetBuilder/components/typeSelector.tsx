@@ -1,10 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconMarkdown} from '@sentry/icons/iconMarkdown';
+import {IconNumber} from '@sentry/icons/iconNumber';
+import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconTable} from '@sentry/icons/iconTable';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {IconGraph, IconMarkdown, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';

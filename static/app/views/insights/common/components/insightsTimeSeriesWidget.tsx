@@ -1,12 +1,12 @@
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import {IconExpand} from '@sentry/icons/iconExpand';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';

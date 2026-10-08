@@ -1,4 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconMarkdown} from '@sentry/icons/iconMarkdown';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -6,9 +9,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconRefresh} from 'sentry/icons';
-import {IconMarkdown} from 'sentry/icons/iconMarkdown';
-import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 
 interface ArtifactCardProps {

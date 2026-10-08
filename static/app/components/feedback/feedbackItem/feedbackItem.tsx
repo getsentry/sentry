@@ -1,5 +1,9 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/iconChat';
+import {IconFire} from '@sentry/icons/iconFire';
+import {IconSpan} from '@sentry/icons/iconSpan';
+import {IconTag} from '@sentry/icons/iconTag';
 
 import {InfoTip} from '@sentry/scraps/info';
 
@@ -23,7 +27,6 @@ import {MessageSection} from 'sentry/components/feedback/feedbackItem/messageSec
 import {MessageTitle} from 'sentry/components/feedback/feedbackItem/messageTitle';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {KeyValueTableCardGrid} from 'sentry/components/tables/keyValueTable';
-import {IconChat, IconFire, IconSpan, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

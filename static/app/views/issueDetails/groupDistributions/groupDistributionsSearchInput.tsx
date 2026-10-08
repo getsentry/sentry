@@ -1,8 +1,8 @@
 import type {Dispatch, SetStateAction} from 'react';
+import {IconSearch} from '@sentry/icons/iconSearch';
 
 import {InputGroup} from '@sentry/scraps/input';
 
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface Props {

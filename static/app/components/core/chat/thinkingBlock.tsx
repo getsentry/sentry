@@ -1,12 +1,12 @@
 import {useEffect, useRef, useState} from 'react';
 import {Global} from '@emotion/react';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {streamingAnimationStyles, useTextDecodeAnimation} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconSeer} from 'sentry/icons';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {SECOND} from 'sentry/utils/formatters';
 

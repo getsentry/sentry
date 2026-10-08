@@ -1,6 +1,10 @@
 import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconSearch} from '@sentry/icons/iconSearch';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 import {z} from 'zod';
@@ -29,7 +33,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

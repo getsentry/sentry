@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -35,7 +36,6 @@ import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAuto
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';

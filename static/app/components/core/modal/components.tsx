@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {IconClose} from 'sentry/icons/iconClose';
 
 const ModalHeader = styled('header')`
   display: flex;

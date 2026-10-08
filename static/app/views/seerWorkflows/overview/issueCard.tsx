@@ -1,6 +1,19 @@
 import {Fragment, memo, useEffect, useRef} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconBug} from '@sentry/icons/iconBug';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconCommit} from '@sentry/icons/iconCommit';
+import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconMerge} from '@sentry/icons/iconMerge';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconThumb} from '@sentry/icons/iconThumb';
+import {IconUser} from '@sentry/icons/iconUser';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
@@ -15,21 +28,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconBug,
-  IconCheckmark,
-  IconClock,
-  IconClose,
-  IconCommit,
-  IconGraph,
-  IconMerge,
-  IconOpen,
-  IconPullRequest,
-  IconSeer,
-  IconThumb,
-  IconUser,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {

@@ -1,3 +1,6 @@
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconDelete} from '@sentry/icons/iconDelete';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -6,7 +9,6 @@ import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {Confirm} from 'sentry/components/confirm';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {JsonFormAdapterFieldConfig} from './types';

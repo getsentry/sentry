@@ -1,10 +1,11 @@
 import {Fragment, type ReactNode, useState} from 'react';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconCode} from '@sentry/icons/iconCode';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconChevron, IconCode} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
 import {ChangedFileRow, type FileChangeTag} from './changedFileRow';

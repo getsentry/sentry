@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
+import {IconLink} from '@sentry/icons/iconLink';
 
 import {Button} from '@sentry/scraps/button';
 import {Kbd} from '@sentry/scraps/hotkey';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

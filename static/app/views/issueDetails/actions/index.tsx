@@ -1,6 +1,13 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconSubscribed} from '@sentry/icons/iconSubscribed';
+import {IconUnsubscribed} from '@sentry/icons/iconUnsubscribed';
+import {IconUpload} from '@sentry/icons/iconUpload';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -25,15 +32,6 @@ import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {openConfirmModal} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
-  IconCheckmark,
-  IconClock,
-  IconCopy,
-  IconEllipsis,
-  IconSubscribed,
-  IconUnsubscribed,
-  IconUpload,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';

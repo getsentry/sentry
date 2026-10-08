@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -9,7 +10,6 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconChevron} from 'sentry/icons';
 
 import {type RuleFormCopy, StatusCheckRuleForm} from './statusCheckRuleForm';
 import type {StatusCheckFilter, StatusCheckRule} from './types';

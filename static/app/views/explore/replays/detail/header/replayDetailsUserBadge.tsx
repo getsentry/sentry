@@ -1,3 +1,5 @@
+import {IconCalendar} from '@sentry/icons/iconCalendar';
+import {IconDelete} from '@sentry/icons/iconDelete';
 import invariant from 'invariant';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -10,8 +12,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons/iconCalendar';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';

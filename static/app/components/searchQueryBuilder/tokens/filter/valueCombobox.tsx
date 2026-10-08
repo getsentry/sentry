@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
+import {IconClose} from '@sentry/icons/iconClose';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
@@ -77,7 +78,6 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';

@@ -1,8 +1,9 @@
+import {IconAdd} from '@sentry/icons/iconAdd';
+
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
-import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

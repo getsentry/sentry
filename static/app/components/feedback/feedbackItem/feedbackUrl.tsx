@@ -1,11 +1,11 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconLink} from '@sentry/icons/iconLink';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {frontend} from 'sentry/data/platformCategories';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';

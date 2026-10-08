@@ -2,6 +2,11 @@ import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css, useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconDocs} from '@sentry/icons/iconDocs';
+import {IconLink} from '@sentry/icons/iconLink';
+import {IconOpen} from '@sentry/icons/iconOpen';
 
 import {Tag} from '@sentry/scraps/badge';
 import {useHotkeys} from '@sentry/scraps/hotkey';
@@ -18,7 +23,6 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 // eslint-disable-next-line boundaries/dependencies
 import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';

@@ -1,6 +1,7 @@
 import {Component, createRef, type ReactNode} from 'react';
 import {withTheme, type CSSObject, type Theme, css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {InputProps} from '@sentry/scraps/input';
@@ -9,7 +10,6 @@ import type {ControlProps, SelectValue, SingleValueProps} from '@sentry/scraps/s
 import {Select, components} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import type {

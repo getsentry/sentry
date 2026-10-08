@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconGraph} from '@sentry/icons/iconGraph';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
@@ -12,7 +13,6 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {LinkHint} from 'sentry/components/structuredEventData/linkHint';
-import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

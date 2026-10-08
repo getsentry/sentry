@@ -7,6 +7,8 @@ import {
   type RefCallback,
 } from 'react';
 import {useTheme} from '@emotion/react';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconClose} from '@sentry/icons/iconClose';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -21,7 +23,6 @@ import {Heading} from '@sentry/scraps/text';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconArrow, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';

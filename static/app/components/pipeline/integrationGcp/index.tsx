@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -18,7 +19,6 @@ import type {
 } from 'sentry/components/pipeline/types';
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

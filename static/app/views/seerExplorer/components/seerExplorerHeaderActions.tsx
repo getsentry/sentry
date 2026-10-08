@@ -1,4 +1,11 @@
 import type {ReactNode} from 'react';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconLink} from '@sentry/icons/iconLink';
+import {IconPanel} from '@sentry/icons/iconPanel';
+import {IconWindow} from '@sentry/icons/iconWindow';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -6,15 +13,6 @@ import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {
-  IconCheckmark,
-  IconClock,
-  IconCopy,
-  IconEllipsis,
-  IconLink,
-  IconPanel,
-  IconWindow,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   SeerExplorerRunId,

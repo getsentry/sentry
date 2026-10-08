@@ -1,5 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconFlag} from '@sentry/icons/iconFlag';
+import {IconMail} from '@sentry/icons/iconMail';
+import {IconSubtract} from '@sentry/icons/iconSubtract';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +15,6 @@ import {Confirm} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';

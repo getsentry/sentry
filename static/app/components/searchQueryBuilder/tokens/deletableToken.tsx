@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
@@ -18,7 +19,6 @@ import type {
   InvalidReason,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type DeletableTokenProps = {

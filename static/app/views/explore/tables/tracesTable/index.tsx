@@ -1,5 +1,8 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
@@ -14,9 +17,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
-import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';

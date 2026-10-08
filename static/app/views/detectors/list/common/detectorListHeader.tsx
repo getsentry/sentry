@@ -1,3 +1,5 @@
+import {IconAdd} from '@sentry/icons/iconAdd';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -6,7 +8,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';

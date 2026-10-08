@@ -1,13 +1,13 @@
 import {useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
 
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {ProgressRing} from 'sentry/components/progressRing';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
 import {
   OnboardingDrawerKey,

@@ -1,7 +1,8 @@
+import {IconDelete} from '@sentry/icons/iconDelete';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface Props {

@@ -1,5 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {type Theme} from '@emotion/react';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import type {YAXisComponentOption} from 'echarts';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,7 +17,6 @@ import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';

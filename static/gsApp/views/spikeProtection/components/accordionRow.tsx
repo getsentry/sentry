@@ -1,9 +1,8 @@
 import type React from 'react';
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
 import {motion} from 'framer-motion';
-
-import {IconChevron} from 'sentry/icons';
 
 type AccordionRowProps = {
   /**

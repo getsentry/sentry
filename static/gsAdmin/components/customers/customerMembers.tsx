@@ -1,3 +1,4 @@
+import {IconMail} from '@sentry/icons/iconMail';
 import moment from 'moment-timezone';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -7,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
-import {IconMail} from 'sentry/icons';
 
 type Props = {
   orgId: string;

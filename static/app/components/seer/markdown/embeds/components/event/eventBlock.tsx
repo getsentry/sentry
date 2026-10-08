@@ -1,3 +1,4 @@
+import {IconFire} from '@sentry/icons/iconFire';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -11,7 +12,6 @@ import {EventTagsView} from 'sentry/components/seer/markdown/embeds/components/e
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Level} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';

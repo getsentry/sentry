@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/iconPlay';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';

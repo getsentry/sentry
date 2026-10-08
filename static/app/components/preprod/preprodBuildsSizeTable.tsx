@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {IconQuestion} from '@sentry/icons/iconQuestion';
 
 import {Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -6,7 +7,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconQuestion} from 'sentry/icons';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {

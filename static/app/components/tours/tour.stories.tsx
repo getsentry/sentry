@@ -1,5 +1,6 @@
 import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
+import {IconStar} from '@sentry/icons/iconStar';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
@@ -18,7 +19,6 @@ import {
 } from 'sentry/components/tours/components';
 import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
-import {IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 const enum MyTour {

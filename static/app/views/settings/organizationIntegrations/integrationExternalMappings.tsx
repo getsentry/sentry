@@ -1,5 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconDelete} from '@sentry/icons/iconDelete';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
@@ -10,7 +13,6 @@ import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
 import type {

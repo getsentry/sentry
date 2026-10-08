@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconLightning} from '@sentry/icons/iconLightning';
+import {IconQuestion} from '@sentry/icons/iconQuestion';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -7,7 +9,6 @@ import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconLightning, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';

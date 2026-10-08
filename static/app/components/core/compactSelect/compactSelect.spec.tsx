@@ -1,13 +1,12 @@
 import {Fragment, useRef, useState} from 'react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
 import {expectTypeOf} from 'expect-type';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
-import {IconEllipsis} from 'sentry/icons';
 
 import {CompactSelect, getEscapedKey, type SelectOption} from './';
 

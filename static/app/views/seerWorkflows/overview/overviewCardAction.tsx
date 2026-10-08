@@ -1,5 +1,9 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -14,7 +18,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconAdd, IconChevron, IconOpen, IconSeer} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';

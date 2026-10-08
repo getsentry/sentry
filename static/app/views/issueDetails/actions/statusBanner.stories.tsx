@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
+import {IconReleases} from '@sentry/icons/iconReleases';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconReleases} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {ProgressState} from 'sentry/types/group';
 import type {Commit, PullRequest, Repository} from 'sentry/types/integrations';

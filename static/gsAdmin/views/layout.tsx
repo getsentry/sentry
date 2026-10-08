@@ -3,6 +3,10 @@ import {useEffect, useState} from 'react';
 import {Outlet, useLocation} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconMenu} from '@sentry/icons/iconMenu';
+import {IconSentry} from '@sentry/icons/iconSentry';
+import {IconSliders} from '@sentry/icons/iconSliders';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -10,7 +14,6 @@ import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {ListLink} from 'sentry/components/links/listLink';
-import {IconChevron, IconMenu, IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';

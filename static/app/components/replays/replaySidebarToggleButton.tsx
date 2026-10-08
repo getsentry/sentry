@@ -1,6 +1,7 @@
+import {IconChevron} from '@sentry/icons/iconChevron';
+
 import {Button} from '@sentry/scraps/button';
 
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {

@@ -1,8 +1,9 @@
+import {IconSliders} from '@sentry/icons/iconSliders';
+
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrgRole} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

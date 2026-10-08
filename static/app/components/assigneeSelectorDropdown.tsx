@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconUser} from '@sentry/icons/iconUser';
 import uniqBy from 'lodash/uniqBy';
 
 import {
@@ -31,7 +33,6 @@ import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
-import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Actor} from 'sentry/types/core';

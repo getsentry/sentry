@@ -1,6 +1,12 @@
 import {memo, useCallback, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconFile} from '@sentry/icons/iconFile';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconLink} from '@sentry/icons/iconLink';
+import {IconMoon} from '@sentry/icons/iconMoon';
+import {IconSun} from '@sentry/icons/iconSun';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -11,7 +17,6 @@ import {Text} from '@sentry/scraps/text';
 import type {ContentVariant} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconFile, IconInfo, IconLink, IconMoon, IconSun, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';

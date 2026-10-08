@@ -1,5 +1,8 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconOpen} from '@sentry/icons/iconOpen';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
@@ -23,7 +26,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {percent} from 'sentry/utils';

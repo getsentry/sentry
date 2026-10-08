@@ -1,5 +1,8 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconFix} from '@sentry/icons/iconFix';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
 import classNames from 'classnames';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -18,7 +21,6 @@ import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourc
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import {StrictClick} from 'sentry/components/strictClick';
-import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';

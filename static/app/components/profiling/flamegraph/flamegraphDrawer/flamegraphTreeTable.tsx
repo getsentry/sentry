@@ -1,6 +1,7 @@
 import type React from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/iconArrow';
 
 import {InfoTip} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -20,7 +21,6 @@ import {
   makeCallTreeTableSortFunction,
   syncCallTreeTableScroll,
 } from 'sentry/components/profiling/flamegraph/callTreeTable';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   CanvasPoolManager,

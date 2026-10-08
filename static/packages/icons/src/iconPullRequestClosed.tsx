@@ -1,5 +1,5 @@
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import {SvgIcon} from 'sentry/icons/svgIcon';
+import type {SVGIconProps} from './svgIcon';
+import {SvgIcon} from './svgIcon';
 
 export function IconPullRequestClosed(props: SVGIconProps) {
   return (

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/iconOpen';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useStatusPageList} from 'sentry/views/insights/http/queries/useStatusPageList';
 

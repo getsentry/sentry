@@ -1,7 +1,10 @@
+import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconJira} from '@sentry/icons/iconJira';
+import {IconLinear} from '@sentry/icons/iconLinear';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
+
 import {Link} from '@sentry/scraps/link';
 
-import {IconIssues, IconJira, IconLinear} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {GroupActivityIntegrationData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 

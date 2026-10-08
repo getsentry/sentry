@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconLock} from '@sentry/icons/iconLock';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -8,7 +9,6 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {FeatureDisabledOverrides} from 'sentry/types/overrides';

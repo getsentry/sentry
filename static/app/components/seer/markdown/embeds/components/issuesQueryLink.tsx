@@ -1,3 +1,4 @@
+import {IconIssues} from '@sentry/icons/iconIssues';
 import queryString from 'query-string';
 
 import {
@@ -5,7 +6,6 @@ import {
   type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';

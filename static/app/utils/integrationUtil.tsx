@@ -1,19 +1,17 @@
+import {IconAsana} from '@sentry/icons/iconAsana';
+import {IconBitbucket} from '@sentry/icons/iconBitbucket';
+import {IconCursor} from '@sentry/icons/iconCursor';
+import {IconGeneric} from '@sentry/icons/iconGeneric';
+import {IconGithub} from '@sentry/icons/iconGithub';
+import {IconGitlab} from '@sentry/icons/iconGitlab';
+import {IconJira} from '@sentry/icons/iconJira';
+import {IconPerforce} from '@sentry/icons/iconPerforce';
+import {IconSentry} from '@sentry/icons/iconSentry';
+import {IconVsts} from '@sentry/icons/iconVsts';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import * as qs from 'query-string';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {
-  IconAsana,
-  IconBitbucket,
-  IconCursor,
-  IconGeneric,
-  IconGithub,
-  IconGitlab,
-  IconJira,
-  IconPerforce,
-  IconSentry,
-  IconVsts,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import type {

@@ -1,10 +1,10 @@
 import type {Key} from 'react';
+import {IconAdd} from '@sentry/icons/iconAdd';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';

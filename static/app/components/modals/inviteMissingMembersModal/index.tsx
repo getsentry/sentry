@@ -1,6 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCommit} from '@sentry/icons/iconCommit';
+import {IconGithub} from '@sentry/icons/iconGithub';
+import {IconInfo} from '@sentry/icons/iconInfo';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -17,7 +21,6 @@ import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomi
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TeamSelector} from 'sentry/components/teamSelector';
-import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

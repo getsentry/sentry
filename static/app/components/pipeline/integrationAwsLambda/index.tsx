@@ -1,5 +1,9 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCode} from '@sentry/icons/iconCode';
+import {IconFatal} from '@sentry/icons/iconFatal';
+import {IconOpen} from '@sentry/icons/iconOpen';
 import debounce from 'lodash/debounce';
 import {z} from 'zod';
 
@@ -18,7 +22,6 @@ import type {
   PipelineStepProps,
 } from 'sentry/components/pipeline/types';
 import {pipelineComplete} from 'sentry/components/pipeline/types';
-import {IconCheckmark, IconCode, IconFatal, IconOpen} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';

@@ -1,9 +1,9 @@
 import {useRef, type ReactNode} from 'react';
+import {IconMegaphone} from '@sentry/icons/iconMegaphone';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {type UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
-import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 

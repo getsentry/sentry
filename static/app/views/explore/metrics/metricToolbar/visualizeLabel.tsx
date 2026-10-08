@@ -1,10 +1,10 @@
 import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconChevron} from 'sentry/icons';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
 interface VisualizeLabelProps {

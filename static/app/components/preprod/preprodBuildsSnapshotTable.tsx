@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {IconCommit} from '@sentry/icons/iconCommit';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   BuildDetailsApiResponse,

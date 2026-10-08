@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {IconReleases} from '@sentry/icons/iconReleases';
 import {useQuery} from '@tanstack/react-query';
 
 import {AvatarList, UserAvatar} from '@sentry/scraps/avatar';
@@ -13,7 +14,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconReleases} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {ReleaseWithHealth} from 'sentry/types/release';

@@ -1,9 +1,10 @@
+import {IconContract} from '@sentry/icons/iconContract';
+import {IconExpand} from '@sentry/icons/iconExpand';
 import screenfull from 'screenfull';
 
 import {Button} from '@sentry/scraps/button';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconContract, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

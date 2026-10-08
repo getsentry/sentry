@@ -1,6 +1,7 @@
+import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconPullRequest} from 'sentry/icons';
 import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
 import type {PullRequest} from 'sentry/types/integrations';
 

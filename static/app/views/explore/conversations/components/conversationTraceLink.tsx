@@ -1,4 +1,6 @@
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconSpan} from '@sentry/icons/iconSpan';
 
 import {
   DropdownButton,
@@ -10,7 +12,6 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconChevron, IconSpan} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';

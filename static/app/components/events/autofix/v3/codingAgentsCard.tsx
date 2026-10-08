@@ -1,4 +1,6 @@
 import {useMemo} from 'react';
+import {IconBot} from '@sentry/icons/iconBot';
+import {IconOpen} from '@sentry/icons/iconOpen';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -21,8 +23,6 @@ import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetai
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconBot} from 'sentry/icons/iconBot';
-import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 

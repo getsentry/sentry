@@ -1,5 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconExpand} from '@sentry/icons/iconExpand';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -8,7 +12,6 @@ import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconCopy, IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';

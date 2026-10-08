@@ -1,3 +1,7 @@
+import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconShow} from '@sentry/icons/iconShow';
+
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
@@ -7,7 +11,6 @@ import {
   hasInlineAttachmentRenderer,
   isAttachmentTooLargeForPreview,
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
-import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';

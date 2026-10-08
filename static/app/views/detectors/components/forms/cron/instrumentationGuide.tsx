@@ -1,4 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
+import {IconGlobe} from '@sentry/icons/iconGlobe';
+import {IconTerminal} from '@sentry/icons/iconTerminal';
 import partition from 'lodash/partition';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
@@ -14,7 +16,6 @@ import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 import {useProjects} from 'sentry/utils/useProjects';

@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/iconArrow';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -12,7 +13,6 @@ import {PageCorners} from 'sentry/components/onboarding/pageCorners';
 import {Stepper} from 'sentry/components/onboarding/stepper';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getSignupLocalities} from 'sentry/utils/cells';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

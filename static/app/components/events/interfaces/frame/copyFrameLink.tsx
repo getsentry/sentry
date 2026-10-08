@@ -1,9 +1,9 @@
 import type {MouseEvent} from 'react';
+import {IconCopy} from '@sentry/icons/iconCopy';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

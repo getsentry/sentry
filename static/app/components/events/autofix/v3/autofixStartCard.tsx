@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconBug} from '@sentry/icons/iconBug';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
@@ -12,7 +13,6 @@ import {Text} from '@sentry/scraps/text';
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 

@@ -1,12 +1,12 @@
 import type {MouseEventHandler, ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconHide} from '@sentry/icons/iconHide';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
-import {IconHide} from 'sentry/icons/iconHide';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';

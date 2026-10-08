@@ -1,5 +1,7 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCopyId} from '@sentry/icons/iconCopyId';
+import {IconGlobe} from '@sentry/icons/iconGlobe';
 
 import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ShortId} from 'sentry/components/shortId';
-import {IconCopyId, IconGlobe} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';

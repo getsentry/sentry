@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconSubtract} from '@sentry/icons/iconSubtract';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
@@ -11,7 +12,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

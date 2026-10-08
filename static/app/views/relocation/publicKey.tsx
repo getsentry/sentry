@@ -1,9 +1,9 @@
+import {IconFile} from '@sentry/icons/iconFile';
 import {motion} from 'framer-motion';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconFile} from 'sentry/icons/iconFile';
 import {t} from 'sentry/locale';
 import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';

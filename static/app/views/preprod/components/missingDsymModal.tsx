@@ -1,12 +1,12 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t, tn} from 'sentry/locale';
 
 interface MissingDsymModalProps {

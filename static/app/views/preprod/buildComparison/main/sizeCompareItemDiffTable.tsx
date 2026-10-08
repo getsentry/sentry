@@ -1,4 +1,8 @@
 import {useEffect, useState} from 'react';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconFix} from '@sentry/icons/iconFix';
+import {IconSubtract} from '@sentry/icons/iconSubtract';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -9,8 +13,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {capitalize} from 'sentry/utils/string/capitalize';

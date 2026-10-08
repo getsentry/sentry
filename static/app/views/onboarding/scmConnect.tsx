@@ -1,3 +1,6 @@
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconLock} from '@sentry/icons/iconLock';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,7 +12,6 @@ import {ScmIntegrationConnect} from 'sentry/components/onboarding/scm/scmIntegra
 import {ScmStepHeader} from 'sentry/components/onboarding/scm/scmStepHeader';
 import {ScmStepLayout} from 'sentry/components/onboarding/scm/scmStepLayout';
 import {useScmProviders} from 'sentry/components/onboarding/scm/useScmProviders';
-import {IconCheckmark, IconClose, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 

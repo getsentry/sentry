@@ -1,4 +1,11 @@
 import type {ComponentType} from 'react';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconGlobe} from '@sentry/icons/iconGlobe';
+import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconMobile} from '@sentry/icons/iconMobile';
+import {IconTimer} from '@sentry/icons/iconTimer';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
@@ -13,15 +20,6 @@ import {MobileBuildMonitor} from 'sentry/components/seer/markdown/embeds/compone
 import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {
-  IconClock,
-  IconGlobe,
-  IconGraph,
-  IconIssues,
-  IconMobile,
-  IconTimer,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';

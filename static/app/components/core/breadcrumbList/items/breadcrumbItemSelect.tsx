@@ -1,3 +1,5 @@
+import {IconChevron} from '@sentry/icons/iconChevron';
+
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SingleSelectProps} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -5,8 +7,6 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {IconChevron} from 'sentry/icons';
 
 import {BreadcrumbItemLink} from './breadcrumbItemLink';
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/iconArrow';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {

@@ -1,10 +1,10 @@
 import {Fragment, useId} from 'react';
-import {useTheme} from '@emotion/react';
 import {useReducedMotion} from 'framer-motion';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 import {useIconDefaults} from './useIconDefaults';
+import {useIconTheme} from './useIconTheme';
 
 // Safari claims CSS `d` property support but can't interpolate it in @keyframes
 let supportsCssDAnimation = false;
@@ -129,7 +129,7 @@ export function IconSeer({animation, ...props}: IconSeerProps) {
 
 function SeerLoadingSpinner(props: SVGIconProps) {
   const clipId = useId();
-  const theme = useTheme();
+  const theme = useIconTheme();
   const iconProps = useIconDefaults(props);
   const size = iconProps.legacySize ?? SvgIcon.ICON_SIZES[iconProps.size ?? 'md'];
   const fill =

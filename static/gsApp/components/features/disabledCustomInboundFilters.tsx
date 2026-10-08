@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/iconBusiness';
 
 import {Button} from '@sentry/scraps/button';
 
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';

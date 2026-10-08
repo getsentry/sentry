@@ -1,12 +1,12 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 const makeKey = (prefix: string) => `${prefix}-banner-dismissed`;

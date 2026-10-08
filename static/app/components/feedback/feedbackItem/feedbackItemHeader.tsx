@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/iconArrow';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {FeedbackActions} from 'sentry/components/feedback/feedbackItem/feedbackA
 import {FeedbackShortId} from 'sentry/components/feedback/feedbackItem/feedbackShortId';
 import {FeedbackViewers} from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

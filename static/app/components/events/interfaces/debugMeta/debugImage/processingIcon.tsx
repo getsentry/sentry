@@ -1,6 +1,8 @@
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import * as Sentry from '@sentry/react';
 
-import {IconCheckmark, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ImageStatus} from 'sentry/types/debugImage';
 import {unreachable} from 'sentry/utils/unreachable';

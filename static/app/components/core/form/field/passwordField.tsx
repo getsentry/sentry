@@ -1,11 +1,10 @@
 import {useState} from 'react';
+import {IconHide} from '@sentry/icons/iconHide';
+import {IconShow} from '@sentry/icons/iconShow';
 
 import {Button} from '@sentry/scraps/button';
 import {InputField} from '@sentry/scraps/form/field/inputField';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {IconHide} from 'sentry/icons/iconHide';
-import {IconShow} from 'sentry/icons/iconShow';
 
 import type {InputFieldProps} from './inputField';
 

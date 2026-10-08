@@ -2,6 +2,13 @@ import type {PropsWithChildren, ReactNode} from 'react';
 import {Fragment, useMemo, useState} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCircle} from '@sentry/icons/iconCircle';
+import {IconMegaphone} from '@sentry/icons/iconMegaphone';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconQuestion} from '@sentry/icons/iconQuestion';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import BadStackTraceExample from 'sentry-images/issue_details/bad-stack-trace-example.png';
 import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-example.png';
@@ -19,15 +26,6 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import {ProgressRing} from 'sentry/components/progressRing';
-import {
-  IconCheckmark,
-  IconCircle,
-  IconMegaphone,
-  IconOpen,
-  IconQuestion,
-  IconRefresh,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';

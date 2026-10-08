@@ -1,9 +1,10 @@
+import {IconFire} from '@sentry/icons/iconFire';
+
 import {
   ResourceLink,
   type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';

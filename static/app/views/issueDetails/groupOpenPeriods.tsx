@@ -1,5 +1,6 @@
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import {IconSeer} from '@sentry/icons/iconSeer';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
@@ -11,7 +12,6 @@ import {
   GridEditable,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';

@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconBroadcast} from '@sentry/icons/iconBroadcast';
 
 import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backend.svg';
 
@@ -6,7 +7,6 @@ import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import {PageBanner} from 'sentry/components/alerts/pageBanner';
-import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t} from 'sentry/locale';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 

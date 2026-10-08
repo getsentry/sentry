@@ -1,4 +1,6 @@
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCopy} from '@sentry/icons/iconCopy';
 import moment from 'moment-timezone';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -14,7 +16,6 @@ import {
   NotificationProviderKey,
   type NotificationTemplateRegistration,
 } from 'sentry/debug/notifications/types';
-import {IconCheckmark, IconCopy} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

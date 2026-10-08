@@ -1,6 +1,6 @@
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {IconEdit} from '@sentry/icons/iconEdit';
 
-import {IconEdit} from 'sentry/icons';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import type {ButtonSize} from './types';
 

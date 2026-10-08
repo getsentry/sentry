@@ -1,4 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconLock} from '@sentry/icons/iconLock';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -7,8 +9,6 @@ import {Select, components} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {IconLock} from 'sentry/icons';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';

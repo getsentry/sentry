@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
+import {IconAdd} from '@sentry/icons/iconAdd';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 

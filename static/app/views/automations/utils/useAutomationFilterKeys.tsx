@@ -1,9 +1,10 @@
 import {useCallback, useMemo} from 'react';
+import {IconStar} from '@sentry/icons/iconStar';
+import {IconUser} from '@sentry/icons/iconUser';
 
 import {ItemType, type SearchGroup} from 'sentry/components/searchBar/types';
 import {escapeTagValue} from 'sentry/components/searchBar/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
-import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';

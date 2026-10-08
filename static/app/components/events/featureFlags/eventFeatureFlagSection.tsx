@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {IconSearch} from '@sentry/icons/iconSearch';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -25,7 +26,6 @@ import {
   KeyValueColumns,
   KeyValueTableDataRow,
 } from 'sentry/components/tables/keyValueTable';
-import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import {IssueCategory, type Group} from 'sentry/types/group';

@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {Fragment, isValidElement, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconGraph} from '@sentry/icons/iconGraph';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
@@ -42,7 +43,6 @@ import {
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
-import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';

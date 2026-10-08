@@ -1,3 +1,6 @@
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconDelete} from '@sentry/icons/iconDelete';
+
 import {AlertLink} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -6,7 +9,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Confirm} from 'sentry/components/confirm';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';

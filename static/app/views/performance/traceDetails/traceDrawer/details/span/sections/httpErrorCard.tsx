@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {HTTP_ERROR_STATUSES} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/constants';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';

@@ -1,10 +1,11 @@
+import {IconPlay} from '@sentry/icons/iconPlay';
+
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import {ReplayInlineCTAPanel} from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
 import {ReplaySection} from 'sentry/components/feedback/feedbackItem/replaySection';
 import {Placeholder} from 'sentry/components/placeholder';
 import {replayPlatforms} from 'sentry/data/platformCategories';
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';

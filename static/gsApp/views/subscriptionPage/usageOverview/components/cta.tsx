@@ -1,4 +1,9 @@
 import {Fragment, useState} from 'react';
+import {IconLightning} from '@sentry/icons/iconLightning';
+import {IconLock} from '@sentry/icons/iconLock';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconUpload} from '@sentry/icons/iconUpload';
 
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
@@ -9,7 +14,6 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconLightning, IconLock, IconOpen, IconSeer, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

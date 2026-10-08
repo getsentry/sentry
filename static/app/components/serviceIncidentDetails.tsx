@@ -1,4 +1,10 @@
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconFatal} from '@sentry/icons/iconFatal';
+import {IconFire} from '@sentry/icons/iconFire';
+import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconWarning} from '@sentry/icons/iconWarning';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
@@ -11,14 +17,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconCheckmark,
-  IconFatal,
-  IconFire,
-  IconInfo,
-  IconOpen,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   StatuspageIncident,

@@ -1,6 +1,7 @@
+import {IconCopy} from '@sentry/icons/iconCopy';
+
 import {Button} from '@sentry/scraps/button';
 
-import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

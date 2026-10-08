@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconArrow} from '@sentry/icons/iconArrow';
 import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -11,7 +12,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {AnimatedActivity} from 'sentry/components/animatedActivity';
-import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {

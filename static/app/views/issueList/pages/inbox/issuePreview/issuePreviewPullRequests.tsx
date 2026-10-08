@@ -1,10 +1,11 @@
+import {IconGithub} from '@sentry/icons/iconGithub';
+
 import {LinkButton} from '@sentry/scraps/button';
 
 import {
   partitionLinkedPullRequests,
   useLinkedPullRequests,
 } from 'sentry/components/group/externalIssuesList/linkedPullRequests';
-import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {LinkedPullRequest} from 'sentry/types/integrations';

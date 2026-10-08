@@ -1,5 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconDelete} from '@sentry/icons/iconDelete';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -13,7 +15,6 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuthenticatorDevice} from 'sentry/types/auth';
 

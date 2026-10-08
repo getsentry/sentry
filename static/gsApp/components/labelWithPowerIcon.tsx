@@ -1,8 +1,8 @@
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/iconBusiness';
 
 import Feature from 'sentry/components/acl/feature';
-import {IconBusiness} from 'sentry/icons';
 
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {withSubscription} from 'getsentry/components/withSubscription';

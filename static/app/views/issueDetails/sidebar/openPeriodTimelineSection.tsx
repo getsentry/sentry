@@ -1,4 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconFire} from '@sentry/icons/iconFire';
 import orderBy from 'lodash/orderBy';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -9,7 +11,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Timeline} from 'sentry/components/timeline';
-import {IconCheckmark, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import {unreachable} from 'sentry/utils/unreachable';

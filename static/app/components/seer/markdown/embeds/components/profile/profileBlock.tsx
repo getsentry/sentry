@@ -1,4 +1,5 @@
 import {useMemo, useState, type ReactNode} from 'react';
+import {IconProfiling} from '@sentry/icons/iconProfiling';
 import {useQuery} from '@tanstack/react-query';
 import queryString from 'query-string';
 
@@ -13,7 +14,6 @@ import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegra
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {Version} from 'sentry/components/version';
-import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getShortEventId} from 'sentry/utils/events';

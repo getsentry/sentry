@@ -1,7 +1,8 @@
+import {IconProfiling} from '@sentry/icons/iconProfiling';
+
 import {LinkButton} from '@sentry/scraps/button';
 
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
-import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';

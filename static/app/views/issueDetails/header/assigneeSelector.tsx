@@ -1,4 +1,6 @@
 import {useTheme} from '@emotion/react';
+import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconUser} from '@sentry/icons/iconUser';
 import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';
@@ -11,7 +13,6 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';

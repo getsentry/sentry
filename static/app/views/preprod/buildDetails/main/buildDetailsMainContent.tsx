@@ -1,6 +1,11 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconGraphCircle} from '@sentry/icons/iconGraphCircle';
+import {IconGrid} from '@sentry/icons/iconGrid';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconSearch} from '@sentry/icons/iconSearch';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -10,8 +15,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
-import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';

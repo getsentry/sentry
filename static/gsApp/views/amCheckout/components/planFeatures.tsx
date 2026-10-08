@@ -1,18 +1,16 @@
 import type React from 'react';
 import {useMemo} from 'react';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconLightning} from '@sentry/icons/iconLightning';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  IconAdd,
-  IconCheckmark,
-  IconClose,
-  IconLightning,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';

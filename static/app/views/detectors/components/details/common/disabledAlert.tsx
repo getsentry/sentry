@@ -1,7 +1,8 @@
+import {IconPlay} from '@sentry/icons/iconPlay';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';

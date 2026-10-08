@@ -1,4 +1,5 @@
 import {Fragment, useEffect} from 'react';
+import {IconEdit} from '@sentry/icons/iconEdit';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -7,7 +8,6 @@ import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';

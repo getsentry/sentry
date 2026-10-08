@@ -1,5 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
 import {css} from '@emotion/react';
+import {IconCommand} from '@sentry/icons/iconCommand';
 
 import {Button} from '@sentry/scraps/button';
 import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
@@ -8,7 +9,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {IconCommand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

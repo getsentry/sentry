@@ -1,5 +1,10 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconReturn} from '@sentry/icons/iconReturn';
+import {IconSeer} from '@sentry/icons/iconSeer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -21,7 +26,6 @@ import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {COLUMN_ALIGN_JUSTIFY} from 'sentry/components/tables/sortableHeaderCell';
-import {IconArrow, IconClose, IconEllipsis, IconReturn, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {

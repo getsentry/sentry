@@ -2,6 +2,10 @@ import type {MouseEvent} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconFileBroken} from '@sentry/icons/iconFileBroken';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconWarning} from '@sentry/icons/iconWarning';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -29,10 +33,6 @@ import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/u
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StrictClick} from 'sentry/components/strictClick';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
-import {IconFileBroken} from 'sentry/icons/iconFileBroken';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';

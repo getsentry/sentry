@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/iconBusiness';
+import {IconLock} from '@sentry/icons/iconLock';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {IconBusiness, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

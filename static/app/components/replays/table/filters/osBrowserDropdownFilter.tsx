@@ -1,10 +1,11 @@
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 import {
   ActionMenuTrigger,
   generateAction,
 } from 'sentry/components/replays/table/filters/utils';
-import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

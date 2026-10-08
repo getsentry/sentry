@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';

@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -12,7 +14,6 @@ import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomi
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
-import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member, Organization, OrgRole} from 'sentry/types/organization';
 

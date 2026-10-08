@@ -1,12 +1,12 @@
 import {Fragment, useRef, useState} from 'react';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconGraph} from '@sentry/icons/iconGraph';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock} from 'sentry/icons';
-import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {useChartInterval} from 'sentry/utils/useChartInterval';

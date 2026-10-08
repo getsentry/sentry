@@ -1,5 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/iconClock';
+import {IconFile} from '@sentry/icons/iconFile';
+import {IconJson} from '@sentry/icons/iconJson';
+import {IconLink} from '@sentry/icons/iconLink';
+import {IconMobile} from '@sentry/icons/iconMobile';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeBlock} from '@sentry/scraps/code';
@@ -7,7 +12,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';

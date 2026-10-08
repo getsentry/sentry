@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
+import {IconQuestion} from '@sentry/icons/iconQuestion';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {

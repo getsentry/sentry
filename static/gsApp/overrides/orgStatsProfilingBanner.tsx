@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
+import {IconShow} from '@sentry/icons/iconShow';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 

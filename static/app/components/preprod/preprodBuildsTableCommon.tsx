@@ -1,4 +1,7 @@
 import {Fragment} from 'react';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCommit} from '@sentry/icons/iconCommit';
+import {IconNot} from '@sentry/icons/iconNot';
 import {PlatformIcon} from 'platformicons';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -12,7 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {FullRowLink} from 'sentry/components/preprod/preprodBuildsTableStyles';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import {getDistributionErrorTooltip} from 'sentry/views/preprod/components/installDetailsContent';

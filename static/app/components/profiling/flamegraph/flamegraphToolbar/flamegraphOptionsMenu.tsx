@@ -1,4 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconSliders} from '@sentry/icons/iconSliders';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
@@ -6,7 +8,6 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ProfileChunkAttachmentsButton} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/profileChunkAttachmentsButton';
-import {IconChevron, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';

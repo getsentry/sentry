@@ -1,6 +1,7 @@
+import {IconSettings} from '@sentry/icons/iconSettings';
+
 import {Button} from '@sentry/scraps/button';
 
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';

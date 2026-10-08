@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconSearch} from '@sentry/icons/iconSearch';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
@@ -21,8 +23,6 @@ import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/
 import {SeerRepoTableHeader} from 'sentry/components/seer/repoTable/seerRepoTableHeader';
 import {SeerRepoTableRow} from 'sentry/components/seer/repoTable/seerRepoTableRow';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';

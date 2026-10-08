@@ -1,4 +1,9 @@
 import {Fragment, useMemo} from 'react';
+import {IconBookmark} from '@sentry/icons/iconBookmark';
+import {IconFilter} from '@sentry/icons/iconFilter';
+import {IconGroup} from '@sentry/icons/iconGroup';
+import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconSort} from '@sentry/icons/iconSort';
 import orderBy from 'lodash/orderBy';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -14,7 +19,6 @@ import {
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
-import {IconBookmark, IconFilter, IconGroup, IconIssues, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';

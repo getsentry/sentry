@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconImage} from '@sentry/icons/iconImage';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,7 +10,6 @@ import {Link} from '@sentry/scraps/link';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';

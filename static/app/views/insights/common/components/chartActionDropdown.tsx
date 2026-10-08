@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
 import type {LocationDescriptor} from 'history';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -7,7 +8,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';

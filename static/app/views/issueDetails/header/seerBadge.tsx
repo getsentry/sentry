@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
+import {IconSeer} from '@sentry/icons/iconSeer';
 
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 
 import {isIssueQuickFixable} from 'sentry/components/events/autofix/utils';
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';

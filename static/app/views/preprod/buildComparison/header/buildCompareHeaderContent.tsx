@@ -1,4 +1,10 @@
 import styled from '@emotion/styled';
+import {IconCode} from '@sentry/icons/iconCode';
+import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconJson} from '@sentry/icons/iconJson';
+import {IconMobile} from '@sentry/icons/iconMobile';
+import {IconRefresh} from '@sentry/icons/iconRefresh';
 import {PlatformIcon} from 'platformicons';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -13,14 +19,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {
-  IconCode,
-  IconDownload,
-  IconEllipsis,
-  IconJson,
-  IconMobile,
-  IconRefresh,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';

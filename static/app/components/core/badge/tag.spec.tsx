@@ -1,8 +1,8 @@
+import {IconFire} from '@sentry/icons/iconFire';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Tag} from '@sentry/scraps/badge';
-
-import {IconFire} from 'sentry/icons';
 
 describe('Tag', () => {
   it('basic', () => {

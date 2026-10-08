@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/iconBusiness';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
-import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

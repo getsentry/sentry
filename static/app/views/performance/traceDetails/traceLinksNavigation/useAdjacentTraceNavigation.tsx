@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
+import {IconChevron} from '@sentry/icons/iconChevron';
 
 import {ExternalLink} from '@sentry/scraps/link';
 import type {LinkProps} from '@sentry/scraps/link';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

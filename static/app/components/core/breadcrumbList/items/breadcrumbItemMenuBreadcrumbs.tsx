@@ -1,9 +1,9 @@
+import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {IconEllipsis} from 'sentry/icons';
 
 interface BreadcrumbMenuLinkItem {
   key: string;

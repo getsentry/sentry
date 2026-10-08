@@ -1,11 +1,11 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/iconArrow';
 
 import {CompactSelect, type SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';

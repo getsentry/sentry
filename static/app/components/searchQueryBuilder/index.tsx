@@ -1,6 +1,9 @@
 import {useCallback, useLayoutEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCase} from '@sentry/icons/iconCase';
+import {IconClose} from '@sentry/icons/iconClose';
+import {IconSearch} from '@sentry/icons/iconSearch';
 import type {QueryKey} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -28,7 +31,6 @@ import {
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
-import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';

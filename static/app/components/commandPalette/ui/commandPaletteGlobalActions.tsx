@@ -1,5 +1,31 @@
 import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
+import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAllProjects} from '@sentry/icons/iconAllProjects';
+import {IconBuilding} from '@sentry/icons/iconBuilding';
+import {IconCompass} from '@sentry/icons/iconCompass';
+import {IconDashboard} from '@sentry/icons/iconDashboard';
+import {IconDiscord} from '@sentry/icons/iconDiscord';
+import {IconDocs} from '@sentry/icons/iconDocs';
+import {IconFlag} from '@sentry/icons/iconFlag';
+import {IconGithub} from '@sentry/icons/iconGithub';
+import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconGroup} from '@sentry/icons/iconGroup';
+import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconLink} from '@sentry/icons/iconLink';
+import {IconList} from '@sentry/icons/iconList';
+import {IconLock} from '@sentry/icons/iconLock';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconRepository} from '@sentry/icons/iconRepository';
+import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconSiren} from '@sentry/icons/iconSiren';
+import {IconStar} from '@sentry/icons/iconStar';
+import {IconSubscribed} from '@sentry/icons/iconSubscribed';
+import {IconTerminal} from '@sentry/icons/iconTerminal';
+import {IconUser} from '@sentry/icons/iconUser';
 import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
@@ -28,34 +54,6 @@ import {
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
 import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
-import {
-  IconAdd,
-  IconAllProjects,
-  IconBuilding,
-  IconCompass,
-  IconDashboard,
-  IconDiscord,
-  IconDocs,
-  IconFlag,
-  IconGithub,
-  IconGroup,
-  IconGraph,
-  IconIssues,
-  IconLink,
-  IconList,
-  IconLock,
-  IconOpen,
-  IconPlay,
-  IconRepository,
-  IconSearch,
-  IconSeer,
-  IconSettings,
-  IconSiren,
-  IconStar,
-  IconSubscribed,
-  IconTerminal,
-  IconUser,
-} from 'sentry/icons';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';

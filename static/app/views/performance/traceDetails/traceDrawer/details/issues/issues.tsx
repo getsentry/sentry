@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/iconOpen';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';

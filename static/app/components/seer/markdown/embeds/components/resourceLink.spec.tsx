@@ -1,6 +1,6 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {IconDocs} from '@sentry/icons/iconDocs';
 
-import {IconDocs} from 'sentry/icons';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ResourceLink, resourceLinkMarkdown} from './resourceLink';
 

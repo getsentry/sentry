@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/iconClose';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {StoredGlobalAlert} from './globalAlerts';

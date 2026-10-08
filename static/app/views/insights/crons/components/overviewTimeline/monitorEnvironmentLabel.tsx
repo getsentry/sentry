@@ -1,16 +1,14 @@
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconFire} from '@sentry/icons/iconFire';
+import {IconFix} from '@sentry/icons/iconFix';
+import {IconMute} from '@sentry/icons/iconMute';
+import {IconTimer} from '@sentry/icons/iconTimer';
+import {IconUnsubscribed} from '@sentry/icons/iconUnsubscribed';
 
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  IconCheckmark,
-  IconFire,
-  IconFix,
-  IconMute,
-  IconTimer,
-  IconUnsubscribed,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   MonitorStatus,

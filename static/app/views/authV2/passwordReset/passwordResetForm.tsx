@@ -1,4 +1,7 @@
 import {Fragment, useState} from 'react';
+import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconHide} from '@sentry/icons/iconHide';
+import {IconShow} from '@sentry/icons/iconShow';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -8,7 +11,6 @@ import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {PasswordStrengthIndicator} from 'sentry/components/passwordStrengthIndicator';
-import {IconArrow, IconHide, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';

@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {IconSeer} from '@sentry/icons/iconSeer';
 import {useQuery} from '@tanstack/react-query';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
@@ -12,7 +13,6 @@ import {
   getOrderedAutofixSections,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {IconSeer} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

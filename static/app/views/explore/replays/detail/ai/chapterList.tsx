@@ -1,5 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconFire} from '@sentry/icons/iconFire';
+import {IconMegaphone} from '@sentry/icons/iconMegaphone';
 import classNames from 'classnames';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -8,7 +11,6 @@ import {Link} from '@sentry/scraps/link';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';

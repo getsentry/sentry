@@ -1,13 +1,15 @@
 import {useMemo} from 'react';
 import type React from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconUpload} from '@sentry/icons/iconUpload';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconCheckmark, IconOpen, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import type {MenuItemProps} from 'sentry/views/seerExplorer/components/explorerMenu';

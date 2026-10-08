@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconTimer} from '@sentry/icons/iconTimer';
+import {IconUser} from '@sentry/icons/iconUser';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import pick from 'lodash/pick';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -14,8 +17,6 @@ import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {ActorBadge} from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconTimer, IconUser} from 'sentry/icons';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t, tn} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {getDuration} from 'sentry/utils/duration/getDuration';

@@ -1,9 +1,10 @@
+import {IconWarning} from '@sentry/icons/iconWarning';
+
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {Panel} from 'sentry/components/panels/panel';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
