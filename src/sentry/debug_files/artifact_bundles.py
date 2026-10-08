@@ -541,7 +541,9 @@ def get_project_bundle_ids_containing_debug_id(
 ) -> list[int] | None:
     """
     Returns the ids of the project's bundles that contain the given `debug_id`, or `None` if the
-    debug ID has more than `max_rows` rows.
+    debug ID has more than `max_rows` rows. The rows are read in no particular order, so then they
+    may leave out some of the project's bundles, and the caller falls back to the join, which reads
+    every row of the debug ID.
 
     When the bundle, project and debug-ID tables are joined in a single query, Postgres may start
     from every bundle of the project and check each one for the debug ID, which reads far more
