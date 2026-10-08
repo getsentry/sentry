@@ -1090,7 +1090,7 @@ export function CustomFilters({project}: {project: Project}) {
   return (
     <Stack gap="lg">
       <Heading as="h2" size="md">
-        {t('Filter Rules')}
+        {t('Custom Inbound Filters')}
       </Heading>
       <Flex gap="md" align="center">
         <Flex flex={1}>
@@ -1100,8 +1100,8 @@ export function CustomFilters({project}: {project: Project}) {
             </InputGroup.LeadingItems>
             <InputGroup.Input
               size="sm"
-              aria-label={t('Search rules')}
-              placeholder={t('Search rules')}
+              aria-label={t('Search filters')}
+              placeholder={t('Search filters')}
               value={query}
               onChange={e => setQuery(e.target.value)}
             />
@@ -1177,8 +1177,8 @@ export function CustomFilters({project}: {project: Project}) {
               {visibleFilters.length === 0 && (
                 <SimpleTable.Empty>
                   {filters.length === 0
-                    ? t('No inbound filters found')
-                    : t('No rules match your search')}
+                    ? t('No custom inbound filters yet')
+                    : t('No filters match your search')}
                 </SimpleTable.Empty>
               )}
               {visibleFilters.map(filter => (
