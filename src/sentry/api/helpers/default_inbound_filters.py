@@ -25,6 +25,11 @@ def set_default_inbound_filters(
         "opera_mini",
         "android",
         "edge",
+        "chrome_mobile",
+        "safari_mobile",
+        "firefox_mobile",
+        "edge_mobile",
+        "opera_mobile",
     ]
 
     for filter_id in filters:
