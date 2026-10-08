@@ -6,6 +6,7 @@ from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    MAX_FILTERS_PER_PROJECT,
     ConditionType,
     CustomInboundFilter,
     DataType,
@@ -609,6 +610,10 @@ _CONDITION_MATCHERS: Mapping[
         DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
     },
     ConditionType.IP_ADDRESS: _client_ip_matcher,
+    # Relay fills the geo from the client IP before filtering, unless the SDK sent one.
+    ConditionType.GEO_COUNTRY_CODE: {
+        DataType.ERROR: _field_matcher("event.user.geo.country_code"),
+    },
 }
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
@@ -698,7 +703,7 @@ def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericF
     # through the legacy path, so serving it here would filter the same data twice.
     custom_filters = CustomInboundFilter.objects.filter(
         project_id=project.id, active=True, legacy_filter__isnull=True
-    ).order_by("id")
+    ).order_by("id")[:MAX_FILTERS_PER_PROJECT]
     for custom_filter in custom_filters:
         condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)
         if condition is not None:

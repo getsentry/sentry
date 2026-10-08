@@ -215,35 +215,6 @@ export function getContextKeys({
   );
 }
 
-/**
- * Registry field names for context keys the SDKs spell differently. A key only
- * belongs here when its field definition describes the same value: `trace.span_id`
- * is absent because `trace.span` documents the root span, not the event's own span.
- */
-const CONTEXT_ATTRIBUTE_KEYS: Record<string, string> = {
-  'trace.parent_span_id': 'trace.parent_span',
-  'trace.trace_id': 'trace',
-  'user.ip_address': 'user.ip',
-};
-
-/**
- * The key a context row's field definition is registered under. Built from the
- * context's type rather than its alias, since an alias can be renamed by the SDK
- * or the user (`client_os` for an `os` context) while the type stays canonical.
- */
-export function getContextAttributeKey({
-  alias,
-  contextKey,
-  type,
-}: {
-  alias: string;
-  contextKey: string;
-  type?: string;
-}): string {
-  const attributeKey = `${getContextType({alias, type})}.${contextKey}`;
-  return CONTEXT_ATTRIBUTE_KEYS[attributeKey] ?? attributeKey;
-}
-
 export function getContextTitle({
   alias,
   type,

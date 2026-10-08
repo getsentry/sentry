@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DataTable} from 'sentry/components/tables/dataTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {
@@ -17,11 +17,10 @@ import {
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import {Table} from 'sentry/views/explore/multiQueryMode/components/miniTable';
 import type {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -90,22 +89,21 @@ function AggregatesTable({
 
   return (
     <Fragment>
-      <Table
-        fields={fields}
-        height={TABLE_HEIGHT}
+      <SimpleTable
+        columns={fields.map(field => ({key: field}))}
+        maxHeight={TABLE_HEIGHT}
         minimumColumnWidth={50}
-        prefixColumnWidth="min-content"
+        prependColumnWidths={['min-content']}
         scrollable
-      >
-        <DataTable.Head>
-          <DataTable.Row>
-            <TableHeadCell isFirst={false}>
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>
               <Flex align="center" gap="xs" />
-            </TableHeadCell>
+            </SimpleTable.HeaderCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <SimpleTable.HeaderCell key={i} />;
               }
 
               let label = field;
@@ -126,52 +124,51 @@ function AggregatesTable({
               const direction = sortBys.find(s => s.field === field)?.kind;
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0} sort={direction}>
+                <SimpleTable.HeaderCell align={align} key={i} sort={direction}>
                   {label}
-                </TableHeadCell>
+                </SimpleTable.HeaderCell>
               );
             })}
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {result.isPending ? (
-            <DataTable.Loading />
-          ) : result.isError ? (
-            <DataTable.Error />
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => {
-              const target = getSamplesTargetAtIndex(index, [...queries], row, location);
-              return (
-                <DataTable.Row key={i}>
-                  <TableBodyCell key={`samples-${i}`}>
-                    {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
-                    <Tooltip title={t('View Samples')} containerDisplayMode="flex">
-                      <StyledLink to={target} data-test-id="unstack-link">
-                        <IconStack />
-                      </StyledLink>
-                    </Tooltip>
-                  </TableBodyCell>
-                  {fields.map((field, j) => {
-                    return (
-                      <TableBodyCell key={j}>
-                        <MultiQueryFieldRenderer
-                          index={index}
-                          column={columns[j]}
-                          data={row}
-                          unit={meta?.units?.[field]}
-                          meta={meta}
-                        />
-                      </TableBodyCell>
-                    );
-                  })}
-                </DataTable.Row>
-              );
-            })
-          ) : (
-            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
-          )}
-        </DataTable.Body>
-      </Table>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {result.isPending ? (
+          <SimpleTable.Loading />
+        ) : result.isError ? (
+          <SimpleTable.Error />
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => {
+            const target = getSamplesTargetAtIndex(index, [...queries], row, location);
+            return (
+              <SimpleTable.Row key={i}>
+                <SimpleTable.RowCell key={`samples-${i}`}>
+                  {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
+                  <Tooltip title={t('View Samples')} containerDisplayMode="flex">
+                    <StyledLink to={target} data-test-id="unstack-link">
+                      <IconStack />
+                    </StyledLink>
+                  </Tooltip>
+                </SimpleTable.RowCell>
+                {fields.map((field, j) => {
+                  return (
+                    <SimpleTable.RowCell key={j}>
+                      <MultiQueryFieldRenderer
+                        index={index}
+                        column={columns[j]}
+                        data={row}
+                        unit={meta?.units?.[field]}
+                        meta={meta}
+                      />
+                    </SimpleTable.RowCell>
+                  );
+                })}
+              </SimpleTable.Row>
+            );
+          })
+        ) : (
+          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+        )}
+      </SimpleTable>
     </Fragment>
   );
 }
@@ -198,18 +195,17 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 
   return (
     <Fragment>
-      <Table
-        fields={visibleFields}
-        height={TABLE_HEIGHT}
+      <SimpleTable
+        columns={visibleFields.map(field => ({key: field}))}
+        maxHeight={TABLE_HEIGHT}
         minimumColumnWidth={50}
         scrollable
-      >
-        <DataTable.Head>
-          <DataTable.Row>
+        header={
+          <SimpleTable.HeaderRow>
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <SimpleTable.HeaderCell key={i} />;
               }
 
               const fieldType = meta.fields?.[field];
@@ -221,41 +217,40 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0} sort={direction}>
+                <SimpleTable.HeaderCell align={align} key={i} sort={direction}>
                   {label}
-                </TableHeadCell>
+                </SimpleTable.HeaderCell>
               );
             })}
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {result.isPending ? (
-            <DataTable.Loading />
-          ) : result.isError ? (
-            <DataTable.Error />
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => (
-              <DataTable.Row key={i}>
-                {visibleFields.map((field, j) => {
-                  return (
-                    <TableBodyCell key={j}>
-                      <MultiQueryFieldRenderer
-                        index={index}
-                        column={columnsFromEventView[j]}
-                        data={row}
-                        unit={meta?.units?.[field]}
-                        meta={meta}
-                      />
-                    </TableBodyCell>
-                  );
-                })}
-              </DataTable.Row>
-            ))
-          ) : (
-            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
-          )}
-        </DataTable.Body>
-      </Table>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {result.isPending ? (
+          <SimpleTable.Loading />
+        ) : result.isError ? (
+          <SimpleTable.Error />
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => (
+            <SimpleTable.Row key={i}>
+              {visibleFields.map((field, j) => {
+                return (
+                  <SimpleTable.RowCell key={j}>
+                    <MultiQueryFieldRenderer
+                      index={index}
+                      column={columnsFromEventView[j]}
+                      data={row}
+                      unit={meta?.units?.[field]}
+                      meta={meta}
+                    />
+                  </SimpleTable.RowCell>
+                );
+              })}
+            </SimpleTable.Row>
+          ))
+        ) : (
+          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+        )}
+      </SimpleTable>
     </Fragment>
   );
 }
@@ -272,14 +267,4 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
 const StyledLink = styled(Link)`
   display: flex;
-`;
-
-const TableBodyCell = styled(DataTable.Cell)`
-  font-size: ${p => p.theme.font.size.sm};
-  min-height: 12px;
-`;
-
-const TableHeadCell = styled(DataTable.HeadCell)`
-  font-size: ${p => p.theme.font.size.sm};
-  height: 33px;
 `;

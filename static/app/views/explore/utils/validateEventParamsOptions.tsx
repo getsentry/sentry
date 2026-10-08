@@ -4,9 +4,7 @@ import {z} from 'zod';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {defined} from 'sentry/utils/defined';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -62,7 +60,6 @@ type ValidateEventParamsOptions = {
   field?: string[];
   orderBy?: string[];
   projectIds?: Array<string | number>;
-  projects?: Project[];
   query?: string;
 };
 
@@ -74,12 +71,9 @@ export function validateEventParamsOptions({
   field,
   orderBy,
   projectIds: explicitProjectIds,
-  projects,
   query,
 }: ValidateEventParamsOptions) {
-  const projectIds =
-    explicitProjectIds ??
-    (defined(projects) ? projects.map(project => project.id) : selection.projects);
+  const projectIds = explicitProjectIds ?? selection.projects;
 
   const baseOptions = apiOptions.as<z.infer<typeof EventValidationSchema>>()(
     '/organizations/$organizationIdOrSlug/events/validate/',

@@ -3,7 +3,7 @@ import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
 
 export function IssueOccurrencesDetails({condition}: {condition: DataCondition}) {
   return tct('The issue has happened at least [value] times', {

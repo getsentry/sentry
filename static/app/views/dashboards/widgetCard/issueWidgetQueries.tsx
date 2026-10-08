@@ -1,10 +1,8 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
-import {
-  IssuesConfig,
-  type IssuesSeriesResponse,
-} from 'sentry/views/dashboards/datasetConfig/issues';
+import {IssuesConfig} from 'sentry/views/dashboards/datasetConfig/issues';
+import type {IssuesSeriesResponse} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToSeries';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 
 import type {

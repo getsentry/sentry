@@ -3,12 +3,12 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {isEquation, parseFunction} from 'sentry/utils/discover/fields';

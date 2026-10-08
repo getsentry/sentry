@@ -137,9 +137,7 @@ describe('EditHighlightsModal', () => {
     const previewSection = screen.getByTestId('highlights-preview-section');
     expect(screen.queryByTestId('highlights-empty-preview')).not.toBeInTheDocument();
     highlightTags.forEach(tag => {
-      const tagItem = within(previewSection).getByText(tag, {
-        ignore: '[aria-hidden="true"]',
-      });
+      const tagItem = within(previewSection).getByText(tag, {selector: 'div'});
       expect(tagItem).toBeInTheDocument();
     });
     const previewTagButtons = screen.queryAllByTestId('highlights-remove-tag');
@@ -175,9 +173,7 @@ describe('EditHighlightsModal', () => {
     const defaultButton = screen.getByRole('button', {name: 'Use Defaults'});
     await userEvent.click(defaultButton);
     highlightTags.forEach(tag => {
-      const tagItem = within(previewSection).queryByText(tag, {
-        ignore: '[aria-hidden="true"]',
-      });
+      const tagItem = within(previewSection).queryByText(tag, {selector: 'div'});
       expect(tagItem).not.toBeInTheDocument();
     });
     highlightContextTitles.forEach(titleString => {
@@ -225,13 +221,13 @@ describe('EditHighlightsModal', () => {
       expect(addButton).toHaveAttribute('aria-disabled', String(isHighlighted));
       if (!isHighlighted) {
         const previewTagItem = within(previewSection).queryByText(tag.key, {
-          ignore: '[aria-hidden="true"]',
+          selector: 'div',
         });
         expect(previewTagItem).not.toBeInTheDocument();
         await userEvent.click(addButton);
       }
       const previewTagItem = within(previewSection).getByText(tag.key, {
-        ignore: '[aria-hidden="true"]',
+        selector: 'div',
       });
       const removeButton = previewTagItem?.closest(
         "div[data-test-id='highlights-preview-tag']"
