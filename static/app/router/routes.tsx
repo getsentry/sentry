@@ -1648,6 +1648,10 @@ function buildRoutes(): RouteObject[] {
           index: true,
           component: make(() => import('sentry/views/dashboards/manage')),
         },
+        {
+          path: 'browse/',
+          component: make(() => import('sentry/views/dashboards/landing')),
+        },
         traceView,
       ],
     },
@@ -1658,6 +1662,10 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           component: make(() => import('sentry/views/dashboards/manage')),
+        },
+        {
+          path: 'browse/',
+          component: make(() => import('sentry/views/dashboards/landing')),
         },
         traceView,
       ],

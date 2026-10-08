@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -262,7 +262,7 @@ function ManageDashboards() {
   const activeSort = getActiveSort();
   const actions = (
     <Grid
-      columns={{zero: 'auto', xl: 'auto max-content max-content'}}
+      columns={{zero: 'auto', xl: 'auto max-content max-content max-content'}}
       gap="md"
       marginBottom="xl"
     >
@@ -281,6 +281,9 @@ function ManageDashboards() {
         position="bottom-end"
         data-test-id="sort-by-select"
       />
+      <LinkButton to={`/organizations/${organization.slug}/dashboards/browse/`}>
+        {t('Browse Dashboards')}
+      </LinkButton>
       {areAiFeaturesAllowed(organization) ? (
         <DashboardCreateLimitWrapper>
           {({
