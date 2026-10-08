@@ -1,4 +1,4 @@
-import { AsyncQueuer } from "@tanstack/react-pacer";
+import {AsyncQueuer} from '@tanstack/react-pacer';
 
 interface LimitedRequest {
   reject: (reason: unknown) => void;
@@ -26,7 +26,7 @@ export function createConcurrencyLimiter({
   key: string;
 }) {
   const queuer = new AsyncQueuer<LimitedRequest>(
-    async ({ reject, run, signal }) => {
+    async ({reject, run, signal}) => {
       // TanStack aborts the signal when nothing observes the query anymore,
       // e.g. the user navigated away. Skip the request so it doesn't hold up
       // requests that are still wanted.
@@ -40,13 +40,10 @@ export function createConcurrencyLimiter({
         reject(error);
       }
     },
-    { concurrency, key, started: true }
+    {concurrency, key, started: true}
   );
 
-  return function limit<T>(
-    run: () => Promise<T>,
-    signal?: AbortSignal
-  ): Promise<T> {
+  return function limit<T>(run: () => Promise<T>, signal?: AbortSignal): Promise<T> {
     const deferred = Promise.withResolvers<T>();
     queuer.addItem({
       reject: deferred.reject,
