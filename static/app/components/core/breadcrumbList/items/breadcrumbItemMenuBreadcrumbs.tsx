@@ -8,7 +8,8 @@ import {IconEllipsis} from 'sentry/icons';
 interface BreadcrumbMenuLinkItem {
   key: string;
   label: string;
-  to: LinkProps['to'];
+  externalHref?: string;
+  to?: LinkProps['to'];
 }
 
 interface BreadcrumbItemMenuBreadcrumbsProps {

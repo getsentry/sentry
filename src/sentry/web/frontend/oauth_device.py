@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from django.conf import settings
+from django.contrib.auth.views import redirect_to_login
 from django.db import IntegrityError, router, transaction
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
+from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
@@ -17,9 +20,12 @@ from sentry.models.apidevicecode import (
     DeviceCodeStatus,
 )
 from sentry.ratelimits import backend as ratelimiter
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
-from sentry.utils import metrics
-from sentry.web.frontend.auth_login import AuthLoginView
+from sentry.utils import auth, metrics
+from sentry.web.client_config import get_client_config
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 logger = logging.getLogger("sentry.oauth")
 
@@ -56,7 +62,9 @@ def _normalize_user_code(user_code: str) -> str:
     return user_code.upper().strip()
 
 
-class OAuthDeviceView(AuthLoginView):
+@control_silo_view
+@method_decorator(never_cache, name="dispatch")
+class OAuthDeviceView(BaseView):
     """
     Device verification page for OAuth 2.0 Device Flow (RFC 8628 §3.3).
 
@@ -83,18 +91,24 @@ class OAuthDeviceView(AuthLoginView):
     - Remote phishing mitigation: https://datatracker.ietf.org/doc/html/rfc8628#section-5.4
     """
 
-    auth_required = False
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=20, window=1)}}
+    )
 
-    def get_next_uri(self, request: HttpRequest) -> str:
-        return request.get_full_path()
+    def handle_auth_required(self, request: HttpRequest, **kwargs) -> HttpResponse:
+        auth.initiate_login(request, next_url=request.get_full_path())
+        return redirect_to_login(request.get_full_path(), reverse("sentry-login"))
 
-    def respond_login(self, request: HttpRequest, context, **kwargs):
-        context["banner"] = "Authorize Device"
-        return self.respond("sentry/login.html", context)
+    def get_context_data(self, request: HttpRequest, **kwargs) -> dict:
+        return {
+            **super().get_context_data(request, **kwargs),
+            "react_config": get_client_config(request, self.active_organization),
+        }
 
     def _error_response(self, request: HttpRequest, error: str) -> HttpResponseBase:
         """Return an error response on the device code entry page."""
-        context = self.get_default_context(request) | {
+        context = {
             "user": request.user,
             "error": error,
         }
@@ -155,20 +169,10 @@ class OAuthDeviceView(AuthLoginView):
         # confirmation guidance in §5.4.
         user_code = request.GET.get("user_code", "").upper().strip()
 
-        if not request.user.is_authenticated:
-            # Store user_code in session for after login
-            if user_code:
-                request.session["device_user_code"] = user_code
-            return super().get(request, **kwargs)
-
         if user_code:
             return self._show_approval_form(request, user_code)
 
-        stored_code = request.session.pop("device_user_code", None)
-        if stored_code:
-            return self._show_approval_form(request, stored_code)
-
-        context = self.get_default_context(request) | {
+        context = {
             "user": request.user,
         }
         return self.respond("sentry/oauth-device.html", context)
@@ -234,7 +238,7 @@ class OAuthDeviceView(AuthLoginView):
             "user_id": request.user.id,
         }
 
-        context = self.get_default_context(request) | {
+        context = {
             "user": request.user,
             "application": application,
             "scopes": scopes,
@@ -266,7 +270,7 @@ class OAuthDeviceView(AuthLoginView):
             },
         )
 
-        context = self.get_default_context(request) | {
+        context = {
             "user": request.user,
             "message": "Authorization denied. You can close this window.",
         }
@@ -353,25 +357,14 @@ class OAuthDeviceView(AuthLoginView):
             },
         )
 
-        context = self.get_default_context(request) | {
+        context = {
             "user": request.user,
             "message": f"Authorization approved! Your device should now be connected to {application.name}. You can close this window.",
             "application": application,
         }
         return self.respond("sentry/oauth-device-complete.html", context)
 
-    def _logged_out_post(self, request: HttpRequest, **kwargs: Any) -> HttpResponseBase:
-        """Handle POST when user is not logged in."""
-        response = super().post(request, **kwargs)
-        if request.user.is_authenticated:
-            # Regenerate session to prevent session fixation
-            request.session.cycle_key()
-        return response
-
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
-        if not request.user.is_authenticated:
-            return self._logged_out_post(request, **kwargs)
-
         # Check if this is an approve/deny action (from the approval form)
         # Must check op FIRST since approval form also includes user_code as hidden field
         op = request.POST.get("op")

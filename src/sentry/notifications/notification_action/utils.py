@@ -1,8 +1,15 @@
 import logging
 
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    NotificationContext,
+    OpenPeriodContext,
+)
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
     activity_handler_registry,
     group_type_notification_registry,
@@ -18,8 +25,9 @@ from sentry.notifications.platform.templates.issue import (
     SerializableRuleProxy,
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
-from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
@@ -132,60 +140,69 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
     event_data = invocation.event_data
 
     handler = issue_alert_handler_registry.get(action.type)
-    rule_instance = handler.create_rule_instance_from_action(
-        action=action,
-        detector=detector,
-        event_data=event_data,
-        workflow_id=invocation.workflow_id,
+    origin = handler.create_notification_origin(
+        detector, event_data, workflow_id=invocation.workflow_id
+    )
+    rule_data = handler.build_rule_data_from_action(action, detector, origin)
+    rule = SerializableRuleProxy.from_origin(
+        origin,
+        action_id=action.id,
+        data=dict(rule_data),
+        project_id=detector.linked_project.id,
     )
     tags = action.data.get("tags", None)
     tag_list = [tag.strip() for tag in tags.split(",")] if tags else None
     notes = action.data.get("notes", None)
-    rule = SerializableRuleProxy.from_rule(rule_instance)
 
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
+    occurrence_id = (
+        event_data.event.occurrence_id if isinstance(event_data.event, GroupEvent) else None
+    )
 
     return IssueNotificationData(
         organization_id=event_data.group.project.organization_id,
         tags=tag_list,
         notes=notes,
         event_id=event_id,
+        occurrence_id=occurrence_id,
         group_id=event_data.group.id,
+        integration_id=action.integration_id,
         notification_uuid=invocation.notification_uuid,
         rule=rule,
     )
 
 
 def metric_alert_notification_data_factory(
-    issue_notif_context: IssueNotificationContext,
     *,
+    action_type: str,
+    notification_context: NotificationContext,
+    alert_context: AlertContext,
+    metric_issue_context: MetricIssueContext,
+    open_period_context: OpenPeriodContext,
+    organization: Organization,
+    notification_uuid: str,
     chart_url: str | None,
 ) -> MetricAlertNotificationData:
-    notification_context = issue_notif_context.notification_context
-    alert_context = issue_notif_context.alert_context
-    metric_issue_context = issue_notif_context.metric_issue_context
-    open_period_context = issue_notif_context.open_period_context
-    organization = issue_notif_context.organization
-
     if notification_context.integration_id is None:
         raise ValueError("Integration ID is None")
 
     if notification_context.target_identifier is None:
         raise ValueError("Target identifier is None")
 
-    referrer = f"metric_alert_{issue_notif_context.action_type}"
+    if action_type == Action.Type.SLACK_STAGING:
+        action_type = Action.Type.SLACK
     attachment_info = incident_attachment_info(
         organization=organization,
         alert_context=alert_context,
         metric_issue_context=metric_issue_context,
-        notification_uuid=issue_notif_context.notification_uuid,
-        referrer=referrer,
+        notification_uuid=notification_uuid,
+        referrer=f"metric_alert_{action_type}",
     )
 
     return MetricAlertNotificationData(
         group_id=metric_issue_context.id,
         organization_id=organization.id,
-        notification_uuid=issue_notif_context.notification_uuid,
+        notification_uuid=notification_uuid,
         action_id=notification_context.id,
         open_period_context=open_period_context,
         new_status=metric_issue_context.new_status.value,

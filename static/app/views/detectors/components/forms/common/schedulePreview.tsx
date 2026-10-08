@@ -24,6 +24,7 @@ import {
   useMonitorsScheduleSamples,
   type UseMonitorsScheduleSamplesOptions,
 } from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
+import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 
 interface SchedulePreviewProps extends UseMonitorsScheduleSamplesOptions {
   statusToText: Record<SchedulePreviewStatus, string>;
@@ -307,12 +308,13 @@ const OpenPeriodCountLabel = styled('div')`
 `;
 
 const StyledContainer = styled(Container)`
-  top: 8px;
+  top: calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + 8px);
   z-index: ${p => p.theme.zIndex.header};
   /*
     * Prevent seeing content beneath in the uncovered strip above the sticky element.
     * Use a solid, zero-blur shadow so we don't paint over the border.
     */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The shadow fills the uncovered strip with the sticky element's background. */
   box-shadow: 0 -8px 0 0 ${p => p.theme.tokens.background.primary};
 `;
 

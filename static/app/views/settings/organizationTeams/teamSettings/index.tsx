@@ -29,6 +29,7 @@ import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -90,6 +91,7 @@ export default function TeamSettings() {
 
   return (
     <FormSearch route="/settings/:orgId/teams/:teamId/settings/">
+      <BreadcrumbTitle title={t('Settings')} />
       <SentryDocumentTitle title={t('Team Settings')} orgSlug={organization.slug} />
 
       <ProjectPermissionAlert access={['team:write']} team={team} />

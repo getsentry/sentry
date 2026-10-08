@@ -30,7 +30,7 @@ class DispatchFirstAssignmentSummaryTest(TestCase):
 
         mock_delay.assert_called_once_with(
             group.id,
-            source=SeerAutomationSource.FIRST_ASSIGNMENT,
+            source=SeerAutomationSource.FIRST_ASSIGNMENT.value,
         )
 
     @with_feature(
@@ -64,7 +64,7 @@ class DispatchFirstAssignmentSummaryTest(TestCase):
         with self.capture_on_commit_callbacks(execute=True):
             GroupAssignee.objects.assign(self.group, self.user)
         mock_delay.assert_called_once_with(
-            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT
+            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT.value
         )
 
         with self.capture_on_commit_callbacks(execute=True):
@@ -73,7 +73,7 @@ class DispatchFirstAssignmentSummaryTest(TestCase):
             GroupAssignee.objects.assign(self.group, self.user)
 
         mock_delay.assert_called_once_with(
-            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT
+            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT.value
         )
 
     @with_feature({"organizations:issue-summary-on-first-assignment": False})
@@ -107,7 +107,7 @@ class DispatchFirstAssignmentSummaryTest(TestCase):
             GroupAssignee.objects.assign(self.group, self.user)
             GroupAssignee.objects.deassign(self.group)
         mock_delay.assert_called_once_with(
-            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT
+            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT.value
         )
         GroupDerivedData.objects.filter(group_id=self.group.id).update(
             pipeline_hash="outdated", data={}
@@ -121,7 +121,7 @@ class DispatchFirstAssignmentSummaryTest(TestCase):
             GroupAssignee.objects.assign(self.group, self.team)
 
         mock_delay.assert_called_once_with(
-            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT
+            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT.value
         )
         assert GroupDerivedData.objects.values().get(group_id=self.group.id) == before
 
@@ -135,7 +135,7 @@ class DispatchFirstAssignmentSummaryTest(TestCase):
         with self.capture_on_commit_callbacks(execute=True):
             GroupAssignee.objects.assign(self.group, self.user)
         mock_delay.assert_called_once_with(
-            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT
+            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT.value
         )
         GroupDerivedData.objects.filter(group_id=self.group.id).delete()
 
@@ -146,7 +146,7 @@ class DispatchFirstAssignmentSummaryTest(TestCase):
             GroupAssignee.objects.assign(self.group, self.team)
 
         mock_delay.assert_called_once_with(
-            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT
+            self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT.value
         )
         assert not GroupDerivedData.objects.filter(group_id=self.group.id).exists()
 
@@ -168,7 +168,9 @@ class DispatchFirstAssignmentSummaryTest(TestCase):
         with self.capture_on_commit_callbacks(execute=True):
             GroupAssignee.objects.assign(group, self.user)
 
-        mock_delay.assert_called_once_with(group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT)
+        mock_delay.assert_called_once_with(
+            group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT.value
+        )
 
     @patch("sentry.tasks.seer.autofix.summarize_issue.delay")
     def test_does_not_dispatch_for_assignment_before_feature_was_enabled(
