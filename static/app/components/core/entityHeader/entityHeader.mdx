@@ -361,7 +361,7 @@ Two values rather than one joined string is the point: a browser is its name _an
 
 The row's `label` names it. Without one a screen reader meets a run of unrelated strings with nothing saying they belong together, or to what.
 
-Each item's own label is in the DOM whether or not it is on screen, so an item is one stop that reads "Started at, 2 hours ago". `showLabel` renders the label as text too — the graphic beside the values usually carries it, and a header has no room to name every property, so it is hidden by default. Showing it is a question of visibility only; what is read does not change.
+Each item's own label is in the DOM whether or not it is on screen, so an item is one stop that reads "Started at, 2 hours ago". `mode` decides whether that label is also drawn — `compact` leaves naming the property to the graphic beside it, `full` spells it out. Either way the label is announced; the mode is a question of visibility only.
 
 A description list would tie each label to its value structurally, which sounds like the better answer and is not: marking them up as a `dt` and a `dd` made VoiceOver narrate the pairing itself — "term", then "selectable list item", then "end of term" — before it reached the value. One named item beats two correctly-related ones.
 
@@ -375,11 +375,11 @@ A description list would tie each label to its value structurally, which sounds 
     metadata={{
       label: 'Issue properties',
       items: [
-        {label: 'Mechanism', values: ['generic'], showLabel: true, variant: 'primary'},
-        {label: 'Level', values: ['error'], showLabel: true, variant: 'muted'},
-        {label: 'Handling', values: ['Unhandled'], showLabel: true, variant: 'danger'},
-        {label: 'Status', values: ['Resolved'], showLabel: true, variant: 'success'},
-        {label: 'Trend', values: ['Regressed'], showLabel: true, variant: 'warning'},
+        {label: 'Mechanism', values: ['generic'], mode: 'full', variant: 'primary'},
+        {label: 'Level', values: ['error'], mode: 'full', variant: 'muted'},
+        {label: 'Handling', values: ['Unhandled'], mode: 'full', variant: 'danger'},
+        {label: 'Status', values: ['Resolved'], mode: 'full', variant: 'success'},
+        {label: 'Trend', values: ['Regressed'], mode: 'full', variant: 'warning'},
       ],
     }}
   />
@@ -387,11 +387,11 @@ A description list would tie each label to its value structurally, which sounds 
 
 ```jsx
 items={[
-  {label: t('Mechanism'), values: ['generic'], showLabel: true, variant: 'primary'},
-  {label: t('Level'), values: ['error'], showLabel: true, variant: 'muted'},
-  {label: t('Handling'), values: [t('Unhandled')], showLabel: true, variant: 'danger'},
-  {label: t('Status'), values: [t('Resolved')], showLabel: true, variant: 'success'},
-  {label: t('Trend'), values: [t('Regressed')], showLabel: true, variant: 'warning'},
+  {label: t('Mechanism'), values: ['generic'], mode: 'full', variant: 'primary'},
+  {label: t('Level'), values: ['error'], mode: 'full', variant: 'muted'},
+  {label: t('Handling'), values: [t('Unhandled')], mode: 'full', variant: 'danger'},
+  {label: t('Status'), values: [t('Resolved')], mode: 'full', variant: 'success'},
+  {label: t('Trend'), values: [t('Regressed')], mode: 'full', variant: 'warning'},
 ]}
 ```
 

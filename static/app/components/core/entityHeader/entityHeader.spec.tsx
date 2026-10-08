@@ -681,7 +681,7 @@ describe('EntityHeader', () => {
           title={{label: 'Replay user', value: 'Session'}}
           metadata={{
             label: 'Replay properties',
-            items: [{label: 'Browser', values: ['Chrome', '144.0.0'], showLabel: true}],
+            items: [{label: 'Browser', values: ['Chrome', '144.0.0'], mode: 'full'}],
           }}
         />
       );

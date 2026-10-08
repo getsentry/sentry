@@ -46,10 +46,18 @@ export interface EntityHeaderMetadataItemProps {
    */
   loadingWidth?: string;
   /**
-   * Render the label as text as well. Off by default: the graphic beside the
-   * values usually carries it, and a header has no room to name every property.
+   * How much of the property to draw.
+   *
+   * `compact` renders the values alone and leaves naming them to the graphic
+   * beside them, because a header has no room to spell out every property.
+   * `full` draws the label as text in front of them.
+   *
+   * The label is in the DOM either way and read by assistive technology, so
+   * this decides what is on screen, not what is announced.
+   *
+   * @default 'compact'
    */
-  showLabel?: boolean;
+  mode?: 'compact' | 'full';
   /**
    * Shown on hover, with a dotted underline to signal it. Use to expand an
    * abbreviation or explain a term.
@@ -80,7 +88,7 @@ export function EntityHeaderMetadataItem({
   label,
   leadingGraphic,
   loadingWidth = '120px',
-  showLabel,
+  mode = 'compact',
   tooltip,
   values,
   variant = 'muted',
@@ -131,7 +139,7 @@ export function EntityHeaderMetadataItem({
             "Browser Chrome 144.0.0" whether or not it is on screen. Showing it
             is then only a question of visibility, not of semantics.
           */}
-          {showLabel ? (
+          {mode === 'full' ? (
             <Text {...textStyles} variant="muted">
               {label}
             </Text>
