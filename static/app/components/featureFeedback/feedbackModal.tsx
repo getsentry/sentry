@@ -145,6 +145,7 @@ function FeedbackModalFooter({
         <Button onClick={closeModal}>{t('Cancel')}</Button>
         <Button
           variant="primary"
+          aria-label={onNext ? undefined : t('Submit Feedback')}
           tooltipProps={{
             title: isCustomChildren
               ? primaryDisabledReason
