@@ -6,8 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -132,18 +132,18 @@ export function AddPromoCodeModal({
         const response = error.responseJSON;
         const nonFieldErrors = response?.non_field_errors ?? response?.nonFieldErrors;
         if (Array.isArray(nonFieldErrors) && nonFieldErrors.length > 0) {
-          addErrorMessage(nonFieldErrors.join(' '));
+          toast.error(nonFieldErrors.join(' '));
           return;
         }
         if (hasFieldErrors) {
           return;
         }
         if (typeof response?.detail === 'string') {
-          addErrorMessage(response.detail);
+          toast.error(response.detail);
           return;
         }
       }
-      addErrorMessage('Unable to save promo code.');
+      toast.error('Unable to save promo code.');
     },
   });
   const form = useScrapsForm({

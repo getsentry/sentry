@@ -7,13 +7,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-
 import type {PromoCode as PromoCodeType} from 'admin/types';
 import {PromoCodeDetails} from 'admin/views/promoCodeDetails';
 import {PromoCodes} from 'admin/views/promoCodes';
-
-jest.mock('sentry/actionCreators/indicator');
 
 function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
   return {
@@ -257,11 +253,9 @@ describe('PromoCodes', () => {
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Amount'}), '29');
     await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
-    await waitFor(() =>
-      expect(addErrorMessage).toHaveBeenCalledWith(
-        'You must specify one and only one of Amount or Trial Days'
-      )
-    );
+    expect(
+      (await screen.findAllByRole('alert')).map(alert => alert.textContent)
+    ).toContain('You must specify one and only one of Amount or Trial Days');
   });
 
   it('shows field API errors beside the relevant field', async () => {
