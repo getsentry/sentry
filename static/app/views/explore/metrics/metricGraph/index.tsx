@@ -12,11 +12,15 @@ import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
-import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
+import {
+  doesMetricSupportHeatMapVisualization,
+  METRICS_CHART_GROUP,
+} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
 import {
@@ -26,7 +30,6 @@ import {
   useMetricVisualizes,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
-import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   MINIMIZED_GRAPH_HEIGHT,
@@ -160,11 +163,15 @@ function Graph({
       : createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
-  const {droppedAnnotations, acceptedAnnotations} = useDroppedData({
+  const [interval] = useChartInterval();
+  const {droppedEvents, acceptedEvents} = useDroppedData({
     dataset: DiscoverDatasets.TRACEMETRICS,
+    interval,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.TRACEMETRICS);
+  const openDroppedDataDrawer = useDroppedDataDrawer({
+    dataset: DiscoverDatasets.TRACEMETRICS,
+  });
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
@@ -223,8 +230,7 @@ function Graph({
 
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
   const showChart = visualize.visible && !isMetricOptionsEmpty;
-  const canShowDroppedData =
-    showChart && hasDroppedData(droppedAnnotations, acceptedAnnotations);
+  const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 
@@ -263,8 +269,8 @@ function Graph({
               droppedData={
                 showDroppedDataBand
                   ? {
-                      droppedAnnotations,
-                      acceptedAnnotations,
+                      droppedEvents,
+                      acceptedEvents,
                       onClick: openDroppedDataDrawer,
                     }
                   : undefined

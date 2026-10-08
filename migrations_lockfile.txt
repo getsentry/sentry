@@ -9,13 +9,13 @@ ai_monitoring: 0002_add_date_updated_index
 
 discover: 0004_discover_starred_and_last_visited
 
-explore: 0015_add_dataset_to_formulas
+explore: 0016_update_if_syntax_on_spans
 
 feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0005_increase_flag_max_length
 
-hybridcloud: 0042_cacheversion_key_drop
+hybridcloud: 0043_add_dashboard_create_scope
 
 insights: 0001_squashed_0002_backfill_team_starred
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0037_rename_agentic_triage_result
 
-sentry: 1202_retire_alertruleactivity
+sentry: 1208_sentryappinstallation_uuid_index
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

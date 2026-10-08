@@ -64,62 +64,6 @@ describe('MetricSelectRow', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders the same metric for all rows', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <MetricSelectRow
-          field={{
-            kind: 'function',
-            function: [
-              'per_second' as AggregationKeyWithAlias,
-              'value',
-              undefined,
-              undefined,
-            ],
-          }}
-          index={0}
-          disabled={false}
-        />
-        <MetricSelectRow
-          field={{
-            kind: 'function',
-            function: ['sum', 'value', undefined, undefined],
-          }}
-          index={0}
-          disabled={false}
-        />
-      </WidgetBuilderProvider>,
-      {
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              yAxis: [
-                'per_second(value,alpha_metric,counter,none)',
-                'sum(value,alpha_metric,counter,none)',
-              ],
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.LINE,
-            },
-          },
-        },
-      }
-    );
-
-    // Both metric selectors show the same metric value (alphabetically first)
-    const metricSelectors = await screen.findAllByRole('button', {name: 'alpha_metric'});
-    expect(metricSelectors).toHaveLength(2);
-
-    // Change the metric to 'beta_metric'
-    await userEvent.click(metricSelectors[0]!);
-    await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
-
-    // Both metric selectors show the new metric value
-    expect(new Set(metricSelectors.map(selector => selector.textContent))).toEqual(
-      new Set(['beta_metric'])
-    );
-  });
-
   it('allows selection for multiple metrics', async () => {
     const aggregates: QueryFieldValue[] = [
       {
@@ -156,9 +100,6 @@ describe('MetricSelectRow', () => {
               displayType: DisplayType.LINE,
             },
           },
-        },
-        organization: {
-          features: ['tracemetrics-multi-metric-selection-in-dashboards'],
         },
       }
     );
@@ -217,7 +158,7 @@ describe('MetricSelectRow', () => {
         'span.op',
         'span.description',
         'sum(value,beta_metric,counter,none)',
-        'sum(value,beta_metric,counter,none)',
+        'count(value,alpha_metric,counter,none)',
       ]);
     });
   });
@@ -316,13 +257,19 @@ describe('MetricSelectRow', () => {
     });
   });
 
-  it('handles mixed valid and invalid aggregates on metric change', async () => {
+  it('only updates the changed row when other rows target the same metric', async () => {
     const {router} = render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
             kind: 'function',
-            function: ['sum', 'value', 'distribution_metric', 'distribution', 'none'],
+            function: [
+              'per_second' as AggregationKeyWithAlias,
+              'value',
+              'distribution_metric',
+              'distribution',
+              'none',
+            ],
           }}
           index={0}
           disabled={false}
@@ -336,7 +283,6 @@ describe('MetricSelectRow', () => {
               yAxis: [
                 'per_second(value,distribution_metric,distribution,none)',
                 'p99(value,distribution_metric,distribution,none)',
-                'count(value,distribution_metric,distribution,none)',
               ],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
@@ -350,11 +296,11 @@ describe('MetricSelectRow', () => {
       name: 'distribution_metric',
     });
 
-    // Change to counter (p99 and count are not valid)
     await userEvent.click(metricSelector);
     await userEvent.click(await screen.findByRole('option', {name: 'counter_metric'}));
 
-    // per_second stays, p99 replaced with sum, count replaced with sum
+    // per_second is valid for counter so it is kept, and p99 is left untouched
+    // because it belongs to a row the user did not change.
     await waitFor(() => {
       expect(decodeList(router.location.query.yAxis)).toEqual(
         serializeFields([
@@ -370,11 +316,7 @@ describe('MetricSelectRow', () => {
           },
           {
             kind: FieldValueKind.FUNCTION,
-            function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
-          },
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
+            function: ['p99', 'value', 'distribution_metric', 'distribution', 'none'],
           },
         ])
       );

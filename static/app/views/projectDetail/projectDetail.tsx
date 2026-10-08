@@ -1,28 +1,29 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import pick from 'lodash/pick';
 
-import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack, Container} from '@sentry/scraps/layout';
+import {ProjectsBadge} from '@sentry/scraps/badge';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {Stack, Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {CreateAlertButton} from 'sentry/components/createAlertButton';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Placeholder} from 'sentry/components/placeholder';
 import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconEllipsis, IconIssues, IconSettings, IconSiren} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -31,6 +32,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -143,6 +145,45 @@ export function ProjectDetail() {
     );
   }
 
+  const canCreateAlert =
+    isDemoModeActive() ||
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
+
+  const createMonitorQuery = new URLSearchParams({project: params.projectId}).toString();
+
+  const projectActions: MenuItemProps[] = [
+    {
+      key: 'view-all-issues',
+      label: t('View All Issues'),
+      leadingItems: <IconIssues size="md" />,
+      to: project?.id
+        ? // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
+          `/organizations/${params.orgId}/issues/?project=${project.id}`
+        : `/${params.orgId}/${params.projectId}`,
+    },
+    {
+      key: 'create-monitor',
+      label: t('Create Monitor'),
+      leadingItems: <IconSiren size="md" />,
+      to: `${makeMonitorCreatePathname(organization.slug)}?${createMonitorQuery}`,
+      disabled: !canCreateAlert,
+      tooltip: canCreateAlert
+        ? undefined
+        : tct(
+            'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+            {settingsLink: <Link to={`/settings/${organization.slug}/`} />}
+          ),
+      tooltipOptions: {maxWidth: 270},
+    },
+    {
+      key: 'project-settings',
+      label: t('Project Settings'),
+      leadingItems: <IconSettings size="md" />,
+      to: `/settings/${params.orgId}/projects/${params.projectId}/`,
+    },
+  ];
+
   return (
     <SentryDocumentTitle title={title}>
       <PageFiltersContainer
@@ -152,70 +193,33 @@ export function ProjectDetail() {
       >
         <Stack flex={1}>
           <NoProjectMessage organization={organization}>
-            <Layout.Header unified>
-              <TopBar.Slot name="title">
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      to: makeProjectsPathname({path: '/', organization}),
-                      label: t('Projects'),
-                    },
-                    {
-                      label: (
-                        <Flex align="center" gap="xs">
-                          {project ? (
-                            <IdBadge
-                              project={project}
-                              avatarSize={16}
-                              hideOverflow="100%"
-                              disableLink
-                              hideName
-                            />
-                          ) : null}
-                          {project?.slug}
-                        </Flex>
-                      ),
-                    },
-                  ]}
-                />
-              </TopBar.Slot>
-
-              <Layout.HeaderActions>
-                <Grid flow="column" align="center" justify="end" gap="md">
-                  <TopBar.Slot name="feedback">
-                    <FeedbackButton
-                      aria-label={t('Give Feedback')}
-                      tooltipProps={{title: t('Give Feedback')}}
-                    >
-                      {null}
-                    </FeedbackButton>
-                  </TopBar.Slot>
-                  <LinkButton
-                    size="sm"
-                    to={
-                      // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
-                      project?.id
-                        ? `/organizations/${params.orgId}/issues/?project=${project.id}`
-                        : `/${params.orgId}/${params.projectId}`
-                    }
-                  >
-                    {t('View All Issues')}
-                  </LinkButton>
-                  <CreateAlertButton
-                    size="sm"
-                    organization={organization}
-                    projectSlug={params.projectId}
-                    aria-label={t('Create Alert')}
+            <TopBar.Slot
+              name="breadcrumbs"
+              title={{
+                type: 'page-title',
+                label: project?.slug ?? params.projectId,
+                leadingGraphic: project ? (
+                  <ProjectsBadge
+                    projectPlatforms={project.platform ? [project.platform] : []}
                   />
-                  <LinkButton
-                    size="sm"
-                    icon={<IconSettings />}
-                    aria-label={t('Settings')}
-                    to={`/settings/${params.orgId}/projects/${params.projectId}/`}
-                  />
-                </Grid>
-              </Layout.HeaderActions>
-            </Layout.Header>
+                ) : (
+                  <Placeholder width="16px" height="16px" />
+                ),
+                trailingActions: {
+                  type: 'menu',
+                  items: projectActions,
+                  triggerLabel: t('Project Actions'),
+                  triggerIcon: <IconEllipsis />,
+                },
+              }}
+              items={[
+                {
+                  type: 'link',
+                  label: t('Projects'),
+                  to: makeProjectsPathname({path: '/', organization}),
+                },
+              ]}
+            />
 
             <Layout.Body noRowGap>
               <Layout.Main>

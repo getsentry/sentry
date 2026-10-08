@@ -58,9 +58,6 @@ describe('UptimeNodeDetails', () => {
           node={node}
           organization={organization}
           onTabScrollToNode={jest.fn()}
-          onParentClick={jest.fn()}
-          manager={null}
-          replay={null}
           traceId="test-trace-id"
           tree={null as any}
         />

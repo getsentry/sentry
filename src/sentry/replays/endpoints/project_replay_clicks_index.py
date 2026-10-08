@@ -28,6 +28,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
@@ -111,11 +112,12 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
                 organization_id=project.organization.id,
             )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda results: {"data": results["data"]},
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: {"data": results["data"]},
+            )
 
 
 def query_replay_clicks(

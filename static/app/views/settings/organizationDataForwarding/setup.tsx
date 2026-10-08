@@ -17,6 +17,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {
   useDataForwarders,
   useMutateDataForwarder,
@@ -64,6 +65,7 @@ export default function OrganizationDataForwardingSetup() {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Data Forwarding')} />
       <SentryDocumentTitle title={t('Setup Data Forwarding')} />
       <Stack gap="lg">
         <Flex align="center" justify="between" gap="2xl">

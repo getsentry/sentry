@@ -1,5 +1,5 @@
-import type {ResponseMeta} from 'sentry/types/api';
-import type {Config} from 'sentry/types/system';
+import type {ApiResult, ResponseMeta} from 'sentry/types/api';
+import type {Config, PreloadRequestName, PreloadRequestResult} from 'sentry/types/system';
 import {extractSlug} from 'sentry/utils/extractSlug';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 
@@ -42,35 +42,43 @@ async function bootWithHydration() {
   return data;
 }
 
-async function promiseRequest(url: string) {
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json; charset=utf-8',
-        'Content-Type': 'application/json',
-        'sentry-trace': window.__initialData.initialTrace.sentry_trace,
-        baggage: window.__initialData.initialTrace.baggage,
-      },
-      credentials: 'include',
-      priority: 'high',
-    });
-    if (response.status >= 200 && response.status < 300) {
-      const text = await response.text();
-      const json = JSON.parse(text);
-      const responseMeta: ResponseMeta = {
-        status: response.status,
-        statusText: response.statusText,
-        responseJSON: json,
-        responseText: text,
-        getResponseHeader: (header: string) => response.headers.get(header),
-      };
-      return [json, response.statusText, responseMeta];
-    }
-    return null;
-  } catch {
-    return null;
+class PreloadRequestError extends Error {
+  name = 'PreloadRequestError';
+
+  constructor(
+    readonly status: number,
+    readonly statusText: string
+  ) {
+    super(`Preload request failed with status ${status} ${statusText}`);
   }
+}
+
+async function promiseRequest(url: string): Promise<ApiResult> {
+  // Network and JSON parse failures reject with their original errors
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json; charset=utf-8',
+      'Content-Type': 'application/json',
+      'sentry-trace': window.__initialData.initialTrace.sentry_trace,
+      baggage: window.__initialData.initialTrace.baggage,
+    },
+    credentials: 'include',
+    priority: 'high',
+  });
+  if (response.status >= 200 && response.status < 300) {
+    const text = await response.text();
+    const json = JSON.parse(text);
+    const responseMeta: ResponseMeta = {
+      status: response.status,
+      statusText: response.statusText,
+      responseJSON: json,
+      responseText: text,
+      getResponseHeader: (header: string) => response.headers.get(header),
+    };
+    return [json, response.statusText, responseMeta];
+  }
+  throw new PreloadRequestError(response.status, response.statusText);
 }
 
 function preloadOrganizationData(config: Config) {
@@ -104,17 +112,46 @@ function preloadOrganizationData(config: Config) {
 
   const preloadPromises: Record<string, any> = {orgSlug: slug};
   window.__sentry_preload = preloadPromises;
+
+  // The SDK is not initialized yet, so record each request's outcome to be
+  // reported as metrics once it is. Handling the rejection here also keeps
+  // failed requests from surfacing as unhandled rejections; the bootstrap
+  // queries still receive the rejected request promise.
+  const preloadResults: NonNullable<typeof window.__sentry_preload_results> = {};
+  window.__sentry_preload_results = preloadResults;
+
+  function trackRequest(name: PreloadRequestName, url: string) {
+    const startTime = performance.now();
+    const promise = promiseRequest(url);
+    preloadResults[name] = promise.then(
+      ([, , responseMeta]): PreloadRequestResult => ({
+        outcome: 'success',
+        status: responseMeta?.status,
+        durationMs: performance.now() - startTime,
+      }),
+      (error: Error): PreloadRequestResult => ({
+        outcome: 'error',
+        status: error instanceof PreloadRequestError ? error.status : undefined,
+        errorName: error.name,
+        durationMs: performance.now() - startTime,
+      })
+    );
+    return promise;
+  }
+
   try {
     if (!slug) {
       return;
     }
-    preloadPromises.organization = promiseRequest(
+    preloadPromises.organization = trackRequest(
+      'organization',
       makeUrl('/?detailed=0&include_feature_flags=1')
     );
-    preloadPromises.projects = promiseRequest(
+    preloadPromises.projects = trackRequest(
+      'projects',
       makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
     );
-    preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
+    preloadPromises.teams = trackRequest('teams', makeUrl('/teams/'));
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(e);

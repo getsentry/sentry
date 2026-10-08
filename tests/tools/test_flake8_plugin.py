@@ -565,6 +565,45 @@ def squash(root):
     ]
 
 
+def test_S029_rejects_raw_seer_pool_request() -> None:
+    src = """\
+from django.conf import settings
+from sentry.net.http import connection_from_url
+
+seer_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
+seer_pool.urlopen("POST", "/v1/example")
+"""
+
+    assert _run(src, filename="src/sentry/example.py") == [
+        "t.py:5:0: S029 Seer connection pools must use make_signed_seer_api_request; "
+        "raw urlopen bypasses ViewerContext propagation"
+    ]
+
+
+def test_S029_allows_central_seer_transport() -> None:
+    src = """\
+from django.conf import settings
+from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
+
+seer_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
+make_signed_seer_api_request(seer_pool, "/v1/example", b"{}")
+"""
+
+    assert _run(src, filename="src/sentry/example.py") == []
+
+
+def test_S029_ignores_non_seer_pool() -> None:
+    src = """\
+from sentry.net.http import connection_from_url
+
+pool = connection_from_url("https://example.com")
+pool.urlopen("GET", "/")
+"""
+
+    assert _run(src, filename="src/sentry/example.py") == []
+
+
 def _codes(src: str) -> list[str]:
     """`line:CODE` for each diagnostic, for terse assertions."""
     tree = ast.parse(src)

@@ -19,6 +19,12 @@ its value, and whether Sentry defines it rather than the instrumented app.
 The name renders through `InfoText`, so it carries the muted dotted underline that
 marks text as something to hover, and takes focus from the keyboard.
 
+Staff users also see a Visibility field for internal attributes. It uses
+conventions search metadata, including canonical names and aliases, and
+recognizes internal attribute prefixes. Internal takes precedence when names
+disagree. Public attributes omit the field, as do all attributes viewed by
+non-staff users. Attributes without metadata or internal prefixes are Public.
+
 ## Anatomy
 
 `attributeKey` is looked up in the field definition registry named by
