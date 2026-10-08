@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, patch
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry import options
+import sentry
+from sentry import application_state, options
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -15,6 +16,13 @@ class SystemOptionsTest(APITestCase):
         self.login_as(user=self.user, superuser=False)
         response = self.client.get(self.url)
         assert response.status_code == 403
+
+    def test_setup_records_configured_version(self) -> None:
+        self.login_as(user=self.user, superuser=True)
+        application_state.delete("sentry:version-configured")
+        response = self.client.put(self.url, {}, format="json")
+        assert response.status_code == 200
+        assert application_state.get("sentry:version-configured") == sentry.get_version()
 
     def test_simple(self) -> None:
         self.login_as(user=self.user, superuser=True)
