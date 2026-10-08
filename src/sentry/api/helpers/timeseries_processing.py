@@ -70,3 +70,50 @@ def fill_timeseries(
         filled_values.append(last_observed_value)
 
     return FilledTimeseries(values=filled_values, filled=filled)
+
+
+def smooth_timeseries(
+    timestamps: Sequence[float],
+    values: Sequence[float | None],
+    *,
+    mode: Literal["sma"],
+    window_size: int = 3,
+) -> list[float | None]:
+    """Smooth values using the selected mode.
+
+    Timestamps and values correspond by index in chronological order. None represents
+    a missing observation; zero is an observed value. Return a new list without
+    mutating the input or changing bucket alignment, so callers can
+    compose it with fill_timeseries in either order.
+
+    Supported modes:
+        sma: Simple moving average over the current bucket and the preceding
+            window_size - 1 buckets. Use smaller windows at the start of the series.
+            Missing buckets stay None and are excluded from the average. Each available
+            value has equal weight, regardless of timestamp spacing. window_size must
+            be positive and defaults to three buckets.
+    """
+    if mode != "sma":
+        raise ValueError(f"Unsupported smoothing mode: {mode}")
+    if len(timestamps) != len(values):
+        raise ValueError("Timestamps and values must have the same length.")
+    if window_size < 1:
+        raise ValueError("Window size must be positive.")
+
+    smoothed_values: list[float | None] = []
+    window_sum = 0.0
+    window_count = 0
+    for index, value in enumerate(values):
+        if index >= window_size:
+            expired_value = values[index - window_size]
+            if expired_value is not None:
+                window_sum -= expired_value
+                window_count -= 1
+        if value is None:
+            smoothed_values.append(None)
+        else:
+            window_sum += value
+            window_count += 1
+            smoothed_values.append(window_sum / window_count)
+
+    return smoothed_values
