@@ -302,7 +302,7 @@ function InboxContent() {
   // Remove this once we roll out to more users
   useReplayForCriticalFlow({flowName: 'issue_inbox', sampleRate: 1});
 
-  const isDesktop = useResponsivePropValue({zero: false, '3xl': true});
+  const isDesktop = useResponsivePropValue({zero: false, '4xl': true});
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -389,17 +389,17 @@ function InboxContent() {
       <Grid
         flex={1}
         minHeight={0}
-        columns={{zero: 'minmax(0, 1fr)', '3xl': 'max-content minmax(0, 1fr)'}}
+        columns={{zero: 'minmax(0, 1fr)', '4xl': 'max-content minmax(0, 1fr)'}}
       >
         <Stack
           ref={isMobile ? undefined : resizableContainerRef}
           as="section"
           aria-label={t('Issue inbox')}
           position="relative"
-          width={{zero: '100%', '3xl': `${size}px`}}
+          width={{zero: '100%', '4xl': `${size}px`}}
           minWidth={0}
           minHeight={0}
-          display={selectedIssueId ? {zero: 'none', '3xl': 'flex'} : 'flex'}
+          display={selectedIssueId ? {zero: 'none', '4xl': 'flex'} : 'flex'}
           background="primary"
           borderRight="muted"
         >
@@ -439,7 +439,7 @@ function InboxContent() {
             width="8px"
             radius="lg"
             position="absolute"
-            display={{zero: 'none', '3xl': 'block'}}
+            display={{zero: 'none', '4xl': 'block'}}
           >
             {props => (
               <ResizeHandle
@@ -459,11 +459,11 @@ function InboxContent() {
           minWidth={0}
           minHeight={0}
           overflow="hidden"
-          display={selectedIssueId ? 'flex' : {zero: 'none', '3xl': 'flex'}}
+          display={selectedIssueId ? 'flex' : {zero: 'none', '4xl': 'flex'}}
         >
           {selectedIssueId && (
             <Container
-              display={{zero: 'block', '3xl': 'none'}}
+              display={{zero: 'block', '4xl': 'none'}}
               padding="md"
               borderBottom="muted"
             >
