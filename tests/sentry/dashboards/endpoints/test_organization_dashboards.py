@@ -2463,6 +2463,47 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             for dashboard in response.data
         )
 
+    def test_go_runtime_metrics_prebuilt_dashboard_sync(self) -> None:
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:tracemetrics-enabled",
+            ]
+        ):
+            with override_options(
+                {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.GO_RUNTIME_METRICS]}
+            ):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        dashboard = Dashboard.objects.get(
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.GO_RUNTIME_METRICS,
+        )
+        assert dashboard.title == "Go Runtime Metrics"
+        assert [
+            d["prebuiltId"]
+            for d in response.data
+            if d.get("prebuiltId") == PrebuiltDashboardId.GO_RUNTIME_METRICS
+        ] == [PrebuiltDashboardId.GO_RUNTIME_METRICS]
+
+    def test_go_runtime_metrics_prebuilt_dashboard_not_synced_without_metrics(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options(
+                {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.GO_RUNTIME_METRICS]}
+            ):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        assert not Dashboard.objects.filter(
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.GO_RUNTIME_METRICS,
+        ).exists()
+        assert all(
+            dashboard.get("prebuiltId") != PrebuiltDashboardId.GO_RUNTIME_METRICS
+            for dashboard in response.data
+        )
+
     def test_endpoint_creates_pre_favorited_prebuilt_dashboards(self) -> None:
         assert (
             DashboardFavoriteUser.objects.filter(
