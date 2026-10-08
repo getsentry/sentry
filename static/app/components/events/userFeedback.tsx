@@ -135,7 +135,7 @@ const FeedbackBubble = styled('div')`
     height: 0;
     border-top: 6px solid transparent;
     border-bottom: 6px solid transparent;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     border-right: 6px solid ${p => p.theme.tokens.background.primary};
     position: absolute;
     left: -6px;

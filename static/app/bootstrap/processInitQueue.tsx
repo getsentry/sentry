@@ -19,10 +19,6 @@ const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 const COMPONENT_MAP = {
   [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
-  [SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT]: () =>
-    import(
-      /* webpackChunkName: "WebAuthnAssert" */ 'sentry/components/webAuthn/webAuthnAssert'
-    ),
   [SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM]: () =>
     import(
       /* webpackChunkName: "SuperuserStaffAccessForm" */ 'sentry/components/superuserStaffAccessForm'
@@ -51,7 +47,6 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
     const {default: Component} = await COMPONENT_MAP[initConfig.component]();
 
     renderOnDomReady(() =>
-      // TODO(ts): Unsure how to type this, complains about u2fsign's required props
       renderDom(
         (props: any) => (
           /**

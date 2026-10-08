@@ -6,9 +6,24 @@ import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeri
 
 // Maximum percentage difference allowed between bucket values
 const VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE = 3;
+const LENGTH_DIFFERENCE_TOLERANCE = 1;
+
+type Bucket = Series['data'][number];
 
 type SeriesDifference = {
-  reason: 'unmatchedSeries' | 'length' | 'timestamp' | 'value' | 'other';
+  reason:
+    | 'unmatchedLegacySeries'
+    | 'unmatchedTimeSeries'
+    | 'length'
+    | 'timestamp'
+    | 'value'
+    | 'other';
+  legacyLength?: number;
+  legacyTimestamp?: number | string;
+  legacyValue?: number;
+  timeSeriesLength?: number;
+  timeSeriesTimestamp?: number | string;
+  timeSeriesValue?: number;
 };
 
 function normalizeSeries(series: WidgetSeries[]) {
@@ -19,7 +34,21 @@ function normalizeSeries(series: WidgetSeries[]) {
   }));
 }
 
-// Compares the series built from `/events-stats/` and `/events-timeseries/` responses
+function alignBuckets(legacy: Bucket[], timeSeries: Bucket[]): [Bucket[], Bucket[]] {
+  if (legacy.length === timeSeries.length) {
+    return [legacy, timeSeries];
+  }
+
+  const isLegacyLonger = legacy.length > timeSeries.length;
+  const [longer, shorter] = isLegacyLonger ? [legacy, timeSeries] : [timeSeries, legacy];
+  const trimmed =
+    longer[0]?.name === shorter[0]?.name ? longer.slice(0, -1) : longer.slice(1);
+
+  return isLegacyLonger ? [trimmed, timeSeries] : [legacy, trimmed];
+}
+
+// Compares the series built from `/events-stats/` and `/events-timeseries/` responses.
+// Series names are left out of the result since group by values can contain user data.
 export function findSeriesDifferences(
   legacySeries: Series[],
   timeSeries: Series[]
@@ -28,48 +57,82 @@ export function findSeriesDifferences(
   const unmatchedTimeSeries = new Map(
     timeSeries.map(series => [series.seriesName, series])
   );
+  const alignedData = new Map<string, [Bucket[], Bucket[]]>();
 
   for (const {seriesName, data} of legacySeries) {
     const matchingTimeSeries = unmatchedTimeSeries.get(seriesName);
     unmatchedTimeSeries.delete(seriesName);
 
     if (!matchingTimeSeries) {
-      differences.push({reason: 'unmatchedSeries'});
-    } else if (matchingTimeSeries.data.length === data.length) {
-      const buckets = data.map((item, i) => [item, matchingTimeSeries.data[i]!] as const);
-
-      if (buckets.some(([item, matchingItem]) => item.name !== matchingItem.name)) {
-        differences.push({reason: 'timestamp'});
-      } else if (
-        // Skip the first and last buckets since their values are the most volatile
-        buckets
-          .slice(1, -1)
-          .some(
-            ([item, matchingItem]) =>
-              !areNumbersAlmostEqual(
-                item.value,
-                matchingItem.value,
-                VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE
-              )
-          )
-      ) {
-        differences.push({reason: 'value'});
-      }
+      differences.push({reason: 'unmatchedLegacySeries'});
+    } else if (
+      Math.abs(matchingTimeSeries.data.length - data.length) > LENGTH_DIFFERENCE_TOLERANCE
+    ) {
+      differences.push({
+        reason: 'length',
+        legacyLength: data.length,
+        timeSeriesLength: matchingTimeSeries.data.length,
+      });
     } else {
-      differences.push({reason: 'length'});
+      const [legacyData, timeSeriesData] = alignBuckets(data, matchingTimeSeries.data);
+      alignedData.set(seriesName, [legacyData, timeSeriesData]);
+      const buckets = legacyData.map((item, i) => [item, timeSeriesData[i]!] as const);
+
+      const mismatchedTimestamp = buckets.find(
+        ([item, matchingItem]) => item.name !== matchingItem.name
+      );
+      // Skip the first and last buckets since their values are the most volatile
+      const mismatchedValue = mismatchedTimestamp
+        ? undefined
+        : buckets
+            .slice(1, -1)
+            .find(
+              ([item, matchingItem]) =>
+                !areNumbersAlmostEqual(
+                  item.value,
+                  matchingItem.value,
+                  VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE
+                )
+            );
+
+      if (mismatchedTimestamp) {
+        const [item, matchingItem] = mismatchedTimestamp;
+        differences.push({
+          reason: 'timestamp',
+          legacyTimestamp: item.name,
+          timeSeriesTimestamp: matchingItem.name,
+        });
+      } else if (mismatchedValue) {
+        const [item, matchingItem] = mismatchedValue;
+        differences.push({
+          reason: 'value',
+          legacyValue: item.value,
+          timeSeriesValue: matchingItem.value,
+        });
+      }
     }
   }
 
   for (const _seriesName of unmatchedTimeSeries.keys()) {
-    differences.push({reason: 'unmatchedSeries'});
+    differences.push({reason: 'unmatchedTimeSeries'});
   }
 
   // Fallback for anything the checks above don't look for
   if (
     differences.length === 0 &&
     !isEqualWith(
-      normalizeSeries(legacySeries),
-      normalizeSeries(timeSeries),
+      normalizeSeries(
+        legacySeries.map(series => ({
+          ...series,
+          data: alignedData.get(series.seriesName)?.[0] ?? series.data,
+        }))
+      ),
+      normalizeSeries(
+        timeSeries.map(series => ({
+          ...series,
+          data: alignedData.get(series.seriesName)?.[1] ?? series.data,
+        }))
+      ),
       (a, b, key) =>
         key === 'value' && typeof a === 'number' && typeof b === 'number'
           ? areNumbersAlmostEqual(a, b, VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE)
