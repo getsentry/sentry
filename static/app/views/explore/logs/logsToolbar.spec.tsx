@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {initializeLogsTest} from 'sentry-fixture/log';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -90,6 +89,17 @@ describe('LogsToolbar', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/validate/`,
       body: makeValidationBody([]),
+    });
+    // Series filter bars always mount and fetch recent searches.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
     });
   });
 
@@ -214,7 +224,8 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      const searchInput = screen.getByRole('textbox');
+      // CompactSelect filter — not the series `_if` search bar also on screen.
+      const searchInput = screen.getByPlaceholderText('Search…');
       await userEvent.type(searchInput, 'searched');
       await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
 
@@ -258,9 +269,6 @@ describe('LogsToolbar', () => {
     });
 
     describe('conditional aggregates', () => {
-      const organizationWithConditionalAggregates = OrganizationFixture({
-        features: [...organization.features, 'explore-conditional-aggregates'],
-      });
       const SERIES_FILTER_PLACEHOLDER = 'Filter logs for this series';
 
       function visualizeYAxesFromRouter(router: {
@@ -278,35 +286,9 @@ describe('LogsToolbar', () => {
         });
       }
 
-      beforeEach(() => {
-        MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/recent-searches/`,
-          method: 'GET',
-          body: [],
-        });
-        MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/recent-searches/`,
-          method: 'POST',
-          body: [],
-        });
-      });
-
-      it('hides the series filter without the feature', async () => {
-        render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
-
-        const section = screen.getByTestId('section-visualizes');
-
-        expect(
-          await within(section).findByRole('button', {name: 'count'})
-        ).toBeInTheDocument();
-        expect(
-          within(section).queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
-        ).not.toBeInTheDocument();
-      });
-
       it('turns a series filter into an _if aggregate', async () => {
         const {router} = render(<LogsToolbar />, {
-          organization: organizationWithConditionalAggregates,
+          organization,
           additionalWrapper: Wrapper,
         });
 
@@ -328,7 +310,7 @@ describe('LogsToolbar', () => {
 
       it('keeps an existing filter when switching between filterable aggregates', async () => {
         const {router} = render(<LogsToolbar />, {
-          organization: organizationWithConditionalAggregates,
+          organization,
           additionalWrapper: Wrapper,
           initialRouterConfig: {
             location: {
@@ -726,7 +708,8 @@ describe('LogsToolbar', () => {
       screen.queryByRole('option', {name: 'custom.searched_tag'})
     ).not.toBeInTheDocument();
 
-    const searchInput = screen.getByRole('textbox');
+    // CompactSelect filter — not the series `_if` search bar also on screen.
+    const searchInput = screen.getByPlaceholderText('Search…');
     await userEvent.type(searchInput, 'searched');
 
     await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
