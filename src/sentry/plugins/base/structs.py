@@ -23,7 +23,7 @@ class Notification:
             rules = [rule]
 
         self.event = event
-        self.rules = rules or []
+        self.rules = list(rules or [])
 
     @property
     def rule(self) -> Rule | NotificationOrigin:
