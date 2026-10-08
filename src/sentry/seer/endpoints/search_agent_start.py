@@ -51,14 +51,15 @@ class SearchAgentReferrer(StrEnum):
 
 
 def resolve_referrer(request: Request, raw: str | None) -> SearchAgentReferrer:
-    if get_client_kind(request) == ClientKind.MCP:
+    client_kind = get_client_kind(request)
+    if client_kind == ClientKind.MCP:
         return SearchAgentReferrer.MCP
     if raw:
         try:
             return SearchAgentReferrer(raw)
         except ValueError:
             logger.warning("search_agent.unknown_referrer", extra={"referrer": raw})
-    if is_frontend_request(request):
+    if client_kind == ClientKind.FRONTEND:
         return SearchAgentReferrer.FRONTEND
     return SearchAgentReferrer.UNKNOWN
 
