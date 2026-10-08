@@ -2,6 +2,10 @@ from sentry.issues.action_log.types import (
     GroupAction,
     GroupActionType,
     PullRequestClosedAction,
+    SeerPRCreatedAction,
+    SeerPRReadyForReviewAction,
+    SeerPullRequestDetails,
+    SeerPullRequestItem,
     SetRegressedAction,
     SetResolvedInReleaseAction,
     SmartAssignmentCompletedAction,
@@ -111,6 +115,80 @@ class ActivityToActionTest(TestCase):
             )
 
             assert activity_to_action(act) == expected_action
+
+    def test_seer_pr_actions_drop_unidentifiable_pull_requests(self) -> None:
+        # Seer can report PRs before they are identifiable, e.g. provider
+        # "unknown" with null pr_id/pr_number/pr_url. Those entries are dropped
+        # instead of failing validation or being stored as-is.
+        identified = {
+            "provider": "github",
+            "repo_name": "example-org/example-repo",
+            "pull_request": {
+                "pr_id": 987,
+                "pr_number": 42,
+                "pr_url": "https://github.com/example-org/example-repo/pull/42",
+            },
+        }
+        unidentified = {
+            "provider": "unknown",
+            "repo_name": "example-org/other-repo",
+            "pull_request": {"pr_id": None, "pr_number": None, "pr_url": None},
+        }
+        for activity_type, action_class in (
+            (ActivityType.SEER_PR_CREATED, SeerPRCreatedAction),
+            (ActivityType.SEER_PR_READY_FOR_REVIEW, SeerPRReadyForReviewAction),
+        ):
+            act = Factories.create_group_activity(
+                group=self.group,
+                type=activity_type.value,
+                data={"run_id": 123, "pull_requests": [unidentified, identified]},
+            )
+
+            action = activity_to_action(act)
+
+            assert action is not None
+            assert action == action_class(
+                run_id=123,
+                pull_requests=[
+                    SeerPullRequestItem(
+                        provider="github",
+                        repo_name="example-org/example-repo",
+                        pull_request=SeerPullRequestDetails(
+                            pr_number=42,
+                            pr_url="https://github.com/example-org/example-repo/pull/42",
+                        ),
+                    )
+                ],
+            )
+            # Only the defined stored fields are persisted, not the raw payload.
+            assert action.dict()["pull_requests"] == [
+                {
+                    "provider": "github",
+                    "repo_name": "example-org/example-repo",
+                    "pull_request": {
+                        "pr_number": 42,
+                        "pr_url": "https://github.com/example-org/example-repo/pull/42",
+                    },
+                }
+            ]
+
+    def test_seer_pr_action_with_only_unidentifiable_pull_requests(self) -> None:
+        act = Factories.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_PR_READY_FOR_REVIEW.value,
+            data={
+                "run_id": 123,
+                "pull_requests": [
+                    {
+                        "provider": "unknown",
+                        "repo_name": "example-org/example-repo",
+                        "pull_request": {"pr_id": None, "pr_number": None, "pr_url": None},
+                    }
+                ],
+            },
+        )
+
+        assert activity_to_action(act) == SeerPRReadyForReviewAction(run_id=123, pull_requests=[])
 
     def test_strips_null_bytes_from_string_fields(self) -> None:
         # Activity data is stored in a text JSON column that tolerates NUL bytes,
