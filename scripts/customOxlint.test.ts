@@ -143,6 +143,28 @@ test('lint-only paths do not count as frontend changes', t => {
   assert(matches('frontend_all').includes('package.json'));
 });
 
+// Workflow script tests run without installed dependencies, so the YAML contract lives here.
+test('verified lint bases require the exact budgets step after the ratchet', () => {
+  const step = 'Verify exact lint budgets';
+  const {jobs} = parse(
+    readFileSync(path.join(root, '.github/workflows/frontend.yml'), 'utf8')
+  );
+  const steps: Array<{id?: string; if?: string; name?: string; run?: string}> =
+    jobs.oxlint.steps;
+  const ratchet = steps.findIndex(({name}) => name === 'Verify lint ratchet');
+  const exact = steps.findIndex(({name}) => name === step);
+  assert(ratchet >= 0 && exact > ratchet);
+  assert.equal(steps[ratchet]!.id, 'ratchet');
+  assert.match(steps[ratchet]!.run ?? '', /pnpm run lint:js --ci/);
+  assert.equal(steps[exact]!.if, "steps.ratchet.outputs.budgets == 'exact'");
+  assert(
+    readFileSync(
+      path.join(root, '.github/workflows/scripts/find-verified-lint-base.js'),
+      'utf8'
+    ).includes(`EXACT_BUDGETS_STEP = '${step}'`)
+  );
+});
+
 test('override-only rules are enrolled with editor warnings and scoped CLI errors', t => {
   const {directory, write, lint} = fixture(t);
   const registry = `{

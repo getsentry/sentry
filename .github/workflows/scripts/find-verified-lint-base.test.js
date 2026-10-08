@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {test} from 'node:test';
-
-import {parse} from 'yaml';
 
 import {EXACT_BUDGETS_STEP, findVerifiedLintBase} from './find-verified-lint-base.js';
 
@@ -149,19 +147,6 @@ test('a passing ratchet with stale budgets cannot certify the base', async t => 
   assert.equal(await find(), '');
   job.steps = [{name: 'Verify lint ratchet', conclusion: 'success'}];
   assert.equal(await find(), '');
-});
-
-test('the workflow only reports exact budgets after the ratchet reports them', () => {
-  const workflow = parse(
-    readFileSync(new URL('../frontend.yml', import.meta.url), 'utf8')
-  );
-  const steps = workflow.jobs.oxlint.steps;
-  const ratchet = steps.findIndex(step => step.name === 'Verify lint ratchet');
-  const exact = steps.findIndex(step => step.name === EXACT_BUDGETS_STEP);
-  assert(ratchet >= 0 && exact > ratchet);
-  assert.equal(steps[ratchet].id, 'ratchet');
-  assert.match(steps[ratchet].run, /pnpm run lint:js --ci/);
-  assert.equal(steps[exact].if, "steps.ratchet.outputs.budgets == 'exact'");
 });
 
 test('renaming a lint input to a backend path invalidates ancestor proof', async t => {
