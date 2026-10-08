@@ -30,8 +30,6 @@ from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mc
 from sentry.utils.sdk import get_transaction_name_from_request
 from sentry.utils.tracing import set_span_data, start_span
 
-FEATURE_FLAG = "organizations:api-client-kind-check"
-
 ATTRIBUTION_SPAN_OP = "api.attribution"
 
 
@@ -105,11 +103,6 @@ def get_client_kind(request: Request) -> ClientKind:
     """Classify the caller of an API request.
 
     Never raises; unrecognized callers fall back to ``UNKNOWN``.
-
-    Says nothing about whether the caller's organization opted in -- ``FEATURE_FLAG``
-    is checked by the caller, which is what holds the organization. Callers must
-    check it before reaching here, or a ``client_kind_scope`` declaration becomes a
-    way around the opt-in.
     """
     declared = _client_kind_override.get()
     if declared is not None:
@@ -187,9 +180,9 @@ def get_client_kind(request: Request) -> ClientKind:
 def set_client_kind_attributes(request: Request) -> None:
     """Record who called the endpoint, on a span and on the enclosing transaction.
 
-    Called once from ``Endpoint.dispatch``, behind the opt-in check it makes for
-    whichever organization ``Endpoint.client_kind_organization`` resolves, so every
-    endpoint reports the same set of attributes without hand-wiring them per handler.
+    Called once from ``Endpoint.dispatch`` for every endpoint that resolves an
+    organization, so each one reports the same set of attributes without
+    hand-wiring them per handler.
     """
     client_kind = get_client_kind(request)
 
@@ -202,14 +195,12 @@ def set_client_kind_attributes(request: Request) -> None:
 
     _record_attribution_span(request, client_kind, client_host, user_agent)
 
-    # `_test` suffix while this is a POC, to keep it out of the way of a
-    # real `client_kind` attribute later.
-    sentry_sdk.set_tag("client_kind_test", client_kind.value)
-    sentry_sdk.set_attribute("client_kind_test", client_kind.value)
+    sentry_sdk.set_tag("client_kind", client_kind.value)
+    sentry_sdk.set_attribute("client_kind", client_kind.value)
 
     if client_host is not None:
-        sentry_sdk.set_tag("client_host_test", client_host)
-        sentry_sdk.set_attribute("client_host_test", client_host)
+        sentry_sdk.set_tag("client_host", client_host)
+        sentry_sdk.set_attribute("client_host", client_host)
 
     if user_agent is not None:
         sentry_sdk.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
@@ -230,9 +221,9 @@ def _record_attribution_span(
     route = get_transaction_name_from_request(request)
     with start_span(op=ATTRIBUTION_SPAN_OP, name=route) as span:
         set_span_data(span, ATTRIBUTE_NAMES.HTTP_ROUTE, route)
-        set_span_data(span, "client_kind_test", client_kind.value)
+        set_span_data(span, "client_kind", client_kind.value)
         if client_host is not None:
-            set_span_data(span, "client_host_test", client_host)
+            set_span_data(span, "client_host", client_host)
         if user_agent is not None:
             set_span_data(span, ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 

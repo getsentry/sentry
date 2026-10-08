@@ -2,7 +2,6 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   extractTraceMetricFromColumn,
   getTraceMetricAggregates,
@@ -16,7 +15,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
-  const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 
   if (state.dataset === WidgetType.SPANS) {
     return {
@@ -40,10 +38,7 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
     );
     const traceMetrics =
       aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
-    const hasMultipleMetrics = hasMultipleMetricsSelected(
-      traceMetrics,
-      hasMultiMetricSelection
-    );
+    const hasMultipleMetrics = hasMultipleMetricsSelected(traceMetrics);
 
     return {
       traceItemType: TraceItemDataset.TRACEMETRICS,

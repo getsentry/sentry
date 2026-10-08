@@ -57,9 +57,10 @@ from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
+from sentry.notifications.utils.rules import get_notification_origins
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.slack.entrypoint import SlackAutofixEntrypoint
 from sentry.seer.entrypoints.slack.messaging import send_not_org_member_message
@@ -136,18 +137,17 @@ def update_group(
     return resp
 
 
-def get_rule(rule_id: int | None, organization_id: int) -> Rule | None:
-    """Get the rule that fired"""
-    if not rule_id:
+def get_notification_origin(
+    rule_id: int | None, workflow_id: int | None, group: Group
+) -> NotificationOrigin | None:
+    if not rule_id and not workflow_id:
         return None
-    try:
-        # Scope the callback-provided rule ID to the integration-validated organization
-        rule = Rule.objects.get(id=rule_id, project__organization_id=organization_id)
-        # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
-        rule.data["actions"][0]["legacy_rule_id"] = rule.id
-    except Rule.DoesNotExist:
-        return None
-    return rule
+    origins = get_notification_origins(
+        group.project,
+        workflow_ids=[workflow_id] if workflow_id else [],
+        legacy_rule_ids=[rule_id] if rule_id else [],
+    )
+    return origins[0] if origins else None
 
 
 def get_group(slack_request: SlackActionRequest) -> Group | None:
@@ -365,13 +365,13 @@ class SlackActionEndpoint(Endpoint):
 
         rule_id = slack_request.callback_data.get("rule")
         workflow_id = slack_request.callback_data.get("workflow")
-        rule = get_rule(rule_id, group.project.organization_id)
+        origin = get_notification_origin(rule_id, workflow_id, group)
         metrics.incr(
             "integrations.slack.action.rule_lookup",
             tags={
                 "has_rule": bool(rule_id),
                 "has_workflow": bool(workflow_id),
-                "lookup_succeeded": rule is not None,
+                "lookup_succeeded": origin is not None,
             },
             sample_rate=1.0,
         )
@@ -445,7 +445,7 @@ class SlackActionEndpoint(Endpoint):
                     identity=identity,
                     actions=[status_action],
                     tags=original_tags_from_request,
-                    rules=[rule] if rule else None,
+                    rules=[origin] if origin else None,
                     workflow_id=workflow_id,
                     issue_details=True,
                     skip_fallback=True,
@@ -533,7 +533,7 @@ class SlackActionEndpoint(Endpoint):
             identity=identity,
             actions=action_list,
             tags=original_tags_from_request,
-            rules=[rule] if rule else None,
+            rules=[origin] if origin else None,
             workflow_id=workflow_id,
         ).build()
         # XXX(isabella): for actions on link unfurls, we omit the fallback text from the

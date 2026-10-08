@@ -351,6 +351,53 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
 
+    def test_top_events_no_results(self) -> None:
+        for dataset in ["errors", "discover", "transactions"]:
+            response = self.do_request(
+                data={
+                    "start": self.start,
+                    "end": self.end,
+                    "interval": "1h",
+                    "yAxis": ["count()", "count_unique(user)", "epm()"],
+                    "groupBy": ["count()", "message"],
+                    "orderby": ["-count()"],
+                    "topEvents": 5,
+                    "project": [self.project.id],
+                    "dataset": dataset,
+                    "query": "message:synthetic-no-match",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            assert len(response.data["timeSeries"]) == 3
+            count, unique_users, events_per_minute = response.data["timeSeries"]
+            assert count["yAxis"] == "count()"
+            assert unique_users["yAxis"] == "count_unique(user)"
+            assert events_per_minute["yAxis"] == "epm()"
+            integer_meta = {
+                "valueType": "integer",
+                "valueUnit": None,
+                "interval": 3_600_000,
+            }
+            assert count["meta"] == integer_meta
+            assert unique_users["meta"] == integer_meta
+            assert events_per_minute["meta"] == {
+                "valueType": "rate",
+                "valueUnit": "1/minute",
+                "interval": 3_600_000,
+            }
+            expected_values = [
+                {
+                    "incomplete": False,
+                    "timestamp": (self.start + timedelta(hours=hour)).timestamp() * 1000,
+                    "value": 0,
+                }
+                for hour in range(3)
+            ]
+            assert count["values"] == expected_values
+            assert unique_users["values"] == expected_values
+            assert events_per_minute["values"] == expected_values
+
     def test_errors_top_events(self) -> None:
         for message, minutes in [("very bad", 1), ("very bad", 2), ("oh my", 3)]:
             self.store_event(
