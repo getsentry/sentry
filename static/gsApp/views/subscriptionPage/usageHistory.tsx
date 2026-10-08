@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconDownload} from '@sentry/icons/download';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 

@@ -7,9 +7,9 @@ import {
   useRef,
   useSyncExternalStore,
 } from 'react';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconPin} from '@sentry/icons/iconPin';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconPin} from '@sentry/icons/pin';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

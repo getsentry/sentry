@@ -1,8 +1,8 @@
-import {IconBitbucket} from '@sentry/icons/iconBitbucket';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconGitlab} from '@sentry/icons/iconGitlab';
-import {IconVsts} from '@sentry/icons/iconVsts';
+import {IconBitbucket} from '@sentry/icons/bitbucket';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGitlab} from '@sentry/icons/gitlab';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
+import {IconVsts} from '@sentry/icons/vsts';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';

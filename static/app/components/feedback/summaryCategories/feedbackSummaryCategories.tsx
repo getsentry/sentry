@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconThumb} from '@sentry/icons/iconThumb';
+import {IconThumb} from '@sentry/icons/thumb';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';

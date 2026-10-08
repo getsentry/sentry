@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {IconPin} from '@sentry/icons/iconPin';
+import {IconPin} from '@sentry/icons/pin';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';

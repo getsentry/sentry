@@ -1,4 +1,4 @@
-import {IconSpan} from '@sentry/icons/iconSpan';
+import {IconSpan} from '@sentry/icons/span';
 import queryString from 'query-string';
 
 import {

@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {IconNot} from '@sentry/icons/iconNot';
+import {IconNot} from '@sentry/icons/not';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';

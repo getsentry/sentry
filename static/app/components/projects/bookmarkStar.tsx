@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconStar} from '@sentry/icons/star';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';

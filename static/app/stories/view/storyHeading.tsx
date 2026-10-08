@@ -1,7 +1,7 @@
 import type {ReactElement, ReactNode} from 'react';
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
-import {IconLink} from '@sentry/icons/iconLink';
+import {IconLink} from '@sentry/icons/link';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

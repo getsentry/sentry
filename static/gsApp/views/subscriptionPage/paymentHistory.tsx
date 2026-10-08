@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconTimer} from '@sentry/icons/iconTimer';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
+import {IconDownload} from '@sentry/icons/download';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconWarning} from '@sentry/icons/warning';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 

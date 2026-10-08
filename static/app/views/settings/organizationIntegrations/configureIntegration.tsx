@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconAdd} from '@sentry/icons/add';
+import {IconArrow} from '@sentry/icons/arrow';
 import * as Sentry from '@sentry/react';
 import {
   mutationOptions,

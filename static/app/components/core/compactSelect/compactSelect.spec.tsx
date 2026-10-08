@@ -1,6 +1,6 @@
 import {Fragment, useRef, useState} from 'react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {expectTypeOf} from 'expect-type';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconAttachment} from '@sentry/icons/iconAttachment';
-import {IconReleases} from '@sentry/icons/iconReleases';
-import {IconWindow} from '@sentry/icons/iconWindow';
+import {IconAttachment} from '@sentry/icons/attachment';
+import {IconReleases} from '@sentry/icons/releases';
+import {IconWindow} from '@sentry/icons/window';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';

@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconFile} from '@sentry/icons/iconFile';
-import {IconJson} from '@sentry/icons/iconJson';
-import {IconLink} from '@sentry/icons/iconLink';
-import {IconMobile} from '@sentry/icons/iconMobile';
+import {IconClock} from '@sentry/icons/clock';
+import {IconFile} from '@sentry/icons/file';
+import {IconJson} from '@sentry/icons/json';
+import {IconLink} from '@sentry/icons/link';
+import {IconMobile} from '@sentry/icons/mobile';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeBlock} from '@sentry/scraps/code';

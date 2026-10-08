@@ -2,7 +2,7 @@ import type {PropsWithChildren} from 'react';
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconOpen} from '@sentry/icons/open';
 import type {LocationDescriptor} from 'history';
 
 import heroImg from 'sentry-images/stories/landing/robopigeon.png';

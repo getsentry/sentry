@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
-import {IconBroadcast} from '@sentry/icons/iconBroadcast';
-import {IconBug} from '@sentry/icons/iconBug';
-import {IconLab} from '@sentry/icons/iconLab';
+import {IconBroadcast} from '@sentry/icons/broadcast';
+import {IconBug} from '@sentry/icons/bug';
+import {IconLab} from '@sentry/icons/lab';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';

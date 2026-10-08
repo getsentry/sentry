@@ -1,6 +1,6 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
-import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 

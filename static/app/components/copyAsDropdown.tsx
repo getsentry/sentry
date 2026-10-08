@@ -1,4 +1,4 @@
-import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconCopy} from '@sentry/icons/copy';
 
 import {DropdownMenu, type DropdownMenuProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';

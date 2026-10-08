@@ -1,6 +1,6 @@
 import {useContext, useEffect, useEffectEvent} from 'react';
 import {Outlet, useOutletContext} from 'react-router';
-import {IconProject} from '@sentry/icons/iconProject';
+import {IconProject} from '@sentry/icons/project';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';

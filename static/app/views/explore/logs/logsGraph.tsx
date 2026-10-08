@@ -1,10 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconContract} from '@sentry/icons/iconContract';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconExpand} from '@sentry/icons/iconExpand';
-import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconClock} from '@sentry/icons/clock';
+import {IconContract} from '@sentry/icons/contract';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';

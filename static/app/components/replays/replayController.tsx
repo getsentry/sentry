@@ -1,8 +1,8 @@
 import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconRewind10} from '@sentry/icons/iconRewind10';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconRewind10} from '@sentry/icons/rewind10';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';

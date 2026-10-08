@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconSentry} from '@sentry/icons/iconSentry';
+import {IconInfo} from '@sentry/icons/info';
+import {IconSentry} from '@sentry/icons/sentry';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

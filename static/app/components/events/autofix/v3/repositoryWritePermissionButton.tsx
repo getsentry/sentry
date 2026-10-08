@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconOpen} from '@sentry/icons/open';
 import {focusManager} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';

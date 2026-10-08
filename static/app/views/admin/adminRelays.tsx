@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconDelete} from '@sentry/icons/delete';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';

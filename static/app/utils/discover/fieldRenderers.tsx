@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconDownload} from '@sentry/icons/download';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
 

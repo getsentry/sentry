@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
 

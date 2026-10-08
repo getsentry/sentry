@@ -2,9 +2,9 @@ import type {ReactNode} from 'react';
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCursorArrow} from '@sentry/icons/iconCursorArrow';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPlay} from '@sentry/icons/play';
 import type {LocationDescriptor} from 'history';
 import invariant from 'invariant';
 

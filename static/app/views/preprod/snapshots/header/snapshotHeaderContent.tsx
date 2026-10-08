@@ -1,7 +1,7 @@
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconCommit} from '@sentry/icons/iconCommit';
-import {IconPullRequest} from '@sentry/icons/iconPullRequest';
-import {IconStack} from '@sentry/icons/iconStack';
+import {IconCode} from '@sentry/icons/code';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconStack} from '@sentry/icons/stack';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';

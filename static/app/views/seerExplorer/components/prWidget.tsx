@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 import type React from 'react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconUpload} from '@sentry/icons/iconUpload';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconOpen} from '@sentry/icons/open';
+import {IconUpload} from '@sentry/icons/upload';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';

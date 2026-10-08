@@ -1,4 +1,4 @@
-import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {

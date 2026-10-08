@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconPlay} from '@sentry/icons/play';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';

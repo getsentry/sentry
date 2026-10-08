@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconStar} from '@sentry/icons/star';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 

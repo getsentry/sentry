@@ -1,6 +1,6 @@
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {InputGroup, type InputProps} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';

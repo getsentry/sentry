@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconMail} from '@sentry/icons/iconMail';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconMail} from '@sentry/icons/mail';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';

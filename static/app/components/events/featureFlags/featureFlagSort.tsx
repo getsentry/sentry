@@ -1,4 +1,4 @@
-import {IconSort} from '@sentry/icons/iconSort';
+import {IconSort} from '@sentry/icons/sort';
 
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';

@@ -1,8 +1,8 @@
 import {Fragment, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconLink} from '@sentry/icons/iconLink';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconLink} from '@sentry/icons/link';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';

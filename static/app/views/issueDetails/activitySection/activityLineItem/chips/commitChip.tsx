@@ -1,4 +1,4 @@
-import {IconCommit} from '@sentry/icons/iconCommit';
+import {IconCommit} from '@sentry/icons/commit';
 
 import {ExternalLink} from '@sentry/scraps/link';
 

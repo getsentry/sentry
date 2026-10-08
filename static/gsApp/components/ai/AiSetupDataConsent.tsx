@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSeer} from '@sentry/icons/seer';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 

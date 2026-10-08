@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconSort} from '@sentry/icons/iconSort';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSort} from '@sentry/icons/sort';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';

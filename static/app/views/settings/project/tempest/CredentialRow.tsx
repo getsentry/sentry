@@ -1,4 +1,4 @@
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';

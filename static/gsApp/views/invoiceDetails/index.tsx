@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconSentry} from '@sentry/icons/iconSentry';
+import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {ExternalLink} from '@sentry/scraps/link';

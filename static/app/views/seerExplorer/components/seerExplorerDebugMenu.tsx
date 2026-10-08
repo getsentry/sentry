@@ -1,4 +1,4 @@
-import {IconBug} from '@sentry/icons/iconBug';
+import {IconBug} from '@sentry/icons/bug';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';

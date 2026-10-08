@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconClock} from '@sentry/icons/clock';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconWarning} from '@sentry/icons/warning';
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';

@@ -1,4 +1,4 @@
-import {IconFile} from '@sentry/icons/iconFile';
+import {IconFile} from '@sentry/icons/file';
 import {SvgIcon} from '@sentry/icons/svgIcon';
 import {PlatformIcon} from 'platformicons';
 

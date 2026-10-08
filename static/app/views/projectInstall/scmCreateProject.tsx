@@ -1,5 +1,5 @@
 import {useCallback, useState} from 'react';
-import {IconProject} from '@sentry/icons/iconProject';
+import {IconProject} from '@sentry/icons/project';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';

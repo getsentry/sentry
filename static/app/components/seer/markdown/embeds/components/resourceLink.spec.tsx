@@ -1,4 +1,4 @@
-import {IconDocs} from '@sentry/icons/iconDocs';
+import {IconDocs} from '@sentry/icons/docs';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

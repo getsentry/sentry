@@ -1,8 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconFlag} from '@sentry/icons/iconFlag';
-import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconFlag} from '@sentry/icons/flag';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';

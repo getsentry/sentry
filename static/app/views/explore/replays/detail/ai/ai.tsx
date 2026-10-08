@@ -1,7 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconSync} from '@sentry/icons/iconSync';
-import {IconThumb} from '@sentry/icons/iconThumb';
+import {IconSync} from '@sentry/icons/sync';
+import {IconThumb} from '@sentry/icons/thumb';
 
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';

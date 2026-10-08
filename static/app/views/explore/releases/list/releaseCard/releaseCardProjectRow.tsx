@@ -1,9 +1,9 @@
 import LazyLoad from 'react-lazyload';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconFire} from '@sentry/icons/iconFire';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconFire} from '@sentry/icons/fire';
+import {IconWarning} from '@sentry/icons/warning';
 import type {Location} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';

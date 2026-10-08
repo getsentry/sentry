@@ -1,13 +1,13 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconSubscribed} from '@sentry/icons/iconSubscribed';
-import {IconUnsubscribed} from '@sentry/icons/iconUnsubscribed';
-import {IconUpload} from '@sentry/icons/iconUpload';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSubscribed} from '@sentry/icons/subscribed';
+import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
+import {IconUpload} from '@sentry/icons/upload';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

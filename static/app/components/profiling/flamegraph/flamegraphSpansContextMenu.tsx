@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconCopyId} from '@sentry/icons/iconCopyId';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconOpen} from '@sentry/icons/open';
 
 import {
   ProfilingContextMenu,

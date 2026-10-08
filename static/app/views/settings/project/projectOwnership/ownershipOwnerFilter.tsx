@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconUser} from '@sentry/icons/user';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';

@@ -8,8 +8,8 @@ import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconSearch} from '@sentry/icons/search';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Tag} from '@sentry/scraps/badge';

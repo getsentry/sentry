@@ -1,4 +1,4 @@
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 

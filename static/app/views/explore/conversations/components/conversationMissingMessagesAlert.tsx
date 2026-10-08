@@ -1,5 +1,5 @@
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconClose} from '@sentry/icons/close';
+import {IconCopy} from '@sentry/icons/copy';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';

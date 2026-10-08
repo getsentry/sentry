@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconAdd} from '@sentry/icons/add';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSubtract} from '@sentry/icons/subtract';
 import type {ZoomTransform} from 'd3-zoom';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconCircleFill} from '@sentry/icons/iconCircleFill';
+import {IconCircleFill} from '@sentry/icons/circleFill';
 import {useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
 

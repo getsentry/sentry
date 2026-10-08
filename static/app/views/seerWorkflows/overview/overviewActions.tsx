@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconCommit} from '@sentry/icons/iconCommit';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconCode} from '@sentry/icons/code';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconSearch} from '@sentry/icons/search';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {useQueryClient} from '@tanstack/react-query';
 

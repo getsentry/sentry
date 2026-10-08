@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useReducer, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 

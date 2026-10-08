@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconCursorArrow} from '@sentry/icons/iconCursorArrow';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
 
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {TextOverflow} from 'sentry/components/textOverflow';

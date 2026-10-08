@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
-import {IconFilter} from '@sentry/icons/iconFilter';
+import {IconFilter} from '@sentry/icons/filter';
 
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';

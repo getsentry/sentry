@@ -1,4 +1,4 @@
-import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconDownload} from '@sentry/icons/download';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';

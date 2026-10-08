@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconSubtract} from '@sentry/icons/subtract';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';

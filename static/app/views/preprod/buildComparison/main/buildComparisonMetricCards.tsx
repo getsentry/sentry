@@ -1,6 +1,6 @@
 import {useMemo, type ReactNode} from 'react';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconCode} from '@sentry/icons/code';
+import {IconDownload} from '@sentry/icons/download';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';

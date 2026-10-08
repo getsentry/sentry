@@ -1,4 +1,4 @@
-import {IconRuler} from '@sentry/icons/iconRuler';
+import {IconRuler} from '@sentry/icons/ruler';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconUpgrade} from '@sentry/icons/iconUpgrade';
+import {IconUpgrade} from '@sentry/icons/upgrade';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';

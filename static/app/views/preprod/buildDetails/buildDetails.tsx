@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconDownload} from '@sentry/icons/download';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

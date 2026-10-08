@@ -1,7 +1,7 @@
 import type {MouseEventHandler, ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconHide} from '@sentry/icons/iconHide';
+import {IconHide} from '@sentry/icons/hide';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 

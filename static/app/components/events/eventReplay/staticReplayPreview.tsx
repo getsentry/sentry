@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
-import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconPlay} from '@sentry/icons/play';
 
 import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 

@@ -1,5 +1,5 @@
 import {useTheme} from '@emotion/react';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 

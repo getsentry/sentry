@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconSlashForward} from '@sentry/icons/iconSlashForward';
+import {IconSlashForward} from '@sentry/icons/slashForward';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';

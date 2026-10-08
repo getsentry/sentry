@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconWarning} from '@sentry/icons/warning';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';

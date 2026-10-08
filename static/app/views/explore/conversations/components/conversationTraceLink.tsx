@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconSpan} from '@sentry/icons/iconSpan';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSpan} from '@sentry/icons/span';
 
 import {
   DropdownButton,

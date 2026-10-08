@@ -1,7 +1,7 @@
 import type React from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Alert, type AlertProps} from '@sentry/scraps/alert';
 import {ExternalLink, Link} from '@sentry/scraps/link';

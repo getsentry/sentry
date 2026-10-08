@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconNot} from '@sentry/icons/iconNot';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconNot} from '@sentry/icons/not';
 import partition from 'lodash/partition';
 
 import {Alert} from '@sentry/scraps/alert';

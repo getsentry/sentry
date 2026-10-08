@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCode} from '@sentry/icons/iconCode';
+import {IconCode} from '@sentry/icons/code';
 
 import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';

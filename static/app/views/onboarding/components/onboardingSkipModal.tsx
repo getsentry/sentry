@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';

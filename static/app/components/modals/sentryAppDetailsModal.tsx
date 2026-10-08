@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconFlag} from '@sentry/icons/iconFlag';
+import {IconFlag} from '@sentry/icons/flag';
 import {useMutation} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';

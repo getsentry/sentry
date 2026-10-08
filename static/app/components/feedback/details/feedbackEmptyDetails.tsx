@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconMail} from '@sentry/icons/iconMail';
+import {IconMail} from '@sentry/icons/mail';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';

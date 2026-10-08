@@ -1,8 +1,8 @@
 import {Fragment, useMemo, useState} from 'react';
 import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';

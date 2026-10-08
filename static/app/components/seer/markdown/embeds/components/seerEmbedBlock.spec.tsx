@@ -1,4 +1,4 @@
-import {IconDashboard} from '@sentry/icons/iconDashboard';
+import {IconDashboard} from '@sentry/icons/dashboard';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

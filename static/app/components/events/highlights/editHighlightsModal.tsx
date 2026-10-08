@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconSearch} from '@sentry/icons/iconSearch';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconAdd} from '@sentry/icons/add';
+import {IconInfo} from '@sentry/icons/info';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSubtract} from '@sentry/icons/subtract';
 import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';

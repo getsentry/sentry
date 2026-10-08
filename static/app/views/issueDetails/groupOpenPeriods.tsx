@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 

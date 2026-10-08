@@ -2,11 +2,11 @@ import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css, useTheme} from '@emotion/react';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconDocs} from '@sentry/icons/iconDocs';
-import {IconLink} from '@sentry/icons/iconLink';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconLink} from '@sentry/icons/link';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Tag} from '@sentry/scraps/badge';
 import {useHotkeys} from '@sentry/scraps/hotkey';

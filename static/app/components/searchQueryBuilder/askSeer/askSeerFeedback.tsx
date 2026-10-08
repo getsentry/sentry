@@ -1,4 +1,4 @@
-import {IconThumb} from '@sentry/icons/iconThumb';
+import {IconThumb} from '@sentry/icons/thumb';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

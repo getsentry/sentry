@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconUser} from '@sentry/icons/user';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {
   keepPreviousData,

@@ -1,4 +1,4 @@
-import {IconProfiling} from '@sentry/icons/iconProfiling';
+import {IconProfiling} from '@sentry/icons/profiling';
 
 import {LinkButton} from '@sentry/scraps/button';
 

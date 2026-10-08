@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
-import {IconCursorArrow} from '@sentry/icons/iconCursorArrow';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
 
 import {Link} from '@sentry/scraps/link';
 

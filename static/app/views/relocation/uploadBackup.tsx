@@ -1,8 +1,8 @@
 import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconFile} from '@sentry/icons/iconFile';
-import {IconUpload} from '@sentry/icons/iconUpload';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconFile} from '@sentry/icons/file';
+import {IconUpload} from '@sentry/icons/upload';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';

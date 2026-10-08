@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconBroadcast} from '@sentry/icons/iconBroadcast';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 
 import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backend.svg';
 

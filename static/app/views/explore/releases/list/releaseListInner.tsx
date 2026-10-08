@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSearch} from '@sentry/icons/search';
 import type {Location} from 'history';
 
 import {Pagination} from '@sentry/scraps/pagination';

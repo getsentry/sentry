@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconLink} from '@sentry/icons/iconLink';
+import {IconLink} from '@sentry/icons/link';
 import type {LocationDescriptor} from 'history';
 
 import {

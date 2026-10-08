@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconImage} from '@sentry/icons/iconImage';
+import {IconImage} from '@sentry/icons/image';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';

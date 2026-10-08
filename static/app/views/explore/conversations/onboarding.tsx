@@ -1,9 +1,9 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconBot} from '@sentry/icons/iconBot';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconBot} from '@sentry/icons/bot';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconUser} from '@sentry/icons/user';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 

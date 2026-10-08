@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconNot} from '@sentry/icons/iconNot';
+import {IconNot} from '@sentry/icons/not';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';

@@ -1,4 +1,4 @@
-import {IconChat} from '@sentry/icons/iconChat';
+import {IconChat} from '@sentry/icons/chat';
 
 import {Text} from '@sentry/scraps/text';
 

@@ -1,6 +1,6 @@
-import {IconCopyId} from '@sentry/icons/iconCopyId';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';

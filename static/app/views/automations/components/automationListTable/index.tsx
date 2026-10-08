@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSearch} from '@sentry/icons/search';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';

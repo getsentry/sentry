@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconClock} from '@sentry/icons/clock';
+import {IconDownload} from '@sentry/icons/download';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';

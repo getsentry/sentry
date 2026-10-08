@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconMegaphone} from '@sentry/icons/iconMegaphone';
-import {IconSearch} from '@sentry/icons/iconSearch';
-import {IconSync} from '@sentry/icons/iconSync';
+import {IconClose} from '@sentry/icons/close';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSync} from '@sentry/icons/sync';
 import type {Primitive} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';

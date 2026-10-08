@@ -10,7 +10,7 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

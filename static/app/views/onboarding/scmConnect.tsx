@@ -1,6 +1,6 @@
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconLock} from '@sentry/icons/iconLock';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
+import {IconLock} from '@sentry/icons/lock';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';

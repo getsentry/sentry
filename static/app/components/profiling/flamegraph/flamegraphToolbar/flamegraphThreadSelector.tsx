@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconList} from '@sentry/icons/iconList';
+import {IconList} from '@sentry/icons/list';
 import * as Sentry from '@sentry/react';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconCopyId} from '@sentry/icons/iconCopyId';
-import {IconJson} from '@sentry/icons/iconJson';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconJson} from '@sentry/icons/json';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';

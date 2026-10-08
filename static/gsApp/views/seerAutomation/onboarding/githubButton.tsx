@@ -1,5 +1,5 @@
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {Access} from 'sentry/components/acl/access';
 import {Placeholder} from 'sentry/components/placeholder';

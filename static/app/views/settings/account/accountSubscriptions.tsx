@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconSliders} from '@sentry/icons/iconSliders';
+import {IconSliders} from '@sentry/icons/sliders';
 import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {z} from 'zod';

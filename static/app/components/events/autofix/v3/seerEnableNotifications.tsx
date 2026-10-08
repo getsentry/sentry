@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {IconSubscribed} from '@sentry/icons/iconSubscribed';
+import {IconSubscribed} from '@sentry/icons/subscribed';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';

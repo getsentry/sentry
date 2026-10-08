@@ -1,7 +1,7 @@
 import {Component, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconClose} from '@sentry/icons/close';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import type {Location, LocationDescriptor} from 'history';

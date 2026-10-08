@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {Outlet, useMatches} from 'react-router';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconOpen} from '@sentry/icons/open';
 import {useQuery} from '@tanstack/react-query';
 
 import SeerConfigBug1 from 'sentry-images/spot/seer-config-bug-1.svg';

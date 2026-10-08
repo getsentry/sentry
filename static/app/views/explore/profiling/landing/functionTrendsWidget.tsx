@@ -3,9 +3,9 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconWarning} from '@sentry/icons/warning';
 import partition from 'lodash/partition';
 
 import {Button} from '@sentry/scraps/button';

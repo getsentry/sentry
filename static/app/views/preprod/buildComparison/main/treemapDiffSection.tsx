@@ -1,6 +1,6 @@
 import {useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconContract} from '@sentry/icons/iconContract';
+import {IconContract} from '@sentry/icons/contract';
 import type {ECharts, TreemapSeriesOption} from 'echarts';
 
 import {Tag} from '@sentry/scraps/badge';

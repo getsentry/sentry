@@ -1,9 +1,9 @@
 import {Fragment, useMemo} from 'react';
-import {IconBookmark} from '@sentry/icons/iconBookmark';
-import {IconFilter} from '@sentry/icons/iconFilter';
-import {IconGroup} from '@sentry/icons/iconGroup';
-import {IconIssues} from '@sentry/icons/iconIssues';
-import {IconSort} from '@sentry/icons/iconSort';
+import {IconBookmark} from '@sentry/icons/bookmark';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconGroup} from '@sentry/icons/group';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconSort} from '@sentry/icons/sort';
 import orderBy from 'lodash/orderBy';
 
 import {UserAvatar} from '@sentry/scraps/avatar';

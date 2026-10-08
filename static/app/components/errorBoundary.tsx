@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';

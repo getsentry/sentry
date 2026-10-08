@@ -1,5 +1,5 @@
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';

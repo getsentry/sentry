@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {IconLock} from '@sentry/icons/iconLock';
-import {IconQuestion} from '@sentry/icons/iconQuestion';
+import {IconLock} from '@sentry/icons/lock';
+import {IconQuestion} from '@sentry/icons/question';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';

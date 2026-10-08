@@ -1,9 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconMute} from '@sentry/icons/iconMute';
-import {IconNot} from '@sentry/icons/iconNot';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconMute} from '@sentry/icons/mute';
+import {IconNot} from '@sentry/icons/not';
+import {IconUser} from '@sentry/icons/user';
 import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';

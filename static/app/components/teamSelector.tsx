@@ -2,8 +2,8 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconAdd} from '@sentry/icons/add';
+import {IconUser} from '@sentry/icons/user';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import type {DistributedOmit} from 'type-fest';
 

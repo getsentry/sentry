@@ -1,4 +1,4 @@
-import {IconGeneric} from '@sentry/icons/iconGeneric';
+import {IconGeneric} from '@sentry/icons/generic';
 
 import type {AvatarSentryApp} from 'sentry/types/integrations';
 

@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconQuestion} from '@sentry/icons/iconQuestion';
+import {IconQuestion} from '@sentry/icons/question';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';

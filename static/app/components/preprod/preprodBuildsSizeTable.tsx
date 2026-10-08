@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {IconQuestion} from '@sentry/icons/iconQuestion';
+import {IconQuestion} from '@sentry/icons/question';
 
 import {Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';

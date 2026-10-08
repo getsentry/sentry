@@ -1,4 +1,4 @@
-import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconIssues} from '@sentry/icons/issues';
 import queryString from 'query-string';
 
 import {

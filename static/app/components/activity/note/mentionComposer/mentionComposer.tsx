@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {IconMarkdown} from '@sentry/icons/iconMarkdown';
+import {IconMarkdown} from '@sentry/icons/markdown';
 
 import {Button} from '@sentry/scraps/button';
 import {Composer, type ComposerValue} from '@sentry/scraps/composer';

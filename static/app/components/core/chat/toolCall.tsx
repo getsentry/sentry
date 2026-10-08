@@ -1,6 +1,6 @@
 import {Fragment, type MouseEvent, type ReactNode} from 'react';
 import styled from '@emotion/styled';
-import {IconSpan} from '@sentry/icons/iconSpan';
+import {IconSpan} from '@sentry/icons/span';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';

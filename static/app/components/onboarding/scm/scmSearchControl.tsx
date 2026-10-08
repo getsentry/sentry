@@ -1,4 +1,4 @@
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Container} from '@sentry/scraps/layout';
 import {components as selectComponents} from '@sentry/scraps/select';

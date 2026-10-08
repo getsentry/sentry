@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconLightning} from '@sentry/icons/iconLightning';
-import {IconLock} from '@sentry/icons/iconLock';
-import {IconSentry} from '@sentry/icons/iconSentry';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconLock} from '@sentry/icons/lock';
+import {IconSentry} from '@sentry/icons/sentry';
 import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
 

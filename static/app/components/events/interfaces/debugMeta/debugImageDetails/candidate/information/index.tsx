@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 import moment from 'moment-timezone';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';

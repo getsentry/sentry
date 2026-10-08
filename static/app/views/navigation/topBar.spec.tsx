@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {IconStack} from '@sentry/icons/iconStack';
+import {IconStack} from '@sentry/icons/stack';
 import {expectTypeOf} from 'expect-type';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';

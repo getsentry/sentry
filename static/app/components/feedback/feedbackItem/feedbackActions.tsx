@@ -1,7 +1,7 @@
 import type {CSSProperties} from 'react';
 import {Fragment, useCallback} from 'react';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';

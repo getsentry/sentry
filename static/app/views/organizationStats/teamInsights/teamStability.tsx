@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';

@@ -1,5 +1,5 @@
 import type {Dispatch, SetStateAction} from 'react';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSearch} from '@sentry/icons/search';
 
 import {InputGroup} from '@sentry/scraps/input';
 

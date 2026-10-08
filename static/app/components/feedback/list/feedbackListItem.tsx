@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
-import {IconChat} from '@sentry/icons/iconChat';
-import {IconFatal} from '@sentry/icons/iconFatal';
-import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconChat} from '@sentry/icons/chat';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconPlay} from '@sentry/icons/play';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';

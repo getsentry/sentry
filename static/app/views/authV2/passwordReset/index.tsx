@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 import {useQuery} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 

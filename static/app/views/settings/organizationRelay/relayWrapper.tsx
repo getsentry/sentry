@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import {useMutation} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 import {z} from 'zod';

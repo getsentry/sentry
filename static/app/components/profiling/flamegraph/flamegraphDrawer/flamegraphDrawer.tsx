@@ -1,7 +1,7 @@
 import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconPanel} from '@sentry/icons/iconPanel';
+import {IconPanel} from '@sentry/icons/panel';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';

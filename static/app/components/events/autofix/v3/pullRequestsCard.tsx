@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconPullRequest} from '@sentry/icons/iconPullRequest';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

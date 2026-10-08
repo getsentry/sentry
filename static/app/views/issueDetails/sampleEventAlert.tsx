@@ -1,4 +1,4 @@
-import {IconLightning} from '@sentry/icons/iconLightning';
+import {IconLightning} from '@sentry/icons/lightning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';

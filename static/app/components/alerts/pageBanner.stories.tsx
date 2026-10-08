@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconBroadcast} from '@sentry/icons/iconBroadcast';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 

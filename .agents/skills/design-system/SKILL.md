@@ -606,7 +606,7 @@ function Component(){
 import {CustomIcon} from "./customIcon"
 
 // ✅ Import icon from our icon set
-import {IconExclamation} from "@sentry/icons/iconExclamation"
+import {IconExclamation} from "@sentry/icons/exclamation"
 ```
 
 All images belong inside `static/app/images` and must be imported via the webpack loader (the `sentry-images` alias), never referenced by static path.

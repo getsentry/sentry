@@ -1,9 +1,9 @@
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconDivide} from '@sentry/icons/iconDivide';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconAdd} from '@sentry/icons/add';
+import {IconClose} from '@sentry/icons/close';
+import {IconDivide} from '@sentry/icons/divide';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import type {Token, TokenOperator} from 'sentry/components/arithmeticBuilder/token';
 import {Operator} from 'sentry/components/arithmeticBuilder/token';

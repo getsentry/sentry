@@ -1,12 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconFile} from '@sentry/icons/iconFile';
-import {IconProject} from '@sentry/icons/iconProject';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconFile} from '@sentry/icons/file';
+import {IconProject} from '@sentry/icons/project';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';

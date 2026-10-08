@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconLightning} from '@sentry/icons/iconLightning';
+import {IconLightning} from '@sentry/icons/lightning';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';

@@ -1,4 +1,4 @@
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';

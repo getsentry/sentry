@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconCommit} from '@sentry/icons/iconCommit';
-import {IconNot} from '@sentry/icons/iconNot';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconNot} from '@sentry/icons/not';
 import {PlatformIcon} from 'platformicons';
 
 import {Tag} from '@sentry/scraps/badge';

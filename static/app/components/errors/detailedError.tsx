@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconFlag} from '@sentry/icons/iconFlag';
+import {IconFlag} from '@sentry/icons/flag';
 import {SvgIcon} from '@sentry/icons/svgIcon';
 import * as Sentry from '@sentry/react';
 

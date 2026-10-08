@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 import type {Query} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';

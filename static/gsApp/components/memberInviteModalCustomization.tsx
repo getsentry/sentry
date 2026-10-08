@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
-import {IconBusiness} from '@sentry/icons/iconBusiness';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconBusiness} from '@sentry/icons/business';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Link} from '@sentry/scraps/link';
 

@@ -1,5 +1,5 @@
 import {useRef, type ReactNode} from 'react';
-import {IconMegaphone} from '@sentry/icons/iconMegaphone';
+import {IconMegaphone} from '@sentry/icons/megaphone';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 

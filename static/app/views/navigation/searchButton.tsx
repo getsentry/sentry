@@ -1,4 +1,4 @@
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Hotkey} from '@sentry/scraps/hotkey';

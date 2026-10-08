@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconStar} from '@sentry/icons/star';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
 

@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {useResizeObserver} from '@react-aria/utils';
-import {IconTelescope} from '@sentry/icons/iconTelescope';
+import {IconTelescope} from '@sentry/icons/telescope';
 import {keepPreviousData} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';

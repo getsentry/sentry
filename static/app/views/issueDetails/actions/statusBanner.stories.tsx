@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {IconReleases} from '@sentry/icons/iconReleases';
+import {IconReleases} from '@sentry/icons/releases';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

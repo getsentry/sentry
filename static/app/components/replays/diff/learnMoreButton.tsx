@@ -1,8 +1,8 @@
 import type {ComponentProps, ReactNode} from 'react';
 import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconQuestion} from '@sentry/icons/iconQuestion';
+import {IconOpen} from '@sentry/icons/open';
+import {IconQuestion} from '@sentry/icons/question';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';

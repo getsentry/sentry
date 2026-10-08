@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 

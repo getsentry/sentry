@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
+import {IconArrow} from '@sentry/icons/arrow';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';

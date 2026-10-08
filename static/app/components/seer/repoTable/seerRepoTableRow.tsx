@@ -1,4 +1,4 @@
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconOpen} from '@sentry/icons/open';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';

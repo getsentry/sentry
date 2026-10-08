@@ -1,7 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
-import {IconMarkdown} from '@sentry/icons/iconMarkdown';
-import {IconRefresh} from '@sentry/icons/iconRefresh';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconMarkdown} from '@sentry/icons/markdown';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';

@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {Global} from '@emotion/react';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {streamingAnimationStyles, useTextDecodeAnimation} from '@sentry/scraps/markdown';

@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {IconList} from '@sentry/icons/iconList';
+import {IconList} from '@sentry/icons/list';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex} from '@sentry/scraps/layout';

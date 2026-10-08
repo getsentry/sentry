@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconBusiness} from '@sentry/icons/iconBusiness';
+import {IconBusiness} from '@sentry/icons/business';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';

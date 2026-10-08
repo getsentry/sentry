@@ -1,7 +1,7 @@
 import type {ReactEventHandler} from 'react';
 import {useState} from 'react';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';

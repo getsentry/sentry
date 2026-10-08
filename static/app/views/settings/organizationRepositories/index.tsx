@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import {useInfiniteQuery, useQuery, useQueryClient} from '@tanstack/react-query';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';

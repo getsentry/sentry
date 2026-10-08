@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {IconReleases} from '@sentry/icons/iconReleases';
+import {IconReleases} from '@sentry/icons/releases';
 import {useQuery} from '@tanstack/react-query';
 
 import {AvatarList, UserAvatar} from '@sentry/scraps/avatar';

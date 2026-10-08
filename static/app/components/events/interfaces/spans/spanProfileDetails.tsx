@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconProfiling} from '@sentry/icons/iconProfiling';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconProfiling} from '@sentry/icons/profiling';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';

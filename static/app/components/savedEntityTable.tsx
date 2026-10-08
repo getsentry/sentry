@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconStar} from '@sentry/icons/star';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';

@@ -1,14 +1,14 @@
-import {IconAsana} from '@sentry/icons/iconAsana';
-import {IconBitbucket} from '@sentry/icons/iconBitbucket';
-import {IconCursor} from '@sentry/icons/iconCursor';
-import {IconGeneric} from '@sentry/icons/iconGeneric';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconGitlab} from '@sentry/icons/iconGitlab';
-import {IconJira} from '@sentry/icons/iconJira';
-import {IconPerforce} from '@sentry/icons/iconPerforce';
-import {IconSentry} from '@sentry/icons/iconSentry';
-import {IconVsts} from '@sentry/icons/iconVsts';
+import {IconAsana} from '@sentry/icons/asana';
+import {IconBitbucket} from '@sentry/icons/bitbucket';
+import {IconCursor} from '@sentry/icons/cursor';
+import {IconGeneric} from '@sentry/icons/generic';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGitlab} from '@sentry/icons/gitlab';
+import {IconJira} from '@sentry/icons/jira';
+import {IconPerforce} from '@sentry/icons/perforce';
+import {IconSentry} from '@sentry/icons/sentry';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
+import {IconVsts} from '@sentry/icons/vsts';
 import * as qs from 'query-string';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';

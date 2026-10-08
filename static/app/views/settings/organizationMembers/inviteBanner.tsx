@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconCommit} from '@sentry/icons/iconCommit';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconMail} from '@sentry/icons/iconMail';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGithub} from '@sentry/icons/github';
+import {IconMail} from '@sentry/icons/mail';
 import * as qs from 'query-string';
 
 import {Button} from '@sentry/scraps/button';

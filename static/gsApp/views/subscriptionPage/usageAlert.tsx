@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
-import {IconFire} from '@sentry/icons/iconFire';
-import {IconStats} from '@sentry/icons/iconStats';
+import {IconFire} from '@sentry/icons/fire';
+import {IconStats} from '@sentry/icons/stats';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 

@@ -1,4 +1,4 @@
-import {IconProject} from '@sentry/icons/iconProject';
+import {IconProject} from '@sentry/icons/project';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';

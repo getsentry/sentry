@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import {IconImage} from '@sentry/icons/iconImage';
+import {IconImage} from '@sentry/icons/image';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 

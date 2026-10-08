@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconIssues} from '@sentry/icons/iconIssues';
+import {IconIssues} from '@sentry/icons/issues';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

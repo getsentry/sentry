@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconIssues} from '@sentry/icons/iconIssues';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconUser} from '@sentry/icons/user';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ActorAvatar, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';

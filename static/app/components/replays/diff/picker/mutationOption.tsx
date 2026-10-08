@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {IconClock} from '@sentry/icons/iconClock';
+import {IconClock} from '@sentry/icons/clock';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';

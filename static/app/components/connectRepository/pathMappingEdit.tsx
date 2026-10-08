@@ -1,6 +1,6 @@
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconBranch} from '@sentry/icons/iconBranch';
-import {IconSentry} from '@sentry/icons/iconSentry';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconBranch} from '@sentry/icons/branch';
+import {IconSentry} from '@sentry/icons/sentry';
 
 import {Tag} from '@sentry/scraps/badge';
 import {withFieldGroup} from '@sentry/scraps/form';

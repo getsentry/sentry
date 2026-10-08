@@ -1,6 +1,6 @@
 import {useRef, useState} from 'react';
-import {IconGlobe} from '@sentry/icons/iconGlobe';
-import {IconTerminal} from '@sentry/icons/iconTerminal';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconTerminal} from '@sentry/icons/terminal';
 import {useQuery} from '@tanstack/react-query';
 import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';

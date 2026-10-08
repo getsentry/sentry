@@ -1,9 +1,9 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconFatal} from '@sentry/icons/iconFatal';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconCode} from '@sentry/icons/code';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconOpen} from '@sentry/icons/open';
 import debounce from 'lodash/debounce';
 import {z} from 'zod';
 

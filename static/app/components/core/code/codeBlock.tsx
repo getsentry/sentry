@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconCopy} from '@sentry/icons/copy';
 import Prism from 'prismjs';
 
 import {Button} from '@sentry/scraps/button';

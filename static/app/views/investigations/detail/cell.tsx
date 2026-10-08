@@ -1,10 +1,10 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconReturn} from '@sentry/icons/iconReturn';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconClose} from '@sentry/icons/close';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconReturn} from '@sentry/icons/return';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';

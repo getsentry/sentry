@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconClock} from '@sentry/icons/clock';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';

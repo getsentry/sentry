@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {ExternalLink} from '@sentry/scraps/link';
 import type {LinkProps} from '@sentry/scraps/link';

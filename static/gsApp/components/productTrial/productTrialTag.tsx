@@ -1,6 +1,6 @@
-import {IconBusiness} from '@sentry/icons/iconBusiness';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconFlag} from '@sentry/icons/iconFlag';
+import {IconBusiness} from '@sentry/icons/business';
+import {IconClock} from '@sentry/icons/clock';
+import {IconFlag} from '@sentry/icons/flag';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 

@@ -1,6 +1,6 @@
 import {useRef} from 'react';
-import {IconDocs} from '@sentry/icons/iconDocs';
-import {IconSettings} from '@sentry/icons/iconSettings';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';

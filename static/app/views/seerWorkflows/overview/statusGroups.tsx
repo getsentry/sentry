@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconCommit} from '@sentry/icons/iconCommit';
-import {IconMerge} from '@sentry/icons/iconMerge';
-import {IconPullRequest} from '@sentry/icons/iconPullRequest';
-import {IconSearch} from '@sentry/icons/iconSearch';
+import {IconCode} from '@sentry/icons/code';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconMerge} from '@sentry/icons/merge';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconSearch} from '@sentry/icons/search';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Disclosure} from '@sentry/scraps/disclosure';

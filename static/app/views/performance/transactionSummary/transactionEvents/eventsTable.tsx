@@ -2,7 +2,7 @@ import type React from 'react';
 import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
 import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
-import {IconProfiling} from '@sentry/icons/iconProfiling';
+import {IconProfiling} from '@sentry/icons/profiling';
 import type {Location, LocationDescriptor} from 'history';
 import groupBy from 'lodash/groupBy';
 

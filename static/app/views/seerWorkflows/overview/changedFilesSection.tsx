@@ -1,6 +1,6 @@
 import {Fragment, type ReactNode, useState} from 'react';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconCode} from '@sentry/icons/iconCode';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';

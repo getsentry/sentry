@@ -1,5 +1,5 @@
 import {lazy} from 'react';
-import {IconPlay} from '@sentry/icons/iconPlay';
+import {IconPlay} from '@sentry/icons/play';
 import queryString from 'query-string';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';

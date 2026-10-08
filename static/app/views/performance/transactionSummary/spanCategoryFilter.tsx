@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconFilter} from '@sentry/icons/iconFilter';
+import {IconFilter} from '@sentry/icons/filter';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';

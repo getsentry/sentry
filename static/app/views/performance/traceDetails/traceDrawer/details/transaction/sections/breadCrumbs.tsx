@@ -1,9 +1,9 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconFilter} from '@sentry/icons/iconFilter';
-import {IconSearch} from '@sentry/icons/iconSearch';
-import {IconSort} from '@sentry/icons/iconSort';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSort} from '@sentry/icons/sort';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';

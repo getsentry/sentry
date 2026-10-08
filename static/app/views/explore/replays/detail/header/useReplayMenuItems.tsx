@@ -1,8 +1,8 @@
-import {IconBug} from '@sentry/icons/iconBug';
-import {IconCopyId} from '@sentry/icons/iconCopyId';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconUpload} from '@sentry/icons/iconUpload';
+import {IconBug} from '@sentry/icons/bug';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconUpload} from '@sentry/icons/upload';
 import * as Sentry from '@sentry/react';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';

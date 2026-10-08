@@ -1,11 +1,11 @@
 import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
-import {IconCompass} from '@sentry/icons/iconCompass';
-import {IconDashboard} from '@sentry/icons/iconDashboard';
-import {IconGraph} from '@sentry/icons/iconGraph';
-import {IconIssues} from '@sentry/icons/iconIssues';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconSiren} from '@sentry/icons/iconSiren';
+import {IconCompass} from '@sentry/icons/compass';
+import {IconDashboard} from '@sentry/icons/dashboard';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconSiren} from '@sentry/icons/siren';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {Stack, Flex} from '@sentry/scraps/layout';

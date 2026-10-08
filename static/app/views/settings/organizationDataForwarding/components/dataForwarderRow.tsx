@@ -1,5 +1,5 @@
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconEdit} from '@sentry/icons/iconEdit';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';

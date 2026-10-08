@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconEdit} from '@sentry/icons/iconEdit';
-import {IconStack} from '@sentry/icons/iconStack';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconStack} from '@sentry/icons/stack';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

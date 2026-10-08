@@ -3,7 +3,7 @@ import {useOption} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {type ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {LeadWrap} from '@sentry/scraps/compactSelect';
 import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';

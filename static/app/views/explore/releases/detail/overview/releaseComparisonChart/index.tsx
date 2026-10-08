@@ -1,10 +1,10 @@
 import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/iconArrow';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconList} from '@sentry/icons/iconList';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconList} from '@sentry/icons/list';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';

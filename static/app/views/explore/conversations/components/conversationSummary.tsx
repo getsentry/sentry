@@ -3,9 +3,9 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
-import {IconCalendar} from '@sentry/icons/iconCalendar';
-import {IconFire} from '@sentry/icons/iconFire';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconFire} from '@sentry/icons/fire';
+import {IconUser} from '@sentry/icons/user';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';

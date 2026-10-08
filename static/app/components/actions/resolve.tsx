@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconReleases} from '@sentry/icons/iconReleases';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconReleases} from '@sentry/icons/releases';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';

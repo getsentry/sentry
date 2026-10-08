@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconFlag} from '@sentry/icons/iconFlag';
-import {IconMail} from '@sentry/icons/iconMail';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
+import {IconFlag} from '@sentry/icons/flag';
+import {IconMail} from '@sentry/icons/mail';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';

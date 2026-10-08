@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
-import {IconBot} from '@sentry/icons/iconBot';
-import {IconOpen} from '@sentry/icons/iconOpen';
+import {IconBot} from '@sentry/icons/bot';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';

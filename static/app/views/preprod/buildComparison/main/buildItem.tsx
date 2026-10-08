@@ -1,12 +1,12 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconBranch} from '@sentry/icons/iconBranch';
-import {IconCalendar} from '@sentry/icons/iconCalendar';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconCommit} from '@sentry/icons/iconCommit';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconMobile} from '@sentry/icons/iconMobile';
-import {IconTag} from '@sentry/icons/iconTag';
+import {IconBranch} from '@sentry/icons/branch';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconCode} from '@sentry/icons/code';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconDownload} from '@sentry/icons/download';
+import {IconMobile} from '@sentry/icons/mobile';
+import {IconTag} from '@sentry/icons/tag';
 
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';

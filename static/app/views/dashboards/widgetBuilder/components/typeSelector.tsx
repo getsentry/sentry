@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconGraph} from '@sentry/icons/iconGraph';
-import {IconMarkdown} from '@sentry/icons/iconMarkdown';
-import {IconNumber} from '@sentry/icons/iconNumber';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconTable} from '@sentry/icons/iconTable';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconMarkdown} from '@sentry/icons/markdown';
+import {IconNumber} from '@sentry/icons/number';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconTable} from '@sentry/icons/table';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 

@@ -1,7 +1,7 @@
 import {isValidElement, memo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 import type {
   EChartsOption,
   LegendComponentOption,

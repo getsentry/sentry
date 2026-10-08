@@ -1,4 +1,4 @@
-import {IconMail} from '@sentry/icons/iconMail';
+import {IconMail} from '@sentry/icons/mail';
 import moment from 'moment-timezone';
 
 import {UserAvatar} from '@sentry/scraps/avatar';

@@ -1,4 +1,4 @@
-import {IconSiren} from '@sentry/icons/iconSiren';
+import {IconSiren} from '@sentry/icons/siren';
 
 import {
   ResourceLink,

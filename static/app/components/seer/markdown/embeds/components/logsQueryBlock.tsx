@@ -1,4 +1,4 @@
-import {IconList} from '@sentry/icons/iconList';
+import {IconList} from '@sentry/icons/list';
 
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {

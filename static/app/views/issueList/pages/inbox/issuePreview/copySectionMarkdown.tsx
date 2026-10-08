@@ -1,4 +1,4 @@
-import {IconCopy} from '@sentry/icons/iconCopy';
+import {IconCopy} from '@sentry/icons/copy';
 
 import {Button} from '@sentry/scraps/button';
 

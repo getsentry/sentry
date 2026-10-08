@@ -1,6 +1,6 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 import {SvgIcon} from '@sentry/icons/svgIcon';
 
 import {Button} from '@sentry/scraps/button';

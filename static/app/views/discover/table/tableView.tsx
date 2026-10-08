@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconStack} from '@sentry/icons/iconStack';
+import {IconStack} from '@sentry/icons/stack';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 

@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import {IconSeer} from '@sentry/icons/iconSeer';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';

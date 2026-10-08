@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
-import {IconInfo} from '@sentry/icons/iconInfo';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 

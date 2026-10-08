@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconNot} from '@sentry/icons/iconNot';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconNot} from '@sentry/icons/not';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 

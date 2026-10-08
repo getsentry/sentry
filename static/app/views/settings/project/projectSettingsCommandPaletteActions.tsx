@@ -1,19 +1,19 @@
 import {Fragment, type ReactNode} from 'react';
-import {IconChat} from '@sentry/icons/iconChat';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconFile} from '@sentry/icons/iconFile';
-import {IconFilter} from '@sentry/icons/iconFilter';
-import {IconGlobe} from '@sentry/icons/iconGlobe';
-import {IconGroup} from '@sentry/icons/iconGroup';
-import {IconLock} from '@sentry/icons/iconLock';
-import {IconPlay} from '@sentry/icons/iconPlay';
-import {IconProject} from '@sentry/icons/iconProject';
-import {IconReleases} from '@sentry/icons/iconReleases';
-import {IconSeer} from '@sentry/icons/iconSeer';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconSiren} from '@sentry/icons/iconSiren';
-import {IconStack} from '@sentry/icons/iconStack';
-import {IconTag} from '@sentry/icons/iconTag';
+import {IconChat} from '@sentry/icons/chat';
+import {IconCode} from '@sentry/icons/code';
+import {IconFile} from '@sentry/icons/file';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconGroup} from '@sentry/icons/group';
+import {IconLock} from '@sentry/icons/lock';
+import {IconPlay} from '@sentry/icons/play';
+import {IconProject} from '@sentry/icons/project';
+import {IconReleases} from '@sentry/icons/releases';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconSiren} from '@sentry/icons/siren';
+import {IconStack} from '@sentry/icons/stack';
+import {IconTag} from '@sentry/icons/tag';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 

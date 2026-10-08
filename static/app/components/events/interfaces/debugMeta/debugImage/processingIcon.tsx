@@ -1,6 +1,6 @@
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconInfo} from '@sentry/icons/iconInfo';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconInfo} from '@sentry/icons/info';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';

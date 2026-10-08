@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {IconSettings} from '@sentry/icons/iconSettings';
-import {IconTelescope} from '@sentry/icons/iconTelescope';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconTelescope} from '@sentry/icons/telescope';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';

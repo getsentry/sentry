@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {IconSpan} from '@sentry/icons/iconSpan';
+import {IconSpan} from '@sentry/icons/span';
 
 import {Container} from '@sentry/scraps/layout';
 

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useDisclosure} from '@react-aria/disclosure';
 import {usePress} from '@react-aria/interactions';
 import {useDisclosureState} from '@react-stately/disclosure';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Button} from '@sentry/scraps/button';

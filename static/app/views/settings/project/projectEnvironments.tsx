@@ -1,6 +1,6 @@
 import {Fragment, useDeferredValue, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 

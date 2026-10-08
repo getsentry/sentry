@@ -1,7 +1,7 @@
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconEdit} from '@sentry/icons/iconEdit';
-import {IconSubscribed} from '@sentry/icons/iconSubscribed';
-import {IconUnsubscribed} from '@sentry/icons/iconUnsubscribed';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconSubscribed} from '@sentry/icons/subscribed';
+import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
 
 import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

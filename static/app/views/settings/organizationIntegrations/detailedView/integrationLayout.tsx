@@ -1,10 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconDocs} from '@sentry/icons/iconDocs';
-import {IconGeneric} from '@sentry/icons/iconGeneric';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconProject} from '@sentry/icons/iconProject';
+import {IconClose} from '@sentry/icons/close';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconGeneric} from '@sentry/icons/generic';
+import {IconGithub} from '@sentry/icons/github';
+import {IconProject} from '@sentry/icons/project';
 import startCase from 'lodash/startCase';
 
 import type {AlertProps} from '@sentry/scraps/alert';

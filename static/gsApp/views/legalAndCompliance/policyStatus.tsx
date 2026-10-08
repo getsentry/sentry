@@ -1,5 +1,5 @@
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconSubtract} from '@sentry/icons/subtract';
 import moment from 'moment-timezone';
 
 import {Flex} from '@sentry/scraps/layout';

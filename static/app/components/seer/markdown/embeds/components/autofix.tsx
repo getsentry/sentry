@@ -1,9 +1,9 @@
 import {useEffect, useMemo, useRef, type ComponentType, type ReactNode} from 'react';
-import {IconBug} from '@sentry/icons/iconBug';
-import {IconCode} from '@sentry/icons/iconCode';
-import {IconList} from '@sentry/icons/iconList';
-import {IconOpen} from '@sentry/icons/iconOpen';
-import {IconPullRequest} from '@sentry/icons/iconPullRequest';
+import {IconBug} from '@sentry/icons/bug';
+import {IconCode} from '@sentry/icons/code';
+import {IconList} from '@sentry/icons/list';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {useIsFetching, useQueryClient} from '@tanstack/react-query';
 

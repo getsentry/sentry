@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconDownload} from '@sentry/icons/iconDownload';
+import {IconClock} from '@sentry/icons/clock';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';

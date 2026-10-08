@@ -1,5 +1,5 @@
 import {lazy} from 'react';
-import {IconDashboard} from '@sentry/icons/iconDashboard';
+import {IconDashboard} from '@sentry/icons/dashboard';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {

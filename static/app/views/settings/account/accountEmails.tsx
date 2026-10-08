@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconStack} from '@sentry/icons/iconStack';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconStack} from '@sentry/icons/stack';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 

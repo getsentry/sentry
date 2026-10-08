@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconProfiling} from '@sentry/icons/iconProfiling';
+import {IconProfiling} from '@sentry/icons/profiling';
 import type {Location, LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconPlay} from '@sentry/icons/iconPlay';
-import {IconProfiling} from '@sentry/icons/iconProfiling';
+import {IconPlay} from '@sentry/icons/play';
+import {IconProfiling} from '@sentry/icons/profiling';
 import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';

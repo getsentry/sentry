@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconExpand} from '@sentry/icons/iconExpand';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';

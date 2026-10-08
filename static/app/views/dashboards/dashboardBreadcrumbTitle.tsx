@@ -1,12 +1,12 @@
 import {useState, type ReactNode} from 'react';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconDelete} from '@sentry/icons/iconDelete';
-import {IconDownload} from '@sentry/icons/iconDownload';
-import {IconEllipsis} from '@sentry/icons/iconEllipsis';
-import {IconGroup} from '@sentry/icons/iconGroup';
-import {IconInput} from '@sentry/icons/iconInput';
-import {IconStar} from '@sentry/icons/iconStar';
+import {IconClock} from '@sentry/icons/clock';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGroup} from '@sentry/icons/group';
+import {IconInput} from '@sentry/icons/input';
+import {IconStar} from '@sentry/icons/star';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';

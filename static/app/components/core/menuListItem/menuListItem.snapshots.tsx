@@ -1,4 +1,4 @@
-import {IconCircle} from '@sentry/icons/iconCircle';
+import {IconCircle} from '@sentry/icons/circle';
 
 import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';
 

@@ -5,7 +5,7 @@ It exports TypeScript source and has no JavaScript build step. Consumers must pr
 TypeScript and JSX.
 
 ```tsx
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 <IconDefaultsProvider size="sm">

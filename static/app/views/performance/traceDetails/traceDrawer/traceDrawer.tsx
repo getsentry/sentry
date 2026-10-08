@@ -1,9 +1,9 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconCircleFill} from '@sentry/icons/iconCircleFill';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconPin} from '@sentry/icons/iconPin';
+import {IconCircleFill} from '@sentry/icons/circleFill';
+import {IconClose} from '@sentry/icons/close';
+import {IconPin} from '@sentry/icons/pin';
 
 import {Button} from '@sentry/scraps/button';
 

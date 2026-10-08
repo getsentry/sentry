@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';

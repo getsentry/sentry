@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {IconBusiness} from '@sentry/icons/iconBusiness';
-import {IconCheckmark} from '@sentry/icons/iconCheckmark';
+import {IconBusiness} from '@sentry/icons/business';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';

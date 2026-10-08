@@ -1,4 +1,4 @@
-import {IconProject} from '@sentry/icons/iconProject';
+import {IconProject} from '@sentry/icons/project';
 import moment from 'moment-timezone';
 import {PlatformIcon} from 'platformicons';
 

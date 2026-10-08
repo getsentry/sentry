@@ -1,5 +1,5 @@
-import {IconCalendar} from '@sentry/icons/iconCalendar';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconDelete} from '@sentry/icons/delete';
 import invariant from 'invariant';
 
 import {UserAvatar} from '@sentry/scraps/avatar';

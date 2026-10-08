@@ -1,8 +1,8 @@
 import {Activity, Fragment, useEffect, useRef, useState} from 'react';
 import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
-import {IconClock} from '@sentry/icons/iconClock';
-import {IconGraph} from '@sentry/icons/iconGraph';
+import {IconClock} from '@sentry/icons/clock';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';

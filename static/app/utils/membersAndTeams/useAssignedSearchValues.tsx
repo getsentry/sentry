@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
-import {IconStar} from '@sentry/icons/iconStar';
-import {IconUser} from '@sentry/icons/iconUser';
+import {IconStar} from '@sentry/icons/star';
+import {IconUser} from '@sentry/icons/user';
 
 import {ItemType, type SearchGroup} from 'sentry/components/searchBar/types';
 import {escapeTagValue} from 'sentry/components/searchBar/utils';

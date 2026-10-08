@@ -1,4 +1,4 @@
-import {IconReleases} from '@sentry/icons/iconReleases';
+import {IconReleases} from '@sentry/icons/releases';
 
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';

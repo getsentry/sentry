@@ -1,5 +1,5 @@
 import {Fragment, useRef, useState} from 'react';
-import {IconClose} from '@sentry/icons/iconClose';
+import {IconClose} from '@sentry/icons/close';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 

@@ -1,7 +1,7 @@
 import {Fragment, useCallback} from 'react';
-import {IconGithub} from '@sentry/icons/iconGithub';
-import {IconGoogle} from '@sentry/icons/iconGoogle';
-import {IconVsts} from '@sentry/icons/iconVsts';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGoogle} from '@sentry/icons/google';
+import {IconVsts} from '@sentry/icons/vsts';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';

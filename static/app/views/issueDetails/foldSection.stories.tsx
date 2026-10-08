@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
-import {IconCopy} from '@sentry/icons/iconCopy';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconAdd} from '@sentry/icons/add';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';

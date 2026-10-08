@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import {IconClose} from '@sentry/icons/iconClose';
-import {IconDelete} from '@sentry/icons/iconDelete';
+import {IconClose} from '@sentry/icons/close';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';

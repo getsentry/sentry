@@ -1,7 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconFlag} from '@sentry/icons/iconFlag';
-import {IconSubtract} from '@sentry/icons/iconSubtract';
+import {IconFlag} from '@sentry/icons/flag';
+import {IconSubtract} from '@sentry/icons/subtract';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';

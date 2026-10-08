@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useEffectEvent} from 'react';
 import {useBlocker} from 'react-router';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';

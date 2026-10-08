@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {IconGithub} from '@sentry/icons/iconGithub';
+import {IconGithub} from '@sentry/icons/github';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';

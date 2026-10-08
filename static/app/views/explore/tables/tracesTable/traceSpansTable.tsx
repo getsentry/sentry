@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 import moment from 'moment-timezone';
 
 import type {TableColumnConfig} from '@sentry/scraps/table';

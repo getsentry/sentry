@@ -1,4 +1,4 @@
-import {IconSlashForward} from '@sentry/icons/iconSlashForward';
+import {IconSlashForward} from '@sentry/icons/slashForward';
 
 import type {Responsive} from '@sentry/scraps/layout';
 import {Container, Flex} from '@sentry/scraps/layout';

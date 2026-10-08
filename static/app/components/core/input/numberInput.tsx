@@ -6,7 +6,7 @@ import type {AriaNumberFieldProps} from '@react-aria/numberfield';
 import {useNumberField} from '@react-aria/numberfield';
 import {mergeRefs} from '@react-aria/utils';
 import {useNumberFieldState} from '@react-stately/numberfield';
-import {IconChevron} from '@sentry/icons/iconChevron';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import type {InputStylesProps} from '@sentry/scraps/input';

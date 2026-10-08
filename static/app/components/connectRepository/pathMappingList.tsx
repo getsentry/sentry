@@ -1,5 +1,5 @@
 import {Fragment, useRef, useState} from 'react';
-import {IconAdd} from '@sentry/icons/iconAdd';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {withForm} from '@sentry/scraps/form';

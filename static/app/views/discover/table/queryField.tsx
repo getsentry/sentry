@@ -1,7 +1,7 @@
 import {Component, createRef, type ReactNode} from 'react';
 import {withTheme, type CSSObject, type Theme, css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconWarning} from '@sentry/icons/iconWarning';
+import {IconWarning} from '@sentry/icons/warning';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {InputProps} from '@sentry/scraps/input';
