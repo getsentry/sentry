@@ -74,7 +74,7 @@ def unsplit_key(
 
 def event_to_record(
     event: Event | GroupEvent,
-    rules: Sequence[Rule],
+    rules: Sequence[Rule | NotificationOrigin],
     notification_uuid: str | None = None,
     identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:
@@ -86,7 +86,11 @@ def event_to_record(
     assert event.group is not None
     rule_ids = []
     for rule in rules:
-        origin = NotificationOrigin.from_legacy_rule(rule)
+        origin = (
+            rule
+            if isinstance(rule, NotificationOrigin)
+            else NotificationOrigin.from_legacy_rule(rule)
+        )
         rule_id = (
             origin.legacy_rule_id if identifier_key == IdentifierKey.RULE else origin.workflow_id
         )
