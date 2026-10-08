@@ -49,7 +49,11 @@ class NotificationOrigin:
         workflow_id = int(workflow_id) if workflow_id is not None else None
         legacy_rule_id = int(legacy_rule_id) if legacy_rule_id is not None else None
 
-        if workflow_id == TEST_NOTIFICATION_ID or legacy_rule_id == TEST_NOTIFICATION_ID:
+        if (
+            fallback_legacy_rule_id == TEST_NOTIFICATION_ID
+            or workflow_id == TEST_NOTIFICATION_ID
+            or legacy_rule_id == TEST_NOTIFICATION_ID
+        ):
             workflow_id = None
             legacy_rule_id = TEST_NOTIFICATION_ID
         elif workflow_id is None and legacy_rule_id is None:
