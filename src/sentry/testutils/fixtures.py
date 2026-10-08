@@ -239,6 +239,13 @@ class Fixtures:
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
 
+    def create_api_application(self, **kwargs):
+        kwargs.setdefault("owner", self.user)
+        return Factories.create_api_application(**kwargs)
+
+    def create_api_device_code(self, *args, **kwargs):
+        return Factories.create_api_device_code(*args, **kwargs)
+
     def create_auth_provider(self, *args, **kwargs):
         return Factories.create_auth_provider(*args, **kwargs)
 
@@ -797,6 +804,11 @@ class Fixtures:
 
     def create_dashboard(self, *args, **kwargs):
         return Factories.create_dashboard(*args, **kwargs)
+
+    def create_explore_saved_formula(self, organization=None, *args, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_explore_saved_formula(organization, *args, **kwargs)
 
     def create_dashboard_favorite_user(self, *args, **kwargs):
         return Factories.create_dashboard_favorite_user(*args, **kwargs)

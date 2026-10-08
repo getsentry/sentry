@@ -546,7 +546,7 @@ def test_count_default_argument() -> None:
         label="count()",
         extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
     )
-    assert virtual_context is None
+    assert virtual_context == [None]
 
 
 @pytest.mark.parametrize(
@@ -579,7 +579,7 @@ def test_monoid_functions(function_name, proto_function) -> None:
             label=f"{function_name}({attr})",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
 
 @pytest.mark.parametrize(

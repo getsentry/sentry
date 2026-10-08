@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import {Outlet, ScrollRestoration} from 'react-router-dom';
+import {Outlet, ScrollRestoration} from 'react-router';
 import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';

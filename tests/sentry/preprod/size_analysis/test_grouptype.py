@@ -578,12 +578,12 @@ class PreprodSizeAnalysisDetectorHandlerIntegrationTest(TestCase):
             },
         )
 
-        with mock.patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
-        ) as mock_produce_occurrence_to_kafka:
+        with mock.patch.object(
+            PreprodSizeAnalysisDetectorHandler, "on_complete"
+        ) as mock_on_complete:
             process_detectors(packet, [detector])
 
-        assert mock_produce_occurrence_to_kafka.call_count == 1
+        assert mock_on_complete.call_count == 1
 
 
 @cell_silo_test

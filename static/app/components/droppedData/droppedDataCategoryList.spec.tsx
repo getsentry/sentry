@@ -1,32 +1,32 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
-  annotationsToCategorySections,
+  droppedEventsToCategorySections,
   DroppedDataCategoryList,
 } from 'sentry/components/droppedData/droppedDataCategoryList';
 
-describe('annotationsToCategorySections', () => {
-  it('returns no sections for no dropped annotations', () => {
-    expect(annotationsToCategorySections([], [])).toEqual([]);
+describe('droppedEventsToCategorySections', () => {
+  it('returns no sections for no dropped events', () => {
+    expect(droppedEventsToCategorySections([], [])).toEqual([]);
   });
 
   it('groups by outcome then reason, labeling the outcome', () => {
-    const sections = annotationsToCategorySections(
+    const sections = droppedEventsToCategorySections(
       [
-        AnnotationFixture({outcome: 'invalid', reason: 'cors', start: 0, eventCount: 5}),
-        AnnotationFixture({
+        DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 5}),
+        DroppedEventFixture({
           outcome: 'invalid',
           reason: 'timestamp',
           start: 0,
-          eventCount: 3,
+          count: 3,
         }),
-        AnnotationFixture({
+        DroppedEventFixture({
           outcome: 'filtered',
           reason: 'web-crawlers',
           start: 0,
-          eventCount: 1,
+          count: 1,
         }),
       ],
       []
@@ -41,16 +41,16 @@ describe('annotationsToCategorySections', () => {
   });
 
   it('counts distinct buckets a reason appears in', () => {
-    const sections = annotationsToCategorySections(
+    const sections = droppedEventsToCategorySections(
       [
-        AnnotationFixture({outcome: 'invalid', reason: 'cors', start: 0, eventCount: 2}),
-        AnnotationFixture({
+        DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 2}),
+        DroppedEventFixture({
           outcome: 'invalid',
           reason: 'cors',
           start: 60_000,
-          eventCount: 4,
+          count: 4,
         }),
-        AnnotationFixture({outcome: 'invalid', reason: 'cors', start: 0, eventCount: 1}),
+        DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 1}),
       ],
       []
     );
@@ -61,14 +61,14 @@ describe('annotationsToCategorySections', () => {
   });
 
   it('computes share against total events (accepted + dropped)', () => {
-    const sections = annotationsToCategorySections(
-      [AnnotationFixture({outcome: 'invalid', reason: 'cors', start: 0, eventCount: 25})],
+    const sections = droppedEventsToCategorySections(
+      [DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 25})],
       [
-        AnnotationFixture({
+        DroppedEventFixture({
           outcome: 'accepted',
           reason: 'accepted',
           start: 0,
-          eventCount: 75,
+          count: 75,
         }),
       ]
     );
@@ -78,8 +78,8 @@ describe('annotationsToCategorySections', () => {
   });
 
   it('guards divide-by-zero when there are no events', () => {
-    const sections = annotationsToCategorySections(
-      [AnnotationFixture({outcome: 'invalid', reason: 'cors', start: 0, eventCount: 0})],
+    const sections = droppedEventsToCategorySections(
+      [DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 0})],
       []
     );
 
@@ -88,21 +88,21 @@ describe('annotationsToCategorySections', () => {
   });
 
   it('tracks the latest bucket end as lastSeen', () => {
-    const sections = annotationsToCategorySections(
+    const sections = droppedEventsToCategorySections(
       [
-        AnnotationFixture({
+        DroppedEventFixture({
           outcome: 'invalid',
           reason: 'cors',
           start: 0,
           end: 60_000,
-          eventCount: 1,
+          count: 1,
         }),
-        AnnotationFixture({
+        DroppedEventFixture({
           outcome: 'invalid',
           reason: 'cors',
           start: 120_000,
           end: 180_000,
-          eventCount: 1,
+          count: 1,
         }),
       ],
       []
@@ -113,14 +113,14 @@ describe('annotationsToCategorySections', () => {
 
   it('clamps lastSeen to now for an in-progress bucket ending in the future', () => {
     const now = 100_000;
-    const sections = annotationsToCategorySections(
+    const sections = droppedEventsToCategorySections(
       [
-        AnnotationFixture({
+        DroppedEventFixture({
           outcome: 'invalid',
           reason: 'cors',
           start: 60_000,
           end: 120_000,
-          eventCount: 1,
+          count: 1,
         }),
       ],
       [],
@@ -135,22 +135,22 @@ describe('DroppedDataCategoryList', () => {
   it('renders the outcome label and the human reason title', () => {
     render(
       <DroppedDataCategoryList
-        droppedAnnotations={[
-          AnnotationFixture({
+        droppedEvents={[
+          DroppedEventFixture({
             outcome: 'client_discard',
             reason: 'sample_rate',
             start: 0,
             end: 60_000,
-            eventCount: 40,
+            count: 40,
           }),
         ]}
-        acceptedAnnotations={[
-          AnnotationFixture({
+        acceptedEvents={[
+          DroppedEventFixture({
             outcome: 'accepted',
             reason: 'accepted',
             start: 0,
             end: 60_000,
-            eventCount: 60,
+            count: 60,
           }),
         ]}
       />
@@ -163,16 +163,16 @@ describe('DroppedDataCategoryList', () => {
   it('renders the short description under the reason title', () => {
     render(
       <DroppedDataCategoryList
-        droppedAnnotations={[
-          AnnotationFixture({
+        droppedEvents={[
+          DroppedEventFixture({
             outcome: 'filtered',
             reason: 'web-crawlers',
             start: 0,
             end: 60_000,
-            eventCount: 5,
+            count: 5,
           }),
         ]}
-        acceptedAnnotations={[]}
+        acceptedEvents={[]}
       />
     );
 
@@ -181,20 +181,20 @@ describe('DroppedDataCategoryList', () => {
     ).toBeInTheDocument();
   });
 
-  it('fills the data type into the description from the annotation category', () => {
+  it('fills the data type into the description from the event category', () => {
     render(
       <DroppedDataCategoryList
-        droppedAnnotations={[
-          AnnotationFixture({
+        droppedEvents={[
+          DroppedEventFixture({
             category: 'log_item',
             outcome: 'abuse',
             reason: 'project_abuse_limit',
             start: 0,
             end: 60_000,
-            eventCount: 5,
+            count: 5,
           }),
         ]}
-        acceptedAnnotations={[]}
+        acceptedEvents={[]}
       />
     );
 
@@ -206,16 +206,16 @@ describe('DroppedDataCategoryList', () => {
   it('shows the raw reason and outcome codes only when hovering the title', async () => {
     render(
       <DroppedDataCategoryList
-        droppedAnnotations={[
-          AnnotationFixture({
+        droppedEvents={[
+          DroppedEventFixture({
             outcome: 'client_discard',
             reason: 'queue_overflow',
             start: 0,
             end: 60_000,
-            eventCount: 5,
+            count: 5,
           }),
         ]}
-        acceptedAnnotations={[]}
+        acceptedEvents={[]}
       />
     );
 
@@ -231,16 +231,16 @@ describe('DroppedDataCategoryList', () => {
   it('collapses and expands a section when the header is clicked', async () => {
     render(
       <DroppedDataCategoryList
-        droppedAnnotations={[
-          AnnotationFixture({
+        droppedEvents={[
+          DroppedEventFixture({
             outcome: 'invalid',
             reason: 'invalid_json',
             start: 0,
             end: 60_000,
-            eventCount: 10,
+            count: 10,
           }),
         ]}
-        acceptedAnnotations={[]}
+        acceptedEvents={[]}
       />
     );
 

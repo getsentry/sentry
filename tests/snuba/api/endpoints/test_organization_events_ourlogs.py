@@ -259,7 +259,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         response = self.do_request(
             {
                 "field": ["log.body"],
-                "query": "tags[log_tags,array][*]://^alpha-\\d+$//",
+                "query": "tags[log_tags[*],array]://^alpha-\\d+$//",
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
@@ -838,6 +838,22 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "false"
 
+    def test_high_accuracy_flex_time_without_orderby(self):
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "query": "",
+                "orderby": "-count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert "You must orderby timestamp to use HIGHEST_ACCURACY_FLEX_TIME" in str(
+            response.data["detail"]
+        )
+
     def test_high_accuracy_flex_time_order_by_timestamp(self):
         logs = [
             self.create_ourlog(
@@ -1195,6 +1211,50 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         response = self.do_request(request)
         assert response.status_code == 200
         assert response.data["data"] == [{"count(message)": 1}]
+
+    def test_count_if_message(self):
+        self.store_eap_items(
+            [
+                self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago),
+                self.create_ourlog({"body": "hello"}, timestamp=self.ten_mins_ago),
+            ]
+        )
+        request = {
+            "field": ["count_if(`message:log`, message)"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"count_if(`message:log`, message)": 1}]
+
+    def test_p50_if_message(self):
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    {"body": "log"},
+                    attributes={"sentry.payload_size_bytes": 1234567},
+                    timestamp=self.ten_mins_ago,
+                ),
+                self.create_ourlog(
+                    {"body": "hello"},
+                    attributes={"sentry.payload_size_bytes": 7654321},
+                    timestamp=self.ten_mins_ago,
+                ),
+            ]
+        )
+        request = {
+            "field": ["p50_if(`message:log`,payload_size)"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"p50_if(`message:log`,payload_size)": 1234567}]
 
     def test_aggregate_condition_filters_grouped_logs(self) -> None:
         self.store_eap_items(

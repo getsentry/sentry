@@ -270,9 +270,6 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
             "sentry.users.web.accounts.recover_confirm",
         ),
         ("sentry.rules.actions.integrations.create_ticket.utils.create_issue",),
-        ("sentry.rules.conditions.event_frequency.EventFrequencyCondition.query_hook",),
-        ("sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition.query_hook",),
-        ("sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition.query_hook",),
         (
             "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore.get_pending",
             "sentry.reprocessing2.get_progress",

@@ -208,7 +208,7 @@ const ViewAllContainer = styled('div')`
     width: 1px;
     top: -${p => p.theme.space.md};
     height: ${p => p.theme.space.md};
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;

@@ -8,6 +8,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {markdownToPlainText} from '@sentry/scraps/markdown';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Separator} from '@sentry/scraps/separator';
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -15,13 +16,10 @@ import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
-  COL_WIDTH_MINIMUM,
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnHeader,
+  DataGrid,
   type GridColumnOrder,
   type GridColumnSort,
-} from 'sentry/components/tables/gridEditable';
+} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -291,20 +289,6 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
     [navigate, organization.slug, selection.projects]
   );
 
-  const renderHeadCell = useCallback(
-    (column: GridColumnHeader<ColumnKey>) => (
-      <Flex
-        flex="1"
-        align="center"
-        gap="xs"
-        justify={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'end' : 'start'}
-      >
-        {column.name}
-      </Flex>
-    ),
-    []
-  );
-
   const getColumnSort = useCallback(
     (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
       const field = SORT_FIELD_BY_COLUMN[column.key];
@@ -340,18 +324,17 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
   return (
     <Stack gap="lg">
       <FixedRowHeightGrid>
-        <GridEditable
+        <DataGrid
           isLoading={isFetching}
           error={error}
           data={data}
           columnOrder={displayedColumns}
           stickyHeader
-          // GridEditable's Panel body has a default bottom margin; drop it so
+          // DataGrid has a default bottom margin; drop it so
           // the Stack's `lg` gap is the only spacing before the pagination.
           bodyStyle={{marginBottom: 0}}
           grid={{
             getColumnSort,
-            renderHeadCell,
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
             staticColumnWidths,

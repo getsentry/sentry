@@ -1,21 +1,71 @@
 {
   "name": "@sentry/scraps",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getsentry/sentry.git",
+    "directory": "static/packages/scraps"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "import": "./dist/theme/index.js"
+    },
+    "./tokens": {
+      "types": "./dist/tokens/index.d.ts",
+      "import": "./dist/tokens/index.js"
+    },
+    "./layout": {
+      "types": "./dist/layout/index.d.ts",
+      "import": "./dist/layout/index.js"
+    },
+    "./text": {
+      "types": "./dist/text/index.d.ts",
+      "import": "./dist/text/index.js"
+    },
+    "./separator": {
+      "types": "./dist/separator/index.d.ts",
+      "import": "./dist/separator/index.js"
+    },
+    "./quote": {
+      "types": "./dist/quote/index.d.ts",
+      "import": "./dist/quote/index.js"
+    },
+    "./loader": {
+      "types": "./dist/loader/index.d.ts",
+      "import": "./dist/loader/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "test": "jest --config jest.config.mjs",
-    "typecheck": "tsc --project tsconfig.test.json"
+    "build": "rslib build",
+    "verify": "node scripts/verify.mjs",
+    "test": "node ../../../scripts/test.js --config jest.config.mjs",
+    "typecheck": "tsc --build tsconfig.test.json",
+    "prepack": "pnpm run build"
   },
   "dependencies": {
-    "@emotion/is-prop-valid": "1.4.0",
-    "@emotion/styled": "11.14.0",
+    "@emotion/is-prop-valid": "^1.4.0",
+    "@emotion/styled": "^11.14.0",
     "@react-aria/utils": "3.34.1",
-    "@types/react": "^19.0.0"
+    "@types/react": "19.3.0"
   },
   "devDependencies": {
+    "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
-    "@swc/core": "1.16.2",
+    "@rsbuild/plugin-react": "2.1.1",
+    "@rslib/core": "1.0.3",
+    "@swc/core": "1.16.13",
     "@swc/jest": "0.2.39",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",

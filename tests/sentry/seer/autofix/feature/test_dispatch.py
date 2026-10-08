@@ -9,6 +9,7 @@ from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_aut
 from sentry.seer.autofix.feature.models import (
     LEGACY_FEATURE_ID,
     CodeChangesStepArgs,
+    PrIterationStepArgs,
     RCAStepArgs,
 )
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
@@ -278,6 +279,44 @@ class TestTriggerAutofixFeature(TestCase):
             "agent_run_options"
         ]
         assert agent_run_options["enable_coding"] is True
+        assert agent_run_options["enable_pr_context_tools"] is False
+
+    def test_pr_iteration_enables_coding_and_sends_its_step_args(self) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(run=fake_run, source=LEGACY_FEATURE_ID)
+
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.dispatch.quotas"),
+        ):
+            mock_client_cls.return_value.continue_feature_run.return_value = fake_run
+
+            trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+                    step=AutofixStep.PR_ITERATION,
+                    existing_run_id=123,
+                    step_args=PrIterationStepArgs(
+                        iteration_index=2,
+                        iteration_id=41,
+                        feedback="[]",
+                        pr_urls={"owner/repo": "https://example.com/pull/7"},
+                    ),
+                ),
+            )
+
+        assert mock_client_cls.call_args.kwargs["enable_coding"] is True
+        continue_kwargs = mock_client_cls.return_value.continue_feature_run.call_args.kwargs
+        assert continue_kwargs["agent_run_options"]["enable_coding"] is True
+        assert continue_kwargs["agent_run_options"]["enable_pr_context_tools"] is True
+        assert continue_kwargs["payload"]["step_args"] == {
+            "iteration_index": 2,
+            "iteration_id": 41,
+            "feedback": "[]",
+            "commit_author": None,
+            "pr_urls": {"owner/repo": "https://example.com/pull/7"},
+        }
 
     def test_code_changes_rejected_when_coding_disabled(self) -> None:
         self.organization.update_option("sentry:enable_seer_coding", False)

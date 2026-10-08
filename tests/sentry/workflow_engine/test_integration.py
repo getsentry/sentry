@@ -12,12 +12,12 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
-from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import Event
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_source import process_data_source
@@ -99,7 +99,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         This test ensures that a data_source can create the correct event in Issue Platform
         """
         with mock.patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+            "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
         ) as mock_producer:
             packet, detectors = process_data_source(
                 self.data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
@@ -112,7 +112,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
     def test_workflow_engine__data_source__different_type(self) -> None:
         with mock.patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+            "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
         ) as mock_producer:
             # Change the type to mismatch from the packet. This should not find any detectors and return.
             packet, detectors = process_data_source(self.data_packet, "snuba_query")
@@ -125,7 +125,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         self.detector.delete()
 
         with mock.patch(
-            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+            "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
         ) as mock_producer:
             packet, detectors = process_data_source(
                 self.data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
