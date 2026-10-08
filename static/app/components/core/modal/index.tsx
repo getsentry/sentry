@@ -241,7 +241,9 @@ export function GlobalModal() {
         justify="center"
         align="start"
         overflowY="auto"
-        zIndex={theme.zIndex.modal}
+        css={css`
+          z-index: ${theme.zIndex.modal};
+        `}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
       >

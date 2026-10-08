@@ -9,6 +9,14 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {IconClose} from 'sentry/icons/iconClose';
 
 const modalHeaderCss = (theme: Theme) => css`
+  margin: -${theme.space['3xl']} -${theme.space.xl}
+    ${theme.space['2xl']} -${theme.space['2xl']};
+
+  @container (min-width: ${theme.container['3xl']}) {
+    margin-right: -${theme.space['3xl']};
+    margin-left: -${theme.space['3xl']};
+  }
+
   h1,
   h2,
   h3,
@@ -19,6 +27,15 @@ const modalHeaderCss = (theme: Theme) => css`
     font-weight: ${theme.font.weight.sans.medium};
     margin-bottom: 0;
     line-height: 1.1;
+  }
+`;
+
+const modalFooterCss = (theme: Theme) => css`
+  margin: ${theme.space['2xl']} -${theme.space['2xl']} -${theme.space['3xl']};
+
+  @container (min-width: ${theme.container['3xl']}) {
+    margin-right: -${theme.space['3xl']};
+    margin-left: -${theme.space['3xl']};
   }
 `;
 
@@ -56,10 +73,7 @@ const ModalFooter = styled((props: React.HTMLAttributes<HTMLElement>) => {
       justify="end"
       borderTop="primary"
       padding={{zero: '2xl xl', '3xl': '2xl 3xl'}}
-      marginTop="2xl"
-      marginBottom="-3xl"
-      marginLeft={{zero: '-2xl', '3xl': '-3xl'}}
-      marginRight={{zero: '-2xl', '3xl': '-3xl'}}
+      css={modalFooterCss}
     />
   );
 })``;
@@ -86,10 +100,6 @@ const makeClosableHeader = (closeModal: () => void) => {
         position="relative"
         borderBottom="primary"
         padding={{zero: '2xl', '3xl': '2xl 3xl'}}
-        marginTop="-3xl"
-        marginBottom="2xl"
-        marginLeft={{zero: '-2xl', '3xl': '-3xl'}}
-        marginRight={{zero: '-xl', '3xl': '-3xl'}}
       >
         {children}
         {closeButton ? <CloseButton onClick={closeModal} /> : null}
