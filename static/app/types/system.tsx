@@ -14,7 +14,6 @@ export interface PreloadRequestResult {
 
 export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
-  SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 
 export type OnSentryInitConfiguration = {
