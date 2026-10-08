@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {PlatformIcon} from 'platformicons';
 
-import type {ContainerProps} from '@sentry/scraps/layout';
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import {IconAllProjects, IconMyProjects} from 'sentry/icons';
@@ -13,24 +12,27 @@ type ProjectsBadgeSize = 'md' | 'lg';
  * edge: the two sizes do not share one ratio, and at `md` the contents fill
  * the frame while at `lg` they sit inside it.
  *
- * `tile` is the single platform icon, centred in the frame. `stacked` is each
- * of the two overlapping icons, which start at opposite corners — so their
- * offset is whatever the frame has left over.
+ * `single` is one platform icon, centred in the frame. `stacked` is each of
+ * the two overlapping ones, which start at opposite corners — so their offset
+ * is whatever the frame has left over.
+ *
+ * `radius` is passed to the icon, which rounds itself. Its own default of 3
+ * suits `md`; `lg` is drawn a little softer.
  */
 const SIZES = {
-  md: {frame: 16, tile: 16, stacked: 11, radius: '2xs'},
-  lg: {frame: 24, tile: 20, stacked: 16, radius: 'xs'},
+  md: {frame: 16, single: 16, stacked: 11, radius: 3},
+  lg: {frame: 24, single: 20, stacked: 16, radius: 4},
 } as const satisfies Record<
   ProjectsBadgeSize,
-  {frame: number; radius: ContainerProps['radius']; stacked: number; tile: number}
+  {frame: number; radius: number; single: number; stacked: number}
 >;
 
 export interface ProjectsBadgeProps {
   /**
    * Platform slugs for the project(s) to display.
    * - 0 entries: renders an all-projects or my-projects icon
-   * - 1 entry: renders a single platform icon in a rounded tile
-   * - 2+ entries: renders two stacked platform icons (top-left + bottom-right)
+   * - 1 entry: renders a single platform icon
+   * - 2+ entries: renders two overlapping platform icons (top-left + bottom-right)
    */
   projectPlatforms: string[];
   /** When projectPlatforms is empty, use all-projects icon instead of my-projects */
@@ -41,35 +43,6 @@ export interface ProjectsBadgeProps {
    * @default 'md'
    */
   size?: ProjectsBadgeSize;
-}
-
-/**
- * One platform's icon, in the rounded tile the spec draws it in.
- */
-function PlatformTile({
-  platform,
-  radius,
-  size,
-  ...position
-}: {
-  platform: string;
-  radius: ContainerProps['radius'];
-  size: number;
-} & Pick<ContainerProps, 'top' | 'left' | 'bottom' | 'right'>) {
-  return (
-    <Container
-      display="flex"
-      position="absolute"
-      width={`${size}px`}
-      height={`${size}px`}
-      overflow="hidden"
-      radius={radius}
-      background="primary"
-      {...position}
-    >
-      <PlatformIcon platform={platform} size={size} aria-hidden />
-    </Container>
-  );
 }
 
 /**
@@ -86,7 +59,7 @@ export function ProjectsBadge({
   allProjects,
   size = 'md',
 }: ProjectsBadgeProps) {
-  const {frame, tile, stacked, radius} = SIZES[size];
+  const {frame, single, stacked, radius} = SIZES[size];
   const stackedOffset = frame - stacked;
 
   let icons: React.ReactNode;
@@ -98,34 +71,48 @@ export function ProjectsBadge({
         size === 'md' ? (
           <Icon size="md" aria-hidden="true" />
         ) : (
-          <Icon legacySize={`${tile}px`} aria-hidden="true" />
+          <Icon legacySize={`${single}px`} aria-hidden="true" />
         );
       break;
     }
 
     case 1:
       icons = (
-        <PlatformTile platform={projectPlatforms[0] ?? ''} size={tile} radius={radius} />
+        <PlatformIcon
+          platform={projectPlatforms[0] ?? ''}
+          size={single}
+          radius={radius}
+          aria-hidden
+        />
       );
       break;
 
     default:
+      // Only the overlap needs taking out of flow. A platform icon paints an
+      // opaque square and rounds its own corners, so there is nothing to back
+      // it with or clip it to.
       icons = (
         <Fragment>
-          <PlatformTile
-            platform={projectPlatforms[0] ?? ''}
-            size={stacked}
-            radius={radius}
-            top="0"
-            left="0"
-          />
-          <PlatformTile
-            platform={projectPlatforms[1] ?? ''}
-            size={stacked}
-            radius={radius}
+          <Container position="absolute" top="0" left="0">
+            <PlatformIcon
+              platform={projectPlatforms[0] ?? ''}
+              size={stacked}
+              radius={radius}
+              aria-hidden
+            />
+          </Container>
+          <Container
+            position="absolute"
             top={`${stackedOffset}px`}
             left={`${stackedOffset}px`}
-          />
+          >
+            <PlatformIcon
+              platform={projectPlatforms[1] ?? ''}
+              size={stacked}
+              radius={radius}
+              aria-hidden
+            />
+          </Container>
         </Fragment>
       );
   }
