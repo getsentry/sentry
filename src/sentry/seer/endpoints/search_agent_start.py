@@ -40,13 +40,14 @@ class SearchAgentReferrer(StrEnum):
 
     Forwarded to Seer as the run's source; every caller gets its own
     `assisted_query.<source>.<strategy>` RPC referrer there. To add a caller, add a
-    value here and register its referrers in Seer's `RpcReferrer`.
+    value here and to Seer's `ASSISTED_QUERY_SOURCES`.
     """
 
     SEARCH_BAR = "search_bar"
     MCP = "mcp"
-    # Any other non-UI caller (API tokens, scripts, CLI) that didn't declare a referrer
-    API = "api"
+    # Web UI request that didn't declare which surface it came from
+    FRONTEND = "frontend"
+    UNKNOWN = "unknown"
 
 
 def resolve_referrer(request: Request, raw: str | None) -> SearchAgentReferrer:
@@ -58,8 +59,8 @@ def resolve_referrer(request: Request, raw: str | None) -> SearchAgentReferrer:
         except ValueError:
             logger.warning("search_agent.unknown_referrer", extra={"referrer": raw})
     if is_frontend_request(request):
-        return SearchAgentReferrer.SEARCH_BAR
-    return SearchAgentReferrer.API
+        return SearchAgentReferrer.FRONTEND
+    return SearchAgentReferrer.UNKNOWN
 
 
 def infer_result_target(request: Request) -> SearchAgentResultTarget:

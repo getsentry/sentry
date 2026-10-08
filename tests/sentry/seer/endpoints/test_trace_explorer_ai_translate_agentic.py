@@ -67,7 +67,7 @@ class SearchAgentTranslateEndpointTest(APITestCase):
                 "cross_event": False,
                 "reflection_step": False,
                 "code_mode": False,
-                "source": "search_bar",
+                "source": "frontend",
             },
         )
 
