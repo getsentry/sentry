@@ -29,6 +29,10 @@ import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {
+  detectorsOpenIssuePerOpenPeriod,
+  ISSUE_TYPES_OPENED_PER_OPEN_PERIOD,
+} from 'sentry/views/detectors/utils/issuePerOpenPeriod';
 import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
@@ -102,6 +106,15 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   // issues get the tab list without an Autofix tab.
   const isSampleEvent = useIsSampleEvent();
   const showAutofixTab = showContentTabs && issueTypeConfig.autofix && !isSampleEvent;
+
+  // Certain issue types that make use of open periods only have one open period per issue,
+  // In this case, we need to hide the button to avoid confusion
+  const isIssueOpenedPerOpenPeriod =
+    ISSUE_TYPES_OPENED_PER_OPEN_PERIOD.has(group.issueType) &&
+    detectorsOpenIssuePerOpenPeriod(organization);
+
+  const showOpenPeriodsButton =
+    issueTypeConfig.pages.openPeriods.enabled && !isIssueOpenedPerOpenPeriod;
 
   // Only consulted on the dropdown path, which tabs replace outright.
   const hideDropdownButton =
@@ -383,7 +396,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                         markdown: handleCopyMarkdown,
                       })}
                     />
-                    {issueTypeConfig.pages.openPeriods.enabled && (
+                    {showOpenPeriodsButton && (
                       <LinkButton
                         to={{
                           pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
