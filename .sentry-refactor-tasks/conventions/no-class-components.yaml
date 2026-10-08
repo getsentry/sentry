@@ -98,14 +98,15 @@ examples:
         return <button>{on ? 'on' : 'off'}</button>;
       }
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
-exclude:
-  - '**/__fixtures__/**'
-  - '**/__mocks__/**'
-  - '**/*.spec.*'
-  - '**/*.test.*'
-  - '**/test/**'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'extends (React\\.)?(Pure)?Component' {repo_path}/static/"
+search:
+  match: 'extends (React\.)?(Pure)?Component'
+  include:
+    - 'static/app/**/*.tsx'
+    - 'static/app/**/*.ts'
+  exclude:
+    - '**/__fixtures__/**'
+    - '**/__mocks__/**'
+    - '**/*.spec.*'
+    - '**/*.test.*'
+    - '**/test/**'
+  excerpt: 10
