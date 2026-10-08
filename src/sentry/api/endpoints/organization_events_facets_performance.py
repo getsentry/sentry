@@ -270,9 +270,10 @@ def query_tag_data(
         name="facets.filter_transform",
         attributes={
             "sentry.op": "discover.discover",
-            "query": repr(filter_query),
         },
-    ):
+    ) as span:
+        if filter_query is not None:
+            span.set_attribute("query", filter_query)
         tag_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params={},
@@ -406,9 +407,10 @@ def query_facet_performance(
         name="facets.filter_transform",
         attributes={
             "sentry.op": "discover.discover",
-            "query": repr(filter_query),
         },
-    ):
+    ) as span:
+        if filter_query is not None:
+            span.set_attribute("query", filter_query)
         tag_query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params={},
