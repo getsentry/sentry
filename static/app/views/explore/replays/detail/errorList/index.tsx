@@ -35,7 +35,6 @@ import {
   getVisibleRangeFromVirtualRows,
 } from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
 
-const HEADER_HEIGHT = SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed;
 const BODY_HEIGHT = 25;
 const OVERSCAN = 20;
 
@@ -105,7 +104,7 @@ export function ErrorList() {
             >
               <SimpleTable.Head sticky>
                 <SimpleTable.HeaderRow>
-                  {Array.from({length: TABLE_COLUMNS.length}, (_, columnIndex) => (
+                  {TABLE_COLUMNS.map((_, columnIndex) => (
                     <ErrorHeaderCell
                       key={columnIndex}
                       handleSort={handleSort}
@@ -156,7 +155,7 @@ export function ErrorList() {
                         className={rowClassName}
                         data-index={virtualRow.index}
                       >
-                        {Array.from({length: TABLE_COLUMNS.length}, (_, columnIndex) => (
+                        {TABLE_COLUMNS.map((_, columnIndex) => (
                           <ErrorTableCell
                             key={`${virtualRow.key}-${columnIndex}`}
                             columnIndex={columnIndex}
@@ -178,7 +177,7 @@ export function ErrorList() {
               <JumpButtons
                 jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
                 onClick={onClickToJump}
-                tableHeaderHeight={HEADER_HEIGHT}
+                tableHeaderHeight={SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed}
               />
             ) : null}
           </OverflowHidden>

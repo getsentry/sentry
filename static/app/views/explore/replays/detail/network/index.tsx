@@ -43,7 +43,6 @@ import {
   getVisibleRangeFromVirtualRows,
 } from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
 
-const HEADER_HEIGHT = SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed;
 const BODY_HEIGHT = 25;
 const RESIZEABLE_HANDLE_HEIGHT = 90;
 const OVERSCAN = 20;
@@ -166,7 +165,7 @@ export function NetworkList() {
               >
                 <SimpleTable.Head sticky>
                   <SimpleTable.HeaderRow>
-                    {Array.from({length: TABLE_COLUMNS.length}, (_, columnIndex) => (
+                    {TABLE_COLUMNS.map((_, columnIndex) => (
                       <NetworkHeaderCell
                         key={columnIndex}
                         handleSort={handleSort}
@@ -231,24 +230,21 @@ export function NetworkList() {
                           className={rowClassName}
                           data-index={virtualRow.index}
                         >
-                          {Array.from(
-                            {length: TABLE_COLUMNS.length},
-                            (_, columnIndex) => (
-                              <NetworkTableCell
-                                key={`${virtualRow.key}-${columnIndex}`}
-                                columnIndex={columnIndex}
-                                frame={network}
-                                isSelected={selectedIndex === virtualRow.index}
-                                onMouseEnter={onMouseEnter}
-                                onMouseLeave={onMouseLeave}
-                                onClickCell={onClickCell}
-                                onClickTimestamp={onClickTimestamp}
-                                rowIndex={rowIndex}
-                                startTimestampMs={startTimestampMs}
-                                style={{height: BODY_HEIGHT}}
-                              />
-                            )
-                          )}
+                          {TABLE_COLUMNS.map((_, columnIndex) => (
+                            <NetworkTableCell
+                              key={`${virtualRow.key}-${columnIndex}`}
+                              columnIndex={columnIndex}
+                              frame={network}
+                              isSelected={selectedIndex === virtualRow.index}
+                              onMouseEnter={onMouseEnter}
+                              onMouseLeave={onMouseLeave}
+                              onClickCell={onClickCell}
+                              onClickTimestamp={onClickTimestamp}
+                              rowIndex={rowIndex}
+                              startTimestampMs={startTimestampMs}
+                              style={{height: BODY_HEIGHT}}
+                            />
+                          ))}
                         </VirtualTable.BodyRow>
                       );
                     })}
@@ -259,7 +255,7 @@ export function NetworkList() {
                 <JumpButtons
                   jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
                   onClick={onClickToJump}
-                  tableHeaderHeight={HEADER_HEIGHT}
+                  tableHeaderHeight={SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed}
                 />
               ) : null}
             </OverflowHidden>

@@ -32,7 +32,6 @@ type CellProps = {
   isStatusError?: boolean;
   isStatusWarning?: boolean;
   numeric?: boolean;
-  onClick?: undefined | (() => void);
 };
 
 export const Cell = styled(SimpleTable.RowCell)<CellProps>`
@@ -61,6 +60,6 @@ export function AvatarWrapper(props: ContainerProps) {
   return <Container alignSelf="center" {...props} />;
 }
 
-export const ButtonWrapper = styled('div')`
-  align-items: center;
-`;
+export function ButtonWrapper(props: ContainerProps) {
+  return <Container {...props} />;
+}

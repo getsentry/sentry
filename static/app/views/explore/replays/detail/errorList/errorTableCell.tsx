@@ -1,4 +1,4 @@
-import type {ComponentProps, CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 import {useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 
@@ -65,7 +65,7 @@ export function ErrorTableCell({
     onMouseEnter: () => onMouseEnter(frame),
     onMouseLeave: () => onMouseLeave(frame),
     style,
-  } as ComponentProps<typeof Cell>;
+  };
 
   const renderFns = [
     () => (

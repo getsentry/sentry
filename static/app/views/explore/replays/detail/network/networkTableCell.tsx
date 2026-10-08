@@ -1,4 +1,4 @@
-import type {ComponentProps, CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -64,7 +64,7 @@ export function NetworkTableCell({
     onMouseEnter: () => onMouseEnter(frame),
     onMouseLeave: () => onMouseLeave(frame),
     style,
-  } as ComponentProps<typeof Cell>;
+  };
 
   const renderFns = [
     () => (
