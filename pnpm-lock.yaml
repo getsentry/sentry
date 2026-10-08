@@ -968,6 +968,9 @@ importers:
         specifier: ^19.0.0
         version: 19.3.0
     devDependencies:
+      '@jest/environment':
+        specifier: 30.5.1
+        version: 30.5.1
       '@jest/environment-jsdom-abstract':
         specifier: 30.5.1
         version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0))

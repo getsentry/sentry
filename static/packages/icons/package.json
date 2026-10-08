@@ -186,12 +186,13 @@
   },
   "scripts": {
     "test": "jest --config jest.config.mjs",
-    "typecheck": "tsc --project tsconfig.json"
+    "typecheck": "tsc --build tsconfig.json"
   },
   "dependencies": {
     "framer-motion": "^12.38.0"
   },
   "devDependencies": {
+    "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@swc/core": "1.16.13",
     "@swc/jest": "0.2.39",
