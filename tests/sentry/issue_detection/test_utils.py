@@ -158,6 +158,20 @@ class TestDetectorUtils:
             "query_params": query_params,
         }
 
+    def test_safer_urlparse_double_bracketed_hostname(self) -> None:
+        """
+        `safer_urlparse` should not raise for URLs with double/nested bracketed hostnames like
+        `[[ip]]`, which can appear when data-scrubbing is applied to an already-bracketed value.
+        The existing `URL_WITH_BRACKETED_HOSTNAME_REGEX` cannot match these because its inner
+        character class explicitly forbids brackets; a simpler netloc-extraction fallback must
+        handle them instead.
+        """
+        url = "http://[[ip]]:4201/"
+        result = safer_urlparse(url)
+        assert result.netloc == "[[ip]]:4201"
+        assert result.scheme == "http"
+        assert result.path == "/"
+
 
 class TestGetNumericValueFromSpan:
     @pytest.mark.parametrize(

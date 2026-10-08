@@ -15,6 +15,14 @@ from ..types import Span
 logger = logging.getLogger("issue_detectors")
 
 
+# Simple regex to extract the netloc (authority) portion of a URL: everything between `//` and the
+# next `/`, `?`, `#`, or end of string. Unlike `URL_WITH_BRACKETED_HOSTNAME_REGEX`, this makes no
+# assumptions about the content of the netloc, and is used as a fallback when the more specific
+# regex fails (e.g. for double/nested brackets like `[[ip]]`).
+_SIMPLE_NETLOC_REGEX = re.compile(
+    r"^(?:[a-z][a-z0-9+.-]{1,32}:)?//(?P<netloc>[^/?#]*)", re.IGNORECASE
+)
+
 URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
     r"""
     ^
@@ -177,30 +185,36 @@ def safer_urlparse(url: str) -> ParseResult:
 
         if bracketed_hostname_match:
             orig_hostname = bracketed_hostname_match.group("full_hostname")
-
-            # Strip brackets and spaces from the hostname, and use that in place of the original.
-            # (Spaces aren't normally allowed in hostnames, but they show up in bracketed values
-            # like `[Filtered ip]`.)
-            debracketed_hostname = orig_hostname.replace("[", "").replace(" ", "").replace("]", "")
-            debracketed_url = url.replace(
-                orig_hostname,
-                debracketed_hostname,
-                # In cases like `http://[Filtered]/some/[Filtered]/path`, where the entire hostname
-                # is a single parameterization that also appears in the path, we only want to
-                # replace the hostname.
-                count=1,
-            )
-
-            # Now that we've gotten rid of all brackets, try parsing again, then restore the
-            # original hostname before returning the result. This is purposely not wrapped in a
-            # try-except because if parsing errors at this point, it's for some other non-brackets
-            # reason we want to know about.
-            parsed = urlparse(debracketed_url)
-            return parsed._replace(netloc=orig_hostname)
-
-        # If the problem isn't a bracketed hostname, reraise to surface the issue
         else:
-            raise
+            # `URL_WITH_BRACKETED_HOSTNAME_REGEX` requires that bracket contents are themselves
+            # bracket-free, so it won't match double/nested brackets like `[[ip]]`. Fall back to a
+            # simpler netloc extractor for those cases.
+            simple_netloc_match = _SIMPLE_NETLOC_REGEX.match(url)
+            if simple_netloc_match and "[" in simple_netloc_match.group("netloc"):
+                orig_hostname = simple_netloc_match.group("netloc")
+            else:
+                # If the problem isn't a bracketed hostname, reraise to surface the issue
+                raise
+
+        # Strip brackets and spaces from the hostname, and use that in place of the original.
+        # (Spaces aren't normally allowed in hostnames, but they show up in bracketed values
+        # like `[Filtered ip]`.)
+        debracketed_hostname = orig_hostname.replace("[", "").replace(" ", "").replace("]", "")
+        debracketed_url = url.replace(
+            orig_hostname,
+            debracketed_hostname,
+            # In cases like `http://[Filtered]/some/[Filtered]/path`, where the entire hostname
+            # is a single parameterization that also appears in the path, we only want to
+            # replace the hostname.
+            count=1,
+        )
+
+        # Now that we've gotten rid of all brackets, try parsing again, then restore the
+        # original hostname before returning the result. This is purposely not wrapped in a
+        # try-except because if parsing errors at this point, it's for some other non-brackets
+        # reason we want to know about.
+        parsed = urlparse(debracketed_url)
+        return parsed._replace(netloc=orig_hostname)
 
 
 # Creates a stable fingerprint for resource spans from their description (url), removing common cache busting tokens.
