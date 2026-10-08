@@ -42,6 +42,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
+import {ErrorMessageFilterWarning} from 'sentry/views/settings/project/projectFilters/errorMessageFilterWarning';
 
 // Condition types accepted by the custom inbound filters API. The values match
 // the `type` field on the backend serializer exactly. `CONDITIONS` below
@@ -352,6 +353,10 @@ function getModalDataTypeOptions(
   ).map(dataTypeOption);
 }
 
+// Conditions that read fields Sentry rewrites after ingestion on obfuscated
+// platforms, which is what the warning in the modal is about.
+const RAW_ERROR_PROPERTIES = new Set<string>(['error_message', 'error_type']);
+
 // Condition values are glob patterns that can get long (full error messages,
 // release ranges), so give the modal more room than the 640px default.
 const filterModalCss = css`
@@ -423,12 +428,14 @@ function CustomFilterModal({
   Body,
   Footer,
   closeModal,
+  project,
   filter,
   dataTypeOptions,
   onSave,
 }: ModalRenderProps & {
   dataTypeOptions: DataTypeOption[];
   onSave: (values: FilterFormValues) => Promise<unknown>;
+  project: Project;
   filter?: CustomInboundFilter;
 }) {
   const defaultValues = filter
@@ -621,6 +628,9 @@ function CustomFilterModal({
                           {t('Add Condition')}
                         </Button>
                       </Flex>
+                      {conditions.some(condition =>
+                        RAW_ERROR_PROPERTIES.has(condition.property)
+                      ) && <ErrorMessageFilterWarning project={project} />}
                     </Stack>
                   );
                 }}
@@ -1051,6 +1061,7 @@ export function CustomFilters({project}: {project: Project}) {
               deps => (
                 <CustomFilterModal
                   {...deps}
+                  project={project}
                   dataTypeOptions={dataTypeOptions}
                   onSave={handleCreate}
                 />
@@ -1165,6 +1176,7 @@ export function CustomFilters({project}: {project: Project}) {
                           deps => (
                             <CustomFilterModal
                               {...deps}
+                              project={project}
                               filter={filter}
                               dataTypeOptions={dataTypeOptions}
                               onSave={values => handleEdit(filter.id, values)}

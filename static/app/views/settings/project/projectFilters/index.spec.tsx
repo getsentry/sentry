@@ -1159,6 +1159,33 @@ describe('ProjectFilters', () => {
     ).toBeInTheDocument();
   });
 
+  it('warns in the modal when an error condition targets an obfuscated platform', async () => {
+    const warningLink = {name: 'Learn how to match the incoming error.'};
+    renderInboundFilters([], ProjectFixture({...project, platform: 'javascript-react'}));
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    expect(screen.getByRole('link', warningLink)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Error Type'}));
+    expect(screen.getByRole('link', warningLink)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
+    expect(screen.queryByRole('link', warningLink)).not.toBeInTheDocument();
+  });
+
+  it('does not warn in the modal on a backend platform', async () => {
+    renderInboundFilters([], ProjectFixture({...project, platform: 'python'}));
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Learn how to match the incoming error.'})
+    ).not.toBeInTheDocument();
+  });
+
   it('creates a catch-all filter that applies to every data type', async () => {
     renderInboundFilters([]);
     expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
@@ -1340,12 +1367,13 @@ describe('ProjectFilters', () => {
     expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
   });
 
-  it('shows disclaimer if error message filter is populated', async () => {
+  it('warns about processed error messages on an obfuscated platform', async () => {
     render(<ProjectFilters />, {
       organization,
       outletContext: {
         project: {
           ...project,
+          platform: 'android',
           features: ['custom-inbound-filters'],
           options: {
             'filters:error_messages': 'test',
@@ -1356,10 +1384,30 @@ describe('ProjectFilters', () => {
     });
 
     expect(
-      await screen.findByText(
-        "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
-      )
+      await screen.findByRole('link', {name: 'Learn how to match the incoming error.'})
     ).toBeInTheDocument();
+  });
+
+  it('does not warn about processed error messages on a backend platform', async () => {
+    render(<ProjectFilters />, {
+      organization,
+      outletContext: {
+        project: {
+          ...project,
+          platform: 'python',
+          features: ['custom-inbound-filters'],
+          options: {
+            'filters:error_messages': 'test',
+          },
+        },
+      },
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText('Custom Filters')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Learn how to match the incoming error.'})
+    ).not.toBeInTheDocument();
   });
 
   it('disables undiscard tombstone for users without project:write', async () => {
