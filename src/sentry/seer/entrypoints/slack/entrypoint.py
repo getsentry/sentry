@@ -722,7 +722,7 @@ class SlackInvestigationEntrypoint(
         elements = [
             (
                 BlockSlackMessageBuilder.get_button_action(
-                    MessageAction(name="view_investigation", label="Investigating…", url=link)
+                    MessageAction(name="view_investigation", label="Open investigation", url=link)
                 )
                 if element.get("action_id", "").startswith(SlackAction.SEER_INVESTIGATION_START)
                 else element

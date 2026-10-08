@@ -240,7 +240,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert update_kwargs["channel"] == CHANNEL_ID
         assert update_kwargs["ts"] == MESSAGE_TS
         (button,) = update_kwargs["attachments"][0]["blocks"][1]["elements"]
-        assert button["text"]["text"] == "Investigating…"
+        assert button["text"]["text"] == "Open investigation"
         assert button["url"] == link
 
         post_kwargs = self.mock_post_message.call_args.kwargs
