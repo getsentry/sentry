@@ -175,13 +175,13 @@ class CustomInboundFiltersTest(APITestCase):
         with self.feature(["projects:custom-inbound-filters"]):
             self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
 
-    def test_without_custom_inbound_filters_plan_feature(self) -> None:
-        with self.feature(["organizations:inbound-filters-v2"]):
-            response = self.get_error_response(
-                self.organization.slug, self.project.slug, status_code=400
-            )
+    def test_lists_without_custom_inbound_filters_plan_feature(self) -> None:
+        custom_filter = self.create_project_custom_inbound_filter(project=self.project)
 
-        assert response.data["detail"] == "You do not have that feature enabled"
+        with self.feature(["organizations:inbound-filters-v2"]):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+
+        assert [f["id"] for f in response.data] == [str(custom_filter.id)]
 
     def test_rejects_condition_the_data_type_does_not_carry(self) -> None:
         cases = [
@@ -882,13 +882,22 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 status_code=404,
             )
 
-    def test_without_custom_inbound_filters_plan_feature(self) -> None:
+    def test_reads_without_custom_inbound_filters_plan_feature(self) -> None:
+        with self.feature(["organizations:inbound-filters-v2"]):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, self.custom_filter.id, method="get"
+            )
+
+        assert response.data["id"] == str(self.custom_filter.id)
+
+    def test_refuses_writes_without_custom_inbound_filters_plan_feature(self) -> None:
         with self.feature(["organizations:inbound-filters-v2"]):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 self.custom_filter.id,
-                method="get",
+                method="put",
+                active=False,
                 status_code=400,
             )
 
