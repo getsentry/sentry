@@ -86,6 +86,7 @@ class ExceptionDetails(BaseModel):
     value: str | None = None
     stacktrace: Stacktrace | None = None
     is_handled: bool | None = None
+    mechanism_type: str | None = None
 
 
 class ThreadDetails(BaseModel):
@@ -141,6 +142,8 @@ class EventObject(BaseModel):
 
     event_id: str | None = None
     title: str
+    occurrence_title: str | None = None
+    subtitle: str | None = None
     message: str | None = None
     platform: str | None = None
     transaction_name: str | None = None

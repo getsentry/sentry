@@ -32,7 +32,7 @@ def _serialized_event() -> dict[str, Any]:
                         {
                             "type": "ValueError",
                             "value": "boom",
-                            "mechanism": {"handled": False},
+                            "mechanism": {"handled": False, "type": "generic"},
                             "stacktrace": {
                                 "frames": [
                                     {
@@ -103,6 +103,7 @@ def test_maps_camelcase_frame_and_handled_flag() -> None:
     exc = m.exceptions[0]
     assert exc.type == "ValueError"
     assert exc.is_handled is False  # from mechanism.handled
+    assert exc.mechanism_type == "generic"
     assert exc.stacktrace is not None
     frame = exc.stacktrace.frames[0]
     assert frame.line_no == 42  # lineNo -> line_no
@@ -259,14 +260,18 @@ def test_maps_occurrence_evidence() -> None:
     data = {
         "title": "t",
         "occurrence": {
+            "issueTitle": "Performance regression",
+            "subtitle": "Transaction duration increased",
             "evidenceDisplay": [
                 {"name": "Regression", "value": "duration increased", "important": True},
                 {"name": "Transaction", "value": "POST /oauth/token"},
                 {"name": "", "value": "skip"},  # missing name/value pairs are skipped
-            ]
+            ],
         },
     }
     m = event_response_to_model(data)
+    assert m.occurrence_title == "Performance regression"
+    assert m.subtitle == "Transaction duration increased"
     assert m.evidence == [
         ("Regression", "duration increased"),
         ("Transaction", "POST /oauth/token"),

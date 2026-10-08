@@ -43,11 +43,13 @@ def _best_stacktrace(v: Mapping[str, Any]) -> Stacktrace | None:
 
 
 def _exception(v: Mapping[str, Any]) -> ExceptionDetails:
+    mechanism = v.get("mechanism") or {}
     return ExceptionDetails(
         type=v.get("type"),
         value=v.get("value"),
         stacktrace=_best_stacktrace(v),
-        is_handled=(v.get("mechanism") or {}).get("handled"),  # nested under mechanism
+        is_handled=mechanism.get("handled"),
+        mechanism_type=mechanism.get("type"),
     )
 
 
@@ -197,9 +199,12 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     csp = entries.get("csp")
     user = data.get("user")
 
+    occurrence = data.get("occurrence") or {}
     return EventObject(
         event_id=data.get("eventID"),
         title=data["title"],
+        occurrence_title=occurrence.get("issueTitle"),
+        subtitle=occurrence.get("subtitle"),
         message=message,
         culprit=data.get("culprit"),
         platform=data.get("platform"),
