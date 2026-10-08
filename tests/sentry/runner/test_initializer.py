@@ -479,3 +479,30 @@ def test_single_org_preserves_original_or_explicit_empty_app_secret(
 
     assert settings.SENTRY_OPTIONS.get("github-app.client-secret", "") == settings.SENTRY_GITHUB_APP_CLIENT_SECRET
     assert settings.SENTRY_GITHUB_APP_CLIENT_SECRET != "login-secret"
+
+
+@pytest.mark.parametrize("app_secret", ["", "app-secret"])
+def test_single_org_owned_secret_selects_sso_including_empty(settings, app_secret) -> None:
+    settings.SENTRY_SINGLE_ORGANIZATION = True
+    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({"SENTRY_GITHUB_APP_CLIENT_SECRET"})
+    settings.SENTRY_GITHUB_APP_CLIENT_SECRET = app_secret
+    settings.SENTRY_OPTIONS = {"github-login.client-secret": "login-secret"}
+
+    bootstrap_options(settings)
+
+    assert settings.GITHUB_API_SECRET == app_secret
+
+
+def test_single_org_original_secret_selects_owned_sso(settings) -> None:
+    settings.SENTRY_SINGLE_ORGANIZATION = True
+    settings.SENTRY_CONFIGURED_OPTION_SETTINGS = frozenset({"SENTRY_GITHUB_APP_CLIENT_SECRET"})
+    settings.SENTRY_GITHUB_APP_CLIENT_SECRET = "modern-secret"
+    settings.SENTRY_OPTIONS = {
+        "github-app.client-secret": "original-secret",
+        "github-login.client-secret": "login-secret",
+    }
+
+    bootstrap_options(settings)
+
+    assert settings.SENTRY_GITHUB_APP_CLIENT_SECRET == "original-secret"
+    assert settings.GITHUB_API_SECRET == "original-secret"

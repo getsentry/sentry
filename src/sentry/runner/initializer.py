@@ -239,10 +239,13 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
 
     # Single organization mode reuses the GitHub integration app for SSO. The
     # remap in initialize_app handles the option key; this handles the setting.
-    if (
-        settings.SENTRY_SINGLE_ORGANIZATION
-        and "github-app.client-secret" not in settings.SENTRY_OPTIONS
-        and settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+    if settings.SENTRY_SINGLE_ORGANIZATION and (
+        {"SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_GITHUB_APP_CLIENT_SECRET"}
+        & settings.SENTRY_CONFIGURED_OPTION_SETTINGS
+        or (
+            "github-app.client-secret" not in settings.SENTRY_OPTIONS
+            and settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+        )
     ):
         settings.GITHUB_API_SECRET = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
 
