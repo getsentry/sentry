@@ -1173,6 +1173,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Number of debug-ID rows the artifact-lookup endpoint reads for a debug ID, before it checks
+# which of their bundles belong to the project, instead of joining the bundle, project and
+# debug-ID tables in one query. Debug IDs with more rows than this, such as those of files that
+# many uploads share, still use that query. 0 always uses it. Capped at 10,000.
+register(
+    "sourcemaps.artifact-bundles.debug-id-lookup.max-rows",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
 # debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
 register(
