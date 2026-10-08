@@ -1,10 +1,14 @@
+import base64
 from collections.abc import Generator, Iterator
+from contextlib import contextmanager
 from random import Random
 
 import pytest
+from cryptography.fernet import Fernet
 from django.core.cache import cache
+from django.test import override_settings
 
-from sentry.hybridcloud.models.cacheversion import CellCacheVersion
+from sentry.hybridcloud.models.cacheversion import CellCacheVersion, ControlCacheVersion
 from sentry.hybridcloud.rpc.caching import (
     back_with_silo_cache,
     back_with_silo_cache_list,
@@ -12,7 +16,8 @@ from sentry.hybridcloud.rpc.caching import (
     cell_caching_service,
     control_caching_service,
 )
-from sentry.hybridcloud.rpc.caching.impl import CacheBackend, _consume_generator
+from sentry.hybridcloud.rpc.caching.encryption import CacheEncrypter, EncryptionMethod
+from sentry.hybridcloud.rpc.caching.impl import CacheBackend, _consume_generator, _versioned_key
 from sentry.hybridcloud.rpc.caching.service import MAX_BASE_KEY_LENGTH, MAX_CACHE_KEY_LENGTH
 from sentry.organizations.services.organization.model import (
     RpcOrganizationMember,
@@ -26,6 +31,44 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_s
 from sentry.types.cell import get_local_cell
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils import json
+from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
+
+FERNET_KEY_ID = "key_id_1"
+
+
+@contextmanager
+def fernet_encryption() -> Generator[None]:
+    """
+    Load a single in-memory Fernet key and select it as the primary key,
+    mirroring the fixtures in tests/sentry/db/models/fields/encryption/conftest.py.
+    """
+    original_keys = FernetKeyStore._keys
+    original_is_loaded = FernetKeyStore._is_loaded
+    FernetKeyStore._keys = {FERNET_KEY_ID: Fernet(Fernet.generate_key())}
+    FernetKeyStore._is_loaded = True
+    try:
+        with override_settings(
+            DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": FERNET_KEY_ID}
+        ):
+            yield
+    finally:
+        FernetKeyStore._keys = original_keys
+        FernetKeyStore._is_loaded = original_is_loaded
+
+
+def _cache_version(key: str, silo_mode: SiloMode) -> int:
+    version_model = CellCacheVersion if silo_mode == SiloMode.CELL else ControlCacheVersion
+    return version_model.get_version_map([key]).get(key, 0)
+
+
+def _raw_cache_value(key: str, silo_mode: SiloMode) -> str | None:
+    """Read the stored value for a cache key at its current version, bypassing the decorator."""
+    return cache.get(_versioned_key(key, _cache_version(key, silo_mode)))
+
+
+def _overwrite_cache_value(key: str, value: str, silo_mode: SiloMode) -> None:
+    cache.set(_versioned_key(key, _cache_version(key, silo_mode)), value)
 
 
 @django_db_all(transaction=True)
@@ -574,3 +617,372 @@ def test_caching_list() -> None:
 
     cached_members = get_org_members(org.id)
     assert len(cached_members) == 0, "with members updated none are owners"
+
+
+@django_db_all(transaction=True)
+def test_caching_function_encrypt_contents_fernet() -> None:
+    cache.clear()
+
+    @back_with_silo_cache(
+        base_key="encrypted-user", silo_mode=SiloMode.CELL, t=RpcUser, encrypt_contents=True
+    )
+    def get_user(user_id: int) -> RpcUser | None:
+        return user_service.get_many(filter=dict(user_ids=[user_id]))[0]
+
+    user = Factories.create_user()
+
+    with fernet_encryption():
+        first = get_user(user.id)
+        assert first
+        assert first == get_user.cb(user.id)
+
+        raw = _raw_cache_value(get_user.key_from(user.id), SiloMode.CELL)
+        assert isinstance(raw, str)
+        assert raw.startswith(f"enc:fernet:{FERNET_KEY_ID}:")
+        assert user.username not in raw
+        assert user.email not in raw
+
+        # Served from cache: does not observe the update, but decrypts to the same object.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user.update(username=user.username + "moocow")
+        second = get_user(user.id)
+        assert second == first
+        assert second.username != user.username
+
+
+@django_db_all(transaction=True)
+def test_caching_function_default_not_encrypted() -> None:
+    cache.clear()
+
+    @back_with_silo_cache(base_key="plain-user", silo_mode=SiloMode.CELL, t=RpcUser)
+    def get_user(user_id: int) -> RpcUser | None:
+        return user_service.get_many(filter=dict(user_ids=[user_id]))[0]
+
+    user = Factories.create_user()
+
+    with fernet_encryption():
+        result = get_user(user.id)
+        assert result
+
+        raw = _raw_cache_value(get_user.key_from(user.id), SiloMode.CELL)
+        assert isinstance(raw, str)
+        assert not raw.startswith("enc:")
+        assert json.loads(raw) == json.loads(result.json())
+
+
+@django_db_all(transaction=True)
+def test_caching_function_encrypt_contents_corrupt_ciphertext() -> None:
+    cache.clear()
+
+    @back_with_silo_cache(
+        base_key="encrypted-user", silo_mode=SiloMode.CELL, t=RpcUser, encrypt_contents=True
+    )
+    def get_user(user_id: int) -> RpcUser | None:
+        return user_service.get_many(filter=dict(user_ids=[user_id]))[0]
+
+    user = Factories.create_user()
+    key = get_user.key_from(user.id)
+    garbage = base64.b64encode(b"not a fernet token").decode("ascii")
+
+    with fernet_encryption():
+        primed = get_user(user.id)
+        assert primed
+        version_before = _cache_version(key, SiloMode.CELL)
+
+        # Ciphertext that fails authentication under a known key.
+        _overwrite_cache_value(key, f"enc:fernet:{FERNET_KEY_ID}:{garbage}", SiloMode.CELL)
+        result = get_user(user.id)
+        assert result == get_user.cb(user.id)
+        assert _cache_version(key, SiloMode.CELL) == version_before + 1
+
+        raw = _raw_cache_value(key, SiloMode.CELL)
+        assert isinstance(raw, str)
+        assert raw.startswith(f"enc:fernet:{FERNET_KEY_ID}:")
+        assert get_user(user.id) == result
+
+        # Ciphertext referencing a key this process does not have.
+        _overwrite_cache_value(key, f"enc:fernet:unknown-key:{garbage}", SiloMode.CELL)
+        result = get_user(user.id)
+        assert result == get_user.cb(user.id)
+        assert _cache_version(key, SiloMode.CELL) == version_before + 2
+
+        # Valid ciphertext whose plaintext is not valid UTF-8.
+        token = FernetKeyStore.get_fernet_for_key_id(FERNET_KEY_ID).encrypt(b"\xff\xfe")
+        non_utf8 = base64.b64encode(token).decode("ascii")
+        _overwrite_cache_value(key, f"enc:fernet:{FERNET_KEY_ID}:{non_utf8}", SiloMode.CELL)
+        result = get_user(user.id)
+        assert result == get_user.cb(user.id)
+        assert _cache_version(key, SiloMode.CELL) == version_before + 3
+
+
+@django_db_all(transaction=True)
+def test_caching_function_encrypt_contents_reads_legacy_plain_json() -> None:
+    cache.clear()
+
+    @back_with_silo_cache(
+        base_key="encrypted-user", silo_mode=SiloMode.CELL, t=RpcUser, encrypt_contents=True
+    )
+    def get_user(user_id: int) -> RpcUser | None:
+        return user_service.get_many(filter=dict(user_ids=[user_id]))[0]
+
+    user = Factories.create_user()
+    key = get_user.key_from(user.id)
+    rpc_user = user_service.get_many(filter=dict(user_ids=[user.id]))[0]
+
+    with fernet_encryption():
+        # An entry written before encryption was enabled.
+        _overwrite_cache_value(key, rpc_user.json(), SiloMode.CELL)
+        version_before = _cache_version(key, SiloMode.CELL)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user.update(username=user.username + "moocow")
+
+        result = get_user(user.id)
+        assert result == rpc_user, "legacy entry should be served from cache, not refetched"
+        assert result.username != user.username
+        assert _cache_version(key, SiloMode.CELL) == version_before
+
+
+@django_db_all(transaction=True)
+def test_caching_function_unencrypted_reads_encrypted_value() -> None:
+    cache.clear()
+
+    @back_with_silo_cache(base_key="plain-user", silo_mode=SiloMode.CELL, t=RpcUser)
+    def get_user(user_id: int) -> RpcUser | None:
+        return user_service.get_many(filter=dict(user_ids=[user_id]))[0]
+
+    user = Factories.create_user()
+    key = get_user.key_from(user.id)
+    rpc_user = user_service.get_many(filter=dict(user_ids=[user.id]))[0]
+
+    with fernet_encryption():
+        # An entry written while encrypt_contents was enabled, read after rollback.
+        encrypted = CacheEncrypter.encrypt(rpc_user.json(), EncryptionMethod.FERNET)
+        _overwrite_cache_value(key, encrypted, SiloMode.CELL)
+        version_before = _cache_version(key, SiloMode.CELL)
+
+        result = get_user(user.id)
+        assert result == get_user.cb(user.id)
+        assert _cache_version(key, SiloMode.CELL) == version_before + 1
+
+        raw = _raw_cache_value(key, SiloMode.CELL)
+        assert isinstance(raw, str)
+        assert not raw.startswith("enc:")
+
+
+@django_db_all(transaction=True)
+def test_caching_many_encrypt_contents_fernet() -> None:
+    cache.clear()
+
+    @back_with_silo_cache_many(
+        base_key="encrypted-users", silo_mode=SiloMode.CELL, t=RpcUser, encrypt_contents=True
+    )
+    def get_users(user_ids: list[int]) -> list[RpcUser]:
+        return user_service.get_many(filter=dict(user_ids=user_ids))
+
+    users = [Factories.create_user() for _ in range(3)]
+    user_ids = [u.id for u in users]
+
+    with fernet_encryption():
+        # Partial hit: prime one entry, then fetch all.
+        single = get_users([user_ids[0]])
+        assert len(single) == 1
+        assert single[0].id == user_ids[0]
+
+        wrapped_result = get_users(user_ids)
+        direct_result = sorted(get_users.cb(user_ids), key=lambda u: u.id)
+        assert [u.id for u in wrapped_result] == user_ids
+        assert sorted(wrapped_result, key=lambda u: u.id) == direct_result
+
+        for user in users:
+            raw = _raw_cache_value(get_users.key_from(user.id), SiloMode.CELL)
+            assert isinstance(raw, str)
+            assert raw.startswith(f"enc:fernet:{FERNET_KEY_ID}:")
+            assert user.username not in raw
+
+        # Full hit decrypts every entry.
+        assert get_users(user_ids) == wrapped_result
+
+
+@django_db_all(transaction=True)
+def test_caching_many_encrypt_contents_reads_legacy_plain_json() -> None:
+    cache.clear()
+
+    @back_with_silo_cache_many(
+        base_key="encrypted-users", silo_mode=SiloMode.CELL, t=RpcUser, encrypt_contents=True
+    )
+    def get_users(user_ids: list[int]) -> list[RpcUser]:
+        return user_service.get_many(filter=dict(user_ids=user_ids))
+
+    users = [Factories.create_user() for _ in range(2)]
+    user_ids = [u.id for u in users]
+    legacy_user = user_service.get_many(filter=dict(user_ids=[user_ids[0]]))[0]
+    legacy_key = get_users.key_from(legacy_user.id)
+
+    with fernet_encryption():
+        # An entry written before encryption was enabled.
+        _overwrite_cache_value(legacy_key, legacy_user.json(), SiloMode.CELL)
+        version_before = _cache_version(legacy_key, SiloMode.CELL)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            users[0].update(username=users[0].username + "moocow")
+
+        result = get_users(user_ids)
+        assert [u.id for u in result] == user_ids
+        assert result[0] == legacy_user, "legacy entry should be served from cache"
+        assert _cache_version(legacy_key, SiloMode.CELL) == version_before
+
+        raw = _raw_cache_value(get_users.key_from(user_ids[1]), SiloMode.CELL)
+        assert isinstance(raw, str)
+        assert raw.startswith(f"enc:fernet:{FERNET_KEY_ID}:")
+
+
+@django_db_all(transaction=True)
+def test_caching_function_encrypt_contents_without_primary_key_returns_result() -> None:
+    cache.clear()
+
+    @back_with_silo_cache(
+        base_key="encrypted-user", silo_mode=SiloMode.CELL, t=RpcUser, encrypt_contents=True
+    )
+    def get_user(user_id: int) -> RpcUser | None:
+        return user_service.get_many(filter=dict(user_ids=[user_id]))[0]
+
+    user = Factories.create_user()
+
+    with (
+        fernet_encryption(),
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": None}),
+    ):
+        # A cache write failure must not lose the RPC result.
+        result = get_user(user.id)
+        assert result == get_user.cb(user.id)
+        assert _raw_cache_value(get_user.key_from(user.id), SiloMode.CELL) is None
+
+
+@django_db_all(transaction=True)
+def test_caching_many_encrypt_contents_without_primary_key_returns_result() -> None:
+    cache.clear()
+
+    @back_with_silo_cache_many(
+        base_key="encrypted-users", silo_mode=SiloMode.CELL, t=RpcUser, encrypt_contents=True
+    )
+    def get_users(user_ids: list[int]) -> list[RpcUser]:
+        return user_service.get_many(filter=dict(user_ids=user_ids))
+
+    users = [Factories.create_user() for _ in range(2)]
+    user_ids = [u.id for u in users]
+
+    with (
+        fernet_encryption(),
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": None}),
+    ):
+        result = get_users(user_ids)
+        assert [u.id for u in result] == user_ids
+        assert _raw_cache_value(get_users.key_from(user_ids[0]), SiloMode.CELL) is None
+        assert _raw_cache_value(get_users.key_from(user_ids[1]), SiloMode.CELL) is None
+
+
+@control_silo_test
+@django_db_all(transaction=True)
+def test_caching_list_encrypt_contents_fernet() -> None:
+    cache.clear()
+
+    @back_with_silo_cache_list(
+        base_key="encrypted-owner-members",
+        silo_mode=SiloMode.CONTROL,
+        t=RpcOrganizationMember,
+        encrypt_contents=True,
+    )
+    def get_org_members(organization_id: int) -> list[RpcOrganizationMember]:
+        return organization_service.get_organization_owner_members(organization_id=organization_id)
+
+    users = [Factories.create_user() for _ in range(3)]
+
+    with assume_test_silo_mode(SiloMode.CELL):
+        org = Factories.create_organization()
+        for user in users:
+            Factories.create_member(organization=org, user=user, role="owner")
+
+    with fernet_encryption():
+        wrapped_result = sorted(get_org_members(org.id), key=lambda m: m.id)
+        direct_result = sorted(get_org_members.cb(org.id), key=lambda m: m.id)
+        assert len(wrapped_result) == 3
+        assert wrapped_result == direct_result
+
+        raw = _raw_cache_value(get_org_members.key_from(org.id), SiloMode.CONTROL)
+        assert isinstance(raw, str)
+        assert raw.startswith(f"enc:fernet:{FERNET_KEY_ID}:")
+        for user in users:
+            assert user.email not in raw
+
+        assert sorted(get_org_members(org.id), key=lambda m: m.id) == wrapped_result
+
+
+@control_silo_test
+@django_db_all(transaction=True)
+def test_caching_list_encrypt_contents_reads_legacy_plain_json() -> None:
+    cache.clear()
+
+    @back_with_silo_cache_list(
+        base_key="encrypted-owner-members",
+        silo_mode=SiloMode.CONTROL,
+        t=RpcOrganizationMember,
+        encrypt_contents=True,
+    )
+    def get_org_members(organization_id: int) -> list[RpcOrganizationMember]:
+        return organization_service.get_organization_owner_members(organization_id=organization_id)
+
+    users = [Factories.create_user() for _ in range(2)]
+
+    with assume_test_silo_mode(SiloMode.CELL):
+        org = Factories.create_organization()
+        members = [
+            Factories.create_member(organization=org, user=user, role="owner") for user in users
+        ]
+
+    key = get_org_members.key_from(org.id)
+    legacy_members = get_org_members.cb(org.id)
+
+    with fernet_encryption():
+        # An entry written before encryption was enabled.
+        _overwrite_cache_value(
+            key, json.dumps([m.dict() for m in legacy_members]), SiloMode.CONTROL
+        )
+        version_before = _cache_version(key, SiloMode.CONTROL)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            for member in members:
+                member.update(role="member")
+
+        result = get_org_members(org.id)
+        assert result == legacy_members, "legacy entry should be served from cache"
+        assert _cache_version(key, SiloMode.CONTROL) == version_before
+
+
+@control_silo_test
+@django_db_all(transaction=True)
+def test_caching_list_encrypt_contents_without_primary_key_returns_result() -> None:
+    cache.clear()
+
+    @back_with_silo_cache_list(
+        base_key="encrypted-owner-members",
+        silo_mode=SiloMode.CONTROL,
+        t=RpcOrganizationMember,
+        encrypt_contents=True,
+    )
+    def get_org_members(organization_id: int) -> list[RpcOrganizationMember]:
+        return organization_service.get_organization_owner_members(organization_id=organization_id)
+
+    user = Factories.create_user()
+
+    with assume_test_silo_mode(SiloMode.CELL):
+        org = Factories.create_organization()
+        Factories.create_member(organization=org, user=user, role="owner")
+
+    with (
+        fernet_encryption(),
+        override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": None}),
+    ):
+        result = get_org_members(org.id)
+        assert result == get_org_members.cb(org.id)
+        assert _raw_cache_value(get_org_members.key_from(org.id), SiloMode.CONTROL) is None
