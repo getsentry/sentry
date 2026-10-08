@@ -37,7 +37,7 @@ def metadata(**overrides):
             "origin": None,
             "filename": "file.png",
             "size": 100,
-            "custom": {"validation_version": "1", "kind": "image", "width": "2", "height": "3"},
+            "custom": {"validation_version": "1", "kind": "image"},
             **overrides,
         }
     )
@@ -93,7 +93,7 @@ def test_invalid_keys(key):
     "overrides",
     [
         {"custom": {"kind": "image", "validation_version": "2"}},
-        {"custom": {"kind": "image", "validation_version": "1"}},
+        {"custom": {"kind": "image"}},
         {"content_type": "text/html"},
         {"compression": "zstd"},
         {"filename": None},

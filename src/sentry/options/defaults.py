@@ -4662,9 +4662,6 @@ register(
     "seer.attachments.max-pdf-bytes", default=10 * 1024 * 1024, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register("seer.attachments.max-text-bytes", default=100 * 1024, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("seer.attachments.max-image-dimension", default=8000, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("seer.attachments.max-image-pixels", default=20_000_000, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("seer.attachments.max-pdf-pages", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("seer.attachments.max-message-files", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "seer.attachments.max-message-bytes", default=12 * 1024 * 1024, flags=FLAG_AUTOMATOR_MODIFIABLE

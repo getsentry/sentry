@@ -23,13 +23,7 @@ CONTENT_TYPES: dict[str, tuple[str, ...]] = {
 }
 
 
-class AttachmentResponseOptional(TypedDict, total=False):
-    width: int
-    height: int
-    pageCount: int
-
-
-class AttachmentResponse(AttachmentResponseOptional):
+class AttachmentResponse(TypedDict):
     key: str
     filename: str
     contentType: str
@@ -68,9 +62,6 @@ class Attachment:
     content_type: str
     size: int
     kind: AttachmentKind
-    width: int | None = None
-    height: int | None = None
-    page_count: int | None = None
 
     def check_limits(self) -> None:
         if self.size <= 0:
@@ -84,46 +75,18 @@ class Attachment:
             raise AttachmentError(
                 "file_too_large", "The attachment exceeds the file size limit.", 413
             )
-        if self.kind == "image":
-            if not self.width or not self.height or min(self.width, self.height) < 1:
-                raise AttachmentError("invalid_image", "The image dimensions are invalid.")
-            if max(self.width, self.height) > limit(
-                "max-image-dimension"
-            ) or self.width * self.height > limit("max-image-pixels"):
-                raise AttachmentError(
-                    "image_too_large", "The image exceeds the dimension or pixel limit.", 413
-                )
-        if self.kind == "pdf":
-            if self.page_count is None or self.page_count < 1:
-                raise AttachmentError("invalid_pdf", "The PDF must contain at least one page.")
-            if self.page_count > limit("max-pdf-pages"):
-                raise AttachmentError("too_many_pages", "The PDF exceeds the page limit.", 413)
 
     def custom_metadata(self) -> dict[str, str]:
-        result = {"validation_version": VALIDATION_VERSION, "kind": self.kind}
-        if self.width is not None:
-            result["width"] = str(self.width)
-        if self.height is not None:
-            result["height"] = str(self.height)
-        if self.page_count is not None:
-            result["page_count"] = str(self.page_count)
-        return result
+        return {"validation_version": VALIDATION_VERSION, "kind": self.kind}
 
     def response(self, key: str) -> AttachmentResponse:
-        result: AttachmentResponse = {
+        return {
             "key": key,
             "filename": self.filename,
             "contentType": self.content_type,
             "size": self.size,
             "kind": self.kind,
         }
-        if self.width is not None:
-            result["width"] = self.width
-        if self.height is not None:
-            result["height"] = self.height
-        if self.page_count is not None:
-            result["pageCount"] = self.page_count
-        return result
 
 
 @contextmanager

@@ -86,20 +86,12 @@ def from_metadata(metadata: Metadata) -> Attachment:
         raise AttachmentError(
             "invalid_attachment", "The attachment does not have supported validation metadata."
         )
-    try:
-        return Attachment(
-            filename=sanitize_filename(metadata.filename),
-            content_type=metadata.content_type,
-            size=metadata.size,
-            kind=cast(AttachmentKind, kind),
-            width=int(metadata.custom["width"]) if kind == "image" else None,
-            height=int(metadata.custom["height"]) if kind == "image" else None,
-            page_count=int(metadata.custom["page_count"]) if kind == "pdf" else None,
-        )
-    except (KeyError, ValueError) as exc:
-        raise AttachmentError(
-            "invalid_attachment", "The attachment metadata is incomplete."
-        ) from exc
+    return Attachment(
+        filename=sanitize_filename(metadata.filename),
+        content_type=metadata.content_type,
+        size=metadata.size,
+        kind=cast(AttachmentKind, kind),
+    )
 
 
 def head(key: str, *, store: Session | None = None) -> Attachment | None:

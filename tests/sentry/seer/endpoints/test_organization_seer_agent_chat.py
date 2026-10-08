@@ -36,7 +36,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     def test_attachment_only_message_with_uploads_disabled(self, head, client):
         from sentry.seer.attachments.models import Attachment
 
-        head.return_value = Attachment("x.png", "image/png", 100, "image", 2, 3)
+        head.return_value = Attachment("x.png", "image/png", 100, "image")
         client.return_value.start_run.return_value = self.create_seer_run(
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
         )

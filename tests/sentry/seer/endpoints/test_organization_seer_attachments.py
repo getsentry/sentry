@@ -37,8 +37,7 @@ class OrganizationSeerAttachmentsTest(APITestCase):
             self.url, {"file": SimpleUploadedFile("image.bin", data.getvalue())}, format="multipart"
         )
         assert response.status_code == 201
-        assert response.data["width"] == 2
-        assert response.data["height"] == 3
+        assert response.data["contentType"] == "image/png"
         assert [call[0] for call in calls.mock_calls] == ["scan", "put"]
         scan.assert_called_once_with(data.getvalue())
 
