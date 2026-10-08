@@ -27,6 +27,8 @@ type Props = {
    * The placeholder text to display when the input is empty.
    */
   placeholder?: string;
+  /** Custom markup for the displayed value, outside edit mode. */
+  renderLabel?: (value: string) => React.ReactNode;
   /**
    * "compact" removes fixed heights so the component inherits font-size and
    * line-height from its context (e.g. when rendered inside a breadcrumb row).
@@ -45,6 +47,7 @@ export function EditableText({
   'aria-label': ariaLabel,
   placeholder,
   allowEmpty = false,
+  renderLabel,
   variant,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
@@ -218,7 +221,11 @@ export function EditableText({
           isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
-          <InnerLabel isCompact={isCompact}>{currentValue || placeholder}</InnerLabel>
+          <InnerLabel isCompact={isCompact}>
+            {renderLabel
+              ? renderLabel(currentValue || placeholder || '')
+              : currentValue || placeholder}
+          </InnerLabel>
           {!isDisabled && <IconEdit />}
         </Label>
       )}

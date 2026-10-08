@@ -262,9 +262,9 @@ class SetClientKindAttributesTest(TestCase):
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
         ):
             set_client_kind_attributes(request)
-        assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
+        assert sdk.set_tag.call_args_list == [mock.call("client_kind", "script")]
         assert sdk.set_attribute.call_args_list == [
-            mock.call("client_kind_test", "script"),
+            mock.call("client_kind", "script"),
             mock.call(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, "curl/8.7.1"),
         ]
 
@@ -281,8 +281,8 @@ class SetClientKindAttributesTest(TestCase):
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
         ):
             set_client_kind_attributes(request)
-        assert mock.call("client_host_test", "claude-code") in sdk.set_tag.call_args_list
-        assert mock.call("client_host_test", "claude-code") in sdk.set_attribute.call_args_list
+        assert mock.call("client_host", "claude-code") in sdk.set_tag.call_args_list
+        assert mock.call("client_host", "claude-code") in sdk.set_attribute.call_args_list
 
     def test_omits_user_agent_when_absent(self) -> None:
         request = make_request(auth=api_token())
@@ -304,7 +304,7 @@ class SetClientKindAttributesTest(TestCase):
             mock.patch("sentry.api.client_kind.start_span"),
         ):
             set_client_kind_attributes(request)
-        assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
+        assert sdk.set_tag.call_args_list == [mock.call("client_kind", "script")]
 
 
 class AccessLogAttributesTest(TestCase):
@@ -358,7 +358,7 @@ class AttributionSpanTest(TestCase):
         assert start_span.call_args == mock.call(op=ATTRIBUTION_SPAN_OP, name=EVENTS_ROUTE)
         assert attributes == [
             (ATTRIBUTE_NAMES.HTTP_ROUTE, EVENTS_ROUTE),
-            ("client_kind_test", "script"),
+            ("client_kind", "script"),
             (ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, "curl/8.7.1"),
         ]
 
@@ -380,13 +380,13 @@ class AttributionSpanTest(TestCase):
                 },
             )
         )
-        assert ("client_host_test", "claude-code") in attributes
+        assert ("client_host", "claude-code") in attributes
 
     def test_omits_user_agent_when_absent(self) -> None:
         _, attributes = self.record(make_request(auth=api_token()))
         assert [key for key, _ in attributes] == [
             ATTRIBUTE_NAMES.HTTP_ROUTE,
-            "client_kind_test",
+            "client_kind",
         ]
 
 
@@ -477,8 +477,8 @@ class ClientKindScopeTest(TestCase):
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
         ):
             set_client_kind_attributes(request)
-        assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "seer")]
-        assert mock.call("client_kind_test", "seer") in sdk.set_attribute.call_args_list
+        assert sdk.set_tag.call_args_list == [mock.call("client_kind", "seer")]
+        assert mock.call("client_kind", "seer") in sdk.set_attribute.call_args_list
 
 
 class DispatchWiringTest(APITestCase):
@@ -503,22 +503,22 @@ class DispatchWiringTest(APITestCase):
 
     def test_an_organization_endpoint_records_the_caller(self) -> None:
         url = f"/api/0/organizations/{self.organization.slug}/"
-        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
+        assert mock.call("client_kind", "frontend") in self.tags_for(url)
 
     def test_a_project_endpoint_records_the_caller(self) -> None:
         url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"
-        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
+        assert mock.call("client_kind", "frontend") in self.tags_for(url)
 
     def test_a_team_endpoint_records_the_caller(self) -> None:
         url = f"/api/0/teams/{self.organization.slug}/{self.team.slug}/"
-        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
+        assert mock.call("client_kind", "frontend") in self.tags_for(url)
 
     def test_an_issue_endpoint_records_the_caller(self) -> None:
         # Team and issue endpoints resolve their organization off the related object
         # rather than into an `organization` kwarg, so they are the families most
         # likely to silently fall out of coverage.
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/"
-        assert mock.call("client_kind_test", "frontend") in self.tags_for(url)
+        assert mock.call("client_kind", "frontend") in self.tags_for(url)
 
     def test_records_nothing_when_the_organization_has_not_opted_in(self) -> None:
         url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"

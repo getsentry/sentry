@@ -1,15 +1,15 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -45,6 +45,7 @@ type TagSort = 'date' | 'count';
 const DEFAULT_SORT: TagSort = 'count';
 
 export function TagDetailsDrawerContent({group}: {group: Group}) {
+  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -94,48 +95,74 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   return (
     <Fragment>
       {tag && tagValues?.length && (
-        <Table data-test-id="group-tag-value">
-          <Header>
-            <ColumnTitle>{t('Value')}</ColumnTitle>
-            <ColumnSort
-              to={{
-                pathname: location.pathname,
-                query: {
-                  ...currentQuery,
-                  tagDrawerCursor: undefined,
-                  tagDrawerSort: 'date',
-                },
-              }}
-            >
-              {sort === 'date' && sortArrow}
-              {t('Last Seen')}
-            </ColumnSort>
-            <ColumnSort
-              to={{
-                pathname: location.pathname,
-                query: {
-                  ...currentQuery,
-                  tagDrawerCursor: undefined,
-                  tagDrawerSort: 'count',
-                },
-              }}
-            >
-              {sort === 'count' && sortArrow}
-              {t('Count')}
-            </ColumnSort>
-            <ShareColumnTitle>{t('Share')}</ShareColumnTitle>
-          </Header>
-          <Body>
+        <Grid
+          data-test-id="group-tag-value"
+          columns="1fr 0.22fr min-content min-content 45px min-content"
+          gap={{zero: 'xs md', '5xl': 'xs xl'}}
+          position="relative"
+          left={`-${theme.space.md}`}
+          width={`calc(100% + ${theme.space.md} + ${theme.space.md})`}
+        >
+          <Grid column="1 / -1" columns="subgrid" borderBottom="primary" margin="0 md">
+            <Text as="div" wrap="nowrap" variant="muted" bold>
+              {t('Value')}
+            </Text>
+            <Flex gap="xs" align="center">
+              {props => (
+                <Link
+                  {...props}
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      tagDrawerCursor: undefined,
+                      tagDrawerSort: 'date',
+                    },
+                  }}
+                >
+                  {sort === 'date' && sortArrow}
+                  <Text wrap="nowrap" variant="muted" bold underline="dotted">
+                    {t('Last Seen')}
+                  </Text>
+                </Link>
+              )}
+            </Flex>
+            <Flex gap="xs" align="center">
+              {props => (
+                <Link
+                  {...props}
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      tagDrawerCursor: undefined,
+                      tagDrawerSort: 'count',
+                    },
+                  }}
+                >
+                  {sort === 'count' && sortArrow}
+                  <Text wrap="nowrap" variant="muted" bold underline="dotted">
+                    {t('Count')}
+                  </Text>
+                </Link>
+              )}
+            </Flex>
+            <Text as="div" wrap="nowrap" variant="muted" bold align="center">
+              {t('Share')}
+            </Text>
+          </Grid>
+          <Grid column="1 / -1" columns="subgrid">
             {tagValues.map((tv, i) => (
               <TagDetailsRow
                 key={`${tv.value}-${i}`}
                 group={group}
                 tag={tag}
                 tagValue={tv}
+                striped={i % 2 === 1}
               />
             ))}
-          </Body>
-        </Table>
+          </Grid>
+        </Grid>
       )}
       <Pagination
         caption={paginationCaption}
@@ -159,12 +186,13 @@ function TagDetailsRow({
   group,
   tag,
   tagValue,
+  striped,
 }: {
   group: Group;
+  striped: boolean;
   tag: Tag;
   tagValue: TagValue;
 }) {
-  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
 
@@ -198,22 +226,36 @@ function TagDetailsRow({
         : `${cappedPercentage.toFixed(0)}%`;
 
   return (
-    <Row>
-      <TagDetailsValue
-        valueLocation={allEventsLocation}
-        tagKey={key}
-        tagValue={tagValue}
-      />
-      <OverflowTimeSince date={tagValue.lastSeen} />
-      <RightAlignedValue>{tagValue.count.toLocaleString()}</RightAlignedValue>
-      <RightAlignedValue>{displayPercentage}</RightAlignedValue>
-      {tag.totalValues ? (
-        <TagBar percentage={percentage} style={{height: theme.space.lg}} />
-      ) : (
-        '--'
+    <RevealOnHover>
+      {props => (
+        <Grid
+          {...props}
+          column="1 / -1"
+          columns="subgrid"
+          align="center"
+          radius="md"
+          padding="2xs md"
+          background={striped ? 'tertiary' : undefined}
+        >
+          <TagDetailsValue
+            valueLocation={allEventsLocation}
+            tagKey={key}
+            tagValue={tagValue}
+          />
+          <Text ellipsis variant="inherit">
+            {textProps => <TimeSince {...textProps} date={tagValue.lastSeen} />}
+          </Text>
+          <Text as="div" align="right" variant="inherit">
+            {tagValue.count.toLocaleString()}
+          </Text>
+          <Text as="div" align="right" variant="inherit">
+            {displayPercentage}
+          </Text>
+          {tag.totalValues ? <TagBar percentage={percentage} /> : '--'}
+          <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
+        </Grid>
       )}
-      <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
-    </Row>
+    </RevealOnHover>
   );
 }
 
@@ -257,16 +299,34 @@ function TagDetailsValue({
 
   return (
     <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
-      <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
+      <Container minWidth={0} overflow="hidden">
+        {layoutProps => (
+          <Text variant="primary">
+            {textProps => (
+              <Link
+                className={`${layoutProps.className} ${textProps.className}`}
+                to={valueLocation}
+              >
+                {valueComponent}
+              </Link>
+            )}
+          </Text>
+        )}
+      </Container>
       {isValidUrl(tagValue.value) && (
-        <ExternalLinkbutton
-          variant="link"
-          icon={<IconOpen />}
-          aria-label="Open link"
-          data-test-id="group-tag-url"
-          size="xs"
-          onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
-        />
+        <Text variant="muted">
+          {props => (
+            <Button
+              {...props}
+              variant="link"
+              icon={<IconOpen />}
+              aria-label="Open link"
+              data-test-id="group-tag-url"
+              size="xs"
+              onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
+            />
+          )}
+        </Text>
       )}
     </Flex>
   );
@@ -297,151 +357,55 @@ function TagValueActionsMenu({
   const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <DropdownMenu
-      size="xs"
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      trigger={triggerProps => (
-        <OverlayTrigger.IconButton
-          {...triggerProps}
-          aria-label={t('Tag Value Actions Menu')}
-          className={isVisible ? '' : 'invisible'}
-          icon={<IconEllipsis />}
-        />
-      )}
-      items={[
-        {
-          key: 'open-in-discover',
-          label: t('Open in Explore'),
-          to: eventView.getResultsViewUrlTarget(
-            organization,
-            false,
-            hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-          ),
-          hidden: !group || !organization.features.includes('discover-basic'),
-        },
-        {
-          key: 'view-events',
-          label: t('View other events with this tag value'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-            query: {...globalSelectionParams, ...query},
+    <RevealOnHover.Action visible={isVisible}>
+      <DropdownMenu
+        size="xs"
+        onOpenChange={isOpen => setIsVisible(isOpen)}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Tag Value Actions Menu')}
+            icon={<IconEllipsis />}
+          />
+        )}
+        items={[
+          {
+            key: 'open-in-discover',
+            label: t('Open in Explore'),
+            to: eventView.getResultsViewUrlTarget(
+              organization,
+              false,
+              hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+            ),
+            hidden: !group || !organization.features.includes('discover-basic'),
           },
-        },
-        {
-          key: 'view-issues',
-          label: t('Search issues with this tag value'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {...globalSelectionParams, ...query},
+          {
+            key: 'view-events',
+            label: t('View other events with this tag value'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+              query: {...globalSelectionParams, ...query},
+            },
           },
-        },
-        {
-          key: 'copy-value',
-          label: t('Copy tag value to clipboard'),
-          onAction: () =>
-            copy(tagValue.value, {successMessage: t('Copied tag value to clipboard')}),
-          hidden: tagValue.value === '',
-        },
-      ]}
-    />
+          {
+            key: 'view-issues',
+            label: t('Search issues with this tag value'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {...globalSelectionParams, ...query},
+            },
+          },
+          {
+            key: 'copy-value',
+            label: t('Copy tag value to clipboard'),
+            onAction: () =>
+              copy(tagValue.value, {
+                successMessage: t('Copied tag value to clipboard'),
+              }),
+            hidden: tagValue.value === '',
+          },
+        ]}
+      />
+    </RevealOnHover.Action>
   );
 }
-
-const Table = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 0.22fr min-content min-content 45px min-content;
-  column-gap: ${p => p.theme.space.md};
-  row-gap: ${p => p.theme.space.xs};
-  margin: 0 -${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    column-gap: ${p => p.theme.space.xl};
-  }
-`;
-
-const ColumnTitle = styled('div')`
-  white-space: nowrap;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const ShareColumnTitle = styled(ColumnTitle)`
-  text-align: center;
-`;
-
-const ColumnSort = styled(Link)`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  align-items: center;
-  white-space: nowrap;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.content.primary};
-  &:hover {
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
-
-const Body = styled('div')`
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-`;
-
-const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: 0 ${p => p.theme.space.md};
-`;
-
-const Row = styled(Body)`
-  &:nth-child(even) {
-    background: ${p => p.theme.tokens.background.tertiary};
-  }
-  align-items: center;
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
-
-  .invisible {
-    /* Keep the trigger focusable when closing the menu restores focus. */
-    opacity: 0;
-    pointer-events: none;
-  }
-  &:hover,
-  &:active,
-  &:focus-within {
-    .invisible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  }
-  @media (hover: none) {
-    .invisible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  }
-`;
-
-const RightAlignedValue = styled('div')`
-  text-align: right;
-`;
-
-const ValueLink = styled(Link)`
-  color: ${p => p.theme.tokens.content.primary};
-  min-width: 0;
-  overflow: hidden;
-`;
-
-const OverflowTimeSince = styled(TimeSince)`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const ExternalLinkbutton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;

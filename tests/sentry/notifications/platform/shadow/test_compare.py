@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -32,23 +31,12 @@ from tests.sentry.notifications.platform.shadow.test_capture import (
 
 COMPARE_PATH = "sentry.notifications.platform.shadow.compare"
 
-_PATH_STEP = re.compile(r"(?:^|\.)(\w+)|\[(\d+)\]")
-
-
-def resolve(payload: Any, path: str) -> Any:
-    """
-    Returns the value at a diff path like `blocks[0].text.text`.
-    """
-    value = payload
-    for key, index in _PATH_STEP.findall(path):
-        value = value[key] if key else value[int(index)]
-    return value
-
 
 @dataclass
 class ShadowObservation:
     results: list[dict[str, str]] = field(default_factory=list)
     mismatch_logs: list[dict[str, Any]] = field(default_factory=list)
+    legacy_not_captured_logs: list[dict[str, Any]] = field(default_factory=list)
     compared: list[tuple[Any, Any]] = field(default_factory=list)
 
     @property
@@ -93,6 +81,11 @@ def observe_shadow() -> Generator[ShadowObservation]:
                 call.kwargs["extra"]
                 for call in mock_logger.info.call_args_list
                 if call.args[0] == "notifications.platform.shadow.mismatch"
+            ]
+            observation.legacy_not_captured_logs = [
+                call.kwargs["extra"]
+                for call in mock_logger.info.call_args_list
+                if call.args[0] == "notifications.platform.shadow.legacy_not_captured"
             ]
 
 
@@ -215,14 +208,29 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         self.enterContext(override_options(SAMPLE_ALL))
 
     def test_legacy_not_captured(self) -> None:
+        invocation = self.create_invocation()
         build_data = mock.Mock()
 
         with observe_shadow() as observation:
-            with shadow_read(self.create_invocation(), NotificationSource.ISSUE, build_data):
+            with shadow_read(invocation, NotificationSource.ISSUE, build_data):
                 pass
 
         assert observation.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED
         build_data.assert_not_called()
+        assert observation.mismatch is None
+        assert observation.legacy_not_captured_logs == [
+            {
+                "source": "issue",
+                "provider": "slack",
+                "variant": "issue:slack:error:event:no_tags:no_notes:unresolved:new:no_env",
+                "action_id": invocation.action.id,
+                "workflow_id": self.workflow.id,
+                "organization_id": self.organization.id,
+                "group_id": self.issue_group.id,
+                "detector_id": self.detector.id,
+                "integration_id": invocation.action.integration_id,
+            }
+        ]
 
     @mock.patch(
         f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
@@ -239,7 +247,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
                     NotificationProviderKey.MSTEAMS, {"type": "AdaptiveCard"}, chart_url="https://c"
                 )
 
-        assert observation.outcome == ShadowOutcome.MATCH
+        assert observation.outcome == ShadowOutcome.MATCH, observation.mismatch
         build_data.assert_called_once_with(
             LegacyRender(
                 provider=NotificationProviderKey.MSTEAMS,
@@ -347,7 +355,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
                     raise error
 
         assert excinfo.value is error
-        assert observation.outcome == ShadowOutcome.MATCH
+        assert observation.outcome == ShadowOutcome.MATCH, observation.mismatch
 
     @mock.patch(
         f"{COMPARE_PATH}.NotificationService.render_template", side_effect=ValueError("platform")

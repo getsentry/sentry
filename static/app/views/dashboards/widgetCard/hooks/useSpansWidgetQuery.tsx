@@ -205,9 +205,6 @@ export function useSpansSeriesQuery(
   const hasConditionalAggregates = organization.features.includes(
     'explore-conditional-aggregates'
   );
-  const hasMeasuredIngestionDelayUi = organization.features.includes(
-    'measured-ingestion-delay-ui'
-  );
   const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   // Apply dashboard filters
@@ -337,9 +334,7 @@ export function useSpansSeriesQuery(
         pageFilters,
         queue,
         enabled: enabled && !skippedForInvalidConditionalFilter,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData, {
-          includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
-        }),
+        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
       });
     }),
     combine,

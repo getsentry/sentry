@@ -1,16 +1,13 @@
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
 import {Flex} from '@sentry/scraps/layout';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
@@ -170,7 +167,7 @@ function IssueOpenPeriodsList() {
         tableUnits: t('open periods'),
       }}
     >
-      <GridEditable
+      <DataGrid
         isLoading={isPending}
         data={data}
         error={error}
