@@ -765,7 +765,7 @@ class SlackInvestigationEntrypoint(
             except (IntegrationError, IntegrationConfigurationError) as e:
                 lifecycle.record_halt(halt_reason=e)
 
-    def _send_status_message(self, link: str) -> str | None:
+    def _send_status_message(self) -> str | None:
         with SlackEntrypointEventLifecycleMetric(
             interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_STATUS,
             integration_id=self.install.model.id,
@@ -777,7 +777,7 @@ class SlackInvestigationEntrypoint(
                 response = self.install.send_threaded_message(
                     channel_id=self.channel_id,
                     renderable=SlackRenderable(
-                        blocks=[MarkdownBlock(text=f"{text} <{link}|View investigation>")],
+                        blocks=[MarkdownBlock(text=text)],
                         text=text,
                     ),
                     thread_ts=self.thread_ts,
@@ -808,7 +808,7 @@ class SlackInvestigationEntrypoint(
     def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
         link = investigation.get_absolute_url()
         self._update_alert_message(link)
-        self.status_message_ts = self._send_status_message(link)
+        self.status_message_ts = self._send_status_message()
 
     def create_investigation_cache_payload(self) -> SlackInvestigationCachePayload:
         return SlackInvestigationCachePayload(
