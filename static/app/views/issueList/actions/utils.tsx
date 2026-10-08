@@ -17,6 +17,7 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -234,6 +235,29 @@ export function invalidateIssueQueries({
   });
 }
 
+function findFirstErrorMessage(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return value.trim() || undefined;
+  }
+  if (Array.isArray(value)) {
+    return value.map(findFirstErrorMessage).find(defined);
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value).map(findFirstErrorMessage).find(defined);
+  }
+  return undefined;
+}
+
+function getBulkUpdateErrorMessage(error: unknown): string {
+  const fallback = t('Unable to update issues');
+  if (!(error instanceof RequestError) || error.status !== 400) {
+    return fallback;
+  }
+
+  const message = findFirstErrorMessage(error.responseJSON);
+  return message ? t('Unable to update issues: %s', message) : fallback;
+}
+
 export async function performBulkUpdate({
   api,
   data,
@@ -270,8 +294,8 @@ export async function performBulkUpdate({
     });
     clearIndicators();
     onSuccess?.(itemIds);
-  } catch {
+  } catch (error) {
     clearIndicators();
-    addErrorMessage(t('Unable to update issues'));
+    addErrorMessage(getBulkUpdateErrorMessage(error));
   }
 }
