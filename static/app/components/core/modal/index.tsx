@@ -263,7 +263,15 @@ export function GlobalModal() {
                 maxWidth="100%"
                 pointerEvents="auto"
                 padding={{zero: 'xl lg', '3xl': '3xl xl'}}
-                css={[modalDialogCss, options.modalCss]}
+                css={[
+                  css`
+                    margin-top: 64px;
+                    @container (min-width: ${theme.container['3xl']}) {
+                      margin-top: 50px;
+                    }
+                  `,
+                  options.modalCss,
+                ]}
                 initial={{opacity: 0, scale: 0.98}}
                 animate={{opacity: 1, scale: 1}}
                 exit={{
@@ -354,10 +362,3 @@ export function useModal(): UseModalReturn {
 
 /** @internal only used in tests & stories */
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
-
-const modalDialogCss = (theme: Theme) => css`
-  margin-top: 64px;
-  @container (min-width: ${theme.container['3xl']}) {
-    margin-top: 50px;
-  }
-`;
