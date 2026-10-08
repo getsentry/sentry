@@ -1,28 +1,27 @@
-import type {ReactNode} from 'react';
-import {Fragment} from 'react';
+import type {ComponentProps, CSSProperties} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import type {Tooltip} from '@sentry/scraps/tooltip';
 
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {HeaderCell} from 'sentry/components/replays/virtualizedGrid/headerCell';
 import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {useSortNetwork} from 'sentry/views/explore/replays/detail/network/useSortNetwork';
 
 type SortConfig = ReturnType<typeof useSortNetwork>['sortConfig'];
-
-interface Props {
+type Props = {
   handleSort: ReturnType<typeof useSortNetwork>['handleSort'];
+  index: number;
   sortConfig: SortConfig;
-}
+  style: CSSProperties;
+};
 
 const COLUMNS: Array<{
   field: SortConfig['by'];
   label: string;
   width: string;
   align?: ColumnAlign;
-  tooltipTitle?: ReactNode;
+  tooltipTitle?: ComponentProps<typeof Tooltip>['title'];
 }> = [
   {field: 'method', label: t('Method'), width: '80px'},
   {
@@ -44,7 +43,11 @@ const COLUMNS: Array<{
     ),
   },
   {field: 'description', label: t('Path'), width: 'minmax(160px, 1fr)'},
-  {field: 'op', label: t('Type'), width: '72px'},
+  {
+    field: 'op',
+    label: t('Type'),
+    width: '72px',
+  },
   {
     field: 'size',
     label: t('Size'),
@@ -58,34 +61,21 @@ const COLUMNS: Array<{
   {field: 'startTimestamp', label: t('Timestamp'), width: '108px', align: 'right'},
 ];
 
-export const NETWORK_TABLE_COLUMNS = COLUMNS.map(({field, width}) => ({
-  key: field,
-  width,
-}));
+export const COLUMN_COUNT = COLUMNS.length;
 
-export function NetworkTableHeader({handleSort, sortConfig}: Props) {
+export const TABLE_COLUMNS = COLUMNS.map(({field, width}) => ({key: field, width}));
+
+export function NetworkHeaderCell({handleSort, index, sortConfig, style}: Props) {
+  const {align, field, label, tooltipTitle} = COLUMNS[index]!;
   return (
-    <SimpleTable.Head sticky>
-      <SimpleTable.HeaderRow>
-        {COLUMNS.map(({align, field, label, tooltipTitle}) => (
-          <SimpleTable.HeaderCell
-            key={field}
-            align={align}
-            handleSortClick={() => handleSort(field)}
-            sort={sortConfig.by === field ? (sortConfig.asc ? 'asc' : 'desc') : undefined}
-          >
-            {label}
-            {tooltipTitle ? (
-              <Fragment>
-                {' '}
-                <Tooltip title={tooltipTitle}>
-                  <IconInfo size="xs" />
-                </Tooltip>
-              </Fragment>
-            ) : null}
-          </SimpleTable.HeaderCell>
-        ))}
-      </SimpleTable.HeaderRow>
-    </SimpleTable.Head>
+    <HeaderCell
+      align={align}
+      handleSort={handleSort}
+      field={field}
+      label={label}
+      tooltipTitle={tooltipTitle}
+      sortConfig={sortConfig}
+      style={style}
+    />
   );
 }

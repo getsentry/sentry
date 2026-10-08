@@ -1,13 +1,18 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
+import {
+  useJumpButtons,
+  type VisibleRange,
+} from 'sentry/components/replays/useJumpButtons';
+import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
+import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
 import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
 import {useDetailsSplit} from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
 import {
@@ -22,21 +27,28 @@ import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCu
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FilterLoadingIndicator} from 'sentry/views/explore/replays/detail/filterLoadingIndicator';
-import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {NetworkDetails} from 'sentry/views/explore/replays/detail/network/details';
 import {NetworkFilters} from 'sentry/views/explore/replays/detail/network/networkFilters';
 import {
-  NETWORK_TABLE_COLUMNS,
-  NetworkTableHeader,
-} from 'sentry/views/explore/replays/detail/network/networkTableHeader';
-import {NetworkTableRow} from 'sentry/views/explore/replays/detail/network/networkTableRow';
+  COLUMN_COUNT,
+  NetworkHeaderCell,
+  TABLE_COLUMNS,
+} from 'sentry/views/explore/replays/detail/network/networkHeaderCell';
+import {NetworkTableCell} from 'sentry/views/explore/replays/detail/network/networkTableCell';
 import {useNetworkFilters} from 'sentry/views/explore/replays/detail/network/useNetworkFilters';
 import {useSortNetwork} from 'sentry/views/explore/replays/detail/network/useSortNetwork';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
-import {useVirtualizedTable} from 'sentry/views/explore/replays/detail/useVirtualizedTable';
-import {getTimelineRowClassName} from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
+import {useVirtualizedGrid} from 'sentry/views/explore/replays/detail/useVirtualizedGrid';
+import {VirtualTable} from 'sentry/views/explore/replays/detail/virtualizedTableLayout';
+import {
+  getTimelineRowClassName,
+  getVisibleRangeFromVirtualRows,
+} from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
 
+const HEADER_HEIGHT = SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed;
+const BODY_HEIGHT = 25;
 const RESIZEABLE_HANDLE_HEIGHT = 90;
+const OVERSCAN = 20;
 
 export function NetworkList() {
   const organization = useOrganization();
@@ -57,8 +69,12 @@ export function NetworkList() {
   const {handleSort, items, sortConfig} = useSortNetwork({items: filteredItems});
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const {paddingBottom, paddingTop, tableRef, virtualRows, virtualizer, visibleRange} =
-    useVirtualizedTable({rowCount: items.length});
+  const {paddingBottom, paddingTop, scrollContainerRef, virtualRows, virtualizer} =
+    useVirtualizedGrid({
+      overscan: OVERSCAN,
+      rowCount: items.length,
+      rowHeight: BODY_HEIGHT,
+    });
 
   const handleScrollToTableRow = useCallback(
     (row: number) => {
@@ -68,6 +84,15 @@ export function NetworkList() {
     },
     [virtualizer]
   );
+
+  const visibleRange = useMemo<VisibleRange>(() => {
+    return getVisibleRangeFromVirtualRows({
+      indexOffset: 1,
+      scrollOffset: virtualizer.scrollOffset ?? 0,
+      viewportHeight: virtualizer.scrollRect?.height ?? 0,
+      virtualRows,
+    });
+  }, [virtualRows, virtualizer.scrollOffset, virtualizer.scrollRect?.height]);
 
   const {
     handleClick: onClickToJump,
@@ -124,29 +149,36 @@ export function NetworkList() {
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
-      <FluidHeight
-        ref={containerRef}
-        border="primary"
-        radius="md"
-        data-test-id="replay-details-network-tab"
-      >
+      <GridTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{
             gridTemplateRows: splitSize === undefined ? '1fr' : `1fr auto ${splitSize}px`,
           }}
         >
           {networkFrames ? (
-            <Container position="relative" minHeight="0" minWidth="0">
+            <OverflowHidden>
               <FlushTable
                 aria-label={t('Network requests')}
-                columns={NETWORK_TABLE_COLUMNS}
+                columns={TABLE_COLUMNS}
                 customSections
                 density="compressed"
                 maxHeight="100%"
-                ref={tableRef}
+                ref={scrollContainerRef}
                 scrollable
               >
-                <NetworkTableHeader handleSort={handleSort} sortConfig={sortConfig} />
+                <SimpleTable.Head sticky>
+                  <SimpleTable.HeaderRow>
+                    {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
+                      <NetworkHeaderCell
+                        key={columnIndex}
+                        handleSort={handleSort}
+                        index={columnIndex}
+                        sortConfig={sortConfig}
+                        style={{height: HEADER_HEIGHT}}
+                      />
+                    ))}
+                  </SimpleTable.HeaderRow>
+                </SimpleTable.Head>
                 {items.length === 0 ? (
                   <SimpleTable.Body>
                     <SimpleTable.Empty>
@@ -178,31 +210,49 @@ export function NetworkList() {
                         return null;
                       }
 
+                      const rowIndex = virtualRow.index + 1;
                       const isByTimestamp = sortConfig.by === 'startTimestamp';
+                      const hasOccurred = currentTime >= network.offsetMs;
+                      const isBeforeHover =
+                        currentHoverTime === undefined ||
+                        currentHoverTime >= network.offsetMs;
+                      const isAsc = isByTimestamp ? sortConfig.asc : false;
+
+                      const rowClassName = getTimelineRowClassName({
+                        hasHoverTime: currentHoverTime !== undefined,
+                        hasOccurred,
+                        isAsc,
+                        isBeforeHover,
+                        isByTimestamp,
+                        isLastDataRow: virtualRow.index === items.length - 1,
+                      });
 
                       return (
-                        <NetworkTableRow
+                        <VirtualTable.BodyRow
+                          useTransparentBorders
                           key={virtualRow.key}
-                          ref={virtualizer.measureElement}
-                          className={getTimelineRowClassName({
-                            hasHoverTime: currentHoverTime !== undefined,
-                            hasOccurred: currentTime >= network.offsetMs,
-                            isAsc: isByTimestamp ? sortConfig.asc : false,
-                            isBeforeHover:
-                              currentHoverTime === undefined ||
-                              currentHoverTime >= network.offsetMs,
-                            isByTimestamp,
-                            isLastDataRow: virtualRow.index === items.length - 1,
-                          })}
-                          dataIndex={virtualRow.index}
-                          frame={network}
-                          isSelected={selectedIndex === virtualRow.index}
-                          onMouseEnter={onMouseEnter}
-                          onMouseLeave={onMouseLeave}
-                          onClickRow={onClickCell}
-                          onClickTimestamp={onClickTimestamp}
-                          startTimestampMs={startTimestampMs}
-                        />
+                          className={rowClassName}
+                          data-index={virtualRow.index}
+                          style={{
+                            height: BODY_HEIGHT,
+                          }}
+                        >
+                          {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
+                            <NetworkTableCell
+                              key={`${virtualRow.key}-${columnIndex}`}
+                              columnIndex={columnIndex}
+                              frame={network}
+                              isSelected={selectedIndex === virtualRow.index}
+                              onMouseEnter={onMouseEnter}
+                              onMouseLeave={onMouseLeave}
+                              onClickCell={onClickCell}
+                              onClickTimestamp={onClickTimestamp}
+                              rowIndex={rowIndex}
+                              startTimestampMs={startTimestampMs}
+                              style={{height: BODY_HEIGHT}}
+                            />
+                          ))}
+                        </VirtualTable.BodyRow>
                       );
                     })}
                   </SimpleTable.Body>
@@ -212,10 +262,10 @@ export function NetworkList() {
                 <JumpButtons
                   jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
                   onClick={onClickToJump}
-                  tableHeaderHeight={SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed}
+                  tableHeaderHeight={HEADER_HEIGHT}
                 />
               ) : null}
-            </Container>
+            </OverflowHidden>
           ) : (
             <Placeholder height="100%" />
           )}
@@ -229,7 +279,7 @@ export function NetworkList() {
             startTimestampMs={startTimestampMs}
           />
         </SplitPanel>
-      </FluidHeight>
+      </GridTable>
     </Stack>
   );
 }
