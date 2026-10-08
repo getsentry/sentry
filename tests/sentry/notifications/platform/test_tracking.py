@@ -8,6 +8,7 @@ from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
     NotificationTrackingSentEvent,
 )
+from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.tracking import (
     NotificationEngagementMechanism,
     NotificationLink,
@@ -269,6 +270,33 @@ def test_classify_link_logs_unclassified_sentry_pages(url: str) -> None:
     mock_logger.error.assert_called_once_with(
         "notifications.tracking.unclassified_link", extra={"path": "/dashboards/1/"}
     )
+
+
+class RegisteredTemplateLinksTest(TestCase):
+    def test_example_links_are_classified(self) -> None:
+        options = {
+            "notifications.tracking.sources": list(template_registry.registrations),
+            "system.url-prefix": "https://sentry.io",
+        }
+        with override_options(options):
+            for source, template_cls in template_registry.registrations.items():
+                if template_cls.category == NotificationCategory.DEBUG:
+                    continue
+                template = template_cls()
+                decorator = NotificationLinkDecorator(
+                    data=template.example_data, provider=NotificationProviderKey.EMAIL
+                )
+                with mock.patch("sentry.notifications.platform.tracking.logger") as mock_logger:
+                    decorator.decorate_rendered_template(template.render_example())
+
+                unclassified = [
+                    call.kwargs["extra"]["path"] for call in mock_logger.error.call_args_list
+                ]
+                assert not unclassified, (
+                    f"Template {template_cls.__name__} ({source}) links to {unclassified}, which "
+                    "classify_link doesn't recognize.\n"
+                    "Add a NotificationLink for the page and match it in classify_link to fix this test."
+                )
 
 
 class DecorateRenderedTemplateTest(TestCase):
