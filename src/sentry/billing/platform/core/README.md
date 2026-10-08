@@ -15,6 +15,10 @@ Provides automatic observability for service methods:
 
 All metrics include `service` and `method` tags.
 
+Extra tags can be added by pointing `SENTRY_BILLING_SERVICE_METRIC_TAGS_PROVIDER` at a
+callable that takes the request and returns a dict of tags. Errors raised by the provider
+are logged and ignored.
+
 **Validation:**
 
 - Input must be a protobuf Message

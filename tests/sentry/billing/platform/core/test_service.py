@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from google.protobuf.wrappers_pb2 import Int32Value, StringValue
 
 from sentry.billing.platform.core import BillingService, service_method
@@ -151,6 +152,92 @@ class TestBillingService:
 
         assert service.get_user_name(Int32Value(value=123)).value == "User 123"
         assert service.get_user_count(StringValue(value="org_1")).value == 42
+
+
+@mock.patch("sentry.billing.platform.core.service.metrics")
+class TestExtraMetricTags:
+    """Tests for the SENTRY_BILLING_SERVICE_METRIC_TAGS_PROVIDER hook."""
+
+    @override_settings(SENTRY_BILLING_SERVICE_METRIC_TAGS_PROVIDER="path.to.provider")
+    def test_provider_tags_added_to_all_metrics(self, mock_metrics):
+        def provider(request):
+            assert request == StringValue(value="test")
+            return {"billing_platform_migrated": "true"}
+
+        class TestService(BillingService):
+            @service_method
+            def ok_method(self, request: StringValue) -> StringValue:
+                return StringValue(value="ok")
+
+            @service_method
+            def failing_method(self, request: StringValue) -> StringValue:
+                raise ValueError("boom")
+
+        with mock.patch(
+            "sentry.billing.platform.core.service._load_metric_tags_provider",
+            return_value=provider,
+        ):
+            TestService().ok_method(StringValue(value="test"))
+            with pytest.raises(ValueError):
+                TestService().failing_method(StringValue(value="test"))
+
+        expected = {"billing_platform_migrated": "true", "service": "TestService"}
+        mock_metrics.incr.assert_any_call(
+            "billing.service.method.called",
+            tags={**expected, "method": "ok_method"},
+            sample_rate=1.0,
+        )
+        mock_metrics.incr.assert_any_call(
+            "billing.service.method.success",
+            tags={**expected, "method": "ok_method"},
+            sample_rate=1.0,
+        )
+        mock_metrics.incr.assert_any_call(
+            "billing.service.method.error",
+            tags={**expected, "method": "failing_method", "error_type": "ValueError"},
+            sample_rate=1.0,
+        )
+
+    @override_settings(SENTRY_BILLING_SERVICE_METRIC_TAGS_PROVIDER="path.to.provider")
+    def test_provider_cannot_override_service_and_method(self, mock_metrics):
+        class TestService(BillingService):
+            @service_method
+            def ok_method(self, request: StringValue) -> StringValue:
+                return StringValue(value="ok")
+
+        with mock.patch(
+            "sentry.billing.platform.core.service._load_metric_tags_provider",
+            return_value=lambda request: {"service": "Other", "method": "other"},
+        ):
+            TestService().ok_method(StringValue(value="test"))
+
+        mock_metrics.incr.assert_any_call(
+            "billing.service.method.called",
+            tags={"service": "TestService", "method": "ok_method"},
+            sample_rate=1.0,
+        )
+
+    @override_settings(SENTRY_BILLING_SERVICE_METRIC_TAGS_PROVIDER="path.to.provider")
+    def test_failing_provider_does_not_break_service_call(self, mock_metrics):
+        def provider(request):
+            raise RuntimeError("provider down")
+
+        class TestService(BillingService):
+            @service_method
+            def ok_method(self, request: StringValue) -> StringValue:
+                return StringValue(value="ok")
+
+        with mock.patch(
+            "sentry.billing.platform.core.service._load_metric_tags_provider",
+            return_value=provider,
+        ):
+            assert TestService().ok_method(StringValue(value="test")).value == "ok"
+
+        mock_metrics.incr.assert_any_call(
+            "billing.service.method.called",
+            tags={"service": "TestService", "method": "ok_method"},
+            sample_rate=1.0,
+        )
 
 
 class TestShouldLogTrace:

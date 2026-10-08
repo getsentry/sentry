@@ -1715,6 +1715,10 @@ SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
 SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
 
+# Import path of a callable that takes a billing service request (a protobuf
+# message) and returns extra tags for the `billing.service.method.*` metrics.
+SENTRY_BILLING_SERVICE_METRIC_TAGS_PROVIDER: str | None = None
+
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS: dict[str, str] = {}
