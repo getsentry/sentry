@@ -11,12 +11,14 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import * as chartVisualization from 'sentry/views/explore/components/chart/chartVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
@@ -136,7 +138,13 @@ describe('ExploreCharts', () => {
       });
     }
 
-    function ControlledExploreCharts({yAxes}: {yAxes: string[]}) {
+    function ControlledExploreCharts({
+      yAxes,
+      chartTypes,
+    }: {
+      yAxes: string[];
+      chartTypes?: ChartType[];
+    }) {
       const timeseriesResult = useMemo(
         () =>
           timeseriesResultFixture({
@@ -145,7 +153,7 @@ describe('ExploreCharts', () => {
         [yAxes]
       );
       const [serialized, setSerialized] = useState<BaseVisualize[]>(() =>
-        yAxes.map(yAxis => ({yAxes: [yAxis]}))
+        yAxes.map((yAxis, i) => ({yAxes: [yAxis], chartType: chartTypes?.[i]}))
       );
       const visualizes = useMemo(
         () => serialized.flatMap(value => Visualize.fromJSON(value)),
@@ -209,6 +217,33 @@ describe('ExploreCharts', () => {
 
       expect(await screen.findAllByLabelText('Combine charts')).toHaveLength(3);
       expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(3);
+    });
+
+    it('draws every combined visualization with the selected chart type', async () => {
+      const useChartInfosPlottables = jest.spyOn(
+        chartVisualization,
+        'useChartInfosPlottables'
+      );
+      render(
+        <ControlledExploreCharts
+          yAxes={['p50(span.duration)', 'sum(span.duration)']}
+          chartTypes={[ChartType.LINE, ChartType.BAR]}
+        />,
+        {
+          organization: OrganizationFixture(),
+          initialRouterConfig: {
+            location: {pathname: '/', query: {combineCharts: 'true'}},
+          },
+        }
+      );
+
+      expect(await screen.findByLabelText('Split charts')).toBeInTheDocument();
+      const chartInfos = useChartInfosPlottables.mock.lastCall![0];
+      expect(chartInfos.map(info => info.chartType)).toEqual([
+        ChartType.LINE,
+        ChartType.LINE,
+      ]);
+      useChartInfosPlottables.mockRestore();
     });
 
     it('does not combine visualizations with different units', async () => {

@@ -349,10 +349,13 @@ function Chart({
 
   const chartInfos = useMemo(
     () =>
-      visualizes.map(v =>
-        getChartInfo({visualize: v, timeseriesResult, topEvents, samplingMode})
-      ),
-    [timeseriesResult, visualizes, samplingMode, topEvents]
+      visualizes.map(v => ({
+        ...getChartInfo({visualize: v, timeseriesResult, topEvents, samplingMode}),
+        // A combined chart has a single chart type control, so every
+        // visualize is drawn with the type it shows.
+        chartType,
+      })),
+    [timeseriesResult, visualizes, samplingMode, topEvents, chartType]
   );
 
   const chartInfo: ChartInfo = useMemo(
