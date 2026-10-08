@@ -6,6 +6,7 @@ from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.issue import IssueNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -20,7 +21,11 @@ from sentry.workflow_engine.tasks.utils import fetch_event
 class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueSlackRenderer does not support {data.__class__.__name__}")
@@ -56,6 +61,7 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
             notes=data.notes,
             send_nudge=send_nudge,
             has_mentions_read_scope=SlackScope.APP_MENTIONS_READ in scopes,
+            link_decorator=link_decorator,
         ).build(notification_uuid=data.notification_uuid)
 
         blocks = blocks_dict.get("blocks", [])
