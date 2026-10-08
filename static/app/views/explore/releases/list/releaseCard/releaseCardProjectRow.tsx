@@ -1,12 +1,12 @@
 import LazyLoad from 'react-lazyload';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
@@ -15,8 +15,8 @@ import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -33,18 +33,10 @@ import {
 } from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
-import {
-  AdoptionColumn,
-  AdoptionStageColumn,
-  CrashFreeRateColumn,
-  DisplaySmallCol,
-  getReleaseProjectColumns,
-  NewIssuesColumn,
-  ReleaseProjectColumn,
-} from '.';
-
 const CRASH_FREE_DANGER_THRESHOLD = 98;
 const CRASH_FREE_WARNING_THRESHOLD = 99.5;
+
+const ADOPTION_CHART_TOOLTIP = {appendToBody: true};
 
 function getCrashFreeIcon(crashFreePercent: number) {
   if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
@@ -108,186 +100,156 @@ export function ReleaseCardProjectRow({
       : null;
 
   return (
-    <PanelItem css={cssTheme => ({padding: `${cssTheme.space.md} ${cssTheme.space.xl}`})}>
-      <Grid
-        columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
-        gap="0 md"
-        align="center"
-        width="100%"
-      >
-        <ReleaseProjectColumn>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
+        <Container minWidth="0">
           <ProjectBadge project={project} avatarSize={16} />
-        </ReleaseProjectColumn>
+        </Container>
+      </SimpleTable.RowCell>
 
-        {showReleaseAdoptionStages && (
-          <AdoptionStageColumn>
-            {adoptionStageLabel ? (
-              <Tooltip title={adoptionStageLabel.tooltipTitle}>
-                <Link
-                  to={{
-                    pathname: makeReleasesPathname({
-                      organization,
-                      path: '/',
-                    }),
-                    query: {
-                      ...location.query,
-                      query: `release.stage:${adoptionStage}`,
-                    },
-                  }}
-                >
-                  <Tag variant={adoptionStageLabel.variant}>
-                    {adoptionStageLabel.name}
-                  </Tag>
-                </Link>
-              </Tooltip>
-            ) : (
-              <NotAvailable />
-            )}
-          </AdoptionStageColumn>
-        )}
-
-        <AdoptionColumn>
-          {showPlaceholders ? (
-            <StyledPlaceholder width="100px" />
-          ) : (
-            <AdoptionWrapper>
-              <span>{adoption ? Math.round(adoption) : '0'}%</span>
-              <LazyLoad debounce={50} height={20}>
-                <MiniBarChart
-                  series={timeSeries}
-                  height={20}
-                  isGroupedByDate
-                  showTimeInTooltip
-                  hideDelay={50}
-                  tooltipFormatter={(value: number) => {
-                    const suffix =
-                      activeDisplay === ReleasesDisplayOption.USERS
-                        ? tn('user', 'users', value)
-                        : tn('session', 'sessions', value);
-
-                    return `${value.toLocaleString()} ${suffix}`;
-                  }}
-                  colors={[
-                    theme.tokens.dataviz.semantic.accent,
-                    theme.tokens.dataviz.semantic.other,
-                  ]}
-                />
-              </LazyLoad>
-            </AdoptionWrapper>
-          )}
-        </AdoptionColumn>
-
-        <CrashFreeRateColumn>
-          {showPlaceholders ? (
-            <StyledPlaceholder width="60px" />
-          ) : defined(crashFreeRate) ? (
-            <CrashFreeWrapper>
-              {getCrashFreeIcon(crashFreeRate)}
-              {displayCrashFreePercent(crashFreeRate)}
-            </CrashFreeWrapper>
-          ) : (
-            <NotAvailable />
-          )}
-        </CrashFreeRateColumn>
-
-        <DisplaySmallCol>
-          {showPlaceholders ? (
-            <StyledPlaceholder width="30px" />
-          ) : defined(crashCount) ? (
-            <Tooltip title={t('Open in Issues')}>
+      {showReleaseAdoptionStages && (
+        <SimpleTable.RowCell>
+          {adoptionStageLabel ? (
+            <Tooltip title={adoptionStageLabel.tooltipTitle}>
               <Link
                 to={{
-                  ...getReleaseUnhandledIssuesUrl(
-                    organization.slug,
-                    project.id,
-                    releaseVersion
-                  ),
+                  pathname: makeReleasesPathname({
+                    organization,
+                    path: '/',
+                  }),
                   query: {
-                    ...extractSelectionParameters(location.query),
-                    ...getReleaseUnhandledIssuesUrl(
-                      organization.slug,
-                      project.id,
-                      releaseVersion
-                    ).query,
+                    ...location.query,
+                    query: `release.stage:${adoptionStage}`,
                   },
                 }}
               >
-                <Count value={crashCount} />
+                <Tag variant={adoptionStageLabel.variant}>{adoptionStageLabel.name}</Tag>
               </Link>
             </Tooltip>
           ) : (
             <NotAvailable />
           )}
-        </DisplaySmallCol>
+        </SimpleTable.RowCell>
+      )}
 
-        <NewIssuesColumn>
+      <SimpleTable.RowCell>
+        {showPlaceholders ? (
+          <Placeholder width="100px" height="15px" />
+        ) : (
+          <Grid
+            align="center"
+            columns="30px minmax(0, 1fr)"
+            flex="1"
+            gap="md"
+            minWidth="0"
+          >
+            <Text tabular>{adoption ? Math.round(adoption) : '0'}%</Text>
+            <LazyLoad debounce={50} height={20}>
+              <MiniBarChart
+                series={timeSeries}
+                height={20}
+                isGroupedByDate
+                showTimeInTooltip
+                hideDelay={50}
+                tooltip={ADOPTION_CHART_TOOLTIP}
+                tooltipFormatter={(value: number) => {
+                  const suffix =
+                    activeDisplay === ReleasesDisplayOption.USERS
+                      ? tn('user', 'users', value)
+                      : tn('session', 'sessions', value);
+
+                  return `${value.toLocaleString()} ${suffix}`;
+                }}
+                colors={[
+                  theme.tokens.dataviz.semantic.accent,
+                  theme.tokens.dataviz.semantic.other,
+                ]}
+              />
+            </LazyLoad>
+          </Grid>
+        )}
+      </SimpleTable.RowCell>
+
+      <SimpleTable.RowCell justify="end">
+        {showPlaceholders ? (
+          <Placeholder width="60px" height="15px" />
+        ) : defined(crashFreeRate) ? (
+          <Flex align="center" gap="md">
+            {getCrashFreeIcon(crashFreeRate)}
+            <Text tabular>{displayCrashFreePercent(crashFreeRate)}</Text>
+          </Flex>
+        ) : (
+          <NotAvailable />
+        )}
+      </SimpleTable.RowCell>
+
+      <SimpleTable.RowCell justify="end">
+        {showPlaceholders ? (
+          <Placeholder width="30px" height="15px" />
+        ) : defined(crashCount) ? (
           <Tooltip title={t('Open in Issues')}>
             <Link
               to={{
-                ...getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion),
+                ...getReleaseUnhandledIssuesUrl(
+                  organization.slug,
+                  project.id,
+                  releaseVersion
+                ),
                 query: {
                   ...extractSelectionParameters(location.query),
-                  ...getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion)
-                    .query,
+                  ...getReleaseUnhandledIssuesUrl(
+                    organization.slug,
+                    project.id,
+                    releaseVersion
+                  ).query,
                 },
               }}
             >
-              <Count value={newGroups || 0} />
+              <Count value={crashCount} />
             </Link>
           </Tooltip>
-        </NewIssuesColumn>
+        ) : (
+          <NotAvailable />
+        )}
+      </SimpleTable.RowCell>
 
-        <ViewColumn>
-          <GuideAnchor disabled={!isTopRelease || index !== 0} target="view_release">
-            <LinkButton
-              size="xs"
-              to={{
-                pathname: makeReleasesPathname({
-                  organization,
-                  path: `/${encodeURIComponent(releaseVersion)}/`,
-                }),
-                query: {
-                  environment: location.query.environment,
-                  project: project.id,
-                  yAxis: undefined,
-                },
-              }}
-            >
-              {t('View')}
-            </LinkButton>
-          </GuideAnchor>
-        </ViewColumn>
-      </Grid>
-    </PanelItem>
+      <SimpleTable.RowCell justify="end">
+        <Tooltip title={t('Open in Issues')}>
+          <Link
+            to={{
+              ...getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion),
+              query: {
+                ...extractSelectionParameters(location.query),
+                ...getReleaseNewIssuesUrl(organization.slug, project.id, releaseVersion)
+                  .query,
+              },
+            }}
+          >
+            <Count value={newGroups || 0} />
+          </Link>
+        </Tooltip>
+      </SimpleTable.RowCell>
+
+      <SimpleTable.RowCell justify="end">
+        <GuideAnchor disabled={!isTopRelease || index !== 0} target="view_release">
+          <LinkButton
+            size="xs"
+            to={{
+              pathname: makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(releaseVersion)}/`,
+              }),
+              query: {
+                environment: location.query.environment,
+                project: project.id,
+                yAxis: undefined,
+              },
+            }}
+          >
+            {t('View')}
+          </LinkButton>
+        </GuideAnchor>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
-
-const StyledPlaceholder = styled(Placeholder)`
-  height: 15px;
-  display: inline-block;
-  position: relative;
-  top: ${p => p.theme.space['2xs']};
-`;
-
-const AdoptionWrapper = styled('span')`
-  flex: 1;
-  display: inline-grid;
-  grid-template-columns: 30px 1fr;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-
-  /* Chart tooltips need overflow */
-  overflow: visible;
-`;
-
-const CrashFreeWrapper = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column;
-  grid-column-gap: ${p => p.theme.space.md};
-  align-items: center;
-  vertical-align: middle;
-`;
-
-const ViewColumn = styled('div')`
-  text-align: right;
-`;
