@@ -2,6 +2,7 @@ from dataclasses import replace
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 
 from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
@@ -358,6 +359,36 @@ class DecorateRenderedTemplateTest(TestCase):
             text="ACME-1",
             url="https://sentry.io/organizations/acme/issues/1/?referrer=activity_notification",
         )
+
+    @override_settings(SENTRY_ORGANIZATION_BASE_HOSTNAME="{slug}.sentry.io")
+    @override_options({"system.url-prefix": "https://us.sentry.io"})
+    def test_decorates_organization_links_on_region(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Root cause",
+            body=[],
+            actions=[
+                NotificationRenderedAction(label="Issue", link="https://acme.sentry.io/issues/1/"),
+                NotificationRenderedAction(
+                    label="Settings", link="https://us.sentry.io/settings/account/"
+                ),
+                NotificationRenderedAction(label="Docs", link="https://docs.sentry.io/"),
+                NotificationRenderedAction(label="Home", link="https://www.sentry.io/"),
+            ],
+        )
+
+        decorated, links = self.decorate_rendered_template(rendered_template)
+
+        assert decorated.actions == [
+            NotificationRenderedAction(
+                label="Issue", link=f"https://acme.sentry.io/issues/1/?{self.tracking}"
+            ),
+            NotificationRenderedAction(
+                label="Settings", link=f"https://us.sentry.io/settings/account/?{self.tracking}"
+            ),
+            NotificationRenderedAction(label="Docs", link="https://docs.sentry.io/"),
+            NotificationRenderedAction(label="Home", link="https://www.sentry.io/"),
+        ]
+        assert links == {NotificationLink.ISSUE, NotificationLink.SETTINGS}
 
     def test_idempotent(self) -> None:
         rendered_template = NotificationRenderedTemplate(

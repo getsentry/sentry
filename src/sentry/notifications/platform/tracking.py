@@ -7,6 +7,8 @@ from enum import StrEnum
 from typing import NotRequired, TypedDict, cast
 from urllib.parse import SplitResult, parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
+from django.conf import settings
+
 from sentry import analytics, options
 from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
@@ -200,14 +202,18 @@ def classify_link(url: str) -> NotificationLink:
 
 def _is_sentry_url(parsed: SplitResult) -> bool:
     host = parsed.hostname
-    sentry_host = urlsplit(options.get("system.url-prefix")).hostname
-    return (
-        parsed.scheme in ("http", "https")
-        and host is not None
-        and sentry_host is not None
-        and (host == sentry_host or host.endswith(f".{sentry_host}"))
-        and host not in (f"docs.{sentry_host}", f"www.{sentry_host}")
-    )
+    if parsed.scheme not in ("http", "https") or host is None:
+        return False
+    sentry_hosts = set()
+    if url_prefix_host := urlsplit(options.get("system.url-prefix")).hostname:
+        sentry_hosts.add(url_prefix_host)
+    # On a region, such as `us.sentry.io`, organization links are on `<slug>.sentry.io`, which
+    # isn't under the region's own host.
+    if org_base_hostname := settings.SENTRY_ORGANIZATION_BASE_HOSTNAME:
+        sentry_hosts.add(org_base_hostname.removeprefix("{slug}."))
+    if host in {f"{subdomain}.{h}" for h in sentry_hosts for subdomain in ("docs", "www")}:
+        return False
+    return any(host == h or host.endswith(f".{h}") for h in sentry_hosts)
 
 
 def record_sent(context: NotificationTrackingContext, *, links: Collection[str] = ()) -> None:
