@@ -610,3 +610,19 @@ def test_single_organization_config_app_key_retains_remap_precedence(
 
     assert getattr(settings, setting_name) == expected_app
     assert getattr(settings, login_setting) == "login-value"
+
+
+def test_single_organization_bootstrap_reuses_paired_direct_app_credentials(settings) -> None:
+    settings.SENTRY_SINGLE_ORGANIZATION = True
+    settings.SENTRY_GITHUB_APP_CLIENT_ID = "app-client-id"
+    settings.SENTRY_GITHUB_APP_CLIENT_SECRET = "app-client-secret"
+    settings.SENTRY_OPTIONS = {
+        "github-login.client-id": "login-client-id",
+        "github-login.client-secret": "login-client-secret",
+    }
+
+    bootstrap_options(settings)
+
+    assert (settings.GITHUB_APP_ID, settings.GITHUB_API_SECRET) == (
+        "app-client-id", "app-client-secret"
+    )

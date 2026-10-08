@@ -14,7 +14,10 @@ precedence and backend aliases. Setup wizard email credentials remain options.
 Single organization mode reuses the GitHub integration app's client ID and
 secret for login when the app option keys are absent and the corresponding
 app settings are nonempty. Explicit app option keys retain their existing
-login remap precedence.
+login remap precedence. Plain bootstrap also copies the paired direct app
+credentials into the login settings, even without the application initializer's
+legacy app remap. This changes unused GitHub login settings in API gateway
+bootstrap; API gateway has no GitHub login consumers.
 
 The symbolicator, symbol server, and chart rendering enablement flags are
 also deployment settings; they no longer change while the process is running.
