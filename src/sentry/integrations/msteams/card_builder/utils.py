@@ -59,13 +59,15 @@ class InstallationMessages:
     PERSONAL_INSTALLATION_TITLE = "Personal Installation of Sentry"
     PERSONAL_INSTALLATION_INSTRUCTION = (
         " Please click **Complete Setup** below to link your Microsoft Teams identity"
-        " with Sentry and start receiving notifications in this space."
+        " with Sentry and receive personal notifications in this space."
         " Don't have a Sentry account? [Sign Up](https://sentry.io/signup/)."
     )
     PERSONAL_INSTALLATION_DESCRIPTION = (
         "It looks like you have installed Sentry as a personal app."
-        " Sentry for Microsoft Teams can also be added to a team. To do that, add"
-        ' Sentry again, select "Add to a team" from the "Add" button\'s list arrow.'
+        " Personal installations can send you notifications directly, but they cannot"
+        " be used as a destination for alert rules."
+        " To receive alert notifications, add Sentry to a team, select"
+        ' "Add to a team" from the "Add" button\'s list arrow, and choose a channel.'
     )
 
     TEAM_INSTALLATION_CONFIRMATION_TITLE = "Installation for {organization_name} is successful"
