@@ -36,6 +36,7 @@ jobs:
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      migration_tests: ${{ steps.changes.outputs.migration_tests }}
       # When true, skip selective testing and run the full backend suite
       skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
@@ -336,7 +337,15 @@ jobs:
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
   backend-migration-tests:
-    if: needs.files-changed.outputs.backend == 'true'
+    # Always run on master; on PRs only when migrations or their harness changed
+    # (or selective testing is overridden).
+    if: >-
+      needs.files-changed.outputs.backend == 'true' &&
+      (
+        github.event_name != 'pull_request' ||
+        needs.files-changed.outputs.migration_tests == 'true' ||
+        needs.files-changed.outputs.skip_selective_testing == 'true'
+      )
     needs: files-changed
     name: backend migration tests
     runs-on: ubuntu-24.04
@@ -357,7 +366,22 @@ jobs:
 
       - name: run tests
         run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=150s" make test-python-ci
+          # Only collect migration test dirs to avoid collecting the whole suite
+          # just to deselect everything but `-m migrations`.
+          mapfile -t migration_test_dirs < <(find tests -type d -name migrations -not -path 'tests/acceptance/*' | sort)
+          echo "Running migration tests in: ${migration_test_dirs[*]}"
+          python3 -b -m pytest \
+            "${migration_test_dirs[@]}" \
+            -m migrations \
+            --migrations \
+            --reruns 0 \
+            --fail-slow=150s \
+            --reuse-db \
+            --json-report \
+            --json-report-file=".artifacts/pytest.json" \
+            --json-report-omit=log \
+            --junit-xml=.artifacts/pytest.junit.xml \
+            -o junit_suite_name=pytest
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
