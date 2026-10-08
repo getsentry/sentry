@@ -433,15 +433,11 @@ describe('ConversationDetailPage summary stats', () => {
   });
 
   it('uses the server tool ordering and errors without loaded tool spans', async () => {
-    mockApis(
-      null,
-      CONVERSATION_BODY,
-      {
-        errors: 1,
-        errorToolNames: ['zeta_tool'],
-        toolNames: ['zeta_tool', 'alpha_tool'],
-      }
-    );
+    mockApis(null, CONVERSATION_BODY, {
+      errors: 1,
+      errorToolNames: ['zeta_tool'],
+      toolNames: ['zeta_tool', 'alpha_tool'],
+    });
     renderPage();
 
     expect(await screen.findByText('Tools:')).toBeInTheDocument();

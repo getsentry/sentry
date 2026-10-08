@@ -200,11 +200,7 @@ export function ConversationSummary({
                   {t('Tools:')}
                 </Text>
                 {toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
-                  <ToolTag
-                    key={name}
-                    name={name}
-                    hasError={erroredToolNames.has(name)}
-                  />
+                  <ToolTag key={name} name={name} hasError={erroredToolNames.has(name)} />
                 ))}
                 {toolNames.length > VISIBLE_TOOL_COUNT && (
                   <InfoText
