@@ -42,10 +42,6 @@ export interface EntityHeaderMetadataItemProps {
     | React.ReactElement<SVGIconProps>
     | React.ReactElement<React.ComponentProps<typeof PlatformIcon>>;
   /**
-   * Width of the skeleton shown while loading.
-   */
-  loadingWidth?: string;
-  /**
    * How much of the property to draw.
    *
    * `compact` renders the values alone and leaves naming them to the graphic
@@ -75,10 +71,10 @@ export interface EntityHeaderMetadataItemProps {
  * The row reserves space for every declared slot, so the number of items
  * cannot change as data lands and push the rows below it down.
  */
-export function EntityHeaderMetadataItemSkeleton({width = '120px'}: {width?: string}) {
+export function EntityHeaderMetadataItemSkeleton() {
   return (
     <Flex role="listitem" align="center" minWidth={0} minHeight={METADATA_TEXT_HEIGHT}>
-      <Placeholder width={width} height={METADATA_TEXT_HEIGHT} />
+      <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
     </Flex>
   );
 }
@@ -87,7 +83,6 @@ export function EntityHeaderMetadataItem({
   isLoading,
   label,
   leadingGraphic,
-  loadingWidth = '120px',
   mode = 'compact',
   tooltip,
   values,
@@ -131,7 +126,7 @@ export function EntityHeaderMetadataItem({
         </Flex>
       )}
       {isLoading ? (
-        <Placeholder width={loadingWidth} height={METADATA_TEXT_HEIGHT} />
+        <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
       ) : (
         <Fragment>
           {/*

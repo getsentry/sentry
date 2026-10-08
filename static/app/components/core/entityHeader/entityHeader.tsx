@@ -65,7 +65,6 @@ export interface EntityHeaderProps {
    */
   subtitle?: {
     content: React.ReactNode;
-    loadingWidth?: string;
   };
 }
 
@@ -176,10 +175,7 @@ export function EntityHeader({
             {subtitle && (
               <Flex align="center" minWidth={0} minHeight={METADATA_TEXT_HEIGHT}>
                 {isLoading ? (
-                  <Placeholder
-                    width={subtitle.loadingWidth ?? '320px'}
-                    height={METADATA_TEXT_HEIGHT}
-                  />
+                  <Placeholder width="320px" height={METADATA_TEXT_HEIGHT} />
                 ) : (
                   <Text size="md" density="comfortable" ellipsis>
                     {subtitle.content}

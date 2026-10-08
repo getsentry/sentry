@@ -92,7 +92,9 @@ stats={{label: 'Replay stats', items: [
 
 Pass `isLoading` and every slot renders a skeleton sized from the typography it will hold. The skeleton comes from the same declarations as the loaded state, so the two cannot drift apart — there is no placeholder twin to maintain.
 
-Each slot is replaced whole, stat labels included. A label is static and could be shown straight away, but a half-drawn stat next to a loading title reads as broken rather than as loading. Size `loadingWidth` to the content you expect, so the row does not jump when the value lands.
+Each slot is replaced whole, stat labels included. A label is static and could be shown straight away, but a half-drawn stat next to a loading title reads as broken rather than as loading.
+
+Skeleton widths are fixed per slot rather than configurable. A caller-supplied width is a measurement of one page's data on one day, and it goes stale silently; the row it was protecting only ever shifts sideways, which costs far less than the vertical movement the reserved rows above already prevent.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -118,12 +120,10 @@ Each slot is replaced whole, stat labels included. A label is static and could b
 ```jsx
 <EntityHeader
   isLoading={!replayRecord}
-  title={{label: t('Replay user'), value: displayName, loadingWidth: '200px'}}
+  title={{label: t('Replay user'), value: displayName}}
   stats={{
     label: 'Replay stats',
-    items: [
-      {type: 'text', label: t('Errors'), value: errors.length, loadingWidth: '64px'},
-    ],
+    items: [{type: 'text', label: t('Errors'), value: errors.length}],
   }}
 />
 ```

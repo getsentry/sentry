@@ -101,7 +101,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
             </Tag>
           ) : null,
         ],
-        loadingWidth: '200px',
       },
       people: {
         users: viewers.users,
@@ -118,7 +117,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                 value: deadClicks,
                 to: breadcrumbTab,
                 isLoading: statsLoading,
-                loadingWidth: '82px',
               }
             : null,
           showDeadRageClicks
@@ -128,7 +126,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                 value: rageClicks,
                 to: breadcrumbTab,
                 isLoading: statsLoading,
-                loadingWidth: '82px',
               }
             : null,
           {
@@ -140,7 +137,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
               <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
             ) : undefined,
             isLoading: statsLoading,
-            loadingWidth: '64px',
           },
         ],
       },
@@ -163,7 +159,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                     <TimeSince key="started" date={replayRecord.started_at} />
                   ),
                 ],
-                loadingWidth: '150px',
               }
             : null,
           replayRecord?.browser.name

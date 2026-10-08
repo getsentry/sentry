@@ -27,11 +27,6 @@ interface EntityHeaderStatBase {
    * `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
    */
   labelTooltip?: React.ReactNode;
-  /**
-   * Width of the skeleton that replaces the whole stat while loading. Size it to
-   * the content you expect, so the row does not jump when the value lands.
-   */
-  loadingWidth?: string;
 }
 
 /**
@@ -75,11 +70,11 @@ export type EntityHeaderStatProps =
     } & EntityHeaderStatBase);
 
 export function EntityHeaderStat(props: EntityHeaderStatProps) {
-  const {isLoading, label, labelTooltip, loadingWidth = '80px', value} = props;
+  const {isLoading, label, labelTooltip, value} = props;
   if (isLoading) {
     return (
       <Flex as="li" align="center" height={ROW_HEIGHT} flexShrink={0}>
-        <Placeholder width={loadingWidth} height={STAT_VALUE_HEIGHT} />
+        <Placeholder width="80px" height={STAT_VALUE_HEIGHT} />
       </Flex>
     );
   }

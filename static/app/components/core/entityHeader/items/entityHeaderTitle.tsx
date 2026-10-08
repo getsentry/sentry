@@ -74,10 +74,6 @@ export interface EntityHeaderTitleProps {
    */
   leadingGraphic?: EntityHeaderLeadingGraphic;
   /**
-   * Width of the skeleton shown while the header is loading.
-   */
-  loadingWidth?: string;
-  /**
    * Status chips rendered inline after the label.
    * `null` entries are dropped so callers can inline conditionals.
    */
@@ -140,7 +136,6 @@ export function EntityHeaderTitle({
   isLoading,
   label,
   leadingGraphic,
-  loadingWidth = '240px',
   tags,
   value,
 }: EntityHeaderTitleProps & {isLoading?: boolean}) {
@@ -166,7 +161,7 @@ export function EntityHeaderTitle({
             {value}
           </Heading>
         </VisuallyHidden>
-        <Placeholder width={loadingWidth} height={TITLE_HEIGHT} />
+        <Placeholder width="240px" height={TITLE_HEIGHT} />
       </Flex>
     );
   }

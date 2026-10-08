@@ -27,17 +27,12 @@ export interface EntityHeaderPeopleProps {
    * schedule, separate from the entity.
    */
   isLoading?: boolean;
-  /**
-   * Width of the skeleton. Defaults to the width of a two-avatar stack.
-   */
-  loadingWidth?: string;
   maxVisibleAvatars?: number;
 }
 
 export function EntityHeaderPeople({
   isLoading,
   label,
-  loadingWidth = '40px',
   maxVisibleAvatars = 5,
   users,
 }: EntityHeaderPeopleProps) {
@@ -61,7 +56,7 @@ export function EntityHeaderPeople({
   return (
     <Flex align="center" height={ROW_HEIGHT} flexShrink={0}>
       {isLoading ? (
-        <Placeholder width={loadingWidth} height="24px" />
+        <Placeholder width="40px" height="24px" />
       ) : (
         <Fragment>
           <VisuallyHidden>{`${label}: ${names}`}</VisuallyHidden>
