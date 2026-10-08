@@ -238,8 +238,8 @@ function combineChartInfos(chartInfos: ChartInfo[]): ChartInfo {
     series: chartInfos.flatMap(chartInfo => chartInfo.series),
     // Only surface an error when none of the visualizes can be plotted.
     timeseriesResult:
-      chartInfos.find(chartInfo => !chartInfo.timeseriesResult.error)
-        ?.timeseriesResult ?? first.timeseriesResult,
+      chartInfos.find(chartInfo => !chartInfo.timeseriesResult.error)?.timeseriesResult ??
+      first.timeseriesResult,
   };
 }
 
@@ -499,7 +499,7 @@ function Chart({
               isSampled={chartInfo.isSampled}
               confidence={chartInfo.confidence}
               topEvents={
-                topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
+                topEvents ? Math.min(topEvents, chartInfos[0]!.series.length) : undefined
               }
               dataScanned={chartInfo.dataScanned}
               rawSpanCounts={rawSpanCounts}
