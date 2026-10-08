@@ -1,5 +1,6 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import {
   Container,
@@ -52,16 +53,18 @@ export function ExploreFilterSection(props: GridProps) {
   );
 }
 
-function StuckAwareExploreBodySearch(props: React.ComponentProps<typeof Layout.Body>) {
+function StuckAwareExploreBodySearch({
+  ref,
+  ...props
+}: React.ComponentProps<typeof Layout.Body>) {
   const elementRef = useRef<HTMLDivElement>(null);
+  const mergedRef = useMemo(() => mergeRefs(elementRef, ref), [ref]);
   const {pageContentTop} = useTopOffset();
   const isStuck = useIsStuck(elementRef, {
     offset: Number.parseInt(pageContentTop, 10) ?? 0,
   });
 
-  return (
-    <Layout.Body ref={elementRef} data-stuck={isStuck ? '' : undefined} {...props} />
-  );
+  return <Layout.Body ref={mergedRef} data-stuck={isStuck ? '' : undefined} {...props} />;
 }
 
 export const ExploreBodySearch = styled(StuckAwareExploreBodySearch)`

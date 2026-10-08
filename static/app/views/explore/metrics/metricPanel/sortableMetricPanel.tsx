@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 
@@ -12,6 +13,7 @@ interface SortableMetricPanelProps {
   sortableId: string;
   traceMetric: TraceMetric;
   onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
+  onNewlyAdded?: (panel: HTMLElement) => void;
   referenceMap?: Record<string, string>;
   referencedMetricLabels?: Set<string>;
 }
@@ -25,12 +27,19 @@ export function SortableMetricPanel({
   referencedMetricLabels,
   onEquationLabelsChange,
   isAnyDragging,
+  onNewlyAdded,
   canDrag,
 }: SortableMetricPanelProps) {
-  const {attributes, listeners, setNodeRef, transform, isDragging} = useSortable({
+  const {attributes, listeners, node, setNodeRef, transform, isDragging} = useSortable({
     id: sortableId,
     transition: null,
   });
+
+  useEffect(() => {
+    if (onNewlyAdded && node.current) {
+      onNewlyAdded(node.current);
+    }
+  }, [node, onNewlyAdded]);
 
   return (
     <MetricPanel
