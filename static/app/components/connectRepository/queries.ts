@@ -225,6 +225,9 @@ export function useGroupedRepoOptions(orgSlug: string): {
   });
 
   const groupedOptions = activeIntegrations.flatMap((integration, idx) => {
+    if (integrationRepoResults[idx]?.isPending) {
+      return [];
+    }
     const options = (integrationRepoResults[idx]?.data?.repos ?? []).flatMap(repo => {
       const option = buildRepoSelectOption(
         integration,
@@ -236,18 +239,17 @@ export function useGroupedRepoOptions(orgSlug: string): {
     return options.length > 0 ? [{label: integration.name, options}] : [];
   });
 
-  const isOrgReposPending =
-    !orgReposQuery.isError &&
-    (orgReposQuery.isPending ||
-      orgReposQuery.isFetchingNextPage ||
-      orgReposQuery.hasNextPage);
+  const isOrgReposPending = !orgReposQuery.isError && orgReposQuery.isPending;
+
+  // Keep the spinner until at least one group can render so the select
+  // doesn't flash empty while the first integration request is in-flight.
+  const waitingForFirstIntegrationGroup =
+    groupedOptions.length === 0 && integrationRepoResults.some(r => r.isPending);
 
   return {
     groupedOptions,
     isPending:
-      isIntegrationsPending ||
-      integrationRepoResults.some(r => r.isPending) ||
-      isOrgReposPending,
+      isIntegrationsPending || isOrgReposPending || waitingForFirstIntegrationGroup,
   };
 }
 
