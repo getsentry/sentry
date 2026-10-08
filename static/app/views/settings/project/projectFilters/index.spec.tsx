@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
@@ -6,15 +7,27 @@ import {TombstonesFixture} from 'sentry-fixture/tombstones';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
-  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
+
+// The custom filter modal saves through the query client of the tree it renders
+// in, so it mounts next to the page instead of in a render of its own.
+function ProjectFiltersWithModal() {
+  return (
+    <Fragment>
+      <GlobalModal />
+      <ProjectFilters />
+    </Fragment>
+  );
+}
 
 describe('ProjectFilters', () => {
   const {organization, project} = initializeOrg();
@@ -79,12 +92,11 @@ describe('ProjectFilters', () => {
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: filters,
     });
-    const result = render(<ProjectFilters />, {
+    const result = render(<ProjectFiltersWithModal />, {
       organization: inboundFiltersV2Org,
       outletContext: {project: renderedProject},
       initialRouterConfig,
     });
-    renderGlobalModal();
     return result;
   }
 
@@ -874,13 +886,11 @@ describe('ProjectFilters', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
 
     await waitFor(() => expect(createMock).toHaveBeenCalled());
-    // Both `render` and `renderGlobalModal` mount a toast container, so the toast
-    // shows up twice.
     expect(
-      await screen.findAllByText(
+      await screen.findByText(
         'Log message filters are not enabled for this organization.'
       )
-    ).not.toHaveLength(0);
+    ).toBeInTheDocument();
     // The modal stays open so the user can correct the error
     expect(screen.getByText('Create Custom Filter')).toBeInTheDocument();
   });
@@ -1050,7 +1060,7 @@ describe('ProjectFilters', () => {
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [],
     });
-    render(<ProjectFilters />, {
+    render(<ProjectFiltersWithModal />, {
       organization: OrganizationFixture({
         ...organization,
         features: [
@@ -1063,7 +1073,6 @@ describe('ProjectFilters', () => {
       outletContext: {project},
       initialRouterConfig,
     });
-    renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
@@ -1077,7 +1086,7 @@ describe('ProjectFilters', () => {
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [],
     });
-    render(<ProjectFilters />, {
+    render(<ProjectFiltersWithModal />, {
       organization: OrganizationFixture({
         ...organization,
         features: [
@@ -1090,7 +1099,6 @@ describe('ProjectFilters', () => {
       outletContext: {project},
       initialRouterConfig,
     });
-    renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     // Data type defaults to Errors, so even with all ingestion features
@@ -1117,7 +1125,7 @@ describe('ProjectFilters', () => {
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [],
     });
-    render(<ProjectFilters />, {
+    render(<ProjectFiltersWithModal />, {
       organization: OrganizationFixture({
         ...organization,
         features: ['inbound-filters-v2', 'inbound-filters-v2-ui', 'ourlogs-ingestion'],
@@ -1125,7 +1133,6 @@ describe('ProjectFilters', () => {
       outletContext: {project},
       initialRouterConfig,
     });
-    renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
 
@@ -1303,7 +1310,7 @@ describe('ProjectFilters', () => {
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [],
     });
-    render(<ProjectFilters />, {
+    render(<ProjectFiltersWithModal />, {
       organization: OrganizationFixture({
         ...organization,
         features: [
@@ -1316,7 +1323,6 @@ describe('ProjectFilters', () => {
       outletContext: {project},
       initialRouterConfig,
     });
-    renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     const dialog = await screen.findByRole('dialog');
@@ -1335,7 +1341,7 @@ describe('ProjectFilters', () => {
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
     });
-    render(<ProjectFilters />, {
+    render(<ProjectFiltersWithModal />, {
       organization: OrganizationFixture({
         ...organization,
         access: [],
@@ -1344,7 +1350,6 @@ describe('ProjectFilters', () => {
       outletContext: {project},
       initialRouterConfig,
     });
-    renderGlobalModal();
 
     expect(await screen.findByRole('checkbox', {name: 'Disable filter'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Add Filter'})).toHaveAttribute(
