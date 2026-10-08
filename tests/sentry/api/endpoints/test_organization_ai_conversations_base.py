@@ -49,6 +49,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         memory_query_text=None,
         memory_record_id=None,
         memory_record_count=None,
+        memory_records=None,
         user_id=None,
         user_email=None,
         user_username=None,
@@ -156,6 +157,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.memory.record.id"] = memory_record_id
         if memory_record_count is not None:
             span_data["gen_ai.memory.record.count"] = memory_record_count
+        if memory_records is not None:
+            span_data["gen_ai.memory.records"] = json.dumps(memory_records)
         # New format attributes
         if input_messages is not None:
             span_data["gen_ai.input.messages"] = json.dumps(input_messages)

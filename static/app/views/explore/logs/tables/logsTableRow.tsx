@@ -817,7 +817,6 @@ function LogRowDetails({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
   const projectSlug = project?.slug ?? '';
-  const fields = useQueryParamsFields();
   const getActions = useLogAttributesTreeActions({embedded});
   const [caseInsensitivity] = useCaseInsensitivity();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -873,14 +872,13 @@ function LogRowDetails({
     );
   }
 
-  const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
   const message = String(
     attributes[OurLogKnownFieldKey.MESSAGE] ?? dataRow[OurLogKnownFieldKey.MESSAGE] ?? ''
   );
 
   return (
     <DetailsWrapper ref={measureRef}>
-      <LogDetailTableBodyCell colSpan={colSpan}>
+      <LogDetailTableBodyCell>
         {isPending && <LoadingIndicator />}
         {!isPending && data && (
           <Fragment>
@@ -955,11 +953,9 @@ function LogRowDetails({
       </LogDetailTableBodyCell>
       {!isPending && data && (
         <LogDetailTableActionsCell
-          colSpan={colSpan}
           style={{
             alignItems: 'center',
             justifyContent: 'space-between',
-            flexDirection: 'row',
           }}
         >
           <LogRowDetailsActions

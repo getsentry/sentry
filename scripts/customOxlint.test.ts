@@ -284,6 +284,10 @@ test('base scans resolve installed dependencies and use base workspace source', 
     changed.stderr,
     /index.ts typescript\/no-floating-promises: 1 violations, budget 0/
   );
+  assert.match(
+    changed.stderr,
+    /packages\/example\/index.ts:4:1 typescript\/no-floating-promises Promises must be awaited/
+  );
 });
 
 test('CI scans head once and rejects increased or stale budgets', t => {
@@ -297,12 +301,41 @@ test('CI scans head once and rejects increased or stale budgets', t => {
   const increase = ci(1);
   assert.equal(increase.status, 1, increase.stderr);
   assert.match(increase.stderr, /2 violations, budget 1/);
+  assert.match(
+    increase.stderr,
+    /source.js:1:1 no-debugger `debugger` statement is not allowed/
+  );
+  assert.match(
+    increase.stderr,
+    /source.js:1:11 no-debugger `debugger` statement is not allowed/
+  );
   write('source.js', '');
   const stale = ci(1);
   assert.equal(stale.status, 1, stale.stderr);
-  assert.match(stale.stderr, /Suppression budgets do not match live debt/);
+  assert.match(stale.stderr, /Suppression budgets are stale/);
+  assert.match(stale.stderr, /pnpm run lint:js --prune/);
+  assert.match(stale.stderr, /commit the updated oxlint-suppressions.json/);
+  assert.doesNotMatch(stale.stderr, /fix:oxlint|--enroll|New incubator violations/);
   write('oxlint-suppressions.json', '{}');
   assert.equal(ci(1).status, 0);
+});
+
+test('CI and prune report violations exceeding committed budgets', t => {
+  const {directory, write, lint, ci} = ciFixture(t);
+  write('oxlint-suppressions.json', '{}');
+  for (const result of [ci(1), lint('--ci'), lint('--prune')]) {
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /source.js no-debugger: 1 violations, budget 0/);
+    assert.match(
+      result.stderr,
+      /source.js:1:1 no-debugger `debugger` statement is not allowed/
+    );
+    assert.doesNotMatch(result.stderr, /stale|pnpm run lint:js --prune/);
+  }
+  assert.equal(
+    readFileSync(path.join(directory, 'oxlint-suppressions.json'), 'utf8'),
+    '{}'
+  );
 });
 
 test('CI transfers exact rename budgets but rejects copies and edited renames', t => {
@@ -358,6 +391,15 @@ test('CI rescans the base for changed policy or a missing baseline', t => {
   const increase = ci(2);
   assert.equal(increase.status, 1, increase.stderr);
   assert.match(increase.stderr, /no-alert: 2 violations, budget 1/);
+  assert.match(
+    increase.stderr,
+    /source.js:1:11 no-alert `alert`, `confirm` and `prompt` functions are not allowed/
+  );
+  assert.match(
+    increase.stderr,
+    /source.js:1:30 no-alert `alert`, `confirm` and `prompt` functions are not allowed/
+  );
+  assert.doesNotMatch(increase.stderr, /no-debugger/);
   rmSync(path.join(directory, 'oxlint-suppressions.json'));
   commit();
   write(
