@@ -140,7 +140,7 @@ describe('CreateIssueViewModal', () => {
       />
     );
 
-    const nameInput = screen.getByRole('textbox', {name: 'Name'});
+    const nameInput = await screen.findByRole('textbox', {name: 'Name'});
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, 'absolute');
 
