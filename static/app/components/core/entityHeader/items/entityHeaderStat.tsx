@@ -69,48 +69,41 @@ export type EntityHeaderStatProps =
       onClick?: () => void;
     } & EntityHeaderStatBase);
 
-export function EntityHeaderStat(props: EntityHeaderStatProps) {
-  const {isLoading, label, labelTooltip, value} = props;
-  if (isLoading) {
+const VALUE_STYLES = {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'} as const;
+
+const LABEL_STYLES = {
+  size: 'sm',
+  bold: true,
+  density: 'comfortable',
+  wrap: 'nowrap',
+} as const;
+
+function StatValue(props: EntityHeaderStatProps) {
+  if (props.type === 'text' && props.valueTooltip) {
     return (
-      <Flex as="li" align="center" height={ROW_HEIGHT} flexShrink={0}>
-        <Placeholder width="80px" height={STAT_VALUE_HEIGHT} />
-      </Flex>
+      <InfoText title={props.valueTooltip} {...VALUE_STYLES}>
+        {props.value}
+      </InfoText>
     );
   }
 
-  const valueStyles = {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'} as const;
+  // Hidden on a link stat, where the anchor's own name already speaks it.
+  return (
+    <Text aria-hidden={props.type === 'link'} {...VALUE_STYLES}>
+      {props.value}
+    </Text>
+  );
+}
 
-  // A stat is one fact split across two elements, which a screen reader moving
-  // element by element reads as two: "0", then "link, Dead Clicks". On a link
-  // stat the anchor is named from both, so it reads "0 Dead Clicks" in one go,
-  // and the value is hidden since the name already speaks it.
-  const isLink = props.type === 'link';
-  const valueContent =
-    props.type === 'text' && props.valueTooltip ? (
-      <InfoText title={props.valueTooltip} {...valueStyles}>
-        {value}
-      </InfoText>
-    ) : (
-      <Text aria-hidden={isLink} {...valueStyles}>
-        {value}
-      </Text>
-    );
+function StatLabel(props: EntityHeaderStatProps) {
+  const {label, labelTooltip} = props;
 
-  const labelStyles = {
-    size: 'sm',
-    bold: true,
-    density: 'comfortable',
-    wrap: 'nowrap',
-  } as const;
-
-  let labelContent: React.ReactNode;
   if (props.type === 'link') {
-    const {to, onClick} = props;
+    const {to, onClick, value} = props;
     // The label is what navigates, so the link is named by what it leads to
     // rather than by a number.
-    labelContent = (
-      <Text {...labelStyles} variant="accent">
+    return (
+      <Text {...LABEL_STYLES} variant="accent">
         {styleProps => {
           const link = (
             <Link
@@ -119,7 +112,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
               // Composed rather than assembled from the DOM with
               // `aria-labelledby`, which would have to reach into the hidden
               // value node — something not every engine is known to honour.
-              aria-label={`${props.value} ${label}`}
+              aria-label={`${value} ${label}`}
               {...styleProps}
             >
               {label}
@@ -137,25 +130,43 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
         }}
       </Text>
     );
-  } else if (labelTooltip) {
-    labelContent = (
-      <InfoText title={labelTooltip} variant="muted" {...labelStyles}>
+  }
+
+  if (labelTooltip) {
+    return (
+      <InfoText title={labelTooltip} variant="muted" {...LABEL_STYLES}>
         {label}
       </InfoText>
     );
-  } else {
-    labelContent = (
-      <Text {...labelStyles} variant="muted">
-        {label}
-      </Text>
+  }
+
+  return (
+    <Text {...LABEL_STYLES} variant="muted">
+      {label}
+    </Text>
+  );
+}
+
+export function EntityHeaderStat(props: EntityHeaderStatProps) {
+  if (props.isLoading) {
+    return (
+      <Flex as="li" align="center" height={ROW_HEIGHT} flexShrink={0}>
+        <Placeholder width="80px" height={STAT_VALUE_HEIGHT} />
+      </Flex>
     );
   }
 
   return (
     <Flex as="li" align="center" height={ROW_HEIGHT} flexShrink={0} minWidth={0}>
+      {/*
+        A stat is one fact split across two elements, which a screen reader
+        moving element by element reads as two: "0", then "link, Dead Clicks".
+        On a link stat the anchor is named from both, so it reads "0 Dead
+        Clicks" in one go.
+      */}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        {valueContent}
-        {labelContent}
+        <StatValue {...props} />
+        <StatLabel {...props} />
       </Flex>
     </Flex>
   );
