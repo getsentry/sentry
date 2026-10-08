@@ -92,7 +92,7 @@ export function ReplayClipPreviewPlayer({
           <FluidHeight
             position="relative"
             maxHeight={`${REPLAY_LOADING_HEIGHT + 16}px`}
-            minHeight={{xl: `${REPLAY_LOADING_HEIGHT + 16}px`}}
+            minHeight={{zero: 'auto', xl: `${REPLAY_LOADING_HEIGHT + 16}px`}}
             overflow="visible"
           >
             <ReplayPlayerPluginsContextProvider>
