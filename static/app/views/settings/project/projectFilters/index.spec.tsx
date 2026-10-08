@@ -72,9 +72,15 @@ describe('ProjectFilters', () => {
     };
   }
 
+  // Custom filters are a plan feature; the table only takes writes with it.
+  const businessProject = ProjectFixture({
+    ...project,
+    features: ['custom-inbound-filters'],
+  });
+
   function renderInboundFilters(
     filters: CustomInboundFilter[],
-    renderedProject: typeof project = project
+    renderedProject: typeof project = businessProject
   ) {
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
@@ -511,7 +517,7 @@ describe('ProjectFilters', () => {
   });
 
   it('keeps legacy custom filter edits while a filter is created in the modal', async () => {
-    renderInboundFilters([], {...project, features: ['custom-inbound-filters']});
+    renderInboundFilters([]);
     expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
 
     const projectMock = MockApiClient.addMockResponse({
@@ -1075,7 +1081,7 @@ describe('ProjectFilters', () => {
           'tracemetrics-ingestion',
         ],
       }),
-      outletContext: {project},
+      outletContext: {project: businessProject},
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -1102,7 +1108,7 @@ describe('ProjectFilters', () => {
           'tracemetrics-ingestion',
         ],
       }),
-      outletContext: {project},
+      outletContext: {project: businessProject},
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -1137,7 +1143,7 @@ describe('ProjectFilters', () => {
         ...organization,
         features: ['inbound-filters-v2', 'inbound-filters-v2-ui', 'ourlogs-ingestion'],
       }),
-      outletContext: {project},
+      outletContext: {project: businessProject},
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -1177,7 +1183,10 @@ describe('ProjectFilters', () => {
 
   it('warns in the modal when an error condition targets an obfuscated platform', async () => {
     const warningLink = {name: 'Learn how to match the incoming error.'};
-    renderInboundFilters([], ProjectFixture({...project, platform: 'javascript-react'}));
+    renderInboundFilters(
+      [],
+      ProjectFixture({...businessProject, platform: 'javascript-react'})
+    );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
@@ -1193,7 +1202,7 @@ describe('ProjectFilters', () => {
   });
 
   it('does not warn in the modal on a backend platform', async () => {
-    renderInboundFilters([], ProjectFixture({...project, platform: 'python'}));
+    renderInboundFilters([], ProjectFixture({...businessProject, platform: 'python'}));
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
@@ -1328,7 +1337,7 @@ describe('ProjectFilters', () => {
           'tracemetrics-ingestion',
         ],
       }),
-      outletContext: {project},
+      outletContext: {project: businessProject},
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -1356,12 +1365,36 @@ describe('ProjectFilters', () => {
         access: [],
         features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
       }),
-      outletContext: {project},
+      outletContext: {project: businessProject},
       initialRouterConfig,
     });
     renderGlobalModal();
 
     expect(await screen.findByRole('checkbox', {name: 'Disable filter'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add Filter'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Edit filter'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Delete filter'})).toBeDisabled();
+  });
+
+  it('lists filters as not applied when the plan lacks custom inbound filters', async () => {
+    MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
+    });
+    render(<ProjectFilters />, {
+      organization: inboundFiltersV2Org,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText('A filter')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Saved filters are kept but not applied/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'Disable filter'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Add Filter'})).toHaveAttribute(
       'aria-disabled',
       'true'
