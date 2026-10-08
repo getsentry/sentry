@@ -14,7 +14,9 @@ application-generated values:
 
 `get()` returns the existing value without coercion. A missing row uses
 `SENTRY_OPTIONS`, then `SENTRY_DEFAULT_OPTIONS`, then the legacy empty string.
-Reads validate stored and configured values before returning or caching them.
+Reads validate stored and configured values before returning them. Configured
+fallbacks are validated before caching; the existing store and cache repair
+continue copying persisted rows unchanged.
 String keys require strings. Worker timestamp reads retain numeric values and
 legacy string fallbacks; booleans are not timestamps. Invalid types, including
 explicit configured `None`, raise `TypeError` without exposing the value.
