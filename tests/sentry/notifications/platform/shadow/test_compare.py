@@ -378,7 +378,9 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         assert log["has_chart"] is True
         assert "has_suggested_assignees" not in log
 
-    @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template", return_value={"blocks": []})
+    @mock.patch(
+        f"{COMPARE_PATH}.NotificationService.render_template", return_value=({"blocks": []}, set())
+    )
     def test_slack_traits_are_read_from_the_legacy_payload(
         self, mock_render: mock.MagicMock
     ) -> None:
@@ -403,7 +405,9 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
             "has_autofix_button": True,
         }
 
-    @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template", return_value={"blocks": []})
+    @mock.patch(
+        f"{COMPARE_PATH}.NotificationService.render_template", return_value=({"blocks": []}, set())
+    )
     def test_traits_failure_still_logs_the_result(self, mock_render: mock.MagicMock) -> None:
         with (
             observe_shadow() as observation,
@@ -415,7 +419,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         assert observation.result_log["outcome"] == "match"
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_compares_when_the_send_raises(self, mock_render: mock.MagicMock) -> None:
         error = RuntimeError("send failed")

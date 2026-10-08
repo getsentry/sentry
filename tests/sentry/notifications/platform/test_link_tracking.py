@@ -76,7 +76,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
                     continue
 
                 with (
-                    self.subTest(source=source, provider=provider.key),
+                    self.subTest(source=str(source), provider=str(provider.key)),
                     mock.patch.object(
                         provider.default_renderer, "render", wraps=provider.default_renderer.render
                     ) as render,
@@ -108,7 +108,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
             template = template_registry.get(source)()
             data = template.example_data
             with (
-                self.subTest(source=source, provider=provider_key),
+                self.subTest(source=str(source), provider=str(provider_key)),
                 mock.patch.object(renderer, "render") as render,
             ):
                 NotificationService.render_template(
