@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 
@@ -40,6 +40,7 @@ import {
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {StyledPageFilterBar} from 'sentry/views/explore/metrics/styles';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -53,12 +54,26 @@ type MetricsTabProps = {
 
 function MetricsTabContentInner({datePageFilterProps}: MetricsTabProps) {
   const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();
+  const searchRef = useRef<HTMLDivElement>(null);
+  const [newlyAddedLabel, setNewlyAddedLabel] = useState<string>();
+
+  function scrollToNewlyAdded(panel: HTMLElement) {
+    panel.style.scrollMarginTop = `calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + ${searchRef.current?.offsetHeight ?? 0}px)`;
+    panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+    setNewlyAddedLabel(undefined);
+  }
 
   return (
     <Fragment>
-      <MetricsTabFilterSection datePageFilterProps={datePageFilterProps} />
+      <MetricsTabFilterSection
+        ref={searchRef}
+        datePageFilterProps={datePageFilterProps}
+        onAddMetricQuery={setNewlyAddedLabel}
+      />
       <ExploreBodyContent>
         <MetricsTabBodySection
+          newlyAddedLabel={newlyAddedLabel}
+          onNewlyAdded={scrollToNewlyAdded}
           referencedMetricLabels={referencedMetricLabels}
           onEquationLabelsChange={onEquationLabelsChange}
         />
@@ -67,7 +82,16 @@ function MetricsTabContentInner({datePageFilterProps}: MetricsTabProps) {
   );
 }
 
-function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
+interface FilterSectionProps extends MetricsTabProps {
+  onAddMetricQuery: (label: string) => void;
+  ref: React.Ref<HTMLDivElement>;
+}
+
+function MetricsTabFilterSection({
+  datePageFilterProps,
+  onAddMetricQuery,
+  ref,
+}: FilterSectionProps) {
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
@@ -78,7 +102,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
     metricQueries.some(q => q.label === MAX_METRIC_ALLOWED_LABEL_VALUE);
 
   return (
-    <ExploreBodySearch>
+    <ExploreBodySearch ref={ref}>
       <Layout.Main width="full">
         <Grid
           areas={{zero: '"filters" "actions"', xl: '"filters actions"'}}
@@ -104,14 +128,14 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
             justifySelf={{zero: 'stretch', sm: 'end'}}
           >
             <ToolbarVisualizeAddChart
-              add={addMetricQuery}
+              add={() => onAddMetricQuery(addMetricQuery())}
               disabled={isAddMetricDisabled}
               label={t('Add Metric')}
               display="button"
             />
             <ToolbarVisualizeAddChart
               display="button"
-              add={addEquationQuery}
+              add={() => onAddMetricQuery(addEquationQuery())}
               disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
               label={t('Add Equation')}
             />
@@ -125,10 +149,14 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
 
 interface SectionProps {
   onEquationLabelsChange: (equationLabel: string, labels: string[]) => void;
+  onNewlyAdded: (panel: HTMLElement) => void;
   referencedMetricLabels: Set<string>;
+  newlyAddedLabel?: string;
 }
 
 function MetricsTabBodySection({
+  newlyAddedLabel,
+  onNewlyAdded,
   referencedMetricLabels,
   onEquationLabelsChange,
 }: SectionProps) {
@@ -180,6 +208,8 @@ function MetricsTabBodySection({
         <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
           <SortableMetricPanelSection
             dataTestId="aggregate-metric-panels"
+            newlyAddedLabel={newlyAddedLabel}
+            onNewlyAdded={onNewlyAdded}
             sortableQueries={aggregateMetricQueries}
             referenceMap={referenceMap}
             isAnyDragging={isDragging}
@@ -197,6 +227,8 @@ function MetricsTabBodySection({
           ) : null}
           <SortableMetricPanelSection
             dataTestId="equation-metric-panels"
+            newlyAddedLabel={newlyAddedLabel}
+            onNewlyAdded={onNewlyAdded}
             sortableQueries={equationMetricQueries}
             referenceMap={referenceMap}
             isAnyDragging={isDragging}
@@ -213,13 +245,17 @@ interface SortableMetricPanelSectionProps {
   dataTestId: string;
   isAnyDragging: boolean;
   onEquationLabelsChange: (equationLabel: string, labels: string[]) => void;
+  onNewlyAdded: (panel: HTMLElement) => void;
   referenceMap: Record<string, string>;
   referencedMetricLabels: Set<string>;
   sortableQueries: ReturnType<typeof useSortableMetricQueries>;
+  newlyAddedLabel?: string;
 }
 
 function SortableMetricPanelSection({
   dataTestId,
+  newlyAddedLabel,
+  onNewlyAdded,
   referencedMetricLabels,
   onEquationLabelsChange,
   sortableQueries,
@@ -263,6 +299,7 @@ function SortableMetricPanelSection({
                     referenceMap={referenceMap}
                     isAnyDragging={isAnyDragging}
                     canDrag={sortableItems.length > 1}
+                    onNewlyAdded={id === newlyAddedLabel ? onNewlyAdded : undefined}
                   />
                 </AiQueryProvider>
               </MetricsQueryParamsProvider>
