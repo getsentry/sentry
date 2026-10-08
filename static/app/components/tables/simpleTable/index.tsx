@@ -90,7 +90,7 @@ export function SimpleTable({
   const resolvedColumns = columns?.map(column => ({resizable: false, ...column}));
 
   return (
-    <StyledTable columns={resolvedColumns} {...props}>
+    <StyledTable columns={resolvedColumns} density={density} {...props}>
       <DensityContext value={density}>
         <PanelProvider>
           {customSections ? (
@@ -169,8 +169,9 @@ function RowCell({children, ...props}: FlexProps<'td'>) {
 }
 
 const StyledTable = styled(Table, {
-  shouldForwardProp: prop => prop !== 'maxHeight' && prop !== 'scrollable',
-})<{maxHeight?: CSS['maxHeight']; scrollable?: boolean}>`
+  shouldForwardProp: prop =>
+    prop !== 'density' && prop !== 'maxHeight' && prop !== 'scrollable',
+})<{density: TableDensity; maxHeight?: CSS['maxHeight']; scrollable?: boolean}>`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -178,6 +179,12 @@ const StyledTable = styled(Table, {
   margin: 0;
   width: 100%;
   overflow: ${p => (p.scrollable ? 'auto' : 'hidden')};
+
+  ${p =>
+    p.density === 'compressed' &&
+    css`
+      font-size: ${p.theme.font.size.sm};
+    `}
 
   ${p =>
     p.maxHeight &&
@@ -242,7 +249,7 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   outline: none;
   padding: 0 ${p => (p.density === 'compressed' ? p.theme.space.md : p.theme.space.xl)};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.md};
+  font-size: ${p => (p.density === 'compressed' ? p.theme.font.size.sm : p.theme.font.size.md)};
   color: ${p => p.theme.tokens.content.secondary};
 
   display: flex;
