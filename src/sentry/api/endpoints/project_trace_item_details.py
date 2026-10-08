@@ -41,6 +41,7 @@ from sentry.search.eap.utils import (
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
+from sentry.utils.attributes import get_attribute
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba_rpc import SnubaRPCBadRequest, trace_item_details_rpc
 
@@ -114,6 +115,7 @@ def convert_rpc_attribute_to_json(
     trace_item_type: SupportedTraceItemType,
     include_internal: bool = False,
     include_arrays: bool = False,
+    include_internal_convention_attributes: bool = False,
 ) -> list[TraceItemAttribute]:
     result: list[TraceItemAttribute] = []
     all_internal_names = {attr["name"] for attr in attributes}
@@ -122,7 +124,10 @@ def convert_rpc_attribute_to_json(
         internal_name = attribute["name"]
 
         if not can_expose_attribute_to_api(
-            internal_name, trace_item_type, include_internal=include_internal
+            internal_name,
+            trace_item_type,
+            include_internal=include_internal,
+            include_internal_convention_attributes=include_internal_convention_attributes,
         ):
             continue
 
@@ -232,15 +237,15 @@ def serialize_meta(
         try:
             result = json.loads(attribute["value"]["valStr"])
             # Map the internal field key name back to its public name
-            if field_key in attribute_map:
+            if (field_attribute := get_attribute(attribute_map, field_key)) is not None:
                 item_type: Literal["string", "number", "boolean"]
                 if (
-                    "valInt" in attribute_map[field_key]
-                    or "valFloat" in attribute_map[field_key]
-                    or "valDouble" in attribute_map[field_key]
+                    "valInt" in field_attribute
+                    or "valFloat" in field_attribute
+                    or "valDouble" in field_attribute
                 ):
                     item_type = "number"
-                elif "valBool" in attribute_map[field_key]:
+                elif "valBool" in field_attribute:
                     item_type = "boolean"
                 else:
                     item_type = "string"
@@ -292,9 +297,10 @@ def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
     attributes. Parse any that are present back into JSON and return them,
     wrapped in a single `event` dict."""
     result: dict[str, Any] = {}
-    for attribute in attributes:
-        event_key = _SERIALIZED_EVENT_ATTRIBUTES.get(attribute["name"])
-        if event_key is None:
+    attribute_map = {attribute["name"]: attribute for attribute in attributes}
+    for attribute_name, event_key in _SERIALIZED_EVENT_ATTRIBUTES.items():
+        attribute = get_attribute(attribute_map, attribute_name)
+        if attribute is None:
             continue
 
         value = attribute.get("value", {}).get("valStr", None)
@@ -317,11 +323,8 @@ def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
 
 def serialize_links(attributes: list[dict]) -> list[dict] | None:
     """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
-    link_attribute = None
-    for attribute in attributes:
-        internal_name = attribute["name"]
-        if internal_name == "sentry.links":
-            link_attribute = attribute
+    attribute_map = {attribute["name"]: attribute for attribute in attributes}
+    link_attribute = get_attribute(attribute_map, "sentry.links")
 
     if link_attribute is None:
         return None
@@ -515,6 +518,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         )
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
+        include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
 
         resp_dict = {
             "itemId": serialize_item_id(resp["itemId"], item_type),
@@ -523,6 +527,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 resp["attributes"],
                 item_type,
                 include_internal=include_internal,
+                include_internal_convention_attributes=include_internal_convention_attributes,
                 include_arrays=include_arrays,
             ),
             "meta": serialize_meta(resp["attributes"], item_type),

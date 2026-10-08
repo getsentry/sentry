@@ -77,6 +77,31 @@ class SlackRequestParserTest(TestCase):
         )
         return SlackRequestParser(request, self.get_response)
 
+    def _make_parser_with_issue_submission(
+        self,
+        private_metadata: str | None = None,
+        interaction_type: str = "view_submission",
+    ) -> SlackRequestParser:
+        if private_metadata is None:
+            private_metadata = orjson.dumps(
+                {
+                    "issue": 123,
+                    "orig_response_url": "https://hooks.slack.com/actions/TXXXXXXX1/1234567890123/something",
+                }
+            ).decode()
+        data = {
+            "payload": json.dumps(
+                {
+                    "type": interaction_type,
+                    "team": {"id": self.integration.external_id},
+                    "user": {"id": "U1234567890"},
+                    "view": {"private_metadata": private_metadata},
+                }
+            )
+        }
+        request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
+        return SlackRequestParser(request, self.get_response)
+
     @responses.activate
     @patch(
         "slack_sdk.signature.SignatureVerifier.is_valid",
@@ -166,6 +191,93 @@ class SlackRequestParserTest(TestCase):
             }
         )
         assert response.status_code == status.HTTP_200_OK
+
+    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
+    def test_issue_submission_acks_without_waiting_for_cell(
+        self, mock_slack_task: MagicMock
+    ) -> None:
+        parser = self._make_parser_with_issue_submission()
+        with patch.object(parser, "get_response_from_all_cells") as mock_cell_response:
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.content == b""
+        mock_cell_response.assert_not_called()
+        mock_slack_task.apply_async.assert_called_once_with(
+            kwargs={
+                "cell_names": ["us"],
+                "payload": create_async_request_payload(parser.request),
+                "response_url": "https://hooks.slack.com/actions/TXXXXXXX1/1234567890123/something",
+            }
+        )
+
+    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
+    def test_issue_submission_without_callback_url_stays_synchronous(
+        self, mock_slack_task: MagicMock
+    ) -> None:
+        parser = self._make_parser_with_issue_submission(private_metadata='{"issue":123}')
+        cell_response = HttpResponse(status=status.HTTP_400_BAD_REQUEST)
+        with patch.object(
+            parser, "get_response_from_all_cells", return_value=cell_response
+        ) as mock_cell_response:
+            response = parser.get_response()
+
+        assert response is cell_response
+        mock_cell_response.assert_called_once_with()
+        mock_slack_task.apply_async.assert_not_called()
+
+    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
+    def test_submission_without_issue_metadata_stays_synchronous(
+        self, mock_slack_task: MagicMock
+    ) -> None:
+        parser = self._make_parser_with_issue_submission(
+            private_metadata='{"orig_response_url":"https://hooks.slack.com/actions/TXXXXXXX1/1234567890123/something"}'
+        )
+        cell_response = HttpResponse(status=status.HTTP_400_BAD_REQUEST)
+        with patch.object(parser, "get_response_from_all_cells", return_value=cell_response):
+            response = parser.get_response()
+
+        assert response is cell_response
+        mock_slack_task.apply_async.assert_not_called()
+
+    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
+    def test_modal_selection_does_not_use_submission_callback_url(
+        self, mock_slack_task: MagicMock
+    ) -> None:
+        parser = self._make_parser_with_issue_submission(interaction_type="block_actions")
+        cell_response = HttpResponse(status=status.HTTP_200_OK)
+        with patch.object(parser, "get_response_from_all_cells", return_value=cell_response):
+            response = parser.get_response()
+
+        assert response is cell_response
+        mock_slack_task.apply_async.assert_not_called()
+
+    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
+    def test_issue_submission_enqueue_failure_is_not_acknowledged(
+        self, mock_slack_task: MagicMock
+    ) -> None:
+        parser = self._make_parser_with_issue_submission()
+        mock_slack_task.apply_async.side_effect = RuntimeError("Task queue unavailable")
+
+        with pytest.raises(RuntimeError, match="Task queue unavailable"):
+            parser.get_response()
+
+        mock_slack_task.apply_async.assert_called_once()
+
+    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
+    def test_issue_submission_with_invalid_signature_is_not_queued(
+        self, mock_slack_task: MagicMock
+    ) -> None:
+        parser = self._make_parser_with_issue_submission()
+        with patch(
+            "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
+            return_value=False,
+        ):
+            response = parser.get_response()
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        mock_slack_task.apply_async.assert_not_called()
 
     @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
     def test_skips_async_response_if_org_integration_missing(self, mock_slack_task):

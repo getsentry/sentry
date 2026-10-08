@@ -98,6 +98,18 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_get_explorer_state.assert_called_once_with(group.organization, group.id)
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_forbidden_when_ai_features_hidden(self, mock_get_explorer_state):
+        group = self.create_group()
+        self.organization.update_option("sentry:hide_ai_features", True)
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "AI features are disabled for this organization."}
+        mock_get_explorer_state.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_includes_sentry_run_id(self, mock_get_explorer_state):
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=888)
@@ -422,6 +434,22 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data["run_id"] == 123
         mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_forbidden_when_ai_features_hidden(self, mock_trigger_explorer):
+        group = self.create_group()
+        self.organization.update_option("sentry:hide_ai_features", True)
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+        )
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "AI features are disabled for this organization."}
+        mock_trigger_explorer.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.metrics.distribution")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")

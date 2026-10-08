@@ -44,7 +44,7 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 const schema = z.object({
-  email: z.string().email('Invalid email'),
+  email: z.email('Invalid email'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
 });
 
@@ -427,7 +427,7 @@ Fields accept `disabled` as a boolean or string. When a string is provided, it d
 import {z} from 'zod';
 
 const userSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  email: z.email('Please enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   age: z.number().gte(13, 'You must be at least 13 years old'),
   bio: z.string().optional(),
@@ -479,7 +479,9 @@ const form = useScrapsForm({
 
 ### Conditional Validation
 
-Use `.refine()` for cross-field validation:
+Use `.refine()` when the validity of one value depends on another value, such as
+matching passwords. Do not use a form-level `.superRefine()` to require a field
+only while it is displayed; put that validator on the conditional field instead.
 
 ```tsx
 const schema = z
@@ -495,13 +497,25 @@ const schema = z
 
 ### Conditional Fields
 
-Use `form.Subscribe` to show/hide fields based on other field values:
+Use `form.Subscribe` to show/hide fields based on other field values. Keep
+conditionally required values permissive in the form schema, then validate
+them on the rendered `AppField` so hidden fields do not block submission:
 
 ```tsx
+const schema = z.object({
+  plan: z.enum(['standard', 'enterprise']),
+  billingEmail: z.string(),
+});
+
 <form.Subscribe selector={state => state.values.plan === 'enterprise'}>
   {showBilling =>
     showBilling ? (
-      <form.AppField name="billingEmail">
+      <form.AppField
+        name="billingEmail"
+        validators={{
+          onDynamic: z.email('Enter a valid billing email'),
+        }}
+      >
         {field => (
           <field.Layout.Stack label="Billing Email" required>
             <field.Input value={field.state.value} onChange={field.handleChange} />
@@ -510,8 +524,13 @@ Use `form.Subscribe` to show/hide fields based on other field values:
       </form.AppField>
     ) : null
   }
-</form.Subscribe>
+</form.Subscribe>;
 ```
+
+For a nullable number field, keep `z.number().nullable()` in the form schema
+and use a field validator such as
+`z.number().positive('Amount must be greater than zero').nullable().refine(value => value !== null, 'Amount is required')`.
+The `refine` rejects the `null` emitted when the number input is empty.
 
 ---
 

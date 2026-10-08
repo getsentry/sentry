@@ -41,6 +41,7 @@ import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/grou
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
@@ -185,7 +186,17 @@ export function GroupResolutionActions({
   );
 }
 
-export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+export function GroupActions({
+  group,
+  project,
+  disabled,
+  event,
+  onUpdateSuccess,
+  resolveVariant = 'primary',
+}: GroupActionsProps & {
+  onUpdateSuccess?: () => void;
+  resolveVariant?: 'primary' | 'secondary';
+}) {
   const {openModal} = useModal();
 
   const theme = useTheme();
@@ -204,9 +215,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
   const issueCommandLabel = useMemo(() => {
-    const {title: rawIssueTitle} = getTitle(group);
-    const title = rawIssueTitle ?? '';
-    const message = getMessage(group);
+    const title = stripAnsi(getTitle(group).title ?? '');
+    const message = stripAnsi(getMessage(group) ?? '');
     return message && message !== title ? `${title}: ${message}` : title;
   }, [group]);
 
@@ -308,6 +318,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         addSuccessMessage(successMessage);
       }
       onComplete?.();
+      onUpdateSuccess?.();
     } catch {
       // GroupStore already shows the error
     } finally {
@@ -547,6 +558,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               group={group}
               onUpdate={onUpdate}
               project={project}
+              variant={resolveVariant}
             />
           </Flex>
         ) : (
@@ -557,6 +569,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               group={group}
               onUpdate={onUpdate}
               project={project}
+              variant={resolveVariant}
             />
             <ArchiveActions
               size="sm"

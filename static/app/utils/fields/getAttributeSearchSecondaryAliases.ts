@@ -6,6 +6,7 @@ import {
 import type {TagCollection} from 'sentry/types/group';
 
 import {attributeSearchTypeToFieldValueType} from './attributeSearchTypeToFieldValueType';
+import {getAttributeSearchMetadata} from './getAttributeSearchMetadata';
 import {FieldKind, FieldValueType} from './types';
 
 /**
@@ -17,16 +18,18 @@ function isTemplateAttributeSearchKey(key: string): boolean {
 
 /**
  * Other names the value is readable under, excluding the search key itself.
- * Template keys like `params.<key>` are dropped — they are not typeable aliases.
+ * Template keys like `params.<key>` are dropped by default for autocomplete.
+ * Visibility checks include them because they can also identify internal attributes.
  */
-export function getAttributeSearchDeprecationAliases(key: string): string[] {
-  const metadata = ATTRIBUTE_SEARCH_METADATA[key];
-  if (!Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, key) || !metadata) {
-    return [];
-  }
-
-  return metadata.deprecationChain.filter(
-    alias => alias !== key && !isTemplateAttributeSearchKey(alias)
+export function getAttributeSearchDeprecationAliases(
+  key: string,
+  {includeTemplateKeys = false}: {includeTemplateKeys?: boolean} = {}
+): string[] {
+  return (
+    getAttributeSearchMetadata(key)?.deprecationChain.filter(
+      alias =>
+        alias !== key && (includeTemplateKeys || !isTemplateAttributeSearchKey(alias))
+    ) ?? []
   );
 }
 
@@ -35,11 +38,7 @@ export function getAttributeSearchDeprecationAliases(key: string): string[] {
  * The first deprecation chain member is the preferred search attribute.
  */
 export function getPreferredAttributeSearchKey(key: string): string | undefined {
-  const metadata = ATTRIBUTE_SEARCH_METADATA[key];
-  if (!Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, key) || !metadata) {
-    return undefined;
-  }
-  return metadata.deprecationChain[0];
+  return getAttributeSearchMetadata(key)?.deprecationChain[0];
 }
 
 function attributeSearchTypeToFieldKind(type: AttributeSearchType): FieldKind {

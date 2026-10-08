@@ -309,6 +309,11 @@ def top_events_timeseries(
             timeseries_columns=timeseries_columns,
             equations=equations,
             snuba_params=snuba_params,
+            config=QueryBuilderConfig(
+                functions_acl=functions_acl,
+                skip_tag_resolution=True,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+            ),
         )
         result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
@@ -330,6 +335,7 @@ def top_events_timeseries(
                     if zerofill_results
                     else []
                 ),
+                "meta": top_events_builder.process_results(result)["meta"],
             },
             snuba_params.start_date,
             snuba_params.end_date,
@@ -338,6 +344,8 @@ def top_events_timeseries(
     with start_span(op="discover.errors", name="top_events.transform_results") as span:
         set_span_data(span, "result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
+        if len(other_result.get("data", [])):
+            other_result = other_events_builder.process_results(other_result)
 
         issues: Mapping[int, str | None] = {}
         if "issue" in selected_columns:

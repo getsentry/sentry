@@ -259,6 +259,10 @@ type OTAFieldKey =
  */
 export const DEFAULT_TAG_DESCRIPTION = t('A tag sent with one or more events');
 
+export const DEFAULT_ATTRIBUTE_DESCRIPTION = t(
+  'An attribute sent with one or more events'
+);
+
 export enum WebVital {
   FP = 'measurements.fp',
   FCP = 'measurements.fcp',
