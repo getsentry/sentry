@@ -5,6 +5,7 @@ import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -618,6 +619,14 @@ describe('ProjectFilters', () => {
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.queryByText('99')).not.toBeInTheDocument();
 
+    // The chart is a canvas, so the cell describes the trend for assistive technology.
+    expect(
+      screen.getByRole('img', {name: 'Filtered volume trend, peak 10'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {name: 'Filtered volume trend, peak 0'})
+    ).toBeInTheDocument();
+
     // Byte categories report the same data a second time, in bytes, so the request
     // has to ask for the counting categories alone.
     expect(statsMock).toHaveBeenCalledWith(
@@ -699,6 +708,12 @@ describe('ProjectFilters', () => {
     expect(screen.queryByText('4.*')).not.toBeInTheDocument();
     expect(screen.getByText('2 more')).toBeInTheDocument();
     expect(screen.getAllByText('or')).toHaveLength(3);
+
+    // The folded values open from the keyboard, not only on hover.
+    expect(screen.getByText('2 more')).toHaveAttribute('tabindex', '0');
+    act(() => screen.getByText('2 more').focus());
+    expect(await screen.findByText('4.*')).toBeInTheDocument();
+    expect(screen.getByText('5.*')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
     expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
@@ -1101,6 +1116,7 @@ describe('ProjectFilters', () => {
       screen.getByRole('menuitemradio', {name: 'Error Message'})
     ).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Error Type'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Country'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'IP Address'})).toBeInTheDocument();
     expect(
@@ -1159,6 +1175,33 @@ describe('ProjectFilters', () => {
     ).toBeInTheDocument();
   });
 
+  it('warns in the modal when an error condition targets an obfuscated platform', async () => {
+    const warningLink = {name: 'Learn how to match the incoming error.'};
+    renderInboundFilters([], ProjectFixture({...project, platform: 'javascript-react'}));
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    expect(screen.getByRole('link', warningLink)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Error Type'}));
+    expect(screen.getByRole('link', warningLink)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
+    expect(screen.queryByRole('link', warningLink)).not.toBeInTheDocument();
+  });
+
+  it('does not warn in the modal on a backend platform', async () => {
+    renderInboundFilters([], ProjectFixture({...project, platform: 'python'}));
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Learn how to match the incoming error.'})
+    ).not.toBeInTheDocument();
+  });
+
   it('creates a catch-all filter that applies to every data type', async () => {
     renderInboundFilters([]);
     expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
@@ -1186,6 +1229,9 @@ describe('ProjectFilters', () => {
     expect(screen.getByRole('menuitemradio', {name: 'IP Address'})).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'Error Message'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Country'})
     ).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
 

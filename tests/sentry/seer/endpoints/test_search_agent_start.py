@@ -114,7 +114,6 @@ class SendSearchAgentStartRequestTest(TestCase):
         assert sent_options["result_target"] == "agent_search"
 
 
-@with_feature("organizations:gen-ai-search-agent-translate")
 @override_settings(SENTRY_SELF_HOSTED=False)
 class SearchAgentStartEndpointTest(APITestCase):
     def setUp(self) -> None:

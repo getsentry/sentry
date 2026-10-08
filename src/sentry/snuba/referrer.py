@@ -402,6 +402,9 @@ class Referrer(StrEnum):
     API_INSIGHTS_AGENTS_MODELS_TABLE = "api.insights.agent-monitoring.models-table"
     API_INSIGHTS_AGENTS_TOOLS_TABLE = "api.insights.agent-monitoring.tools-table"
     API_INSIGHTS_AGENTS_TRACE_DRAWER = "api.insights.agent-monitoring.trace-drawer"
+    API_INSIGHTS_AGENTS_TRACE_DRAWER_TOOL_USAGE = (
+        "api.insights.agent-monitoring.trace-drawer-tool-usage"
+    )
     API_INSIGHTS_AGENTS_TRACES_TABLE = "api.insights.agent-monitoring.traces-table"
     API_INSIGHTS_AGENTS_TOKEN_USAGE_WIDGET = "api.insights.agent-monitoring.token-usage-widget"
     API_INSIGHTS_AGENTS_TOKEN_COST_WIDGET = "api.insights.agent-monitoring.token-cost-widget"
@@ -416,6 +419,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_AGENTS_ONBOARDING = "api.insights.agent-monitoring.onboarding"
 
     # MCP (Model Context Protocol)
+    API_INSIGHTS_MCP_ONBOARDING = "api.insights.mcp.onboarding"
     API_INSIGHTS_MCP_PROMPT_DURATION_WIDGET = "api.insights.mcp.prompt-duration-widget"
     API_INSIGHTS_MCP_PROMPT_ERROR_RATE_WIDGET = "api.insights.mcp.prompt-error-rate-widget"
     API_INSIGHTS_MCP_PROMPT_TABLE = "api.insights.mcp.prompt-table"
@@ -436,6 +440,7 @@ class Referrer(StrEnum):
     # Misc
     API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN = "api.insights.org-event-average-span"
 
+    API_CODE_MAPPING_STACK_PREFIXES = "api.code-mapping.stack-prefixes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
@@ -599,7 +604,6 @@ class Referrer(StrEnum):
     API_TRACE_METRICS_TAG_VALUES_RPC = "api.tracemetrics.tags-values.rpc"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
-    API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
     API_SERIALIZER_PROJECTS_GET_TRANSACTION_STATS = "api.serializer.projects.get_transaction_stats"

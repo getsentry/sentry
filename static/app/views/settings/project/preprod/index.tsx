@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
@@ -51,7 +52,11 @@ export default function PreprodSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Mobile Builds')} />
       <SettingsPageHeader
-        title={t('Mobile Builds')}
+        title={{
+          type: 'page-title',
+          label: t('Mobile Builds'),
+          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+        }}
         subtitle={t(
           'Configure status checks and thresholds for your mobile build size analysis.'
         )}

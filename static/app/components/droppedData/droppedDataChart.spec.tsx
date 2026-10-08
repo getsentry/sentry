@@ -1,25 +1,25 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
-import {annotationsToSeries} from './droppedDataChart';
+import {droppedEventsToSeries} from './droppedDataChart';
 
-describe('annotationsToSeries', () => {
-  it('returns an empty object for no annotations', () => {
-    expect(annotationsToSeries([])).toEqual({});
+describe('droppedEventsToSeries', () => {
+  it('returns an empty object for no events', () => {
+    expect(droppedEventsToSeries([])).toEqual({});
   });
 
-  it('groups annotations by outcome, mapping to a user-facing label', () => {
-    const series = annotationsToSeries([
-      AnnotationFixture({outcome: 'rate_limited', start: 0, end: 1, eventCount: 5}),
+  it('groups events by outcome, mapping to a user-facing label', () => {
+    const series = droppedEventsToSeries([
+      DroppedEventFixture({outcome: 'rate_limited', start: 0, end: 1, count: 5}),
     ]);
 
     expect(Object.keys(series)).toEqual(['Rate limited']);
   });
 
   it('maps each known outcome to its label', () => {
-    const series = annotationsToSeries([
-      AnnotationFixture({outcome: 'client_discard', start: 0, end: 1, eventCount: 1}),
-      AnnotationFixture({outcome: 'filtered', start: 0, end: 1, eventCount: 1}),
-      AnnotationFixture({outcome: 'invalid', start: 0, end: 1, eventCount: 1}),
+    const series = droppedEventsToSeries([
+      DroppedEventFixture({outcome: 'client_discard', start: 0, end: 1, count: 1}),
+      DroppedEventFixture({outcome: 'filtered', start: 0, end: 1, count: 1}),
+      DroppedEventFixture({outcome: 'invalid', start: 0, end: 1, count: 1}),
     ]);
 
     expect(Object.keys(series).sort()).toEqual([
@@ -31,10 +31,10 @@ describe('annotationsToSeries', () => {
 
   it('zerofills every outcome onto the shared, sorted time axis', () => {
     // client_discard has data at t=0 and t=2, rate_limited only at t=1.
-    const series = annotationsToSeries([
-      AnnotationFixture({outcome: 'client_discard', start: 2, end: 3, eventCount: 3}),
-      AnnotationFixture({outcome: 'client_discard', start: 0, end: 1, eventCount: 1}),
-      AnnotationFixture({outcome: 'rate_limited', start: 1, end: 2, eventCount: 7}),
+    const series = droppedEventsToSeries([
+      DroppedEventFixture({outcome: 'client_discard', start: 2, end: 3, count: 3}),
+      DroppedEventFixture({outcome: 'client_discard', start: 0, end: 1, count: 1}),
+      DroppedEventFixture({outcome: 'rate_limited', start: 1, end: 2, count: 7}),
     ]);
 
     // Both series cover all three sorted timestamps, zerofilled where missing.
@@ -50,18 +50,18 @@ describe('annotationsToSeries', () => {
     ]);
   });
 
-  it('sums eventCount for annotations sharing an outcome and timestamp', () => {
-    const series = annotationsToSeries([
-      AnnotationFixture({outcome: 'invalid', start: 0, end: 1, eventCount: 4}),
-      AnnotationFixture({outcome: 'invalid', start: 0, end: 1, eventCount: 6}),
+  it('sums count for events sharing an outcome and timestamp', () => {
+    const series = droppedEventsToSeries([
+      DroppedEventFixture({outcome: 'invalid', start: 0, end: 1, count: 4}),
+      DroppedEventFixture({outcome: 'invalid', start: 0, end: 1, count: 6}),
     ]);
 
     expect(series['Invalid or malformed']!.values).toEqual([{timestamp: 0, value: 10}]);
   });
 
-  it('derives the interval from an annotation bucket span', () => {
-    const series = annotationsToSeries([
-      AnnotationFixture({outcome: 'filtered', start: 0, end: 60_000, eventCount: 1}),
+  it('derives the interval from an event bucket span', () => {
+    const series = droppedEventsToSeries([
+      DroppedEventFixture({outcome: 'filtered', start: 0, end: 60_000, count: 1}),
     ]);
 
     expect(series['Inbound filter']!.meta.interval).toBe(60_000);

@@ -1,4 +1,4 @@
-import type {RouteObject} from 'react-router-dom';
+import type {RouteObject} from 'react-router';
 
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
