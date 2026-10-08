@@ -7,6 +7,7 @@ import pick from 'lodash/pick';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Table, type TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 
 import {
   deleteMonitorEnvironment,
@@ -159,7 +160,9 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
       density="comfortable"
       header={
         <TimelineHeaderRow>
-          <SimpleTable.HeaderCell>{t('Check-Ins')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>
+            <Text bold>{t('Check-Ins')}</Text>
+          </SimpleTable.HeaderCell>
           <TimelineHeaderCell ref={elementRef} scope="col" aria-label={t('Timeline')}>
             <GridLineLabels timeWindowConfig={timeWindowConfig} />
             <TimelineOverlay
