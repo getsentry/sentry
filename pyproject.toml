@@ -1175,7 +1175,6 @@ module = [
     "sentry.plugins",
     "sentry.plugins.base",
     "sentry.plugins.base.binding_manager",
-    "sentry.plugins.base.structs",
     "sentry.plugins.interfaces.*",
     "sentry.plugins.providers",
     "sentry.plugins.providers.base",
