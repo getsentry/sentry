@@ -425,14 +425,6 @@ function InboxContent() {
                 restoreSelectedIssueScroll={restoreSelectedIssueScroll}
               />
             ))}
-            {!selectedIssueId && isInboxEmpty && !isDesktop && (
-              <Flex flex={1} minHeight={0}>
-                <InboxEmptyState
-                  assignmentFilter={assignmentFilter}
-                  alternateInbox={alternateInboxAction}
-                />
-              </Flex>
-            )}
           </Stack>
           <Container
             top="0"

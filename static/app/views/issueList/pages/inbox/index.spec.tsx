@@ -1496,7 +1496,7 @@ describe('InboxPage', () => {
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('shows the empty state in the inbox pane when the container is narrow', async () => {
+  it('shows one column without the empty state when the container is narrow', async () => {
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1016);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -1506,9 +1506,10 @@ describe('InboxPage', () => {
     render(<InboxPageInContainer />, {organization, initialRouterConfig});
 
     const inbox = screen.getByRole('region', {name: 'Issue inbox'});
+    expect(await within(inbox).findByText('Fix Proposed')).toBeInTheDocument();
     expect(
-      await within(inbox).findByRole('heading', {name: 'No Issues in your Inbox!'})
-    ).toBeInTheDocument();
+      screen.queryByRole('heading', {name: 'No Issues in your Inbox!'})
+    ).not.toBeInTheDocument();
     expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
       'grid-template-columns: minmax(0, 1fr)'
     );
