@@ -21,10 +21,10 @@ from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
 from sentry.workflow_engine.handlers.condition.utils.event_frequency import ComparisonType
 from sentry.workflow_engine.handlers.condition.utils.match import MatchType
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -527,9 +527,7 @@ class IssueAlertMigratorTest(TestCase):
         Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         Detector.objects.get(id=issue_alert_detector.detector.id)
 
-    @patch(
-        "sentry.workflow_engine.migration_helpers.issue_alert_migration.enforce_data_condition_json_schema"
-    )
+    @patch("sentry.testutils.helpers.issue_alert_migration.enforce_data_condition_json_schema")
     def test_dry_run__data_condition_validation_fails(self, mock_enforce: MagicMock) -> None:
         mock_enforce.side_effect = ValidationError("oopsie")
 

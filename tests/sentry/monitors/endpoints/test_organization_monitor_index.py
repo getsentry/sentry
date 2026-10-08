@@ -12,7 +12,6 @@ from sentry import audit_log
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, is_monitor_muted
 from sentry.monitors.utils import get_detector_for_monitor
 from sentry.quotas.base import SeatAssignmentResult
@@ -582,40 +581,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             )
         ]
 
-    def test_simple_with_alert_rule(self) -> None:
-        from sentry.workflow_engine.models import AlertRuleWorkflow, DetectorWorkflow, Workflow
-
-        data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "type": "cron_job",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {
-                "environment": self.environment.name,
-                "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
-            },
-        }
-        response = self.get_success_response(self.organization.slug, **data)
-
-        monitor = Monitor.objects.get(slug=response.data["slug"])
-        alert_rule_id = monitor.config["alert_rule_id"]
-        rule = Rule.objects.get(
-            project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
-        )
-        assert rule is not None
-        assert rule.environment_id == self.environment.id
-
-        # Verify the detector was created and linked to the workflow
-        detector = get_detector_for_monitor(monitor)
-        assert detector is not None
-
-        # Verify the workflow was created for the rule
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-
-        # Verify the detector is linked to the workflow
-        assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
-
     @patch("sentry.monitors.validators.logger")
     def test_alert_rule_disabled(self, mock_logger: MagicMock) -> None:
         data = {
@@ -629,8 +594,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             },
         }
 
-        with self.feature("organizations:crons-disable-alert-rule"):
-            response = self.get_error_response(self.organization.slug, status_code=400, **data)
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
 
         assert response.data["alertRule"] == [
             "Cron monitor alert rules are disabled for this organization."

@@ -9,7 +9,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.workflow_engine.migration_helpers.alert_rule import (
+from sentry.testutils.helpers.metric_alert_migration import (
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,

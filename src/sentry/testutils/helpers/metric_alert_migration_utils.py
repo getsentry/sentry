@@ -1,11 +1,8 @@
-from collections.abc import Sequence
 from typing import cast
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup
-from sentry.workflow_engine.types import DetectorPriorityLevel
 
 MAX_ACTIONS = 3
 
@@ -16,23 +13,6 @@ ACTION_TYPE_TO_STRING = {
     AlertRuleTriggerAction.Type.OPSGENIE.value: "Opsgenie",
     AlertRuleTriggerAction.Type.DISCORD.value: "Discord",
 }
-
-
-def get_resolve_thresholds(
-    condition_groups: Sequence[DataConditionGroup],
-) -> dict[int, float | None]:
-    """
-    Batch-fetch resolution thresholds for multiple condition groups.
-    Returns a dict mapping condition_group.id to the resolve threshold (or None).
-    """
-    resolve_conditions = DataCondition.objects.filter(
-        condition_result=DetectorPriorityLevel.OK,
-        condition_group__in=condition_groups,
-    )
-    thresholds: dict[int, float | None] = {}
-    for dc in resolve_conditions:
-        thresholds[dc.condition_group_id] = dc.comparison
-    return thresholds
 
 
 def get_action_description(action: AlertRuleTriggerAction) -> str:

@@ -1,12 +1,14 @@
+from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
+    get_resolve_thresholds,
+)
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.metric_alert_migration import migrate_alert_rule
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
-from sentry.workflow_engine.migration_helpers.utils import get_resolve_thresholds
 from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
 

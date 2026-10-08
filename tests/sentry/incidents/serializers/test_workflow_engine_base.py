@@ -21,15 +21,15 @@ from sentry.snuba.models import ExtrapolationMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.activity import ActivityType
-from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.migration_helpers.alert_rule import (
+from sentry.testutils.helpers.metric_alert_migration import (
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 

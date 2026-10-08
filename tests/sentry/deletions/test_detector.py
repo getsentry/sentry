@@ -7,9 +7,9 @@ from sentry.deletions.tasks.scheduled import reattempt_deletions, run_scheduled_
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.testutils.helpers.metric_alert_migration import dual_write_alert_rule
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
-from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,

@@ -25,9 +25,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.metric_alert_migration import migrate_alert_rule
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]

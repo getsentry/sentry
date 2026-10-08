@@ -15,7 +15,7 @@ from sentry.testutils.helpers.data_blobs import (
     JIRA_SERVER_ACTION_DATA_BLOBS,
     WEBHOOK_ACTION_DATA_BLOBS,
 )
-from sentry.workflow_engine.migration_helpers.rule_action import (
+from sentry.testutils.helpers.rule_action import (
     build_notification_actions_from_rule_data_actions,
 )
 from sentry.workflow_engine.models.action import Action
@@ -219,7 +219,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                 target_type_key,
             )
 
-    @patch("sentry.workflow_engine.migration_helpers.rule_action.logger.error")
+    @patch("sentry.testutils.helpers.rule_action.logger.error")
     def test_missing_id_in_action_data(self, mock_logger: MagicMock) -> None:
         action_data = [
             {
@@ -241,7 +241,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             extra={"action_uuid": "b1234567-89ab-cdef-0123-456789abcdef"},
         )
 
-    @patch("sentry.workflow_engine.migration_helpers.rule_action.logger.exception")
+    @patch("sentry.testutils.helpers.rule_action.logger.exception")
     def test_unregistered_action_translator(self, mock_logger: MagicMock) -> None:
         action_data = [
             {
@@ -316,7 +316,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             actions, action_data, "workspace", "channel_id", "channel"
         )
 
-    @patch("sentry.workflow_engine.migration_helpers.rule_action.logger.error")
+    @patch("sentry.testutils.helpers.rule_action.logger.error")
     def test_slack_action_migration_malformed(self, mock_logger: MagicMock) -> None:
         action_data = [
             # Missing required fields
@@ -379,7 +379,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         self.assert_actions_migrated_correctly(actions, action_data, "server", "channel_id", None)
 
-    @patch("sentry.workflow_engine.migration_helpers.rule_action.logger.error")
+    @patch("sentry.testutils.helpers.rule_action.logger.error")
     def test_discord_action_migration_malformed(self, mock_logger: MagicMock) -> None:
         action_data = [
             # Missing required fields
@@ -436,7 +436,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             actions, action_data, "team", "channel_id", "channel"
         )
 
-    @patch("sentry.workflow_engine.migration_helpers.rule_action.logger.error")
+    @patch("sentry.testutils.helpers.rule_action.logger.error")
     def test_msteams_action_migration_malformed(self, mock_logger: MagicMock) -> None:
         action_data = [
             # Missing required fields
