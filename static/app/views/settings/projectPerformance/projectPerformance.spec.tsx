@@ -29,45 +29,78 @@ import {DetectorConfigCustomer} from './detectors/detectorSettings';
 jest.mock('sentry/utils/analytics');
 
 const manageDetectorData = [
-  {label: 'N+1 DB Queries Detection', key: 'n_plus_one_db_queries_detection_enabled'},
-  {label: 'Slow DB Queries Detection', key: 'slow_db_queries_detection_enabled'},
-  {label: 'DB on Main Thread Detection', key: 'db_on_main_thread_detection_enabled'},
+  {
+    label: 'N+1 DB Queries Detection',
+    key: 'n_plus_one_db_queries_detection_enabled',
+    group: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+  },
+  {
+    label: 'Slow DB Queries Detection',
+    key: 'slow_db_queries_detection_enabled',
+    group: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
+  },
+  {
+    label: 'DB on Main Thread Detection',
+    key: 'db_on_main_thread_detection_enabled',
+    group: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
+  },
   {
     label: 'File I/O on Main Thread Detection',
     key: 'file_io_on_main_thread_detection_enabled',
+    group: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
   },
   {
     label: 'Consecutive DB Queries Detection',
     key: 'consecutive_db_queries_detection_enabled',
+    group: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
   },
   {
     label: 'Large Render Blocking Asset Detection',
     key: 'large_render_blocking_asset_detection_enabled',
+    group: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
   },
   {
     label: 'Uncompressed Assets Detection',
     key: 'uncompressed_assets_detection_enabled',
+    group: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
   },
-  {label: 'Large HTTP Payload Detection', key: 'large_http_payload_detection_enabled'},
-  {label: 'N+1 API Calls Detection', key: 'n_plus_one_api_calls_detection_enabled'},
+  {
+    label: 'Large HTTP Payload Detection',
+    key: 'large_http_payload_detection_enabled',
+    group: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+  },
+  {
+    label: 'N+1 API Calls Detection',
+    key: 'n_plus_one_api_calls_detection_enabled',
+    group: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+  },
   {
     label: 'Consecutive HTTP Detection',
     key: 'consecutive_http_spans_detection_enabled',
+    group: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
   },
   {
     label: 'HTTP/1.1 Overhead Detection',
     key: 'http_overhead_detection_enabled',
+    group: IssueTitle.PERFORMANCE_HTTP_OVERHEAD,
   },
-  {label: 'Web Vitals Detection', key: 'web_vitals_detection_enabled'},
+  {
+    label: 'Web Vitals Detection',
+    key: 'web_vitals_detection_enabled',
+    group: IssueTitle.WEB_VITALS,
+  },
 ];
 
-async function expandAllDetectorSettings() {
+function getDetectorSettings() {
   const detectorSettings = document.getElementById('detector-threshold-settings');
   if (!detectorSettings) {
     throw new Error('Detector settings were not rendered');
   }
+  return detectorSettings;
+}
 
-  const collapsedGroups = within(detectorSettings).queryAllByRole('button', {
+async function expandAllDetectorSettings() {
+  const collapsedGroups = within(getDetectorSettings()).queryAllByRole('button', {
     expanded: false,
   });
   for (const group of collapsedGroups) {
@@ -75,8 +108,21 @@ async function expandAllDetectorSettings() {
   }
 }
 
+// Expanding only the groups a test touches avoids a click (and a pass over the
+// page) for every other detector group.
+async function expandDetectorGroups(groupTitles: string[]) {
+  const detectorSettings = getDetectorSettings();
+  for (const name of groupTitles) {
+    await userEvent.click(
+      within(detectorSettings).getByRole('button', {name, expanded: false})
+    );
+  }
+}
+
 function getDetectorSlider({label, index}: {index: number; label: string}) {
-  const slider = screen.getAllByRole('slider', {name: label}).at(index);
+  const slider = within(getDetectorSettings())
+    .getAllByRole('slider', {name: label})
+    .at(index);
   if (!slider) {
     throw new Error(`Slider "${label}" at index ${index} was not rendered`);
   }
@@ -764,9 +810,11 @@ describe('projectPerformance', () => {
       initialRouterConfig,
     });
     await screen.findByText('Performance Issues - Detector Threshold Settings');
-    await expandAllDetectorSettings();
+    await expandDetectorGroups([IssueTitle.PERFORMANCE_HTTP_OVERHEAD]);
 
-    expect(screen.getByRole('slider', {name: 'Request Delay'})).toHaveValue('11');
+    expect(
+      within(getDetectorSettings()).getByRole('slider', {name: 'Request Delay'})
+    ).toHaveValue('11');
   });
 
   it('resets configurable detector settings', async () => {
@@ -809,8 +857,8 @@ describe('projectPerformance', () => {
     const button = await screen.findByText('Reset All Thresholds');
     expect(button).toBeInTheDocument();
 
-    await expandAllDetectorSettings();
-    const detectorSwitch = screen.getByRole('checkbox', {
+    await expandDetectorGroups(['AI Detected']);
+    const detectorSwitch = within(getDetectorSettings()).getByRole('checkbox', {
       name: 'HTTP Issues',
     });
     expect(detectorSwitch).toBeChecked();
@@ -835,7 +883,9 @@ describe('projectPerformance', () => {
 
     await waitFor(() => {
       expect(performanceIssuesGetMock).toHaveBeenCalledTimes(2);
-      expect(screen.getByRole('checkbox', {name: 'HTTP Issues'})).toBeChecked();
+      expect(
+        within(getDetectorSettings()).getByRole('checkbox', {name: 'HTTP Issues'})
+      ).toBeChecked();
     });
   });
 
@@ -860,14 +910,17 @@ describe('projectPerformance', () => {
     render(<ProjectPerformance />, {organization: org, initialRouterConfig});
     await screen.findByText('Performance Issues - Detector Threshold Settings');
 
+    const detectorSettings = getDetectorSettings();
     for (const {label} of detectors) {
-      expect(screen.queryByRole('checkbox', {name: label})).not.toBeInTheDocument();
+      expect(
+        within(detectorSettings).queryByRole('checkbox', {name: label})
+      ).not.toBeInTheDocument();
     }
 
-    await expandAllDetectorSettings();
+    await expandDetectorGroups(detectors.map(({group}) => group));
 
     for (const {label, key} of detectors) {
-      const toggle = screen.getByRole('checkbox', {name: label});
+      const toggle = within(detectorSettings).getByRole('checkbox', {name: label});
       expect(toggle).toBeChecked();
 
       await userEvent.click(toggle);
@@ -907,15 +960,12 @@ describe('projectPerformance', () => {
       initialRouterConfig,
     });
     await screen.findByText('Performance Issues - Detector Threshold Settings');
-    await expandAllDetectorSettings();
+    await expandDetectorGroups([IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]);
 
-    const toggle = screen.getByRole('checkbox', {name: 'N+1 DB Queries Detection'});
-    const threshold = screen.getAllByRole('slider', {
-      name: 'Minimum Total Duration',
-    })[0];
-    if (!threshold) {
-      throw new Error('Minimum Total Duration slider was not rendered');
-    }
+    const toggle = within(getDetectorSettings()).getByRole('checkbox', {
+      name: 'N+1 DB Queries Detection',
+    });
+    const threshold = getDetectorSlider({label: 'Minimum Total Duration', index: 0});
     expect(threshold).toBeEnabled();
 
     await userEvent.click(toggle);
@@ -965,13 +1015,17 @@ describe('projectPerformance', () => {
       initialRouterConfig,
     });
     await screen.findByText('Performance Issues - Detector Threshold Settings');
-    await expandAllDetectorSettings();
+    await expandDetectorGroups([
+      IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+      IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
+    ]);
 
+    const detectorSettings = getDetectorSettings();
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'N+1 DB Queries Detection'})
+      within(detectorSettings).getByRole('checkbox', {name: 'N+1 DB Queries Detection'})
     );
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Slow DB Queries Detection'})
+      within(detectorSettings).getByRole('checkbox', {name: 'Slow DB Queries Detection'})
     );
 
     expect(mockPut).toHaveBeenCalledTimes(1);
@@ -1006,14 +1060,19 @@ describe('projectPerformance', () => {
 
     await screen.findByText('Performance Issues - Detector Threshold Settings');
 
+    const detectorSettings = getDetectorSettings();
     for (const {label} of manageDetectorData) {
-      expect(screen.queryByRole('checkbox', {name: label})).not.toBeInTheDocument();
+      expect(
+        within(detectorSettings).queryByRole('checkbox', {name: label})
+      ).not.toBeInTheDocument();
     }
 
     await expandAllDetectorSettings();
 
     for (const {label} of manageDetectorData) {
-      expect(screen.getByRole('checkbox', {name: label})).toBeDisabled();
+      expect(
+        within(detectorSettings).getByRole('checkbox', {name: label})
+      ).toBeDisabled();
     }
   });
 });

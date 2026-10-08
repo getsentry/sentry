@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {memo, type ReactNode} from 'react';
 import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
@@ -16,7 +16,29 @@ export type DetectorRangeFieldProps = CommonDetectorFieldProps & {
   tickValues?: number[];
 };
 
-export function DetectorRangeField({
+/**
+ * Every detector save updates the shared settings query, which rebuilds all
+ * detector fields with freshly sliced `allowedValues`/`tickValues` arrays.
+ * Compare arrays by value so only the field that changed re-renders.
+ */
+function arePropsEqual(prev: DetectorRangeFieldProps, next: DetectorRangeFieldProps) {
+  const keys = new Set([...Object.keys(prev), ...Object.keys(next)]) as Set<
+    keyof DetectorRangeFieldProps
+  >;
+  return [...keys].every(key => {
+    const prevValue = prev[key];
+    const nextValue = next[key];
+    if (Array.isArray(prevValue) && Array.isArray(nextValue)) {
+      return (
+        prevValue.length === nextValue.length &&
+        prevValue.every((value, index) => value === nextValue[index])
+      );
+    }
+    return Object.is(prevValue, nextValue);
+  });
+}
+
+export const DetectorRangeField = memo(function DetectorRangeField({
   allowedValues,
   disabled,
   formatLabel,
@@ -83,4 +105,4 @@ export function DetectorRangeField({
       }}
     </AutoSaveForm>
   );
-}
+}, arePropsEqual);

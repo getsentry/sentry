@@ -76,6 +76,10 @@ const formatFrameRate = (value: number | ''): string => {
 };
 
 const formatCount = (value: number | ''): string => '' + value;
+
+const formatRatio = (value: number | '') => value && formatPercentage(value);
+
+const formatQueryLength = (value: number | '') => value && value.toString();
 type DetectorSettingsOptions = {
   hasAIIssueDetection: boolean;
   hasAccess: boolean;
@@ -388,7 +392,7 @@ export function getProjectDetectorSettings({
               hasAccess &&
               performanceIssueSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
             ),
-            formatLabel: value => value && formatPercentage(value),
+            formatLabel: formatRatio,
             disabledReason,
           }}
         />,
@@ -641,7 +645,7 @@ export function getProjectDetectorSettings({
               hasAccess &&
               performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
             ),
-            formatLabel: value => value && value.toString(),
+            formatLabel: formatQueryLength,
             disabledReason,
           }}
         />,
