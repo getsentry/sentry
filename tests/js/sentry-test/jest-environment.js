@@ -1,7 +1,6 @@
 const v8 = require('node:v8');
 const vm = require('node:vm');
 
-const withTagsAsSpanAttributes = require('./withTagsAsSpanAttributes');
 const wrapWithStructuredClone = require('./wrapWithStructuredClone');
 
 // Once V8 TurboFan-optimizes a hot async function shared across vm contexts
@@ -21,8 +20,8 @@ v8.setFlagsFromString('--no-expose-gc');
 // between test files keeps the heap small, and its pause can't land in a test.
 const GC_ABOVE_HEAP_BYTES = 512 * 1024 * 1024;
 
-const SentryEnvironment = withTagsAsSpanAttributes(
-  wrapWithStructuredClone(require('@sentry/jest-environment/jsdom'))
+const SentryEnvironment = wrapWithStructuredClone(
+  require('@sentry/jest-environment/jsdom')
 );
 
 module.exports = class SentryTestEnvironment extends SentryEnvironment {

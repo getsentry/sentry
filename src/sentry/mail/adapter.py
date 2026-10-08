@@ -84,7 +84,7 @@ class MailAdapter:
 
             digest_key = unsplit_key(project, target_type, target_identifier, fallthrough_choice)
             extra["digest_key"] = digest_key
-            rules_and_workflows = split_rules_by_rule_workflow_id(rules)
+            rules_and_workflows = split_rules_by_rule_workflow_id(rules, prefer="workflow_id")
             rules_by_identifier_key = {
                 IdentifierKey.RULE: rules_and_workflows.rules,
                 IdentifierKey.WORKFLOW: rules_and_workflows.workflow_rules,
