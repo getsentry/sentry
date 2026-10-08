@@ -364,7 +364,13 @@ function InboxContent() {
     : undefined;
 
   return (
-    <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
+    <Stack
+      flex={1}
+      minHeight={0}
+      contain="size"
+      overflow="hidden"
+      containerType="inline-size"
+    >
       <TopBar.Slot
         name="breadcrumbs"
         title={{
