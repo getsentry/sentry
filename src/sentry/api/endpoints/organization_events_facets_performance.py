@@ -437,7 +437,7 @@ def query_facet_performance(
 
     with traces.start_span(
         name="facets.aggregate_tags",
-        attributes={"sentry.op": "discover.discover", "target_sample": repr(target_sample)},
+        attributes={"sentry.op": "discover.discover", "target_sample": target_sample},
     ) as span:
         if sample_rate is not None:
             span.set_attribute("sample_rate", sample_rate)
