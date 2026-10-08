@@ -8,6 +8,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {PromoCode as PromoCodeType} from 'admin/types';
+import {PromoCodeDetails} from 'admin/views/promoCodeDetails';
 import {PromoCodes} from 'admin/views/promoCodes';
 
 function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
@@ -60,6 +61,34 @@ describe('PromoCodes', () => {
     });
     render(<PromoCodes />);
     expect(await screen.findByRole('link', {name: 'Created By'})).toBeEmptyDOMElement();
+  });
+
+  it('selects the saved duration when editing a promo code', async () => {
+    MockApiClient.addMockResponse({
+      url: '/promocodes/cool_code/',
+      method: 'GET',
+      body: PromoCodeFixture({duration: 'once'}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/promocodes/cool_code/claimants/',
+      method: 'GET',
+      body: [],
+    });
+    render(<PromoCodeDetails />, {
+      initialRouterConfig: {
+        location: {pathname: '/_admin/promocodes/cool_code/'},
+        route: '/_admin/promocodes/:codeId/',
+      },
+    });
+    renderGlobalModal();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Promo Codes Actions'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Edit'}));
+
+    expect(screen.getByRole('heading', {name: 'Edit cool_code'})).toBeInTheDocument();
+    expect(screen.getByText('Once')).toBeInTheDocument();
   });
 
   it('creates a promo code from the modal footer', async () => {

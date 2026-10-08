@@ -88,7 +88,7 @@ export function AddPromoCodeModal({
       code: promoCode?.code ?? '',
       campaign: promoCode?.campaign ?? '',
       isTrialPromo: false,
-      duration: promoCode?.duration ?? '1',
+      duration: promoCode?.duration === 'once' ? '1' : (promoCode?.duration ?? '1'),
       amount: promoCode?.amount ? Number(promoCode.amount) : null,
       trialDays: String(promoCode?.trialDays ?? ''),
       maxClaims: promoCode?.maxClaims ?? null,
