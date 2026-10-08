@@ -233,14 +233,17 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
 
     # First move options from settings into options
     for k, v in options_mapper.items():
-        # Direct integration app settings take precedence over login values
-        # copied into absent app option keys in single organization mode.
+        # Any configured integration app credential owns the pair, including
+        # an empty partner. Login values must not fill either absent app key.
         if (
             settings.SENTRY_SINGLE_ORGANIZATION
             and k in ("github-app.client-id", "github-app.client-secret")
             and k not in options
             and k not in settings.SENTRY_OPTIONS
-            and getattr(settings, migrated_options_mapper[k])
+            and (
+                settings.SENTRY_GITHUB_APP_CLIENT_ID
+                or settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+            )
         ):
             continue
         if getattr(settings, v, DEAD) is not DEAD and k not in options:

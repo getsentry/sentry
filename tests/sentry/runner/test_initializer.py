@@ -31,6 +31,7 @@ def settings():
         SENTRY_SELF_HOSTED=False,
         SENTRY_SINGLE_ORGANIZATION=False,
         SENTRY_GITHUB_APP_CLIENT_ID="",
+        SENTRY_GITHUB_APP_CLIENT_SECRET="",
     )
 
 
@@ -626,3 +627,33 @@ def test_single_organization_bootstrap_reuses_paired_direct_app_credentials(sett
     assert (settings.GITHUB_APP_ID, settings.GITHUB_API_SECRET) == (
         "app-client-id", "app-client-secret"
     )
+
+
+@pytest.mark.parametrize("app_id, app_secret, expected_login", [
+    ("app-client-id", "", ("app-client-id", "login-secret")),
+    ("", "app-client-secret", ("login-client-id", "app-client-secret")),
+])
+def test_single_organization_modern_app_pair_preserves_empty_partner(
+    settings, app_id, app_secret, expected_login
+) -> None:
+    settings.SENTRY_SINGLE_ORGANIZATION = True
+    settings.SENTRY_GITHUB_APP_CLIENT_ID = app_id
+    settings.SENTRY_GITHUB_APP_CLIENT_SECRET = app_secret
+    settings.GITHUB_APP_ID = "login-client-id"
+    settings.GITHUB_API_SECRET = "login-secret"
+
+    with (
+        pytest.warns(DeprecatedSettingWarning),
+        patch.dict(
+            "sentry.runner.initializer.options_mapper",
+            {"github-app.client-id": "GITHUB_APP_ID", "github-app.client-secret": "GITHUB_API_SECRET"},
+        ),
+    ):
+        bootstrap_options(settings)
+
+    assert (settings.SENTRY_GITHUB_APP_CLIENT_ID, settings.SENTRY_GITHUB_APP_CLIENT_SECRET) == (
+        app_id, app_secret
+    )
+    assert (settings.GITHUB_APP_ID, settings.GITHUB_API_SECRET) == expected_login
+    assert "github-app.client-id" not in settings.SENTRY_OPTIONS
+    assert "github-app.client-secret" not in settings.SENTRY_OPTIONS
