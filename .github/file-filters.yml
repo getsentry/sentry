@@ -10,7 +10,7 @@ sentry_frontend_snapshots_workflow_file: &sentry_frontend_snapshots_workflow_fil
 # getsentry/sentry does not use the list directly, instead we shard tests inside jest.config.js
 testable_modified: &testable_modified
   - added|modified: 'package.json'
-  - added|modified: 'static/**/!(*.generated).{ts,tsx,js,jsx,mjs,pegjs}'
+  - added|deleted|modified: 'static/**/!(*.generated).{ts,tsx,js,jsx,mjs,pegjs}'
   - added|modified: 'tests/js/**/*'
   - added|deleted|modified: 'fixtures/search-syntax/**/*'
 
@@ -19,6 +19,10 @@ testable_rules_changed: &testable_rules_changed
   - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'jest.config.ts'
+  - added|deleted|modified: 'scripts/{test,testCi}.js'
+  - added|deleted|modified: 'static/packages/**/package.json'
+  - added|deleted|modified: 'pnpm-lock.yaml'
+  - added|deleted|modified: 'pnpm-workspace.yaml'
 
 # Trigger whether to run TypeScript typechecking or not
 # There's no "rules_changed" for this, because we run it for all files always
@@ -34,6 +38,9 @@ typecheckable_rules_changed: &typecheckable_rules_changed
 frontend_all: &frontend_all
   - *sentry_frontend_workflow_file
   - *sentry_frontend_snapshots_workflow_file
+  - *typecheckable_rules_changed
+  - added|deleted|modified: 'pnpm-lock.yaml'
+  - added|deleted|modified: 'pnpm-workspace.yaml'
   - added|modified: 'oxlint.config.ts'
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs,pegjs}'
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'

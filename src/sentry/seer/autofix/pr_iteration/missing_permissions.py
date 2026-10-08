@@ -37,6 +37,7 @@ from typing import Any
 from django.utils import timezone
 from scm import actions as scm_actions
 from scm.types import CreatePullRequestCommentProtocol
+from sentry_sdk import traces
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
@@ -56,7 +57,6 @@ from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 
 MISSING_PERMISSIONS_EXTRA = "missing_permissions"
 
@@ -249,7 +249,7 @@ def _skip(log_ctx: PrIterationLogContext, reason: str, **log_fields: Any) -> Non
     log_ctx.info("autofix.pr_iteration.missing_permissions.skipped", reason=reason, **log_fields)
 
 
-@trace
+@traces.trace
 def block_iteration_for_missing_permissions(
     *,
     organization: Organization,

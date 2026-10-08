@@ -46,6 +46,8 @@ import {
 } from 'sentry/views/projectInstall/scmCreateProjectSession';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
+import {AgenticCreateProject} from './agenticCreateProject';
+
 const CREATE_PROJECT_MAX_WIDTH = '700px';
 
 const INITIAL_STATE: WizardState = {
@@ -59,6 +61,7 @@ const INITIAL_STATE: WizardState = {
 };
 
 export function ScmCreateProject() {
+  const organization = useOrganization();
   const location = useLocation();
   const referrer = decodeScalar(location.query.referrer);
   const projectId = decodeScalar(location.query.project);
@@ -101,6 +104,23 @@ export function ScmCreateProject() {
     projectId === savedSession.createdProjectId;
   const restoredSession = isReturnFromGettingStarted ? savedSession : null;
 
+  if (
+    organization.features.includes('onboarding-agentic-setup') &&
+    !isReturnFromGettingStarted
+  ) {
+    return (
+      <AgenticCreateProject key={organization.slug}>
+        {agentSetupAction => (
+          <ScmCreateProjectWizard
+            key={restoredSession ? 'restored' : 'fresh'}
+            initialState={restoredSession ?? INITIAL_STATE}
+            agentSetupAction={agentSetupAction}
+          />
+        )}
+      </AgenticCreateProject>
+    );
+  }
+
   // Keyed so a restore arriving after mount remounts the wizard and
   // mount-seeded form state re-reads the restored session.
   return (
@@ -111,7 +131,13 @@ export function ScmCreateProject() {
   );
 }
 
-function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
+function ScmCreateProjectWizard({
+  initialState,
+  agentSetupAction,
+}: {
+  initialState: WizardState;
+  agentSetupAction?: React.ReactNode;
+}) {
   const organization = useOrganization();
   const navigate = useNavigate();
 
@@ -387,7 +413,8 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 layout="position"
               >
                 <ProjectCreationErrorAlert error={form.error} />
-                <Flex justify="end">
+                <Flex justify={agentSetupAction ? 'between' : 'end'} gap="md" wrap="wrap">
+                  {agentSetupAction}
                   {/* aria-disabled rather than disabled so the CTA stays
                   focusable and the tooltip that says what is missing opens on
                   keyboard focus. */}

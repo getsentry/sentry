@@ -11,6 +11,7 @@ from sentry.replays.usecases.ingest.event_parser import (
     _parse_classes,
     as_trace_item,
     as_trace_item_context,
+    get_timestamp_ms,
     parse_events,
     parse_multiclick_event,
     set_if,
@@ -2113,3 +2114,28 @@ def test_set_if() -> None:
 
     with pytest.raises(ValueError):
         assert set_if(["a", "b"], {"b": "hello"}, int)
+
+
+@pytest.mark.parametrize(
+    "timestamp, event_type, expected",
+    [
+        (1.5, EventType.NAVIGATION_SPAN, 1500.0),
+        (1500, EventType.CLICK, 1500.0),
+        ("1500", EventType.CLICK, 1500.0),
+        (None, EventType.CLICK, None),
+        ("[Filtered]", EventType.CLICK, None),
+        ("", EventType.CLICK, None),
+        (True, EventType.CLICK, None),
+        ([1], EventType.CLICK, None),
+        ({}, EventType.CLICK, None),
+        (float("nan"), EventType.CLICK, None),
+        (float("inf"), EventType.CLICK, None),
+    ],
+)
+def test_get_timestamp_ms(timestamp: Any, event_type: EventType, expected: float | None) -> None:
+    assert get_timestamp_ms({"timestamp": timestamp}, event_type) == expected
+
+
+def test_get_timestamp_ms_missing() -> None:
+    assert get_timestamp_ms({}, EventType.CLICK) is None
+    assert get_timestamp_ms(None, EventType.CLICK) is None

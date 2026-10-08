@@ -102,11 +102,13 @@ class RulesAndWorkflows:
     workflow_rules: list[Rule]  # workflows as fake Rules
 
 
-def split_rules_by_rule_workflow_id(rules: Sequence[Rule]) -> RulesAndWorkflows:
+def split_rules_by_rule_workflow_id(
+    rules: Sequence[Rule], *, prefer: RuleIdType = "legacy_rule_id"
+) -> RulesAndWorkflows:
     parsed_rules = []
     workflow_rules = []
     for rule in rules:
-        key, _ = get_rule_or_workflow_id(rule)
+        key, _ = get_rule_or_workflow_id(rule, prefer=prefer)
         match key:
             case "workflow_id":
                 workflow_rules.append(rule)

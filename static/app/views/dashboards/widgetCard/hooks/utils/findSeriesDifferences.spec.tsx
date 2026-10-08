@@ -37,10 +37,10 @@ describe('findSeriesDifferences', () => {
         ]
       )
     ).toEqual([
-      {reason: 'value'},
-      {reason: 'length'},
-      {reason: 'unmatchedSeries'},
-      {reason: 'unmatchedSeries'},
+      {reason: 'value', legacyValue: 200, timeSeriesValue: 150},
+      {reason: 'length', legacyLength: 3, timeSeriesLength: 2},
+      {reason: 'unmatchedLegacySeries'},
+      {reason: 'unmatchedTimeSeries'},
     ]);
   });
 
@@ -53,7 +53,9 @@ describe('findSeriesDifferences', () => {
       ),
     };
 
-    expect(findSeriesDifferences([legacy], [shifted])).toEqual([{reason: 'timestamp'}]);
+    expect(findSeriesDifferences([legacy], [shifted])).toEqual([
+      {reason: 'timestamp', legacyTimestamp: T0, timeSeriesTimestamp: T0 + 1000},
+    ]);
   });
 
   it('falls back to a deep comparison for other differences', () => {
