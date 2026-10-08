@@ -44,7 +44,7 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 const schema = z.object({
-  email: z.string().email('Invalid email'),
+  email: z.email('Invalid email'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
 });
 
@@ -427,7 +427,7 @@ Fields accept `disabled` as a boolean or string. When a string is provided, it d
 import {z} from 'zod';
 
 const userSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  email: z.email('Please enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   age: z.number().gte(13, 'You must be at least 13 years old'),
   bio: z.string().optional(),
@@ -513,7 +513,7 @@ const schema = z.object({
       <form.AppField
         name="billingEmail"
         validators={{
-          onDynamic: z.string().trim().email('Enter a valid billing email'),
+          onDynamic: z.email('Enter a valid billing email'),
         }}
       >
         {field => (
