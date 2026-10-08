@@ -57,6 +57,8 @@ const CONVERSATION_BODY = [
 
 const DEFAULT_STATS: ConversationStats = {
   endTimestamp: 2_000_000,
+  errors: 0,
+  errorToolNames: [],
   generationDuration: 1000,
   inputTokens: 0,
   llmCalls: 2,
@@ -409,21 +411,17 @@ describe('ConversationDetailPage summary stats', () => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  it('renders the fire icon in the summary when a span errored', async () => {
-    mockApis(null, [
-      ...CONVERSATION_BODY,
-      spanFixture({
-        span_id: 'span-error',
-        'span.name': 'failed turn',
-        'span.status': 'internal_error',
-        'precise.start_ts': 3000,
-        'precise.finish_ts': 3000.5,
-      }),
-    ]);
+  it('uses conversation-wide errors even when loaded spans have no errors', async () => {
+    mockApis(null, CONVERSATION_BODY, {errors: 7});
     renderPage();
 
-    // The summary renders the fire icon once the conversation finishes loading.
     expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
+    const errorsStat = screen.getByText('Errors').parentElement!;
+    const errorsLink = within(errorsStat).getByRole('link', {name: '7'});
+    const url = new URL(errorsLink.getAttribute('href')!, 'https://sentry.io');
+    expect(url.searchParams.get('query')).toBe(
+      `gen_ai.conversation.id:"${CONVERSATION_ID}" has:span.status !span.status:[ok,cancelled,unknown]`
+    );
   });
 
   it('renders the earliest span start as the conversation start time', async () => {
@@ -434,30 +432,15 @@ describe('ConversationDetailPage summary stats', () => {
     expect(await screen.findByText('Jan 1, 1970 12:16 AM UTC')).toBeInTheDocument();
   });
 
-  it('leads the tool tags with the ones that errored', async () => {
+  it('uses the server tool ordering and errors without loaded tool spans', async () => {
     mockApis(
       null,
-      [
-        ...CONVERSATION_BODY,
-        spanFixture({
-          span_id: 'span-tool-ok',
-          'span.name': 'alpha call',
-          'gen_ai.operation.type': 'tool',
-          'gen_ai.tool.name': 'alpha_tool',
-          'precise.start_ts': 3000,
-          'precise.finish_ts': 3000.5,
-        }),
-        spanFixture({
-          span_id: 'span-tool-failed',
-          'span.name': 'zeta call',
-          'span.status': 'internal_error',
-          'gen_ai.operation.type': 'tool',
-          'gen_ai.tool.name': 'zeta_tool',
-          'precise.start_ts': 4000,
-          'precise.finish_ts': 4000.5,
-        }),
-      ],
-      {toolNames: ['alpha_tool', 'zeta_tool']}
+      CONVERSATION_BODY,
+      {
+        errors: 1,
+        errorToolNames: ['zeta_tool'],
+        toolNames: ['zeta_tool', 'alpha_tool'],
+      }
     );
     renderPage();
 
@@ -469,13 +452,36 @@ describe('ConversationDetailPage summary stats', () => {
     expect(names.indexOf('zeta_tool')).toBeLessThan(names.indexOf('alpha_tool'));
   });
 
-  it('omits the fire icon in the summary when there are no errors', async () => {
-    mockApis();
+  it('does not count a linked issue on an ok span as a summary error', async () => {
+    mockApis(null, [
+      ...CONVERSATION_BODY,
+      spanFixture({
+        span_id: 'span-issue',
+        'span.name': 'turn with linked issue',
+        'precise.start_ts': 3000,
+        'precise.finish_ts': 3000.5,
+        errors: [
+          {
+            event_id: 'error-1',
+            event_type: 'error',
+            issue_id: 111,
+            level: 'error',
+            project_id: 1,
+            project_slug: 'test-project',
+            start_timestamp: 3000,
+            transaction: 'gen_ai.generate',
+          },
+        ],
+      }),
+    ]);
     renderPage();
 
     // Wait for the conversation to load before asserting the icon's absence.
     expect(await screen.findByText('First answer')).toBeInTheDocument();
     expect(screen.queryByTestId('conversation-error-icon')).not.toBeInTheDocument();
+    const errorsStat = screen.getByText('Errors').parentElement!;
+    expect(within(errorsStat).getByText('0')).toBeInTheDocument();
+    expect(within(errorsStat).queryByRole('link')).not.toBeInTheDocument();
   });
 });
 
