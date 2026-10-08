@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry import application_state
 from sentry.options import default_manager, default_store
 from sentry.options.manager import UnknownOption
 from sentry.silo.base import SiloMode
@@ -43,6 +44,10 @@ def _sync_options(cutoff):
     for option in default_store.model.objects.filter(last_updated__gte=cutoff_dt).iterator():
         try:
             opt = default_manager.lookup_key(option.key)
-            default_manager.store.set_cache(opt, option.value)
-        except UnknownOption as e:
-            logger.exception(str(e))
+        except UnknownOption:
+            try:
+                application_state.sync_cache(option.key, option.value)
+            except ValueError as e:
+                logger.exception(str(e))
+        else:
+            default_store.set_cache(opt, option.value)
