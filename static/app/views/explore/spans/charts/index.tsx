@@ -19,6 +19,7 @@ import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -99,7 +100,21 @@ export function ExploreCharts({
     parseAsBoolean.withDefault(false)
   );
 
-  const canCombineCharts = visualizes.length > 1;
+  // Combining is only allowed when every visualization shares a value type,
+  // so the combined chart always has a single Y axis. The type comes from the
+  // response meta, so hold the last known answer while a request is pending to
+  // keep the combined chart from splitting apart on every refetch.
+  const sharedValueType = getSharedValueType(visualizes, timeseriesResult);
+  const previousSharedValueType = usePrevious(
+    sharedValueType,
+    timeseriesResult.isPending
+  );
+  const hasSharedValueType = defined(
+    timeseriesResult.isPending ? previousSharedValueType : sharedValueType
+  );
+
+  const hasMultipleVisualizes = visualizes.length > 1;
+  const canCombineCharts = hasMultipleVisualizes && hasSharedValueType;
   const combineCharts = canCombineCharts && combineChartsParam;
 
   function updateVisualizes(
@@ -139,9 +154,10 @@ export function ExploreCharts({
               index={group.index}
               onChartTypeChange={chartType => updateVisualizes(indices, {chartType})}
               onChartVisibilityChange={visible => updateVisualizes(indices, {visible})}
-              combineCharts={canCombineCharts ? combineCharts : undefined}
+              combineCharts={hasMultipleVisualizes ? combineCharts : undefined}
+              canCombineCharts={canCombineCharts}
               onCombineChartsChange={
-                canCombineCharts
+                hasMultipleVisualizes
                   ? value => setCombineChartsParam(value ? true : null)
                   : undefined
               }
@@ -157,6 +173,26 @@ export function ExploreCharts({
       </WidgetSyncContextProvider>
     </ChartList>
   );
+}
+
+/**
+ * Returns the value type (e.g. `duration`) shared by every visualize, or
+ * `undefined` when the types differ or are not known yet.
+ */
+function getSharedValueType(
+  visualizes: readonly Visualize[],
+  timeseriesResult: SortedTimeSeries
+): string | undefined {
+  const valueTypes = new Set(
+    visualizes.map(
+      visualize => timeseriesResult.data[visualize.yAxis]?.[0]?.meta.valueType
+    )
+  );
+  if (valueTypes.size !== 1) {
+    return undefined;
+  }
+  const [valueType] = valueTypes;
+  return valueType;
 }
 
 interface ChartGroup {
@@ -253,6 +289,11 @@ interface ChartProps {
   timeseriesResult: SortedTimeSeries;
   visualizes: readonly Visualize[];
   /**
+   * Whether every visualization can be plotted on a single chart. Charts can
+   * only be combined when all visualizations share a value type.
+   */
+  canCombineCharts?: boolean;
+  /**
    * Whether all visualizes are plotted on a single chart. Leave undefined
    * when there is nothing to combine.
    */
@@ -271,6 +312,7 @@ function Chart({
   rawSpanCounts,
   visualizes,
   timeseriesResult,
+  canCombineCharts,
   combineCharts,
   onCombineChartsChange,
   samplingMode,
@@ -394,13 +436,16 @@ function Chart({
         <Button
           aria-label={combineCharts ? t('Split charts') : t('Combine charts')}
           aria-pressed={combineCharts}
+          disabled={!canCombineCharts}
           icon={<IconStack />}
           onClick={() => onCombineChartsChange(!combineCharts)}
           size="xs"
           tooltipProps={{
-            title: combineCharts
-              ? t('Show each visualization in its own chart')
-              : t('Plot all visualizations on a single chart'),
+            title: canCombineCharts
+              ? combineCharts
+                ? t('Show each visualization in its own chart')
+                : t('Plot all visualizations on a single chart')
+              : t('Only visualizations with the same unit can be combined'),
           }}
           variant={combineCharts ? 'primary' : undefined}
         />

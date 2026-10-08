@@ -2,11 +2,14 @@ import {useMemo, useState} from 'react';
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {DurationUnit} from 'sentry/utils/discover/fields';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
@@ -115,7 +118,32 @@ describe('ExploreCharts', () => {
   });
 
   describe('combine charts', () => {
+    // Only the meta matters for deciding whether charts can be combined. The
+    // series have no values so the charts render their empty state instead
+    // of ECharts.
+    function timeSeriesFor(yAxis: string): TimeSeries {
+      if (yAxis === 'eps()') {
+        return TimeSeriesFixture({yAxis, values: []});
+      }
+      return TimeSeriesFixture({
+        yAxis,
+        meta: {
+          valueType: 'duration',
+          valueUnit: DurationUnit.MILLISECOND,
+          interval: 1_800_000,
+        },
+        values: [],
+      });
+    }
+
     function ControlledExploreCharts({yAxes}: {yAxes: string[]}) {
+      const timeseriesResult = useMemo(
+        () =>
+          timeseriesResultFixture({
+            data: Object.fromEntries(yAxes.map(yAxis => [yAxis, [timeSeriesFor(yAxis)]])),
+          }),
+        [yAxes]
+      );
       const [serialized, setSerialized] = useState<BaseVisualize[]>(() =>
         yAxes.map(yAxis => ({yAxes: [yAxis]}))
       );
@@ -130,7 +158,7 @@ describe('ExploreCharts', () => {
             <ExploreCharts
               extrapolate
               query=""
-              timeseriesResult={timeseriesResultFixture()}
+              timeseriesResult={timeseriesResult}
               visualizes={visualizes}
               setVisualizes={setSerialized}
               rawSpanCounts={{
@@ -181,6 +209,26 @@ describe('ExploreCharts', () => {
 
       expect(await screen.findAllByLabelText('Combine charts')).toHaveLength(3);
       expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(3);
+    });
+
+    it('does not combine visualizations with different units', async () => {
+      render(<ControlledExploreCharts yAxes={['p50(span.duration)', 'eps()']} />, {
+        organization: OrganizationFixture(),
+        initialRouterConfig: {location: {pathname: '/', query: {combineCharts: 'true'}}},
+      });
+
+      const combineButtons = await screen.findAllByLabelText('Combine charts');
+      expect(combineButtons).toHaveLength(2);
+      for (const button of combineButtons) {
+        expect(button).toHaveAttribute('aria-disabled', 'true');
+      }
+      expect(screen.getAllByLabelText('Collapse chart')).toHaveLength(2);
+      expect(screen.queryByLabelText('Split charts')).not.toBeInTheDocument();
+
+      await userEvent.hover(combineButtons[0]!);
+      expect(
+        await screen.findByText('Only visualizations with the same unit can be combined')
+      ).toBeInTheDocument();
     });
   });
 
