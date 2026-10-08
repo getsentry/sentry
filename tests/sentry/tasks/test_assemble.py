@@ -9,11 +9,13 @@ from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import orjson
+import psycopg2.errors
 import pytest
 from django.core.files.base import ContentFile
-from django.db import connections, router
+from django.db import OperationalError, connections, router
 from django.test.utils import CaptureQueriesContext
 
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleIndexingState,
@@ -592,6 +594,68 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert len(debug_id_artifact_bundles) == 2
         assert {row.date_added for row in debug_id_artifact_bundles} == {
             datetime.fromisoformat("2023-05-31T11:00:00+00:00")
+        }
+
+    def test_upload_same_bundle_id_to_new_release_when_redating_debug_ids_is_cancelled(
+        self,
+    ) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+        with freeze_time("2023-05-31T10:00:00"):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+
+        cancelled = OperationalError("canceling statement due to user request")
+        cancelled.__cause__ = psycopg2.errors.QueryCanceled(
+            "canceling statement due to user request"
+        )
+        original_update = BaseQuerySet.update
+
+        def update(queryset: BaseQuerySet[Any, Any], **kwargs: Any) -> int:
+            if queryset.model is DebugIdArtifactBundle:
+                raise cancelled
+            return original_update(queryset, **kwargs)
+
+        with (
+            freeze_time("2023-05-31T11:00:00"),
+            patch.object(BaseQuerySet, "update", autospec=True, side_effect=update),
+        ):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="2.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+
+        status, details = get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+        )
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        # The rest of the upload still commits: the bundle is re-dated and linked to the new release.
+        artifact_bundle = ArtifactBundle.objects.get()
+        assert artifact_bundle.date_added == datetime.fromisoformat("2023-05-31T11:00:00+00:00")
+        assert ReleaseArtifactBundle.objects.filter(
+            artifact_bundle=artifact_bundle, release_name="2.0", dist_name="android"
+        ).exists()
+        # Only the debug-ID rows keep their first date.
+        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        assert {row.date_added for row in debug_id_artifact_bundles} == {
+            datetime.fromisoformat("2023-05-31T10:00:00+00:00")
         }
 
     def test_upload_multiple_artifacts_with_same_bundle_id_and_no_release_dist_pair(self) -> None:

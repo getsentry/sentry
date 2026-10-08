@@ -11,9 +11,10 @@ from datetime import datetime
 from typing import IO, TYPE_CHECKING, Any, NamedTuple
 
 import orjson
+import psycopg2.errors
 import sentry_sdk
 from django.conf import settings
-from django.db import router, transaction
+from django.db import OperationalError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 from sentry_sdk import traces
@@ -620,16 +621,7 @@ class ArtifactBundlePostAssembler:
                     debug_id_to_insert, batch_size=50, ignore_conflicts=True
                 )
             elif not date_only_on_bundle:
-                debug_id_rows = DebugIdArtifactBundle.objects.filter(
-                    artifact_bundle=artifact_bundle
-                )
-                # The bundle's debug-ID rows all belong to its organization. Filtering on it as well lets Postgres
-                # combine the bundle index with the organization index, reading the organization's whole slice of it.
-                if not options.get(
-                    "sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle"
-                ):
-                    debug_id_rows = debug_id_rows.filter(organization_id=self.organization.id)
-                debug_id_rows.update(date_added=date_snapshot)
+                self._redate_debug_ids(artifact_bundle, date_snapshot)
 
         metrics.incr("sourcemaps.upload.artifact_bundle")
 
@@ -698,6 +690,31 @@ class ArtifactBundlePostAssembler:
                 ),
             },
         )
+
+    def _redate_debug_ids(self, artifact_bundle: ArtifactBundle, date_added: datetime) -> None:
+        debug_id_rows = DebugIdArtifactBundle.objects.filter(artifact_bundle=artifact_bundle)
+        # The bundle's debug-ID rows all belong to its organization. Filtering on it as well lets Postgres
+        # combine the bundle index with the organization index, reading the organization's whole slice of it.
+        if not options.get("sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle"):
+            debug_id_rows = debug_id_rows.filter(organization_id=self.organization.id)
+
+        # Nothing reads the debug-ID rows' `date_added`, so a cancelled update, for instance by a statement
+        # timeout, must not fail the upload. The savepoint keeps the rest of the transaction, such as new
+        # release and project links, so it can still commit.
+        try:
+            with transaction.atomic(using=router.db_for_write(DebugIdArtifactBundle)):
+                debug_id_rows.update(date_added=date_added)
+        except OperationalError as e:
+            if not isinstance(e.__cause__, psycopg2.errors.QueryCanceled):
+                raise
+            metrics.incr("sourcemaps.upload.redate_debug_ids_cancelled")
+            logger.warning(
+                "assemble.artifact_bundle.redate_debug_ids_cancelled",
+                extra={
+                    "organization_id": self.organization.id,
+                    "artifact_bundle_id": artifact_bundle.id,
+                },
+            )
 
     @traces.trace
     def _create_or_update_artifact_bundle(
