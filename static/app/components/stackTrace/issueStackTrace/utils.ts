@@ -58,13 +58,15 @@ export function formatExceptionsAsText({
   platform: Event['platform'];
 }): string {
   return exceptions
-    .map(exc =>
-      rawStacktraceContent({
-        data: isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace,
-        platform,
+    .map(exc => {
+      const data = isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace;
+      return rawStacktraceContent({
+        data,
+        // Mixed events (e.g. JavaScript threads in a native event) format by frame platform.
+        platform: data?.frames?.[0]?.platform ?? platform,
         exception: isStandalone ? undefined : exc,
         isMinified,
-      })
-    )
+      });
+    })
     .join('\n\n');
 }

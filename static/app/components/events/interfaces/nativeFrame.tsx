@@ -34,7 +34,7 @@ import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
-import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
+import type {Image} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
 import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -56,7 +56,7 @@ type Props = {
   frame: Frame;
   frameMeta: Record<any, any>;
   hiddenFrameCount: number | undefined;
-  image: ImageWithCombinedStatus;
+  image: Image | null;
   isFirstInAppFrame: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?
