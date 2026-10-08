@@ -109,8 +109,11 @@ describe('groupDetails', () => {
     hasSeenMock = MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/issues/`,
       method: 'PUT',
+      // The endpoint echoes the update. Responding with `hasSeen: false` flips the
+      // group back to unseen, which re-triggers markEventSeen and re-renders the
+      // whole page in a loop until the test ends.
       body: {
-        hasSeen: false,
+        hasSeen: true,
       },
     });
     MockApiClient.addMockResponse({
@@ -365,7 +368,7 @@ describe('groupDetails', () => {
 
   it('retries the issue request after an initial load failure', async () => {
     const url = `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`;
-    MockApiClient.addMockResponse({url, statusCode: 500});
+    const failedRequest = MockApiClient.addMockResponse({url, statusCode: 500});
     setWindowLocation(`http://localhost/?project=${group.project.id}`);
 
     render(<GroupDetails />, {
@@ -374,6 +377,7 @@ describe('groupDetails', () => {
     });
 
     const retryButton = await screen.findByRole('button', {name: 'Retry'});
+    expect(failedRequest).toHaveBeenCalledTimes(1);
     const retryRequest = MockApiClient.addMockResponse({url, body: group});
     await userEvent.click(retryButton);
 
