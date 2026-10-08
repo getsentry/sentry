@@ -943,10 +943,16 @@ export function CustomFilters({project}: {project: Project}) {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
 
-  const hasWriteAccess = hasEveryAccess(['project:write'], {
-    organization,
-    project,
-  });
+  // The API refuses writes without the plan feature, so the table says so up
+  // front instead of letting a save fail. Reads stay, so an organization that
+  // left the plan still sees its filters.
+  let writeDisabledReason: string | undefined;
+  if (!project.features.includes('custom-inbound-filters')) {
+    writeDisabledReason = t('Your plan does not include custom inbound filters.');
+  } else if (!hasEveryAccess(['project:write'], {organization, project})) {
+    writeDisabledReason = t('You need project write access to add filters.');
+  }
+  const canWrite = writeDisabledReason === undefined;
   const dataTypeOptions = getAvailableDataTypeOptions(organization);
 
   const queryOptions = apiOptions.as<CustomInboundFilter[]>()(
@@ -1106,12 +1112,8 @@ export function CustomFilters({project}: {project: Project}) {
           size="sm"
           variant="primary"
           icon={<IconAdd />}
-          disabled={!hasWriteAccess}
-          tooltipProps={
-            hasWriteAccess
-              ? undefined
-              : {title: t('You need project write access to add filters.')}
-          }
+          disabled={!canWrite}
+          tooltipProps={canWrite ? undefined : {title: writeDisabledReason}}
           onClick={() =>
             openModal(
               deps => (
@@ -1187,7 +1189,7 @@ export function CustomFilters({project}: {project: Project}) {
                         filter.active ? t('Disable filter') : t('Enable filter')
                       }
                       checked={filter.active}
-                      disabled={!hasWriteAccess}
+                      disabled={!canWrite}
                       onChange={() => handleToggleActive(filter)}
                     />
                   </SimpleTable.RowCell>
@@ -1227,7 +1229,7 @@ export function CustomFilters({project}: {project: Project}) {
                         variant="transparent"
                         icon={<IconEdit />}
                         aria-label={t('Edit filter')}
-                        disabled={!hasWriteAccess}
+                        disabled={!canWrite}
                         onClick={() =>
                           openModal(
                             deps => (
@@ -1245,7 +1247,7 @@ export function CustomFilters({project}: {project: Project}) {
                       />
                       <Confirm
                         priority="danger"
-                        disabled={!hasWriteAccess}
+                        disabled={!canWrite}
                         message={t('Are you sure you want to delete this filter?')}
                         onConfirm={() => handleDelete(filter.id)}
                       >
