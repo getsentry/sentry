@@ -96,6 +96,13 @@ SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     "sentry.system": "system",
 }
 
+REQUEST_HEADERS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL: "User-Agent",
+}
+
+# OTLP SDKs report runtime and OS data as resource attributes, which Relay stores with this prefix
+RESOURCE_ATTRIBUTE_PREFIX = "resource."
+
 KNOWN_NON_TAG_ATTRIBUTE_PREFIXES = frozenset({"sentry.", "user.", "browser.web_vital."})
 KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
     TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME.keys(),
@@ -103,6 +110,7 @@ KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
     GEO_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     SDK_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     REQUEST_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    REQUEST_HEADERS_BY_ATTRIBUTE_NAME.keys(),
     SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
 )
@@ -129,10 +137,15 @@ def make_compatible(span: SpanEvent) -> CompatibleSpan:
 
 
 def _extract_attribute_values(
-    segment_span: CompatibleSpan | SpanEvent, attribute_to_field_map: dict[str, str]
+    segment_span: CompatibleSpan | SpanEvent,
+    attribute_to_field_map: dict[str, str],
+    include_resource_attributes: bool = False,
 ) -> dict[str, Any]:
     """
     Pull data from the segment span's attributes for every field in the given map.
+
+    If `include_resource_attributes` is set, the `resource.`-prefixed version of an attribute is
+    used when the span itself doesn't have it.
 
     Returns a dict of all non-null, non-empty values found, keyed by event field name.
     """
@@ -140,6 +153,8 @@ def _extract_attribute_values(
 
     for attribute_name, field_name in attribute_to_field_map.items():
         value = attribute_value(segment_span, attribute_name)
+        if value in EMPTY_ATTRIBUTE_VALUES and include_resource_attributes:
+            value = attribute_value(segment_span, RESOURCE_ATTRIBUTE_PREFIX + attribute_name)
         if value not in EMPTY_ATTRIBUTE_VALUES:
             values_by_field_name[field_name] = value
 
@@ -193,7 +208,9 @@ def _get_event_contexts(segment_span: CompatibleSpan) -> dict[str, Any]:
 
     # Reconstruct `contexts` entries we're missing
     for context_name, sub_fields_by_attribute_name in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.items():
-        context = _extract_attribute_values(segment_span, sub_fields_by_attribute_name)
+        context = _extract_attribute_values(
+            segment_span, sub_fields_by_attribute_name, include_resource_attributes=True
+        )
         if context:
             contexts[context_name] = {"type": context_name, **context}
 
@@ -229,8 +246,36 @@ def _get_event_user(segment_span: CompatibleSpan) -> dict[str, Any] | None:
     return user_data
 
 
+def _get_full_url(segment_span: CompatibleSpan) -> str | None:
+    """
+    Rebuild the request URL from its parts, the way HTTP server spans following the OTel semantic
+    conventions report it (they have no `url.full`).
+    """
+    path = attribute_value(segment_span, ATTRIBUTE_NAMES.URL_PATH)
+    host = attribute_value(segment_span, ATTRIBUTE_NAMES.SERVER_ADDRESS)
+    if path in EMPTY_ATTRIBUTE_VALUES or host in EMPTY_ATTRIBUTE_VALUES:
+        return None
+
+    scheme = attribute_value(segment_span, ATTRIBUTE_NAMES.URL_SCHEME) or "http"
+    port = attribute_value(segment_span, ATTRIBUTE_NAMES.SERVER_PORT)
+    default_port = {"http": 80, "https": 443}.get(scheme)
+    if port not in EMPTY_ATTRIBUTE_VALUES and str(port) != str(default_port):
+        host = f"{host}:{port}"
+
+    return f"{scheme}://{host}{path}"
+
+
 def _get_event_request(segment_span: CompatibleSpan) -> dict[str, Any]:
     request_data = _extract_attribute_values(segment_span, REQUEST_FIELDS_BY_ATTRIBUTE_NAME)
+
+    if attribute_value(segment_span, ATTRIBUTE_NAMES.URL_FULL) in EMPTY_ATTRIBUTE_VALUES:
+        full_url = _get_full_url(segment_span)
+        if full_url:
+            request_data["url"] = full_url
+
+    headers = _extract_attribute_values(segment_span, REQUEST_HEADERS_BY_ATTRIBUTE_NAME)
+    if headers:
+        request_data["headers"] = [[name, str(value)] for name, value in headers.items()]
 
     if "query_string" in request_data:
         # Convert from a single string to a list of key-value pairs

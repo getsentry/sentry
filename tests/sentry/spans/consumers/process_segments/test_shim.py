@@ -199,6 +199,35 @@ class TestBuildShimEventData:
             "type": "trace",
         }
 
+    def test_reconstructs_contexts_from_resource_attributes(self) -> None:
+        # OTLP SDKs send runtime and OS data as resource attributes
+        segment_span = build_segment_span(
+            attributes={
+                "resource.os.name": {"value": "Linux", "type": "string"},
+                "resource.os.version": {"value": "6.8", "type": "string"},
+                "resource.process.runtime.name": {"value": "go", "type": "string"},
+                "resource.process.runtime.version": {"value": "go1.25.1", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+        contexts = event["contexts"]
+
+        assert contexts["os"] == {"name": "Linux", "version": "6.8", "type": "os"}
+        assert contexts["runtime"] == {"name": "go", "version": "go1.25.1", "type": "runtime"}
+
+    def test_span_attributes_take_precedence_over_resource_attributes(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "process.runtime.name": {"value": "CPython", "type": "string"},
+                "resource.process.runtime.name": {"value": "go", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["contexts"]["runtime"] == {"name": "CPython", "type": "runtime"}
+
     def test_reconstructs_tags(self) -> None:
         segment_span = build_segment_span(
             attributes={
@@ -400,6 +429,80 @@ class TestBuildShimEventData:
         event = build_shim_event_data(segment_span, [segment_span])
 
         assert event["request"]["url"] == "/dogpark"
+
+    @pytest.mark.parametrize(
+        ("server_attributes", "expected_url"),
+        (
+            ({"url.scheme": "https", "server.port": 443}, "https://dogs.are.great/dogpark"),
+            ({"url.scheme": "https", "server.port": 8443}, "https://dogs.are.great:8443/dogpark"),
+            ({"url.scheme": "http", "server.port": 80}, "http://dogs.are.great/dogpark"),
+            ({"server.port": 8080}, "http://dogs.are.great:8080/dogpark"),
+            ({}, "http://dogs.are.great/dogpark"),
+        ),
+        ids=repr,
+    )
+    def test_reconstructs_full_url_from_server_span_attributes(
+        self, server_attributes: dict[str, Any], expected_url: str
+    ) -> None:
+        # HTTP server spans following the OTel semantic conventions have no `url.full`, only its
+        # parts
+        attributes: Attributes = {
+            "url.path": {"value": "/dogpark", "type": "string"},
+            "server.address": {"value": "dogs.are.great", "type": "string"},
+        }
+        for attribute_name, value in server_attributes.items():
+            attributes[attribute_name] = {
+                "value": value,
+                "type": "integer" if isinstance(value, int) else "string",
+            }
+        segment_span = build_segment_span(attributes=attributes)
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["url"] == expected_url
+
+    def test_full_url_attribute_takes_precedence_over_url_parts(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "url.full": {"value": "https://dogs.are.great/dogpark?ball=1", "type": "string"},
+                "url.path": {"value": "/dogpark", "type": "string"},
+                "server.address": {"value": "cats.are.ok", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["url"] == "https://dogs.are.great/dogpark?ball=1"
+
+    def test_does_not_reconstruct_url_without_server_address(self) -> None:
+        segment_span = build_segment_span(
+            attributes={"url.path": {"value": "/dogpark", "type": "string"}}
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["url"] == "/dogpark"
+
+    def test_reconstructs_user_agent_header(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "http.request.method": {"value": "GET", "type": "string"},
+                "user_agent.original": {"value": "Mozilla/5.0 (Dogs)", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["headers"] == [["User-Agent", "Mozilla/5.0 (Dogs)"]]
+
+    def test_excludes_user_agent_from_tags(self) -> None:
+        segment_span = build_segment_span(
+            attributes={"user_agent.original": {"value": "Mozilla/5.0 (Dogs)", "type": "string"}}
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert "user_agent.original" not in dict(event["tags"])
 
     @pytest.mark.parametrize(
         "body",
