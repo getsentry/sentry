@@ -49,7 +49,6 @@ from sentry.tasks.on_demand_metrics import (
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
-from sentry.utils.tracing import set_span_data
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
@@ -1329,13 +1328,14 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
             widget_display_type = widget.display_type
             legend_type = widget.detail.get("legend_type") if widget.detail else None
-            set_span_data(
-                span,
+            span.set_attribute(
                 "linked_dashboards",
-                [
-                    {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
-                    for ld in linked_dashboards
-                ],
+                repr(
+                    [
+                        {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
+                        for ld in linked_dashboards
+                    ]
+                ),
             )
             span.set_attribute("widget_display_type", widget_display_type)
             span.set_attribute("query_id", query.id)
