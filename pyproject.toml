@@ -449,7 +449,6 @@ module = [
     "fixtures.sudo_testutils",
     "fixtures.vsts",
     "sentry",
-    "sentry.__main__",
     "sentry.adoption.*",
     "sentry.api",
     "sentry.api.analytics",
