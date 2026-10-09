@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
@@ -10,7 +11,7 @@ export type DetectorStringFieldProps = CommonDetectorFieldProps & {
   placeholder?: string;
 };
 
-export function DetectorStringField({
+export const DetectorStringField = memo(function DetectorStringField({
   disabled,
   help,
   initialValue,
@@ -40,4 +41,4 @@ export function DetectorStringField({
       )}
     </AutoSaveForm>
   );
-}
+});
