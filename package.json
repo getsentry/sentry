@@ -44,7 +44,7 @@
     "build-js-po": "node build-utils/ts-extract-gettext.ts",
     "build-profile": "RSPACK_STATS=1 NODE_ENV=production node scripts/buildProfile.ts",
     "extract-form-fields": "node scripts/extractFormFields.ts",
-    "gen:embed-widgets": "esbuild scripts/genEmbedWidgets.ts --bundle --platform=node --format=esm --packages=external --outfile=.artifacts/genEmbedWidgets.mjs && node .artifacts/genEmbedWidgets.mjs",
+    "gen:embed-widgets": "esbuild scripts/genEmbedWidgets.ts --bundle --platform=node --format=esm --outfile=.artifacts/genEmbedWidgets.mjs && node .artifacts/genEmbedWidgets.mjs",
     "gen:platform-info": "node scripts/genPlatformProductInfo.ts",
     "validate-api-examples": "pnpm --filter @sentry-internal/api-docs exec openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install",
