@@ -165,34 +165,16 @@ export function withAlpha(color: string, alpha: number): string {
   return `${color.slice(0, 7)}${channel}`.toUpperCase();
 }
 
-// TODO: Replace with theme tokens, including a dark mode ramp, once the design
-// settles on a palette. Scraps color tokens can't be imported outside the theme,
-// so these mirror the named values.
-const SEVERITY_COLORS = {
-  lowest: '#F6E5B4', // yellow.light.opaque300
-  low: '#FFCE00', // yellow.light.opaque600
-  medium: '#FF615D', // red.light.opaque800
-  high: '#B5006F', // pink.light.opaque1200
-  highest: '#3A1873', // categorical.light.indigo
-} as const;
+const SEVERITY_THRESHOLDS = [0, 0.05, 0.1, 0.25, 0.5] as const;
 
 export function severityColor(ratio: number, theme: Theme): string {
-  if (ratio >= 0.5) {
-    return withAlpha(SEVERITY_COLORS.highest, 1);
+  if (ratio <= 0) {
+    return withAlpha(theme.tokens.background.secondary, 1);
   }
-  if (ratio >= 0.25) {
-    return withAlpha(SEVERITY_COLORS.high, 1);
-  }
-  if (ratio >= 0.1) {
-    return withAlpha(SEVERITY_COLORS.medium, 1);
-  }
-  if (ratio >= 0.05) {
-    return withAlpha(SEVERITY_COLORS.low, 1);
-  }
-  if (ratio > 0) {
-    return withAlpha(SEVERITY_COLORS.lowest, 1);
-  }
-  return withAlpha(theme.tokens.background.secondary, 1);
+
+  const scale = theme.tokens.dataviz.sequential.magma.series5;
+  const step = SEVERITY_THRESHOLDS.findLastIndex(threshold => ratio >= threshold);
+  return withAlpha(scale[step]!, 1);
 }
 
 interface EventVolume {
