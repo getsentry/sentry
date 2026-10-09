@@ -72,4 +72,27 @@ describe('AiSpanTimeline', () => {
     expect(screen.getByText('claude-sonnet-5-5')).toBeInTheDocument();
     expect(screen.queryByText(/authIssue/)).not.toBeInTheDocument();
   });
+
+  it('renders a memory span by its operation and preview', () => {
+    render(
+      <AiSpanTimeline
+        nodes={
+          [
+            createMockNode('mem-1', {
+              [SpanFields.GEN_AI_OPERATION_TYPE]: 'memory',
+              [SpanFields.GEN_AI_OPERATION_NAME]: 'search_memory',
+              [SpanFields.GEN_AI_MEMORY_STORE_ID]: 'user-prefs',
+              [SpanFields.GEN_AI_MEMORY_QUERY_TEXT]: 'dietary preferences',
+              [SpanFields.GEN_AI_MEMORY_RECORD_COUNT]: 3,
+            }),
+          ] as any
+        }
+        selectedNodeKey={null}
+        onSelectNode={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('search_memory')).toBeInTheDocument();
+    expect(screen.getByText('“dietary preferences”')).toBeInTheDocument();
+  });
 });

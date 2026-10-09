@@ -18,8 +18,6 @@ const productionEntryPoints = [
   // TODO: Remove when wired into Seer Explorer
   'components/core/chat/thinkingBlock.tsx',
   'components/core/chat/toolCall.tsx',
-  // todo we currently keep all icons
-  'icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
   'chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when the autofixRef embed consumes it (#122099)
@@ -51,8 +49,6 @@ const frontendWorkspace = {
 };
 
 const config: KnipConfig = {
-  // These packages have their own TypeScript configurations and test suites.
-  ignoreWorkspaces: ['static/packages/scraps', 'static/packages/icons'],
   workspaces: {
     '.': {
       entry: [
@@ -104,6 +100,18 @@ const config: KnipConfig = {
     },
     'static/gsApp': frontendWorkspace,
     'static/gsAdmin': frontendWorkspace,
+    'static/packages/icons': {
+      // test helpers are only used outside production.
+      project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!', '!test/**!'],
+      includeEntryExports: true,
+    },
+    'static/packages/scraps': {
+      project: [
+        '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!',
+        // Test helpers and package verification scripts are not production code.
+        '!{test,scripts}/**!',
+      ],
+    },
     'static/oxlint/eslintPluginSentry': {
       // RuleTester resolves these cross-file fixtures by filename.
       ignoreFiles: ['fixtures/**/*.{ts,tsx}'],
