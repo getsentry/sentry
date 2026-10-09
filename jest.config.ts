@@ -303,6 +303,7 @@ const config: Config.InitialOptions = {
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
     '<rootDir>/tests/js/sentry-test/setupReact.ts',
+    '<rootDir>/tests/js/sentry-test/setupNuqs.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     'jest-canvas-mock',
   ],

@@ -38,7 +38,7 @@ describe.each(['6', '8'])('React Router v%s import resolution', version => {
       ['react-router', 'react-router-v8'],
       ['react-router/dom', 'react-router-v8/dom'],
       ['react-router-dom', 'react-router-v8'],
-      ['nuqs/adapters/react-router/v6', 'nuqs/adapters/react-router/v7'],
+      ['nuqs/adapters/react-router/v6', 'nuqs/adapters/react-router/v8'],
     ]).get(request);
     expect(defaultResolver).toHaveBeenCalledWith(
       version === '8' && v8Alias ? v8Alias : expected,

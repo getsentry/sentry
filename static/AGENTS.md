@@ -39,7 +39,7 @@
 - Only the compatibility modules may import `react-router-dom` or
   `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
   Use Sentry's version-neutral router tracing integration and wrapper. Keep the
-  Nuqs V6 adapter import; V8 builds and tests alias it to the V7 adapter.
+  Nuqs V6 adapter import; V8 builds and tests alias it to the V8 adapter.
 - Lazy load route components when possible
 
 ### Frontend API Calls

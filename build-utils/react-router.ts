@@ -20,7 +20,7 @@ export function getReactRouterConfig(env: NodeJS.ProcessEnv = process.env) {
         'react-router/dom$': 'react-router-v8/dom',
         'react-router-dom$': 'react-router-v8',
         'nuqs/adapters/react-router/v6$':
-          require.resolve('nuqs/adapters/react-router/v7'),
+          require.resolve('nuqs/adapters/react-router/v8'),
       }
     : {};
 

@@ -7,7 +7,7 @@ const v8Aliases = new Map([
   ['react-router', 'react-router-v8'],
   ['react-router/dom', 'react-router-v8/dom'],
   ['react-router-dom', 'react-router-v8'],
-  ['nuqs/adapters/react-router/v6', 'nuqs/adapters/react-router/v7'],
+  ['nuqs/adapters/react-router/v6', 'nuqs/adapters/react-router/v8'],
 ]);
 
 /** @type {import('jest-resolve').SyncResolver} */

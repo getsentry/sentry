@@ -51,7 +51,7 @@ function getV8ConfigPath() {
           ...paths,
           'react-router': resolveTypes('react-router-v8'),
           'react-router/dom': resolveTypes('react-router-v8/dom'),
-          'nuqs/adapters/react-router/v6': resolveTypes('nuqs/adapters/react-router/v7'),
+          'nuqs/adapters/react-router/v6': resolveTypes('nuqs/adapters/react-router/v8'),
         },
       },
       references: config.projectReferences?.map(reference => ({path: reference.path})),

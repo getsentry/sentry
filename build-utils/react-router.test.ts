@@ -89,7 +89,8 @@ for (const [name, env, version] of cases) {
       });
     });
     assert.equal(stats.hasErrors(), false, stats.toString({all: false, errors: true}));
-    const modules = stats.toJson({all: false, modules: true}).modules ?? [];
+    const modules =
+      stats.toJson({all: false, modules: true, orphanModules: true}).modules ?? [];
     const moduleNames = modules.map(module => module.name ?? '').join('\n');
     assert.match(
       moduleNames,
@@ -101,7 +102,9 @@ for (const [name, env, version] of cases) {
     );
     assert.match(
       moduleNames,
-      version === '8.4.0' ? /adapters\/react-router\/v7\.js/ : /nuqs\/dist\/v6-/
+      version === '8.4.0'
+        ? /adapters\/react-router\/v8\.js/
+        : /adapters\/react-router\/v6\.js/
     );
 
     const {
