@@ -45,6 +45,7 @@ import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {
   createUnnamedTransactionsDiscoverTarget,
   DiscoverQueryPageSource,
@@ -52,32 +53,59 @@ import {
 } from 'sentry/views/performance/utils';
 
 export function getTableSortOptions(
-  _organization: Organization,
-  widgetQuery: WidgetQuery
+  organization: Organization,
+  widgetQuery: WidgetQuery,
+  tags?: TagCollection,
+  getFieldOptions: typeof getEventsTableFieldOptions = getEventsTableFieldOptions
 ) {
   const {columns, aggregates} = widgetQuery;
   const options: Array<SelectValue<string>> = [];
   let equations = 0;
+
   [...aggregates, ...columns]
     .filter(field => !!field)
     .forEach(field => {
       let alias: any;
       let label = stripEquationPrefix(field);
-      // Equations are referenced via a standard alias following this pattern
+
       if (isEquation(field)) {
         alias = `equation[${equations}]`;
         equations += 1;
       }
 
       const parsedFunction = parseFunction(field);
+
       if (parsedFunction) {
         label = prettifyParsedFunction(parsedFunction);
       }
 
-      options.push({label, value: alias ?? field});
+      options.push({
+        label,
+        value: alias ?? field,
+      });
     });
 
-  return options;
+  const fieldOptions = getFieldOptions(organization, tags);
+
+  return [
+    ...options,
+    ...Object.values(fieldOptions)
+      .filter(option => option.value.kind === FieldValueKind.FUNCTION)
+      .map(option => {
+        const {name, parameters} = option.value.meta;
+
+        return {
+          label: option.label,
+          value: generateFieldAsString({
+            kind: 'function',
+            function: [
+              name,
+              ...parameters.map(parameter => parameter.defaultValue ?? ''),
+            ],
+          }),
+        };
+      }),
+  ];
 }
 
 export function filterSeriesSortOptions(columns: Set<string>) {

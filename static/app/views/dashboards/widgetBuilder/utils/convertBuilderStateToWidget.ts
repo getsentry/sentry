@@ -73,6 +73,17 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
         .filter(f => f && (!isEquation(f) || getEquation(f).trim() !== '')) ?? [];
   }
 
+  const sortField = state.sort?.[0]?.field;
+
+  if (
+    sortField &&
+    sortField !== '' &&
+    !isEquation(sortField) &&
+    !aggregates.includes(sortField)
+  ) {
+    aggregates = [...aggregates, sortField];
+  }
+
   const columns = state.fields
     ?.filter(field => field.kind === FieldValueKind.FIELD)
     .map(generateFieldAsString)

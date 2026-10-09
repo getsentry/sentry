@@ -113,7 +113,13 @@ export const ErrorsConfig: DatasetConfig<
   getTableFieldOptions: getEventsTableFieldOptions,
   getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
     getTimeseriesSortOptions(organization, widgetQuery, tags, getEventsTableFieldOptions),
-  getTableSortOptions,
+  getTableSortOptions: (organization, widgetQuery, tags) =>
+    getTableSortOptions(
+      organization,
+      widgetQuery,
+      tags,
+      getEventsTableFieldOptions
+    ),
   getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [

@@ -121,6 +121,38 @@ describe('WidgetBuilderSortBySelector', () => {
     });
   });
 
+  it('allows sorting by an aggregate that is not visualized', async () => {
+  const {router} = render(
+    <WidgetBuilderProvider>
+      <WidgetBuilderSortBySelector />
+    </WidgetBuilderProvider>,
+    {
+      organization,
+      initialRouterConfig: {
+        ...defaultRouterConfig,
+        location: {
+          pathname: defaultRouterConfig.location?.pathname ?? '/mock-pathname/',
+          query: {
+            ...defaultRouterConfig.location?.query,
+            displayType: 'table',
+            yAxis: ['p90(transaction.duration)'],
+          },
+        },
+      },
+    }
+  );
+
+  const sortFieldSelector = await screen.findByText('Select a column\u{2026}');
+  await userEvent.click(sortFieldSelector);
+  await userEvent.click(await screen.findByText('count()'));
+
+  await waitFor(() => {
+    expect(router.location.query).toEqual(
+      expect.objectContaining({sort: '-count()'})
+    );
+  });
+});
+
   it('renders the correct limit options', async () => {
     render(
       <WidgetBuilderProvider>
