@@ -3,7 +3,7 @@ import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query'
 
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -17,7 +17,10 @@ import {
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToTable';
 import {DEFAULT_TABLE_LIMIT} from 'sentry/views/dashboards/types';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {
+  queueApiFetch,
+  useWidgetQueryQueue,
+} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
@@ -107,16 +110,7 @@ export function useIssuesSeriesQuery(
           }
         ),
         queryFn: (context): Promise<ApiResponse<IssuesSeriesResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<IssuesSeriesResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<IssuesSeriesResponse>(context);
+          return queueApiFetch<IssuesSeriesResponse>(queue, context);
         },
         enabled,
         retry: false,
@@ -233,16 +227,7 @@ export function useIssuesTableQuery(
           }
         ),
         queryFn: (context): Promise<ApiResponse<IssuesTableResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<IssuesTableResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<IssuesTableResponse>(context);
+          return queueApiFetch<IssuesTableResponse>(queue, context);
         },
         enabled,
         retry: false,

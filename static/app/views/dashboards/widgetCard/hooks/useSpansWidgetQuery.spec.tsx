@@ -12,6 +12,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useSpansSeriesQuery, useSpansTableQuery} from './useSpansWidgetQuery';
 
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
+  ...jest.requireActual('sentry/views/dashboards/utils/widgetQueryQueue'),
   useWidgetQueryQueue: () => ({queue: null}),
 }));
 

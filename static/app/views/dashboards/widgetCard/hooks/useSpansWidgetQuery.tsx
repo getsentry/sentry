@@ -13,7 +13,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -43,7 +43,10 @@ import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {
+  queueApiFetch,
+  useWidgetQueryQueue,
+} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
@@ -295,16 +298,7 @@ export function useSpansSeriesQuery(
             }
           ),
           queryFn: (context): Promise<ApiResponse<SpansSeriesResponse>> => {
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    apiFetch<SpansSeriesResponse>(context).then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-            return apiFetch<SpansSeriesResponse>(context);
+            return queueApiFetch<SpansSeriesResponse>(queue, context);
           },
           enabled: enabled && !skippedForInvalidConditionalFilter,
           retry: false,
@@ -569,16 +563,7 @@ export function useSpansTableQuery(
             queryKey: baseOptions.queryKey,
           };
 
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<SpansTableResponse>(modifiedContext).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<SpansTableResponse>(modifiedContext);
+          return queueApiFetch<SpansTableResponse>(queue, modifiedContext);
         },
         enabled: enabled && !skippedForInvalidConditionalFilter,
         retry: false,

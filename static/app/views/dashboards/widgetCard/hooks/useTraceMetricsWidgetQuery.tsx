@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
@@ -28,7 +28,10 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {
+  queueApiFetch,
+  useWidgetQueryQueue,
+} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
@@ -243,16 +246,7 @@ export function useTraceMetricsTableQuery(
           }
         ),
         queryFn: (context): Promise<ApiResponse<TraceMetricsTableResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<TraceMetricsTableResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<TraceMetricsTableResponse>(context);
+          return queueApiFetch<TraceMetricsTableResponse>(queue, context);
         },
         enabled,
         retry: false,

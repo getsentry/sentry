@@ -3,7 +3,7 @@ import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query'
 
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
@@ -18,7 +18,10 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {
+  queueApiFetch,
+  useWidgetQueryQueue,
+} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
@@ -118,16 +121,7 @@ export function useMobileAppSizeSeriesQuery(
             }
           ),
           queryFn: (context): Promise<ApiResponse<MobileAppSizeSeriesResponse>> => {
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    apiFetch<MobileAppSizeSeriesResponse>(context).then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-            return apiFetch<MobileAppSizeSeriesResponse>(context);
+            return queueApiFetch<MobileAppSizeSeriesResponse>(queue, context);
           },
           enabled,
           retry: false,

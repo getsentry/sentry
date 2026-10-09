@@ -8,7 +8,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
@@ -30,7 +30,10 @@ import {
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {
+  queueApiFetch,
+  useWidgetQueryQueue,
+} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
@@ -125,16 +128,7 @@ export function useErrorsSeriesQuery(
             }
           ),
           queryFn: (context): Promise<ApiResponse<ErrorsSeriesResponse>> => {
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    apiFetch<ErrorsSeriesResponse>(context).then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-            return apiFetch<ErrorsSeriesResponse>(context);
+            return queueApiFetch<ErrorsSeriesResponse>(queue, context);
           },
           enabled,
           retry: false,
@@ -311,16 +305,7 @@ export function useErrorsTableQuery(
           }
         ),
         queryFn: (context): Promise<ApiResponse<ErrorsTableResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<ErrorsTableResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<ErrorsTableResponse>(context);
+          return queueApiFetch<ErrorsTableResponse>(queue, context);
         },
         enabled,
         retry: false,
