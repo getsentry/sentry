@@ -304,7 +304,7 @@ function VisualizationWidgetContent({
     tableResults &&
     tableResults.length > 0;
 
-  // We only support one column for legend breakdown right now
+  // Linked dashboards and custom labels use the first grouping column.
   const firstColumn = columns[0];
   const linkedDashboard = findLinkedDashboardForField(firstWidgetQuery, firstColumn);
 
@@ -342,13 +342,21 @@ function VisualizationWidgetContent({
         // Otherwise we have to map the correct widget query to the timeseries result
         if (
           organization.features.includes('visibility-explore-view') &&
-          firstColumn &&
-          typeof firstColumnGroupByValue === 'string' &&
+          timeSeries.groupBy?.length &&
+          timeSeries.groupBy.every(
+            group => group.value === null || typeof group.value === 'string'
+          ) &&
           widget.queries.length === 1 &&
           widget.widgetType === WidgetType.SPANS
         ) {
           const exploreQuery = new MutableSearch(widget.queries[0]?.conditions ?? '');
-          exploreQuery.addFilterValue(firstColumn, firstColumnGroupByValue);
+          for (const group of timeSeries.groupBy) {
+            if (group.value === null) {
+              exploreQuery.addFilterValue('!has', group.key);
+            } else {
+              exploreQuery.addFilterValue(group.key, String(group.value));
+            }
+          }
           const exploreUrl = getExploreUrl({
             organization,
             selection,

@@ -364,7 +364,7 @@ describe('transformWidgetSeriesToTimeSeries', () => {
     );
     expect(mismatched?.timeSeries.groupBy).toEqual([
       {key: 'tags', value: '[a,b]'},
-      {key: 'browser', value: 'None'},
+      {key: 'browser', value: null},
     ]);
   });
 });
