@@ -75,6 +75,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   } = useAskSeerPolling<T>({
     projectIds,
     strategy,
+    referrer: 'search_bar',
     options: extraOptions,
     onError: error => {
       addErrorMessage(t('Seer failed to process your search. Please try again.'));

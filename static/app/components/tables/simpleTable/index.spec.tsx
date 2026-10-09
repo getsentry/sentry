@@ -308,6 +308,58 @@ describe('SimpleTable component', () => {
     expect(rules).not.toContain('grid-template-rows');
   });
 
+  it('tightens cells, shortens the header, drops row dividers, and shrinks text when compressed', () => {
+    render(
+      <SimpleTable
+        density="compressed"
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>One</SimpleTable.RowCell>
+        </SimpleTable.Row>
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>Two</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    const headerRules = getEmotionRules(
+      screen.getByRole('columnheader', {name: 'A'})
+    ).join('');
+    const headerRowRules = getEmotionRules(screen.getByRole('row', {name: 'A'})).join('');
+
+    expect(getEmotionRules(screen.getByRole('cell', {name: 'One'})).join('')).toContain(
+      'padding: 4px 8px'
+    );
+    expect(
+      getEmotionRules(screen.getByRole('row', {name: 'One'})).join('')
+    ).not.toContain('border-bottom');
+    expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
+      'font-size: 12px'
+    );
+    expect(headerRules).toContain('padding: 0px 8px');
+    expect(headerRules).toContain('font-size: 12px');
+    expect(headerRowRules).toContain('min-height: 26px');
+  });
+
+  it('pads cells more when comfortable', () => {
+    render(
+      <SimpleTable density="comfortable">
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>One</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    expect(getEmotionRules(screen.getByRole('cell', {name: 'One'})).join('')).toContain(
+      'padding: 16px'
+    );
+  });
+
   it('passes the row element to a ref when given a callback ref', () => {
     const ref = jest.fn();
 
