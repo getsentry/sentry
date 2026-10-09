@@ -1,9 +1,9 @@
-import styled from '@emotion/styled';
-
 import {LinkButton} from '@sentry/scraps/button';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 
-import {TextOverflow} from 'sentry/components/textOverflow';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -11,6 +11,12 @@ import type {Project} from 'sentry/types/project';
 import type {Deploy as DeployType} from 'sentry/types/release';
 
 const DEPLOY_COUNT = 2;
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'environment', width: 'minmax(30px, 1fr)'},
+  {key: 'release', width: '1fr'},
+  {key: 'time', width: '1fr'},
+];
 
 type Props = {
   project: Project;
@@ -40,64 +46,31 @@ export function Deploys({latestDeploys, project}: Props) {
   }
 
   return (
-    <DeployRows>
+    <SimpleTable aria-label={t('Latest Deploys')} columns={COLUMNS} density="compressed">
       {deploys.map(deploy => (
-        <Deploy
-          key={`${deploy.environment}-${deploy.version}`}
-          deploy={deploy}
-          project={project}
-        />
+        <SimpleTable.Row key={`${deploy.environment}-${deploy.version}`}>
+          <SimpleTable.RowCell>
+            <InfoText mode="overflowOnly" title={deploy.environment}>
+              {deploy.environment}
+            </InfoText>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <Text ellipsis>
+              <Version
+                version={deploy.version}
+                projectId={project.id}
+                tooltipRawVersion
+                truncate
+              />
+            </Text>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <Text ellipsis variant="muted">
+              <TimeSince date={deploy.dateFinished} unitStyle="short" />
+            </Text>
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
       ))}
-    </DeployRows>
+    </SimpleTable>
   );
 }
-
-type DeployProps = Props & {
-  deploy: Pick<DeployType, 'version' | 'dateFinished' | 'environment'>;
-};
-
-function Deploy({deploy, project}: DeployProps) {
-  return (
-    <DeployRow>
-      <Tooltip showOnlyOnOverflow title={deploy.environment}>
-        <TextOverflow>{deploy.environment}</TextOverflow>
-      </Tooltip>
-      <TextOverflow>
-        <Version
-          version={deploy.version}
-          projectId={project.id}
-          tooltipRawVersion
-          truncate
-        />
-      </TextOverflow>
-
-      <DeployTime>
-        <TimeSince date={deploy.dateFinished} unitStyle="short" />
-      </DeployTime>
-    </DeployRow>
-  );
-}
-
-const DeployRow = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-`;
-
-const DeployRows = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(30px, 1fr) 1fr 1fr;
-  grid-template-rows: auto;
-  gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.2;
-`;
-
-const DeployTime = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;

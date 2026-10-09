@@ -3223,11 +3223,6 @@
       "count": 1
     }
   },
-  "static/app/views/projectsDashboard/deploys.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/views/projectsDashboard/noEvents.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
