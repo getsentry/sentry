@@ -517,12 +517,7 @@ function ServerTreeComponent({
     filter => filter.tag.key === 'transaction' && filter.dataset === WidgetType.SPANS
   );
 
-  return (
-    <ServerTreeWidgetVisualization
-      noVisualizationPadding
-      query={transactionFilter?.value}
-    />
-  );
+  return <ServerTreeWidgetVisualization query={transactionFilter?.value} />;
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
