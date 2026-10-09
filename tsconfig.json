@@ -54,6 +54,7 @@
   ],
   "exclude": [
     "./node_modules",
+    "**/*.figma.tsx",
     "static/app/serviceWorker/worker",
     // Referenced packages are checked separately and consumed as declarations.
     "static/packages"
