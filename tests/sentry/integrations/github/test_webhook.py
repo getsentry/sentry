@@ -3,8 +3,9 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
 import responses
-from django.test import override_settings
+from django.test import RequestFactory, override_settings
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
@@ -63,6 +64,36 @@ from sentry.testutils.helpers.analytics import assert_analytics_events
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+
+
+# Invalid JSON prevents an authorized request from reaching event storage.
+@pytest.mark.parametrize(
+    ("method", "header"),
+    [("sha1", "HTTP_X_HUB_SIGNATURE"), ("sha256", "HTTP_X_HUB_SIGNATURE_256")],
+)
+@override_settings(SENTRY_GITHUB_APP_WEBHOOK_SECRET="")
+def test_empty_secret_rejects_matching_signature(method: str, header: str) -> None:
+    body = b"{"
+    signature = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, "")
+    request = RequestFactory().post(
+        "/extensions/github/webhook/",
+        data=body,
+        content_type="application/json",
+        HTTP_X_GITHUB_EVENT="push",
+        **{header: f"{method}={signature}"},
+    )
+    endpoint = GitHubIntegrationsWebhookEndpoint()
+    endpoint.setup(request)
+
+    with patch("sentry.integrations.github.webhook.metrics") as mock_metrics:
+        response = endpoint.handle(request)
+
+    assert response.status_code == 401
+    mock_metrics.incr.assert_called_once_with(
+        "github.webhook.hmac_failure",
+        tags={"reason": "missing_secret"},
+        sample_rate=1.0,
+    )
 
 
 class WebhookTest(APITestCase):
