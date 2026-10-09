@@ -226,14 +226,7 @@ function CancelSubscriptionForm() {
                         setSelectedReason(val);
                       }}
                     >
-                      <field.Layout.Stack
-                        required
-                        label={
-                          <Text as="span" bold>
-                            {t('Reason')}
-                          </Text>
-                        }
-                      >
+                      <field.Layout.Stack required label={t('Reason')}>
                         <Stack gap="sm">
                           {CANCEL_STEPS.map(cancel => (
                             <field.Radio.Item
