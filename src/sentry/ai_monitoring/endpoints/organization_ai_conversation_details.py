@@ -389,6 +389,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         candidates = self._build_widening_params(base_params, stats_period, now)
         probe_end = now
         for candidate in candidates:
+            assert candidate.start is not None
             probe_params = replace(candidate, end=probe_end)
             if self._conversation_exists(probe_params, conversation_id):
                 return candidate
