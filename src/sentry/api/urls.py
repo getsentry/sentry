@@ -583,6 +583,9 @@ from sentry.seer.endpoints.organization_seer_autofix_overview import (
     OrganizationSeerAutofixOverviewEndpoint,
     OrganizationSeerAutofixScmInfoEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_chat_suggestions import (
+    OrganizationSeerChatSuggestionsEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
@@ -2546,6 +2549,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?P<run_id>[^/]+)/$",
         OrganizationSeerAgentChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/chat-suggestions/$",
+        OrganizationSeerChatSuggestionsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-chat-suggestions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-overview/$",
