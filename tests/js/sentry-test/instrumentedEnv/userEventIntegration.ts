@@ -1,10 +1,9 @@
 import {fill, isThenable} from '@sentry/core';
-import {loadModule} from '@sentry/core/server';
 import * as Sentry from '@sentry/react';
+import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
 export function instrumentUserEvent(): void {
-  const pkg = loadModule<any>('@testing-library/user-event');
-  ACTIONS.forEach((action: Action) => _patchAction(pkg.default, action));
+  ACTIONS.forEach((action: Action) => _patchAction(userEvent, action));
 }
 
 type Action = (typeof ACTIONS)[number];
@@ -24,8 +23,8 @@ const ACTIONS = [
   'keyboard',
 ];
 
-function _patchAction(userEvent: any, action: Action): void {
-  fill(userEvent, action, (orig: () => void | Promise<unknown>) => {
+function _patchAction(target: any, action: Action): void {
+  fill(target, action, (orig: () => void | Promise<unknown>) => {
     return function patchedAction(this: unknown, ...args: unknown[]) {
       const span = Sentry.startInactiveSpan({
         op: 'user event',
