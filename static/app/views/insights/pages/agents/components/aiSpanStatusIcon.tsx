@@ -1,18 +1,16 @@
 import {useTheme} from '@emotion/react';
+import {IconBot} from '@sentry/icons/bot';
+import {IconChat} from '@sentry/icons/chat';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
+import {IconFire} from '@sentry/icons/fire';
+import {IconFix} from '@sentry/icons/fix';
+import {IconList} from '@sentry/icons/list';
+import {IconStack} from '@sentry/icons/stack';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  IconChat,
-  IconChevron,
-  IconCode,
-  IconFire,
-  IconFix,
-  IconList,
-  IconStack,
-} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {
   getGenAiOpType,

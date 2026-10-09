@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconUser} from '@sentry/icons/user';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 
-import {IconSettings} from 'sentry/icons/iconSettings';
-import {IconUser} from 'sentry/icons/iconUser';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';

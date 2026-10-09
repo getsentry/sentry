@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {StyledEmptyStateWarning as EmptyState} from 'sentry/views/explore/replays/detail/emptyState';
 

@@ -358,6 +358,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/ingestion_delay/                                       @getsentry/data-browsing
 /src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
 
+/src/sentry/api/helpers/timeseries_processing.py                     @getsentry/app-backend @getsentry/data-browsing
+/tests/sentry/api/helpers/test_timeseries_processing.py              @getsentry/app-backend @getsentry/data-browsing
+
 
 /src/sentry/api/endpoints/organization_explore_formulas.py                          @getsentry/data-browsing
 /tests/sentry/api/endpoints/test_organization_explore_formulas.py                   @getsentry/data-browsing

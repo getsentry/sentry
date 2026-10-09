@@ -1,11 +1,11 @@
 import {useMemo, useState} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InsightDiffItem} from 'sentry/views/preprod/types/appSizeTypes';
 import {getInsightConfig} from 'sentry/views/preprod/utils/insightProcessing';

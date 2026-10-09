@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  // Keep app aliases available to import and boundary checks. Automatic project
+  // references break path resolution in unrs-resolver 1.12.2.
+  // https://github.com/unrs/unrs-resolver/issues/221
+  "references": []
+}

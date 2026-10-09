@@ -1,5 +1,8 @@
 import {Fragment, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconLink} from '@sentry/icons/link';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -12,7 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
-import {IconDownload, IconEllipsis, IconLink} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
