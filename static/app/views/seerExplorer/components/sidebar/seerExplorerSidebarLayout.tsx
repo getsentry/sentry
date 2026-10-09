@@ -5,11 +5,11 @@ import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
-import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
   getSeerExplorerAnalyticsBrowserSize,

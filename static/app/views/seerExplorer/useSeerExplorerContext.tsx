@@ -23,6 +23,7 @@ import {
 } from 'sentry/components/seer/autofixChatContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {serializeChatPromptContext} from 'sentry/views/seerExplorer/chatPrompt';
@@ -34,7 +35,6 @@ import {
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {SeerExplorerErrorBoundary} from 'sentry/views/seerExplorer/components/seerExplorerErrorBoundary';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
-import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,

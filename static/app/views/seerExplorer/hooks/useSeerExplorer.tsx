@@ -18,6 +18,7 @@ import {
   useApiQuery,
 } from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -30,7 +31,6 @@ import type {
   LLMContextSnapshot,
 } from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,

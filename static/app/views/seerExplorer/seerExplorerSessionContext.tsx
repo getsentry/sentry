@@ -3,8 +3,8 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
 
 // Quote free-text search so the runs search grammar treats it as a title

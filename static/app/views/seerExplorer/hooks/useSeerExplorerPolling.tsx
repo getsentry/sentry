@@ -2,9 +2,9 @@ import {useEffect, useRef, useState} from 'react';
 
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import type {PollingState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {
   SeerExplorerResponse,

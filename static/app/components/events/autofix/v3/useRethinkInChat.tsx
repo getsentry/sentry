@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 interface UseRethinkInChatOptions {

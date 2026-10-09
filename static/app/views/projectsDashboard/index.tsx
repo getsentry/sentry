@@ -27,6 +27,7 @@ import {
   setGroupedEntityTag,
 } from 'sentry/utils/performanceForSentry';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -37,7 +38,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 
 import {ProjectCard} from './projectCard';
 import {Resources} from './resources';
