@@ -3,9 +3,10 @@ __all__ = [
     "DetectorHandler",
     "DataPacketEvaluationType",
     "DataPacketType",
+    "DetectorGroupValues",
     "DetectorOccurrence",
     "DetectorStateData",
-    "GroupedDetectorEvaluationResult",
+    "DetectorEvaluations",
     "StatefulDetectorHandler",
 ]
 
@@ -13,8 +14,9 @@ from .base import (
     BaseDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
+    DetectorEvaluations,
+    DetectorGroupValues,
     DetectorOccurrence,
-    GroupedDetectorEvaluationResult,
 )
 from .condition import DetectorHandler
 from .stateful import DetectorStateData, StatefulDetectorHandler

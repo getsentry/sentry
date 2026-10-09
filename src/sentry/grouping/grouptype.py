@@ -7,16 +7,16 @@ from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.endpoints.validators.error_detector import ErrorDetectorValidator
 from sentry.workflow_engine.handlers.detector.base import (
     BaseDetectorHandler,
+    DetectorEvaluations,
+    DetectorGroupValues,
     DetectorOccurrence,
     EventData,
-    GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
-    DetectorPriorityLevel,
     DetectorSettings,
 )
 
@@ -25,26 +25,24 @@ from sentry.workflow_engine.types import (
 # user-defined logic for fingerprinting and auto-resolve rules are stored in project settings.
 # TODO: Move these project settings to the detector configuration
 class ErrorDetectorHandler(BaseDetectorHandler[object, object]):
-    """Placeholder handler for error group types."""
+    """
+    Placeholder handler for error group types.
 
-    def _evaluate(
-        self, data_packet: DataPacket[object]
-    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
-        return {}
+    Packets never contain anything for it to evaluate, so it never creates occurrences.
+    """
+
+    def extract_value(self, data_packet: DataPacket[object]) -> DetectorGroupValues[object]:
+        return DetectorGroupValues()
 
     def evaluate(
         self, data_packet: DataPacket[object], values: Mapping[DetectorGroupKey, object]
-    ) -> GroupedDetectorEvaluationResult:
-        raise NotImplementedError
-
-    def extract_value(self, data_packet: DataPacket[object]) -> object:
-        raise NotImplementedError
+    ) -> DetectorEvaluations:
+        return DetectorEvaluations(result={}, tainted=False)
 
     def create_occurrence(
         self,
         evaluation: DetectorEvaluation,
         data_packet: DataPacket[object],
-        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         raise NotImplementedError
 

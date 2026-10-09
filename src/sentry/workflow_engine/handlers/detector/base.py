@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, Generic, TypeVar
 from uuid import UUID, uuid4, uuid5
 
 from django.utils import timezone
@@ -37,6 +37,15 @@ EventData = dict[str, Any]
 
 # An arbitrary namespace to deterministically convert human-readable occurrence IDs to UUIDs
 OCCURRENCE_ID_NAMESPACE = UUID("6afca79a-539b-4d79-a781-1d3e7ea844ca")
+
+
+class DetectorGroupValues(dict[DetectorGroupKey, DataPacketEvaluationType]):
+    """
+    Return from `extract_value` to evaluate each group key independently.
+
+    Grouping is explicit so a value that is itself a dict is never mistaken for grouped
+    values, and so an empty instance means there is nothing in the packet to evaluate.
+    """
 
 
 @dataclass
@@ -92,9 +101,12 @@ class DetectorOccurrence:
         )
 
 
-# TODO - Come up with a better name settings for this...
 @dataclass(frozen=True)
-class GroupedDetectorEvaluationResult:
+class DetectorEvaluations:
+    """
+    The evaluations `evaluate` decided on, keyed by group, and whether any condition errored.
+    """
+
     result: dict[DetectorGroupKey, DetectorEvaluation]
     tainted: bool
 
@@ -108,7 +120,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     evaluated by the detector.
 
     Subclasses implement `extract_value`, `evaluate`, and `create_occurrence`. The platform
-    runs them in `_evaluate`, and builds the issue occurrence for every triggered evaluation.
+    composes them in `_evaluate`, and builds the issue occurrence for every triggered evaluation.
     """
 
     def __init__(self, detector: Detector):
@@ -121,11 +133,12 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     @abc.abstractmethod
     def extract_value(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> DataPacketEvaluationType | dict[DetectorGroupKey, DataPacketEvaluationType]:
+    ) -> DataPacketEvaluationType | DetectorGroupValues[DataPacketEvaluationType]:
         """
         Extracts the value to evaluate from the data packet.
 
-        Return a `dict[DetectorGroupKey, DataPacketEvaluationType]` to evaluate each group independently.
+        Return `DetectorGroupValues` to evaluate each group independently. An empty
+        `DetectorGroupValues` skips evaluation, e.g. for packets the detector filters out.
         """
         pass
 
@@ -134,13 +147,14 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         self,
         data_packet: DataPacket[DataPacketType],
         values: Mapping[DetectorGroupKey, DataPacketEvaluationType],
-    ) -> GroupedDetectorEvaluationResult:
+    ) -> DetectorEvaluations:
         """
         Decides the outcome for each group's extracted value. Ungrouped detectors receive a single value keyed by `None`.
 
         Return a triggered `DetectorEvaluation` with `result=None` for each group that should create an issue;
         the platform will call `create_occurrence` and build the `IssueOccurrence` for it. An evaluation that
-        already carries a result, like a `StatusChangeMessage`, is returned as-is. Omit groups without an outcome.
+        already carries a result, like a `StatusChangeMessage`, is returned as-is. Evaluations that are neither
+        triggered nor carry a result have no outcome and are dropped.
         """
         pass
 
@@ -149,11 +163,10 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         self,
         evaluation: DetectorEvaluation,
         data_packet: DataPacket[DataPacketType],
-        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         """
-        This method provides the triggered evaluation, the data packet that was used to get the data,
-        and the priority the detector triggered at.
+        This method provides the triggered evaluation and the data packet that was used to get the data.
+        `evaluation.priority` is the priority the detector triggered at.
 
         To implement this, you will need to create a new `DetectorOccurrence` object,
         to represent the issue that was detected. Additionally, you can return any
@@ -198,7 +211,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
 
         Life-cycle:
         - extract_value
-        - evaluate
+        - evaluate, skipped when there are no groups to evaluate
         - create_occurrence, for each triggered evaluation without a result
 
         Once this is complete, `process_detectors` will use `on_complete` to determine
@@ -211,14 +224,20 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
 
         try:
             values = self._extract_value(data_packet)
-            detector_evaluation = self.evaluate(data_packet, values)
+            evaluations = (
+                self.evaluate(data_packet, values)
+                if values
+                else DetectorEvaluations(result={}, tainted=False)
+            )
             results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
-            for group_key, evaluation in detector_evaluation.result.items():
-                if evaluation.triggered and evaluation.result is None:
-                    evaluation = self._create_occurrence(evaluation, data_packet, values[group_key])
-
-                results[group_key] = evaluation
+            for group_key, evaluation in evaluations.result.items():
+                if evaluation.result is not None:
+                    results[group_key] = evaluation
+                elif evaluation.triggered:
+                    results[group_key] = self._create_occurrence(
+                        evaluation, data_packet, values[group_key]
+                    )
         except Exception:
             tags["result"] = "failure"
 
@@ -226,7 +245,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
 
             raise
 
-        tags["result"] = "tainted" if detector_evaluation.tainted else "success"
+        tags["result"] = "tainted" if evaluations.tainted else "success"
 
         metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
 
@@ -237,33 +256,16 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         data_packet: DataPacket[DataPacketType],
     ) -> dict[DetectorGroupKey, DataPacketEvaluationType]:
         """
-        This method will normalize the extracted value to support grouping results.
+        Normalizes the output of `extract_value` to group key and value pairs.
 
-        If `extract_value` returns a `dict[DetectorGroupKey, DataPacketEvaluationType]`
-        it will cast it to the correct data type.
-
-        If `extract_value` returns a single value, it will be wrapped in a dict
-        with `None` as the key, to normalize the type as `dict[DetectorGroupKey, DataPacketEvaluationType]`.
+        `DetectorGroupValues` are returned as-is; any other value is keyed by `None`.
         """
-        data_values = self.extract_value(data_packet)
+        value = self.extract_value(data_packet)
 
-        if self._is_detector_group_value(data_values):
-            return cast(dict[DetectorGroupKey, DataPacketEvaluationType], data_values)
+        if isinstance(value, DetectorGroupValues):
+            return value
 
-        return {None: cast(DataPacketEvaluationType, data_values)}
-
-    def _is_detector_group_value(self, value: Any) -> bool:
-        """
-        Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
-        """
-        if not isinstance(value, dict):
-            return False
-
-        if not value:  # Empty dict case
-            return False
-
-        # Check if all keys are DetectorGroupKey instances
-        return all(isinstance(key, DetectorGroupKey) for key in value.keys())
+        return {None: value}
 
     def _create_occurrence(
         self,
@@ -281,11 +283,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
 
         `fingerprint` defaults to `get_issue_fingerprint` for the evaluation's group key.
         """
-        detector_occurrence, event_data = self.create_occurrence(
-            evaluation,
-            data_packet,
-            evaluation.priority,
-        )
+        detector_occurrence, event_data = self.create_occurrence(evaluation, data_packet)
 
         group_key = evaluation.data["group_key"]
         event_id = self.get_event_id(event_data)

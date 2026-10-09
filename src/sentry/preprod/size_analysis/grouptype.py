@@ -13,14 +13,17 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-from sentry.workflow_engine.handlers.detector.base import DetectorOccurrence, EventData
+from sentry.workflow_engine.handlers.detector.base import (
+    DetectorGroupValues,
+    DetectorOccurrence,
+    EventData,
+)
 from sentry.workflow_engine.handlers.detector.condition import DetectorHandler
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
-    DetectorPriorityLevel,
     DetectorSettings,
 )
 
@@ -211,16 +214,6 @@ class PreprodSizeAnalysisDetectorHandler(
             return False
 
     @override
-    def _extract_value(
-        self, data_packet: SizeAnalysisDataPacket
-    ) -> dict[DetectorGroupKey, SizeAnalysisEvaluation]:
-        # Skip extraction for artifacts the detector's query filters out
-        if not self._matches_query(data_packet):
-            return {}
-
-        return super()._extract_value(data_packet)
-
-    @override
     def get_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         # Every regression is its own issue
         return [uuid4().hex]
@@ -252,7 +245,13 @@ class PreprodSizeAnalysisDetectorHandler(
             raise ValueError(f"Missing base value for measurement: {measurement}")
         return base
 
-    def extract_value(self, data_packet: SizeAnalysisDataPacket) -> SizeAnalysisEvaluation:
+    def extract_value(
+        self, data_packet: SizeAnalysisDataPacket
+    ) -> SizeAnalysisEvaluation | DetectorGroupValues[SizeAnalysisEvaluation]:
+        # Skip evaluating artifacts the detector's query filters out
+        if not self._matches_query(data_packet):
+            return DetectorGroupValues()
+
         threshold_type = self.detector.config["threshold_type"]
         match threshold_type:
             case "absolute":
@@ -269,7 +268,6 @@ class PreprodSizeAnalysisDetectorHandler(
         self,
         evaluation: DetectorEvaluation,
         data_packet: SizeAnalysisDataPacket,
-        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         trigger_evaluation = evaluation.data["trigger_group_evaluation"]
         current_timestamp = datetime.now(dt_timezone.utc)
@@ -286,17 +284,8 @@ class PreprodSizeAnalysisDetectorHandler(
 
         platform = metadata["platform"] if metadata else "unknown"
 
-        evidence_data: dict[str, Any] = {
-            "detector_id": self.detector.id,
-            "value": self.extract_value(data_packet),
-            "conditions": [
-                condition_evaluation.condition.get_snapshot()
-                for condition_evaluation in (
-                    trigger_evaluation.data["condition_evaluations"] if trigger_evaluation else []
-                )
-            ],
-            "config": self.detector.config,
-        }
+        # The platform adds the detector id, value, triggered conditions, and config
+        evidence_data: dict[str, Any] = {}
         if metadata:
             evidence_data["head_artifact_id"] = metadata["head_artifact_id"]
             if "base_artifact_id" in metadata:
@@ -347,7 +336,7 @@ class PreprodSizeAnalysisDetectorHandler(
             type=PreprodSizeAnalysisGroupType,
             level="warning",
             culprit="",
-            priority=priority,
+            priority=evaluation.priority,
         )
 
         event_data: EventData = {

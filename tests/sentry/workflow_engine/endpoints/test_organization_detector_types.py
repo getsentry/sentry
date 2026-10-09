@@ -7,9 +7,9 @@ from sentry.issues.grouptype import GroupCategory, GroupType, GroupTypeRegistry
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.handlers.detector import (
+    DetectorEvaluations,
     DetectorHandler,
     DetectorOccurrence,
-    GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
@@ -45,8 +45,8 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                 self,
                 data_packet: DataPacket[dict[Never, Never]],
                 values: Mapping[DetectorGroupKey, bool],
-            ) -> GroupedDetectorEvaluationResult:
-                return GroupedDetectorEvaluationResult(
+            ) -> DetectorEvaluations:
+                return DetectorEvaluations(
                     result={
                         None: DetectorEvaluation(
                             result=None,
@@ -73,7 +73,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                 self,
                 evaluation: DetectorEvaluation,
                 data_packet: DataPacket[dict[Never, Never]],
-                priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, EventData]:
                 return (
                     DetectorOccurrence(
@@ -85,7 +84,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                         type=TestMetricGroupType,
                         level="",
                         culprit="",
-                        priority=priority,
+                        priority=evaluation.priority,
                         assignee=None,
                     ),
                     {},

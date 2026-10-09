@@ -6,30 +6,73 @@ import pytest
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.workflow_engine.handlers.detector import DetectorStateData
+from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters, get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
-from sentry.workflow_engine.types import (
-    DataConditionResult,
-    DetectorGroupKey,
-    DetectorPriorityLevel,
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
+from tests.sentry.workflow_engine.handlers.detector.test_base import (
+    MockDetectorStateHandler,
+    assert_event_matches_occurrence,
 )
-from tests.sentry.workflow_engine.handlers.detector.test_base import MockDetectorStateHandler
 
 Level = DetectorPriorityLevel
 
 
-class TestStatefulDetectorHandler(TestCase):
+class StatefulDetectorTestCase(TestCase):
+    """
+    Builds detectors whose `eq` trigger conditions map a priority's name to that priority, so
+    a packet carrying "HIGH" for a group evaluates to `DetectorPriorityLevel.HIGH`.
+    """
+
+    __test__ = Abstract(__module__, __qualname__)
+
     def setUp(self) -> None:
-        self.detector = self.create_detector(
-            name="Stateful Detector",
-            project=self.project,
+        super().setUp()
+        self.detector = self.create_detector(name="Stateful Detector", project=self.project)
+
+    def add_priority_conditions(self, *levels: DetectorPriorityLevel) -> None:
+        self.detector.workflow_condition_group = self.create_data_condition_group()
+
+        for level in levels:
+            self.create_data_condition(
+                type="eq",
+                comparison=level.name,
+                condition_group=self.detector.workflow_condition_group,
+                condition_result=level,
+            )
+
+    def packet(
+        self, dedupe: int, result: DetectorPriorityLevel | int, group_key: DetectorGroupKey = None
+    ) -> DataPacket[Any]:
+        return self.grouped_packet(dedupe, {group_key: result})
+
+    def grouped_packet(
+        self, dedupe: int, results: dict[DetectorGroupKey, DetectorPriorityLevel | int]
+    ) -> DataPacket[Any]:
+        """Priorities are sent by name; any other value is sent as-is."""
+        group_vals = {
+            group_key: result.name if isinstance(result, DetectorPriorityLevel) else result
+            for group_key, result in results.items()
+        }
+
+        return DataPacket(
+            source_id=str(dedupe),
+            packet={"id": str(dedupe), "dedupe": dedupe, "group_vals": group_vals},
         )
 
+    def state(
+        self, handler: MockDetectorStateHandler, group_key: DetectorGroupKey = None
+    ) -> DetectorStateData:
+        return handler.state_manager.get_state_data([group_key])[group_key]
+
+
+class TestStatefulDetectorHandlerThresholds(StatefulDetectorTestCase):
     def _get_full_detector(self) -> Detector:
         """
-        Fetches the full detector with its workflow condition group and conditions.
-        This is useful to ensure that the detector is fully populated for testing.
+        Fetches the detector with its workflow condition group and conditions prefetched.
         """
         detector = (
             Detector.objects.filter(id=self.detector.id)
@@ -43,32 +86,18 @@ class TestStatefulDetectorHandler(TestCase):
 
     def test_detector_defaults_to_only_an_ok_threshold(self) -> None:
         handler = MockDetectorStateHandler(detector=self.detector)
-        # Only the OK threshold is set by default
+
         assert handler._thresholds == {Level.OK: 1}
-
-    def test_detector_custom_thresholds_are_added_to_the_defaults(self) -> None:
-        handler = MockDetectorStateHandler(
-            detector=self.detector,
-            thresholds={Level.LOW: 2},
-        )
-
-        # Setting the thresholds on the detector allow to override the defaults
-        assert handler._thresholds == {Level.OK: 1, Level.LOW: 2}
-
-    def test_detector_tracks_a_state_counter_for_each_threshold(self) -> None:
-        handler = MockDetectorStateHandler(detector=self.detector)
         assert handler.state_manager.counter_names == [Level.OK]
 
-    def test_detector_with_prefetched_conditions_builds_thresholds_without_queries(self) -> None:
-        self.detector.workflow_condition_group = self.create_data_condition_group()
-        self.detector.save()
+    def test_detector_custom_thresholds_are_added_to_the_defaults(self) -> None:
+        handler = MockDetectorStateHandler(detector=self.detector, thresholds={Level.LOW: 2})
 
-        self.create_data_condition(
-            type="eq",
-            comparison="HIGH",
-            condition_group=self.detector.workflow_condition_group,
-            condition_result=Level.HIGH,
-        )
+        assert handler._thresholds == {Level.OK: 1, Level.LOW: 2}
+
+    def test_detector_with_prefetched_conditions_builds_thresholds_without_queries(self) -> None:
+        self.add_priority_conditions(Level.HIGH)
+        self.detector.save()
 
         fetched_detector = self._get_full_detector()
 
@@ -77,7 +106,7 @@ class TestStatefulDetectorHandler(TestCase):
             assert handler._thresholds == {Level.OK: 1, Level.HIGH: 1}
 
     def test_detector_with_no_conditions_builds_thresholds_without_queries(self) -> None:
-        self.detector.workflow_condition_group = self.create_data_condition_group()
+        self.add_priority_conditions()
         self.detector.save()
 
         fetched_detector = self._get_full_detector()
@@ -87,202 +116,71 @@ class TestStatefulDetectorHandler(TestCase):
             assert handler._thresholds == {Level.OK: 1}
 
     def test_detector_without_prefetched_conditions_queries_them_once(self) -> None:
-        self.detector.workflow_condition_group = self.create_data_condition_group()
+        self.add_priority_conditions(Level.HIGH)
         self.detector.save()
-
-        self.create_data_condition(
-            type="eq",
-            comparison="HIGH",
-            condition_group=self.detector.workflow_condition_group,
-            condition_result=Level.HIGH,
-        )
 
         fetched_detector = Detector.objects.get(id=self.detector.id)
 
         with self.assertNumQueries(1):
-            # Should make a query since we don't know the detector conditions
             handler = MockDetectorStateHandler(detector=fetched_detector)
             assert handler._thresholds == {Level.OK: 1, Level.HIGH: 1}
 
-    def test_bulk_commit_skips_update_when_state_unchanged(self) -> None:
-        group_key: DetectorGroupKey = None
 
-        detector_state = self.create_detector_state(
-            detector=self.detector,
-            detector_group_key=group_key,
-            is_triggered=False,
-            state=Level.OK,
-        )
-
-        handler = MockDetectorStateHandler(
-            detector=self.detector,
-            thresholds={Level.HIGH: 1},
-        )
-
-        # First update changes state - should call bulk_update
-        handler.state_manager.enqueue_state_update(
-            group_key, is_triggered=True, priority=Level.HIGH
-        )
-        with mock.patch.object(
-            DetectorState.objects, "bulk_update", wraps=DetectorState.objects.bulk_update
-        ) as mock_bulk_update:
-            handler.state_manager.commit_state_updates()
-            mock_bulk_update.assert_called_once()
-
-        detector_state.refresh_from_db()
-        assert detector_state.is_triggered is True
-        assert detector_state.state == str(Level.HIGH)
-
-        # Second update with same state - should not call bulk_update
-        handler.state_manager.enqueue_state_update(
-            group_key, is_triggered=True, priority=Level.HIGH
-        )
-        with mock.patch.object(DetectorState.objects, "bulk_update") as mock_bulk_update:
-            handler.state_manager.commit_state_updates()
-            mock_bulk_update.assert_not_called()
-
-
-class TestStatefulDetectorIncrementThresholds(TestCase):
+class TestStatefulDetectorIncrementThresholds(StatefulDetectorTestCase):
     def setUp(self) -> None:
-        self.group_key: DetectorGroupKey = None
-        self.detector = self.create_detector(
-            name="Stateful Detector",
-            project=self.project,
-        )
+        super().setUp()
+        self.handler = MockDetectorStateHandler(detector=self.detector, thresholds={Level.HIGH: 2})
 
-        self.handler = MockDetectorStateHandler(
-            detector=self.detector,
-            thresholds={
-                Level.HIGH: 2,
-            },
-        )
-
-    def test_detector_increments_counters_at_or_below_the_priority(self) -> None:
-        state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
-        self.handler._increment_detector_thresholds(state, Level.HIGH, self.group_key)
+    def increment(self, priority: DetectorPriorityLevel) -> DetectorStateData:
+        self.handler._increment_detector_thresholds(self.state(self.handler), priority, None)
         self.handler.state_manager.commit_state_updates()
-        updated_state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
 
-        # Default to all states since the detector is not configured with any.
-        assert updated_state.counter_updates == {
-            **{level: 1 for level in self.handler._thresholds},
-            Level.OK: None,
-        }
+        return self.state(self.handler)
 
     def test_detector_does_not_increment_counters_above_the_priority(self) -> None:
-        state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
-        self.handler._increment_detector_thresholds(state, Level.MEDIUM, self.group_key)
-        self.handler.state_manager.commit_state_updates()
-        updated_state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
-
-        # All states, lower than high, should be incremented by 1, except for OK
-        assert updated_state.counter_updates == {
-            Level.HIGH: None,
-            Level.OK: None,
-        }
+        assert self.increment(Level.MEDIUM).counter_updates == {Level.HIGH: None, Level.OK: None}
 
     def test_detector_does_not_increment_unconfigured_counters(self) -> None:
-        state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
-        self.handler._increment_detector_thresholds(state, Level.LOW, self.group_key)
-        self.handler.state_manager.commit_state_updates()
-        updated_state = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
-
-        # The detector doesn't increment LOW because it's not configured
-        assert updated_state.counter_updates == {
-            Level.OK: None,
-            Level.HIGH: None,
-        }
+        assert self.increment(Level.LOW).counter_updates == {Level.OK: None, Level.HIGH: None}
 
 
-class TestStatefulDetectorHandlerEvaluate(TestCase):
+class TestStatefulDetectorHandlerEvaluate(StatefulDetectorTestCase):
     def setUp(self) -> None:
-        self.group_key: DetectorGroupKey = None
-
-        self.detector = self.create_detector(
-            name="Stateful Detector",
-            project=self.project,
-        )
-        self.detector.workflow_condition_group = self.create_data_condition_group()
-
-        def add_condition(
-            val: str | int,
-            result: DetectorPriorityLevel,
-            condition_type: str = "eq",
-        ) -> None:
-            self.create_data_condition(
-                type=condition_type,
-                comparison=val,
-                condition_group=self.detector.workflow_condition_group,
-                condition_result=result,
-            )
-
-        # Setup conditions for each priority level
-        add_condition(val="OK", result=Level.OK)
-        add_condition(val="LOW", result=Level.LOW)
-        add_condition(val="MEDIUM", result=Level.MEDIUM)
-        add_condition(val="HIGH", result=Level.HIGH)
+        super().setUp()
+        self.add_priority_conditions(Level.OK, Level.LOW, Level.MEDIUM, Level.HIGH)
 
         self.handler = MockDetectorStateHandler(
             detector=self.detector,
-            thresholds={
-                Level.LOW: 2,
-                Level.MEDIUM: 2,
-                Level.HIGH: 2,
-            },
+            thresholds={Level.LOW: 2, Level.MEDIUM: 2, Level.HIGH: 2},
         )
 
-    def packet(self, key: int, result: DataConditionResult | str) -> DataPacket[Any]:
-        """
-        Constructs a test data packet that will evaluate to the
-        DetectorPriorityLevel specified for the result parameter.
+    def trigger(self, handler: MockDetectorStateHandler | None = None) -> None:
+        """Two HIGH evaluations reach the HIGH threshold."""
+        handler = handler or self.handler
 
-        See the `add_condition` to understand the priority level -> group value
-        mappings.
-        """
-        value = result
-        if isinstance(result, DetectorPriorityLevel):
-            value = result.name
-
-        packet = {
-            "id": str(key),
-            "dedupe": key,
-            "group_vals": {self.group_key: value},
-        }
-        return DataPacket(source_id=str(key), packet=packet)
-
-    def test_detector_does_not_trigger_under_the_threshold(self) -> None:
-        # First evaluation does not trigger the threshold
-        result = self.handler._evaluate(self.packet(1, Level.HIGH))
-        assert result == {}
+        handler._evaluate(self.packet(1, Level.HIGH))
+        handler._evaluate(self.packet(2, Level.HIGH))
 
     def test_detector_triggers_once_the_threshold_is_reached(self) -> None:
-        # First evaluation does not trigger the threshold
-        self.handler._evaluate(self.packet(1, Level.HIGH))
+        assert self.handler._evaluate(self.packet(1, Level.HIGH)) == {}
 
-        # Second evaluation surpasses threshold and triggers
         result = self.handler._evaluate(self.packet(2, Level.HIGH))
-        assert result
-        evaluation_result = result[self.group_key]
+        evaluation = result[None]
+        occurrence = evaluation.result
 
-        assert evaluation_result
-        assert evaluation_result.priority == Level.HIGH
-        assert isinstance(evaluation_result.result, IssueOccurrence)
+        assert evaluation.priority == Level.HIGH
+        assert isinstance(occurrence, IssueOccurrence)
+        assert occurrence.evidence_data["detector_id"] == self.detector.id
 
-        evidence_data = evaluation_result.result.evidence_data
-        assert evidence_data["detector_id"] == self.detector.id
+        # Stateful detectors use a fresh event id as the occurrence id
+        assert occurrence.id == occurrence.event_id
+        assert_event_matches_occurrence(evaluation.data["event_data"], occurrence)
 
-    def test_detector_triggering_updates_the_detector_state(self) -> None:
-        # Two evaluations triggers threshold
-        self.handler._evaluate(self.packet(1, Level.HIGH))
-        self.handler._evaluate(self.packet(2, Level.HIGH))
+        state = self.state(self.handler)
 
-        state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
-
-        assert state_data.is_triggered is True
-        assert state_data.status == Level.HIGH
-
-        # Only has configured states
-        assert state_data.counter_updates == {
+        assert state.is_triggered is True
+        assert state.status == Level.HIGH
+        assert state.counter_updates == {
             Level.HIGH: 2,
             Level.MEDIUM: 2,
             Level.LOW: 2,
@@ -290,320 +188,292 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         }
 
     def test_detector_high_evaluation_increments_all_counters(self) -> None:
-        # A single HIGH evaluation should increment all levels
         self.handler._evaluate(self.packet(1, Level.HIGH))
-        state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
 
-        # Verify all the levels are present now
-        assert state_data.counter_updates == {
+        assert self.state(self.handler).counter_updates == {
             **{level: 1 for level in Level},
             Level.OK: None,
         }
 
     def test_detector_resolves_after_an_ok_evaluation(self) -> None:
-        # Two HIGH evaluations will trigger
-        result = self.handler._evaluate(self.packet(1, Level.HIGH))
-        result = self.handler._evaluate(self.packet(2, Level.HIGH))
-        assert result.get(self.group_key)
-        assert isinstance(result[self.group_key].result, IssueOccurrence)
+        self.trigger()
 
-        # Resolves after a OK packet
         result = self.handler._evaluate(self.packet(3, Level.OK))
-        assert result.get(self.group_key)
-        evaluation_result = result[self.group_key]
+        evaluation = result[None]
 
-        assert isinstance(evaluation_result.result, StatusChangeMessage)
-        assert evaluation_result.priority == Level.OK
-        assert evaluation_result.result.detector_id == self.detector.id
+        assert isinstance(evaluation.result, StatusChangeMessage)
+        assert evaluation.priority == Level.OK
+        assert evaluation.result.detector_id == self.detector.id
+        assert evaluation.result.fingerprint == [f"detector:{self.detector.id}"]
 
-    def test_detector_high_evaluations_count_toward_the_low_threshold(self) -> None:
-        # One HIGH then one LOW will result in a low evaluation
-        result = self.handler._evaluate(self.packet(1, Level.HIGH))
-        assert result == {}
-        result = self.handler._evaluate(self.packet(2, Level.LOW))
-        assert result.get(self.group_key)
-        evaluation_result = result[self.group_key]
-        assert isinstance(evaluation_result.result, IssueOccurrence)
-        assert evaluation_result.priority == Level.LOW
+        state = self.state(self.handler)
 
-    def test_detector_escalates_from_low_to_high(self) -> None:
-        # Two LOW evaluations result in a LOW
-        result = self.handler._evaluate(self.packet(1, Level.LOW))
-        result = self.handler._evaluate(self.packet(2, Level.LOW))
-        assert result.get(self.group_key)
-        evaluation_result = result[self.group_key]
-        assert isinstance(evaluation_result.result, IssueOccurrence)
-        assert evaluation_result.priority == Level.LOW
-
-        # Followed by two HIGH evaluations to result in a high
-        result = self.handler._evaluate(self.packet(3, Level.HIGH))
-        assert result == {}
-        result = self.handler._evaluate(self.packet(4, Level.HIGH))
-        assert result.get(self.group_key)
-        evaluation_result = result[self.group_key]
-        assert isinstance(evaluation_result.result, IssueOccurrence)
-        assert evaluation_result.priority == Level.HIGH
-
-    def test_detector_resolving_resets_the_detector_state(self) -> None:
-        # Two HIGH evaluations will trigger
-        self.handler._evaluate(self.packet(1, Level.HIGH))
-        self.handler._evaluate(self.packet(2, Level.HIGH))
-        # A final OK will resolve
-        self.handler._evaluate(self.packet(3, Level.OK))
-
-        state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
-
-        # Check that the state is reset
-        assert state_data.is_triggered is False
-        assert state_data.status == Level.OK
-        # Only has configured states
-        assert state_data.counter_updates == {
-            **{level: None for level in self.handler._thresholds},
-        }
+        assert state.is_triggered is False
+        assert state.status == Level.OK
+        assert state.counter_updates == {level: None for level in self.handler._thresholds}
 
     def test_detector_triggers_again_after_resolving(self) -> None:
-        # Two HIGH evaluations will trigger
-        self.handler._evaluate(self.packet(1, Level.HIGH))
-        self.handler._evaluate(self.packet(2, Level.HIGH))
-        # A final OK will resolve
+        self.trigger()
         self.handler._evaluate(self.packet(3, Level.OK))
 
-        # Evaluate again, but under threshold so no trigger
-        result = self.handler._evaluate(self.packet(4, Level.HIGH))
-        assert result == {}
+        assert self.handler._evaluate(self.packet(4, Level.HIGH)) == {}
+        assert self.state(self.handler).is_triggered is False
 
-        # Evaluate again and cause a trigger
         result = self.handler._evaluate(self.packet(5, Level.HIGH))
-        assert result
-        evaluation_result = result[self.group_key]
 
-        assert evaluation_result
-        assert evaluation_result.priority == Level.HIGH
-        assert isinstance(evaluation_result.result, IssueOccurrence)
+        assert result[None].priority == Level.HIGH
+        assert isinstance(result[None].result, IssueOccurrence)
+        assert self.state(self.handler).status == Level.HIGH
 
-    def test_detector_triggering_again_updates_the_detector_state(self) -> None:
-        # Two HIGH evaluations will trigger
-        self.handler._evaluate(self.packet(1, Level.HIGH))
-        self.handler._evaluate(self.packet(2, Level.HIGH))
-        # A final OK will resolve
-        self.handler._evaluate(self.packet(3, Level.OK))
+    def test_detector_high_evaluations_count_toward_the_low_threshold(self) -> None:
+        assert self.handler._evaluate(self.packet(1, Level.HIGH)) == {}
 
-        # Evaluate again, but under threshold so no trigger
-        self.handler._evaluate(self.packet(4, Level.HIGH))
+        result = self.handler._evaluate(self.packet(2, Level.LOW))
 
-        state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
-        assert self.handler._thresholds[Level.HIGH] == 2
-        assert state_data.is_triggered is False
+        assert isinstance(result[None].result, IssueOccurrence)
+        assert result[None].priority == Level.LOW
 
-        # Evaluate again and cause a trigger
-        self.handler._evaluate(self.packet(5, Level.HIGH))
+    def test_detector_escalates_from_low_to_high(self) -> None:
+        self.handler._evaluate(self.packet(1, Level.LOW))
+        result = self.handler._evaluate(self.packet(2, Level.LOW))
 
-        state_data = self.handler.state_manager.get_state_data([self.group_key])[self.group_key]
-        assert state_data.is_triggered is True
-        assert state_data.status == Level.HIGH
+        assert result[None].priority == Level.LOW
+
+        assert self.handler._evaluate(self.packet(3, Level.HIGH)) == {}
+        result = self.handler._evaluate(self.packet(4, Level.HIGH))
+
+        assert isinstance(result[None].result, IssueOccurrence)
+        assert result[None].priority == Level.HIGH
 
     def test_detector_ok_evaluation_resets_counters(self) -> None:
-        # This should NOT trigger for HIGH since there's an OK in-between
-        result = self.handler._evaluate(self.packet(1, Level.HIGH))
-        result = self.handler._evaluate(self.packet(2, Level.OK))
-        result = self.handler._evaluate(self.packet(3, Level.HIGH))
+        self.handler._evaluate(self.packet(1, Level.HIGH))
+        self.handler._evaluate(self.packet(2, Level.OK))
 
-        assert result == {}
+        assert self.handler._evaluate(self.packet(3, Level.HIGH)) == {}
 
     def test_detector_already_at_high_ignores_a_larger_low_threshold(self) -> None:
-        """
-        Test that a LOW threshold that is larger than the HIGH threshold does
-        not trigger once the HIGH threshold has already triggered.
-        """
-        test_handler = MockDetectorStateHandler(
+        handler = MockDetectorStateHandler(
             detector=self.detector,
-            thresholds={
-                Level.LOW: 3,
-                Level.MEDIUM: 2,
-                Level.HIGH: 2,
-            },
+            thresholds={Level.LOW: 3, Level.MEDIUM: 2, Level.HIGH: 2},
         )
 
-        # First two trigger a high result
-        result = test_handler._evaluate(self.packet(1, Level.HIGH))
-        result = test_handler._evaluate(self.packet(2, Level.HIGH))
-        state_data = test_handler.state_manager.get_state_data([self.group_key])[self.group_key]
-        assert state_data.is_triggered is True
-        assert state_data.status == Level.HIGH
+        self.trigger(handler)
 
-        # Third evaluation does NOT trigger another result
-        result = test_handler._evaluate(self.packet(3, Level.HIGH))
-        assert result == {}
+        assert self.state(handler).status == Level.HIGH
+        assert handler._evaluate(self.packet(3, Level.HIGH)) == {}
 
-        # Three LOW results trigger low evaluation
-        result = test_handler._evaluate(self.packet(4, Level.LOW))
-        assert result == {}
-        result = test_handler._evaluate(self.packet(5, Level.LOW))
-        assert result == {}
-        result = test_handler._evaluate(self.packet(6, Level.LOW))
-        state_data = test_handler.state_manager.get_state_data([self.group_key])[self.group_key]
-        assert state_data.is_triggered is True
-        assert state_data.status == Level.LOW
+        # Three LOW evaluations de-escalate to LOW
+        assert handler._evaluate(self.packet(4, Level.LOW)) == {}
+        assert handler._evaluate(self.packet(5, Level.LOW)) == {}
+        handler._evaluate(self.packet(6, Level.LOW))
+
+        assert self.state(handler).is_triggered is True
+        assert self.state(handler).status == Level.LOW
 
     def test_detector_resets_counters_after_triggering_for_a_group_key(self) -> None:
-        self.group_key = "group1"
+        group_key = "group1"
 
-        # Trigger HIGH priority
-        result = self.handler._evaluate(self.packet(1, Level.HIGH))
-        assert result == {}
-        result = self.handler._evaluate(self.packet(2, Level.HIGH))
-        assert result[self.group_key].priority == Level.HIGH
+        assert self.handler._evaluate(self.packet(1, Level.HIGH, group_key)) == {}
+        triggered = self.handler._evaluate(self.packet(2, Level.HIGH, group_key))
 
-        # Evaluate again at HIGH priority (same as current state)
-        result = self.handler._evaluate(self.packet(3, Level.HIGH))
-        assert result == {}
+        assert triggered[group_key].priority == Level.HIGH
 
-        # Evaluate at MEDIUM priority - should require 2 evaluations to trigger
-        result = self.handler._evaluate(self.packet(4, Level.MEDIUM))
-        assert result == {}
+        # Matching the current state resets counters, so MEDIUM needs two more evaluations
+        assert self.handler._evaluate(self.packet(3, Level.HIGH, group_key)) == {}
+        assert self.handler._evaluate(self.packet(4, Level.MEDIUM, group_key)) == {}
+        de_escalated = self.handler._evaluate(self.packet(5, Level.MEDIUM, group_key))
 
-        result = self.handler._evaluate(self.packet(5, Level.MEDIUM))
-        assert result[self.group_key].priority == Level.MEDIUM
+        assert de_escalated[group_key].priority == Level.MEDIUM
+
+    def test_detector_group_keys_resolve_only_their_own_issue(self) -> None:
+        both_high: dict[DetectorGroupKey, DetectorPriorityLevel | int] = {
+            "group_a": Level.HIGH,
+            "group_b": Level.HIGH,
+        }
+        self.handler._evaluate(self.grouped_packet(1, both_high))
+        self.handler._evaluate(self.grouped_packet(2, both_high))
+
+        result = self.handler._evaluate(self.grouped_packet(3, {"group_a": Level.OK}))
+
+        assert set(result.keys()) == {"group_a"}
+        assert isinstance(result["group_a"].result, StatusChangeMessage)
+        assert result["group_a"].result.fingerprint == [f"detector:{self.detector.id}:group_a"]
+        assert self.state(self.handler, "group_b").status == Level.HIGH
+
+    def test_detector_skips_already_processed_packets(self) -> None:
+        self.handler._evaluate(self.packet(1, Level.HIGH))
+
+        with mock.patch(
+            "sentry.workflow_engine.handlers.detector.stateful.metrics"
+        ) as mock_metrics:
+            assert self.handler._evaluate(self.packet(1, Level.HIGH)) == {}
+
+        mock_metrics.incr.assert_called_once_with(
+            "workflow_engine.detector.skipping_already_processed_update"
+        )
+        assert self.state(self.handler).counter_updates[Level.HIGH] == 1
+
+    def test_detector_without_a_condition_group_still_advances_dedupe(self) -> None:
+        handler = MockDetectorStateHandler(self.create_detector(project=self.project))
+
+        with mock.patch(
+            "sentry.workflow_engine.handlers.detector.condition.metrics"
+        ) as mock_metrics:
+            assert handler._evaluate(self.packet(2, Level.HIGH)) == {}
+
+        mock_metrics.incr.assert_called_once_with(
+            "workflow_engine.detector.skipping_invalid_condition_group"
+        )
+        assert self.state(handler).dedupe_value == 2
 
     def test_detector_keeps_its_state_when_no_condition_matches(self) -> None:
-        detector = self.create_detector(
-            name="Stateful Detector",
-            project=self.project,
-        )
-
-        detector.workflow_condition_group = self.create_data_condition_group(logic_type="any")
+        self.detector = self.create_detector(project=self.project)
+        self.detector.workflow_condition_group = self.create_data_condition_group(logic_type="any")
         self.create_data_condition(
-            condition_group=detector.workflow_condition_group,
+            condition_group=self.detector.workflow_condition_group,
             comparison=5,
             type="lte",
             condition_result=Level.OK,
         )
         self.create_data_condition(
-            condition_group=detector.workflow_condition_group,
+            condition_group=self.detector.workflow_condition_group,
             comparison=10,
             type="gt",
             condition_result=Level.HIGH,
         )
+        handler = MockDetectorStateHandler(detector=self.detector)
 
-        handler = MockDetectorStateHandler(
-            detector=detector, thresholds={Level.OK: 1, Level.HIGH: 1}
-        )
+        assert handler._evaluate(self.packet(1, 15))[None].priority == Level.HIGH
 
-        critical_packet = self.packet(1, 15)
-        critical_result = handler._evaluate(critical_packet)
+        # Neither condition matches, so the state doesn't change
+        assert handler._evaluate(self.packet(2, 8)) == {}
 
-        assert critical_result[self.group_key].priority == Level.HIGH
-
-        missing_condition_packet = self.packet(2, 8)
-        missing_condition_result = handler._evaluate(missing_condition_packet)
-
-        # We shouldn't change state, because there wasn't a matching condition
-        assert missing_condition_result == {}
-
-        resolution_packet = self.packet(3, 2)
-        resolution_result = handler._evaluate(resolution_packet)
-
-        assert resolution_result[self.group_key].priority == Level.OK
+        assert handler._evaluate(self.packet(3, 2))[None].priority == Level.OK
 
 
-class TestDetectorStateManagerRedisOptimization(TestCase):
+class TestDetectorStateManager(StatefulDetectorTestCase):
     def setUp(self) -> None:
-        self.detector = self.create_detector(
-            name="Redis Optimization Detector",
-            project=self.project,
-        )
+        super().setUp()
         self.handler = MockDetectorStateHandler(
             detector=self.detector,
-            thresholds={
-                Level.LOW: 2,
-                Level.HIGH: 3,
-            },
+            thresholds={Level.LOW: 2, Level.HIGH: 3},
         )
-        self.group_keys = [None, "group1", "group2"]
+        self.state_manager = self.handler.state_manager
+
+    def test_build_key_includes_the_detector_group_and_postfix(self) -> None:
+        assert self.state_manager.build_key() == f"detector:{self.detector.id}"
+        assert self.state_manager.build_key("test") == f"detector:{self.detector.id}:test"
+        assert (
+            self.state_manager.build_key("test", "dedupe_value")
+            == f"detector:{self.detector.id}:test:dedupe_value"
+        )
+
+    def test_get_state_data_returns_committed_and_default_state(self) -> None:
+        empty_counters: DetectorCounters = {level: None for level in self.handler._thresholds}
+        committed = DetectorStateData(
+            group_key="committed",
+            is_triggered=True,
+            status=Level.HIGH,
+            dedupe_value=100,
+            counter_updates={**empty_counters, Level.HIGH: 5},
+        )
+
+        self.state_manager.enqueue_dedupe_update(committed.group_key, committed.dedupe_value)
+        self.state_manager.enqueue_counter_update(committed.group_key, committed.counter_updates)
+        self.state_manager.enqueue_state_update(
+            committed.group_key, committed.is_triggered, committed.status
+        )
+        self.state_manager.commit_state_updates()
+
+        assert self.state_manager.get_state_data(["committed", "uncommitted"]) == {
+            "committed": committed,
+            "uncommitted": DetectorStateData(
+                group_key="uncommitted",
+                is_triggered=False,
+                status=Level.OK,
+                dedupe_value=0,
+                counter_updates=empty_counters,
+            ),
+        }
+
+    def test_commit_state_updates_writes_postgres_and_redis(self) -> None:
+        redis = get_redis_client()
+        dedupe_key = self.state_manager.build_key(None, "dedupe_value")
+        counter_key_1 = self.state_manager.build_key(None, "some_counter")
+        counter_key_2 = self.state_manager.build_key(None, "another_counter")
+
+        self.state_manager.enqueue_dedupe_update(None, 100)
+        self.state_manager.enqueue_counter_update(None, {"some_counter": 1, "another_counter": 2})
+        self.state_manager.enqueue_state_update(None, True, Level.OK)
+        self.state_manager.commit_state_updates()
+
+        assert DetectorState.objects.filter(
+            detector=self.detector, detector_group_key=None, is_triggered=True, state=Level.OK
+        ).exists()
+        assert redis.get(dedupe_key) == "100"
+        assert redis.get(counter_key_1) == "1"
+        assert redis.get(counter_key_2) == "2"
+
+        # A `None` counter deletes its key
+        self.state_manager.enqueue_dedupe_update(None, 150)
+        self.state_manager.enqueue_counter_update(
+            None, {"some_counter": None, "another_counter": 20}
+        )
+        self.state_manager.enqueue_state_update(None, False, Level.OK)
+        self.state_manager.commit_state_updates()
+
+        assert DetectorState.objects.filter(
+            detector=self.detector, detector_group_key=None, is_triggered=False, state=Level.OK
+        ).exists()
+        assert redis.get(dedupe_key) == "150"
+        assert not redis.exists(counter_key_1)
+        assert redis.get(counter_key_2) == "20"
+
+    def test_bulk_commit_skips_update_when_state_unchanged(self) -> None:
+        detector_state = self.create_detector_state(
+            detector=self.detector,
+            detector_group_key=None,
+            is_triggered=False,
+            state=Level.OK,
+        )
+
+        self.state_manager.enqueue_state_update(None, is_triggered=True, priority=Level.HIGH)
+        with mock.patch.object(
+            DetectorState.objects, "bulk_update", wraps=DetectorState.objects.bulk_update
+        ) as mock_bulk_update:
+            self.state_manager.commit_state_updates()
+            mock_bulk_update.assert_called_once()
+
+        detector_state.refresh_from_db()
+        assert detector_state.is_triggered is True
+        assert detector_state.state == str(Level.HIGH)
+
+        self.state_manager.enqueue_state_update(None, is_triggered=True, priority=Level.HIGH)
+        with mock.patch.object(DetectorState.objects, "bulk_update") as mock_bulk_update:
+            self.state_manager.commit_state_updates()
+            mock_bulk_update.assert_not_called()
 
     def test_get_state_data_uses_single_redis_pipeline(self) -> None:
-        """
-        Test that get_state_data uses only 1 Redis pipeline operation.
-        """
+        group_keys: list[DetectorGroupKey] = [None, "group1", "group2"]
 
         with mock.patch(
             "sentry.workflow_engine.handlers.detector.stateful.get_redis_client"
         ) as mock_redis:
             mock_pipeline = mock.Mock()
             mock_redis.return_value.pipeline.return_value = mock_pipeline
-            mock_pipeline.execute.return_value = ["0", "1", "2", "3", "4", "5"]  # Mock values
+            mock_pipeline.execute.return_value = ["0", "1", "2", "3", "4", "5"]
 
-            # Call get_state_data
-            self.handler.state_manager.get_state_data(self.group_keys)
+            self.state_manager.get_state_data(group_keys)
 
-            # Verify pipeline was created only once
             mock_redis.return_value.pipeline.assert_called_once()
-
-            # Verify pipeline.execute was called only once
             mock_pipeline.execute.assert_called_once()
 
-            # Verify multiple gets were added to the pipeline
-            # Should be 3 groups * (1 dedupe + 2 counter keys) = 9 total gets
-            expected_get_calls = 3 * (1 + len(self.handler.state_manager.counter_names))
+            # One dedupe key and one key per counter, for each group
+            expected_get_calls = len(group_keys) * (1 + len(self.state_manager.counter_names))
             assert mock_pipeline.get.call_count == expected_get_calls
 
-    def test_redis_key_mapping_generates_correct_keys(self) -> None:
-        """
-        Test that redis key mapping generates the expected keys.
-        """
-        state_manager = self.handler.state_manager
-        key_mapping = state_manager.get_redis_keys_for_group_keys(self.group_keys)
-
-        # Should have dedupe keys for each group
-        dedupe_keys = [k for k, (_, key_type) in key_mapping.items() if key_type == "dedupe"]
-        assert len(dedupe_keys) == len(self.group_keys)
-
-        # Should have counter keys for each group and counter name
-        counter_keys = [k for k, (_, key_type) in key_mapping.items() if key_type != "dedupe"]
-        expected_counter_keys = len(self.group_keys) * len(state_manager.counter_names)
-        assert len(counter_keys) == expected_counter_keys
-
     def test_bulk_get_redis_values_handles_empty_keys(self) -> None:
-        """
-        Test that bulk_get_redis_values handles empty key list correctly.
-        """
-        state_manager = self.handler.state_manager
-        result = state_manager.bulk_get_redis_values([])
-        assert result == {}
-
-
-class TestStatefulDetectorHandlerExtractValueFromPacket(TestCase):
-    """
-    Correctness tests for _extract_value and _is_detector_group_value
-    """
-
-    def setUp(self) -> None:
-        self.detector = self.create_detector(
-            name="Stateful Detector",
-            project=self.project,
-        )
-
-        self.handler = MockDetectorStateHandler(detector=self.detector)
-
-    def extract_value_from_packet(self, group_values: Any) -> dict[DetectorGroupKey, Any]:
-        packet: DataPacket[Any] = DataPacket(
-            source_id=str(self.detector.id),
-            packet={"dedupe": 1, "group_vals": group_values},
-        )
-
-        return dict(self.handler._extract_value(packet))
-
-    def test_detector_keys_an_ungrouped_value_by_none(self) -> None:
-        assert self.extract_value_from_packet(10) == {None: 10}
-
-    def test_detector_keys_an_empty_mapping_by_none(self) -> None:
-        assert self.extract_value_from_packet({}) == {None: {}}
-
-    def test_detector_leaves_grouped_values_alone(self) -> None:
-        assert self.extract_value_from_packet({"group-one": 10, "group-two": 20}) == {
-            "group-one": 10,
-            "group-two": 20,
-        }
+        assert self.state_manager.bulk_get_redis_values([]) == {}
 
 
 class MockRotatingDetectorStateHandler(MockDetectorStateHandler):
@@ -615,50 +485,18 @@ class MockFingerprintedRotatingDetectorStateHandler(MockRotatingDetectorStateHan
         return ["custom-fingerprint"]
 
 
-class TestStatefulDetectorActivationId(TestCase):
+class TestStatefulDetectorActivationId(StatefulDetectorTestCase):
     def setUp(self) -> None:
-        self.group_key: DetectorGroupKey = None
-
-        self.detector = self.create_detector(
-            name="Stateful Detector",
-            project=self.project,
-        )
-
-        self.detector.workflow_condition_group = self.create_data_condition_group()
-
-        for value, result in (
-            ("OK", Level.OK),
-            ("MEDIUM", Level.MEDIUM),
-            ("HIGH", Level.HIGH),
-        ):
-            self.create_data_condition(
-                type="eq",
-                comparison=value,
-                condition_group=self.detector.workflow_condition_group,
-                condition_result=result,
-            )
-
-    def packet(self, key: int, result: DetectorPriorityLevel) -> DataPacket[Any]:
-        return self.grouped_packet(key, {self.group_key: result})
-
-    def grouped_packet(
-        self, key: int, results: dict[DetectorGroupKey, DetectorPriorityLevel]
-    ) -> DataPacket[Any]:
-        packet = {
-            "id": str(key),
-            "dedupe": key,
-            "group_vals": {group_key: result.name for group_key, result in results.items()},
-        }
-
-        return DataPacket(source_id=str(key), packet=packet)
+        super().setUp()
+        self.add_priority_conditions(Level.OK, Level.MEDIUM, Level.HIGH)
 
     def activation_id(
         self, handler: MockDetectorStateHandler, group_key: DetectorGroupKey = None
     ) -> int | None:
-        return handler.state_manager.get_state_data([group_key])[group_key].activation_id
+        return self.state(handler, group_key).activation_id
 
     def fingerprint(self, handler: MockDetectorStateHandler, packet: DataPacket[Any]) -> list[str]:
-        detector_result = handler._evaluate(packet)[self.group_key].result
+        detector_result = handler._evaluate(packet)[None].result
 
         assert detector_result is not None
         return list(detector_result.fingerprint)
@@ -687,10 +525,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
     def test_detector_without_a_project_or_organization_raises_value_error(self) -> None:
         orphaned_detector = self.create_all_projects_detector(self.organization)
-
         orphaned_detector.config = {}
-
-        assert orphaned_detector.project is None
 
         handler = MockRotatingDetectorStateHandler(detector=orphaned_detector)
 
@@ -701,31 +536,36 @@ class TestStatefulDetectorActivationId(TestCase):
         handler = MockFingerprintedRotatingDetectorStateHandler(detector=self.detector)
 
         with pytest.raises(ValueError):
-            handler.build_occurrence_fingerprint(self.group_key, activation_id=None)
+            handler.build_occurrence_fingerprint(None, activation_id=None)
 
-    def test_detector_not_opted_in_never_rotates_activation_id(self) -> None:
+    def test_detector_not_opted_in_never_rotates(self) -> None:
         handler = MockDetectorStateHandler(detector=self.detector)
 
-        assert handler.activation_creates_new_issue is False
-
         with self.feature("organizations:workflow-engine-rotate-activation-id"):
-            handler._evaluate(self.packet(1, Level.HIGH))
+            firing_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
 
             assert self.activation_id(handler) is None
 
-    def test_detector_opted_in_with_flag_off_never_rotates_activation_id(self) -> None:
+            resolution_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
+
+        assert firing_fingerprint == self.stable_fingerprint()
+        assert resolution_fingerprint == self.stable_fingerprint()
+
+    def test_detector_opted_in_with_flag_off_never_rotates(self) -> None:
         handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
-        assert handler.activation_creates_new_issue is True
-
         with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
-            handler._evaluate(self.packet(1, Level.HIGH))
+            firing_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
 
             assert self.activation_id(handler) is None
+
+            resolution_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
+
+        assert firing_fingerprint == self.stable_fingerprint()
+        assert resolution_fingerprint == self.stable_fingerprint()
 
     def test_detector_leaving_ok_state_sets_activation_id_to_current_time(self) -> None:
         handler = MockRotatingDetectorStateHandler(detector=self.detector)
-
         activated_at = before_now(days=1).replace(microsecond=0)
 
         with (
@@ -734,32 +574,57 @@ class TestStatefulDetectorActivationId(TestCase):
         ):
             handler._evaluate(self.packet(1, Level.HIGH))
 
-        activated_at_in_milliseconds = int(activated_at.timestamp() * 1000)
+        assert self.activation_id(handler) == int(activated_at.timestamp() * 1000)
 
-        assert self.activation_id(handler) == activated_at_in_milliseconds
-
-    def test_detector_escalating_and_resolving_keeps_activation_id(self) -> None:
+    def test_detector_priority_changes_keep_the_activation(self) -> None:
         handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
         with (
             self.feature("organizations:workflow-engine-rotate-activation-id"),
             freeze_time() as frozen_time,
         ):
-            handler._evaluate(self.packet(1, Level.MEDIUM))
+            firing_fingerprint = self.fingerprint(handler, self.packet(1, Level.MEDIUM))
+            activation_id = self.activation_id(handler)
 
+            frozen_time.shift(timedelta(seconds=1))
+            escalation_fingerprint = self.fingerprint(handler, self.packet(2, Level.HIGH))
+
+            frozen_time.shift(timedelta(seconds=1))
+            de_escalation_fingerprint = self.fingerprint(handler, self.packet(3, Level.MEDIUM))
+
+            frozen_time.shift(timedelta(seconds=1))
+            resolution_fingerprint = self.fingerprint(handler, self.packet(4, Level.OK))
+
+            assert self.activation_id(handler) == activation_id
+
+        assert escalation_fingerprint == firing_fingerprint
+        assert de_escalation_fingerprint == firing_fingerprint
+        assert resolution_fingerprint == firing_fingerprint
+
+    def test_detector_refiring_starts_a_new_activation(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
+
+        with (
+            self.feature("organizations:workflow-engine-rotate-activation-id"),
+            freeze_time() as frozen_time,
+        ):
+            firing_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
             initial_activation_id = self.activation_id(handler)
 
-            frozen_time.shift(timedelta(seconds=1))
-
-            handler._evaluate(self.packet(2, Level.HIGH))
-
-            assert self.activation_id(handler) == initial_activation_id
+            resolution_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
             frozen_time.shift(timedelta(seconds=1))
+            next_firing_fingerprint = self.fingerprint(handler, self.packet(3, Level.HIGH))
+            next_activation_id = self.activation_id(handler)
 
-            handler._evaluate(self.packet(3, Level.OK))
+        assert initial_activation_id is not None
+        assert next_activation_id is not None
+        assert next_activation_id != initial_activation_id
 
-            assert self.activation_id(handler) == initial_activation_id
+        assert firing_fingerprint == self.activation_fingerprint(initial_activation_id)
+        # The resolve has to match the firing it closes, or the issue is stranded open.
+        assert resolution_fingerprint == firing_fingerprint
+        assert next_firing_fingerprint == self.activation_fingerprint(next_activation_id)
 
     def test_detector_group_keys_rotate_activation_id_independently(self) -> None:
         """
@@ -776,157 +641,50 @@ class TestStatefulDetectorActivationId(TestCase):
             )
 
             group_a_initial_activation_id = self.activation_id(handler, "group_a")
-
             group_b_initial_activation_id = self.activation_id(handler, "group_b")
 
             assert group_a_initial_activation_id is not None
-
             assert group_b_initial_activation_id is not None
 
             frozen_time.shift(timedelta(seconds=1))
-
             handler._evaluate(self.grouped_packet(2, {"group_a": Level.OK}))
 
             assert self.activation_id(handler, "group_a") == group_a_initial_activation_id
-
             assert self.activation_id(handler, "group_b") == group_b_initial_activation_id
 
             frozen_time.shift(timedelta(seconds=1))
-
             handler._evaluate(self.grouped_packet(3, {"group_a": Level.HIGH}))
 
             group_a_next_activation_id = self.activation_id(handler, "group_a")
 
             assert group_a_next_activation_id is not None
-
             assert group_a_next_activation_id != group_a_initial_activation_id
-
             assert self.activation_id(handler, "group_b") == group_b_initial_activation_id
-
-    def test_detector_refiring_rotates_activation_id(self) -> None:
-        handler = MockRotatingDetectorStateHandler(detector=self.detector)
-
-        with (
-            self.feature("organizations:workflow-engine-rotate-activation-id"),
-            freeze_time() as frozen_time,
-        ):
-            handler._evaluate(self.packet(1, Level.HIGH))
-
-            initial_activation_id = self.activation_id(handler)
-
-            frozen_time.shift(timedelta(seconds=1))
-
-            handler._evaluate(self.packet(2, Level.OK))
-
-            handler._evaluate(self.packet(3, Level.HIGH))
-
-            next_activation_id = self.activation_id(handler)
-
-            assert initial_activation_id is not None
-
-            assert next_activation_id is not None
-
-            assert next_activation_id != initial_activation_id
-
-    def test_detector_not_opted_in_keeps_stable_fingerprint(self) -> None:
-        handler = MockDetectorStateHandler(detector=self.detector)
-
-        assert handler.activation_creates_new_issue is False
-
-        with self.feature("organizations:workflow-engine-rotate-activation-id"):
-            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
-
-            resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
-
-            assert firing_update_fingerprint == self.stable_fingerprint()
-
-            assert resolution_update_fingerprint == self.stable_fingerprint()
-
-    def test_detector_opted_in_with_flag_off_keeps_stable_fingerprint(self) -> None:
-        handler = MockRotatingDetectorStateHandler(detector=self.detector)
-
-        assert handler.activation_creates_new_issue is True
-
-        with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
-            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
-
-            resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
-
-            assert firing_update_fingerprint == self.stable_fingerprint()
-
-            assert resolution_update_fingerprint == self.stable_fingerprint()
-
-    def test_detector_each_activation_gets_its_own_fingerprint(self) -> None:
-        handler = MockRotatingDetectorStateHandler(detector=self.detector)
-
-        with (
-            self.feature("organizations:workflow-engine-rotate-activation-id"),
-            freeze_time() as frozen_time,
-        ):
-            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
-
-            initial_activation_id = self.activation_id(handler)
-
-            resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
-
-            frozen_time.shift(timedelta(seconds=1))
-
-            next_firing_update_fingerprint = self.fingerprint(handler, self.packet(3, Level.HIGH))
-
-            assert firing_update_fingerprint == self.activation_fingerprint(initial_activation_id)
-
-            # The resolve has to match the firing it closes, or the issue is stranded open.
-            assert resolution_update_fingerprint == firing_update_fingerprint
-
-            assert next_firing_update_fingerprint != firing_update_fingerprint
-
-    def test_detector_escalating_and_de_escalating_keeps_fingerprint(self) -> None:
-        handler = MockRotatingDetectorStateHandler(detector=self.detector)
-
-        with self.feature("organizations:workflow-engine-rotate-activation-id"):
-            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.MEDIUM))
-
-            escalation_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.HIGH))
-
-            de_escalation_update_fingerprint = self.fingerprint(
-                handler, self.packet(3, Level.MEDIUM)
-            )
-
-            resolution_update_fingerprint = self.fingerprint(handler, self.packet(4, Level.OK))
-
-            assert escalation_update_fingerprint == firing_update_fingerprint
-
-            assert de_escalation_update_fingerprint == firing_update_fingerprint
-
-            assert resolution_update_fingerprint == firing_update_fingerprint
 
     def test_detector_turning_flag_on_still_resolves_open_issue(self) -> None:
         handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
         with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
-            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
-
-            assert firing_update_fingerprint == self.stable_fingerprint()
+            firing_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
 
         with self.feature("organizations:workflow-engine-rotate-activation-id"):
-            resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
+            resolution_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
             # Only the firing after the cutover rotates.
-            next_firing_update_fingerprint = self.fingerprint(handler, self.packet(3, Level.HIGH))
-
+            next_firing_fingerprint = self.fingerprint(handler, self.packet(3, Level.HIGH))
             next_activation_id = self.activation_id(handler)
 
-            assert resolution_update_fingerprint == self.stable_fingerprint()
-
-            assert next_firing_update_fingerprint == self.activation_fingerprint(next_activation_id)
+        assert firing_fingerprint == self.stable_fingerprint()
+        assert resolution_fingerprint == self.stable_fingerprint()
+        assert next_firing_fingerprint == self.activation_fingerprint(next_activation_id)
 
     def test_detector_turning_flag_off_still_resolves_open_issue(self) -> None:
         handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
         with self.feature("organizations:workflow-engine-rotate-activation-id"):
-            firing_update_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
+            firing_fingerprint = self.fingerprint(handler, self.packet(1, Level.HIGH))
 
         with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
-            resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
+            resolution_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
-            assert resolution_update_fingerprint == firing_update_fingerprint
+        assert resolution_fingerprint == firing_fingerprint

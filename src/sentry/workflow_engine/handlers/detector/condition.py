@@ -1,12 +1,13 @@
 import logging
 from collections.abc import Mapping
+from functools import cached_property
 
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import (
     BaseDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
-    GroupedDetectorEvaluationResult,
+    DetectorEvaluations,
 )
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
@@ -24,49 +25,49 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
     """
     Base implementation class for detectors that rely on data condition groups to make decisions
 
-    Loads the detector's trigger condition group, and includes a default `evaluate`
-    implementation that subclasses can rely on or override.
+    This is the recommended handler: customize detection by registering conditions on the detector's
+    trigger condition group, rather than overriding `evaluate`.
     """
 
-    def __init__(self, detector: Detector):
-        super().__init__(detector)
+    @cached_property
+    def condition_group(self) -> DataConditionGroup | None:
+        if self.detector.workflow_condition_group_id is None:
+            return None
 
-        if detector.workflow_condition_group_id is not None:
-            try:
-                # Check if workflow_condition_group is already prefetched
-                if Detector.workflow_condition_group.is_cached(detector):
-                    group = detector.workflow_condition_group
-                else:
-                    group = DataConditionGroup.objects.get_from_cache(
-                        id=detector.workflow_condition_group_id
-                    )
+        # Check if workflow_condition_group is already prefetched
+        if Detector.workflow_condition_group.is_cached(self.detector):
+            return self.detector.workflow_condition_group
 
-                self.condition_group: DataConditionGroup | None = group
-            except DataConditionGroup.DoesNotExist:
-                logger.exception(
-                    "Failed to find the data condition group for detector",
-                    extra={"detector_id": detector.id},
-                )
+        try:
+            return DataConditionGroup.objects.get_from_cache(
+                id=self.detector.workflow_condition_group_id
+            )
+        except DataConditionGroup.DoesNotExist:
+            logger.exception(
+                "Failed to find the data condition group for detector",
+                extra={"detector_id": self.detector.id},
+            )
 
-                self.condition_group = None
-        else:
-            self.condition_group = None
+            return None
 
     def evaluate(
         self,
         data_packet: DataPacket[DataPacketType],
         values: Mapping[DetectorGroupKey, DataPacketEvaluationType],
-    ) -> GroupedDetectorEvaluationResult:
+    ) -> DetectorEvaluations:
         """
         A default, stateless evaluation using data condition groups
 
-        Evaluates the condition group for each group key, triggering every group whose
-        conditions resolve to a non-OK priority
+        Evaluates the condition group for each group key. Every group whose conditions match gets an
+        evaluation at the highest triggered priority, and is `triggered` when that priority is not OK.
+
+        OK evaluations carry no result, so the platform drops them and open issues are left as-is.
+        Subclasses can call `super().evaluate()` and act on them instead; for example,
+        `StatefulDetectorHandler` resolves the issue once enough OK evaluations are seen.
 
         Detectors that do not group are evaluated as a single group, keyed by `None`
 
-        Override `evaluate_conditions` to modify how a value is evaluated, or override
-        `evaluate` itself to have a custom evaluation flow
+        Override `evaluate_conditions` to modify how a value is evaluated.
         """
         results: dict[DetectorGroupKey, DetectorEvaluation] = {}
         tainted = False
@@ -79,11 +80,7 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
 
             tainted = tainted or trigger_evaluation.is_tainted()
 
-            if priority == DetectorPriorityLevel.OK:
-                # TODO: The existing implementation of this method does not resolve any issues created by the detector when
-                # the priority goes back to OK. This was an intentional decision as it ensures issues do not get resolved erroneously.
-                # In the future, we should consider either resolving the issue or allow subclasses to dictate keeping the issue open
-                # versus sending a resolve status change message.
+            if not trigger_evaluation.triggered:
                 continue
 
             results[group_key] = DetectorEvaluation(
@@ -93,11 +90,11 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
                     trigger_group_evaluation=trigger_evaluation,
                     event_data=None,
                 ),
-                triggered=True,
+                triggered=priority != DetectorPriorityLevel.OK,
                 priority=priority,
             )
 
-        return GroupedDetectorEvaluationResult(result=results, tainted=tainted)
+        return DetectorEvaluations(result=results, tainted=tainted)
 
     def evaluate_conditions(
         self, value: DataPacketEvaluationType

@@ -56,7 +56,8 @@ same after detector selection.
 `process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
 registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler.
 `_evaluate` normalizes the output of `extract_value` to group key and value pairs, passes them to `evaluate`, and calls
-`create_occurrence` for every triggered evaluation that does not already carry a result.
+`create_occurrence` for every triggered evaluation that does not already carry a result. An empty `DetectorGroupValues`
+skips `evaluate`, and evaluations that are neither triggered nor carry a result are dropped.
 
 One packet can produce:
 
@@ -73,7 +74,7 @@ routes non-null results according to the handler's `outcome`.
 Every detector handler inherits [`BaseDetectorHandler`](../handlers/detector/base.py), which owns
 the `_evaluate` lifecycle and occurrence decoration. [`DetectorHandler`](../handlers/detector/condition.py)
 adds a default stateless `evaluate` over the trigger condition group; `StatefulDetectorHandler`
-replaces it with durable state and thresholds.
+layers durable state and thresholds over that evaluation by calling `super().evaluate()`.
 
 #### Stateless (default)
 
@@ -140,9 +141,9 @@ empty or passing `NONE` group can also trigger without a priority-bearing result
 therefore use the stateful handler's default `OK` priority. A missing trigger group is
 invalid and produces no transition.
 
-Detectors that need a different flow inherit `DetectorHandler` and override `evaluate`,
-but then they own this orchestration. `BaseDetectorHandler` is only the abstract
-interface and is not a base for new detectors.
+Detectors that decide without the trigger condition group inherit `BaseDetectorHandler` and
+implement `evaluate`. Detectors that extend the condition evaluation override `evaluate` and
+call `super().evaluate()`, then own the orchestration they add.
 
 ### 5. Produce detector output
 
