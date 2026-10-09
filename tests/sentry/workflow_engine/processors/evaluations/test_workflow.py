@@ -1,9 +1,22 @@
-from dataclasses import asdict
+from concurrent.futures import Future
+from dataclasses import asdict, dataclass
 from unittest import mock
 
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload
+from arroyo.backends.local.backend import LocalBroker
+from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.types import Partition
+from arroyo.types import Topic as ArroyoTopic
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+
+from sentry.conf.types.kafka_definition import Topic
+from sentry.models.group import GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
+from sentry.utils import json
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluation,
@@ -11,11 +24,16 @@ from sentry.workflow_engine.processors.evaluations import (
     DeferredWorkflowEvaluationResult,
     EvaluationPhase,
     EvaluationType,
+    ProcessDetectorsResult,
     ProcessWorkflowsResult,
     WorkflowEvaluation,
     WorkflowEvaluationArtifact,
     WorkflowEvaluationBatch,
     WorkflowEvaluationOutcome,
+)
+from sentry.workflow_engine.processors.evaluations.eap import (
+    EAP_ITEMS_CODEC,
+    emit_evaluation_to_eap,
 )
 from sentry.workflow_engine.processors.evaluations.logging import (
     redact_pii_from_artifact,
@@ -25,9 +43,13 @@ from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluati
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 LOGGING_MODULE = "sentry.workflow_engine.processors.evaluations.logging"
+TRACKING_MODULE = "sentry.workflow_engine.processors.evaluations.tracking"
 
 
+@dataclass(frozen=True)
 class EmptyDelayedWorkflowEvaluationBatch(WorkflowEvaluationBatch):
+    project_id: int | None
+
     @property
     def evaluation_phase(self) -> EvaluationPhase:
         return EvaluationPhase.DELAYED
@@ -376,7 +398,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
         ):
             emit_evaluations(
                 organization=self.organization,
-                result=EmptyDelayedWorkflowEvaluationBatch(),
+                result=EmptyDelayedWorkflowEvaluationBatch(project_id=self.project.id),
             )
 
         mock_logger.info.assert_called_once_with(
@@ -386,6 +408,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
                 "evaluation_phase": EvaluationPhase.DELAYED,
                 "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
                 "error": None,
+                "project_id": self.project.id,
                 "organization_id": self.organization.id,
             },
         )
@@ -420,3 +443,205 @@ class TestWorkflowEvaluationArtifact(TestCase):
                 "organization_id": self.organization.id,
             },
         )
+
+    def test_eap_emitter_failure_does_not_interrupt_evaluation_tracking(self) -> None:
+        result = self._build_batch_result({10: self._build_evaluation(workflow_id=10)})
+
+        with (
+            Feature({"organizations:workflow-engine-evaluation-artifacts-eap": True}),
+            mock.patch(f"{TRACKING_MODULE}.emit_evaluation_logs") as mock_emit_logs,
+            mock.patch(
+                f"{TRACKING_MODULE}.emit_evaluation_to_eap",
+                side_effect=TypeError("unsupported artifact"),
+            ),
+            mock.patch(f"{TRACKING_MODULE}.logger") as mock_logger,
+        ):
+            emit_evaluations(organization=self.organization, result=result)
+
+        mock_emit_logs.assert_called_once_with(self.organization, result)
+        mock_logger.exception.assert_called_once_with(
+            "workflow_engine.evaluations.eap.emit_failed",
+            extra={"organization_id": self.organization.id},
+        )
+
+    def _emit_evaluation_to_eap(
+        self, result: ProcessDetectorsResult | WorkflowEvaluationBatch
+    ) -> TraceItem:
+        storage = MemoryMessageStorage[KafkaPayload]()
+        broker = LocalBroker(storage)
+        topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
+        broker.create_topic(topic, partitions=1)
+        broker_producer = broker.get_producer()
+        local_producer = mock.Mock()
+        local_producer.produce.side_effect = broker_producer.produce
+        local_producer.close.side_effect = broker_producer.close
+        local_producer.get_config.return_value = {}
+        producer = FutureTrackingProducer(
+            name=f"test.workflow-evaluation.{id(broker)}",
+            producer_factory=mock.Mock(return_value=local_producer),
+            should_backpressure=False,
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.evaluations.eap._eap_producer",
+            producer,
+        ):
+            emit_evaluation_to_eap(self.organization, result)
+
+        message = broker.consume(Partition(topic, 0), 0)
+        assert message is not None
+        return EAP_ITEMS_CODEC.decode(message.payload.value)
+
+    def test_eap_emitter_stores_compact_issue_state(self) -> None:
+        condition = self.create_data_condition()
+        condition.update(comparison={"email": "customer@example.com"})
+        condition_evaluation = DataConditionEvaluation(
+            condition=condition,
+            result=True,
+            triggered=True,
+            data="customer@example.com",
+        )
+        self.group.status = GroupStatus.RESOLVED
+        self.event_data = WorkflowEventData(
+            event=self.event.for_group(self.group),
+            group=self.group,
+            group_state={
+                "id": self.group.id,
+                "is_new": True,
+                "is_regression": False,
+                "is_new_group_environment": True,
+            },
+            has_escalated=True,
+        )
+        evaluation = self._build_evaluation(
+            triggered=True,
+            condition_evaluations=[condition_evaluation],
+        )
+
+        trace_item = self._emit_evaluation_to_eap(
+            self._build_batch_result({evaluation.workflow_id: evaluation})
+        )
+
+        assert trace_item.organization_id == self.organization.id
+        assert trace_item.project_id == self.project.id
+        assert trace_item.item_type == TraceItemType.TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION
+        assert "sentry.body" not in trace_item.attributes
+        assert "sentry.severity_number" not in trace_item.attributes
+        assert "sentry.severity_text" not in trace_item.attributes
+        assert trace_item.attributes["event_id"].string_value == self.event.event_id
+        assert trace_item.attributes["event_kind"].string_value == "group_event"
+        assert trace_item.attributes["is_new"].bool_value is True
+        assert trace_item.attributes["is_regression"].bool_value is False
+        assert trace_item.attributes["is_resolved"].bool_value is True
+        assert trace_item.attributes["has_escalated"].bool_value is True
+
+        trigger_evaluation = json.loads(trace_item.attributes["trigger_evaluation"].string_value)
+        stored_condition = trigger_evaluation["condition_evaluations"][0]
+        assert stored_condition["condition_id"] == condition.id
+        assert stored_condition["result"] is True
+        assert "comparison" not in stored_condition
+        assert "input" not in stored_condition
+        assert json.loads(trace_item.attributes["filter_evaluations"].string_value) == []
+
+    def test_eap_emitter_preserves_filter_and_deferred_evaluations(self) -> None:
+        condition = self.create_data_condition()
+        condition_evaluation = DataConditionEvaluation(
+            condition=condition,
+            result=True,
+            triggered=True,
+            data="synthetic@example.com",
+        )
+        filter_evaluation = DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            data={
+                "condition_evaluations": [condition_evaluation],
+                "logic_type": DataConditionGroup.Type.ALL,
+            },
+        )
+        evaluation = self._build_evaluation(
+            deferred=True,
+            filter_group_evaluations=[filter_evaluation],
+        )
+
+        trace_item = self._emit_evaluation_to_eap(
+            self._build_batch_result({evaluation.workflow_id: evaluation})
+        )
+
+        filters = json.loads(trace_item.attributes["filter_evaluations"].string_value)
+        assert filters[0]["result"] is True
+        stored_condition = filters[0]["condition_evaluations"][0]
+        assert stored_condition["condition_id"] == condition.id
+        assert stored_condition["result"] is True
+        assert "comparison" not in stored_condition
+        assert "input" not in stored_condition
+        assert json.loads(trace_item.attributes["delayed"].string_value) == {
+            "trigger_group_id": 20,
+            "filter_group_ids": [30],
+            "passing_filter_group_ids": [40],
+        }
+
+    def test_eap_emitter_continues_after_producer_failure(self) -> None:
+        producer = mock.Mock()
+        producer.produce.side_effect = [RuntimeError("producer unavailable"), None]
+        evaluations = {
+            10: self._build_evaluation(workflow_id=10),
+            11: self._build_evaluation(workflow_id=11),
+        }
+
+        with (
+            mock.patch("sentry.workflow_engine.processors.evaluations.eap._eap_producer", producer),
+            mock.patch("sentry.workflow_engine.processors.evaluations.eap.logger") as mock_logger,
+        ):
+            emit_evaluation_to_eap(
+                self.organization,
+                self._build_batch_result(evaluations),
+            )
+
+        assert producer.produce.call_count == 2
+        mock_logger.exception.assert_called_once_with(
+            "workflow_engine.evaluations.eap.produce_failed",
+            extra={"organization_id": self.organization.id, "project_id": self.project.id},
+        )
+
+    def test_eap_emitter_observes_delivery_failure(self) -> None:
+        producer = mock.Mock()
+        failed_future: Future[object] = Future()
+        failed_future.set_exception(RuntimeError("delivery failed"))
+        producer.produce.side_effect = lambda *args, **kwargs: kwargs["callbacks"][0](failed_future)
+
+        with (
+            mock.patch("sentry.workflow_engine.processors.evaluations.eap._eap_producer", producer),
+            mock.patch("sentry.workflow_engine.processors.evaluations.eap.logger") as mock_logger,
+        ):
+            emit_evaluation_to_eap(
+                self.organization,
+                self._build_batch_result({10: self._build_evaluation(workflow_id=10)}),
+            )
+
+        mock_logger.exception.assert_called_once_with(
+            "workflow_engine.evaluations.eap.delivery_failed",
+            extra={"organization_id": self.organization.id, "project_id": self.project.id},
+        )
+
+    def test_eap_emitter_stores_empty_delayed_batch_outcome(self) -> None:
+        trace_item = self._emit_evaluation_to_eap(
+            EmptyDelayedWorkflowEvaluationBatch(project_id=self.project.id)
+        )
+
+        assert trace_item.project_id == self.project.id
+        assert trace_item.attributes["evaluation_phase"].string_value == "delayed"
+        assert trace_item.attributes["outcome"].string_value == "no_workflows"
+
+    def test_eap_emitter_stores_empty_detector_outcome(self) -> None:
+        result = ProcessDetectorsResult(
+            detector_id=self.detector.id,
+            detector_type=self.detector.type,
+            project_id=self.project.id,
+            evaluations={},
+        )
+        trace_item = self._emit_evaluation_to_eap(result)
+
+        assert trace_item.attributes["evaluation_type"].string_value == "detector"
+        assert trace_item.attributes["detector_id"].int_value == self.detector.id
+        assert trace_item.attributes["outcome"].string_value == "no_results"

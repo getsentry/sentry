@@ -19,8 +19,8 @@ import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDrop
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
