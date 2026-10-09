@@ -1,11 +1,10 @@
 import type {ReactNode} from 'react';
 import {useEffect, useEffectEvent, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {IconQuestion} from '@sentry/icons/question';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -585,7 +584,7 @@ function Product({
         disabled={isDisabled}
         aria-label={label}
       >
-        <ProductButtonInner>
+        <Grid align="center" gap="md" columns="repeat(3, max-content)">
           <Checkbox
             readOnly
             size="xs"
@@ -599,7 +598,7 @@ function Product({
           />
           {label}
           <IconQuestion size="xs" />
-        </ProductButtonInner>
+        </Grid>
       </ProductButton>
     </Tooltip>
   );
@@ -772,10 +771,3 @@ export function ProductSelection({
 }
 
 const ProductButton = Button;
-
-const ProductButtonInner = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;

@@ -4,6 +4,7 @@ import businessUpgrade from 'getsentry-images/product_trial/business-upgrade-not
 import businessTrial from 'getsentry-images/product_trial/try-sentry-business-present.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {t, tct} from 'sentry/locale';
@@ -134,7 +135,7 @@ export function SubscriptionUpsellBanner({
             <TrialBadge subscription={subscription} organization={organization} />
           )}
         </IntegationBannerTitle>
-        <IntegationBannerDescription>
+        <Container marginBottom="lg" maxWidth="440px">
           {description}{' '}
           <Button
             size="zero"
@@ -145,7 +146,7 @@ export function SubscriptionUpsellBanner({
           >
             {t('Learn More')}
           </Button>
-        </IntegationBannerDescription>
+        </Container>
         <UpgradeOrTrialButton
           subscription={subscription}
           organization={organization}
@@ -194,11 +195,6 @@ const IntegationBannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${p => p.theme.space.md};
   font-weight: 600;
-`;
-
-const IntegationBannerDescription = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
-  max-width: 440px;
 `;
 
 const CloseBannerButton = styled(Button)`

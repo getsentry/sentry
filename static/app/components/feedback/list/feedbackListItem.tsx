@@ -6,7 +6,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -48,7 +48,7 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
   const hasComments = feedbackItem.numComments > 0;
 
   return (
-    <CardSpacing>
+    <Container padding="xs xs 0 xs">
       <LinkedFeedbackCard
         data-selected={isOpen}
         to={{
@@ -99,7 +99,12 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
           <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
         </PreviewRow>
 
-        <BottomGrid style={{gridArea: 'bottom'}}>
+        <Grid
+          gap="md"
+          overflow="hidden"
+          columns="auto max-content"
+          style={{gridArea: 'bottom'}}
+        >
           <Row justify="start" gap="sm">
             {feedbackItem.project ? (
               <StyledProjectBadge
@@ -142,9 +147,9 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
               />
             )}
           </Row>
-        </BottomGrid>
+        </Grid>
       </LinkedFeedbackCard>
-    </CardSpacing>
+    </Container>
   );
 }
 
@@ -183,14 +188,6 @@ const Row = styled(Flex)`
   place-items: center;
 `;
 
-const BottomGrid = styled('div')`
-  display: grid;
-  grid-template-columns: auto max-content;
-  gap: ${p => p.theme.space.md};
-
-  overflow: hidden;
-`;
-
 const StyledProjectBadge = styled(ProjectBadge)`
   && img {
     box-shadow: none;
@@ -226,8 +223,4 @@ const ShortId = styled(TextOverflow)`
 const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.font.size.sm};
   grid-area: 'time';
-`;
-
-const CardSpacing = styled('div')`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs} 0 ${p => p.theme.space.xs};
 `;

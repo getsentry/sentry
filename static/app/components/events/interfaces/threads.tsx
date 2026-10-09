@@ -8,7 +8,7 @@ import {IconPlay} from '@sentry/icons/play';
 import {IconTimer} from '@sentry/icons/timer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid as ScrapsGrid} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -243,7 +243,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     <Fragment>
       {hasMoreThanOneThread && (
         <Fragment>
-          <Grid>
+          <ScrapsGrid gap="xl" columns="auto 1fr">
             <div>
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
@@ -297,7 +297,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                 </Flex>
               </TheadStateContainer>
             )}
-          </Grid>
+          </ScrapsGrid>
           {!hideThreadTags && (
             <div>
               <ThreadHeading>{t('Thread Tags')}</ThreadHeading>
@@ -400,12 +400,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     threadComponent
   );
 }
-
-const Grid = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space.xl};
-`;
 
 const TheadStateContainer = styled('div')`
   display: block;

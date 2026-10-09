@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Grid as ScrapsGrid} from '@sentry/scraps/layout';
+
 import {Placeholder} from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
@@ -42,7 +44,7 @@ export function MemoryPanel() {
   }
 
   return (
-    <Grid>
+    <ScrapsGrid justify="center" gap="md" height="100%" columns="1fr" rows="1fr 1fr">
       <ChartWrapper>
         <ChartTitle>{t('Heap Size')}</ChartTitle>
         <MemoryChart
@@ -55,18 +57,9 @@ export function MemoryPanel() {
           startTimestampMs={replay.getStartTimestampMs()}
         />
       </ChartWrapper>
-    </Grid>
+    </ScrapsGrid>
   );
 }
-
-const Grid = styled('div')`
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  grid-template-columns: 1fr;
-  gap: ${p => p.theme.space.md};
-  justify-content: center;
-  height: 100%;
-`;
 
 const ChartWrapper = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
