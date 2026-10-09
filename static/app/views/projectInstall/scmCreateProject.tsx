@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {IconProject} from '@sentry/icons/project';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -25,7 +26,6 @@ import {
 } from 'sentry/components/onboarding/scm/useScmProjectDetails';
 import {useScmProviders} from 'sentry/components/onboarding/scm/useScmProviders';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';

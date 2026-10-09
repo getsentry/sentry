@@ -102,20 +102,22 @@ function ActionsBarPriority({
       {columns.map(column => {
         if (column.key === 'select') {
           return (
-            <SimpleTable.HeaderCell key={column.key}>
-              <Checkbox
-                onChange={toggleSelectAllVisible}
-                checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                aria-label={pageSelected ? t('Deselect all') : t('Select all')}
-                disabled={displayReprocessingActions}
-              />
-            </SimpleTable.HeaderCell>
+            <SelectHeaderCell key={column.key}>
+              <Flex>
+                <Checkbox
+                  onChange={toggleSelectAllVisible}
+                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                  aria-label={pageSelected ? t('Deselect all') : t('Select all')}
+                  disabled={displayReprocessingActions}
+                />
+              </Flex>
+            </SelectHeaderCell>
           );
         }
 
         if (shouldDisplayActions) {
           return column.key === 'issue' ? (
-            <SimpleTable.HeaderCell key={column.key} variant="remaining">
+            <StreamGroupHeaderCell key={column.key} column={column} variant="remaining">
               {displayReprocessingActions ? null : (
                 <Grid
                   width={{zero: 'auto', '4xl': '50%'}}
@@ -141,19 +143,19 @@ function ActionsBarPriority({
                   />
                 </Grid>
               )}
-            </SimpleTable.HeaderCell>
+            </StreamGroupHeaderCell>
           ) : null;
         }
 
         if (column.key === 'graph') {
           return (
-            <SimpleTable.HeaderCell key={column.key}>
+            <StreamGroupHeaderCell key={column.key} column={column}>
               <TrendHeader
                 onSelectStatsPeriod={onSelectStatsPeriod}
                 selection={selection}
                 statsPeriod={statsPeriod}
               />
-            </SimpleTable.HeaderCell>
+            </StreamGroupHeaderCell>
           );
         }
 
@@ -379,6 +381,10 @@ function shouldConfirm(
       return true; // By default, should confirm ...
   }
 }
+
+const SelectHeaderCell = styled(SimpleTable.HeaderCell)`
+  padding: 0 0 0 ${p => p.theme.space.xl};
+`;
 
 const StyledStickyHead = styled(SimpleTable.Head)`
   position: sticky;

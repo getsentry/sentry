@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
 import pick from 'lodash/pick';
@@ -22,7 +23,6 @@ import {
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {getNextCheckInEnv} from 'sentry/utils/monitor/cron';

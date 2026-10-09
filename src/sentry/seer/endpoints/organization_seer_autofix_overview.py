@@ -306,6 +306,7 @@ def _serialize_code_changes(artifact: CodeChangesArtifactExtras) -> list[CodeCha
                 {
                     "repoName": file_patch.repo_name,
                     "patch": cast(FilePatch, file_patch.patch.dict()),
+                    "codeUrl": file_patch.code_url,
                 }
             )
     return files

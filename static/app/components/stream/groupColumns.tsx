@@ -1,4 +1,4 @@
-import type {HTMLAttributes, ReactNode} from 'react';
+import type {ComponentProps, HTMLAttributes, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, type FlexProps} from '@sentry/scraps/layout';
@@ -29,6 +29,7 @@ type StreamGroupColumnKey =
 
 export interface StreamGroupColumn extends TableColumnConfig {
   key: StreamGroupColumnKey;
+  followsSelect?: boolean;
 }
 
 interface StreamGroupColumnOptions {
@@ -50,7 +51,7 @@ function getStreamGroupColumns({
     columns.push({key: 'select', width: 'max-content'});
   }
 
-  columns.push({key: 'issue', width: 'minmax(0, 1fr)'});
+  columns.push({key: 'issue', width: 'minmax(0, 1fr)', followsSelect: canSelect});
 
   if (withColumns.includes('lastSeen')) {
     columns.push({
@@ -161,15 +162,37 @@ const RIGHT_ALIGNED_COLUMNS = new Set<StreamGroupColumnKey>([
   'assignee',
 ]);
 
-export function StreamGroupHeaderCell({column}: {column: StreamGroupColumn}) {
+interface StreamGroupHeaderCellProps extends ComponentProps<
+  typeof SimpleTable.HeaderCell
+> {
+  column: StreamGroupColumn;
+}
+
+export function StreamGroupHeaderCell({
+  column,
+  children = HEADER_LABELS[column.key],
+  ...props
+}: StreamGroupHeaderCellProps) {
+  const HeaderCell = column.followsSelect ? SelectFollowingHeaderCell : StyledHeaderCell;
+
   return (
-    <SimpleTable.HeaderCell
+    <HeaderCell
       align={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined}
+      divider={column.followsSelect ? false : undefined}
+      {...props}
     >
-      {HEADER_LABELS[column.key]}
-    </SimpleTable.HeaderCell>
+      {children}
+    </HeaderCell>
   );
 }
+
+const StyledHeaderCell = styled(SimpleTable.HeaderCell)`
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+const SelectFollowingHeaderCell = styled(StyledHeaderCell)`
+  padding-left: ${p => p.theme.space.md};
+`;
 
 const SELECT_CELL_PROPS: FlexProps<'td'> = {
   align: 'start',
@@ -187,6 +210,7 @@ export function StreamGroupCell({column, ...props}: StreamGroupCellProps) {
   return (
     <SimpleTable.RowCell
       {...(column.key === 'select' ? SELECT_CELL_PROPS : {})}
+      {...(column.followsSelect ? {paddingLeft: 'md'} : {})}
       {...(RIGHT_ALIGNED_COLUMNS.has(column.key) ? {justify: 'end'} : {})}
       {...props}
     />

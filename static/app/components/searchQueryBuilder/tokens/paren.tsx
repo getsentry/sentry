@@ -1,5 +1,6 @@
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconParenthesis} from '@sentry/icons/parenthesis';
 
 import {DeletableToken} from 'sentry/components/searchQueryBuilder/tokens/deletableToken';
 import {
@@ -7,7 +8,6 @@ import {
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconParenthesis} from 'sentry/icons/iconParenthesis';
 
 type SearchQueryBuilderParenProps = {
   item: Node<ParseResultToken>;

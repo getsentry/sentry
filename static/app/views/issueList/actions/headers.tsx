@@ -40,7 +40,7 @@ const GraphToggles = styled('div')`
 `;
 
 const GraphToggle = styled('a')<{active: boolean}>`
-  font-size: 13px;
+  font-size: ${p => p.theme.font.size.sm};
   padding-left: ${p => p.theme.space.md};
 
   &,

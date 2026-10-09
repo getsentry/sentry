@@ -381,7 +381,12 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         if "assigned" in toggles:
             GroupAssignee.objects.assign(group, self.team)
 
-        workflow = self.create_workflow(organization=self.organization)
+        # The legacy Slack path reads the environment off the Workflow, while the platform
+        # path reads it from workflow_env, so keep them in sync like production does.
+        workflow = self.create_workflow(
+            organization=self.organization,
+            environment=self.environment if "env" in toggles else None,
+        )
         if "legacy_rule" in toggles:
             self.create_alert_rule_workflow(
                 rule_id=self.create_project_rule(project=project).id, workflow=workflow
@@ -391,7 +396,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
             event_data=WorkflowEventData(
                 event=event,
                 group=Group.objects.get_from_cache(id=group.id),
-                workflow_env=self.environment if "env" in toggles else None,
+                workflow_env=workflow.environment,
             ),
             action=action,
             detector=detector,

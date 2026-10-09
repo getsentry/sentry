@@ -1078,12 +1078,15 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 1
         expected_stats = {
+            "cacheReadTokens": 30,
+            "cacheWriteTokens": 15,
             "endTimestamp": int(now.timestamp() * 1000),
             "errors": 1,
             "errorToolNames": ["database"],
             "inputTokens": 190,
             "llmCalls": 2,
             "outputTokens": 110,
+            "reasoningTokens": 12,
             "startTimestamp": int((now - timedelta(seconds=2)).timestamp() * 1000),
             "toolCalls": 1,
             "toolErrors": 1,

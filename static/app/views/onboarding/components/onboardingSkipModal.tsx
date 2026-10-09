@@ -1,4 +1,6 @@
 import {css} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -7,7 +9,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

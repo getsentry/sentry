@@ -1,3 +1,4 @@
+import {IconAdd} from '@sentry/icons/add';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -14,7 +15,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

@@ -135,6 +135,31 @@ function createMockEmbeddingNode(overrides: {
   };
 }
 
+function createMockMemoryNode(overrides: {
+  id: string;
+  records?: string;
+  startTimestamp?: number;
+}) {
+  const {id, records, startTimestamp = 1000} = overrides;
+  const end = startTimestamp + 100;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.search_memory',
+    startTimestamp,
+    endTimestamp: end,
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'search_memory',
+      [SpanFields.GEN_AI_MEMORY_STORE_ID]: 'user-prefs',
+      [SpanFields.GEN_AI_MEMORY_QUERY_TEXT]: 'dietary preferences',
+      ...(records === undefined ? {} : {[SpanFields.GEN_AI_MEMORY_RECORDS]: records}),
+    },
+    errors: new Set(),
+  };
+}
+
 // Builds a turn whose assistant message carries `toolNames.length` tool calls,
 // with the tool spans sitting between two generations so they merge onto the
 // second turn.
@@ -559,6 +584,42 @@ describe('MessagesPanel', () => {
       screen.queryByText("This conversation doesn't include any inference spans")
     ).not.toBeInTheDocument();
     expect(screen.getByText('Creating embedding...')).toBeInTheDocument();
+  });
+
+  it('renders a memory operation as a row with its preview', () => {
+    const records = JSON.stringify([{content: 'User prefers dark mode', score: 0.95}]);
+    const memoryNode = createMockMemoryNode({id: 'mem-1', records});
+
+    render(
+      <MessagesPanel
+        nodes={[memoryNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('search_memory')).toBeInTheDocument();
+    expect(screen.getByText('“dietary preferences”')).toBeInTheDocument();
+    // The records are shown in the span detail, not inline in the transcript.
+    expect(screen.queryByText('User prefers dark mode')).not.toBeInTheDocument();
+  });
+
+  it('selects the memory span when its row is clicked', async () => {
+    const memoryNode = createMockMemoryNode({id: 'mem-1'});
+
+    render(
+      <MessagesPanel
+        nodes={[memoryNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Select memory search_memory'})
+    );
+
+    expect(mockOnSelectNode).toHaveBeenCalledWith(memoryNode);
   });
 
   it('shows no preview in the toggle and reveals the input only when expanded', async () => {
