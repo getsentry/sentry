@@ -583,3 +583,7 @@ def get_browser_name(event: dict[str, Any]) -> str:
         ),
         "",
     )
+
+
+def get_span_description(span: Span) -> str:
+    return (span.get("description") or "").strip()
