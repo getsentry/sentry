@@ -366,7 +366,10 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     outletContext,
   });
 
-  const renderResult = rtl.render(<TestRouterProvider router={memoryRouter} />, options);
+  const renderResult = rtl.render(
+    <TestRouterProvider router={memoryRouter} useTransitions />,
+    options
+  );
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -376,7 +379,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
       outletContext,
     });
 
-    renderResult.rerender(<TestRouterProvider router={newRouter} />);
+    renderResult.rerender(<TestRouterProvider router={newRouter} useTransitions />);
     // Force the router to update children
     rtl.act(() => {
       newRouter.revalidate();
@@ -419,7 +422,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       outletContext,
     });
 
-    return <TestRouterProvider router={memoryRouter} />;
+    return <TestRouterProvider router={memoryRouter} useTransitions />;
   }
 
   const {initialProps, ...rest} = options;

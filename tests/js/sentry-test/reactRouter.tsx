@@ -16,7 +16,8 @@ export function createTestRouter(options: Parameters<typeof UNSAFE_createRouter>
 
 export function TestRouterProvider({
   router,
-}: Pick<ComponentProps<typeof RouterProvider>, 'router'>) {
+  useTransitions = false,
+}: Pick<ComponentProps<typeof RouterProvider>, 'router' | 'useTransitions'>) {
   const props =
     process.env.SENTRY_REACT_ROUTER_VERSION === '8'
       ? {}
@@ -24,5 +25,5 @@ export function TestRouterProvider({
           ComponentProps<typeof RouterProviderV6>,
           'future'
         >);
-  return <RouterProvider {...props} router={router} useTransitions={false} />;
+  return <RouterProvider {...props} router={router} useTransitions={useTransitions} />;
 }
