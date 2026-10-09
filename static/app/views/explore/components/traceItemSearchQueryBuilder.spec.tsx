@@ -425,7 +425,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.placeholder).toBe('Search for logs, users, tags, and more');
   });
 
-  it('allows regex operators for logs', () => {
+  it('allows regex operators when the dataset is logs', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
       organization,
@@ -434,7 +434,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.allowRegexOperators).toBe(true);
   });
 
-  it('does not allow regex operators for spans', () => {
+  it('does not allow regex operators when the dataset is spans', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {...defaultInitialProps, itemType: TraceItemDataset.SPANS},
       organization,
