@@ -3,7 +3,7 @@ import type {Ref, SVGAttributes} from 'react';
 import {useIconDefaults} from './useIconDefaults';
 import {useIconTheme} from './useIconTheme';
 
-export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 export type IconVariant =
   | 'accent'
   | 'danger'

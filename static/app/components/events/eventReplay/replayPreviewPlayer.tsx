@@ -32,7 +32,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
 import {Breadcrumbs} from 'sentry/views/explore/replays/detail/breadcrumbs';
-import {BrowserOSIcons} from 'sentry/views/explore/replays/detail/browserOSIcons';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
@@ -146,7 +145,6 @@ export function ReplayPreviewPlayer({
               {isFullscreen ? (
                 <ContextContainer>
                   {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
-                  <BrowserOSIcons />
                   <ReplaySidebarToggleButton
                     isOpen={isSidebarOpen}
                     setIsOpen={setIsSidebarOpen}
@@ -241,7 +239,7 @@ const StaticPanel = styled(FluidHeight)`
 const ContextContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-template-columns: 1fr max-content max-content;
+  grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${p => p.theme.space.md};
 `;
