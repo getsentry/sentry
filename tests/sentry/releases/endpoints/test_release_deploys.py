@@ -292,6 +292,48 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert rpe.last_deploy_id == deploy.id
 
+    def test_updates_existing_and_creates_missing_release_project_environments(self) -> None:
+        project_bar = self.create_project(organization=self.org, name="bar")
+        project_baz = self.create_project(organization=self.org, name="baz")
+        release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
+        release.add_project(self.project)
+        release.add_project(project_bar)
+        release.add_project(project_baz)
+
+        environment = Environment.objects.create(organization_id=self.org.id, name="production")
+        first_seen = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
+        existing = ReleaseProjectEnvironment.objects.create(
+            project=self.project,
+            release=release,
+            environment=environment,
+            first_seen=first_seen,
+            last_seen=first_seen,
+            new_issues_count=5,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-release-deploys",
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "version": release.version,
+            },
+        )
+        response = self.client.post(
+            url, data={"name": "foo", "environment": "production", "url": "https://www.example.com"}
+        )
+        assert response.status_code == 201, response.content
+        deploy = Deploy.objects.get(id=response.data["id"])
+
+        existing.refresh_from_db()
+        assert existing.last_deploy_id == deploy.id
+        assert existing.first_seen == first_seen
+        assert existing.last_seen == first_seen
+        assert existing.new_issues_count == 5
+
+        rpes = ReleaseProjectEnvironment.objects.filter(release=release, environment=environment)
+        assert {rpe.project_id for rpe in rpes} == {self.project.id, project_bar.id, project_baz.id}
+        assert {rpe.last_deploy_id for rpe in rpes} == {deploy.id}
+
     def test_with_multiple_projects(self) -> None:
         """
         Test that when a release is associated with multiple projects the user is still able to create
