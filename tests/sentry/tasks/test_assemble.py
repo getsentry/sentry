@@ -1186,6 +1186,7 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
             {
                 "organization_id": self.organization.id,
                 "project_ids": [self.project.id],
+                "release": "undefined",
                 "kind": "undefined",
                 "outcome": "kept_files_without_debug_ids",
                 "artifact_count": 4,
@@ -1220,6 +1221,17 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
         )
 
         assert self.release_names() == [("VERCEL_GIT_COMMIT_SHA", "")]
+
+    def test_env_var_release_logged_with_its_name(self) -> None:
+        with patch("sentry.tasks.assemble.logger") as logger:
+            self.assemble(
+                make_artifact_bundle(make_debug_id_files(self.debug_id)),
+                version="VERCEL_GIT_COMMIT_SHA",
+            )
+
+        (log,) = self.placeholder_release_logs(logger)
+        assert log["release"] == "VERCEL_GIT_COMMIT_SHA"
+        assert log["kind"] == "env_var"
 
     @override_options(
         {
