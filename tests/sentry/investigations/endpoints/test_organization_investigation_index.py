@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from unittest import mock
 
+import orjson
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
+from urllib3.response import HTTPResponse
 
 from sentry.investigations.models import (
     Investigation,
@@ -17,10 +21,13 @@ from sentry.investigations.templates.types import (
 )
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
+from sentry.tasks.seer.investigation import dispatch_investigation_orchestration_create
+from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 FEATURE = "organizations:investigations"
 
@@ -122,6 +129,75 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert response.status_code == 201, response.data
         run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
         dispatch.assert_called_once_with(run.id)
+
+    @override_settings(
+        SEER_API_SHARED_SECRET="viewer-context-test-secret",
+        SENTRY_VIEWER_CONTEXT_ENABLED=True,
+    )
+    @mock.patch(
+        "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
+    )
+    @mock.patch("sentry.tasks.seer.investigation.synchronize_orchestration_projection")
+    @mock.patch("sentry.investigations.seer_client.investigation_connection_pool.urlopen")
+    @mock.patch("sentry.investigations.services.orchestration.transaction.on_commit")
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_agentic_creation_propagates_user_context_to_seer(
+        self,
+        dispatch: mock.Mock,
+        on_commit: mock.Mock,
+        mock_urlopen: mock.Mock,
+        synchronize_projection: mock.Mock,
+        dispatch_commands: mock.Mock,
+    ) -> None:
+        activations: list[TaskActivation] = []
+
+        def capture_dispatch(run_id: int) -> None:
+            activations.append(
+                dispatch_investigation_orchestration_create.create_activation(
+                    args=[run_id], kwargs={}
+                )
+            )
+
+        dispatch.side_effect = capture_dispatch
+        on_commit.side_effect = lambda callback, **kwargs: callback()
+
+        response = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        assert len(activations) == 1
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        mock_urlopen.return_value = HTTPResponse(
+            orjson.dumps(
+                {
+                    "runId": 123,
+                    "created": True,
+                    "projection": {
+                        **run.projection,
+                        "heartbeatAt": timezone.now().isoformat(),
+                    },
+                }
+            ),
+            status=200,
+        )
+
+        with ViewerContextHook().on_execute(dict(activations[0].headers)):
+            dispatch_investigation_orchestration_create(run.id)
+
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            actor_type=ActorType.USER,
+        )
+        synchronize_projection.assert_called_once()
+        dispatch_commands.assert_called_once_with(run.id)
 
     def test_agentic_creation_rejects_an_inaccessible_project_atomically(self) -> None:
         foreign_project = self.create_project(organization=self.create_organization())

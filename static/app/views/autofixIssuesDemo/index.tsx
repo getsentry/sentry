@@ -4,20 +4,17 @@ import {Tag} from '@sentry/scraps/badge';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
+import type {TagVariant} from '@sentry/scraps/theme';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {TagVariant} from 'sentry/utils/theme/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -166,12 +163,11 @@ export default function AutofixIssuesDemo() {
           <LoadingError onRetry={refetch} />
         ) : (
           <Container>
-            <GridEditable
+            <DataGrid
               isLoading={isPending}
               data={issues}
               columnOrder={columnOrder}
               grid={{
-                renderHeadCell: column => column.name,
                 renderBodyCell,
               }}
               emptyMessage={t('No autofix issues found for this organization.')}

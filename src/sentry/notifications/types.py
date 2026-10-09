@@ -2,12 +2,115 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.rule import Rule
+
+
+@dataclass(eq=False, frozen=True)
+class NotificationOrigin:
+    """Identifies the rule or workflow that caused a notification."""
+
+    label: str
+    environment_id: int | None
+    workflow_id: int | None
+    legacy_rule_id: int | None
+
+    @classmethod
+    def from_legacy_rule(cls, rule: Rule) -> NotificationOrigin:
+        return cls.from_legacy_data(
+            label=rule.label,
+            environment_id=rule.environment_id,
+            data=rule.data,
+            fallback_legacy_rule_id=rule.id,
+        )
+
+    @classmethod
+    def from_legacy_data(
+        cls,
+        *,
+        label: str,
+        environment_id: int | None,
+        data: dict[str, Any],
+        fallback_legacy_rule_id: int,
+    ) -> NotificationOrigin:
+        actions = data.get("actions")
+        first_action = actions[0] if isinstance(actions, list) and actions else {}
+        if not isinstance(first_action, dict):
+            first_action = {}
+        workflow_id = first_action.get("workflow_id")
+        legacy_rule_id = first_action.get("legacy_rule_id")
+
+        workflow_id = int(workflow_id) if workflow_id is not None else None
+        legacy_rule_id = int(legacy_rule_id) if legacy_rule_id is not None else None
+
+        if (
+            fallback_legacy_rule_id == TEST_NOTIFICATION_ID
+            or workflow_id == TEST_NOTIFICATION_ID
+            or legacy_rule_id == TEST_NOTIFICATION_ID
+        ):
+            workflow_id = None
+            legacy_rule_id = TEST_NOTIFICATION_ID
+        elif workflow_id is None and legacy_rule_id is None:
+            legacy_rule_id = fallback_legacy_rule_id
+
+        return cls(
+            label=label,
+            environment_id=environment_id,
+            workflow_id=workflow_id,
+            legacy_rule_id=legacy_rule_id,
+        )
+
+    @property
+    def identifier(self) -> tuple[str, int]:
+        """Stable identity used to compare and group notification origins."""
+        if self.workflow_id is not None:
+            return ("workflow", self.workflow_id)
+        assert self.legacy_rule_id is not None
+        return ("legacy-rule", self.legacy_rule_id)
+
+    @property
+    def link_id(self) -> int:
+        """Legacy-compatible ID for contexts that previously consumed Rule.id."""
+        if self.legacy_rule_id is not None:
+            return self.legacy_rule_id
+        assert self.workflow_id is not None
+        return self.workflow_id
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NotificationOrigin):
+            return NotImplemented
+        return self.identifier == other.identifier
+
+    def __hash__(self) -> int:
+        return hash(self.identifier)
+
+
+@dataclass(frozen=True)
+class NotificationActionContext:
+    """Identity for action execution; executable configuration is passed separately."""
+
+    origin: NotificationOrigin
+    action_id: int
+    project: Project
+
+    @classmethod
+    def from_legacy_rule(cls, rule: Rule) -> NotificationActionContext:
+        return cls(
+            origin=NotificationOrigin.from_legacy_rule(rule),
+            action_id=rule.id,
+            project=rule.project,
+        )
+
+
+class RuleFuture(NamedTuple):
+    context: NotificationActionContext
+    kwargs: dict[str, Any]
 
 
 class NotificationSettingEnum(ValueEqualityEnum):

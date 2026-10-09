@@ -37,6 +37,7 @@ from sentry.issues.derived.check import (
 )
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIRST_ASSIGNMENT_ACTION_ID,
     HAS_OPEN_FIX_PR,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
@@ -49,6 +50,7 @@ from sentry.issues.derived.framework import (
     AggregatorResult,
     Feature,
     Pipeline,
+    Scope,
     State,
     StateUpdate,
     StateView,
@@ -64,6 +66,7 @@ from sentry.issues.derived.processing import (
     process_group_log,
 )
 from sentry.issues.derived.promote import PromotionResult, promote_to_live
+from sentry.issues.derived.replay import FeatureHistoryLimitExceeded, replay_feature_from_log
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
@@ -77,6 +80,68 @@ from sentry.types.group import IssueAutofixStep, IssueBlocker
 from sentry.utils import json
 
 SOURCE = ActionSource.API
+
+
+class ReplayFeatureFromLogTest(TestCase):
+    def test_replays_only_relevant_history_within_limit(self) -> None:
+        group = self.group
+        self.create_group_action_log_entry(group, type=GroupActionType.VIEW)
+        self.create_group_action_log_entry(group, type=GroupActionType.VIEW)
+        self.create_group_action_log_entry(group, type=GroupActionType.ASSIGN)
+        first = self.create_group_action_log_entry(
+            group, type=GroupActionType.ASSIGN, date_added=django_timezone.now() - timedelta(days=1)
+        )
+
+        assert (
+            replay_feature_from_log(group.id, PIPELINE, FIRST_ASSIGNMENT_ACTION_ID, history_limit=2)
+            == first.id
+        )
+        with pytest.raises(FeatureHistoryLimitExceeded):
+            replay_feature_from_log(group.id, PIPELINE, FIRST_ASSIGNMENT_ACTION_ID, history_limit=1)
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+    def test_replays_all_types_for_unrestricted_scope(self) -> None:
+        count = Feature[int]("count", default=0)
+
+        @aggregator((count,))
+        def count_entries(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            return StateUpdate({count: state[count] + 1})
+
+        group = self.group
+        self.create_group_action_log_entry(group, type=GroupActionType.VIEW)
+        self.create_group_action_log_entry(group, type=GroupActionType.ASSIGN)
+
+        assert replay_feature_from_log(group.id, Pipeline([count_entries]), count) == 2
+
+    def test_replays_transitive_dependencies_without_unrelated_aggregators(self) -> None:
+        views = Feature[int]("views", default=0)
+        accumulated = Feature[int]("accumulated", default=0)
+        result = Feature[int]("result", default=0)
+        unrelated = Feature[int]("unrelated", default=0)
+
+        @aggregator((views,), scope=(GroupActionType.VIEW,))
+        def count_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            return StateUpdate({views: state[views] + 1})
+
+        @aggregator((accumulated,), deps=(views,), scope=Scope.DEPS)
+        def accumulate_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            return StateUpdate({accumulated: state[accumulated] + state[views]})
+
+        @aggregator((result,), deps=(accumulated,), scope=Scope.DEPS)
+        def copy_accumulated(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            return StateUpdate({result: state[accumulated]})
+
+        @aggregator((unrelated,))
+        def unrelated_aggregator(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            raise AssertionError("Unrelated aggregators must not run during feature replay")
+
+        group = self.group
+        self.create_group_action_log_entry(group, type=GroupActionType.VIEW)
+        self.create_group_action_log_entry(group, type=GroupActionType.ASSIGN)
+        self.create_group_action_log_entry(group, type=GroupActionType.VIEW)
+        pipeline = Pipeline([count_views, accumulate_views, copy_accumulated, unrelated_aggregator])
+
+        assert replay_feature_from_log(group.id, pipeline, result, history_limit=2) == 3
 
 
 def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYSTEM_ACTOR) -> None:

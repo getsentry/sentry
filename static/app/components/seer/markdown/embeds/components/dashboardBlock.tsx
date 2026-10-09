@@ -33,8 +33,8 @@ import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
-// Keep the embed compact by showing at most a 2x2 widget grid.
-const MAX_PREVIEW_WIDGETS = 4;
+// Keep the embed compact by showing at most a single row of two widgets.
+const MAX_PREVIEW_WIDGETS = 2;
 // Limit the rows or series fetched inside each previewed widget.
 const MAX_PREVIEW_ITEMS_PER_WIDGET = 5;
 
@@ -183,7 +183,7 @@ function DashboardPreview({
       </WidgetQueryQueueProvider>
       {remainingWidgets > 0 ? (
         <Link to={href}>
-          {tn('View %s more widget', 'View %s more widgets', remainingWidgets)}
+          {tn('+ %s additional widget', '+ %s additional widgets', remainingWidgets)}
         </Link>
       ) : null}
     </Stack>

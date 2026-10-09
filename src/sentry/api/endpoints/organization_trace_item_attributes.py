@@ -37,6 +37,8 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeContext,
     TraceItemAttributeKey,
     TraceItemAttributeSource,
+    TraceItemAttributeValidateResponse,
+    TraceItemAttributeValidationResult,
 )
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
@@ -50,7 +52,11 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
-from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -624,15 +630,18 @@ def can_expose_trace_item_attribute_to_api(
     attribute_key: TraceItemAttributeKey,
     item_type: SupportedTraceItemType,
     include_internal: bool = False,
+    include_internal_convention_attributes: bool = False,
 ) -> bool:
     return can_expose_attribute_to_api(
         attribute_key["key"],
         item_type,
         include_internal=include_internal,
+        include_internal_convention_attributes=include_internal_convention_attributes,
     ) and can_expose_attribute_to_api(
         attribute_key["name"],
         item_type,
         include_internal=include_internal,
+        include_internal_convention_attributes=include_internal_convention_attributes,
     )
 
 
@@ -641,6 +650,7 @@ def _can_expose_data_attribute_to_api(
     attribute_key: TraceItemAttributeKey,
     item_type: SupportedTraceItemType,
     include_internal: bool = False,
+    include_internal_convention_attributes: bool = False,
 ) -> bool:
     """Whether an attribute found in a customer's data may be exposed.
 
@@ -649,18 +659,31 @@ def _can_expose_data_attribute_to_api(
     column. Its exposure is gated on the attribute's own name, so a private
     reserved *column* it merely shadows doesn't suppress it (e.g. a customer's
     ``organization.id``, which shadows the private ``sentry.organization_id``).
-    Internal sentry *conventions* are still hidden unless ``include_internal``.
+    Internal sentry *conventions* are still hidden unless ``include_internal``
+    or ``include_internal_convention_attributes``.
     """
     if attribute_key["attributeSource"]["source_type"] == AttributeSourceType.USER.value:
-        if not can_expose_attribute(name, item_type, include_internal=include_internal):
+        is_internal_convention_attribute = is_internal_sentry_convention_attribute(name, item_type)
+        if not can_expose_attribute(
+            name,
+            item_type,
+            include_internal=include_internal
+            or (include_internal_convention_attributes and is_internal_convention_attribute),
+        ):
             return False
-        if include_internal:
+        if include_internal or include_internal_convention_attributes:
             return True
-        return not is_internal_sentry_convention_attribute(name, item_type)
+        return not is_internal_convention_attribute
     return can_expose_attribute_to_api(
-        name, item_type, include_internal=include_internal
+        name,
+        item_type,
+        include_internal=include_internal,
+        include_internal_convention_attributes=include_internal_convention_attributes,
     ) and can_expose_trace_item_attribute_to_api(
-        attribute_key, item_type, include_internal=include_internal
+        attribute_key,
+        item_type,
+        include_internal=include_internal,
+        include_internal_convention_attributes=include_internal_convention_attributes,
     )
 
 
@@ -768,6 +791,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.end = adjusted_end_date
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
+        include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
         debug = request.user.is_superuser and request.GET.get("debug", False)
         debug_infos: list[dict] = []
 
@@ -802,6 +826,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             trace_item_type,
                             include_internal,
                             include_context,
+                            include_internal_convention_attributes=include_internal_convention_attributes,
                             debug=debug,
                         )
                     )
@@ -845,6 +870,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_internal: bool,
         include_context: bool = False,
         debug: str | bool = False,
+        include_internal_convention_attributes: bool = False,
     ) -> tuple[list[TraceItemAttributeKey], dict | None]:
         debug_info: dict | None = None
         value_substring_match = translate_escape_sequences(substring_match)
@@ -950,6 +976,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 aliased_attributes,
                 all_aliased_attributes,
                 include_context,
+                include_internal_convention_attributes,
             )
 
             sentry_sdk.set_context("api_response", {"attributes": attributes})
@@ -968,6 +995,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         aliased_attributes: list[ResolvedAttribute | ProxyResolvedAttribute],
         exclude_attributes: list[ResolvedAttribute | ProxyResolvedAttribute],
         include_context: bool = False,
+        include_internal_convention_attributes: bool = False,
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         present_names = {attribute.name for attribute in rpc_response.attributes if attribute.name}
@@ -992,6 +1020,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     attr_key,
                     trace_item_type,
                     include_internal=include_internal,
+                    include_internal_convention_attributes=include_internal_convention_attributes,
                 )
                 and not _replacement_superseded_by_present_source(
                     attr_key["name"], trace_item_type, present_names
@@ -1018,6 +1047,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 aliased_attr.public_alias,
                 trace_item_type,
                 include_internal=include_internal,
+                include_internal_convention_attributes=include_internal_convention_attributes,
             ):
                 attr_key = as_attribute_key(
                     aliased_attr.internal_name,
@@ -1030,8 +1060,12 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     aliased_attr.internal_name,
                     trace_item_type,
                     include_internal=include_internal,
+                    include_internal_convention_attributes=include_internal_convention_attributes,
                 ) and can_expose_trace_item_attribute_to_api(
-                    attr_key, trace_item_type, include_internal=include_internal
+                    attr_key,
+                    trace_item_type,
+                    include_internal=include_internal,
+                    include_internal_convention_attributes=include_internal_convention_attributes,
                 ):
                     attribute_keys[attr_key["key"]] = attr_key
         attributes = list(attribute_keys.values())
@@ -1175,7 +1209,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             config=SearchResolverConfig(disable_array_attributes=not supports_arrays),
             definitions=definitions,
         )
-        self.search_type, self.attribute_key, self.context_definition = self.resolve_attribute_key(
+        self.search_type, self.attribute_key, self.context_definitions = self.resolve_attribute_key(
             key
         )
         self.autocomplete_function: dict[str, Callable[[], list[TagValue]]] = (
@@ -1192,14 +1226,15 @@ class TraceItemAttributeValuesAutocompletionExecutor:
 
     def resolve_attribute_key(
         self, key: str
-    ) -> tuple[constants.SearchType, AttributeKey, VirtualColumnDefinition | None]:
-        resolved_attr, context_definition = self.resolver.resolve_attribute(key)
-        if context_definition:
-            resolved_attr = self.resolver.map_context_to_original_column(context_definition)
+    ) -> tuple[constants.SearchType, AttributeKey, list[VirtualColumnDefinition | None]]:
+        resolved_attr, context_definitions = self.resolver.resolve_attribute(key)
+        for context_definition in context_definitions:
+            if context_definition:
+                resolved_attr = self.resolver.map_context_to_original_column(context_definition)
         return (
             resolved_attr.search_type,
             resolved_attr.proto_definition,
-            context_definition,
+            context_definitions,
         )
 
     def execute(self) -> list[TagValue]:
@@ -1436,9 +1471,13 @@ class TraceItemAttributeValuesAutocompletionExecutor:
 
         values: Sequence[str] = rpc_response.values
         counts: Sequence[int] = rpc_response.counts
-        if self.context_definition:
-            context = self.context_definition.constructor(self.snuba_params, self.resolver)
-            values = [context.value_map.get(value, value) for value in values]
+        if self.context_definitions:
+            for context_definition in self.context_definitions:
+                if context_definition is not None:
+                    constructed_context = context_definition.constructor(
+                        self.snuba_params, self.resolver
+                    )
+                    values = [constructed_context.value_map.get(value, value) for value in values]
 
         return [
             TagValue(
@@ -1529,6 +1568,7 @@ class OrganizationTraceItemAttributeValidateBodySerializer(serializers.Serialize
         min_length=1,
         max_length=100,
         required=True,
+        help_text="The attribute names to validate, between 1 and 100 per request.",
     )
 
 
@@ -1549,6 +1589,7 @@ def _check_attributes_exist(
     return check_attribute_names_exist(meta, attrs_by_type)
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
@@ -1556,17 +1597,60 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
     }
     owner = ApiOwner.DATA_BROWSING
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="validateOrganizationTraceItemAttributes",
+        summary="Validate Trace Item Attributes",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            OpenApiParameter(
+                name="itemType",
+                location="query",
+                required=True,
+                type=str,
+                enum=SUPPORTED_DATASETS,
+                description="The trace item dataset to validate the attributes against.",
+            ),
+        ],
+        request=OrganizationTraceItemAttributeValidateBodySerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "TraceItemAttributeValidateResponse", TraceItemAttributeValidateResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TraceItemAttributeExamples.VALIDATE_TRACE_ITEM_ATTRIBUTES,
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[TraceItemAttributeValidateResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
+        """
+        Check whether each attribute name can be queried on a trace item dataset.
+        Sentry-defined attributes are always valid. Custom attributes are only valid if
+        they have been seen in stored data for the requested projects and time range.
+        Valid attributes include their resolved type, and invalid ones include an error.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         query_serializer = OrganizationTraceItemAttributeValidateQuerySerializer(data=request.GET)
         if not query_serializer.is_valid():
-            return Response(query_serializer.errors, status=400)
+            return Response(as_validation_errors(query_serializer), status=400)
 
         serializer = OrganizationTraceItemAttributeValidateBodySerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         item_type = SupportedTraceItemType(query_serializer.validated_data["item_type"])
         attribute_names: list[str] = serializer.validated_data["attributes"]
@@ -1586,7 +1670,7 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
             definitions=definitions,
         )
 
-        results: dict[str, dict[str, Any]] = {}
+        results: dict[str, TraceItemAttributeValidationResult] = {}
         # Collect unknown (user tag) attributes that need storage validation
         unknown_attrs: list[tuple[str, Any]] = []
 

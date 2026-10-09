@@ -21,6 +21,29 @@ declare global {
   }
 }
 
+export type BroadcastDetailsData = {
+  category: string | null;
+  createdBy: string | null;
+  dateExpires: string | null;
+  id: string;
+  isActive: boolean;
+  link: string;
+  mediaUrl: string | null;
+  message: string;
+  syncLocked: boolean;
+  title: string;
+  upstreamId: string | null;
+  userCount: number;
+  earlyAdopter?: boolean;
+  organizations?: number[];
+  plans?: string[];
+  platform?: string[];
+  product?: string[];
+  region?: string | null;
+  roles?: string[];
+  trialStatus?: string[] | string | null;
+};
+
 export type PromoCode = {
   amount: string;
   campaign: string;
@@ -32,7 +55,7 @@ export type PromoCode = {
   newOnly: boolean;
   numClaims: number;
   status: 'active' | 'inactive' | 'expired';
-  trialDays: number;
+  trialDays: number | null;
   userEmail: string | null;
   userId: number;
 };

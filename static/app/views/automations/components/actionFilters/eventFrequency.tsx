@@ -23,10 +23,8 @@ import {
 } from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {
-  dataConditionNodesMap,
-  useDataConditionNodeContext,
-} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
 function getIntervalLabel(interval: string): string {
   const label = INTERVAL_CHOICES.find(choice => choice.value === interval)?.label;

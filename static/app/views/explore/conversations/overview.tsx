@@ -35,16 +35,14 @@ import {
   type AgentsTableTab,
 } from 'sentry/views/explore/conversations/components/agentsTable';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
-import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
+import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   CONVERSATION_FIELDS,
   useConversations,
   type Conversation,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
-import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
@@ -112,7 +110,6 @@ function MissingMessagesAlert({conversations}: {conversations: Conversation[]}) 
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
-  const agentsOverviewEnabled = organization.features.includes('gen-ai-agents-overview');
   const datePageFilterProps = useDatePageFilterProps({
     maxPickableDays: MAX_PICKABLE_DAYS,
     maxUpgradableDays: MAX_PICKABLE_DAYS,
@@ -124,13 +121,25 @@ function ConversationsOverviewPage() {
     isLoading: isOnboardingLoading,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
-  const conversationsResult = useConversations();
+  const [selectedTab, setSelectedTab] = useQueryState(
+    'table',
+    agentsTableTabParser.withOptions({history: 'replace'})
+  );
+  const activeTab: AgentsTableTab =
+    selectedTab ?? (hasConversations ? 'conversations' : 'traces');
+  const isConversationsTab = activeTab === 'conversations';
+  const conversationsResult = useConversations({enabled: isConversationsTab});
   const {
     data: conversations,
     isFetching: isConversationsFetching,
     error: conversationsError,
   } = conversationsResult;
+  useConversationDirectHitRedirect({
+    isDirectHit: isConversationsTab && conversationsResult.isDirectHit,
+    conversations,
+  });
   const showMissingMessagesAlert =
+    isConversationsTab &&
     !isConversationsFetching &&
     !conversationsError &&
     conversations.length > 0 &&
@@ -138,14 +147,12 @@ function ConversationsOverviewPage() {
       conversation => !conversation.firstInput && !conversation.lastOutput
     );
 
-  const [selectedTab, setSelectedTab] = useQueryState(
-    'table',
-    agentsTableTabParser.withOptions({history: 'replace'})
-  );
-  const activeTab: AgentsTableTab = agentsOverviewEnabled
-    ? (selectedTab ?? (hasConversations ? 'conversations' : 'traces'))
-    : 'conversations';
-  const isConversationsTab = activeTab === 'conversations';
+  const searchPlaceholder =
+    activeTab === 'conversations'
+      ? t('Search by conversation ID, user, model, or message')
+      : activeTab === 'traces'
+        ? t('Search by trace ID, operation, service, or user')
+        : t('Search by model, provider, tokens, or operation');
   const selectedTabShowsOnboarding = isConversationsTab
     ? !hasConversations
     : !hasAgenticSpans;
@@ -273,14 +280,7 @@ function ConversationsOverviewPage() {
   const tableSearchBar = showSearch ? (
     <Flex gap="md" width="100%">
       <Flex flex={1} minWidth="0">
-        <TraceItemSearchQueryBuilder
-          {...spanSearchQueryBuilderProps}
-          placeholder={
-            isConversationsTab
-              ? t('Search or paste a conversation ID')
-              : t('Search spans')
-          }
-        />
+        <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
       </Flex>
       {isConversationsTab && <SaveConversationQueryButton />}
     </Flex>
@@ -289,7 +289,7 @@ function ConversationsOverviewPage() {
   let content: ReactNode;
   if (isOnboardingLoading) {
     content = <LoadingIndicator />;
-  } else if (agentsOverviewEnabled) {
+  } else {
     content = (
       <Fragment>
         {hasAgenticSpans && <AgentsCharts />}
@@ -307,22 +307,13 @@ function ConversationsOverviewPage() {
         />
       </Fragment>
     );
-  } else if (showOnboarding) {
-    content = <ConversationOnboarding onDismiss={refetchOnboarding} />;
-  } else {
-    content = (
-      <Fragment>
-        {showMissingMessagesAlert && (
-          <MissingMessagesAlert conversations={conversations} />
-        )}
-        <ConversationsChart />
-        <ConversationsTable conversations={conversationsResult} />
-      </Fragment>
-    );
   }
 
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
+    <SearchQueryBuilderProvider
+      {...searchQueryBuilderProviderProps}
+      placeholder={searchPlaceholder}
+    >
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Stack gap="md">
@@ -345,25 +336,10 @@ function ConversationsOverviewPage() {
                 </PageFilterBar>
                 <AgentSelector referrer={Referrer.AGENT_NAMES} />
               </Flex>
-              {agentsOverviewEnabled && hasAgenticSpans && (
+              {hasAgenticSpans && (
                 <Flex flex={1} justify="end">
                   <AgentsChartIntervalSelector />
                 </Flex>
-              )}
-              {!agentsOverviewEnabled && showSearch && (
-                <Flex flex={1} minWidth="300px">
-                  <TraceItemSearchQueryBuilder
-                    {...spanSearchQueryBuilderProps}
-                    placeholder={
-                      isConversationsTab
-                        ? t('Search or paste a conversation ID')
-                        : t('Search spans')
-                    }
-                  />
-                </Flex>
-              )}
-              {!agentsOverviewEnabled && showSearch && isConversationsTab && (
-                <SaveConversationQueryButton />
               )}
             </Flex>
           </Stack>

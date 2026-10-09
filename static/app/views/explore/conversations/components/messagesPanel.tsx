@@ -27,7 +27,6 @@ import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/t
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
-  getEvaluationPreview,
   NOT_REPORTED,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
@@ -38,6 +37,7 @@ import {
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
+import {getEvaluationPreview} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
