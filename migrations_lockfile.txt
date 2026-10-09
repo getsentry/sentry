@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0037_rename_agentic_triage_result
 
-sentry: 1208_sentryappinstallation_uuid_index
+sentry: 1209_dashboard_widget_query_transformations
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

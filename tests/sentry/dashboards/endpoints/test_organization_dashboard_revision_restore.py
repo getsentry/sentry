@@ -8,6 +8,7 @@ from sentry.dashboards.endpoints.organization_dashboard_revision_restore import 
 )
 from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.models.dashboard_permissions import DashboardPermissions
+from sentry.models.dashboard_widget import DashboardWidgetQuery
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -74,6 +75,43 @@ class OrganizationDashboardRevisionRestoreTestCase(APITestCase):
 
 
 class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevisionRestoreTestCase):
+    def test_restores_query_transformations(self) -> None:
+        revision = self._create_revision(
+            snapshot={
+                "title": "Dashboard 1",
+                "widgets": [
+                    {
+                        "id": "123",
+                        "title": "Transformed widget",
+                        "displayType": "line",
+                        "widgetType": "error-events",
+                        "queries": [
+                            {
+                                "id": "456",
+                                "fields": ["count()"],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "transformations": {"0": ["fill(locf)", "smooth(sma)"]},
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            rejected = self.client.post(self._url(revision.id))
+        assert rejected.status_code == 400, rejected.data
+        assert "transformations" in rejected.data["widgets"][0]["queries"][0]
+        with self.feature("organizations:explore-interpolation-and-smoothing"):
+            response = self.client.post(self._url(revision.id))
+        assert response.status_code == 200, response.data
+        query = response.data["widgets"][0]["queries"][0]
+        assert query["id"] != "456"
+        assert query["transformations"] == {"0": ["fill(locf)", "smooth(sma)"]}
+        assert DashboardWidgetQuery.objects.get(id=query["id"]).transformations == {
+            "0": ["fill(locf)", "smooth(sma)"]
+        }
+
     def test_returns_404_for_prebuilt_dashboard(self) -> None:
         revision = self._create_revision()
         url = reverse(

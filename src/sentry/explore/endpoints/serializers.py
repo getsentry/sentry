@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.serializers import ListField
 
+from sentry.api.fields.transformations import TransformationsField, validate_transformation_indexes
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import is_equation
 from sentry.explore.models import ExploreSavedQueryDataset
@@ -16,6 +17,11 @@ MAX_CROSS_EVENT_RANGE = timedelta(days=7)
 class VisualizeSerializer(serializers.Serializer):
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField())
+    transformations = TransformationsField(required=False)
+
+    def validate(self, data):
+        validate_transformation_indexes(data.get("transformations", {}), len(data["yAxes"]))
+        return data
 
 
 class GroupBySerializer(serializers.Serializer):
@@ -26,12 +32,17 @@ class AggregateFieldSerializer(serializers.Serializer):
     # visualizes
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField(), required=False)
+    transformations = TransformationsField(required=False)
 
     # group bys
     groupBy = serializers.CharField(required=False)
 
     def validate(self, data):
-        visualize_serializer = VisualizeSerializer(data=data)
+        if "transformations" in data and "yAxes" not in data:
+            raise serializers.ValidationError({"transformations": "Transformations require yAxes."})
+        if "yAxes" in data:
+            validate_transformation_indexes(data.get("transformations", {}), len(data["yAxes"]))
+        visualize_serializer = VisualizeSerializer(data=data, context=self.context)
 
         group_by_serializer = GroupBySerializer(data=data)
 
