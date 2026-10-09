@@ -3,7 +3,6 @@ import {useMatches} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
@@ -22,22 +21,6 @@ import {getSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/
 const SUGGESTIONS_TIMEOUT_MS = 4000;
 const MAX_PAGE_CONTEXT_LENGTH = 50_000;
 const MAX_PROJECTS = 10;
-
-const PROJECT_SENDS_FLAGS = {
-  db: 'hasInsightsDb',
-  http: 'hasInsightsHttp',
-  caches: 'hasInsightsCaches',
-  queues: 'hasInsightsQueues',
-  vitals: 'hasInsightsVitals',
-  app_start: 'hasInsightsAppStart',
-  screen_load: 'hasInsightsScreenLoad',
-  agent_monitoring: 'hasInsightsAgentMonitoring',
-  sessions: 'hasSessions',
-  cron_monitors: 'hasMonitors',
-  replays: 'hasReplays',
-  logs: 'hasLogs',
-  profiles: 'hasProfiles',
-} as const satisfies Record<string, keyof Project>;
 
 class SuggestionsTimeoutError extends Error {
   constructor() {
@@ -81,14 +64,16 @@ export function useChatSuggestions({
   const capturePageContext = usePageContextCapture();
 
   const selectedProjects = useMemo(() => {
-    const {selectionMode, projectSlugs} = getSelectedProjectsForLLMContext(
+    const {selectionMode} = getSelectedProjectsForLLMContext(
       selection.projects,
       projects
     );
-    const slugs = new Set(projectSlugs);
-    return selectionMode === 'explicit'
-      ? projects.filter(project => slugs.has(project.slug))
-      : projects.filter(project => project.isMember).slice(0, MAX_PROJECTS);
+    const selectedIds = new Set(selection.projects.map(String));
+    return (
+      selectionMode === 'explicit'
+        ? projects.filter(project => selectedIds.has(project.id))
+        : projects.filter(project => project.isMember)
+    ).slice(0, MAX_PROJECTS);
   }, [selection.projects, projects]);
 
   const query = useQuery({
@@ -118,9 +103,6 @@ export function useChatSuggestions({
             projects: selectedProjects.map(project => ({
               slug: project.slug,
               platform: project.platform ?? null,
-              sends: Object.entries(PROJECT_SENDS_FLAGS).flatMap(([name, flag]) =>
-                project[flag] ? [name] : []
-              ),
             })),
           },
         }),
