@@ -117,8 +117,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             **data,
             "page_context": data["page_context"][:MAX_PAGE_CONTEXT_LENGTH],
             "projects": [
-                {"slug": project.slug, "platform": project.platform}
-                for project in sorted(projects, key=lambda project: project.slug)
+                {"slug": project.slug, "platform": project.platform} for project in projects
             ],
             "code_mode": features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
