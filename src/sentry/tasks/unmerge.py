@@ -3,18 +3,31 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
 from datetime import datetime
 from functools import reduce
 from typing import Any
+from uuid import uuid4
 
-from django.db import router, transaction
+from django.db import OperationalError, router, transaction
 from django.db.models.base import Model
+from redis.exceptions import RedisError
+from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
-from sentry import similarity, tsdb
+from sentry import features, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
 from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.unmerge_initial import (
+    InitialUnmergeBusy,
+    InitialUnmergeCheckpoint,
+    InitialUnmergeNeedsRecovery,
+    checkpoint_key,
+    claim_first_continuation,
+    get_client,
+    reserve_hashes,
+)
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
@@ -35,7 +48,13 @@ from sentry.taskworker.namespaces import issues_merge_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
-from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
+from sentry.unmerge import (
+    InitialUnmergeArgs,
+    PrimaryHashUnmergeReplacement,
+    SuccessiveUnmergeArgs,
+    UnmergeArgs,
+    UnmergeArgsBase,
+)
 from sentry.utils import metrics
 from sentry.utils.eventuser import EventUser
 from sentry.utils.query import task_run_batch_query
@@ -439,18 +458,18 @@ def repair_denormalizations(
 
 
 def lock_hashes(project_id: int, source_id: int, fingerprints: Sequence[str]) -> list[str]:
-    with transaction.atomic(router.db_for_write(GroupHash)):
-        eligible_hashes = list(
-            GroupHash.objects.filter(
-                project_id=project_id, group_id=source_id, hash__in=fingerprints
+    with reserve_hashes(project_id, source_id, fingerprints) as available:
+        with transaction.atomic(router.db_for_write(GroupHash)):
+            eligible_hashes = list(
+                GroupHash.objects.filter(
+                    project_id=project_id, group_id=source_id, hash__in=available
+                )
+                .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
+                .select_for_update()
             )
-            .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
-            .select_for_update()
-        )
-
-        GroupHash.objects.filter(id__in=[h.id for h in eligible_hashes]).update(
-            state=GroupHash.State.LOCKED_IN_MIGRATION
-        )
+            GroupHash.objects.filter(id__in=[h.id for h in eligible_hashes]).update(
+                state=GroupHash.State.LOCKED_IN_MIGRATION
+            )
 
     return [h.hash for h in eligible_hashes]
 
@@ -515,11 +534,13 @@ def start_unmerge(
 @instrumented_task(
     name="sentry.tasks.unmerge",
     namespace=issues_merge_tasks,
+    retry=Retry(times=3, delay=60),
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
     with action_context_scope(ActionSource.SYSTEM):
+        initial_checkpoint_id = kwargs.pop("initial_checkpoint_id", None)
         args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
         extra = {"source_id": args.source_id, "project_id": args.project_id}
 
@@ -537,128 +558,213 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
             return
 
         logger.info("unmerge.start.task", extra=extra)
-
-        if killswitch_matches_context(
-            "unmerge.killswitch-projects", {"project_id": args.project_id}
-        ):
-            logger.warning("unmerge.halted_by_killswitch", extra=extra)
-            if isinstance(args, SuccessiveUnmergeArgs):
-                unlock_hashes(args.project_id, list(args.locked_primary_hashes))
-                for _unmerge_key, (_destination_id, eventstream_state) in args.destinations.items():
-                    if eventstream_state:
-                        args.replacement.stop_snuba_replacement(eventstream_state)
-            return
-
-        source = Group.objects.get(project_id=args.project_id, id=args.source_id)
-
-        caches: Mapping[str, Any] = get_caches()
-
-        project = caches["Project"](args.project_id)
-
-        # On the first iteration of this loop, we clear out all of the
-        # denormalizations from the source group so that we can have a clean slate
-        # for the new, repaired data.
-        if isinstance(args, InitialUnmergeArgs):
-            locked_primary_hashes = lock_hashes(
-                args.project_id, args.source_id, list(args.replacement.primary_hashes_to_lock)
-            )
-            truncate_denormalizations(project, source)
-            last_event = None
-        else:
-            last_event = args.last_event
-            locked_primary_hashes = list(args.locked_primary_hashes)
-
-        last_event, raw_events = task_run_batch_query(
-            filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
-            batch_size=args.batch_size,
-            state=last_event,
-            referrer="unmerge",
-            tenant_ids={"organization_id": source.project.organization_id},
-            eap_conditions=build_group_id_in_filter([source.id]),
-        )
-        # Convert Event objects to GroupEvent objects
-        events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
-        # Log info related to this unmerge
-        logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
-
-        # If there are no more events to process, we're done with the migration.
-        if not events:
-            unlock_hashes(args.project_id, locked_primary_hashes)
-            for unmerge_key, (_, eventstream_state) in args.destinations.items():
-                logger.warning(
-                    "Unmerge complete (eventstream state: %s)", eventstream_state, extra=extra
+        if initial_checkpoint_id:
+            try:
+                admitted = claim_first_continuation(
+                    args.project_id, initial_checkpoint_id, activation_id or uuid4().hex
                 )
-                if eventstream_state:
-                    args.replacement.stop_snuba_replacement(eventstream_state)
+            except RedisError as error:
+                raise InitialUnmergeBusy() from error
+            if not admitted:
+                logger.info("unmerge.initial.duplicate_continuation.skipped", extra=extra)
+                return
+
+        if isinstance(args, InitialUnmergeArgs):
+            try:
+                project = Project.objects.get_from_cache(id=args.project_id)
+                tracked = features.has("organizations:unmerge-recovery", project.organization)
+                tracked = tracked or bool(
+                    activation_id
+                    and get_client().exists(checkpoint_key(args.project_id, activation_id))
+                )
+            except RedisError as error:
+                raise InitialUnmergeBusy() from error
+            if tracked:
+                # Rollout changes must not send an already-tracked redelivery down the legacy
+                # path, where it would lose ownership of its locks.
+                _run_initial_unmerge(args, activation_id or uuid4().hex)
+                return
+
+        new_args = _unmerge_batch(args)
+        if new_args is None:
             return
-
-        source_events = []
-        destination_events: dict[str, list[GroupEvent]] = {}
-
-        for event in events:
-            key = args.replacement.get_unmerge_key(event, locked_primary_hashes)
-            if key is not None:
-                destination_events.setdefault(key, []).append(event)
-            else:
-                source_events.append(event)
-
-        source_fields_reset = isinstance(args, SuccessiveUnmergeArgs) and args.source_fields_reset
-
-        if source_events:
-            if not source_fields_reset:
-                source.update(**get_group_creation_attributes(caches, source, source_events))
-                source_fields_reset = True
-            else:
-                source.update(**get_group_backfill_attributes(caches, source, source_events))
-
-        destinations = dict(args.destinations)
-        # Log info related to this unmerge
-        logger.info(
-            "unmerge.destinations",
-            extra={
-                **extra,
-                "source_events": len(source_events),
-                "destination_events": len(destination_events),
-                "source_fields_reset": source_fields_reset,
-            },
-        )
-
-        # XXX: This is only actually able to create a destination group and migrate
-        # the group hashes if there are events that can be migrated. How do we
-        # handle this if there aren't any events? We can't create a group (there
-        # isn't any data to derive the aggregates from), so we'd have to mark the
-        # hash as in limbo somehow...?)
-
-        for unmerge_key, _destination_events in destination_events.items():
-            destination_id, eventstream_state = destinations.get(unmerge_key) or (None, None)
-            (destination_id, eventstream_state) = migrate_events(
-                source,
-                caches,
-                project,
-                args,
-                _destination_events,
-                locked_primary_hashes,
-                destination_id,
-                eventstream_state,
-            )
-            destinations[unmerge_key] = destination_id, eventstream_state
-
-        repair_denormalizations(caches, project, events)
-
-        new_args = SuccessiveUnmergeArgs(
-            project_id=args.project_id,
-            source_id=args.source_id,
-            replacement=args.replacement,
-            actor_id=args.actor_id,
-            batch_size=args.batch_size,
-            last_event=last_event,
-            destinations=destinations,
-            locked_primary_hashes=locked_primary_hashes,
-            source_fields_reset=source_fields_reset,
-        )
-
         unmerge.delay(**new_args.dump_arguments())
         # Record that this activation has spawned its continuation. A subsequent re-pend of this same
         # activation will short-circuit at the guard above instead of spawning again.
         if activation_id:
             mark_spawned(_TASK_KEY, activation_id)
+
+
+def _unmerge_batch(
+    args: UnmergeArgs, checkpoint: InitialUnmergeCheckpoint | None = None
+) -> SuccessiveUnmergeArgs | None:
+    extra = {"project_id": args.project_id, "source_id": args.source_id}
+    if killswitch_matches_context("unmerge.killswitch-projects", {"project_id": args.project_id}):
+        logger.warning("unmerge.halted_by_killswitch", extra=extra)
+        if checkpoint:
+            checkpoint.begin_finishing()
+            unlock_hashes(args.project_id, checkpoint.owned_hashes())
+        elif isinstance(args, SuccessiveUnmergeArgs):
+            unlock_hashes(args.project_id, list(args.locked_primary_hashes))
+            for _, eventstream_state in args.destinations.values():
+                if eventstream_state:
+                    args.replacement.stop_snuba_replacement(eventstream_state)
+        return None
+
+    source = Group.objects.get(project_id=args.project_id, id=args.source_id)
+    caches = get_caches()
+    project = caches["Project"](args.project_id)
+    if isinstance(args, InitialUnmergeArgs):
+        locked_primary_hashes = (
+            list(checkpoint.state.hashes)
+            if checkpoint
+            else lock_hashes(
+                args.project_id, args.source_id, list(args.replacement.primary_hashes_to_lock)
+            )
+        )
+        if checkpoint:
+            checkpoint.save()
+        truncate_denormalizations(project, source)
+        last_event = None
+    else:
+        locked_primary_hashes = list(args.locked_primary_hashes)
+        last_event = args.last_event
+
+    last_event, raw_events = task_run_batch_query(
+        filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
+        batch_size=args.batch_size,
+        state=last_event,
+        referrer="unmerge",
+        tenant_ids={"organization_id": source.project.organization_id},
+        eap_conditions=build_group_id_in_filter([source.id]),
+    )
+    events = [event.for_group(source) for event in raw_events]
+    logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
+    if not events:
+        if checkpoint:
+            checkpoint.begin_finishing()
+        unlock_hashes(args.project_id, locked_primary_hashes)
+        for _, eventstream_state in args.destinations.values():
+            logger.warning(
+                "Unmerge complete (eventstream state: %s)", eventstream_state, extra=extra
+            )
+            if eventstream_state:
+                args.replacement.stop_snuba_replacement(eventstream_state)
+        return None
+
+    if checkpoint:
+        # Mutation replay is a separate problem from recovering initial lock ownership.
+        # Leave an explicit marker before touching aggregates or creating destinations.
+        checkpoint.begin_processing()
+    source_events = []
+    destination_events: dict[str, list[GroupEvent]] = {}
+    owned_hashes = set(locked_primary_hashes)
+    for event in events:
+        key = args.replacement.get_unmerge_key(event, owned_hashes)
+        if key is None:
+            source_events.append(event)
+        else:
+            destination_events.setdefault(key, []).append(event)
+
+    source_fields_reset = isinstance(args, SuccessiveUnmergeArgs) and args.source_fields_reset
+    if source_events:
+        if source_fields_reset:
+            source.update(**get_group_backfill_attributes(caches, source, source_events))
+        else:
+            source.update(**get_group_creation_attributes(caches, source, source_events))
+            source_fields_reset = True
+
+    destinations = dict(args.destinations)
+    logger.info(
+        "unmerge.destinations",
+        extra={
+            **extra,
+            "source_events": len(source_events),
+            "destination_events": len(destination_events),
+            "source_fields_reset": source_fields_reset,
+        },
+    )
+    for key, destination_batch in destination_events.items():
+        destination_id, eventstream_state = destinations.get(key) or (None, None)
+        destination_id, eventstream_state = migrate_events(
+            source,
+            caches,
+            project,
+            args,
+            destination_batch,
+            locked_primary_hashes,
+            destination_id,
+            eventstream_state,
+        )
+        destinations[key] = destination_id, eventstream_state
+    repair_denormalizations(caches, project, events)
+
+    return SuccessiveUnmergeArgs(
+        project_id=args.project_id,
+        source_id=args.source_id,
+        replacement=args.replacement,
+        actor_id=args.actor_id,
+        batch_size=args.batch_size,
+        last_event=last_event,
+        destinations=destinations,
+        locked_primary_hashes=locked_primary_hashes,
+        source_fields_reset=source_fields_reset,
+    )
+
+
+def _run_initial_unmerge(args: InitialUnmergeArgs, activation_id: str) -> None:
+    try:
+        _run_initial_checkpoint(args, activation_id)
+    except (RedisError, OperationalError) as error:
+        # Only tracked initial activations opt into these retries. Later batches retain the
+        # existing retry behavior; their aggregate mutations are not replay-safe.
+        raise InitialUnmergeBusy() from error
+
+
+def _run_initial_checkpoint(args: InitialUnmergeArgs, activation_id: str) -> None:
+    extra = {
+        "activation_id": activation_id,
+        "project_id": args.project_id,
+        "source_id": args.source_id,
+    }
+    with InitialUnmergeCheckpoint.acquire(
+        args.project_id,
+        args.source_id,
+        activation_id,
+        list(args.replacement.primary_hashes_to_lock),
+    ) as checkpoint:
+        phase = checkpoint.state.phase
+        logger.info(
+            "unmerge.initial.checkpoint",
+            extra={**extra, "phase": phase, "owned_hash_count": len(checkpoint.state.hashes)},
+        )
+        if phase == "complete":
+            checkpoint.release_reservations()
+            return
+        if phase == "processing":
+            logger.warning("unmerge.initial.needs_recovery", extra={**extra, "phase": phase})
+            raise InitialUnmergeNeedsRecovery("Initial unmerge batch may have mutated data")
+        if phase == "finishing":
+            unlock_hashes(args.project_id, checkpoint.owned_hashes())
+            checkpoint.complete()
+            return
+        if phase == "continuing":
+            checkpoint.release_reservations()
+            unmerge.delay(**checkpoint.continuation_arguments())
+            checkpoint.complete()
+            return
+
+        owned_hashes = checkpoint.lock_hashes()
+        if not owned_hashes:
+            checkpoint.complete()
+            return
+        next_args = _unmerge_batch(
+            replace(args, replacement=PrimaryHashUnmergeReplacement(fingerprints=owned_hashes)),
+            checkpoint,
+        )
+        if next_args is not None:
+            checkpoint.continue_with(
+                {**next_args.dump_arguments(), "initial_checkpoint_id": activation_id}
+            )
+            unmerge.delay(**checkpoint.continuation_arguments())
+        checkpoint.complete()
