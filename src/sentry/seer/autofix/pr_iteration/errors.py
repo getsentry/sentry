@@ -21,9 +21,10 @@ def raised_pr_iteration_error(message: str) -> PrIterationError:
 
     An exception that is only created, never raised, has no traceback, so
     Sentry would show it with no stack frames. Raising it here gives it a
-    traceback, and the SDK adds the frames of whoever reports it.
+    traceback, and the SDK adds the frames of whoever reports it. ``from None``
+    keeps an exception being handled from being reported along with it.
     """
     try:
-        raise PrIterationError(message)
+        raise PrIterationError(message) from None
     except PrIterationError as e:
         return e
