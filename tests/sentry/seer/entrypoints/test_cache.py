@@ -364,9 +364,14 @@ class SeerOperatorInvestigationCacheTest(TestCase):
         )
 
         assert (
-            SeerOperatorInvestigationCache.get(entrypoint_key="slack", investigation_id=123)
+            SeerOperatorInvestigationCache[MockCachePayload].get(
+                entrypoint_key="slack", investigation_id=123
+            )
             == payload
         )
         assert (
-            SeerOperatorInvestigationCache.get(entrypoint_key="slack", investigation_id=456) is None
+            SeerOperatorInvestigationCache[MockCachePayload].get(
+                entrypoint_key="slack", investigation_id=456
+            )
+            is None
         )
