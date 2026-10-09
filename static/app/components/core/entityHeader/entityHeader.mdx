@@ -270,7 +270,9 @@ leadingGraphic={{type: 'platform', platform: 'javascript'}}
 
 `project` and `platform` draw the same badge but take what the caller actually holds: a trace knows its projects and the header maps them to platforms, a build has only inferred a platform from a file type. A `project` graphic whose projects have no known platform falls back to the generic platform tile, not to the all-projects glyph — that one means a saved view, not an entity.
 
-The graphic is decorative and non-focusable by default because users that depend on screen readers receive no benefit from them. By using the `label`, guarantees context is never lost for sight-impaired users.
+The graphic is decorative and non-focusable by default, because it usually repeats something the title already says. Give it a `label` when it does not — which projects a trace touched — and it becomes an image in its own right.
+
+`tooltip` is mouse-only, since a named image is announced without focus — keep anything a user needs in `label` itself.
 
 ### Tags
 
