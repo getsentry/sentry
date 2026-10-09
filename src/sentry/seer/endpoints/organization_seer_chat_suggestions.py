@@ -106,13 +106,12 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
         data = dict(serializer.validated_data)
         route_params = data.pop("route_params")
         project_ids = set(data.pop("project_ids"))
+        projects = []
         # Only explicit selections: My/All Projects can be thousands of projects in large orgs.
         if project_ids and ALL_ACCESS_PROJECT_ID not in project_ids:
             projects = self.get_projects(
                 request, organization, project_ids=set(sorted(project_ids)[:MAX_PROJECTS])
             )
-        else:
-            projects = []
         payload = {
             **data,
             "page_context": data["page_context"][:MAX_PAGE_CONTEXT_LENGTH],
