@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -14,81 +14,78 @@ type Props = {
   start?: string;
 };
 
-type State = {
-  focused: boolean;
-};
+function TimePickerImpl({
+  className,
+  start,
+  end,
+  onChangeStart,
+  onChangeEnd,
+  hasStartErrors,
+  hasEndErrors,
+}: Props) {
+  const startInputRef = useRef<HTMLInputElement>(null);
+  const endInputRef = useRef<HTMLInputElement>(null);
+  // Track focus in a ref so we know whether to apply incoming prop changes
+  const focusedRef = useRef(false);
 
-export const TimePicker = styled(
-  class TimePickerImpl extends Component<Props, State> {
-    state: State = {
-      focused: false,
-    };
-
-    shouldComponentUpdate() {
-      // This is necessary because when a change event happens,
-      // the change is propagated up to the dropdown. This causes
-      // a re-render of this component which in turn causes the
-      // input element to lose focus. To get around losing focus,
-      // we prevent the component from updating when one of the
-      // inputs has focus. This is okay because the inputs will
-      // keep track of their own values so we do not have to keep
-      // track of it.
-      return !this.state.focused;
+  // When start/end props change externally (i.e. not because the user is
+  // currently typing), reset the input values imperatively. We use a DOM ref
+  // rather than React state to avoid the derived-state anti-pattern while
+  // still preventing the re-key/remount that caused focus loss in the old
+  // class-component implementation.
+  useEffect(() => {
+    if (!focusedRef.current) {
+      if (startInputRef.current) {
+        startInputRef.current.value = start ?? '';
+      }
+      if (endInputRef.current) {
+        endInputRef.current.value = end ?? '';
+      }
     }
+  }, [start, end]);
 
-    handleFocus = () => {
-      this.setState({focused: true});
-    };
+  const handleFocus = useCallback(() => {
+    focusedRef.current = true;
+  }, []);
 
-    handleBlur = () => {
-      this.setState({focused: false});
-    };
+  const handleBlur = useCallback(() => {
+    focusedRef.current = false;
+  }, []);
 
-    render() {
-      const {
-        className,
-        start,
-        end,
-        onChangeStart,
-        onChangeEnd,
-        hasStartErrors,
-        hasEndErrors,
-      } = this.props;
+  return (
+    <div className={classNames(className, 'rdrDateDisplay')}>
+      <div>
+        <Input
+          ref={startInputRef}
+          type="time"
+          defaultValue={start}
+          className="rdrDateDisplayItem"
+          data-test-id="startTime"
+          aria-invalid={hasStartErrors}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onChange={onChangeStart}
+        />
+      </div>
 
-      return (
-        <div className={classNames(className, 'rdrDateDisplay')}>
-          <div>
-            <Input
-              type="time"
-              key={start}
-              defaultValue={start}
-              className="rdrDateDisplayItem"
-              data-test-id="startTime"
-              aria-invalid={hasStartErrors}
-              onFocus={this.handleFocus}
-              onBlur={this.handleBlur}
-              onChange={onChangeStart}
-            />
-          </div>
+      <div>
+        <Input
+          ref={endInputRef}
+          type="time"
+          defaultValue={end}
+          className="rdrDateDisplayItem"
+          data-test-id="endTime"
+          aria-invalid={hasEndErrors}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onChange={onChangeEnd}
+        />
+      </div>
+    </div>
+  );
+}
 
-          <div>
-            <Input
-              type="time"
-              defaultValue={end}
-              key={end}
-              className="rdrDateDisplayItem"
-              data-test-id="endTime"
-              aria-invalid={hasEndErrors}
-              onFocus={this.handleFocus}
-              onBlur={this.handleBlur}
-              onChange={onChangeEnd}
-            />
-          </div>
-        </div>
-      );
-    }
-  }
-)`
+export const TimePicker = styled(TimePickerImpl)`
   &.rdrDateDisplay {
     display: grid;
     background: transparent;
