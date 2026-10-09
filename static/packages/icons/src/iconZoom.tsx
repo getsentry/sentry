@@ -5,6 +5,7 @@ interface Props extends SVGIconProps {
   isZoomIn?: boolean;
 }
 
+/** @public */
 export function IconZoom({isZoomIn = false, ...props}: Props) {
   return (
     <SvgIcon {...props}>
