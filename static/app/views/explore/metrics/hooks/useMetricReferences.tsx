@@ -4,7 +4,7 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/visualizeLabel';
 
 function resolveMetricReference(metricConfig: ReadableQueryParams): string {
   if (metricConfig.query) {

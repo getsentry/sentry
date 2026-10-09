@@ -27,7 +27,7 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/visualizeLabel';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';

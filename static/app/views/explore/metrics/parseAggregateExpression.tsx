@@ -14,7 +14,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import {getFunctionLabel} from 'sentry/views/explore/toolbar/visualizeLabel';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 

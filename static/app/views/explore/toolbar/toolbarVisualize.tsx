@@ -38,6 +38,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {getFunctionLabel} from 'sentry/views/explore/toolbar/visualizeLabel';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
@@ -315,18 +316,6 @@ interface VisualizeLabelProps {
   index: number;
   onClick: MouseEventHandler<HTMLDivElement>;
   visualize: Visualize;
-}
-
-export function getFunctionLabel(index: number) {
-  return String.fromCharCode('A'.charCodeAt(0) + index);
-}
-
-function getEquationLabel(index: number) {
-  return `ƒ${index}`;
-}
-
-export function getVisualizeLabel(labelIndex: number, isEquation: boolean): string {
-  return isEquation ? getEquationLabel(labelIndex) : getFunctionLabel(labelIndex);
 }
 
 export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {

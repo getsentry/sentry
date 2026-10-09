@@ -8,7 +8,7 @@ import {
 import {
   getFunctionLabel,
   getVisualizeLabel,
-} from 'sentry/views/explore/toolbar/toolbarVisualize';
+} from 'sentry/views/explore/toolbar/visualizeLabel';
 
 /**
  * Assigns sequential labels to queries based on their type.
