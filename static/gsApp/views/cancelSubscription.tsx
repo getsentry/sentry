@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useOutletContext} from 'react-router';
+import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -32,6 +33,15 @@ import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/compon
 
 type CancelReason = [string, React.ReactNode];
 type CancelCheckbox = [string, React.ReactNode];
+type CancellationSubscription = Pick<
+  Subscription,
+  | 'billingInterval'
+  | 'billingPeriodEnd'
+  | 'canCancel'
+  | 'canSelfServe'
+  | 'slug'
+  | 'usedLicenses'
+> & {planDetails?: {name?: string}};
 
 const CANCEL_STEPS: Array<{
   followup: React.ReactNode;
@@ -89,12 +99,24 @@ const CANCEL_STEPS: Array<{
 function CancelSubscriptionForm() {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const {data: subscription, isPending} = useQuery(
+  const isPreview = useOutletContext<boolean | undefined>() ?? false;
+  const {data: fetchedSubscription, isPending} = useQuery(
     apiOptions.as<Subscription>()('/customers/$organizationIdOrSlug/', {
-      path: {organizationIdOrSlug: organization.slug},
+      path: isPreview ? skipToken : {organizationIdOrSlug: organization.slug},
       staleTime: 0,
     })
   );
+  const subscription: CancellationSubscription | undefined = isPreview
+    ? {
+        billingInterval: 'monthly',
+        billingPeriodEnd: moment().add(1, 'month').toISOString(),
+        canCancel: true,
+        canSelfServe: true,
+        planDetails: {name: 'Sample Plan'},
+        slug: organization.slug,
+        usedLicenses: 1,
+      }
+    : fetchedSubscription;
   const [selectedReason, setSelectedReason] = useState<CancelReason[0] | null>(null);
   const [checkboxes, setCheckboxes] = useState<Record<string, boolean>>({});
   const [understandsMembers, setUnderstandsMembers] = useState(false);
@@ -129,15 +151,17 @@ function CancelSubscriptionForm() {
     ...defaultFormOptions,
     defaultValues: {reason: '', followup: ''},
     onSubmit: ({value}) =>
-      mutation
-        .mutateAsync({
-          ...value,
-          checkboxes: Object.keys(checkboxes).filter(key => checkboxes[key]),
-        })
-        .catch(() => {}),
+      isPreview
+        ? Promise.resolve()
+        : mutation
+            .mutateAsync({
+              ...value,
+              checkboxes: Object.keys(checkboxes).filter(key => checkboxes[key]),
+            })
+            .catch(() => {}),
   });
 
-  if (isPending || !subscription) {
+  if ((!isPreview && isPending) || !subscription) {
     return <LoadingIndicator />;
   }
 
@@ -180,6 +204,13 @@ function CancelSubscriptionForm() {
 
   return (
     <Fragment>
+      {isPreview && (
+        <Alert.Container>
+          <Alert variant="info">
+            {t('Preview only. This form cannot cancel a subscription.')}
+          </Alert>
+        </Alert.Container>
+      )}
       <Alert.Container>
         <Alert variant="warning">
           {tct(
@@ -268,7 +299,7 @@ function CancelSubscriptionForm() {
               >
                 {t('Never Mind')}
               </Button>
-              <form.SubmitButton variant="danger" disabled={!selectedReason}>
+              <form.SubmitButton variant="danger" disabled={isPreview || !selectedReason}>
                 {t('Cancel Subscription')}
               </form.SubmitButton>
             </Flex>
