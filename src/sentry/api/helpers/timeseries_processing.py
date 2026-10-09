@@ -1,6 +1,10 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Final, Literal
+
+FILL_MODE_LOCF: Final = "locf"
+FILL_MODE_ZERO: Final = "zero"
+FILL_MODE_LINEAR: Final = "linear"
 
 
 @dataclass(frozen=True)
@@ -28,18 +32,16 @@ def fill_timeseries(
         linear: Fill gaps between observations using their timestamps. Leading and
             trailing missing values remain None. Timestamps must be strictly increasing.
     """
-    if mode not in ("locf", "zero", "linear"):
-        raise ValueError(f"Unsupported fill mode: {mode}")
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
 
-    if mode == "zero":
+    if mode == FILL_MODE_ZERO:
         return FilledTimeseries(
             values=[0.0 if value is None else value for value in values],
             filled=[value is None for value in values],
         )
 
-    if mode == "linear":
+    elif mode == FILL_MODE_LINEAR:
         if any(right <= left for left, right in zip(timestamps, timestamps[1:])):
             raise ValueError("Timestamps must be strictly increasing for linear filling.")
 
@@ -60,16 +62,19 @@ def fill_timeseries(
 
         return FilledTimeseries(values=linear_values, filled=linear_filled)
 
-    filled_values: list[float | None] = []
-    filled: list[bool] = []
-    last_observed_value: float | None = None
-    for value in values:
-        filled.append(value is None and last_observed_value is not None)
-        if value is not None:
-            last_observed_value = value
-        filled_values.append(last_observed_value)
+    elif mode == FILL_MODE_LOCF:
+        filled_values: list[float | None] = []
+        filled: list[bool] = []
+        last_observed_value: float | None = None
+        for value in values:
+            filled.append(value is None and last_observed_value is not None)
+            if value is not None:
+                last_observed_value = value
+            filled_values.append(last_observed_value)
 
-    return FilledTimeseries(values=filled_values, filled=filled)
+        return FilledTimeseries(values=filled_values, filled=filled)
+    else:
+        raise ValueError(f"Unsupported fill mode: {mode}")
 
 
 def smooth_timeseries(
