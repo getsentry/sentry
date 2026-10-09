@@ -121,7 +121,11 @@ changes its deployment writers or newsletter state consumer. GetSentry's normal
 Sentry dependency bump must include both parts of this readiness change.
 Preserve the legacy option registrations and explicit option promotion during
 that rollout. Verify the environment inputs and candidate settings against every
-serving workload before removing deployment values or option promotion.
+serving workload before removing legacy option promotion. Pause legacy ConfigMap
+delivery and drain or cancel queued and in-flight legacy applies before removing
+deployment declarations from source. Protect exact ConfigMap revisions and rows;
+old watchers must see unchanged legacy ConfigMaps until stopped, while new
+namespace delivery remains active. Source merges do not prove serving rollout.
 
 Deploy runtime schema coverage and preserved values before the later
 authoritative read cutover. Runtime registration changes that need new schemas
