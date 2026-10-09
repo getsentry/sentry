@@ -65,6 +65,7 @@ export const enum SectionKey {
   EXTRA = 'extra',
   PACKAGES = 'packages',
   VIEW_HIERARCHY = 'view-hierarchy',
+  FLAMEGRAPH_ATTACHMENT = 'flamegraph-attachment',
   ATTACHMENTS = 'attachments',
   SDK = 'sdk',
   GROUPING_INFO = 'grouping-info',
