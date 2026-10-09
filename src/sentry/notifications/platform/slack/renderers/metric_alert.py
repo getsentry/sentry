@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import orjson
 
 from sentry.incidents.models.incident import IncidentStatus
@@ -15,9 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
 )
-
-if TYPE_CHECKING:
-    from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.actions import MessageAction
 
 
 @renderer_registry.register(
@@ -82,7 +78,6 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
     ) -> MessageAction:
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
-        from sentry.notifications.utils.actions import MessageAction
 
         return MessageAction(
             name="investigate_with_seer",
