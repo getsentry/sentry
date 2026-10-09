@@ -28,6 +28,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
@@ -80,9 +81,6 @@ import {
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
-// eslint-disable-next-line boundaries/dependencies
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
-
 interface SpansTabOnboardingProps {
   datePageFilterProps: DatePageFilterProps;
   organization: Organization;
@@ -102,7 +100,7 @@ export function SpansTabOnboarding({
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
-        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
+        <ExploreQuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
         <Onboarding project={project} organization={organization} />
       </OnboardingContentSection>
     </Layout.Body>
@@ -327,7 +325,7 @@ function SpanTabContentSectionInner({
         </Flex>
       </OverChartButtonGroup>
       {defined(id) && <DroppedFieldsAlert />}
-      <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
+      <ExploreQuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>
