@@ -2,7 +2,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.spans.aggregates import (
-    DEPRECATED_SPAN_AGGREGATE_DEFINITIONS,
     SPAN_AGGREGATE_DEFINITIONS,
 )
 from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS, SPAN_VIRTUAL_CONTEXTS
@@ -18,5 +17,4 @@ SPAN_DEFINITIONS = ColumnDefinitions(
     filter_aliases=SPAN_FILTER_ALIAS_DEFINITIONS,
     column_to_alias=None,
     alias_to_column=None,
-    aggregate_deprecations=DEPRECATED_SPAN_AGGREGATE_DEFINITIONS,
 )
