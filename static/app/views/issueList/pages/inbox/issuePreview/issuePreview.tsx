@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -41,7 +42,7 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assi
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
@@ -97,8 +98,22 @@ function useTrackPreviewedGroup(group: Group | undefined) {
 }
 
 export function IssuePreview({groupId}: IssuePreviewProps) {
-  const {data: group, isPending, isError} = useGroup({groupId});
   const organization = useOrganization();
+  const {
+    data: group,
+    isPending,
+    isError,
+  } = useQuery({
+    ...groupApiOptions({
+      organizationSlug: organization.slug,
+      groupId,
+      // The inbox list spans all environments, regardless of URL filters.
+      environments: [],
+      expandDerivedData: organization.features.includes('issue-inbox'),
+    }),
+    gcTime: 30_000,
+    retry: false,
+  });
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
   const issueDetailsUrl = normalizeUrl(
