@@ -77,6 +77,14 @@ def _send_via_notification_platform(
         notification_uuid=notification_uuid,
         chart_url=chart_url,
     )
+    group = metric_issue_context.group
+    if (
+        group is not None
+        and metric_issue_context.new_status != IncidentStatus.CLOSED
+        and features.has("organizations:investigations", organization)
+        and features.has("organizations:investigations-slack", organization)
+    ):
+        data = data.copy(update={"project_id": group.project_id, "show_investigation_button": True})
 
     target = IntegrationNotificationTarget(
         provider_key=NotificationProviderKey.SLACK,

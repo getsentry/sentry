@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import orjson
+
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -11,6 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
 )
+from sentry.notifications.utils.actions import MessageAction
 
 
 @renderer_registry.register(
@@ -44,6 +47,12 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
                 BlockSlackMessageBuilder.get_image_block(data.chart_url, alt="Metric Alert Chart")
             )
 
+        if data.show_investigation_button and data.project_id is not None:
+            button = BlockSlackMessageBuilder.get_button_action(
+                cls._get_investigation_action(data, data.project_id)
+            )
+            blocks.append({"type": "actions", "elements": [button]})
+
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))
         fallback_text = f"<{data.title_link}|*{escape_slack_text(data.title)}*>"
         slack_body = BlockSlackMessageBuilder._build_blocks(
@@ -62,3 +71,23 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         )
 
         return renderable
+
+    @staticmethod
+    def _get_investigation_action(
+        data: MetricAlertNotificationData, project_id: int
+    ) -> MessageAction:
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
+        from sentry.integrations.slack.message_builder.types import SlackAction
+
+        return MessageAction(
+            name="investigate_with_seer",
+            label="Investigate with Seer",
+            value=orjson.dumps(
+                {"groupId": data.group_id, "openPeriodId": data.open_period_context.id}
+            ).decode(),
+            action_id=encode_action_id(
+                action=SlackAction.SEER_INVESTIGATION_START,
+                organization_id=data.organization_id,
+                project_id=project_id,
+            ),
+        )
