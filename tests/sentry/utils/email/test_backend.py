@@ -29,7 +29,6 @@ class GetMailBackendTest(TestCase):
             ):
                 get_mail_backend()
 
-
     @override_settings(DEBUG=False, EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend")
     def test_normalized_console_backend_outside_debug_mode(self) -> None:
         with pytest.raises(

@@ -37,7 +37,6 @@ class SyncOptionsTest(TestCase):
 
         assert not mock_set_cache.called
 
-
     def test_repairs_application_state_cache(self) -> None:
         application_state.set("sentry:system-token", "existing-system-token")
         key = application_state._key("sentry:system-token")

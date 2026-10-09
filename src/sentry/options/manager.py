@@ -316,9 +316,8 @@ class OptionsManager:
         return self._is_saas_runtime_option(self.lookup_key(key))
 
     def _is_saas_runtime_option(self, opt: Key) -> bool:
-        return (
-            not settings.SENTRY_SELF_HOSTED
-            and (bool(opt.flags & FLAG_AUTOMATOR_MODIFIABLE) or opt.name in SAAS_WIZARD_OPTIONS)
+        return not settings.SENTRY_SELF_HOSTED and (
+            bool(opt.flags & FLAG_AUTOMATOR_MODIFIABLE) or opt.name in SAAS_WIZARD_OPTIONS
         )
 
     def get(self, key: str, silent=False):

@@ -39,12 +39,14 @@ def test_saas_rejects_mutations_before_transaction(key: str, value) -> None:
 class SystemOptionsTest(APITestCase):
     url = reverse("sentry-api-0-system-options")
 
+    # Keep the real option registry and reads while checking the retired API field.
     def test_retired_support_email_update_is_rejected(self) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
 
         with override_settings(
-            SENTRY_SYSTEM_SUPPORT_EMAIL="configured@example.com", SENTRY_OPTIONS={}
+            SENTRY_SYSTEM_SUPPORT_EMAIL="configured@example.com",
+            SENTRY_OPTIONS={},  # noqa: S011
         ):
             response = self.client.put(self.url, {"system.support-email": "support@example.com"})
 
@@ -199,7 +201,9 @@ class SystemOptionsTest(APITestCase):
         assert options.get("mail.host") == "lolcalhost"
 
     @patch("sentry.api.endpoints.system_options.logger")
-    def test_put_rejects_immutable_secret_without_logging_value(self, mock_logger: MagicMock) -> None:
+    def test_put_rejects_immutable_secret_without_logging_value(
+        self, mock_logger: MagicMock
+    ) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
         response = self.client.put(self.url, {"system.secret-key": "super-secret-value"})
@@ -230,7 +234,6 @@ class SystemOptionsTest(APITestCase):
             options.get_last_update_channel("auth.allow-registration")
             == options.UpdateChannel.APPLICATION
         )
-
 
     def test_put_retired_deployment_option_is_unknown(self) -> None:
         self.login_as(user=self.user, superuser=True)

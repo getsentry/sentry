@@ -139,10 +139,7 @@ class TestSaasAuthoritativeOptions:
     def test_all_write_channels_rejected(
         self, manager: OptionsManager, channel: UpdateChannel
     ) -> None:
-        assert (
-            manager.can_update("runtime", channel)
-            == NotWritableReason.READONLY
-        )
+        assert manager.can_update("runtime", channel) == NotWritableReason.READONLY
         with pytest.raises(AssertionError, match="cannot be changed at runtime"):
             manager.set("runtime", "registered", channel=channel)
         with pytest.raises(AssertionError, match="cannot be changed at runtime"):
@@ -192,7 +189,11 @@ class TestSaasAuthoritativeOptions:
         ],
     )
     def test_application_state_keeps_store(
-        self, manager: OptionsManager, store: Mock, key: application_state.StringStateKey, value: str
+        self,
+        manager: OptionsManager,
+        store: Mock,
+        key: application_state.StringStateKey,
+        value: str,
     ) -> None:
         with pytest.raises(UnknownOption):
             manager.is_saas_runtime_option(key)
