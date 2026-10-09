@@ -24,6 +24,20 @@ describe('ConversationTraceLink', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('links to all traces while loaded spans are incomplete', () => {
+    render(
+      <ConversationTraceLink
+        conversationId="conversation-1"
+        traces={makeTraces(1)}
+        hasMoreSpans
+      />,
+      {organization}
+    );
+
+    expect(screen.getByRole('link', {name: 'View all traces'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: '00000000'})).not.toBeInTheDocument();
+  });
+
   it('links a single trace straight to the trace view', () => {
     render(
       <ConversationTraceLink

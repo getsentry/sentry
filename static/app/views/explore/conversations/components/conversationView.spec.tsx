@@ -7,6 +7,21 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConversationViewContent} from './conversationView';
 
 const CONVERSATION_ID = 'conv-1';
+const originalIntersectionObserver = window.IntersectionObserver;
+let triggerIntersection: ((isIntersecting: boolean) => void) | undefined;
+
+class MockIntersectionObserver {
+  constructor(callback: IntersectionObserverCallback) {
+    triggerIntersection = isIntersecting =>
+      callback(
+        [{isIntersecting} as IntersectionObserverEntry],
+        this as unknown as IntersectionObserver
+      );
+  }
+
+  observe() {}
+  disconnect() {}
+}
 
 function spanFixture(overrides: Record<string, unknown>) {
   return {
@@ -45,10 +60,20 @@ const CONVERSATION_BODY = [
   }),
 ];
 
-function mockConversation() {
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
-    body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+function mockConversation(
+  spans = CONVERSATION_BODY,
+  {cursor, nextCursor}: {cursor?: string; nextCursor?: string} = {}
+) {
+  const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+  const request = MockApiClient.addMockResponse({
+    url,
+    match: [MockApiClient.matchQuery({cursor})],
+    body: {conversationId: CONVERSATION_ID, title: null, spans},
+    headers: nextCursor
+      ? {
+          Link: `<${url}?cursor=${nextCursor}>; rel="next"; results="true"; cursor="${nextCursor}"`,
+        }
+      : undefined,
   });
   // The detail pane fetches full attributes per span; keep it empty.
   MockApiClient.addMockResponse({
@@ -59,6 +84,7 @@ function mockConversation() {
     url: '/organizations/org-slug/projects/',
     body: [],
   });
+  return request;
 }
 
 function renderView(
@@ -81,6 +107,9 @@ function detailPane() {
 
 describe('ConversationViewContent', () => {
   beforeEach(() => {
+    window.IntersectionObserver =
+      MockIntersectionObserver as unknown as typeof IntersectionObserver;
+    triggerIntersection = undefined;
     // jsdom implements neither scroll API the view relies on: the detail pane
     // calls scrollTo, and switching tabs reveals a selected span via scrollIntoView.
     Element.prototype.scrollTo = jest.fn();
@@ -93,11 +122,62 @@ describe('ConversationViewContent', () => {
     mockConversation();
   });
 
+  afterAll(() => {
+    window.IntersectionObserver = originalIntersectionObserver;
+  });
+
   it('opens no span by default on the transcript', async () => {
     renderView({activeTab: 'transcript'});
 
     expect(await screen.findByText('First answer')).toBeInTheDocument();
     expect(detailPane()).not.toBeInTheDocument();
+  });
+
+  it('loads the next page when the pagination footer is visible', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {
+      cursor: 'next',
+      nextCursor: 'last',
+    });
+
+    renderView({activeTab: 'timeline'});
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+    expect(nextRequest).not.toHaveBeenCalled();
+
+    const scrollContainer = document.querySelector<HTMLElement>('[data-scrollable]')!;
+    expect(
+      scrollContainer.querySelector('[data-test-id="loading-indicator"]')
+    ).toBeInTheDocument();
+    act(() => triggerIntersection?.(true));
+
+    await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('second turn')).toBeInTheDocument();
+    expect(
+      scrollContainer.querySelector('[data-test-id="loading-indicator"]')
+    ).toBeInTheDocument();
+  });
+
+  it('keeps loaded spans visible and offers retry when pagination fails', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      match: [MockApiClient.matchQuery({cursor: 'next'})],
+      statusCode: 500,
+    });
+
+    renderView();
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    act(() => triggerIntersection?.(true));
+
+    const retry = await screen.findByRole('button', {name: 'Retry'});
+    expect(screen.getByText('First answer')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(retry);
+    await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(2));
   });
 
   it('opens the first span by default on the timeline', async () => {
@@ -121,6 +201,33 @@ describe('ConversationViewContent', () => {
     renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
 
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+  });
+
+  it('loads later pages to resolve a deep-linked span', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
+
+    renderView({activeTab: 'transcript', selectedSpanId: 'span-b'});
+
+    expect(await screen.findByText('ID: span-b')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not show the timeline default while a deep link is unresolved', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      match: [MockApiClient.matchQuery({cursor: 'next'})],
+      statusCode: 500,
+    });
+
+    renderView({activeTab: 'timeline', selectedSpanId: 'span-b'});
+
+    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(screen.queryByText('ID: span-a')).not.toBeInTheDocument();
+    expect(detailPane()).not.toBeInTheDocument();
   });
 
   it('shows the span ID of the open span', async () => {

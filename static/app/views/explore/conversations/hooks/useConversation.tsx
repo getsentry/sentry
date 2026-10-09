@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {
@@ -18,6 +18,8 @@ import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/
 
 export interface UseConversationsOptions {
   conversationId: string;
+  /** Fetch every page for callers that do not provide pagination controls. */
+  autoFetchAll?: boolean;
   endTimestamp?: number;
   /**
    * Projects to scope the span query to, overriding the page filters. A caller
@@ -129,8 +131,13 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
 }
 
 interface UseConversationResult {
+  canAutoFetchNextPage: boolean;
   error: boolean;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
   isLoading: boolean;
+  isNextPageError: boolean;
+  loadNextPage: () => void;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
@@ -397,8 +404,9 @@ export function useConversation(
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
+    isFetchNextPageError,
     isLoading,
-    isError,
+    isLoadingError,
   } = useInfiniteQuery(
     apiOptions.asInfinite<ConversationApiResponse>()(
       '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
@@ -415,15 +423,24 @@ export function useConversation(
     )
   );
 
-  const currentNumberPages = data?.pages.length ?? 0;
-  const canFetchNextPage = Boolean(hasNextPage && currentNumberPages < MAX_PAGES);
+  const pageCount = data?.pages.length ?? 0;
+  const loadNextPage = useCallback(() => {
+    if (hasNextPage && !isFetching) {
+      void fetchNextPage({cancelRefetch: false});
+    }
+  }, [fetchNextPage, hasNextPage, isFetching]);
+
+  const autoFetchAll = conversation.autoFetchAll ?? true;
+  const canAutoFetchNextPage = Boolean(
+    hasNextPage && !isFetchNextPageError && pageCount < MAX_PAGES
+  );
+  const nextAutoFetchPage = autoFetchAll && canAutoFetchNextPage ? pageCount : null;
 
   useEffect(() => {
-    if (!isFetching && canFetchNextPage) {
-      fetchNextPage();
+    if (nextAutoFetchPage !== null) {
+      loadNextPage();
     }
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [data, isFetching, canFetchNextPage, fetchNextPage]);
+  }, [loadNextPage, nextAutoFetchPage]);
 
   const allSpans = useMemo(
     () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
@@ -458,8 +475,13 @@ export function useConversation(
     return {
       stats: null,
       nodes: [],
+      canAutoFetchNextPage: false,
       nodeTraceMap: new Map(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
       isLoading: false,
+      loadNextPage,
+      isNextPageError: false,
       error: false,
       title: null,
     };
@@ -469,8 +491,13 @@ export function useConversation(
     stats,
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage || canFetchNextPage,
-    error: isError,
+    canAutoFetchNextPage,
+    hasNextPage: Boolean(hasNextPage),
+    isFetchingNextPage,
+    isLoading: isLoading || nextAutoFetchPage !== null,
+    loadNextPage,
+    isNextPageError: isFetchNextPageError,
+    error: isLoadingError || (autoFetchAll && isFetchNextPageError),
     title,
   };
 }
