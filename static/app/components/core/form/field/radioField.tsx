@@ -2,7 +2,7 @@ import {createContext, useContext, useId} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
@@ -35,10 +35,17 @@ interface RadioGroupProps {
   children: React.ReactNode;
   onChange: (value: string) => void;
   value: string;
+  align?: FlexProps['align'];
   disabled?: boolean | string;
 }
 
-function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
+function RadioGroup({
+  children,
+  value,
+  onChange,
+  disabled,
+  align = 'center',
+}: RadioGroupProps) {
   const field = useFieldContext();
   const labelId = useLabelId();
   const autoSaveContext = useAutoSaveContext();
@@ -66,7 +73,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
   return (
     <GroupProvider>
       <RadioContext value={contextValue}>
-        <Flex role="radiogroup" aria-labelledby={labelId} gap="sm" align="center">
+        <Flex role="radiogroup" aria-labelledby={labelId} gap="sm" align={align}>
           {children}
           {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
           <FieldMeta.Status disabled={disabled} />

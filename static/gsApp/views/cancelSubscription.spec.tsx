@@ -31,6 +31,25 @@ describe('CancelSubscription', () => {
     ).toBeInTheDocument();
   });
 
+  it('requires a cancellation reason', async () => {
+    const mock = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'DELETE',
+    });
+    render(<CancelSubscription />);
+
+    const reason = await screen.findByRole('radiogroup', {name: /Reason/});
+    expect(reason).toBeInTheDocument();
+    const submitButton = screen.getByRole('button', {name: 'Cancel Subscription'});
+    expect(submitButton).toBeEnabled();
+
+    await userEvent.click(submitButton);
+    expect(mock).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByText('Consolidating Sentry accounts.'));
+    expect(submitButton).toBeEnabled();
+  });
+
   it('can not cancel free plans', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,

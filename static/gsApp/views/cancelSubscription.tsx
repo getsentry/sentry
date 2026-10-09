@@ -1,13 +1,14 @@
 import {Fragment, useState} from 'react';
-import {useOutletContext} from 'react-router';
-import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
+import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -24,7 +25,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {ANNUAL} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -33,15 +33,6 @@ import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/compon
 
 type CancelReason = [string, React.ReactNode];
 type CancelCheckbox = [string, React.ReactNode];
-type CancellationSubscription = Pick<
-  Subscription,
-  | 'billingInterval'
-  | 'billingPeriodEnd'
-  | 'canCancel'
-  | 'canSelfServe'
-  | 'slug'
-  | 'usedLicenses'
-> & {planDetails?: {name?: string}};
 
 const CANCEL_STEPS: Array<{
   followup: React.ReactNode;
@@ -96,27 +87,20 @@ const CANCEL_STEPS: Array<{
   },
 ];
 
+const cancellationSchema = z.object({
+  reason: z.string().min(1, t('Select a reason for cancelling')),
+  followup: z.string(),
+});
+
 function CancelSubscriptionForm() {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const isPreview = useOutletContext<boolean | undefined>() ?? false;
-  const {data: fetchedSubscription, isPending} = useQuery(
+  const {data: subscription, isPending} = useQuery(
     apiOptions.as<Subscription>()('/customers/$organizationIdOrSlug/', {
-      path: isPreview ? skipToken : {organizationIdOrSlug: organization.slug},
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: 0,
     })
   );
-  const subscription: CancellationSubscription | undefined = isPreview
-    ? {
-        billingInterval: 'monthly',
-        billingPeriodEnd: moment().add(1, 'month').toISOString(),
-        canCancel: true,
-        canSelfServe: true,
-        planDetails: {name: 'Sample Plan'},
-        slug: organization.slug,
-        usedLicenses: 1,
-      }
-    : fetchedSubscription;
   const [selectedReason, setSelectedReason] = useState<CancelReason[0] | null>(null);
   const [checkboxes, setCheckboxes] = useState<Record<string, boolean>>({});
   const [understandsMembers, setUnderstandsMembers] = useState(false);
@@ -150,18 +134,17 @@ function CancelSubscriptionForm() {
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {reason: '', followup: ''},
+    validators: {onDynamic: cancellationSchema},
     onSubmit: ({value}) =>
-      isPreview
-        ? Promise.resolve()
-        : mutation
-            .mutateAsync({
-              ...value,
-              checkboxes: Object.keys(checkboxes).filter(key => checkboxes[key]),
-            })
-            .catch(() => {}),
+      mutation
+        .mutateAsync({
+          ...value,
+          checkboxes: Object.keys(checkboxes).filter(key => checkboxes[key]),
+        })
+        .catch(() => {}),
   });
 
-  if ((!isPreview && isPending) || !subscription) {
+  if (isPending || !subscription) {
     return <LoadingIndicator />;
   }
 
@@ -204,13 +187,6 @@ function CancelSubscriptionForm() {
 
   return (
     <Fragment>
-      {isPreview && (
-        <Alert.Container>
-          <Alert variant="info">
-            {t('Preview only. This form cannot cancel a subscription.')}
-          </Alert>
-        </Alert.Container>
-      )}
       <Alert.Container>
         <Alert variant="warning">
           {tct(
@@ -231,67 +207,88 @@ function CancelSubscriptionForm() {
       <Panel>
         <PanelHeader>{t('Cancellation Reason')}</PanelHeader>
 
-        <PanelBody withPadding>
+        <PanelBody>
           <form.AppForm form={form}>
-            <TextBlock>
-              {t('Please help us understand why you are cancelling:')}
-            </TextBlock>
-
-            <form.AppField name="reason">
-              {field => (
-                <field.Layout.Stack label={t('Reason')}>
-                  <field.Radio.Group
-                    value={field.state.value}
-                    onChange={val => {
-                      field.handleChange(val);
-                      form.setFieldValue('followup', '');
-                      setCheckboxes({});
-                      setSelectedReason(val);
-                    }}
-                  >
-                    {CANCEL_STEPS.map(cancel => (
-                      <field.Radio.Item key={cancel.reason[0]} value={cancel.reason[0]}>
-                        <Stack>
-                          {cancel.reason[1]}
-                          {cancel.checkboxes &&
-                            selectedReason === cancel.reason[0] &&
-                            cancel.checkboxes.map(([name, label]) => (
-                              <Flex key={name} align="center" gap="md" padding="md 0">
-                                <Checkbox
-                                  data-test-id={`checkbox-${name}`}
-                                  checked={checkboxes[name]}
-                                  name={name}
-                                  onChange={event => {
-                                    setCheckboxes(currentCheckboxes => ({
-                                      ...currentCheckboxes,
-                                      [name]: event.target.checked,
-                                    }));
-                                  }}
-                                />
-                                {label}
-                              </Flex>
-                            ))}
-                        </Stack>
-                      </field.Radio.Item>
-                    ))}
-                  </field.Radio.Group>
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            {selectedReason && (
-              <form.AppField name="followup">
+            <Stack gap="xl" padding="xl" paddingBottom="2xl">
+              <Text as="span">
+                {t('Please help us understand why you are cancelling')}
+              </Text>
+              <form.AppField name="reason">
                 {field => (
-                  <field.Layout.Stack label={followup}>
-                    <field.TextArea
+                  <Container width="fit-content" maxWidth="100%">
+                    <field.Radio.Group
+                      align="start"
                       value={field.state.value}
-                      onChange={field.handleChange}
-                    />
-                  </field.Layout.Stack>
+                      onChange={val => {
+                        field.handleChange(val);
+                        form.setFieldValue('followup', '');
+                        setCheckboxes({});
+                        setSelectedReason(val);
+                      }}
+                    >
+                      <field.Layout.Stack
+                        required
+                        label={
+                          <Text as="span" bold>
+                            {t('Reason')}
+                          </Text>
+                        }
+                      >
+                        <Stack gap="sm">
+                          {CANCEL_STEPS.map(cancel => (
+                            <field.Radio.Item
+                              key={cancel.reason[0]}
+                              value={cancel.reason[0]}
+                            >
+                              <Stack>
+                                {cancel.reason[1]}
+                                {cancel.checkboxes &&
+                                  selectedReason === cancel.reason[0] &&
+                                  cancel.checkboxes.map(([name, label]) => (
+                                    <Flex
+                                      key={name}
+                                      align="center"
+                                      gap="md"
+                                      padding="md 0"
+                                    >
+                                      <Checkbox
+                                        data-test-id={`checkbox-${name}`}
+                                        checked={checkboxes[name]}
+                                        name={name}
+                                        onChange={event => {
+                                          setCheckboxes(currentCheckboxes => ({
+                                            ...currentCheckboxes,
+                                            [name]: event.target.checked,
+                                          }));
+                                        }}
+                                      />
+                                      {label}
+                                    </Flex>
+                                  ))}
+                              </Stack>
+                            </field.Radio.Item>
+                          ))}
+                        </Stack>
+                      </field.Layout.Stack>
+                    </field.Radio.Group>
+                  </Container>
                 )}
               </form.AppField>
-            )}
+              {selectedReason && (
+                <form.AppField name="followup">
+                  {field => (
+                    <field.Layout.Stack label={followup}>
+                      <field.TextArea
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+              )}
+            </Stack>
 
-            <Flex gap="md" marginTop="md">
+            <Flex gap="md" justify="end" padding="2xl xl" borderTop="primary">
               <Button
                 onClick={() => {
                   navigate(normalizeUrl(`/settings/${organization.slug}/billing/`));
@@ -299,7 +296,7 @@ function CancelSubscriptionForm() {
               >
                 {t('Never Mind')}
               </Button>
-              <form.SubmitButton variant="danger" disabled={isPreview || !selectedReason}>
+              <form.SubmitButton variant="danger">
                 {t('Cancel Subscription')}
               </form.SubmitButton>
             </Flex>
