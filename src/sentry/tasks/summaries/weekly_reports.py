@@ -205,6 +205,7 @@ def prepare_organization_report(
             parent_span=None,
         )
     finally:
+        active_propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
         active_propagation_context.custom_sampling_context = prev_sampling_context
     with span:
         batch_id = str(batch_id)
