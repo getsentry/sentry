@@ -171,7 +171,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -196,7 +195,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -223,7 +221,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -263,7 +260,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -289,7 +285,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -321,7 +316,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 400, response.content
