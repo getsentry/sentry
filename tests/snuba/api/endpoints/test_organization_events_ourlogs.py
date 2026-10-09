@@ -697,6 +697,35 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             }
         assert meta["dataset"] == self.dataset
 
+    @pytest.mark.xfail(
+        reason="Snuba serves int attributes from the float column, so full nanosecond "
+        "precision is lost until the EAP read path reads attributes_int directly."
+    )
+    def test_timestamp_precise_preserves_full_nanosecond_value(self) -> None:
+        base = before_now(minutes=10).replace(microsecond=0)
+        precise_nanos = int(base.timestamp()) * 1_000_000_000 + 123_456_789
+        log = self.create_ourlog(
+            {"body": "foo"},
+            attributes={"sentry.timestamp_precise": precise_nanos},
+            timestamp=base,
+        )
+        self.store_eap_items([log])
+
+        response = self.do_request(
+            {
+                "field": ["message", "timestamp_precise"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["timestamp_precise"] == precise_nanos
+        assert response.data["meta"]["fields"]["timestamp_precise"] == "number"
+
     def test_strip_sentry_prefix_from_message_parameter(self) -> None:
         logs = [
             self.create_ourlog(
