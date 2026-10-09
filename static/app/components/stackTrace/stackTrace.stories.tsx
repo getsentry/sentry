@@ -1,5 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconGithub} from '@sentry/icons/github';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -22,7 +25,6 @@ import {
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
-import {IconCopy, IconGithub, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {

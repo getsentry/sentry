@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/play';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AnsiText} from 'sentry/components/ansiText';
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ReplayContextKey} from 'sentry/types/event';
 import {FieldKey} from 'sentry/utils/fields';

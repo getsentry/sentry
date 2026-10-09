@@ -1,4 +1,7 @@
 import {useRef, useState} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconClose} from '@sentry/icons/close';
+import {IconReturn} from '@sentry/icons/return';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
@@ -11,9 +14,6 @@ import {
   isPrIterationPaused,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconClose} from 'sentry/icons/iconClose';
-import {IconReturn} from 'sentry/icons/iconReturn';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

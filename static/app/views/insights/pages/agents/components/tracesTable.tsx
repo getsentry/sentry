@@ -1,5 +1,6 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
@@ -32,7 +33,6 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
