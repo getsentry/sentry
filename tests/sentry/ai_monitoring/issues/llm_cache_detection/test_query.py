@@ -18,7 +18,7 @@ from sentry.ai_monitoring.issues.llm_cache_detection.query import (
 from sentry.search.events.types import SnubaRow
 
 
-def make_row(**changes: str | int | float | None) -> SnubaRow:
+def make_row(**changes: object) -> SnubaRow:
     row: SnubaRow = {
         AGENT_NAME: "Reviewer",
         OPERATION_NAME: "chat",
