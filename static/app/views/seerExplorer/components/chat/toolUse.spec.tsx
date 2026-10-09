@@ -1,7 +1,6 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
@@ -13,7 +12,6 @@ import type {
   AgentWriteApproval,
   Block,
   CallRecord,
-  PendingUserInput,
   TodoItem,
 } from 'sentry/views/seerExplorer/types';
 
@@ -78,17 +76,6 @@ function createAgentApprovalBlock(
   });
 }
 
-function createPendingAgentApproval(
-  requiredScopes: AgentWriteApproval['requiredScopes'] = ['project:write'],
-  sessionId = '123'
-): PendingUserInput {
-  return {
-    id: APPROVAL_ID,
-    input_type: 'agent_write_approval',
-    data: {required_scopes: requiredScopes, session_id: sessionId},
-  };
-}
-
 describe('ToolUseBlock', () => {
   it('renders tool call display text', () => {
     render(<BlockComponent block={createBlock()} blockIndex={0} />);
@@ -136,39 +123,24 @@ describe('ToolUseBlock', () => {
     expect(screen.getByText(/Queried spans/)).toBeInTheDocument();
   });
 
-  it('renders an agent approval Markdown embed from typed structured content', () => {
-    const block = createAgentApprovalBlock();
-    render(
-      <BlockComponent
-        block={block}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval()}
-        respondToUserInput={jest.fn()}
-      />
-    );
-    expect(screen.getByTestId('agent-write-approval-embed')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Approve'})).toBeEnabled();
-    expect(screen.getByText('Allow Seer to make changes?')).toBeInTheDocument();
-    expect(screen.getByText('project:write')).toBeInTheDocument();
+  it('renders a pending agent approval as a status line without actions', () => {
+    render(<BlockComponent block={createAgentApprovalBlock()} blockIndex={0} />);
+
     expect(
-      screen.queryByText('PUT /api/0/projects/test-org/test-project/')
-    ).not.toBeInTheDocument();
+      screen.getByText('Access requested for reading and writing Projects')
+    ).toBeInTheDocument();
+    // The actionable prompt renders above the composer, not in the reasoning trace.
+    expect(screen.queryByRole('button', {name: 'Approve'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Allow Seer to make changes?')).not.toBeInTheDocument();
   });
 
   it('does not render an approval without the Markdown embed', () => {
     const block = createAgentApprovalBlock();
     block.tool_results![0]!.content = 'Sentry write permission is awaiting approval.';
 
-    render(
-      <BlockComponent
-        block={block}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval()}
-        respondToUserInput={jest.fn()}
-      />
-    );
+    render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.queryByTestId('agent-write-approval-embed')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agent-write-approval-result')).not.toBeInTheDocument();
   });
 
   it('ignores approval data authored in Markdown', () => {
@@ -185,7 +157,7 @@ describe('ToolUseBlock', () => {
     expect(
       screen.getByText('Access granted for reading and writing Projects')
     ).toBeInTheDocument();
-    expect(screen.queryByText('org:admin')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Organization/)).not.toBeInTheDocument();
   });
 
   it('does not render an approval from Markdown data alone', () => {
@@ -200,251 +172,16 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.queryByTestId('agent-write-approval-embed')).not.toBeInTheDocument();
-  });
-
-  it('uses pending input data when minting an approval', async () => {
-    const organization = OrganizationFixture();
-    const respondToUserInput = jest.fn();
-    const approveRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agent/approve/`,
-      method: 'POST',
-      body: {
-        status: 'approved',
-        scopes: ['project:write'],
-        expiresAt: '2026-08-05T12:00:00Z',
-      },
-    });
-
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock('pending', ['org:admin'])}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval(['project:write'], 'trusted-session')}
-        respondToUserInput={respondToUserInput}
-      />,
-      {organization}
-    );
-
-    expect(screen.getByText('project:write')).toBeInTheDocument();
-    expect(screen.queryByText('org:admin')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
-
-    await waitFor(() => {
-      expect(approveRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/agent/approve/`,
-        expect.objectContaining({
-          data: {sessionId: 'trusted-session', scopes: ['project:write']},
-          method: 'POST',
-        })
-      );
-    });
-    expect(respondToUserInput).toHaveBeenCalledWith(
-      APPROVAL_ID,
-      {
-        decision: 'approve',
-      },
-      {onError: expect.any(Function)}
-    );
-  });
-
-  it('allows an active approval with invalid grant data to be rejected', async () => {
-    const respondToUserInput = jest.fn();
-    const pendingInput = createPendingAgentApproval();
-    pendingInput.data = {};
-
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock()}
-        blockIndex={0}
-        pendingInput={pendingInput}
-        respondToUserInput={respondToUserInput}
-      />
-    );
-
-    expect(screen.getByRole('button', {name: 'Reject'})).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
-
-    expect(respondToUserInput).toHaveBeenCalledWith(
-      APPROVAL_ID,
-      {
-        decision: 'reject',
-      },
-      {onError: expect.any(Function)}
-    );
-  });
-
-  it('does not resume with approval when only some scopes are granted', async () => {
-    const organization = OrganizationFixture();
-    const respondToUserInput = jest.fn();
-    const requiredScopes: AgentWriteApproval['requiredScopes'] = [
-      'project:write',
-      'event:write',
-    ];
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agent/approve/`,
-      method: 'POST',
-      body: {
-        status: 'approved',
-        scopes: ['project:write'],
-        expiresAt: '2026-08-05T12:00:00Z',
-      },
-    });
-
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock('pending', requiredScopes)}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval(requiredScopes)}
-        respondToUserInput={respondToUserInput}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
-
-    await waitFor(() => {
-      expect(respondToUserInput).toHaveBeenCalledWith(
-        APPROVAL_ID,
-        {
-          decision: 'reject',
-          reason: 'insufficient_scope',
-        },
-        {onError: expect.any(Function)}
-      );
-    });
-
-    expect(
-      await screen.findByText(
-        'Access not granted for reading and writing Projects, reading and writing Issues & Events'
-      )
-    ).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-write-approval-result')).not.toBeInTheDocument();
   });
 
   it.each([
     ['approved' as const, 'Access granted for reading and writing Projects'],
     ['rejected' as const, 'Access not granted for reading and writing Projects'],
-  ])('updates resolved scope content for %s requests', (status, copy) => {
+  ])('renders resolved scope content for %s requests', (status, copy) => {
     render(<BlockComponent block={createAgentApprovalBlock(status)} blockIndex={0} />);
 
     expect(screen.getByText(copy)).toBeInTheDocument();
-    expect(screen.queryByText('Requested Scopes')).not.toBeInTheDocument();
-    expect(screen.queryByText('Granted for This Chat')).not.toBeInTheDocument();
-  });
-
-  it('approves in Sentry before resuming the agent', async () => {
-    const organization = OrganizationFixture();
-    const respondToUserInput = jest.fn();
-    const {promise, resolve} = Promise.withResolvers<{
-      expiresAt: string;
-      scopes: string[];
-      status: string;
-    }>();
-    const approveRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agent/approve/`,
-      method: 'POST',
-      body: promise,
-    });
-
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock()}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval()}
-        respondToUserInput={respondToUserInput}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
-
-    await waitFor(() => {
-      expect(approveRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/agent/approve/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {sessionId: '123', scopes: ['project:write']},
-        })
-      );
-    });
-    expect(respondToUserInput).not.toHaveBeenCalled();
-
-    resolve({
-      status: 'approved',
-      scopes: ['project:write'],
-      expiresAt: '2026-08-05T12:00:00Z',
-    });
-
-    await waitFor(() => {
-      expect(respondToUserInput).toHaveBeenCalledWith(
-        APPROVAL_ID,
-        {
-          decision: 'approve',
-        },
-        {onError: expect.any(Function)}
-      );
-    });
-
-    expect(
-      await screen.findByText('Access granted for reading and writing Projects')
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Reject'})).not.toBeInTheDocument();
-  });
-
-  it('rejects without creating a Sentry grant', async () => {
-    const organization = OrganizationFixture();
-    const respondToUserInput = jest.fn();
-    const approveRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agent/approve/`,
-      method: 'POST',
-    });
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock()}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval()}
-        respondToUserInput={respondToUserInput}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
-    expect(respondToUserInput).toHaveBeenCalledWith(
-      APPROVAL_ID,
-      {
-        decision: 'reject',
-      },
-      {onError: expect.any(Function)}
-    );
-    expect(approveRequest).not.toHaveBeenCalled();
-    expect(
-      screen.getByText('Access not granted for reading and writing Projects')
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Approve'})).not.toBeInTheDocument();
-  });
-
-  it('shows the approval prompt again when the response fails to send', async () => {
-    const respondToUserInput = jest.fn(
-      (_inputId: string, _data?: unknown, options?: {onError?: () => void}) =>
-        options?.onError?.()
-    );
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock()}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval()}
-        respondToUserInput={respondToUserInput}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
-
-    expect(respondToUserInput).toHaveBeenCalled();
-    expect(screen.getByRole('button', {name: 'Reject'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Approve'})).toBeInTheDocument();
   });
 
   it('renders todo list for todo_write tool calls', () => {
