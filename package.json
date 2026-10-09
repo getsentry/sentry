@@ -250,7 +250,7 @@
     "@testing-library/user-event": "14.6.7",
     "@types/d3-selection": "^3.0.11",
     "@types/d3-zoom": "^3.0.8",
-    "@types/gettext-parser": "8.0.0",
+    "@types/gettext-parser": "9.0.0",
     "@types/node": "26.6.4",
     "eslint": "10.8.0",
     "eslint-import-resolver-typescript": "4.4.5",
