@@ -1,3 +1,4 @@
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {PlatformIcon} from 'platformicons';
 
 import {getLaravelContextData} from 'sentry/components/events/contexts/platformContext/laravel';
@@ -5,7 +6,6 @@ import {getReactContextData} from 'sentry/components/events/contexts/platformCon
 import {getSpringContextData} from 'sentry/components/events/contexts/platformContext/spring';
 import {getUnityContextData} from 'sentry/components/events/contexts/platformContext/unity';
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 

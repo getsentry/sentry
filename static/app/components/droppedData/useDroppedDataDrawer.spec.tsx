@@ -34,8 +34,11 @@ function mockDroppedData(count: number, statsPeriod: string) {
   });
 }
 
-function DroppedDataTrigger() {
-  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.SPANS);
+function DroppedDataTrigger({enabled, interval}: {enabled?: boolean; interval?: string}) {
+  const openDroppedDataDrawer = useDroppedDataDrawer(
+    {dataset: DiscoverDatasets.SPANS, interval},
+    {enabled}
+  );
   return <button onClick={openDroppedDataDrawer}>Open dropped data</button>;
 }
 
@@ -80,6 +83,25 @@ describe('useDroppedDataDrawer', () => {
     });
 
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+  });
+
+  it('does not open from the URL param when disabled', async () => {
+    const droppedDataRequest = mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger enabled={false} />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/discover/results/', query: {droppedData: 'true'}},
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Open dropped data'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('complementary', {name: 'Dropped Data'})
+    ).not.toBeInTheDocument();
+    expect(droppedDataRequest).not.toHaveBeenCalled();
   });
 
   it('opens a single drawer when several charts use the hook', async () => {
@@ -135,6 +157,44 @@ describe('useDroppedDataDrawer', () => {
     });
 
     expect(await screen.findByText('3 Dropped Events')).toBeInTheDocument();
+  });
+
+  it('fetches with the interval passed by the chart', async () => {
+    const droppedDataRequest = mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger interval="1d" />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/discover/results/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(droppedDataRequest).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.objectContaining({query: expect.objectContaining({interval: '1d'})})
+    );
+  });
+
+  it('refetches in place when the chart interval changes', async () => {
+    const droppedDataRequest = mockDroppedData(10, '14d');
+
+    const {rerender} = render(<DroppedDataTrigger interval="1d" />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/discover/results/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+
+    rerender(<DroppedDataTrigger interval="4h" />);
+
+    await waitFor(() =>
+      expect(droppedDataRequest).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({query: expect.objectContaining({interval: '4h'})})
+      )
+    );
+    expect(screen.getByRole('complementary', {name: 'Dropped Data'})).toBeInTheDocument();
   });
 
   it('closes when navigating to another page', async () => {

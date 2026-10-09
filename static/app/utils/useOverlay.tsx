@@ -1,7 +1,7 @@
 import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
-import type {Modifier} from '@popperjs/core';
+import type {Boundary, Modifier} from '@popperjs/core';
 import {detectOverflow} from '@popperjs/core';
 import type {ArrowModifier} from '@popperjs/core/lib/modifiers/arrow';
 import type {FlipModifier} from '@popperjs/core/lib/modifiers/flip';
@@ -101,6 +101,12 @@ export interface UseOverlayProps
    */
   flipOptions?: FlipModifier['options'];
   /**
+   * Fallback for `preventOverflowOptions.boundary`, called when the overlay opens
+   * (and again if the function changes). Use it for boundaries that need a DOM
+   * query so the query doesn't run on every render; keep the function stable.
+   */
+  getOverflowBoundary?: () => Boundary | undefined;
+  /**
    * Offset value. If a single number, determines the _distance_ along the main axis. If
    * an array of two numbers, the first number determines the _skidding_ along the alt
    * axis, and the second determines the _distance_ along the main axis.
@@ -142,6 +148,7 @@ export function useOverlay({
   arrowOptions = {},
   flipOptions = {},
   preventOverflowOptions = {},
+  getOverflowBoundary,
   shouldApplyMinWidth = true,
   isDismissable = true,
   shouldCloseOnBlur = false,
@@ -171,6 +178,13 @@ export function useOverlay({
   // Ref objects for react-aria (useOverlayTrigger & useOverlay)
   const triggerRef = useMemo(() => ({current: triggerElement}), [triggerElement]);
   const overlayRef = useMemo(() => ({current: overlayElement}), [overlayElement]);
+
+  // There is nothing to position while the overlay is closed, so skip the lookup
+  const hasBoundary = !!preventOverflowOptions.boundary;
+  const fallbackBoundary = useMemo(
+    () => (openState.isOpen && !hasBoundary ? getOverflowBoundary?.() : undefined),
+    [openState.isOpen, hasBoundary, getOverflowBoundary]
+  );
 
   const modifiers = useMemo(
     () => [
@@ -219,6 +233,7 @@ export function useOverlay({
         options: {
           padding: 16,
           ...preventOverflowOptions,
+          ...(fallbackBoundary && {boundary: fallbackBoundary}),
         },
       },
       {
@@ -227,6 +242,7 @@ export function useOverlay({
         options: {
           padding: 16,
           ...preventOverflowOptions,
+          ...(fallbackBoundary && {boundary: fallbackBoundary}),
         },
       },
       {
@@ -244,6 +260,7 @@ export function useOverlay({
       flipOptions,
       offset,
       preventOverflowOptions,
+      fallbackBoundary,
       openState.isOpen,
       shouldApplyMinWidth,
     ]

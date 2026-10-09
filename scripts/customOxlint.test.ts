@@ -14,11 +14,31 @@ import path from 'node:path';
 import {test} from 'node:test';
 import {fileURLToPath} from 'node:url';
 
+import {resolve} from 'eslint-import-resolver-typescript';
 import {globSync} from 'tinyglobby';
 import {parse} from 'yaml';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const runner = path.join(root, 'scripts/custom-oxlint.ts');
+
+test('boundary resolver resolves app aliases with workspace project references', async () => {
+  const {default: lintConfig} = await import(
+    new URL('../oxlint.config.ts', import.meta.url).href
+  );
+  const importer = path.join(root, 'static/app/components/inspector.tsx');
+  const options = lintConfig.settings['import/resolver'].typescript;
+
+  for (const [specifier, target] of [
+    ['sentry/components/overlay', 'static/app/components/overlay.tsx'],
+    ['sentry/stories/storybook', 'static/app/stories/storybook.tsx'],
+    ['@sentry/icons/add', 'static/packages/icons/src/iconAdd.tsx'],
+  ] as const) {
+    assert.deepEqual(resolve(specifier, importer, options), {
+      found: true,
+      path: path.join(root, target),
+    });
+  }
+});
 
 function fixture(t: {after: (cleanup: () => void) => void}) {
   const directory = mkdtempSync(path.join(tmpdir(), 'oxlint-correctness-'));

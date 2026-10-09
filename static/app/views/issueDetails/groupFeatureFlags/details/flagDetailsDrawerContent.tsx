@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -16,7 +17,6 @@ import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/ut
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';

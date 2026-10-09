@@ -1,8 +1,9 @@
+import {IconArrow} from '@sentry/icons/arrow';
+
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
 

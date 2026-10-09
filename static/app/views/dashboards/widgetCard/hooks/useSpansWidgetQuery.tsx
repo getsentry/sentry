@@ -100,13 +100,7 @@ function isOrderbyValidForAggregates(
   return false;
 }
 
-function getSkippedConditionalFilterQueryIndexes(
-  queries: Widget['queries'],
-  enabled: boolean
-): number[] {
-  if (!enabled) {
-    return [];
-  }
+function getSkippedConditionalFilterQueryIndexes(queries: Widget['queries']): number[] {
   return queries.flatMap((query, index) =>
     hasNoValidAggregatesForRequest(query.aggregates ?? []) ? [index] : []
   );
@@ -202,9 +196,6 @@ export function useSpansSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
   const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   // Apply dashboard filters
@@ -215,12 +206,8 @@ export function useSpansSeriesQuery(
   );
 
   const skippedConditionalFilterQueryIndexes = useMemo(
-    () =>
-      getSkippedConditionalFilterQueryIndexes(
-        filteredWidget.queries,
-        hasConditionalAggregates
-      ),
-    [filteredWidget.queries, hasConditionalAggregates]
+    () => getSkippedConditionalFilterQueryIndexes(filteredWidget.queries),
+    [filteredWidget.queries]
   );
 
   const allQueriesSkippedForConditionalFilter =
@@ -229,11 +216,8 @@ export function useSpansSeriesQuery(
 
   const seriesRequests = filteredWidget.queries.map((_, queryIndex) => {
     const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
-    const skippedForInvalidConditionalFilter =
-      hasConditionalAggregates && hasNoValidAggregatesForRequest(aggregates);
-    const widgetForRequest = hasConditionalAggregates
-      ? withValidConditionalAggregates(filteredWidget, queryIndex)
-      : filteredWidget;
+    const skippedForInvalidConditionalFilter = hasNoValidAggregatesForRequest(aggregates);
+    const widgetForRequest = withValidConditionalAggregates(filteredWidget, queryIndex);
 
     const requestData = getSeriesRequestData(
       widgetForRequest,
@@ -404,10 +388,9 @@ export function useSpansSeriesQuery(
 
       const responseData = q.data;
 
-      const queryForTransform = (
-        hasConditionalAggregates
-          ? withValidConditionalAggregates(filteredWidget, requestIndex)
-          : filteredWidget
+      const queryForTransform = withValidConditionalAggregates(
+        filteredWidget,
+        requestIndex
       ).queries[requestIndex]!;
 
       const transformedResult = SpansConfig.transformSeries!(
@@ -477,9 +460,6 @@ export function useSpansTableQuery(
 
   const {queue} = useWidgetQueryQueue();
 
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
   const filteredWidget = useMemo(
     () =>
       applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
@@ -487,12 +467,8 @@ export function useSpansTableQuery(
   );
 
   const skippedConditionalFilterQueryIndexes = useMemo(
-    () =>
-      getSkippedConditionalFilterQueryIndexes(
-        filteredWidget.queries,
-        hasConditionalAggregates
-      ),
-    [filteredWidget.queries, hasConditionalAggregates]
+    () => getSkippedConditionalFilterQueryIndexes(filteredWidget.queries),
+    [filteredWidget.queries]
   );
 
   const allQueriesSkippedForConditionalFilter =
@@ -521,10 +497,8 @@ export function useSpansTableQuery(
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
       const skippedForInvalidConditionalFilter =
-        hasConditionalAggregates && hasNoValidAggregatesForRequest(aggregates);
-      const widgetForRequest = hasConditionalAggregates
-        ? withValidConditionalAggregates(filteredWidget, queryIndex)
-        : filteredWidget;
+        hasNoValidAggregatesForRequest(aggregates);
+      const widgetForRequest = withValidConditionalAggregates(filteredWidget, queryIndex);
       const query = widgetForRequest.queries[queryIndex]!;
 
       const eventView = eventViewFromWidget('', query, pageFilters);
@@ -658,11 +632,9 @@ export function useSpansTableQuery(
       }
 
       const responseData = q.data.json;
-      const queryForTransform = (
-        hasConditionalAggregates
-          ? withValidConditionalAggregates(filteredWidget, i)
-          : filteredWidget
-      ).queries[i]!;
+      const queryForTransform = withValidConditionalAggregates(filteredWidget, i).queries[
+        i
+      ]!;
 
       const transformedDataItem: TableDataWithTitle = {
         ...SpansConfig.transformTable(
