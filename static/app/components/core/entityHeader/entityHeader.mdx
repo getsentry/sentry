@@ -19,7 +19,7 @@ import * as Storybook from 'sentry/stories';
 export const documentation =
   import('!!type-loader!@sentry/scraps/entityHeader/entityHeader');
 
-The `EntityHeader` primary goal is unify the presentation of key data pertaining to specific entity or event typically shown at the top of a page. It deliberately does **not** render breadcrumbs, the page `h1`, or global actions. Those belong to the TopBar and its slots (`TopBar.Slot name="breadcrumbs"` / `"title"`). The title here is an `h2`.
+The `EntityHeader`'s primary goal is to unify the presentation of key data pertaining to a specific entity or event typically shown at the top of a page. It deliberately does **not** render breadcrumbs, the page `h1`, or global actions. Those belong to the TopBar and its slots (`TopBar.Slot name="breadcrumbs"` / `"title"`). The title here is an `h2`.
 
 `EntityHeader` comes with the following features.
 
@@ -139,7 +139,7 @@ A declared slot holds its space before its contents arrive. Passing `metadata` r
 `subtitle` is the exception, because a node gives nothing to declare with: one that has not loaded is indistinguishable from one that was never passed, so its line appears when the text does.
 
 > [!NOTE]
-> Skeleton widths aren't cofigurable.
+> Skeleton widths aren't configurable.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -205,7 +205,7 @@ The header sets `aria-busy` while any slot is loading. Note that this is a state
 
 ## Title
 
-Its a requirement for titles to have a `label` and a `value` . The `value` is what is what gets rendered on the screen and the `label` is used to contextualise that value to users who depend on screen readers.
+It's a requirement for titles to have a `label` and a `value`. The `value` is what gets rendered on the screen and the `label` is used to contextualise that value to users who depend on screen readers.
 
 ```jsx
 title={{label: t('Replay user'), value: replay.user.display_name}}
@@ -270,7 +270,7 @@ leadingGraphic={{type: 'platform', platform: 'javascript'}}
 
 `project` and `platform` draw the same badge but take what the caller actually holds: a trace knows its projects and the header maps them to platforms, a build has only inferred a platform from a file type. A `project` graphic whose projects have no known platform falls back to the generic platform tile, not to the all-projects glyph — that one means a saved view, not an entity.
 
-The graphic is decorative and non focusable by default because users that depend on screen readers receive no benefit from them. By using the `label`, guarantees context is never lost for sight-impared users.
+The graphic is decorative and non-focusable by default because users that depend on screen readers receive no benefit from them. By using the `label`, guarantees context is never lost for sight-impaired users.
 
 ### Tags
 
