@@ -170,39 +170,33 @@ function recordsSummary(memory: Memory): string | undefined {
   return typeof content === 'string' && content ? content : memoriesCount(memory);
 }
 
-// The conversation endpoint sends absent attributes as empty strings, which
-// would otherwise satisfy the nullish fallbacks below and blank out the preview.
-const nonEmpty = (value: string | undefined): string | undefined =>
-  value ? value : undefined;
-
 /**
  * One-line summary of a memory operation for the timeline and transcript, e.g.
- * a search query, a stored record's text, or `3 memories`.
+ * a search query, a stored record's text, or `3 memories`. Uses `||` so the
+ * empty strings the conversation endpoint sends for absent attributes fall
+ * through to the next option rather than blanking the preview.
  */
 export function getMemoryPreview(memory: Memory | undefined | null): string {
   if (!memory) {
     return '';
   }
 
-  const recordId = nonEmpty(memory.recordId);
-  const storeId = nonEmpty(memory.storeId);
-
   switch (memory.operation) {
     case MemoryOperation.SEARCH:
       return memory.query ? `“${memory.query}”` : '';
     case MemoryOperation.CREATE:
     case MemoryOperation.UPSERT:
-      return recordsSummary(memory) ?? '';
+      return recordsSummary(memory) || '';
     case MemoryOperation.UPDATE:
-      return recordsSummary(memory) ?? recordId ?? storeId ?? '';
+      return recordsSummary(memory) || memory.recordId || memory.storeId || '';
     case MemoryOperation.DELETE:
       // A deleted record's content is not meaningful, so show only the count.
-      return memoriesCount(memory) ?? recordId ?? t('all memories');
+      return memoriesCount(memory) || memory.recordId || t('all memories');
     case MemoryOperation.CREATE_STORE:
     case MemoryOperation.DELETE_STORE:
-      return storeId ?? '';
+      return memory.storeId || '';
     default:
-      return recordsSummary(memory) ?? storeId ?? '';
+      return recordsSummary(memory) || memory.storeId || '';
   }
 }
 
