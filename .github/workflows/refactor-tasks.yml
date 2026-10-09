@@ -46,6 +46,4 @@ jobs:
           XDG_CACHE_HOME: ${{ github.workspace }}/.refactor-tasks-cache
           SENTRY_DSN: ${{ secrets.SENTRY_REFACTOR_TASKS_DSN }}
           OPENROUTER_API_KEY: ${{ secrets.REFACTOR_TASKS_OPENROUTER_API_KEY }}
-          INFERENCE_MODEL: haiku
-          SCAN_CONCURRENCY: '4'
         run: pnpm dlx @sentry/refactor-tasks scan-and-report

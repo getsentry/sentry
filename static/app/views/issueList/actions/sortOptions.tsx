@@ -1,8 +1,9 @@
+import {IconSort} from '@sentry/icons/sort';
+
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {DropdownButtonProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {

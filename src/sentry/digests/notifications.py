@@ -11,10 +11,9 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
+from sentry.notifications.utils.rules import get_notification_origins
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tsdb.base import TSDBModel
-from sentry.workflow_engine.models import Workflow
-from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 logger = logging.getLogger("sentry.digests")
 
@@ -75,7 +74,7 @@ def unsplit_key(
 
 def event_to_record(
     event: Event | GroupEvent,
-    rules: Sequence[Rule],
+    rules: Sequence[Rule | NotificationOrigin],
     notification_uuid: str | None = None,
     identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:
@@ -87,7 +86,11 @@ def event_to_record(
     assert event.group is not None
     rule_ids = []
     for rule in rules:
-        origin = NotificationOrigin.from_legacy_rule(rule)
+        origin = (
+            rule
+            if isinstance(rule, NotificationOrigin)
+            else NotificationOrigin.from_legacy_rule(rule)
+        )
         rule_id = (
             origin.legacy_rule_id if identifier_key == IdentifierKey.RULE else origin.workflow_id
         )
@@ -180,44 +183,8 @@ def _build_digest_impl(
 def get_rules_from_workflows(
     project: Project, workflow_ids: set[int]
 ) -> dict[int, NotificationOrigin]:
-    rules: dict[int, NotificationOrigin] = {}
-    if not workflow_ids:
-        return rules
-
-    # Fetch all workflows in bulk
-    workflows = Workflow.objects.filter(organization_id=project.organization_id).in_bulk(
-        workflow_ids
-    )
-
-    # Try to fetch rules for workflows, if not use the workflow id
-    alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids)
-    alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
-
-    rule_ids_to_fetch = {awf.rule_id for awf in alert_rule_workflows}
-
-    bulk_rules = Rule.objects.filter(project_id=project.id).in_bulk(rule_ids_to_fetch)
-
-    for workflow_id, workflow in workflows.items():
-        alert_workflow = alert_rule_workflows_map.get(workflow_id)
-        if alert_workflow:
-            if rule := bulk_rules.get(alert_workflow.rule_id):
-                assert rule.project_id == project.id, "Rule must belong to Project"
-                rules[workflow_id] = NotificationOrigin(
-                    label=rule.label,
-                    environment_id=workflow.environment_id,
-                    workflow_id=workflow_id,
-                    legacy_rule_id=rule.id,
-                )
-                continue
-
-        rules[workflow_id] = NotificationOrigin(
-            label=workflow.name,
-            environment_id=workflow.environment_id,
-            workflow_id=workflow_id,
-            legacy_rule_id=None,
-        )
-
-    return rules
+    origins = get_notification_origins(project, workflow_ids=workflow_ids)
+    return {origin.workflow_id: origin for origin in origins if origin.workflow_id is not None}
 
 
 def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
@@ -245,31 +212,21 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
 
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
     group_ids = list(groups)
-    legacy_rules = Rule.objects.in_bulk(rule_ids)
-    workflow_ids_by_rule_id = dict(
-        AlertRuleWorkflow.objects.filter(rule_id__in=legacy_rules.keys()).values_list(
-            "rule_id", "workflow_id"
-        )
-    )
-
+    origins = get_notification_origins(project, workflow_ids=workflow_ids, legacy_rule_ids=rule_ids)
     rules = {}
-    for rule_id, rule in legacy_rules.items():
-        workflow_id = workflow_ids_by_rule_id.get(rule.id)
-        if workflow_id is None:
-            # Every Rule that can fire is backed by a Workflow, so this most likely
-            # means the Workflow was deleted after the notification was queued.
-            logger.error(
-                "digests.build_digest.rule_without_workflow",
-                extra={"rule_id": rule.id, "project_id": project.id},
-            )
-        rules[rule_id] = NotificationOrigin(
-            label=rule.label,
-            environment_id=rule.environment_id,
-            workflow_id=workflow_id,
-            legacy_rule_id=rule.id,
-        )
+    mapped_rule_ids = set()
+    for origin in origins:
+        if origin.workflow_id in workflow_ids:
+            rules[origin.workflow_id] = origin
+        if origin.legacy_rule_id in rule_ids:
+            rules[origin.legacy_rule_id] = origin
+            mapped_rule_ids.add(origin.legacy_rule_id)
 
-    rules.update(get_rules_from_workflows(project, workflow_ids))
+    for rule_id in rule_ids - mapped_rule_ids:
+        logger.error(
+            "digests.build_digest.rule_without_workflow",
+            extra={"rule_id": rule_id, "project_id": project.id},
+        )
 
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"

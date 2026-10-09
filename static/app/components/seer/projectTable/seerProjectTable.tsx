@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSearch} from '@sentry/icons/search';
 import {
   infiniteQueryOptions,
   useInfiniteQuery,
@@ -31,8 +33,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {ProjectTableHeader} from 'sentry/components/seer/projectTable/seerProjectTableHeader';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';

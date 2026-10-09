@@ -1,11 +1,12 @@
 import {useCallback, useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSubtract} from '@sentry/icons/subtract';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 

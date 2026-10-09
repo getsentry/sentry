@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -32,7 +33,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeRangeSelector, type ChangeData} from 'sentry/components/timeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Actor, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

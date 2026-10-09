@@ -15,6 +15,7 @@ import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
@@ -26,7 +27,6 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {IconSearch} from 'sentry/icons';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -254,6 +254,7 @@ export function Control<Value extends SelectKey>({
 }) {
   const {t} = useTranslation();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const pendingAutoFocus = useRef(false);
 
   const normalizedSearch = getSearchConfig(searchConfig);
   const searchEnabled = normalizedSearch !== undefined;
@@ -349,9 +350,14 @@ export function Control<Value extends SelectKey>({
   });
 
   const overflowBoundaryId = useBoundaryContext();
-  const overflowBoundary = overflowBoundaryId
-    ? document.getElementById(overflowBoundaryId)
-    : null;
+  const getOverflowBoundary = useCallback(
+    () =>
+      (overflowBoundaryId ? document.getElementById(overflowBoundaryId) : null) ??
+      document.querySelector('main') ??
+      document.getElementById('main') ??
+      undefined,
+    [overflowBoundaryId]
+  );
 
   // Manage overlay position
   const {
@@ -372,24 +378,24 @@ export function Control<Value extends SelectKey>({
     onInteractOutside,
     shouldCloseOnInteractOutside,
     shouldCloseOnBlur,
-    preventOverflowOptions: {
-      ...preventOverflowOptions,
-      boundary:
-        preventOverflowOptions?.boundary ??
-        overflowBoundary ??
-        document.querySelector('main') ??
-        document.getElementById('main') ??
-        undefined,
-    },
+    preventOverflowOptions,
+    getOverflowBoundary,
     flipOptions,
     strategy,
     onOpenChange: open => {
+      pendingAutoFocus.current = open;
       onOpenChange?.(open);
 
       nextFrameCallback(() => {
         if (open) {
           // Force a overlay update, as sometimes the overlay is misaligned when opened
           updateOverlay?.();
+          // A child control may have taken focus before this frame.
+          if (!pendingAutoFocus.current) {
+            return;
+          }
+          pendingAutoFocus.current = false;
+
           // Focus on search box if present
           if (searchEnabled) {
             searchRef.current?.focus();
@@ -580,6 +586,9 @@ export function Control<Value extends SelectKey>({
           {overlayIsOpen && (
             <StyledOverlay
               ref={menuRef}
+              onFocusCapture={() => {
+                pendingAutoFocus.current = false;
+              }}
               width={menuWidth ?? menuFullWidth}
               height={menuHeight}
               minWidth={menuMinWidth ?? overlayProps.style?.minWidth}

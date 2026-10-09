@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -11,19 +11,37 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
 
-export function useDroppedDataDrawer(dataset: DiscoverDatasets) {
-  const {openDrawer, isAnyDrawerOpen} = useDrawer();
+interface UseDroppedDataDrawerParams {
+  dataset: DiscoverDatasets;
+  interval?: string;
+}
+
+interface UseDroppedDataDrawerOptions {
+  enabled?: boolean;
+}
+
+export function useDroppedDataDrawer(
+  {dataset, interval}: UseDroppedDataDrawerParams,
+  {enabled = true}: UseDroppedDataDrawerOptions = {}
+) {
+  const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
   const {pathname} = useLocation();
   const [isDrawerInUrl, setIsDrawerInUrl] = useQueryState(
     DROPPED_DATA_DRAWER_QUERY_KEY,
     parseAsBoolean.withDefault(false)
   );
+  const renderedIntervalRef = useRef(interval);
 
   useEffect(() => {
-    if (!isDrawerInUrl || isAnyDrawerOpen) {
+    if (!enabled || !isDrawerInUrl) {
       return;
     }
-    openDrawer(() => <DroppedDataDrawer dataset={dataset} />, {
+    const isStale = isDrawerOpen && renderedIntervalRef.current !== interval;
+    if (isAnyDrawerOpen && !isStale) {
+      return;
+    }
+    renderedIntervalRef.current = interval;
+    openDrawer(() => <DroppedDataDrawer dataset={dataset} interval={interval} />, {
       ariaLabel: t('Dropped Data'),
       shouldCloseOnLocationChange: nextLocation =>
         nextLocation.pathname !== pathname ||
@@ -32,7 +50,17 @@ export function useDroppedDataDrawer(dataset: DiscoverDatasets) {
         void setIsDrawerInUrl(null, {history: 'replace'});
       },
     });
-  }, [isDrawerInUrl, isAnyDrawerOpen, openDrawer, dataset, pathname, setIsDrawerInUrl]);
+  }, [
+    enabled,
+    isDrawerInUrl,
+    isDrawerOpen,
+    isAnyDrawerOpen,
+    openDrawer,
+    dataset,
+    interval,
+    pathname,
+    setIsDrawerInUrl,
+  ]);
 
   return useCallback(() => {
     void setIsDrawerInUrl(true, {history: 'push'});

@@ -98,15 +98,17 @@ def get_key_from_rule_data(rule: Rule | NotificationOrigin, key: str) -> str:
 
 @dataclass
 class RulesAndWorkflows:
-    rules: list[Rule]
-    workflow_rules: list[Rule]  # workflows as fake Rules
+    rules: list[Rule | NotificationOrigin]
+    workflow_rules: list[Rule | NotificationOrigin]
 
 
-def split_rules_by_rule_workflow_id(rules: Sequence[Rule]) -> RulesAndWorkflows:
+def split_rules_by_rule_workflow_id(
+    rules: Sequence[Rule | NotificationOrigin], *, prefer: RuleIdType = "legacy_rule_id"
+) -> RulesAndWorkflows:
     parsed_rules = []
     workflow_rules = []
     for rule in rules:
-        key, _ = get_rule_or_workflow_id(rule)
+        key, _ = get_rule_or_workflow_id(rule, prefer=prefer)
         match key:
             case "workflow_id":
                 workflow_rules.append(rule)

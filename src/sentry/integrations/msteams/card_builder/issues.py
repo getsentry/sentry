@@ -116,8 +116,9 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         )
 
     def build_group_descr(self) -> TextBlock | None:
-        # TODO: implement with event as well
-        text = build_attachment_text(self.group)
+        # Webhook rebuilds pass a nodestore Event without its occurrence, which yields no text
+        # for occurrence-backed issues.
+        text = build_attachment_text(self.group, self.event) or build_attachment_text(self.group)
         if text:
             return create_text_block(
                 text,

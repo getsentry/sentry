@@ -295,7 +295,7 @@ export function SeerAdminPage() {
           Admin tools for managing Seer features. Select a region before performing
           actions.
         </Text>
-        <Container width={{'screen:xs': '100%', 'screen:md': '50%'}}>
+        <Container width={{zero: '100%', '3xl': '50%'}}>
           <Stack gap="lg">
             <NightShiftForm />
             <AutofixRetryForm />
