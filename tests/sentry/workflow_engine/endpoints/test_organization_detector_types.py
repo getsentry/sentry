@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Never
 from unittest.mock import patch
@@ -16,6 +17,7 @@ from sentry.workflow_engine.processors import DataConditionGroupEvaluation, Dete
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
+    DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
 )
@@ -40,7 +42,9 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
         class MockDetectorHandler(DetectorHandler[dict[Never, Never], bool]):
             def evaluate(
-                self, data_packet: DataPacket[dict[Never, Never]]
+                self,
+                data_packet: DataPacket[dict[Never, Never]],
+                values: Mapping[DetectorGroupKey, bool],
             ) -> GroupedDetectorEvaluationResult:
                 return GroupedDetectorEvaluationResult(
                     result={
@@ -67,7 +71,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
             def create_occurrence(
                 self,
-                evaluation_result: DataConditionGroupEvaluation,
+                evaluation: DetectorEvaluation,
                 data_packet: DataPacket[dict[Never, Never]],
                 priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, EventData]:

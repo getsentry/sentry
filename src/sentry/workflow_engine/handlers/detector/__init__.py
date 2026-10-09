@@ -13,8 +13,8 @@ from .base import (
     BaseDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
-    DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
 )
+from .condition import DetectorHandler
 from .stateful import DetectorStateData, StatefulDetectorHandler

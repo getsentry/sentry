@@ -27,7 +27,7 @@ from sentry.workflow_engine.handlers.detector.stateful import (
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.models import DataPacket, DetectorState
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
@@ -127,7 +127,7 @@ class ProcessingErrorDetectorHandler(
     @override
     def create_occurrence(
         self,
-        evaluation_result: DataConditionGroupEvaluation,
+        evaluation: DetectorEvaluation,
         data_packet: DataPacket[ProcessingErrorPacketValue],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
@@ -169,19 +169,19 @@ class ProcessingErrorDetectorHandler(
 
     @override
     def evaluate(
-        self, data_packet: DataPacket[ProcessingErrorPacketValue]
+        self,
+        data_packet: DataPacket[ProcessingErrorPacketValue],
+        values: Mapping[DetectorGroupKey, ProcessingErrorCheckStatus],
     ) -> GroupedDetectorEvaluationResult:
         """
         Custom evaluation that skips dedupe and threshold counting.
         Uses atomic DB updates for state transitions instead of the
         parent's batched state manager approach.
         """
-        data_value = self.extract_value(data_packet)
+        data_value = values[None]
         results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
-        detector_trigger_evaluations, evaluated_priority = self._evaluation_detector_conditions(
-            data_value
-        )
+        detector_trigger_evaluations, evaluated_priority = self.evaluate_conditions(data_value)
 
         if detector_trigger_evaluations is None or detector_trigger_evaluations.triggered is False:
             return GroupedDetectorEvaluationResult(result=results, tainted=False)

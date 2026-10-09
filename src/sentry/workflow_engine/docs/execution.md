@@ -54,8 +54,9 @@ same after detector selection.
 ### 3. Evaluate each detector
 
 `process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
-registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler,
-which delegates to the default or overridden `evaluate` methods that contain most of the detector's logic.
+registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler.
+`_evaluate` normalizes the output of `extract_value` to group key and value pairs, passes them to `evaluate`, and calls
+`create_occurrence` for every triggered evaluation that does not already carry a result.
 
 One packet can produce:
 
@@ -69,9 +70,10 @@ routes non-null results according to the handler's `outcome`.
 
 ### 4. Detector orchestration
 
-Every detector handler inherits [`DetectorHandler`](../handlers/detector/base.py). Its
-default `evaluate` is stateless; `StatefulDetectorHandler` replaces it with durable
-state and thresholds.
+Every detector handler inherits [`BaseDetectorHandler`](../handlers/detector/base.py), which owns
+the `_evaluate` lifecycle and occurrence decoration. [`DetectorHandler`](../handlers/detector/condition.py)
+adds a default stateless `evaluate` over the trigger condition group; `StatefulDetectorHandler`
+replaces it with durable state and thresholds.
 
 #### Stateless (default)
 

@@ -17,7 +17,8 @@ from .condition_group import DataConditionGroupEvaluation, DataConditionGroupEva
 
 class DetectorEvaluationData(TypedDict):
     group_key: DetectorGroupKey
-    trigger_group_evaluation: DataConditionGroupEvaluation
+    # Only set for detectors that evaluate a data condition group
+    trigger_group_evaluation: DataConditionGroupEvaluation | None
     event_data: dict[str, Any] | None  # TODO - improve this typing, for now migrating
 
 
@@ -36,7 +37,7 @@ class DetectorEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     group_key: DetectorGroupKey
     outcome: DetectorEvaluationOutcome
     priority: int
-    trigger_evaluation: DataConditionGroupEvaluationArtifact
+    trigger_evaluation: DataConditionGroupEvaluationArtifact | None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -82,6 +83,7 @@ class DetectorEvaluation(
         # We only need to extract the top level detector items for tracking here.
         event_data = self.data["event_data"] or {}
         event_id = event_data.get("event_id")
+        trigger_group_evaluation = self.data["trigger_group_evaluation"]
         return DetectorEvaluationArtifact(
             triggered=triggered,
             error=error,
@@ -89,7 +91,9 @@ class DetectorEvaluation(
             group_key=self.data["group_key"],
             outcome=self.outcome,
             priority=self.priority.value,
-            trigger_evaluation=self.data["trigger_group_evaluation"].to_artifact(),
+            trigger_evaluation=(
+                trigger_group_evaluation.to_artifact() if trigger_group_evaluation else None
+            ),
         )
 
 

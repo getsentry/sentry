@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from sentry.issues.grouptype import GroupCategory, GroupType
@@ -11,10 +12,7 @@ from sentry.workflow_engine.handlers.detector.base import (
     GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.processors import (
-    DataConditionGroupEvaluation,
-    DetectorEvaluation,
-)
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
@@ -34,7 +32,9 @@ class ErrorDetectorHandler(BaseDetectorHandler[object, object]):
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         return {}
 
-    def evaluate(self, data_packet: DataPacket[object]) -> GroupedDetectorEvaluationResult:
+    def evaluate(
+        self, data_packet: DataPacket[object], values: Mapping[DetectorGroupKey, object]
+    ) -> GroupedDetectorEvaluationResult:
         raise NotImplementedError
 
     def extract_value(self, data_packet: DataPacket[object]) -> object:
@@ -42,7 +42,7 @@ class ErrorDetectorHandler(BaseDetectorHandler[object, object]):
 
     def create_occurrence(
         self,
-        evaluation: DataConditionGroupEvaluation,
+        evaluation: DetectorEvaluation,
         data_packet: DataPacket[object],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:

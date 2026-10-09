@@ -1,21 +1,12 @@
-import dataclasses
 import logging
-from typing import Any
-from uuid import uuid4, uuid5
+from collections.abc import Mapping
 
-from setnry.workflow_engine.handlers.detector.base import (
+from sentry.utils import metrics
+from sentry.workflow_engine.handlers.detector.base import (
     BaseDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
     GroupedDetectorEvaluationResult,
-)
-
-from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
-from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.utils import metrics
-from sentry.workflow_engine.caches.data_source import (
-    get_data_sources_by_detector_and_source_id,
 )
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
@@ -33,9 +24,8 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
     """
     Base implementation class for detectors that rely on data condition groups to make decisions
 
-    Includes metrics tracking and condition group loading around the `_evaluate` template method
-
-    Also includes a default `evaluate` implementation that subclasses can rely on or override.
+    Loads the detector's trigger condition group, and includes a default `evaluate`
+    implementation that subclasses can rely on or override.
     """
 
     def __init__(self, detector: Detector):
@@ -62,28 +52,26 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
         else:
             self.condition_group = None
 
-    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
+    def evaluate(
+        self,
+        data_packet: DataPacket[DataPacketType],
+        values: Mapping[DetectorGroupKey, DataPacketEvaluationType],
+    ) -> GroupedDetectorEvaluationResult:
         """
         A default, stateless evaluation using data condition groups
 
-        Extracts the values from the packet, then evaluates the condition group for each group key,
-        creating an occurrence for every group whose conditions trigger
+        Evaluates the condition group for each group key, triggering every group whose
+        conditions resolve to a non-OK priority
 
         Detectors that do not group are evaluated as a single group, keyed by `None`
 
-        Override the following methods to modify this default evaluation:
-        - evaluate_conditions
-        - get_issue_fingerprint
-        - get_event_id
-        - get_occurrence_id
-
-        Override "evaluate" itself to have a custom evaluation flow
+        Override `evaluate_conditions` to modify how a value is evaluated, or override
+        `evaluate` itself to have a custom evaluation flow
         """
-        grouped_values = self._extract_value(data_packet)
         results: dict[DetectorGroupKey, DetectorEvaluation] = {}
         tainted = False
 
-        for group_key, evaluation_value in grouped_values.items():
+        for group_key, evaluation_value in values.items():
             trigger_evaluation, priority = self.evaluate_conditions(evaluation_value)
 
             if trigger_evaluation is None:
@@ -98,13 +86,15 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
                 # versus sending a resolve status change message.
                 continue
 
-            # TODO - Use the shared helper thing here, rather than the methods
-            results[group_key] = self._build_detector_evaluation(
-                group_key,
-                priority,
-                trigger_evaluation,
-                data_packet,
-                evaluation_value,
+            results[group_key] = DetectorEvaluation(
+                result=None,
+                data=DetectorEvaluationData(
+                    group_key=group_key,
+                    trigger_group_evaluation=trigger_evaluation,
+                    event_data=None,
+                ),
+                triggered=True,
+                priority=priority,
             )
 
         return GroupedDetectorEvaluationResult(result=results, tainted=tainted)
@@ -150,159 +140,3 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             return group_evaluation, DetectorPriorityLevel.OK
 
         return group_evaluation, max(triggered_priorities)
-
-    def get_event_id(self, event_data: EventData) -> str:
-        id_in_event_data = event_data.get("event_id")
-
-        if id_in_event_data:
-            return id_in_event_data
-
-        return str(uuid4())
-
-    def get_occurrence_id(self, group_key: DetectorGroupKey, event_id: str) -> str:
-        """
-        Deterministically converts a human-readable occurrence ID to a UUID, the type expected by the issue platform
-
-        If the detector uses a grouped evaluation AND derives the event id from `event_data`, then the occurrence id
-        MUST be unique for each group. Otherwise, each group will generate the same event + occurrence id pairs and they
-        will conflict with each other. The occurrence_id_key ensures this uniqueness.
-        """
-        if group_key is None:
-            return f"detector:{self.detector.id}:event:{event_id}"
-
-        occurrence_id_key = f"detector:{self.detector.id}:group:{group_key}:event:{event_id}"
-
-        return uuid5(OCCURRENCE_ID_NAMESPACE, occurrence_id_key).hex
-
-    def get_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
-        if group_key is None:
-            return [f"detector:{self.detector.id}"]
-
-        return [f"detector:{self.detector.id}:{group_key}"]
-
-    def _is_detector_group_value(self, value: Any) -> bool:
-        """
-        Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
-        """
-        if not isinstance(value, dict):
-            return False
-
-        if not value:  # Empty dict case
-            return False
-
-        # Check if all keys are DetectorGroupKey instances
-        return all(isinstance(key, DetectorGroupKey) for key in value.keys())
-
-    def _build_detector_evaluation(
-        self,
-        group_key: DetectorGroupKey,
-        priority: DetectorPriorityLevel,
-        trigger_evaluation: DataConditionGroupEvaluation,
-        data_packet: DataPacket[DataPacketType],
-        evaluation_value: DataPacketEvaluationType,
-    ) -> DetectorEvaluation:
-        detector_occurrence, event_data = self.create_occurrence(
-            trigger_evaluation,
-            data_packet,
-            priority,
-        )
-
-        event_id = self.get_event_id(event_data)
-        occurrence_id = self.get_occurrence_id(group_key, event_id)
-        issue_fingerprint = self.get_issue_fingerprint(group_key)
-
-        additional_evidence_data = self._build_workflow_engine_evidence_data(
-            trigger_evaluation,
-            data_packet,
-            evaluation_value,
-        )
-
-        issue_occurrence = detector_occurrence.to_issue_occurrence(
-            occurrence_id=occurrence_id,
-            event_id=event_id,
-            project_id=self.detector.project_id,
-            status=priority,
-            additional_evidence_data=dataclasses.asdict(additional_evidence_data),
-            fingerprint=issue_fingerprint,
-        )
-
-        event_data = self._build_event_data(event_data, issue_occurrence)
-
-        return DetectorEvaluation(
-            result=issue_occurrence,
-            data=DetectorEvaluationData(
-                group_key=group_key,
-                trigger_group_evaluation=trigger_evaluation,
-                event_data=event_data,
-            ),
-            triggered=True,
-            priority=priority,
-        )
-
-    def _build_workflow_engine_evidence_data(
-        self,
-        group_evaluation: DataConditionGroupEvaluation,
-        data_packet: DataPacket[DataPacketType],
-        evaluation_value: DataPacketEvaluationType,
-    ) -> EvidenceData[DataPacketEvaluationType]:
-        """
-        Build the workflow engine specific evidence data.
-        This is data that is common to all detectors.
-        """
-
-        triggered_conditions = [
-            dict(condition_evaluation.condition.get_snapshot())
-            for condition_evaluation in group_evaluation.data["condition_evaluations"]
-            if condition_evaluation.triggered
-        ]
-
-        return EvidenceData(
-            detector_id=self.detector.id,
-            value=evaluation_value,
-            data_packet_source_id=data_packet.source_id,
-            conditions=triggered_conditions,
-            config=self.detector.config,
-            data_sources=self._build_evidence_data_sources(data_packet.source_id),
-        )
-
-    def _build_evidence_data_sources(self, source_id: str) -> list[dict[str, Any]]:
-        try:
-            data_sources = get_data_sources_by_detector_and_source_id(self.detector.id, source_id)
-
-            if not data_sources:
-                logger.warning(
-                    "Matching data source not found for detector while generating occurrence evidence data",
-                    extra={
-                        "detector_id": self.detector.id,
-                        "data_packet_source_id": source_id,
-                    },
-                )
-
-                return []
-
-            # Serializers return camelcased keys, but evidence data should use snakecase
-            return convert_dict_key_case(serialize(data_sources), camel_to_snake_case)
-        except Exception:
-            logger.exception(
-                "Failed to serialize data source definition when building workflow engine evidence data"
-            )
-
-            return []
-
-    def _build_event_data(
-        self,
-        event_data: EventData,
-        issue_occurrence: IssueOccurrence,
-    ) -> EventData:
-        return {
-            # Default values
-            "environment": self.detector.config.get("environment"),
-            "platform": "python",
-            "received": issue_occurrence.detection_time,
-            "tags": {},
-            # Override Data
-            **event_data,
-            "event_id": issue_occurrence.event_id,
-            "project_id": issue_occurrence.project_id,
-            "timestamp": issue_occurrence.detection_time,
-        }
