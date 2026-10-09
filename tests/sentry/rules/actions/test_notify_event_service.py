@@ -25,10 +25,10 @@ from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
 from sentry.silo.base import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import RuleTestCase, TestCase
+from sentry.testutils.helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import DataConditionGroupAction, WorkflowDataConditionGroup
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from sentry.workflow_engine.typings.notification_action import ActionTarget

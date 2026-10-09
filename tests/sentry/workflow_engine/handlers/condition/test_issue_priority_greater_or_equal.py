@@ -1,12 +1,12 @@
 from sentry.models.group import Group
+from sentry.testutils.helpers.metric_alert_migration import (
+    migrate_alert_rule,
+    migrate_metric_data_conditions,
+)
 from sentry.types.group import PriorityLevel
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.handlers.condition.issue_priority_greater_or_equal_handler import (
     IssuePriorityGreaterOrEqualConditionHandler,
-)
-from sentry.workflow_engine.migration_helpers.alert_rule import (
-    migrate_alert_rule,
-    migrate_metric_data_conditions,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition

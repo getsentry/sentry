@@ -5,7 +5,7 @@ import uuid
 import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Self, override
+from typing import TYPE_CHECKING, ClassVar, Self, override
 from uuid import uuid4
 
 import jsonschema
@@ -38,7 +38,6 @@ from sentry.deletions.base import ModelRelation
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
@@ -370,57 +369,6 @@ class Monitor(Model):
         # We should always return the config here - just log an error if we detect that it doesn't
         # match the schema
         return self.config
-
-    def get_issue_alert_rule(self):
-        issue_alert_rule_id = self.config.get("alert_rule_id")
-        if issue_alert_rule_id:
-            issue_alert_rule = Rule.objects.filter(
-                project_id=self.project_id,
-                id=issue_alert_rule_id,
-                source=RuleSource.CRON_MONITOR,
-                status=ObjectStatus.ACTIVE,
-            ).first()
-            if issue_alert_rule:
-                return issue_alert_rule
-
-            # If issue_alert_rule_id is stale, clear it from the config
-            clean_config = self.config.copy()
-            clean_config.pop("alert_rule_id", None)
-            self.update(config=clean_config)
-
-        return None
-
-    def get_issue_alert_rule_data(self):
-        issue_alert_rule = self.get_issue_alert_rule()
-        if issue_alert_rule:
-            data = issue_alert_rule.data
-            issue_alert_rule_data: dict[str, Any | None] = dict()
-
-            # Build up alert target data
-            targets = []
-            for action in data.get("actions", []):
-                # Only include email alerts for now
-                if action.get("id") == "sentry.mail.actions.NotifyEmailAction":
-                    targets.append(
-                        {
-                            "targetIdentifier": action.get("targetIdentifier"),
-                            "targetType": action.get("targetType"),
-                        }
-                    )
-            issue_alert_rule_data["targets"] = targets
-
-            environment, issue_alert_rule_environment_id = None, issue_alert_rule.environment_id
-            if issue_alert_rule_environment_id:
-                try:
-                    environment = Environment.objects.get(id=issue_alert_rule_environment_id).name
-                except Environment.DoesNotExist:
-                    pass
-
-            issue_alert_rule_data["environment"] = environment
-
-            return issue_alert_rule_data
-
-        return None
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags

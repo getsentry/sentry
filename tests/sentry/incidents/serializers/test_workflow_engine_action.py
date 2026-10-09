@@ -7,7 +7,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,
 )
-from sentry.workflow_engine.migration_helpers.alert_rule import (
+from sentry.testutils.helpers.metric_alert_migration import (
     migrate_metric_action,
     migrate_metric_data_conditions,
 )
