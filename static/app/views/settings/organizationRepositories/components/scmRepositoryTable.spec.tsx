@@ -35,6 +35,11 @@ function makeInstallation(overrides: Partial<ScmInstallation> = {}): ScmInstalla
 
 const provider = GitHubIntegrationProviderFixture();
 
+function getBodyRows(table: HTMLElement) {
+  const [, body] = within(table).getAllByRole('rowgroup');
+  return within(body!).getAllByRole('row');
+}
+
 describe('ScmRepositoryTable', () => {
   beforeEach(() => {
     mockElementSize({width: 600, height: 400});
@@ -54,19 +59,21 @@ describe('ScmRepositoryTable', () => {
       <ScmRepositoryTable provider={provider} installations={[makeInstallation()]} />
     );
 
-    const region = screen.getByRole('region', {name: 'GitHub'});
-    const repoList = within(region).getByRole('list', {name: 'Repositories'});
-    expect(within(repoList).getAllByRole('listitem')).toHaveLength(3);
-    expect(within(repoList).getByText('org/aardvark')).toBeInTheDocument();
-    expect(within(repoList).getByText('org/cobra')).toBeInTheDocument();
-    expect(within(repoList).getByText('org/badger')).toBeInTheDocument();
+    const table = screen.getByRole('table', {name: 'GitHub'});
+    expect(getBodyRows(table)).toHaveLength(3);
+    expect(within(table).getByText('org/aardvark')).toBeInTheDocument();
+    expect(within(table).getByText('org/cobra')).toBeInTheDocument();
+    expect(within(table).getByText('org/badger')).toBeInTheDocument();
   });
 
   describe('installation actions', () => {
     it('toggles expansion on click for multi-installation tables', async () => {
       const second: ScmInstallation = {
         ...makeInstallation({initiallyExpanded: false}),
-        integration: OrganizationIntegrationsFixture({id: '2', name: '@second-org'}),
+        integration: OrganizationIntegrationsFixture({
+          id: '2',
+          name: '@second-org',
+        }),
         repositories: [makeRepo('10', 'second/repo')],
       };
 
@@ -77,14 +84,17 @@ describe('ScmRepositoryTable', () => {
         />
       );
 
-      const region = screen.getByRole('region', {name: 'GitHub'});
+      const table = screen.getByRole('table', {name: 'GitHub'});
       expect(screen.queryByText('second/repo')).not.toBeInTheDocument();
 
       await userEvent.click(
-        within(region).getByRole('button', {name: '@second-org', expanded: false})
+        within(table).getByRole('button', {
+          name: '@second-org',
+          expanded: false,
+        })
       );
 
-      expect(within(region).getByText('second/repo')).toBeInTheDocument();
+      expect(within(table).getByText('second/repo')).toBeInTheDocument();
     });
 
     it('wires up settings and delete callbacks', async () => {
@@ -109,7 +119,9 @@ describe('ScmRepositoryTable', () => {
         <ScmRepositoryTable
           provider={provider}
           installations={[
-            makeInstallation({manageUrl: 'https://github.com/apps/sentry-io'}),
+            makeInstallation({
+              manageUrl: 'https://github.com/apps/sentry-io',
+            }),
           ]}
         />
       );
@@ -123,7 +135,10 @@ describe('ScmRepositoryTable', () => {
     it('auto-expands installations with search hits even when collapsed', () => {
       const second: ScmInstallation = {
         ...makeInstallation({initiallyExpanded: false}),
-        integration: OrganizationIntegrationsFixture({id: '2', name: '@second-org'}),
+        integration: OrganizationIntegrationsFixture({
+          id: '2',
+          name: '@second-org',
+        }),
         repositories: [makeRepo('10', 'second/repo')],
       };
 
@@ -138,16 +153,23 @@ describe('ScmRepositoryTable', () => {
         />
       );
 
-      const region = screen.getByRole('region', {name: 'GitHub'});
-      const repoLists = within(region).getAllByRole('list', {name: 'Repositories'});
-      // The second installation's list should contain the matched repo.
-      expect(within(repoLists[1]!).getByText('second')).toBeInTheDocument();
+      const table = screen.getByRole('table', {name: 'GitHub'});
+      expect(
+        within(table).getByRole('button', {
+          name: '@second-org',
+          expanded: true,
+        })
+      ).toBeInTheDocument();
+      expect(within(table).getByText('second')).toBeInTheDocument();
     });
 
     it('does not toggle expansion when a button inside the row is clicked', async () => {
       const second: ScmInstallation = {
         ...makeInstallation({initiallyExpanded: false}),
-        integration: OrganizationIntegrationsFixture({id: '2', name: '@second-org'}),
+        integration: OrganizationIntegrationsFixture({
+          id: '2',
+          name: '@second-org',
+        }),
         repositories: [makeRepo('10', 'second/repo')],
       };
 
@@ -176,7 +198,10 @@ describe('ScmRepositoryTable', () => {
         <ScmRepositoryTable
           provider={provider}
           installations={[
-            makeInstallation({repositories: [], manageUrl: 'https://github.com/'}),
+            makeInstallation({
+              repositories: [],
+              manageUrl: 'https://github.com/',
+            }),
           ]}
         />
       );
@@ -195,8 +220,8 @@ describe('ScmRepositoryTable', () => {
       // Tag shows the count with a loading indicator icon.
       expect(screen.getByText('0 repositories')).toBeInTheDocument();
       // Body shows loading text when no repos have arrived yet.
-      const repoList = screen.getByRole('list', {name: 'Repositories'});
-      expect(within(repoList).getByText('Loading repositories')).toBeInTheDocument();
+      const table = screen.getByRole('table', {name: 'GitHub'});
+      expect(within(table).getByText('Loading repositories')).toBeInTheDocument();
     });
 
     it('hides repos that do not match repoMatches', () => {
@@ -211,9 +236,9 @@ describe('ScmRepositoryTable', () => {
         />
       );
 
-      const repoList = screen.getByRole('list', {name: 'Repositories'});
-      expect(within(repoList).getByText('cobra')).toBeInTheDocument();
-      expect(within(repoList).getAllByRole('listitem')).toHaveLength(1);
+      const table = screen.getByRole('table', {name: 'GitHub'});
+      expect(within(table).getByText('cobra')).toBeInTheDocument();
+      expect(getBodyRows(table)).toHaveLength(1);
     });
 
     it('shows a no-matches message when search filters out all repos', () => {
@@ -225,9 +250,9 @@ describe('ScmRepositoryTable', () => {
         />
       );
 
-      const repoList = screen.getByRole('list', {name: 'Repositories'});
+      const table = screen.getByRole('table', {name: 'GitHub'});
       expect(
-        within(repoList).getByText('No repositories match your search')
+        within(table).getByText('No repositories match your search')
       ).toBeInTheDocument();
     });
   });
@@ -309,6 +334,34 @@ describe('ScmRepositoryTable', () => {
       expect(onSync).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps the wrapper of an installation mounted when its rows are scrolled out of view', () => {
+      const wrappedIds: string[] = [];
+      const first = makeInstallation({
+        repositories: Array.from({length: 20}, (_, i) =>
+          makeRepo(String(i + 1), `org/repo-${i}`)
+        ),
+      });
+      const second: ScmInstallation = {
+        ...makeInstallation({initiallyExpanded: false}),
+        integration: OrganizationIntegrationsFixture({id: '2', name: '@second-org'}),
+        repositories: [makeRepo('100', 'second/repo')],
+      };
+
+      render(
+        <ScmRepositoryTable
+          provider={provider}
+          installations={[first, second]}
+          installationWrapper={({children, installation}) => {
+            wrappedIds.push(installation.integration.id);
+            return children;
+          }}
+        />
+      );
+
+      expect(screen.queryByRole('button', {name: '@second-org'})).not.toBeInTheDocument();
+      expect(wrappedIds).toContain('2');
+    });
+
     it('shows syncing state when isSyncing override is true', async () => {
       render(
         <ScmRepositoryTable
@@ -349,10 +402,8 @@ describe('ScmRepositoryTable', () => {
 
       // Wait for async ProjectList resolution before reading order.
       await screen.findByTestId('platform-icon-javascript');
-      const repoList = screen.getByRole('list', {name: 'Repositories'});
-      const rows = within(repoList)
-        .getAllByRole('listitem')
-        .map(el => el.textContent?.trim());
+      const table = screen.getByRole('table', {name: 'GitHub'});
+      const rows = getBodyRows(table).map(el => el.textContent?.trim());
       expect(rows[0]).toContain('org/cobra');
       expect(rows[1]).toContain('org/aardvark');
       expect(rows[2]).toContain('org/badger');

@@ -359,4 +359,18 @@ describe('SimpleTable component', () => {
       'padding: 16px'
     );
   });
+
+  it('passes the row element to a callback ref', () => {
+    const ref = jest.fn();
+
+    render(
+      <SimpleTable>
+        <SimpleTable.Row ref={ref}>
+          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    expect(ref).toHaveBeenCalledWith(screen.getByRole('row'));
+  });
 });
