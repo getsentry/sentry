@@ -102,6 +102,30 @@ jobs:
         if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'
         run: pnpm run lint:js --prune
 
+      - name: Capture pre-commit fixes
+        id: fixes
+        if: "!cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure')"
+        env:
+          ALL_FILES: ${{ steps.changes.outputs.all_files }}
+        run: |
+          jq -j '.[] | . + "\u0000"' <<< "$ALL_FILES" > "$RUNNER_TEMP/pre-commit-files"
+          mapfile -d '' changed_files < "$RUNNER_TEMP/pre-commit-files"
+          if ((${#changed_files[@]})); then
+            git diff --binary HEAD -- "${changed_files[@]}" > "$RUNNER_TEMP/pre-commit-fixes.patch"
+          fi
+          if test -s "$RUNNER_TEMP/pre-commit-fixes.patch"; then
+            echo 'has-fixes=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload pre-commit fixes
+        if: "!cancelled() && steps.fixes.outputs.has-fixes == 'true'"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pre-commit-fixes-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/pre-commit-fixes.patch
+          retention-days: 3
+          if-no-files-found: error
+
       - name: Apply any pre-commit fixed files
         # Run after prek failures, but skip canceled runs that may have incomplete fixes.
         if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && !github.event.pull_request.draft && !cancelled()
