@@ -7,6 +7,7 @@ from sentry.api.helpers.timeseries_processing import (
     FILL_MODE_LINEAR,
     FILL_MODE_LOCF,
     FILL_MODE_ZERO,
+    SMOOTH_MODE_SMA,
     fill_timeseries,
     smooth_timeseries,
 )
@@ -186,7 +187,7 @@ def test_smooth_timeseries_sma(
     original_values = tuple(values)
     original_timestamps = tuple(timestamps)
 
-    result = smooth_timeseries(timestamps, values, mode="sma", window_size=window_size)
+    result = smooth_timeseries(timestamps, values, mode=SMOOTH_MODE_SMA, window_size=window_size)
 
     assert result == expected
     assert result is not values
@@ -195,7 +196,7 @@ def test_smooth_timeseries_sma(
 
 
 def test_smooth_timeseries_sma_default_window_and_equal_weighting() -> None:
-    result = smooth_timeseries([0.0, 1.0, 10.0, 20.0], [2.0, 4.0, 6.0, 8.0], mode="sma")
+    result = smooth_timeseries([0.0, 1.0, 10.0, 20.0], [2.0, 4.0, 6.0, 8.0], mode=SMOOTH_MODE_SMA)
 
     assert result == [2.0, 3.0, 4.0, 6.0]
 
@@ -203,7 +204,7 @@ def test_smooth_timeseries_sma_default_window_and_equal_weighting() -> None:
 @pytest.mark.parametrize("window_size", [0, -1])
 def test_smooth_timeseries_rejects_nonpositive_window(window_size: int) -> None:
     with pytest.raises(ValueError, match="Window size must be positive"):
-        smooth_timeseries([0.0], [1.0], mode="sma", window_size=window_size)
+        smooth_timeseries([0.0], [1.0], mode=SMOOTH_MODE_SMA, window_size=window_size)
 
 
 @pytest.mark.parametrize("timestamps, values", [([0.0], []), ([], [1.0])])
@@ -211,7 +212,7 @@ def test_smooth_timeseries_rejects_mismatched_lengths(
     timestamps: list[float], values: list[float | None]
 ) -> None:
     with pytest.raises(ValueError, match="Timestamps and values must have the same length"):
-        smooth_timeseries(timestamps, values, mode="sma")
+        smooth_timeseries(timestamps, values, mode=SMOOTH_MODE_SMA)
 
 
 @pytest.mark.parametrize("mode", ["ema", ""])

@@ -6,6 +6,8 @@ FILL_MODE_LOCF: Final = "locf"
 FILL_MODE_ZERO: Final = "zero"
 FILL_MODE_LINEAR: Final = "linear"
 
+SMOOTH_MODE_SMA: Final = "sma"
+
 
 @dataclass(frozen=True)
 class FilledTimeseries:
@@ -98,7 +100,7 @@ def smooth_timeseries(
             value has equal weight, regardless of timestamp spacing. window_size must
             be positive and defaults to three buckets.
     """
-    if mode != "sma":
+    if mode != SMOOTH_MODE_SMA:
         raise ValueError(f"Unsupported smoothing mode: {mode}")
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
