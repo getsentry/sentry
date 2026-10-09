@@ -58,6 +58,7 @@ COUNT_SAMPLE = "count_sample()"
 # Order by input tokens so the highest-volume groups fit when the query reaches
 # its limit. Agent operation groups may be folded after this limit is applied.
 CALL_SITE_GROUPS_LIMIT = 300
+SAMPLE_CALLS_LIMIT = 3
 
 
 class DroppedRowReason(StrEnum):
@@ -73,6 +74,18 @@ class CallSiteQueryResult:
     call_sites: list[CallSiteStats]
     dropped_calls: Counter[DroppedRowReason]
     truncated: bool
+
+
+@dataclass(frozen=True)
+class SampleCall:
+    """Trace metadata and token counts for one example call."""
+
+    trace_id: str
+    span_id: str
+    timestamp: str
+    input_tokens: float
+    cache_read_tokens: float
+    cache_creation_tokens: float
 
 
 def _build_group_filter(stats: CallSiteStats) -> str | None:
@@ -276,3 +289,49 @@ def count_spans_with_cache_attributes(
     )
     data = result.get("data", [])
     return int(data[0].get(COUNT) or 0) if data else 0
+
+
+def fetch_sample_calls(
+    project: Project, stats: CallSiteStats, window: DetectionWindow
+) -> list[SampleCall] | None:
+    """Return the largest call from up to three traces, without prompt content."""
+    group_filter = _build_group_filter(stats)
+    if group_filter is None:
+        return None
+    result = _run_spans_query(
+        project,
+        window,
+        query_string=group_filter,
+        selected_columns=[
+            "trace",
+            "id",
+            "timestamp",
+            INPUT_TOKENS,
+            *CACHE_TOKEN_ATTRIBUTES,
+        ],
+        orderby=[f"-{INPUT_TOKENS}"],
+        limit=SAMPLE_CALLS_LIMIT * 3,
+    )
+
+    samples: list[SampleCall] = []
+    seen_trace_ids: set[str] = set()
+    for row in result.get("data", []):
+        trace_id = row.get("trace")
+        span_id = row.get("id")
+        timestamp = row.get("timestamp")
+        if not trace_id or not span_id or not timestamp or trace_id in seen_trace_ids:
+            continue
+        seen_trace_ids.add(trace_id)
+        samples.append(
+            SampleCall(
+                trace_id=trace_id,
+                span_id=span_id,
+                timestamp=timestamp,
+                input_tokens=_token_count(row, INPUT_TOKENS),
+                cache_read_tokens=_token_count(row, CACHE_READ_TOKENS),
+                cache_creation_tokens=_token_count(row, CACHE_CREATION_TOKENS),
+            )
+        )
+        if len(samples) == SAMPLE_CALLS_LIMIT:
+            break
+    return samples
