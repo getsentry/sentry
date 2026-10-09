@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 
-from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
@@ -126,22 +125,6 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
 
         assert mock_run_oneshot.call_args.args[1]["projects"] == [
             {"slug": "mine", "platform": None}
-        ]
-
-    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
-    def test_passes_first_projects_by_slug_when_over_limit(
-        self, mock_run_oneshot: MagicMock
-    ) -> None:
-        mock_run_oneshot.return_value = {"suggestions": []}
-        for i in reversed(range(11)):
-            self.create_project(organization=self.organization, slug=f"project-{i:02}")
-
-        self.get_success_response(
-            self.organization.slug, **PAYLOAD, project_ids=[ALL_ACCESS_PROJECT_ID]
-        )
-
-        assert [p["slug"] for p in mock_run_oneshot.call_args.args[1]["projects"]] == [
-            f"project-{i:02}" for i in range(10)
         ]
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")

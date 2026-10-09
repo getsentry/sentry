@@ -58,9 +58,7 @@ class ChatSuggestionsResult(BaseModel):
 
 class ChatSuggestionsSerializer(serializers.Serializer):
     route = serializers.CharField(allow_blank=True)
-    page_context = serializers.CharField(
-        allow_blank=True, max_length=MAX_PAGE_CONTEXT_LENGTH, trim_whitespace=False
-    )
+    page_context = serializers.CharField(allow_blank=True, trim_whitespace=False)
     project_ids = serializers.ListField(
         child=serializers.IntegerField(), required=False, default=list
     )
@@ -111,6 +109,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
         )
         payload = {
             **data,
+            "page_context": data["page_context"][:MAX_PAGE_CONTEXT_LENGTH],
             "projects": [
                 {"slug": project.slug, "platform": project.platform}
                 for project in sorted(projects, key=lambda project: project.slug)[:MAX_PROJECTS]
