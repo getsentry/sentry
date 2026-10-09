@@ -17,6 +17,12 @@ import {
   type Evaluation,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {
+  getMemoryPreview,
+  getNodeMemory,
+  isMemoryNode,
+  type Memory,
+} from 'sentry/views/insights/pages/agents/utils/memory';
+import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
@@ -57,7 +63,7 @@ export interface ConversationMessage {
   content: string;
   id: string;
   nodeId: string;
-  role: 'user' | 'assistant' | 'embedding' | 'evaluation';
+  role: 'user' | 'assistant' | 'embedding' | 'evaluation' | 'memory';
   timestamp: number;
   agentName?: string;
   duration?: number;
@@ -65,6 +71,7 @@ export interface ConversationMessage {
   embeddingInput?: string;
   embeddingTokens?: number;
   evaluation?: Evaluation;
+  memory?: Memory;
   modelName?: string;
   reasoning?: string;
   toolCalls?: ToolCall[];
@@ -101,7 +108,7 @@ export function extractMessagesFromNodes(
   nodes: AITraceSpanNode[]
 ): ConversationMessage[] {
   const enrichedNodes = enrichAgentMessages(nodes);
-  const {generationSpans, toolSpans, embeddingSpans, evaluationSpans} =
+  const {generationSpans, toolSpans, embeddingSpans, evaluationSpans, memorySpans} =
     partitionSpansByType(enrichedNodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
   const displayTurns = turns.some(hasTurnContent)
@@ -111,6 +118,7 @@ export function extractMessagesFromNodes(
     ...turnsToMessages(displayTurns),
     ...embeddingSpansToMessages(embeddingSpans),
     ...evaluationSpansToMessages(evaluationSpans),
+    ...memorySpansToMessages(memorySpans),
   ];
   messages.sort((a, b) => a.timestamp - b.timestamp);
   return messages;
@@ -268,23 +276,29 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   embeddingSpans: AITraceSpanNode[];
   evaluationSpans: AITraceSpanNode[];
   generationSpans: AITraceSpanNode[];
+  memorySpans: AITraceSpanNode[];
   toolSpans: AITraceSpanNode[];
 } {
   const generationSpans: AITraceSpanNode[] = [];
   const toolSpans: AITraceSpanNode[] = [];
   const embeddingSpans: AITraceSpanNode[] = [];
   const evaluationSpans: AITraceSpanNode[] = [];
+  const memorySpans: AITraceSpanNode[] = [];
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
-    // Evaluations and embeddings report gen_ai.operation.type "ai_client" like
-    // LLM calls, so they're recognized by gen_ai.operation.name before they'd
-    // fall through to generationSpans as empty turns.
+    // Evaluations, embeddings and memory operations are recognized by
+    // gen_ai.operation.name first: until Relay sets a dedicated operation.type
+    // they report "ai_client" like LLM calls (and memory spans may be nested
+    // under tool calls), so matching by name keeps them out of the generation
+    // and tool buckets.
     if (isEvaluationNode(node)) {
       evaluationSpans.push(node);
       continue;
     }
-    if (isEmbeddingsNode(node)) {
+    if (isMemoryNode(node)) {
+      memorySpans.push(node);
+    } else if (isEmbeddingsNode(node)) {
       embeddingSpans.push(node);
     } else if (getIsAiGenerationSpan(opType)) {
       generationSpans.push(node);
@@ -297,8 +311,9 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   toolSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   embeddingSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   evaluationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
+  memorySpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
 
-  return {generationSpans, toolSpans, embeddingSpans, evaluationSpans};
+  return {generationSpans, toolSpans, embeddingSpans, evaluationSpans, memorySpans};
 }
 
 /**
@@ -360,6 +375,30 @@ export function evaluationSpansToMessages(
       nodeId: span.id,
       duration: end > start ? end - start : undefined,
       evaluation: getNodeEvaluation(span) ?? undefined,
+    };
+  });
+}
+
+/**
+ * Maps memory operation spans to standalone messages positioned by their own
+ * timestamp, like embeddings and evaluations. The parsed memory drives the
+ * collapsed preview and the expanded records; the records payload is opt-in, so
+ * it may be absent until the bulk conversation fetch returns it.
+ */
+export function memorySpansToMessages(
+  memorySpans: AITraceSpanNode[]
+): ConversationMessage[] {
+  return memorySpans.map(span => {
+    const start = getNodeStartTimestamp(span);
+    const end = getNodeEndTimestamp(span);
+    return {
+      id: `memory-${span.id}`,
+      role: 'memory',
+      content: '',
+      timestamp: getNodeTimestamp(span),
+      nodeId: span.id,
+      duration: end > start ? end - start : undefined,
+      memory: getNodeMemory(span) ?? undefined,
     };
   });
 }
@@ -806,6 +845,12 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
     } else if (message.role === 'evaluation') {
       lines.push('### Evaluation');
       lines.push(...evaluationToMarkdown(message.evaluation));
+    } else if (message.role === 'memory') {
+      lines.push('### Memory');
+      const summary = [message.memory?.operation, getMemoryPreview(message.memory)]
+        .filter(Boolean)
+        .join(': ');
+      lines.push(toBlockquote(summary));
     } else {
       const sender = message.agentName || message.modelName || 'Assistant';
       const durationStr =

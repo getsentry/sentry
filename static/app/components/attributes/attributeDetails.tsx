@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
+import {IconInfo} from '@sentry/icons/info';
+import {IconSentry} from '@sentry/icons/sentry';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconInfo, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';

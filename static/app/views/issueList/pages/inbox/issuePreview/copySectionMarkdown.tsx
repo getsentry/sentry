@@ -1,3 +1,5 @@
+import {IconCopy} from '@sentry/icons/copy';
+
 import {Button} from '@sentry/scraps/button';
 
 import {
@@ -5,7 +7,6 @@ import {
   getAutofixArtifactFromSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 

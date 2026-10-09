@@ -12,6 +12,7 @@ from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotifica
 from sentry.integrations.pagerduty.client import PAGERDUTY_SUMMARY_MAX_LENGTH
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.notifications.types import NotificationActionContext
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -102,7 +103,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
@@ -153,7 +157,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
@@ -189,7 +196,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(group_event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
@@ -229,7 +239,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
