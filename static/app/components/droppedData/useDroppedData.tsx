@@ -55,7 +55,7 @@ export function useDroppedData(
   );
   const {isReady: arePageFiltersReady, selection} = usePageFilters();
 
-  const {data, isPending} = useQuery({
+  const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<DroppedEventsResponse>()(
       '/organizations/$organizationIdOrSlug/events-dropped/',
       {
@@ -81,5 +81,7 @@ export function useDroppedData(
     droppedEvents: data?.droppedEvents,
     acceptedEvents: data?.acceptedEvents,
     isPending,
+    isError,
+    refetch,
   };
 }

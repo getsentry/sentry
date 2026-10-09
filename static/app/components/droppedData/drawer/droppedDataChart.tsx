@@ -4,7 +4,8 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {getOutcomeColors, outcomeLabel} from 'sentry/components/droppedData/outcomes';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
+import {outcomeLabel, type OutcomeColors} from 'sentry/components/droppedData/outcomes';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -15,10 +16,6 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 const STACK_NAME = 'dropped';
 
 const CHART_HEIGHT = '112px';
-
-function orderOutcomes(outcomes: string[]): string[] {
-  return [...outcomes].sort();
-}
 
 export function droppedEventsToSeries(
   droppedEvents: DroppedEventsBucket[]
@@ -31,22 +28,21 @@ export function droppedEventsToSeries(
   // Each event's (start, end) is its bucket, so its span is the interval.
   const interval = droppedEvents[0] ? droppedEvents[0].end - droppedEvents[0].start : 0;
 
-  const countByLabelAndTimestamp = new Map<string, Map<number, number>>();
+  const countByOutcomeAndTimestamp = new Map<string, Map<number, number>>();
   for (const event of droppedEvents) {
-    const label = outcomeLabel(event.outcome);
     const countByTimestamp =
-      countByLabelAndTimestamp.get(label) ?? new Map<number, number>();
+      countByOutcomeAndTimestamp.get(event.outcome) ?? new Map<number, number>();
     countByTimestamp.set(
       event.start,
       (countByTimestamp.get(event.start) ?? 0) + event.count
     );
-    countByLabelAndTimestamp.set(label, countByTimestamp);
+    countByOutcomeAndTimestamp.set(event.outcome, countByTimestamp);
   }
 
-  const seriesByLabel: Record<string, TimeSeries> = {};
-  for (const [label, countByTimestamp] of countByLabelAndTimestamp) {
-    seriesByLabel[label] = {
-      yAxis: label,
+  const seriesByOutcome: Record<string, TimeSeries> = {};
+  for (const [outcome, countByTimestamp] of countByOutcomeAndTimestamp) {
+    seriesByOutcome[outcome] = {
+      yAxis: outcomeLabel(outcome),
       meta: {valueType: 'integer', valueUnit: null, interval},
       values: timestamps.map(timestamp => ({
         timestamp,
@@ -55,27 +51,16 @@ export function droppedEventsToSeries(
     };
   }
 
-  return seriesByLabel;
+  return seriesByOutcome;
 }
 
-function ChartLegend({
-  outcomes,
-  colors,
-}: {
-  colors: Record<string, string>;
-  outcomes: string[];
-}) {
+function ChartLegend({colors, outcomes}: {colors: OutcomeColors; outcomes: string[]}) {
   return (
     <Flex align="center" gap="md">
       {outcomes.map(outcome => (
         <Flex key={outcome} align="center" gap="xs">
-          <Container
-            width="8px"
-            height="8px"
-            radius="full"
-            style={{backgroundColor: colors[outcome]}}
-          />
-          <Text size="xs">{outcome}</Text>
+          <CircleIndicator color={colors[outcome]} size={8} />
+          <Text size="xs">{outcomeLabel(outcome)}</Text>
         </Flex>
       ))}
     </Flex>
@@ -83,30 +68,29 @@ function ChartLegend({
 }
 
 interface DroppedDataChartProps {
+  colors: OutcomeColors;
   droppedEvents: DroppedEventsBucket[];
 }
 
-export function DroppedDataChart({droppedEvents}: DroppedDataChartProps) {
+export function DroppedDataChart({droppedEvents, colors}: DroppedDataChartProps) {
   const theme = useTheme();
 
-  const {outcomes, colors, plottables} = useMemo(() => {
+  const {outcomes, plottables} = useMemo(() => {
     const series = droppedEventsToSeries(droppedEvents);
-    const orderedOutcomes = orderOutcomes(Object.keys(series));
-    const outcomeColors = getOutcomeColors(orderedOutcomes, theme);
+    const orderedOutcomes = Object.keys(series).sort();
 
     return {
       outcomes: orderedOutcomes,
-      colors: outcomeColors,
       plottables: orderedOutcomes.map(
         outcome =>
           new Bars(series[outcome]!, {
             stack: STACK_NAME,
-            color: outcomeColors[outcome],
-            alias: outcome,
+            color: colors[outcome],
+            alias: outcomeLabel(outcome),
           })
       ),
     };
-  }, [droppedEvents, theme]);
+  }, [droppedEvents, colors]);
 
   const totalDropped = droppedEvents.reduce((sum, event) => sum + event.count, 0);
 
