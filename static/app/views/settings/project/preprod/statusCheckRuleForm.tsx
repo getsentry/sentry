@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {NumberInput} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {NumberInput} from '@sentry/scraps/numberInput';
 import {Text} from '@sentry/scraps/text';
 
 import {openConfirmModal} from 'sentry/components/confirm';

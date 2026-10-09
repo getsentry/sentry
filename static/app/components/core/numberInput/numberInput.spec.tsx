@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {NumberInput} from '@sentry/scraps/input';
+import {NumberInput} from '@sentry/scraps/numberInput';
 
 describe('NumberInput', () => {
   it('renders input', () => {
