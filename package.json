@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "rm -f node_modules/.bin/sentry",
-    "typecheck": "tsc --build tsconfig.json static/app/serviceWorker/worker/tsconfig.json --builders 2",
+    "typecheck": "node scripts/typecheck.ts",
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
     "test": "node scripts/test.js --watch",

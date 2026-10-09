@@ -3,11 +3,22 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const compatibilityDirectory = path.join(root, 'static/app/utils/reactRouterV6');
 const sourceDirectories = [path.join(root, 'static'), path.join(root, 'tests/js')];
+const v8Aliases = new Map([
+  ['react-router', 'react-router-v8'],
+  ['react-router/dom', 'react-router-v8/dom'],
+  ['react-router-dom', 'react-router-v8'],
+  ['nuqs/adapters/react-router/v6', 'nuqs/adapters/react-router/v7'],
+]);
 
 /** @type {import('jest-resolve').SyncResolver} */
 module.exports = function resolveReactRouter(request, options) {
-  // Dependencies and the compatibility implementation must resolve V6's own
-  // react-router imports normally, so every consumer shares the same contexts.
+  if (process.env.SENTRY_REACT_ROUTER_VERSION === '8') {
+    const alias = v8Aliases.get(request);
+    if (alias) {
+      return options.defaultResolver(alias, {...options, basedir: root});
+    }
+  }
+  // V6 dependencies must resolve their own core package to share router contexts.
   const isSource = sourceDirectories.some(
     directory =>
       options.basedir === directory ||

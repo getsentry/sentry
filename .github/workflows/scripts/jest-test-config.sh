@@ -36,4 +36,4 @@ fi
 echo "$JEST_TESTS" > jest-test-files.json
 
 INDEX_ARRAY=$(seq 0 $(( RUNNERS - 1 )) | jq -s .)
-echo "jest_test_matrix=$(jq -nc --argjson index "$INDEX_ARRAY" --argjson total "$RUNNERS" '{index: $index, total: [$total]}')" >> "$GITHUB_OUTPUT"
+echo "jest_test_matrix=$(jq -nc --argjson index "$INDEX_ARRAY" --argjson total "$RUNNERS" '{index: $index, total: [$total], router: ["6", "8"]}')" >> "$GITHUB_OUTPUT"
