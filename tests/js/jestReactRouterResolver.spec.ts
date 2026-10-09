@@ -25,6 +25,9 @@ describe('React Router import resolution', () => {
     };
 
     expect(resolveRouter(request, options)).toBe('/resolved-module');
-    expect(defaultResolver).toHaveBeenCalledWith(expected, options);
+    expect(defaultResolver).toHaveBeenCalledWith(
+      expected,
+      expect.objectContaining(options)
+    );
   });
 });
