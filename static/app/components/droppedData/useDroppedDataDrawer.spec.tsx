@@ -11,9 +11,15 @@ import {
   waitForDrawerToHide,
 } from 'sentry-test/reactTestingLibrary';
 
+import {GlobalDrawer} from '@sentry/scraps/drawer';
+import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
+
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
@@ -210,5 +216,60 @@ describe('useDroppedDataDrawer', () => {
 
     router.navigate('/issues/');
     await waitForDrawerToHide('Dropped Data');
+  });
+
+  it('hands off to Seer Explorer from a reason’s investigate action', async () => {
+    const seerOrganization = OrganizationFixture({
+      openMembership: true,
+      hideAiFeatures: false,
+      features: ['explore-data-fidelity-annotations', 'seer-explorer'],
+    });
+    mockDroppedData(10, '14d');
+    const chatUrl = `/organizations/${seerOrganization.slug}/seer/explorer-chat/`;
+    MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${seerOrganization.slug}/seer/runs/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${seerOrganization.slug}/integrations/`,
+      body: [],
+    });
+
+    const {router} = render(
+      <SeerExplorerSessionsProvider>
+        <SeerExplorerChatStateProvider>
+          <PictureInPictureProvider>
+            <GlobalDrawer>
+              <SeerExplorerContextProvider>
+                <DroppedDataTrigger />
+              </SeerExplorerContextProvider>
+            </GlobalDrawer>
+          </PictureInPictureProvider>
+        </SeerExplorerChatStateProvider>
+      </SeerExplorerSessionsProvider>,
+      {
+        organization: seerOrganization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigate'}));
+
+    expect(
+      await screen.findByRole('complementary', {name: 'Seer Explorer Drawer'})
+    ).toBeInTheDocument();
+    await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
+    expect(
+      screen.getByRole('complementary', {name: 'Seer Explorer Drawer'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('complementary', {name: 'Dropped Data'})
+    ).not.toBeInTheDocument();
   });
 });

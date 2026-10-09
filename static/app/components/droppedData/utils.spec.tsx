@@ -1,5 +1,4 @@
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
-import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
@@ -188,20 +187,22 @@ describe('groupIntoBuckets', () => {
 });
 
 describe('severityColor', () => {
-  const theme = ThemeFixture();
   const opaque = (color: string) => `${color}FF`.toUpperCase();
 
   it.each([
-    [0, opaque(theme.tokens.background.secondary)],
-    [0.001, '#F6E5B4FF'],
-    [0.049, '#F6E5B4FF'],
-    [0.05, '#FFCE00FF'],
-    [0.1, '#FF615DFF'],
-    [0.25, '#B5006FFF'],
-    [0.5, '#3A1873FF'],
-    [1, '#3A1873FF'],
-  ])('colors a drop ratio of %s', (ratio, expected) => {
-    expect(severityColor(ratio, theme)).toBe(expected);
+    ['light', lightTheme],
+    ['dark', darkTheme],
+  ])('colors drop ratios with the %s magma scale', (_, theme) => {
+    const scale = theme.tokens.dataviz.sequential.magma.series5;
+
+    expect(severityColor(0, theme)).toBe(opaque(theme.tokens.background.secondary));
+    expect(severityColor(0.001, theme)).toBe(opaque(scale[0]));
+    expect(severityColor(0.049, theme)).toBe(opaque(scale[0]));
+    expect(severityColor(0.05, theme)).toBe(opaque(scale[1]));
+    expect(severityColor(0.1, theme)).toBe(opaque(scale[2]));
+    expect(severityColor(0.25, theme)).toBe(opaque(scale[3]));
+    expect(severityColor(0.5, theme)).toBe(opaque(scale[4]));
+    expect(severityColor(1, theme)).toBe(opaque(scale[4]));
   });
 
   it.each([
