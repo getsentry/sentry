@@ -92,7 +92,11 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      try {
+        jest.runOnlyPendingTimers();
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('Partitions into statsPeriod offsets that overlap the newer neighbor', () => {

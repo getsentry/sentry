@@ -1,7 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import SeerWorkflows from 'sentry/views/seerWorkflows';
 
@@ -10,10 +17,6 @@ describe('SeerWorkflows', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it('hides the monitor scan trigger when its flag is disabled', async () => {
@@ -26,178 +29,190 @@ describe('SeerWorkflows', () => {
     expect(screen.queryByRole('button', {name: 'Run…'})).not.toBeInTheDocument();
   });
 
-  it('clears filters when starting a scan, expands it, and polls for completion', async () => {
-    jest.useFakeTimers();
-    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-    const scanOrganization = OrganizationFixture({
-      features: ['seer-workflows-monitor-cleanup'],
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
-    const url = `/organizations/${scanOrganization.slug}/seer/workflows/`;
-    const previousRun = {
-      id: '1',
-      seerRunId: '45e94493-c356-4d2b-bb26-ae4e2e508a74',
-      strategy: 'duplicate_monitors',
-      source: null,
-      dateAdded: '2026-09-09T00:00:00Z',
-      extras: {status: 'complete'},
-      results: [],
-    };
-    MockApiClient.addMockResponse({url, body: [previousRun]});
-    const startScan = MockApiClient.addMockResponse({
-      url,
-      method: 'POST',
-      statusCode: 202,
-      body: {
-        runId: '2',
-      },
-    });
-    const {router} = render(<SeerWorkflows />, {
-      organization: scanOrganization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${scanOrganization.slug}/issues/autofix/workflows/`,
-          query: {status: 'succeeded', strategy: 'agentic_triage', source: 'scheduled'},
+    it('clears filters when starting a scan, expands it, and polls for completion', async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const scanOrganization = OrganizationFixture({
+        features: ['seer-workflows-monitor-cleanup'],
+      });
+      const url = `/organizations/${scanOrganization.slug}/seer/workflows/`;
+      const previousRun = {
+        id: '1',
+        seerRunId: '45e94493-c356-4d2b-bb26-ae4e2e508a74',
+        strategy: 'duplicate_monitors',
+        source: null,
+        dateAdded: '2026-09-09T00:00:00Z',
+        extras: {status: 'complete'},
+        results: [],
+      };
+      MockApiClient.addMockResponse({url, body: [previousRun]});
+      const startScan = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        statusCode: 202,
+        body: {
+          runId: '2',
         },
-      },
-    });
-    expect(await screen.findByText('No runs match your filters.')).toBeInTheDocument();
-    const runningRun = {
-      ...previousRun,
-      id: '2',
-      source: 'manual',
-      seerRunId: '09a15703-bf37-4208-bd90-c57013c9694b',
-      extras: {status: 'running'},
-    };
-    MockApiClient.addMockResponse({url, body: [runningRun, previousRun]});
-    await user.click(screen.getByRole('button', {name: 'Run…'}));
-    expect(startScan).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('menuitemradio', {name: 'Monitor scan'}));
-
-    expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
-    expect(screen.getAllByText('Scanning monitors…')).not.toHaveLength(0);
-    expect(screen.getByLabelText('Manual')).toBeInTheDocument();
-    expect(screen.getByText('--')).toBeInTheDocument();
-    expect(startScan).toHaveBeenCalledTimes(1);
-    expect(startScan).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({data: {strategy: 'duplicate_monitors'}})
-    );
-    expect(router.location.query).toEqual({});
-    expect(screen.getByRole('button', {name: 'Collapse run'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Expand run'})).toBeInTheDocument();
-
-    const completedRun = {
-      ...runningRun,
-      extras: {status: 'complete'},
-      results: [
-        {
-          id: '1',
-          kind: 'duplicate_monitors',
-          extras: {
-            outputKind: 'monitor_cleanup',
-            schemaVersion: 1,
-            projectId: '1',
-            projectSlug: 'checkout',
-            scan: {status: 'complete', monitorsScanned: 2},
-            summary: 'No duplicates found.',
-            findings: [],
+      });
+      const {router} = render(<SeerWorkflows />, {
+        organization: scanOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${scanOrganization.slug}/issues/autofix/workflows/`,
+            query: {status: 'succeeded', strategy: 'agentic_triage', source: 'scheduled'},
           },
         },
-      ],
-    };
-    MockApiClient.addMockResponse({url, body: [completedRun, previousRun]});
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(5000);
-    });
-    expect(screen.queryByRole('status', {name: 'Running'})).not.toBeInTheDocument();
-    expect(screen.getAllByRole('img', {name: 'Succeeded'})).toHaveLength(2);
-    expect(screen.getAllByText('No findings')).not.toHaveLength(0);
-  });
+      });
+      expect(await screen.findByText('No runs match your filters.')).toBeInTheDocument();
+      const runningRun = {
+        ...previousRun,
+        id: '2',
+        source: 'manual',
+        seerRunId: '09a15703-bf37-4208-bd90-c57013c9694b',
+        extras: {status: 'running'},
+      };
+      MockApiClient.addMockResponse({url, body: [runningRun, previousRun]});
+      await user.click(screen.getByRole('button', {name: 'Run…'}));
+      expect(startScan).not.toHaveBeenCalled();
+      await user.click(screen.getByRole('menuitemradio', {name: 'Monitor scan'}));
 
-  it('polls running Agentic triage workflows and keeps them visible when a background poll fails', async () => {
-    jest.useFakeTimers();
-    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-    const url = `/organizations/${organization.slug}/seer/workflows/`;
-    const runningRun = {
-      id: '1',
-      strategy: 'agentic_triage',
-      dateAdded: '2026-09-09T00:00:00Z',
-      dateCompleted: null,
-      source: 'cron',
-      extras: {status: 'running', options: {source: 'manual'}},
-      errorType: null,
-      errorMessage: null,
-      results: [],
-      issues: [],
-      seerRuns: [],
-    };
-    const unsupportedRuns = [
-      {id: '2', strategy: 'future_strategy', extras: {status: 'running'}},
-      {id: '3', strategy: 'future_strategy'},
-      {id: '4', strategy: 'constructor'},
-    ];
-    MockApiClient.addMockResponse({
-      url,
-      body: [...unsupportedRuns, runningRun],
+      expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
+      expect(screen.getAllByText('Scanning monitors…')).not.toHaveLength(0);
+      expect(screen.getByLabelText('Manual')).toBeInTheDocument();
+      expect(screen.getByText('--')).toBeInTheDocument();
+      expect(startScan).toHaveBeenCalledTimes(1);
+      expect(startScan).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({data: {strategy: 'duplicate_monitors'}})
+      );
+      expect(router.location.query).toEqual({});
+      expect(screen.getByRole('button', {name: 'Collapse run'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Expand run'})).toBeInTheDocument();
+
+      const completedRun = {
+        ...runningRun,
+        extras: {status: 'complete'},
+        results: [
+          {
+            id: '1',
+            kind: 'duplicate_monitors',
+            extras: {
+              outputKind: 'monitor_cleanup',
+              schemaVersion: 1,
+              projectId: '1',
+              projectSlug: 'checkout',
+              scan: {status: 'complete', monitorsScanned: 2},
+              summary: 'No duplicates found.',
+              findings: [],
+            },
+          },
+        ],
+      };
+      MockApiClient.addMockResponse({url, body: [completedRun, previousRun]});
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000);
+      });
+      expect(screen.queryByRole('status', {name: 'Running'})).not.toBeInTheDocument();
+      expect(screen.getAllByRole('img', {name: 'Succeeded'})).toHaveLength(2);
+      expect(screen.getAllByText('No findings')).not.toHaveLength(0);
     });
-    render(<SeerWorkflows />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/issues/autofix/workflows/`,
-          query: {source: 'cron'},
+
+    it('polls running Agentic triage workflows and keeps them visible when a background poll fails', async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const url = `/organizations/${organization.slug}/seer/workflows/`;
+      const runningRun = {
+        id: '1',
+        strategy: 'agentic_triage',
+        dateAdded: '2026-09-09T00:00:00Z',
+        dateCompleted: null,
+        source: 'cron',
+        extras: {status: 'running', options: {source: 'manual'}},
+        errorType: null,
+        errorMessage: null,
+        results: [],
+        issues: [],
+        seerRuns: [],
+      };
+      const unsupportedRuns = [
+        {id: '2', strategy: 'future_strategy', extras: {status: 'running'}},
+        {id: '3', strategy: 'future_strategy'},
+        {id: '4', strategy: 'constructor'},
+      ];
+      MockApiClient.addMockResponse({
+        url,
+        body: [...unsupportedRuns, runningRun],
+      });
+      render(<SeerWorkflows />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/autofix/workflows/`,
+            query: {source: 'cron'},
+          },
         },
-      },
-    });
-    expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
+      });
+      expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
 
-    expect(screen.getByText('Triaging issues…')).toBeInTheDocument();
-    expect(screen.getByLabelText('Automated')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Manual')).not.toBeInTheDocument();
-    expect(screen.queryByText('No issues processed')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', {name: 'Expand run'}));
-    expect(screen.getByText('No issues processed yet.')).toBeInTheDocument();
-    expect(screen.getByText('No triage batches recorded yet.')).toBeInTheDocument();
-    expect(
-      screen.queryByText('No issues processed in this run.')
-    ).not.toBeInTheDocument();
+      expect(screen.getByText('Triaging issues…')).toBeInTheDocument();
+      expect(screen.getByLabelText('Automated')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Manual')).not.toBeInTheDocument();
+      expect(screen.queryByText('No issues processed')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', {name: 'Expand run'}));
+      expect(screen.getByText('No issues processed yet.')).toBeInTheDocument();
+      expect(screen.getByText('No triage batches recorded yet.')).toBeInTheDocument();
+      expect(
+        screen.queryByText('No issues processed in this run.')
+      ).not.toBeInTheDocument();
 
-    const failedPoll = MockApiClient.addMockResponse({
-      url,
-      statusCode: 503,
-      body: {detail: 'Service unavailable'},
-    });
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(5000);
-    });
-    expect(failedPoll).toHaveBeenCalled();
-    expect(screen.getByRole('status', {name: 'Running'})).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: /retry/i})).not.toBeInTheDocument();
+      const failedPoll = MockApiClient.addMockResponse({
+        url,
+        statusCode: 503,
+        body: {detail: 'Service unavailable'},
+      });
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000);
+      });
+      expect(failedPoll).toHaveBeenCalled();
+      expect(screen.getByRole('status', {name: 'Running'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /retry/i})).not.toBeInTheDocument();
 
-    const completedPoll = MockApiClient.addMockResponse({
-      url,
-      body: [
-        ...unsupportedRuns,
-        {
-          ...runningRun,
-          dateCompleted: '2026-09-09T00:01:00Z',
-          extras: {...runningRun.extras, status: 'complete'},
-        },
-      ],
+      const completedPoll = MockApiClient.addMockResponse({
+        url,
+        body: [
+          ...unsupportedRuns,
+          {
+            ...runningRun,
+            dateCompleted: '2026-09-09T00:01:00Z',
+            extras: {...runningRun.extras, status: 'complete'},
+          },
+        ],
+      });
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000);
+      });
+      expect(screen.getByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
+      expect(screen.getByText('No issues processed in this run.')).toBeInTheDocument();
+      expect(screen.queryByText('Triaging issues…')).not.toBeInTheDocument();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(10000);
+      });
+      expect(completedPoll).toHaveBeenCalledTimes(1);
+      await user.click(screen.getByRole('button', {name: /Strategy/}));
+      expect(screen.getAllByRole('option')).toHaveLength(1);
+      expect(screen.getByRole('option', {name: 'Agentic triage'})).toBeInTheDocument();
     });
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(5000);
-    });
-    expect(screen.getByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
-    expect(screen.getByText('No issues processed in this run.')).toBeInTheDocument();
-    expect(screen.queryByText('Triaging issues…')).not.toBeInTheDocument();
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(10000);
-    });
-    expect(completedPoll).toHaveBeenCalledTimes(1);
-    await user.click(screen.getByRole('button', {name: /Strategy/}));
-    expect(screen.getAllByRole('option')).toHaveLength(1);
-    expect(screen.getByRole('option', {name: 'Agentic triage'})).toBeInTheDocument();
   });
 
   it('renders structured duplicate monitor findings in workflow history', async () => {

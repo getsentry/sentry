@@ -1,4 +1,4 @@
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useScrollLock} from './useScrollLock';
 
@@ -13,8 +13,13 @@ describe('useScrollLock', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    document.body.removeChild(container);
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+      document.body.removeChild(container);
+    }
   });
 
   it('locks scroll when acquired', () => {

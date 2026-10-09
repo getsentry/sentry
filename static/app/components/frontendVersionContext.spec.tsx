@@ -1,4 +1,4 @@
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as constants from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -33,8 +33,13 @@ describe('FrontendVersionProvider', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
-    jest.useRealTimers();
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+    }
   });
 
   it('provides state="current" when server version matches current version', async () => {

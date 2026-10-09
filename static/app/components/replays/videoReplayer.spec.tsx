@@ -1,4 +1,4 @@
-import {createEvent, fireEvent} from 'sentry-test/reactTestingLibrary';
+import {act, createEvent, fireEvent} from 'sentry-test/reactTestingLibrary';
 
 import {VideoReplayer} from './videoReplayer';
 
@@ -8,7 +8,6 @@ import {VideoReplayer} from './videoReplayer';
 // replays.
 //
 // advancing by 2000ms ~== 20000s in Timer, but this may depend on hardware, TBD
-jest.useFakeTimers();
 jest.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
 jest
   .spyOn(window.HTMLMediaElement.prototype, 'play')
@@ -18,8 +17,18 @@ jest
 jest.spyOn(window.HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
 
 describe('VideoReplayer - no starting gap', () => {
-  beforeEach(() => {
-    jest.clearAllTimers();
+  let inst: VideoReplayer;
+
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(async () => {
+    try {
+      inst?.destroy();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   const attachments = [
@@ -86,7 +95,7 @@ describe('VideoReplayer - no starting gap', () => {
 
   it('plays and seeks inside of a segment', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -113,7 +122,7 @@ describe('VideoReplayer - no starting gap', () => {
 
   it('does not crash when the previous video reports a non-finite duration', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -151,7 +160,7 @@ describe('VideoReplayer - no starting gap', () => {
 
   it('seeks to a gap in a video', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -179,7 +188,7 @@ describe('VideoReplayer - no starting gap', () => {
 
   it('seeks past end of the replay', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -205,7 +214,7 @@ describe('VideoReplayer - no starting gap', () => {
 
   it('initially only loads videos from 0 to BUFFER', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -226,7 +235,7 @@ describe('VideoReplayer - no starting gap', () => {
 
   it('should load the correct videos after playing at a timestamp', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments.concat(extra), {
+    inst = new VideoReplayer(attachments.concat(extra), {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -262,7 +271,7 @@ describe('VideoReplayer - no starting gap', () => {
 
   it('should work correctly if we have missing segments', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments.concat(skip), {
+    inst = new VideoReplayer(attachments.concat(skip), {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -295,8 +304,18 @@ describe('VideoReplayer - no starting gap', () => {
 });
 
 describe('VideoReplayer - with starting gap', () => {
-  beforeEach(() => {
-    jest.clearAllTimers();
+  let inst: VideoReplayer;
+
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(async () => {
+    try {
+      inst?.destroy();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   const attachments = [
@@ -337,7 +356,7 @@ describe('VideoReplayer - with starting gap', () => {
 
   it('plays and seeks before replay starts', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -362,7 +381,7 @@ describe('VideoReplayer - with starting gap', () => {
 
   it('seeks to a gap in a video', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -390,7 +409,7 @@ describe('VideoReplayer - with starting gap', () => {
 
   it('seeks past end of the replay', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -416,8 +435,18 @@ describe('VideoReplayer - with starting gap', () => {
 });
 
 describe('VideoReplayer - with ending gap', () => {
-  beforeEach(() => {
-    jest.clearAllTimers();
+  let inst: VideoReplayer;
+
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(async () => {
+    try {
+      inst?.destroy();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   const attachments = [
@@ -458,7 +487,7 @@ describe('VideoReplayer - with ending gap', () => {
 
   it('keeps playing until the end if there is an ending gap', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -497,7 +526,7 @@ describe('VideoReplayer - with ending gap', () => {
 
   it('ends at the proper time if seeking into a gap at the end', async () => {
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -530,8 +559,18 @@ describe('VideoReplayer - with ending gap', () => {
 });
 
 describe('VideoReplayer - maxVideoElements eviction', () => {
-  beforeEach(() => {
-    jest.clearAllTimers();
+  let inst: VideoReplayer;
+
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(async () => {
+    try {
+      inst?.destroy();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   const makeAttachments = (count: number) =>
@@ -544,7 +583,7 @@ describe('VideoReplayer - maxVideoElements eviction', () => {
   it('caps _videos at maxVideoElements when seeking forward', async () => {
     const attachments = makeAttachments(50);
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -573,7 +612,7 @@ describe('VideoReplayer - maxVideoElements eviction', () => {
   it('never evicts the current segment or its preload window', async () => {
     const attachments = makeAttachments(50);
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -606,7 +645,7 @@ describe('VideoReplayer - maxVideoElements eviction', () => {
   it('re-creates an evicted segment when seeked back to', async () => {
     const attachments = makeAttachments(50);
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,
@@ -639,7 +678,7 @@ describe('VideoReplayer - maxVideoElements eviction', () => {
   it('tears down every live video on destroy() mid-playback', async () => {
     const attachments = makeAttachments(50);
     const root = document.createElement('div');
-    const inst = new VideoReplayer(attachments, {
+    inst = new VideoReplayer(attachments, {
       videoApiPrefix: '/foo/',
       root,
       start: 0,

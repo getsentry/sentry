@@ -5,7 +5,7 @@ import {
   PreprodVcsInfoFullFixture,
 } from 'sentry-fixture/preprod';
 
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -248,70 +248,80 @@ describe('BuildDetails', () => {
     expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
   });
 
-  it('refetches size analysis when size_info state transitions from processing to completed', async () => {
-    jest.useFakeTimers();
-
-    MockApiClient.clearMockResponses();
-
-    MockApiClient.addMockResponse({
-      url: QUOTA_STATE_URL,
-      method: 'GET',
-      body: {hasSizeQuota: true, hasDistributionQuota: true},
-    });
-
-    let callCount = 0;
-    const buildDetailsMock = MockApiClient.addMockResponse({
-      url: BUILD_DETAILS_URL,
-      method: 'GET',
-      body: () => {
-        callCount++;
-        if (callCount === 1) {
-          return PreprodBuildDetailsWithSizeInfoFixture({
-            state: BuildDetailsSizeAnalysisState.PROCESSING,
-          });
-        }
-        return PreprodBuildDetailsWithSizeInfoFixture({
-          state: BuildDetailsSizeAnalysisState.COMPLETED,
-          size_metrics: [
-            {
-              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
-              install_size_bytes: 1024000,
-              download_size_bytes: 512000,
-            },
-          ],
-          base_size_metrics: [],
+  describe('size analysis processing', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
         });
-      },
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('refetches size analysis when size_info state transitions from processing to completed', async () => {
+      jest.useFakeTimers();
 
-    const appSizeMock = MockApiClient.addMockResponse({
-      url: SIZE_ANALYSIS_URL,
-      method: 'GET',
-      body: createMockSizeAnalysisData(),
+      MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: QUOTA_STATE_URL,
+        method: 'GET',
+        body: {hasSizeQuota: true, hasDistributionQuota: true},
+      });
+
+      let callCount = 0;
+      const buildDetailsMock = MockApiClient.addMockResponse({
+        url: BUILD_DETAILS_URL,
+        method: 'GET',
+        body: () => {
+          callCount++;
+          if (callCount === 1) {
+            return PreprodBuildDetailsWithSizeInfoFixture({
+              state: BuildDetailsSizeAnalysisState.PROCESSING,
+            });
+          }
+          return PreprodBuildDetailsWithSizeInfoFixture({
+            state: BuildDetailsSizeAnalysisState.COMPLETED,
+            size_metrics: [
+              {
+                metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+                install_size_bytes: 1024000,
+                download_size_bytes: 512000,
+              },
+            ],
+            base_size_metrics: [],
+          });
+        },
+      });
+
+      const appSizeMock = MockApiClient.addMockResponse({
+        url: SIZE_ANALYSIS_URL,
+        method: 'GET',
+        body: createMockSizeAnalysisData(),
+      });
+
+      render(<BuildDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
+      expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
+
+      // Size analysis should only be called once initially
+      expect(appSizeMock).toHaveBeenCalledTimes(1);
+
+      // Advance past the 10s refetchInterval to trigger the polling refetch
+      act(() => {
+        jest.advanceTimersByTime(10_000);
+      });
+
+      await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(2));
+
+      // After the state transition, size analysis should be refetched
+      await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(2));
     });
-
-    render(<BuildDetails />, {
-      organization,
-      initialRouterConfig,
-    });
-
-    await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
-
-    // Size analysis should only be called once initially
-    expect(appSizeMock).toHaveBeenCalledTimes(1);
-
-    // Advance past the 10s refetchInterval to trigger the polling refetch
-    act(() => {
-      jest.advanceTimersByTime(10_000);
-    });
-
-    await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(2));
-
-    // After the state transition, size analysis should be refetched
-    await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(2));
-
-    jest.useRealTimers();
   });
 
   it('does not refetch size analysis when size_info remains in completed state', async () => {
@@ -359,63 +369,73 @@ describe('BuildDetails', () => {
     await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(1));
   });
 
-  it('does not refetch size analysis when size_info transitions from pending to processing', async () => {
-    jest.useFakeTimers();
-
-    MockApiClient.clearMockResponses();
-
-    MockApiClient.addMockResponse({
-      url: QUOTA_STATE_URL,
-      method: 'GET',
-      body: {hasSizeQuota: true, hasDistributionQuota: true},
-    });
-
-    let callCount = 0;
-    const buildDetailsMock = MockApiClient.addMockResponse({
-      url: BUILD_DETAILS_URL,
-      method: 'GET',
-      body: () => {
-        callCount++;
-        if (callCount === 1) {
-          return PreprodBuildDetailsWithSizeInfoFixture({
-            state: BuildDetailsSizeAnalysisState.PENDING,
-          });
-        }
-        return PreprodBuildDetailsWithSizeInfoFixture({
-          state: BuildDetailsSizeAnalysisState.PROCESSING,
+  describe('size analysis pending', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
         });
-      },
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('does not refetch size analysis when size_info transitions from pending to processing', async () => {
+      jest.useFakeTimers();
 
-    const appSizeMock = MockApiClient.addMockResponse({
-      url: SIZE_ANALYSIS_URL,
-      method: 'GET',
-      body: createMockSizeAnalysisData(),
+      MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: QUOTA_STATE_URL,
+        method: 'GET',
+        body: {hasSizeQuota: true, hasDistributionQuota: true},
+      });
+
+      let callCount = 0;
+      const buildDetailsMock = MockApiClient.addMockResponse({
+        url: BUILD_DETAILS_URL,
+        method: 'GET',
+        body: () => {
+          callCount++;
+          if (callCount === 1) {
+            return PreprodBuildDetailsWithSizeInfoFixture({
+              state: BuildDetailsSizeAnalysisState.PENDING,
+            });
+          }
+          return PreprodBuildDetailsWithSizeInfoFixture({
+            state: BuildDetailsSizeAnalysisState.PROCESSING,
+          });
+        },
+      });
+
+      const appSizeMock = MockApiClient.addMockResponse({
+        url: SIZE_ANALYSIS_URL,
+        method: 'GET',
+        body: createMockSizeAnalysisData(),
+      });
+
+      render(<BuildDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
+      // First call returns PENDING state - shows queued message
+      expect(await screen.findByText('Queued for analysis')).toBeInTheDocument();
+
+      // Advance past the 10s refetchInterval to trigger the polling refetch
+      act(() => {
+        jest.advanceTimersByTime(10_000);
+      });
+
+      await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(2));
+
+      // Second call returns PROCESSING state - shows processing message
+      expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
+
+      // Size analysis should not be refetched since we're still processing
+      expect(appSizeMock).toHaveBeenCalledTimes(1);
     });
-
-    render(<BuildDetails />, {
-      organization,
-      initialRouterConfig,
-    });
-
-    await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
-    // First call returns PENDING state - shows queued message
-    expect(await screen.findByText('Queued for analysis')).toBeInTheDocument();
-
-    // Advance past the 10s refetchInterval to trigger the polling refetch
-    act(() => {
-      jest.advanceTimersByTime(10_000);
-    });
-
-    await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(2));
-
-    // Second call returns PROCESSING state - shows processing message
-    expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
-
-    // Size analysis should not be refetched since we're still processing
-    expect(appSizeMock).toHaveBeenCalledTimes(1);
-
-    jest.useRealTimers();
   });
 
   describe('quota warning banner', () => {

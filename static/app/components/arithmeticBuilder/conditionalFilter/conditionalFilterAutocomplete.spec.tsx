@@ -1,4 +1,9 @@
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useConditionalFilterAutocomplete} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilterAutocomplete';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -98,19 +103,29 @@ describe('useConditionalFilterAutocomplete', () => {
     });
   });
 
-  it('does not show previous key values while debounce catches up to a new key', async () => {
-    jest.useFakeTimers();
-    const getFilterTagValues = jest.fn(({tag}) => {
-      if (tag.key === 'span.op') {
-        return Promise.resolve([{value: 'db'}]);
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
       }
-      if (tag.key === 'span.description') {
-        return Promise.resolve([{value: 'SELECT 1'}]);
-      }
-      return Promise.resolve([]);
     });
+    it('does not show previous key values while debounce catches up to a new key', async () => {
+      jest.useFakeTimers();
+      const getFilterTagValues = jest.fn(({tag}) => {
+        if (tag.key === 'span.op') {
+          return Promise.resolve([{value: 'db'}]);
+        }
+        if (tag.key === 'span.description') {
+          return Promise.resolve([{value: 'SELECT 1'}]);
+        }
+        return Promise.resolve([]);
+      });
 
-    try {
       const {result, rerender} = renderHookWithProviders(
         ({filterValue, selectionIndex}: {filterValue: string; selectionIndex: number}) =>
           useConditionalFilterAutocomplete({
@@ -143,8 +158,6 @@ describe('useConditionalFilterAutocomplete', () => {
       await waitFor(() => {
         expect(result.current.items.map(item => item.label)).toEqual(['SELECT 1']);
       });
-    } finally {
-      jest.useRealTimers();
-    }
+    });
   });
 });

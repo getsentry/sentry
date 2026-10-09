@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {TraceQueryResult} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
@@ -132,7 +132,12 @@ describe('TraceWaterfallState', () => {
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      try {
+        cleanup();
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('shows processing message when the trace timestamp is within the last ten minutes', () => {

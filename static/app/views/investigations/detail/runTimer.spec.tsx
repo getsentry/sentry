@@ -1,4 +1,4 @@
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
@@ -18,7 +18,12 @@ describe('InvestigationRunTimer', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('ticks from accumulated work plus the server interval despite clock skew or changes', () => {

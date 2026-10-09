@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -11,10 +11,6 @@ import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
   describe('without subscription effective retentions', () => {
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
     it('returns 90/90 for transactions', () => {
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
@@ -41,18 +37,30 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 30/90 for spans', () => {
-      jest.useFakeTimers().setSystemTime(new Date(2026, 0, 1));
-      const {result} = renderHookWithProviders(() =>
-        useMaxPickableDays({
-          dataCategories: [DataCategory.SPANS],
-        })
-      );
+    describe('span retention dates', () => {
+      afterEach(async () => {
+        try {
+          cleanup();
+          await act(async () => {
+            await jest.runOnlyPendingTimersAsync();
+          });
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+      it('returns 30/90 for spans', () => {
+        jest.useFakeTimers().setSystemTime(new Date(2026, 0, 1));
+        const {result} = renderHookWithProviders(() =>
+          useMaxPickableDays({
+            dataCategories: [DataCategory.SPANS],
+          })
+        );
 
-      expect(result.current).toEqual({
-        maxPickableDays: 30,
-        maxUpgradableDays: 90,
-        upsellFooter: expect.any(Object),
+        expect(result.current).toEqual({
+          maxPickableDays: 30,
+          maxUpgradableDays: 90,
+          upsellFooter: expect.any(Object),
+        });
       });
     });
 
@@ -84,24 +92,36 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 30/90 for many', () => {
-      jest.useFakeTimers().setSystemTime(new Date(2026, 0, 1));
-      const {result} = renderHookWithProviders(() =>
-        useMaxPickableDays({
-          dataCategories: [
-            DataCategory.SPANS,
-            DataCategory.SPANS_INDEXED,
-            DataCategory.TRACE_METRICS,
-            DataCategory.LOG_BYTE,
-            DataCategory.LOG_ITEM,
-          ],
-        })
-      );
+    describe('combined retention dates', () => {
+      afterEach(async () => {
+        try {
+          cleanup();
+          await act(async () => {
+            await jest.runOnlyPendingTimersAsync();
+          });
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+      it('returns 30/90 for many', () => {
+        jest.useFakeTimers().setSystemTime(new Date(2026, 0, 1));
+        const {result} = renderHookWithProviders(() =>
+          useMaxPickableDays({
+            dataCategories: [
+              DataCategory.SPANS,
+              DataCategory.SPANS_INDEXED,
+              DataCategory.TRACE_METRICS,
+              DataCategory.LOG_BYTE,
+              DataCategory.LOG_ITEM,
+            ],
+          })
+        );
 
-      expect(result.current).toEqual({
-        maxPickableDays: 30,
-        maxUpgradableDays: 90,
-        upsellFooter: expect.any(Object),
+        expect(result.current).toEqual({
+          maxPickableDays: 30,
+          maxUpgradableDays: 90,
+          upsellFooter: expect.any(Object),
+        });
       });
     });
 
@@ -176,37 +196,49 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 121/121 for spans on 2025/12/31', () => {
-      jest.useFakeTimers().setSystemTime(new Date(2025, 11, 31));
-      const {result} = renderHookWithProviders(
-        () =>
-          useMaxPickableDays({
-            dataCategories: [DataCategory.SPANS],
-          }),
-        {organization}
-      );
-
-      expect(result.current).toEqual({
-        maxPickableDays: 121,
-        maxUpgradableDays: 121,
-        upsellFooter: expect.any(Object),
+    describe('span retention dates', () => {
+      afterEach(async () => {
+        try {
+          cleanup();
+          await act(async () => {
+            await jest.runOnlyPendingTimersAsync();
+          });
+        } finally {
+          jest.useRealTimers();
+        }
       });
-    });
+      it('returns 121/121 for spans on 2025/12/31', () => {
+        jest.useFakeTimers().setSystemTime(new Date(2025, 11, 31));
+        const {result} = renderHookWithProviders(
+          () =>
+            useMaxPickableDays({
+              dataCategories: [DataCategory.SPANS],
+            }),
+          {organization}
+        );
 
-    it('returns 396/396 for spans on 2027/01/01', () => {
-      jest.useFakeTimers().setSystemTime(new Date(2027, 0, 1));
-      const {result} = renderHookWithProviders(
-        () =>
-          useMaxPickableDays({
-            dataCategories: [DataCategory.SPANS],
-          }),
-        {organization}
-      );
+        expect(result.current).toEqual({
+          maxPickableDays: 121,
+          maxUpgradableDays: 121,
+          upsellFooter: expect.any(Object),
+        });
+      });
 
-      expect(result.current).toEqual({
-        maxPickableDays: 396,
-        maxUpgradableDays: 396,
-        upsellFooter: expect.any(Object),
+      it('returns 396/396 for spans on 2027/01/01', () => {
+        jest.useFakeTimers().setSystemTime(new Date(2027, 0, 1));
+        const {result} = renderHookWithProviders(
+          () =>
+            useMaxPickableDays({
+              dataCategories: [DataCategory.SPANS],
+            }),
+          {organization}
+        );
+
+        expect(result.current).toEqual({
+          maxPickableDays: 396,
+          maxUpgradableDays: 396,
+          upsellFooter: expect.any(Object),
+        });
       });
     });
 
@@ -242,26 +274,38 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 396/396 for many without flag', () => {
-      jest.useFakeTimers().setSystemTime(new Date(2027, 0, 1));
-      const {result} = renderHookWithProviders(
-        () =>
-          useMaxPickableDays({
-            dataCategories: [
-              DataCategory.SPANS,
-              DataCategory.SPANS_INDEXED,
-              DataCategory.TRACE_METRICS,
-              DataCategory.LOG_BYTE,
-              DataCategory.LOG_ITEM,
-            ],
-          }),
-        {organization}
-      );
+    describe('combined retention dates', () => {
+      afterEach(async () => {
+        try {
+          cleanup();
+          await act(async () => {
+            await jest.runOnlyPendingTimersAsync();
+          });
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+      it('returns 396/396 for many without flag', () => {
+        jest.useFakeTimers().setSystemTime(new Date(2027, 0, 1));
+        const {result} = renderHookWithProviders(
+          () =>
+            useMaxPickableDays({
+              dataCategories: [
+                DataCategory.SPANS,
+                DataCategory.SPANS_INDEXED,
+                DataCategory.TRACE_METRICS,
+                DataCategory.LOG_BYTE,
+                DataCategory.LOG_ITEM,
+              ],
+            }),
+          {organization}
+        );
 
-      expect(result.current).toEqual({
-        maxPickableDays: 396,
-        maxUpgradableDays: 396,
-        upsellFooter: expect.any(Object),
+        expect(result.current).toEqual({
+          maxPickableDays: 396,
+          maxUpgradableDays: 396,
+          upsellFooter: expect.any(Object),
+        });
       });
     });
 

@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
 import {RelativeTime} from '@sentry/scraps/relativeTime';
@@ -23,7 +23,12 @@ describe('RelativeTime', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('renders the label and relative time in the header', () => {

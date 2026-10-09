@@ -45,73 +45,82 @@ describe('CanvasScheduler', () => {
     expect(scheduler.events[key].has(handler)).toBe(false);
     expect(handler).not.toHaveBeenCalled();
   });
-  it('registerBeforeFrameCallback', () => {
-    jest.useFakeTimers();
+  describe('animation frame callbacks', () => {
+    afterEach(() => {
+      try {
+        jest.runOnlyPendingTimers();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('registerBeforeFrameCallback', () => {
+      jest.useFakeTimers();
 
-    const drawFn = jest.fn();
-    const scheduler = new CanvasScheduler();
+      const drawFn = jest.fn();
+      const scheduler = new CanvasScheduler();
 
-    scheduler.registerBeforeFrameCallback(drawFn);
-    scheduler.draw();
+      scheduler.registerBeforeFrameCallback(drawFn);
+      scheduler.draw();
 
-    jest.runAllTimers();
-    expect(drawFn).toHaveBeenCalledTimes(1);
-  });
-  it('unregisterBeforeFrameCallback', () => {
-    jest.useFakeTimers();
+      jest.runAllTimers();
+      expect(drawFn).toHaveBeenCalledTimes(1);
+    });
+    it('unregisterBeforeFrameCallback', () => {
+      jest.useFakeTimers();
 
-    const drawFn = jest.fn();
-    const scheduler = new CanvasScheduler();
+      const drawFn = jest.fn();
+      const scheduler = new CanvasScheduler();
 
-    scheduler.registerBeforeFrameCallback(drawFn);
-    scheduler.unregisterBeforeFrameCallback(drawFn);
-    scheduler.draw();
+      scheduler.registerBeforeFrameCallback(drawFn);
+      scheduler.unregisterBeforeFrameCallback(drawFn);
+      scheduler.draw();
 
-    jest.runAllTimers();
-    expect(drawFn).not.toHaveBeenCalled();
-  });
-  it('registerAfterFrameCallback', () => {
-    jest.useFakeTimers();
+      jest.runAllTimers();
+      expect(drawFn).not.toHaveBeenCalled();
+    });
+    it('registerAfterFrameCallback', () => {
+      jest.useFakeTimers();
 
-    const drawFn = jest.fn();
-    const scheduler = new CanvasScheduler();
+      const drawFn = jest.fn();
+      const scheduler = new CanvasScheduler();
 
-    scheduler.registerAfterFrameCallback(drawFn);
-    scheduler.draw();
+      scheduler.registerAfterFrameCallback(drawFn);
+      scheduler.draw();
 
-    jest.runAllTimers();
-    expect(drawFn).toHaveBeenCalledTimes(1);
-  });
-  it('unregisterAfterFrameCallback', () => {
-    jest.useFakeTimers();
+      jest.runAllTimers();
+      expect(drawFn).toHaveBeenCalledTimes(1);
+    });
+    it('unregisterAfterFrameCallback', () => {
+      jest.useFakeTimers();
 
-    const drawFn = jest.fn();
-    const scheduler = new CanvasScheduler();
+      const drawFn = jest.fn();
+      const scheduler = new CanvasScheduler();
 
-    scheduler.registerAfterFrameCallback(drawFn);
-    scheduler.unregisterAfterFrameCallback(drawFn);
-    scheduler.draw();
+      scheduler.registerAfterFrameCallback(drawFn);
+      scheduler.unregisterAfterFrameCallback(drawFn);
+      scheduler.draw();
 
-    jest.runAllTimers();
-    expect(drawFn).not.toHaveBeenCalled();
-  });
-  it('calls callbacks in correct order', () => {
-    jest.useFakeTimers();
+      jest.runAllTimers();
+      expect(drawFn).not.toHaveBeenCalled();
+    });
+    it('calls callbacks in correct order', () => {
+      jest.useFakeTimers();
 
-    const drawBeforeFn = jest.fn().mockImplementationOnce(() => {});
-    const drawAfterFn = jest.fn();
+      const drawBeforeFn = jest.fn().mockImplementationOnce(() => {});
+      const drawAfterFn = jest.fn();
 
-    const scheduler = new CanvasScheduler();
+      const scheduler = new CanvasScheduler();
 
-    scheduler.registerBeforeFrameCallback(drawBeforeFn);
-    scheduler.registerAfterFrameCallback(drawAfterFn);
+      scheduler.registerBeforeFrameCallback(drawBeforeFn);
+      scheduler.registerAfterFrameCallback(drawAfterFn);
 
-    scheduler.draw();
+      scheduler.draw();
 
-    jest.runAllTimers();
-    expect(drawBeforeFn.mock.invocationCallOrder[0]).toBeLessThan(
-      drawAfterFn.mock.invocationCallOrder[0]!
-    );
+      jest.runAllTimers();
+      expect(drawBeforeFn.mock.invocationCallOrder[0]).toBeLessThan(
+        drawAfterFn.mock.invocationCallOrder[0]!
+      );
+    });
   });
   it('drawSync', () => {
     const drawBeforeFn = jest.fn().mockImplementationOnce(() => {});
@@ -130,32 +139,41 @@ describe('CanvasScheduler', () => {
       drawAfterFn.mock.invocationCallOrder[0]!
     );
   });
-  it('dispose', () => {
-    jest.useFakeTimers();
-    const drawBeforeFn = jest.fn().mockImplementationOnce(() => {});
-    const drawAfterFn = jest.fn();
+  describe('disposal', () => {
+    afterEach(() => {
+      try {
+        jest.runOnlyPendingTimers();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('dispose', () => {
+      jest.useFakeTimers();
+      const drawBeforeFn = jest.fn().mockImplementationOnce(() => {});
+      const drawAfterFn = jest.fn();
 
-    const handlerFns = handlers.map(key => [key, jest.fn()]);
+      const handlerFns = handlers.map(key => [key, jest.fn()]);
 
-    const scheduler = new CanvasScheduler();
+      const scheduler = new CanvasScheduler();
 
-    scheduler.registerBeforeFrameCallback(drawBeforeFn);
-    scheduler.registerAfterFrameCallback(drawAfterFn);
+      scheduler.registerBeforeFrameCallback(drawBeforeFn);
+      scheduler.registerAfterFrameCallback(drawAfterFn);
 
-    for (const [key, handler] of handlerFns) {
-      // @ts-expect-error register all handlers
-      scheduler.on(key, handler);
-    }
-    scheduler.dispose();
-    // If we do not call drawSync, the test will fail as the assertion will
-    // be evaluated before the callbacks have ran.
-    scheduler.draw();
-    scheduler.drawSync();
+      for (const [key, handler] of handlerFns) {
+        // @ts-expect-error register all handlers
+        scheduler.on(key, handler);
+      }
+      scheduler.dispose();
+      // If we do not call drawSync, the test will fail as the assertion will
+      // be evaluated before the callbacks have ran.
+      scheduler.draw();
+      scheduler.drawSync();
 
-    jest.runAllTimers();
+      jest.runAllTimers();
 
-    for (const [_, handler] of handlerFns) {
-      expect(handler).not.toHaveBeenCalled();
-    }
+      for (const [_, handler] of handlerFns) {
+        expect(handler).not.toHaveBeenCalled();
+      }
+    });
   });
 });

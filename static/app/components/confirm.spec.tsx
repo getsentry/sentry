@@ -1,5 +1,6 @@
 import {
   act,
+  cleanup,
   createEvent,
   fireEvent,
   render,
@@ -129,6 +130,16 @@ describe('Confirm', () => {
   });
 
   describe('async onConfirm', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
     it('should not close the modal until the promise is resolved', async () => {
       jest.useFakeTimers();
       const onConfirmAsync = jest.fn().mockImplementation(

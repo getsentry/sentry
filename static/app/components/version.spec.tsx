@@ -1,4 +1,4 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Version} from 'sentry/components/version';
 
@@ -32,15 +32,27 @@ describe('Version', () => {
     });
   });
 
-  it('shows raw version in tooltip', async () => {
-    jest.useFakeTimers();
-    render(<Version version={VERSION} tooltipRawVersion />);
-    expect(screen.queryByText(VERSION)).not.toBeInTheDocument();
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('shows raw version in tooltip', async () => {
+      jest.useFakeTimers();
+      render(<Version version={VERSION} tooltipRawVersion />);
+      expect(screen.queryByText(VERSION)).not.toBeInTheDocument();
 
-    // Activate tooltip
-    await userEvent.hover(screen.getByText('1.0.0 (20200101)'), {delay: null});
-    act(() => jest.advanceTimersByTime(50));
+      // Activate tooltip
+      await userEvent.hover(screen.getByText('1.0.0 (20200101)'), {delay: null});
+      act(() => jest.advanceTimersByTime(50));
 
-    expect(await screen.findByText(VERSION)).toBeInTheDocument();
+      expect(await screen.findByText(VERSION)).toBeInTheDocument();
+    });
   });
 });

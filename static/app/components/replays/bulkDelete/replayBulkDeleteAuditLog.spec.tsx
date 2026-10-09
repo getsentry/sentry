@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLog';
 import type {ReplayBulkDeleteAuditLog as ReplayBulkDeleteAuditLogJob} from 'sentry/components/replays/bulkDelete/types';
@@ -32,7 +32,12 @@ describe('ReplayBulkDeleteAuditLog', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('polls for progress while a job is running', async () => {

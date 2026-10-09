@@ -1,7 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {EventOrGroupType} from 'sentry/types/event';
@@ -76,24 +76,36 @@ describe('GroupHeaderRow', () => {
     expect(screen.getByText('metadata value')).toBeInTheDocument();
   });
 
-  it('preloads group on hover', async () => {
-    jest.useFakeTimers();
-    const mockFetchGroup = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/`,
-      body: group,
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('preloads group on hover', async () => {
+      jest.useFakeTimers();
+      const mockFetchGroup = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
+        body: group,
+      });
 
-    render(<GroupHeaderRow data={group} />);
+      render(<GroupHeaderRow data={group} />);
 
-    const groupLink = screen.getByRole('link');
+      const groupLink = screen.getByRole('link');
 
-    // Should not be called right away
-    await userEvent.hover(groupLink, {delay: null});
-    expect(mockFetchGroup).not.toHaveBeenCalled();
+      // Should not be called right away
+      await userEvent.hover(groupLink, {delay: null});
+      expect(mockFetchGroup).not.toHaveBeenCalled();
 
-    // Called after 300ms
-    jest.advanceTimersByTime(301);
-    expect(mockFetchGroup).toHaveBeenCalled();
+      // Called after 300ms
+      jest.advanceTimersByTime(301);
+      expect(mockFetchGroup).toHaveBeenCalled();
+    });
   });
 
   it('keeps sort in link when query has sort', () => {

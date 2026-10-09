@@ -1,4 +1,4 @@
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 
@@ -13,7 +13,12 @@ describe('usePlaylistQuery', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('derives a playlist range when the stats period is measured in hours', () => {
