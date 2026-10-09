@@ -20,8 +20,8 @@ class JoinProfiler(ProcessingStrategy[TStrategyPayload]):
 
     def join(self, timeout: float | None = None):
         traces.new_trace()
-        active_propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
-        prev_sampling_context = active_propagation_context.custom_sampling_context
+        propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+        prev_sampling_context = propagation_context.custom_sampling_context
         Scope.set_custom_sampling_context({"sample_rate": 1.0})
         try:
             span = traces.start_span(
@@ -30,7 +30,8 @@ class JoinProfiler(ProcessingStrategy[TStrategyPayload]):
                 parent_span=None,
             )
         finally:
-            active_propagation_context.custom_sampling_context = prev_sampling_context
+            propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+            propagation_context.custom_sampling_context = prev_sampling_context
         with span:
             self.__next_step.join(timeout)
 
