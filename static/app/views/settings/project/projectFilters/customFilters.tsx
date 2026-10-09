@@ -27,6 +27,25 @@ import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {
+  escapeTagValue,
+  formatFilterValue,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import {
+  parseQueryBuilderValue,
+  queryIsValid,
+} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  defaultConfig,
+  InvalidReason,
+  TermOperator,
+  Token,
+  WildcardOperators,
+  type TokenResult,
+} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
@@ -34,12 +53,14 @@ import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
 import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -58,9 +79,16 @@ type ConditionType =
   | 'release'
   | 'ip_address';
 
+// How a condition compares its values to the field. `matches` keeps data that
+// matches any value, `does_not_match` keeps data that matches none. The ordered
+// operators compare a single value as a version and only apply to `release`.
+type ConditionOperator = 'matches' | 'does_not_match' | 'gt' | 'gte' | 'lt' | 'lte';
+
 type CustomInboundFilterCondition = {
   type: ConditionType;
   value: string[];
+  // Absent on filters stored before the operator existed. Those match.
+  operator?: ConditionOperator;
 };
 
 // Shape returned by the custom inbound filters API.
@@ -84,17 +112,12 @@ type FilterDataType = 'all' | 'error' | 'metric' | 'log' | 'span';
 
 type DataTypeOption = {label: string; value: FilterDataType};
 
-// A single editable condition row in the modal. The API stores a list of
-// values per condition; the row edits them as one text with a value per line.
-type ConditionFormValue = {
-  property: ConditionType;
-  value: string;
-};
-
+// The modal edits the conditions as one search query, one filter token per
+// condition. See `parseConditionQuery` for the translation.
 type FilterFormValues = {
-  conditions: ConditionFormValue[];
   dataType: FilterDataType;
   name: string;
+  query: string;
 };
 
 type DataTypeSpec = {
@@ -122,10 +145,15 @@ type ConditionSpec = {
   description: string | Record<FilterDataType, string>;
   label: string;
   placeholder: string;
+  // Values compare as versions too, so the query builder offers >, >=, < and <=.
+  comparable?: boolean;
   // The data type whose field this condition reads. Absent for `release` and
   // `ip_address`, which every data type carries, so they stay on offer whatever
   // the filter targets.
   dataType?: FilterDataType;
+  // Values are literal, not glob patterns, so the query builder offers no
+  // "contains", "starts with" or "ends with".
+  exact?: boolean;
 };
 
 // Declaration order is the order of the property dropdown, and the first
@@ -170,6 +198,7 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     description: t('Matches the body of the log.'),
   },
   release: {
+    comparable: true,
     label: t('Release'),
     placeholder: t('Glob pattern, e.g. 2.41.*'),
     description: {
@@ -181,6 +210,7 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     },
   },
   ip_address: {
+    exact: true,
     label: t('IP Address'),
     placeholder: t('IP address or CIDR range, e.g. 203.0.113.7 or 10.0.0.0/8'),
     description: t(
@@ -219,16 +249,204 @@ function getPropertyOptions(dataType: FilterDataType): PropertyOption[] {
   }).map(value => ({value, label: getCondition(value).label}));
 }
 
-// The property a new condition row starts with, and the one existing rows
-// collapse to when the user changes the data type. The catch-all owns no condition
-// of its own, so it falls back to the first one every data type carries.
-function getDefaultProperty(dataType: FilterDataType): ConditionType {
-  return (
-    CONDITION_TYPES.find(value => getCondition(value).dataType === dataType) ??
-    CONDITION_TYPES.find(value => getCondition(value).dataType === undefined) ??
-    'release'
-  );
+// The query builder reads conditions as search filter keys. Each data type gets its
+// own stable key set, since the builder re-parses whenever the reference changes.
+const FILTER_KEYS = new Map<FilterDataType, TagCollection>();
+
+function getFilterKeys(dataType: FilterDataType): TagCollection {
+  let keys = FILTER_KEYS.get(dataType);
+  if (!keys) {
+    keys = Object.fromEntries(
+      getPropertyOptions(dataType).map(({value}) => [
+        value,
+        {key: value, name: value, kind: FieldKind.FIELD},
+      ])
+    );
+    FILTER_KEYS.set(dataType, keys);
+  }
+  return keys;
 }
+
+const FIELD_DEFINITION_GETTERS = new Map<FilterDataType, FieldDefinitionGetter>();
+
+// Tells the query builder which operators a condition takes and what it matches.
+// The description shows in the key menu.
+function getFieldDefinitionGetter(dataType: FilterDataType): FieldDefinitionGetter {
+  let getter = FIELD_DEFINITION_GETTERS.get(dataType);
+  if (!getter) {
+    getter = key => {
+      const spec = CONDITION_SPECS.get(key);
+      if (!spec) {
+        return null;
+      }
+      return {
+        kind: FieldKind.FIELD,
+        valueType: FieldValueType.STRING,
+        desc: getMatchDescription(key, dataType),
+        allowComparisonOperators: spec.comparable,
+        allowWildcard: !spec.exact,
+        disallowWildcardOperators: spec.exact,
+      };
+    };
+    FIELD_DEFINITION_GETTERS.set(dataType, getter);
+  }
+  return getter;
+}
+
+const COMPARISON_OPERATORS: Partial<Record<TermOperator, ConditionOperator>> = {
+  [TermOperator.GREATER_THAN]: 'gt',
+  [TermOperator.GREATER_THAN_EQUAL]: 'gte',
+  [TermOperator.LESS_THAN]: 'lt',
+  [TermOperator.LESS_THAN_EQUAL]: 'lte',
+};
+
+const COMPARISON_PREFIXES: Partial<Record<ConditionOperator, TermOperator>> = {
+  gt: TermOperator.GREATER_THAN,
+  gte: TermOperator.GREATER_THAN_EQUAL,
+  lt: TermOperator.LESS_THAN,
+  lte: TermOperator.LESS_THAN_EQUAL,
+};
+
+// The "contains", "starts with" and "ends with" operators of the query builder are
+// glob shapes. Each pairs its wildcard marker with the pattern that marker stands for.
+const WILDCARD_SHAPES = [
+  {wildcard: WildcardOperators.CONTAINS, pattern: /^\*([^*]+)\*$/},
+  {wildcard: WildcardOperators.STARTS_WITH, pattern: /^([^*]+)\*$/},
+  {wildcard: WildcardOperators.ENDS_WITH, pattern: /^\*([^*]+)$/},
+];
+
+function toGlob(operator: TermOperator, value: string): string {
+  switch (operator) {
+    case TermOperator.CONTAINS:
+      return `*${value}*`;
+    case TermOperator.STARTS_WITH:
+      return `${value}*`;
+    case TermOperator.ENDS_WITH:
+      return `*${value}`;
+    default:
+      return value;
+  }
+}
+
+function tokenToCondition(
+  token: TokenResult<Token.FILTER>
+): CustomInboundFilterCondition | null {
+  const type = getKeyName(token.key);
+  if (!CONDITION_SPECS.has(type)) {
+    return null;
+  }
+  const values =
+    token.value.type === Token.VALUE_TEXT_LIST
+      ? token.value.items.flatMap(item =>
+          item.value ? [formatFilterValue({token: item.value})] : []
+        )
+      : [formatFilterValue({token: token.value})];
+
+  const comparison = COMPARISON_OPERATORS[token.operator];
+  if (comparison) {
+    if (token.negated || values.length !== 1) {
+      return null;
+    }
+    return {type: type as ConditionType, operator: comparison, value: values};
+  }
+  return {
+    type: type as ConditionType,
+    operator: token.negated ? 'does_not_match' : 'matches',
+    value: values.map(value => toGlob(token.operator, value)),
+  };
+}
+
+// Translates the modal's search query into API conditions, one per filter token.
+// Tokens AND together, as conditions do. Returns null when the query has no
+// condition or one the API would reject: free text, OR, parens, an unknown key, or
+// a comparison that is negated or lists several values.
+function parseConditionQuery(
+  query: string,
+  dataType: FilterDataType
+): CustomInboundFilterCondition[] | null {
+  const parsed = parseQueryBuilderValue(query, getFieldDefinitionGetter(dataType), {
+    filterKeys: getFilterKeys(dataType),
+    disallowFreeText: true,
+    disallowLogicalOperators: true,
+    disallowUnsupportedFilters: true,
+  });
+  if (!queryIsValid(parsed)) {
+    return null;
+  }
+  const conditions: CustomInboundFilterCondition[] = [];
+  for (const token of parsed ?? []) {
+    if (token.type !== Token.FILTER) {
+      continue;
+    }
+    const condition = tokenToCondition(token);
+    if (!condition) {
+      return null;
+    }
+    conditions.push(condition);
+  }
+  return conditions.length > 0 ? conditions : null;
+}
+
+// Globs of one shape, like `*a*` and `*b*`, become the matching wildcard operator
+// with the stars removed, so the builder shows "contains a". Mixed shapes stay
+// literal globs under "is".
+function splitWildcard(globs: string[]): {
+  values: string[];
+  wildcard: string;
+} {
+  for (const {wildcard, pattern} of WILDCARD_SHAPES) {
+    const values = globs.map(glob => glob.match(pattern)?.[1]);
+    if (values.every(value => value !== undefined)) {
+      return {wildcard, values};
+    }
+  }
+  return {wildcard: '', values: globs};
+}
+
+function conditionToToken(condition: CustomInboundFilterCondition): string {
+  const operator = condition.operator ?? 'matches';
+  const prefix = COMPARISON_PREFIXES[operator];
+  if (prefix) {
+    return `${condition.type}:${prefix}${escapeTagValue(condition.value[0] ?? '')}`;
+  }
+  const negation = operator === 'does_not_match' ? '!' : '';
+  const {wildcard, values} = splitWildcard(condition.value);
+  const text =
+    values.length === 1
+      ? escapeTagValue(values[0]!)
+      : `[${values.map(escapeTagValue).join(',')}]`;
+  return `${negation}${condition.type}:${wildcard}${text}`;
+}
+
+function conditionsToQuery(conditions: CustomInboundFilterCondition[]): string {
+  return conditions.map(conditionToToken).join(' ');
+}
+
+// Conditions match patterns the user writes, so there are no values to suggest.
+function getNoTagValues(): Promise<string[]> {
+  return Promise.resolve([]);
+}
+
+const CONDITION_QUERY_MESSAGES = {
+  ...defaultConfig.invalidMessages,
+  [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+    'Start with a property, e.g. error_message:*timeout*'
+  ),
+  [InvalidReason.LOGICAL_AND_NOT_ALLOWED]: t('Conditions already combine with AND.'),
+  [InvalidReason.LOGICAL_OR_NOT_ALLOWED]: t(
+    'OR is not supported. List several values on one property instead.'
+  ),
+};
+
+// How the table names an operator. `matches` stays implicit, as before.
+const OPERATOR_LABELS: Record<ConditionOperator, string> = {
+  matches: '',
+  does_not_match: t('does not match'),
+  gt: '>',
+  gte: '>=',
+  lt: '<',
+  lte: '<=',
+};
 
 function dataTypeOption(value: FilterDataType): DataTypeOption {
   return {value, label: DATA_TYPES[value].label};
@@ -241,35 +459,21 @@ function getAvailableDataTypeOptions(organization: Organization): DataTypeOption
   }).map(dataTypeOption);
 }
 
-function emptyCondition(property: ConditionType): ConditionFormValue {
-  return {property, value: ''};
-}
-
-// The values of a condition row, one per non-empty line of its text.
-function splitConditionValues(text: string): string[] {
-  return text
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
-}
-
-const filterSchema = z.object({
-  name: z.string().trim().min(1, t('Give the filter a name')),
-  dataType: z.enum(FILTER_DATA_TYPES),
-  conditions: z
-    .array(
-      z.object({
-        property: z.enum(CONDITION_TYPES),
-        value: z
-          .string()
-          .refine(
-            text => splitConditionValues(text).length > 0,
-            t('Enter a value to match')
-          ),
-      })
-    )
-    .min(1),
-});
+const filterSchema = z
+  .object({
+    name: z.string().trim().min(1, t('Give the filter a name')),
+    dataType: z.enum(FILTER_DATA_TYPES),
+    query: z.string(),
+  })
+  .superRefine((values, ctx) => {
+    if (!parseConditionQuery(values.query, values.dataType)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['query'],
+        message: t('Add at least one condition. Every condition must be valid.'),
+      });
+    }
+  });
 
 // An API that does not store the data type derives it the way the old backend did:
 // from the first condition that belongs to one, falling back to errors.
@@ -289,29 +493,19 @@ function getDataTypeLabel(filter: CustomInboundFilter): string {
   return spec?.tableLabel ?? spec?.label ?? dataType;
 }
 
-// One editable row per condition, with its values one per line.
 function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
-  const conditions = filter.conditions.map(condition => ({
-    property: condition.type,
-    value: condition.value.join('\n'),
-  }));
-  const dataType = getFilterDataType(filter);
   return {
     name: filter.name ?? '',
-    dataType,
-    conditions:
-      conditions.length > 0 ? conditions : [emptyCondition(getDefaultProperty(dataType))],
+    dataType: getFilterDataType(filter),
+    query: conditionsToQuery(filter.conditions),
   };
 }
 
-// Collapse the editable rows back into the API shape, one condition per row.
+// The schema already refused a query that does not translate, so this never sees one.
 function formValuesToConditions(
   values: FilterFormValues
 ): CustomInboundFilterCondition[] {
-  return values.conditions.map(condition => ({
-    type: condition.property,
-    value: splitConditionValues(condition.value),
-  }));
+  return parseConditionQuery(values.query, values.dataType) ?? [];
 }
 
 // The API answers with either `{detail: string}` or a DRF validation error, which
@@ -429,21 +623,30 @@ function ValueTag({value}: {value: string}) {
   );
 }
 
-// One condition of a filter: its property, then the values any of which matches.
+// One condition of a filter: its property, its operator unless it is the plain
+// match, then its values. A match reads "a or b"; a negated one reads "a and b",
+// as the search bar does, since the data must match none of them.
 function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}) {
   const visible = condition.value.slice(0, MAX_VISIBLE_VALUES);
   const hidden = condition.value.slice(MAX_VISIBLE_VALUES);
+  const operator = condition.operator ?? 'matches';
+  const joiner = operator === 'does_not_match' ? t('and') : t('or');
 
   return (
     <Flex wrap="wrap" gap="xs" align="center">
       <Text size="sm" variant="muted">
         {getCondition(condition.type).label}
       </Text>
+      {OPERATOR_LABELS[operator] && (
+        <Text size="sm" variant="muted">
+          {OPERATOR_LABELS[operator]}
+        </Text>
+      )}
       {visible.map((value, index) => (
         <Fragment key={index}>
           {index > 0 && (
             <Text size="xs" variant="muted">
-              {t('or')}
+              {joiner}
             </Text>
           )}
           <ValueTag value={value} />
@@ -452,7 +655,7 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
       {hidden.length > 0 && (
         <Fragment>
           <Text size="xs" variant="muted">
-            {t('or')}
+            {joiner}
           </Text>
           <Tag variant="muted">
             <InfoText
@@ -493,16 +696,11 @@ function CustomFilterModal({
 }) {
   const defaultValues = filter
     ? filterToFormValues(filter)
-    : {
-        name: '',
-        dataType: 'error' as const,
-        conditions: [emptyCondition('error_message')],
-      };
+    : {name: '', dataType: 'error' as const, query: ''};
   const modalDataTypeOptions = getModalDataTypeOptions(
     dataTypeOptions,
     filter ? defaultValues.dataType : undefined
   );
-  const theme = useTheme();
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -523,7 +721,7 @@ function CustomFilterModal({
           </Heading>
           <Text variant="muted" size="sm">
             {t(
-              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. Put one pattern per line to match any of them.'
+              'Sentry drops data that meets every condition below. Type a property, pick an operator, then enter a value. Use * in a value as a wildcard, or list several values to match any of them.'
             )}
           </Text>
         </Stack>
@@ -550,143 +748,62 @@ function CustomFilterModal({
                     clearable={false}
                     options={modalDataTypeOptions}
                     value={dataTypeField.state.value}
-                    onChange={value => {
-                      dataTypeField.handleChange(value);
-                      // Carry existing rows over to the new data type. A row
-                      // whose property the new data type does not offer falls
-                      // back to the default one; the rest stay as they are.
-                      const offered = new Set(
-                        getPropertyOptions(value).map(option => option.value)
-                      );
-                      form.setFieldValue('conditions', conditions =>
-                        conditions.map(condition =>
-                          offered.has(condition.property)
-                            ? condition
-                            : {
-                                ...condition,
-                                property: getDefaultProperty(value),
-                              }
-                        )
-                      );
-                    }}
+                    onChange={value => dataTypeField.handleChange(value)}
                   />
                 </dataTypeField.Layout.Stack>
               )}
             </form.AppField>
           </Grid>
 
-          <form.Subscribe selector={state => state.values.dataType}>
-            {dataType => (
-              <form.AppField name="conditions">
-                {conditionsField => {
-                  const conditions = conditionsField.state.value;
-                  return (
-                    <Stack gap="lg">
-                      {dataType === 'all' && (
-                        <Text variant="muted" size="sm">
-                          {t(
+          <form.Subscribe selector={state => state.values}>
+            {({dataType, query}) => (
+              <form.AppField name="query">
+                {queryField => (
+                  <queryField.Layout.Stack
+                    label={t('Conditions')}
+                    required
+                    hintText={
+                      dataType === 'all'
+                        ? t(
                             'This filter applies to every data type Sentry ingests, including ones added later. Only conditions that every data type carries are available.'
-                          )}
+                          )
+                        : undefined
+                    }
+                  >
+                    {/* The builder reads its query once, so a data type change
+                        remounts it: the query then re-parses against the keys the
+                        new data type offers and flags the rest. */}
+                    <SearchQueryBuilder
+                      key={dataType}
+                      label={t('Conditions')}
+                      initialQuery={queryField.state.value}
+                      filterKeys={getFilterKeys(dataType)}
+                      fieldDefinitionGetter={getFieldDefinitionGetter(dataType)}
+                      getTagValues={getNoTagValues}
+                      onChange={value => queryField.handleChange(value)}
+                      searchSource="custom_inbound_filter"
+                      placeholder={t('e.g. error_message:*timeout* !release:1.0')}
+                      invalidMessages={CONDITION_QUERY_MESSAGES}
+                      disallowFreeText
+                      disallowLogicalOperators
+                      disallowUnsupportedFilters
+                      showSearchIcon={false}
+                      portalTarget={document.body}
+                      disableFullWidthFilterKeyMenu
+                    />
+                    {queryField.state.meta.isTouched &&
+                      !queryField.state.meta.isValid && (
+                        <Text size="sm" variant="danger">
+                          {queryField.state.meta.errors
+                            .map(error => error?.message)
+                            .join(' ')}
                         </Text>
                       )}
-                      {/* The value textarea grows with its lines, so the row aligns
-                          to the top and the single-line cells center on the control
-                          height to line up with the first line. On a narrow screen
-                          the row folds into property, "matches", and value lines. */}
-                      <Stack gap="sm">
-                        {conditions.map((condition, index) => (
-                          <Grid
-                            key={index}
-                            areas={{
-                              zero: '"property remove" "matches matches" "value value"',
-                              md: '"property matches value remove"',
-                            }}
-                            columns={{
-                              zero: '1fr max-content',
-                              md: '160px max-content 1fr max-content',
-                            }}
-                            gap={{zero: 'xs md', md: 'md'}}
-                            align="start"
-                          >
-                            <Container area="property">
-                              <form.AppField name={`conditions[${index}].property`}>
-                                {propertyField => (
-                                  <propertyField.Select
-                                    aria-label={t('Condition property')}
-                                    clearable={false}
-                                    options={getPropertyOptions(dataType)}
-                                    value={propertyField.state.value}
-                                    onChange={value => propertyField.handleChange(value)}
-                                  />
-                                )}
-                              </form.AppField>
-                            </Container>
-                            <Flex
-                              area="matches"
-                              align="center"
-                              height={{zero: 'auto', md: theme.form.md.height}}
-                            >
-                              <InfoText
-                                variant="muted"
-                                title={getMatchDescription(condition.property, dataType)}
-                              >
-                                {t('matches')}
-                              </InfoText>
-                            </Flex>
-                            <Container area="value">
-                              <form.AppField name={`conditions[${index}].value`}>
-                                {valueField => (
-                                  <valueField.TextArea
-                                    aria-label={t('Condition value')}
-                                    placeholder={
-                                      getCondition(condition.property).placeholder
-                                    }
-                                    value={valueField.state.value}
-                                    onChange={valueField.handleChange}
-                                    monospace
-                                    autosize
-                                    rows={1}
-                                    maxRows={10}
-                                  />
-                                )}
-                              </form.AppField>
-                            </Container>
-                            <Flex
-                              area="remove"
-                              align="center"
-                              height={theme.form.md.height}
-                            >
-                              <Button
-                                size="sm"
-                                variant="transparent"
-                                icon={<IconDelete />}
-                                aria-label={t('Remove condition')}
-                                disabled={conditions.length === 1}
-                                onClick={() => conditionsField.removeValue(index)}
-                              />
-                            </Flex>
-                          </Grid>
-                        ))}
-                      </Stack>
-                      <Flex>
-                        <Button
-                          size="sm"
-                          icon={<IconAdd />}
-                          onClick={() =>
-                            conditionsField.pushValue(
-                              emptyCondition(getDefaultProperty(dataType))
-                            )
-                          }
-                        >
-                          {t('Add Condition')}
-                        </Button>
-                      </Flex>
-                      {conditions.some(condition =>
-                        RAW_ERROR_PROPERTIES.has(condition.property)
-                      ) && <ObfuscatedErrorWarning project={project} />}
-                    </Stack>
-                  );
-                }}
+                    {(parseConditionQuery(query, dataType) ?? []).some(condition =>
+                      RAW_ERROR_PROPERTIES.has(condition.type)
+                    ) && <ObfuscatedErrorWarning project={project} />}
+                  </queryField.Layout.Stack>
+                )}
               </form.AppField>
             )}
           </form.Subscribe>
@@ -725,7 +842,13 @@ const CHART_HEADROOM = 1.3;
 // the row it draws, which puts the bars of one row at a different height from the
 // next. Fixed insets hold the baseline at one height, level with the number beside
 // it, and keep the right edge clear for the mark line label.
-const CHART_GRID = {top: 6, bottom: 6, left: 0, right: 25, containLabel: false};
+const CHART_GRID = {
+  top: 6,
+  bottom: 6,
+  left: 0,
+  right: 25,
+  containLabel: false,
+};
 
 // The categories a custom filter drops data in. `error` covers default and security
 // events too, which the stats endpoint folds into it. Transactions, replays, and

@@ -49,7 +49,7 @@ describe('ProjectFilters', () => {
 
   type CustomInboundFilter = {
     active: boolean;
-    conditions: Array<{type: string; value: string[]}>;
+    conditions: Array<{type: string; value: string[]; operator?: string}>;
     dateCreated: string;
     dateUpdated: string;
     id: string;
@@ -70,6 +70,15 @@ describe('ProjectFilters', () => {
       dateUpdated: '2024-01-01T00:00:00Z',
       ...params,
     };
+  }
+
+  // Types a search query into the modal's condition builder. Paste commits every
+  // token at once. Escape would close the modal, so the key menu stays open.
+  async function enterConditions(query: string) {
+    await userEvent.click(
+      screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+    );
+    await userEvent.paste(query);
   }
 
   function renderInboundFilters(
@@ -167,7 +176,9 @@ describe('ProjectFilters', () => {
       const mock = createFilterMock(filter);
 
       await userEvent.click(
-        screen.getByRole('checkbox', {name: FILTERS[filter as keyof typeof FILTERS]})
+        screen.getByRole('checkbox', {
+          name: FILTERS[filter as keyof typeof FILTERS],
+        })
       );
       expect(mock).toHaveBeenCalledWith(
         getFilterEndpoint(filter),
@@ -224,7 +235,9 @@ describe('ProjectFilters', () => {
     );
     await waitFor(() => {
       expect(
-        screen.queryByRole('status', {name: 'Saving filters:chunk-load-error'})
+        screen.queryByRole('status', {
+          name: 'Saving filters:chunk-load-error',
+        })
       ).not.toBeInTheDocument();
     });
     expect(control).toBeChecked();
@@ -321,7 +334,9 @@ describe('ProjectFilters', () => {
       method: 'PUT',
     });
 
-    const textbox = await screen.findByRole('textbox', {name: 'IP Addresses'});
+    const textbox = await screen.findByRole('textbox', {
+      name: 'IP Addresses',
+    });
     // The IP list works on every plan, so it sits with the built-in filters above
     // the plan-gated custom filters.
     const releases = screen.getByRole('textbox', {name: 'Releases'});
@@ -343,7 +358,9 @@ describe('ProjectFilters', () => {
   it('can cancel custom filter changes', async () => {
     render(<ProjectFilters />, {
       organization,
-      outletContext: {project: {...project, features: ['custom-inbound-filters']}},
+      outletContext: {
+        project: {...project, features: ['custom-inbound-filters']},
+      },
       initialRouterConfig,
     });
 
@@ -416,7 +433,10 @@ describe('ProjectFilters', () => {
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [
-        CustomInboundFilterFixture({id: '1', name: 'Ignore flaky connection errors'}),
+        CustomInboundFilterFixture({
+          id: '1',
+          name: 'Ignore flaky connection errors',
+        }),
         CustomInboundFilterFixture({
           id: '2',
           name: 'Drop debug log spam',
@@ -511,7 +531,10 @@ describe('ProjectFilters', () => {
   });
 
   it('keeps legacy custom filter edits while a filter is created in the modal', async () => {
-    renderInboundFilters([], {...project, features: ['custom-inbound-filters']});
+    renderInboundFilters([], {
+      ...project,
+      features: ['custom-inbound-filters'],
+    });
     expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
 
     const projectMock = MockApiClient.addMockResponse({
@@ -521,7 +544,10 @@ describe('ProjectFilters', () => {
     const createMock = MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       method: 'POST',
-      body: CustomInboundFilterFixture({id: '10', name: 'Block spam messages'}),
+      body: CustomInboundFilterFixture({
+        id: '10',
+        name: 'Block spam messages',
+      }),
     });
 
     const releases = screen.getByRole('textbox', {name: 'Releases'});
@@ -533,10 +559,7 @@ describe('ProjectFilters', () => {
       within(dialog).getByRole('textbox', {name: 'Name'}),
       'Block spam messages'
     );
-    await userEvent.type(
-      within(dialog).getByRole('textbox', {name: 'Condition value'}),
-      'spam'
-    );
+    await enterConditions('error_message:spam');
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [CustomInboundFilterFixture({id: '10', name: 'Block spam messages'})],
@@ -649,14 +672,17 @@ describe('ProjectFilters', () => {
     );
   });
 
-  it('saves each line of a condition as one of its values', async () => {
+  it('saves a list of values as alternatives of one condition', async () => {
     renderInboundFilters([]);
     expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
 
     const createMock = MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       method: 'POST',
-      body: CustomInboundFilterFixture({id: '10', name: 'Block noisy messages'}),
+      body: CustomInboundFilterFixture({
+        id: '10',
+        name: 'Block noisy messages',
+      }),
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
@@ -665,11 +691,7 @@ describe('ProjectFilters', () => {
       screen.getByRole('textbox', {name: 'Name'}),
       'Block noisy messages'
     );
-    // Blank lines and surrounding whitespace are not values.
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Condition value'}),
-      '*timeout*{enter}{enter}  *refused*  {enter}'
-    );
+    await enterConditions('error_message:[*timeout*,*refused*]');
 
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
@@ -686,14 +708,20 @@ describe('ProjectFilters', () => {
           data: {
             name: 'Block noisy messages',
             dataType: 'error',
-            conditions: [{type: 'error_message', value: ['*timeout*', '*refused*']}],
+            conditions: [
+              {
+                type: 'error_message',
+                operator: 'matches',
+                value: ['*timeout*', '*refused*'],
+              },
+            ],
           },
         })
       )
     );
   });
 
-  it('shows the values of a condition as alternatives and edits them one per line', async () => {
+  it('shows the values of a condition as alternatives and edits them as one list', async () => {
     renderInboundFilters([
       CustomInboundFilterFixture({
         id: '1',
@@ -717,15 +745,19 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
     expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
-    expect(screen.getAllByRole('textbox', {name: 'Condition value'})).toHaveLength(1);
-    expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue(
-      '1.*\n2.*\n3.*\n4.*\n5.*'
-    );
+    // Globs of one shape fold into the matching operator: `1.*` is "starts with 1.".
+    expect(
+      screen.getByRole('button', {name: 'Edit operator for filter: release'})
+    ).toHaveTextContent('starts with');
+    expect(
+      screen.getByRole('row', {name: /release:.*\[1\.,2\.,3\.,4\.,5\.\]/})
+    ).toBeInTheDocument();
   });
 
   it('keeps a condition type it does not know', async () => {
     // A newer deploy can store a condition type this bundle has no description
-    // for. It has to stay visible and editable, not break the page or the modal.
+    // for. It has to stay visible in the table and in the modal, where the builder
+    // flags it, instead of breaking the page.
     renderInboundFilters([
       CustomInboundFilterFixture({
         id: '1',
@@ -740,7 +772,10 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
     expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue('*boom*');
+    expect(screen.getByRole('row', {name: /error_value:.*boom/})).toHaveAttribute(
+      'aria-invalid',
+      'true'
+    );
   });
 
   it('shows an error when the filters fail to load', async () => {
@@ -761,13 +796,21 @@ describe('ProjectFilters', () => {
 
   it('toggles a filter active state via the API', async () => {
     renderInboundFilters([
-      CustomInboundFilterFixture({id: '1', name: 'Active filter', active: true}),
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Active filter',
+        active: true,
+      }),
     ]);
 
     const toggleMock = MockApiClient.addMockResponse({
       url: `${CUSTOM_INBOUND_FILTERS_URL}1/`,
       method: 'PUT',
-      body: CustomInboundFilterFixture({id: '1', name: 'Active filter', active: false}),
+      body: CustomInboundFilterFixture({
+        id: '1',
+        name: 'Active filter',
+        active: false,
+      }),
     });
 
     await userEvent.click(await screen.findByRole('checkbox', {name: 'Disable filter'}));
@@ -787,7 +830,10 @@ describe('ProjectFilters', () => {
     const createMock = MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       method: 'POST',
-      body: CustomInboundFilterFixture({id: '10', name: 'Block spam messages'}),
+      body: CustomInboundFilterFixture({
+        id: '10',
+        name: 'Block spam messages',
+      }),
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
@@ -796,7 +842,7 @@ describe('ProjectFilters', () => {
       screen.getByRole('textbox', {name: 'Name'}),
       'Block spam messages'
     );
-    await userEvent.type(screen.getByRole('textbox', {name: 'Condition value'}), 'spam');
+    await enterConditions('error_message:spam');
 
     // Override the list response so the post-create refetch shows the new filter
     MockApiClient.addMockResponse({
@@ -814,7 +860,7 @@ describe('ProjectFilters', () => {
           data: {
             name: 'Block spam messages',
             dataType: 'error',
-            conditions: [{type: 'error_message', value: ['spam']}],
+            conditions: [{type: 'error_message', operator: 'matches', value: ['spam']}],
           },
         })
       )
@@ -829,7 +875,10 @@ describe('ProjectFilters', () => {
     const createMock = MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       method: 'POST',
-      body: CustomInboundFilterFixture({id: '10', name: 'Undefined type errors'}),
+      body: CustomInboundFilterFixture({
+        id: '10',
+        name: 'Undefined type errors',
+      }),
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
@@ -838,19 +887,7 @@ describe('ProjectFilters', () => {
       screen.getByRole('textbox', {name: 'Name'}),
       'Undefined type errors'
     );
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Condition value'}),
-      '*undefined*'
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Add Condition'}));
-    const [, secondProperty] = screen.getAllByRole('textbox', {
-      name: 'Condition property',
-    });
-    await userEvent.click(secondProperty!);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Error Type'}));
-    const [, secondValue] = screen.getAllByRole('textbox', {name: 'Condition value'});
-    await userEvent.type(secondValue!, 'TypeError');
+    await enterConditions('error_message:*undefined* error_type:TypeError');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
 
@@ -863,8 +900,12 @@ describe('ProjectFilters', () => {
             name: 'Undefined type errors',
             dataType: 'error',
             conditions: [
-              {type: 'error_message', value: ['*undefined*']},
-              {type: 'error_type', value: ['TypeError']},
+              {
+                type: 'error_message',
+                operator: 'matches',
+                value: ['*undefined*'],
+              },
+              {type: 'error_type', operator: 'matches', value: ['TypeError']},
             ],
           },
         })
@@ -880,12 +921,14 @@ describe('ProjectFilters', () => {
       url: CUSTOM_INBOUND_FILTERS_URL,
       method: 'POST',
       statusCode: 400,
-      body: {detail: 'Log message filters are not enabled for this organization.'},
+      body: {
+        detail: 'Log message filters are not enabled for this organization.',
+      },
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Bad filter');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Condition value'}), 'x');
+    await enterConditions('error_message:x');
     await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
 
     await waitFor(() => expect(createMock).toHaveBeenCalled());
@@ -909,12 +952,14 @@ describe('ProjectFilters', () => {
       method: 'POST',
       statusCode: 400,
       // The DRF shape: one entry per condition, messages under the field name.
-      body: {conditions: [{}, {value: ['10.0.0.* is not an IP address or CIDR range.']}]},
+      body: {
+        conditions: [{}, {value: ['10.0.0.* is not an IP address or CIDR range.']}],
+      },
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Block the office');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Condition value'}), 'x');
+    await enterConditions('error_message:x');
     await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
 
     await waitFor(() => expect(createMock).toHaveBeenCalled());
@@ -961,7 +1006,13 @@ describe('ProjectFilters', () => {
           data: {
             name: 'Updated name',
             dataType: 'error',
-            conditions: [{type: 'error_message', value: ['*Error*']}],
+            conditions: [
+              {
+                type: 'error_message',
+                operator: 'matches',
+                value: ['*Error*'],
+              },
+            ],
           },
         })
       )
@@ -974,21 +1025,15 @@ describe('ProjectFilters', () => {
     expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'IP Address'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Condition value'}),
-      '10.0.0.0/8'
-    );
+    await enterConditions('ip_address:10.0.0.0/8');
 
-    // Every data type carries the client IP, so the row survives the switch the
-    // way a release row does, instead of collapsing to the default property.
+    // Every data type carries the client IP, so the condition stays valid after
+    // the switch, the way a release condition does.
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Spans'}));
-    const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText('IP Address')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue(
-      '10.0.0.0/8'
+    expect(screen.getByRole('row', {name: 'ip_address:10.0.0.0/8'})).toHaveAttribute(
+      'aria-invalid',
+      'false'
     );
   });
 
@@ -1011,8 +1056,12 @@ describe('ProjectFilters', () => {
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
     expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Log Message'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
+
+    await userEvent.click(
+      screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+    );
+    expect(await screen.findByRole('option', {name: 'log_message'})).toBeInTheDocument();
   });
 
   it('deletes a filter', async () => {
@@ -1109,70 +1158,94 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     // Data type defaults to Errors, so even with all ingestion features
-    // enabled the property dropdown only offers error properties.
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    // enabled the key menu only offers error properties.
+    await userEvent.click(
+      screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+    );
 
     expect(
-      screen.getByRole('menuitemradio', {name: 'Error Message'})
+      await screen.findByRole('option', {name: 'error_message'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Error Type'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Country'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'IP Address'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Metric Name'})
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Log Message'})
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'error_type'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'geo_country_code'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'ip_address'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'metric_name'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'log_message'})).not.toBeInTheDocument();
   });
 
-  it('explains which fields a condition matches', async () => {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [],
-    });
-    render(<ProjectFilters />, {
-      organization: OrganizationFixture({
-        ...organization,
-        features: ['inbound-filters-v2', 'inbound-filters-v2-ui', 'ourlogs-ingestion'],
+  it('round-trips operators between the table, the query, and the API', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Old or odd releases',
+        conditions: [
+          {
+            type: 'release',
+            operator: 'does_not_match',
+            value: ['2.*', '3.*'],
+          },
+          {type: 'release', operator: 'lt', value: ['2.0.0']},
+          {type: 'error_message', value: ['*timeout*']},
+        ],
       }),
-      outletContext: {project},
-      initialRouterConfig,
+    ]);
+
+    expect(await screen.findByText('Old or odd releases')).toBeInTheDocument();
+    // A negated list reads with "and": the release must match none of them.
+    expect(screen.getByText('does not match')).toBeInTheDocument();
+    expect(screen.getByText('and')).toBeInTheDocument();
+    expect(screen.getByText('<')).toBeInTheDocument();
+
+    const editMock = MockApiClient.addMockResponse({
+      url: `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+      method: 'PUT',
+      body: CustomInboundFilterFixture({
+        id: '1',
+        name: 'Old or odd releases',
+      }),
     });
-    renderGlobalModal();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
-
-    await userEvent.hover(screen.getByText('matches'));
+    await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
+    expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
     expect(
-      await screen.findByText(/Matches the exception message of an error/)
+      screen.getByRole('row', {name: /^!release:.*\[2\.,3\.\]$/})
     ).toBeInTheDocument();
-
-    // Error Type and Error Message each glob one field, so each carries its own
-    // explanation.
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Error Type'}));
-    await userEvent.hover(screen.getByText('matches'));
+    expect(screen.getByRole('row', {name: 'release:<2.0.0'})).toBeInTheDocument();
+    // A glob of the shape `*x*` shows as the "contains" operator.
     expect(
-      await screen.findByText(/Matches the exception type of an error/)
-    ).toBeInTheDocument();
+      screen.getByRole('button', {
+        name: 'Edit operator for filter: error_message',
+      })
+    ).toHaveTextContent('contains');
 
-    // Release lives on a different field per data type, so the explanation
-    // follows the selected data type.
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
-    await userEvent.hover(screen.getByText('matches'));
-    expect(
-      await screen.findByText('Matches the release of the error.')
-    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
-    await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
-    await userEvent.hover(screen.getByText('matches'));
-    expect(
-      await screen.findByText('Matches the release attribute of the log.')
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(editMock).toHaveBeenCalledWith(
+        `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            name: 'Old or odd releases',
+            dataType: 'error',
+            conditions: [
+              {
+                type: 'release',
+                operator: 'does_not_match',
+                value: ['2.*', '3.*'],
+              },
+              {type: 'release', operator: 'lt', value: ['2.0.0']},
+              {
+                type: 'error_message',
+                operator: 'matches',
+                value: ['*timeout*'],
+              },
+            ],
+          },
+        })
+      )
+    );
   });
 
   it('warns in the modal when an error condition targets an obfuscated platform', async () => {
@@ -1181,14 +1254,15 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    expect(screen.queryByRole('link', warningLink)).not.toBeInTheDocument();
+
+    await enterConditions('error_type:TypeError');
     expect(screen.getByRole('link', warningLink)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Error Type'}));
-    expect(screen.getByRole('link', warningLink)).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Remove filter: error_type'})
+    );
+    await enterConditions('release:1.0');
     expect(screen.queryByRole('link', warningLink)).not.toBeInTheDocument();
   });
 
@@ -1198,7 +1272,9 @@ describe('ProjectFilters', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', {name: 'Learn how to match the incoming error.'})
+      screen.queryByRole('link', {
+        name: 'Learn how to match the incoming error.',
+      })
     ).not.toBeInTheDocument();
   });
 
@@ -1220,22 +1296,21 @@ describe('ProjectFilters', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'All Data Types'}));
 
     // The catch-all can only match a field every data type carries, so the
-    // property dropdown narrows to those and the note says why.
+    // key menu narrows to those and the note says why.
     expect(
       screen.getByText(/applies to every data type Sentry ingests/)
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'IP Address'})).toBeInTheDocument();
+    await userEvent.click(
+      screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+    );
+    expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'ip_address'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'error_message'})).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('menuitemradio', {name: 'Error Message'})
+      screen.queryByRole('option', {name: 'geo_country_code'})
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Country'})
-    ).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Condition value'}), '1.2.*');
+    await userEvent.paste('release:1.2.*');
     await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
 
     await waitFor(() =>
@@ -1246,7 +1321,7 @@ describe('ProjectFilters', () => {
           data: {
             name: 'Bad release',
             dataType: 'all',
-            conditions: [{type: 'release', value: ['1.2.*']}],
+            conditions: [{type: 'release', operator: 'matches', value: ['1.2.*']}],
           },
         })
       )
@@ -1294,26 +1369,7 @@ describe('ProjectFilters', () => {
     expect(screen.getByText('Errors')).toBeInTheDocument();
   });
 
-  it('explains the release condition of a catch-all filter', async () => {
-    renderInboundFilters([
-      CustomInboundFilterFixture({
-        id: '1',
-        name: 'Every data type',
-        dataType: 'all',
-        conditions: [{type: 'release', value: ['1.*']}],
-      }),
-    ]);
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
-    expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
-
-    await userEvent.hover(screen.getByText('matches'));
-    expect(
-      await screen.findByText('Matches the release of any data type.')
-    ).toBeInTheDocument();
-  });
-
-  it('remaps condition properties when the data type changes', async () => {
+  it('flags conditions the new data type does not offer', async () => {
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [],
@@ -1334,15 +1390,21 @@ describe('ProjectFilters', () => {
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
-    const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('Error Message')).toBeInTheDocument();
+    await enterConditions('error_message:boom');
+    expect(screen.getByRole('row', {name: 'error_message:boom'})).toHaveAttribute(
+      'aria-invalid',
+      'false'
+    );
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Metrics'}));
 
-    // The existing condition row is remapped to the new type's primary property
-    expect(within(dialog).getByText('Metric Name')).toBeInTheDocument();
-    expect(within(dialog).queryByText('Error Message')).not.toBeInTheDocument();
+    // Metrics carry no error message, so the condition stays for the user to fix
+    // and blocks the save until then.
+    expect(screen.getByRole('row', {name: 'error_message:boom'})).toHaveAttribute(
+      'aria-invalid',
+      'true'
+    );
   });
 
   it('disables custom filter controls without project:write access', async () => {
@@ -1413,7 +1475,10 @@ describe('ProjectFilters', () => {
       ...project,
       features: ['discard-groups'],
     });
-    const discardOrg = OrganizationFixture({access: [], features: ['discard-groups']});
+    const discardOrg = OrganizationFixture({
+      access: [],
+      features: ['discard-groups'],
+    });
 
     render(<ProjectFilters />, {
       organization: discardOrg,
