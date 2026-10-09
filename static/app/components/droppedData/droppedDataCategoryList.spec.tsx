@@ -1,6 +1,6 @@
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   droppedEventsToCategorySections,
@@ -203,31 +203,6 @@ describe('DroppedDataCategoryList', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the raw reason and outcome codes only when hovering the title', async () => {
-    render(
-      <DroppedDataCategoryList
-        droppedEvents={[
-          DroppedEventFixture({
-            outcome: 'client_discard',
-            reason: 'queue_overflow',
-            start: 0,
-            end: 60_000,
-            count: 5,
-          }),
-        ]}
-        acceptedEvents={[]}
-      />
-    );
-
-    expect(screen.queryByText('queue_overflow')).not.toBeInTheDocument();
-    expect(screen.queryByText('client_discard')).not.toBeInTheDocument();
-
-    await userEvent.hover(screen.getByText('SDK queue overflow'));
-
-    expect(await screen.findByText('queue_overflow')).toBeInTheDocument();
-    expect(screen.getByText('client_discard')).toBeInTheDocument();
-  });
-
   it('collapses and expands a section when the header is clicked', async () => {
     render(
       <DroppedDataCategoryList
@@ -251,5 +226,105 @@ describe('DroppedDataCategoryList', () => {
 
     await userEvent.click(screen.getByText('Invalid or malformed'));
     expect(screen.getByText('Malformed JSON payload')).toBeInTheDocument();
+  });
+
+  it('reveals the fix options under a reason row via its chevron', async () => {
+    render(
+      <DroppedDataCategoryList
+        droppedEvents={[
+          DroppedEventFixture({
+            category: 'span',
+            outcome: 'rate_limited',
+            reason: 'smart_rate_limit',
+            start: 0,
+            end: 60_000,
+            count: 10,
+          }),
+        ]}
+        acceptedEvents={[]}
+      />
+    );
+
+    // The fix-this affordance is hidden until the reason chevron is clicked.
+    expect(screen.queryByRole('button', {name: 'Fix this'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
+
+    expect(screen.getByRole('button', {name: 'Fix this'})).toBeInTheDocument();
+
+    // Collapsing hides it again.
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
+    expect(screen.queryByRole('button', {name: 'Fix this'})).not.toBeInTheDocument();
+
+    // The toggle is reachable from the keyboard.
+    act(() => screen.getByRole('button', {name: 'Toggle fix options'}).focus());
+    await userEvent.keyboard('{Enter}');
+    expect(screen.getByRole('button', {name: 'Fix this'})).toBeInTheDocument();
+  });
+
+  it('opens the fix-this menu with investigate, settings, and docs entries', async () => {
+    const onInvestigate = jest.fn();
+    render(
+      <DroppedDataCategoryList
+        droppedEvents={[
+          DroppedEventFixture({
+            category: 'span',
+            outcome: 'rate_limited',
+            reason: 'smart_rate_limit',
+            start: 0,
+            end: 60_000,
+            count: 10,
+          }),
+        ]}
+        acceptedEvents={[]}
+        onInvestigate={onInvestigate}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
+
+    // Project settings deep-links to the usage stats page scoped to the
+    // reason's data category.
+    expect(screen.getByRole('menuitemradio', {name: 'Project Settings'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/stats/?dataCategory=spans')
+    );
+
+    expect(screen.getByRole('menuitemradio', {name: 'Go to Docs'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('docs.sentry.io')
+    );
+
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigate'}));
+    expect(onInvestigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides investigate when there is no Seer hand-off', async () => {
+    render(
+      <DroppedDataCategoryList
+        droppedEvents={[
+          DroppedEventFixture({
+            category: 'span',
+            outcome: 'rate_limited',
+            reason: 'smart_rate_limit',
+            start: 0,
+            end: 60_000,
+            count: 10,
+          }),
+        ]}
+        acceptedEvents={[]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
+
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Project Settings'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Investigate'})
+    ).not.toBeInTheDocument();
   });
 });
