@@ -2314,11 +2314,6 @@
       "count": 1
     }
   },
-  "static/app/views/insights/uptime/components/overviewTimeline/overviewRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/integrationOrganizationLink/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
