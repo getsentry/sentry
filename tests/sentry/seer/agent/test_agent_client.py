@@ -1629,7 +1629,7 @@ class TestStartFeatureRun(TestCase):
         assert run.seer_run_state_id is None
 
     def test_access_gate_blocks_dispatch(self) -> None:
-        # No gen-ai-features -> client construction raises before any run is created.
+        # No Seer access -> client construction raises before any run is created.
         with pytest.raises(SeerPermissionError):
             SeerAgentClient(self.organization, self.user)
         assert not SeerRun.objects.filter(organization=self.organization).exists()
@@ -1693,7 +1693,7 @@ class TestStartFeatureRun(TestCase):
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     @with_feature("organizations:seer-explorer-allow-bash-mode")
     def test_forwards_bash_mode(self, mock_request, _mock_access) -> None:
-        client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
+        client = SeerAgentClient(self.organization, self.user, enable_bash_mode=True)
         run = client.start_feature_run(
             feature_id="night_shift",
             payload={},
@@ -1710,7 +1710,7 @@ class TestStartFeatureRun(TestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_omits_bash_mode_without_org_flag(self, mock_request, _mock_access) -> None:
-        client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
+        client = SeerAgentClient(self.organization, self.user, enable_bash_mode=True)
         run = client.start_feature_run(
             feature_id="night_shift",
             payload={},
@@ -1793,7 +1793,7 @@ class TestContinueFeatureRun(TestCase):
     def test_merges_client_and_caller_options(self, mock_request, _mock_access) -> None:
         mock_request.return_value = Mock(status=200)
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=456)
-        client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
+        client = SeerAgentClient(self.organization, self.user, enable_bash_mode=True)
 
         client.continue_feature_run(
             existing_agent_run=self.create_seer_agent_run(run=run, source="autofix"),

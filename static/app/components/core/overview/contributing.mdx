@@ -48,7 +48,7 @@ Once you have a local development environment setup, run `pnpm run dev-ui` to ru
 
 # Contributing to Design Tokens
 
-Design tokens are the design system's atomic values: colors, spacing, typography, motion, and more. They're defined in the `static/app/utils/theme/scraps/` directory.
+Design tokens are the design system's atomic values: colors, spacing, typography, motion, and more. They're defined in the `static/packages/scraps/src/` directory.
 
 ## For Most Engineers and Designers
 
@@ -75,7 +75,7 @@ If you're maintaining design tokens, Figma is our **single source of truth**. To
    pnpm --filter @scraps/tokens run build
    ```
 
-3. **Deploy to Sentry** by copying `/packages/tokens/dist` to `static/app/utils/theme/scraps/` in the `getsentry/sentry` repository
+3. **Deploy to Sentry** by copying `/packages/tokens/dist` to `static/packages/scraps/src/` in the `getsentry/sentry` repository
 
 For detailed instructions, see the [tokens CONTRIBUTING.md](https://github.com/getsentry/design-engineering/blob/main/packages/tokens/CONTRIBUTING.md) in the `design-engineering` repo.
 
@@ -107,6 +107,7 @@ All `.mdx` files should include frontmatter with metadata about the component. T
 ---
 title: My Button
 description: MyButton is a clickable element that triggers an action.
+category: buttons
 source: '@sentry/scraps/myButton'
 # Optionally include links to Figma, source code, accessibility resources, and further resources:
 resources:
@@ -125,8 +126,11 @@ resources:
 - `title`: The display name of the component or pattern
 - `description`: A brief description of what the component does
 
+Core component pages must also set `category`. Use one of `layout`, `typography`, `buttons`, `controls`, `forms`, `navigation`, `feedback`, `status`, `display`, `chat`, or `overlays`. Overview, principle, and pattern pages omit `category` because their directory determines their section.
+
 **Optional fields:**
 
+- `keywords`: Aliases that should find this page in search, such as `[colors, palette]` for Tokens
 - `layout`: Use `document` for principle/pattern pages
 - `source`: Path to the component source code
 - `status`: Use `in-progress` for incomplete documentation

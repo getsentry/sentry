@@ -1,5 +1,5 @@
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import DEFAULT, MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
@@ -43,6 +43,7 @@ from sentry.issues.action_log.types import (
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
@@ -51,6 +52,7 @@ from sentry.testutils.helpers.action_log import CapturedAction, capture_action_l
 from sentry.testutils.outbox import outbox_runner
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.utils.locking import UnableToAcquireLock
 
 
 def _make_request(
@@ -464,6 +466,15 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
         )
         self.base_url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{self.integration.id}/"
 
+    def _assert_link_locked(self, *args: Any, **kwargs: Any) -> Any:
+        with pytest.raises(UnableToAcquireLock):
+            with locks.get(
+                f"external-issue-link:{self.organization.id}:{self.integration.id}:APP-123",
+                duration=300,
+            ).acquire():
+                pass
+        return DEFAULT
+
     def test_create_external_issue_emits_action(self) -> None:
         with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
             response = self.client.post(
@@ -473,11 +484,26 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
         log.assert_logged(CreateExternalIssueAction, group_id=self.group.id, provider="example")
 
     def test_link_external_issue_emits_action(self) -> None:
-        with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
+        with (
+            capture_action_log() as log,
+            self.feature("organizations:integrations-issue-basic"),
+            patch.object(
+                Activity.objects,
+                "create",
+                wraps=Activity.objects.create,
+                side_effect=self._assert_link_locked,
+            ) as create_activity,
+            patch(
+                "sentry.issues.endpoints.group_integration_details.publish_action",
+                wraps=publish_action,
+                side_effect=self._assert_link_locked,
+            ),
+        ):
             response = self.client.put(
                 self.base_url, data={"externalIssue": "APP-123"}, format="json"
             )
         assert response.status_code == 201
+        create_activity.assert_called_once()
         log.assert_logged(LinkExternalIssueAction, group_id=self.group.id)
 
     def test_unlink_external_issue_emits_action(self) -> None:
@@ -496,7 +522,15 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
             linked_id=external_issue.id,
             relationship=GroupLink.Relationship.references,
         )
-        with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
+        with (
+            capture_action_log() as log,
+            self.feature("organizations:integrations-issue-basic"),
+            patch(
+                "sentry.issues.endpoints.group_integration_details.publish_action",
+                wraps=publish_action,
+                side_effect=self._assert_link_locked,
+            ),
+        ):
             response = self.client.delete(
                 f"{self.base_url}?externalIssue={external_issue.id}", format="json"
             )
@@ -600,9 +634,8 @@ class TestPublishActionWrite(TestCase):
         )
 
     @patch("sentry.issues.action_log.publish.secrets.randbelow", return_value=12344)
-    def test_outbox_identifier_can_use_secure_random_value(self, mock_randbelow: MagicMock) -> None:
+    def test_outbox_identifier_uses_secure_random_value(self, mock_randbelow: MagicMock) -> None:
         with (
-            self.options({"issues.action_log.use_db_sequence_for_outbox_identifier": False}),
             self.feature("projects:issue-action-log-write-to-db"),
             outbox_context(flush=False),
         ):
@@ -616,28 +649,6 @@ class TestPublishActionWrite(TestCase):
         outbox = GroupActionLogOutbox.objects.get()
         assert outbox.object_identifier == 12345
         mock_randbelow.assert_called_once_with(2**63 - 1)
-
-    @patch(
-        "sentry.issues.models.groupactionlogoutbox.GroupActionLogOutbox.next_object_identifier",
-        return_value=67890,
-    )
-    def test_outbox_identifier_uses_db_sequence_by_default(
-        self, mock_next_object_identifier: MagicMock
-    ) -> None:
-        with (
-            self.feature("projects:issue-action-log-write-to-db"),
-            outbox_context(flush=False),
-        ):
-            publish_action(
-                ViewAction(),
-                source=ActionSource.API,
-                group_id=self.group.id,
-                project=self.group.project,
-            )
-
-        outbox = GroupActionLogOutbox.objects.get()
-        assert outbox.object_identifier == 67890
-        mock_next_object_identifier.assert_called_once_with()
 
     def test_outbox_flushes_on_commit(self) -> None:
         with (
@@ -873,3 +884,22 @@ class TestActivitiesCreateActions(TestCase):
         caption = cast(CapturedAction, log.assert_logged(SetResolvedByAgeAction))
         action: SetResolvedByAgeAction = cast(SetResolvedByAgeAction, caption.action)
         assert action.auto_resolve_age_threshold == 123
+
+    def test_smart_assignment_completed_creates_log_entry(self) -> None:
+        data = {
+            "run_id": 123,
+            "run_uuid": "00000000-0000-0000-0000-000000000001",
+            "predicted_assignee_user_ids": [456, None],
+        }
+
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
+                data=data,
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.type == GroupActionType.SMART_ASSIGNMENT_COMPLETED
+        assert entry.data == data

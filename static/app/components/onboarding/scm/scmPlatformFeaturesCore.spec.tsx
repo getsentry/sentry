@@ -25,6 +25,7 @@ jest.mock('@tanstack/react-virtual', () => ({
         size: 36,
       })),
     getTotalSize: () => count * 36,
+    measure: jest.fn(),
     measureElement: jest.fn(),
     scrollToIndex: jest.fn(),
   })),
@@ -87,7 +88,8 @@ describe('ScmPlatformFeaturesCore', () => {
   it('renders the manual platform picker when no repository is connected', () => {
     render(<ScmPlatformFeaturesCore {...defaultProps()} />, {organization});
 
-    expect(screen.getByText('Select a platform')).toBeInTheDocument();
+    expect(screen.getByText('Python')).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
   });
 
   it('fires step_viewed analytics in onboarding on mount', () => {
@@ -265,6 +267,72 @@ describe('ScmPlatformFeaturesCore', () => {
     expect(onFeaturesChange).toHaveBeenCalledWith(undefined);
   });
 
+  it('moves focus with the view when switching between detected and manual pickers', async () => {
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore {...defaultProps({selectedRepository: repository})} />,
+      {organization}
+    );
+
+    // Each switch unmounts the button that was activated, so the incoming
+    // view's control takes focus instead of the body.
+    await userEvent.click(
+      await screen.findByRole('button', {name: "Not what you're building? Pick another"})
+    );
+    expect(screen.getByRole('textbox', {name: 'Platform'})).toHaveFocus();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
+    expect(screen.getByRole('radio', {name: /Python/})).toHaveFocus();
+  });
+
+  it('does not move focus to a card that detection mounts after the return', async () => {
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    let finishDetection!: () => void;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+      asyncDelay: new Promise<void>(resolve => {
+        finishDetection = resolve;
+      }),
+    });
+
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({selectedRepository: repository, selectedPlatform: undefined})}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Skip detection and select manually'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
+    // The cards are not mounted while detection is pending, so the view's
+    // only control takes focus.
+    const skipButton = screen.getByRole('button', {
+      name: 'Skip detection and select manually',
+    });
+    expect(skipButton).toHaveFocus();
+
+    // Detection finishing is not a user action, so the cards it mounts must
+    // not pull focus from the user's current position.
+    await userEvent.tab();
+    expect(skipButton).not.toHaveFocus();
+    finishDetection();
+    expect(await screen.findByRole('radio', {name: /Python/})).not.toHaveFocus();
+  });
+
   it('does not offer a clear button when a platform was auto-detected', async () => {
     const repository = RepositoryFixture({
       id: '123',
@@ -282,14 +350,14 @@ describe('ScmPlatformFeaturesCore', () => {
 
     // Detection resolves to the auto-detected view; switch into the manual picker.
     await userEvent.click(
-      await screen.findByRole('button', {name: "Doesn't look right? Change platform"})
+      await screen.findByRole('button', {name: "Not what you're building? Pick another"})
     );
 
     // The manual picker is showing (with a route back to the recommendation),
     // but the clear control is suppressed: clearing would desync the picker from
     // the detected fallback.
     expect(
-      screen.getByRole('button', {name: 'Back to recommended platforms'})
+      screen.getByRole('button', {name: 'Back to what we found'})
     ).toBeInTheDocument();
     expect(screen.queryByTestId('icon-close')).not.toBeInTheDocument();
   });
@@ -330,23 +398,17 @@ describe('ScmPlatformFeaturesCore', () => {
     render(<Host />, {organization});
 
     // Select the second detected platform, then open the manual picker.
+    await userEvent.click(await screen.findByRole('radio', {name: 'Browser JavaScript'}));
     await userEvent.click(
-      await screen.findByRole('radio', {name: 'Browser JavaScript Language'})
-    );
-    await userEvent.click(
-      screen.getByRole('button', {name: "Doesn't look right? Change platform"})
+      screen.getByRole('button', {name: "Not what you're building? Pick another"})
     );
     onFeaturesChange.mockClear();
 
     // Returning keeps the chosen detected platform: it is already detected, so
     // nothing is reset and the card stays selected.
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Back to recommended platforms'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
 
-    expect(
-      await screen.findByRole('radio', {name: 'Browser JavaScript Language'})
-    ).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Browser JavaScript'})).toBeChecked();
     expect(onFeaturesChange).not.toHaveBeenCalled();
   });
 
@@ -376,11 +438,9 @@ describe('ScmPlatformFeaturesCore', () => {
     // Open the manual picker from the detected view, then return without
     // choosing a different platform.
     await userEvent.click(
-      await screen.findByRole('button', {name: "Doesn't look right? Change platform"})
+      await screen.findByRole('button', {name: "Not what you're building? Pick another"})
     );
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Back to recommended platforms'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
 
     expect(onFeaturesChange).not.toHaveBeenCalled();
   });
@@ -415,9 +475,7 @@ describe('ScmPlatformFeaturesCore', () => {
     // Wait for detection so the detected fallback (python) is available.
     await waitFor(() => expect(detectionRequest).toHaveBeenCalled());
 
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Back to recommended platforms'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Back to what we found'}));
 
     // Leaving the manual pick reverts to the detected platform and records the
     // selection with the detected source.

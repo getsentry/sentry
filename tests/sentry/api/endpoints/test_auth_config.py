@@ -60,7 +60,24 @@ class AuthConfigEndpointTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data["nextUri"] == "/auth/login/sentry/"
+        assert response.data == {
+            "canRegister": False,
+            "hasNewsletter": False,
+            "pendingMfa": None,
+            "serverHostname": "testserver",
+            "singleOrganizationSlug": "sentry",
+        }
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    @assume_test_silo_mode(SiloMode.MONOLITH)
+    def test_authenticated_single_org(self) -> None:
+        create_default_projects()
+        self.login_as(self.create_user("user@example.com"))
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert set(response.data) == {"nextUri"}
 
     def test_superuser_is_not_redirected(self) -> None:
         user = self.create_user("foo@example.com", is_superuser=True)

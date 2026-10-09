@@ -50,11 +50,11 @@ from sentry.issues.action_log import ActionSource, GroupActionActor, action_cont
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
-from sentry.models.rule import Rule
+from sentry.notifications.utils.rules import get_notification_origins
 from sentry.services import eventstore
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 
@@ -62,6 +62,7 @@ from .card_builder.block import AdaptiveCard
 from .card_builder.help import (
     build_help_command_card,
     build_mentioned_card,
+    build_missing_installation_card,
     build_unrecognized_command_card,
 )
 from .card_builder.identity import (
@@ -182,6 +183,19 @@ def verify_signature(request) -> bool:
     return True
 
 
+def _is_next_release_error(body: Any) -> bool:
+    """
+    Recognize the 400 the issue update API answers with when the release is not configured.
+
+    The body is whatever that endpoint responded with, and it is not always a mapping: a
+    `ValidationError` raised on a bare string serializes to a list.
+    """
+    if not isinstance(body, dict):
+        return False
+    status_details = body.get("statusDetails")
+    return isinstance(status_details, dict) and bool(status_details.get("inNextRelease"))
+
+
 class MsTeamsEvents(Enum):
     INSTALLATION_UPDATE = "installationUpdate"
     MESSAGE = "message"
@@ -260,7 +274,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "service_url": service_url,
             "user_id": user_id,
             "tenant_id": tenant_id,
-            "conversation_id": team_id,
+            "conversation_id": data.get("conversation", {}).get("id", team_id),
             "external_id": team_id,
             "external_name": team_name,
             "installation_type": "team",
@@ -276,6 +290,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 extra={"request_data": data},
             )
             return self.respond({"details": f"{action} is currently not supported"}, status=204)
+
+        conversation_type = data.get("conversation", {}).get("conversationType")
+        team = data.get("channelData", {}).get("team")
+        if conversation_type != "channel" or not team:
+            logger.info(
+                "sentry.integrations.msteams.webhooks: Non-team installation ignored",
+                extra={"request_data": data},
+            )
+            return self.respond(status=204)
 
         try:
             installation_params = self._get_team_installation_request_data(data=data)
@@ -325,7 +348,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         event = channel_data.get("eventType")
 
         if event == "teamMemberAdded":
-            return self._handle_team_member_added(request)
+            # Teams also sends installationUpdate/add for a team install. Handle the setup card
+            # there so one installation does not produce duplicate messages.
+            return self.respond(status=204)
         elif event == "teamMemberRemoved":
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 return self.respond(status=400)
@@ -344,6 +369,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         return verify_signature(request)
 
     def _handle_personal_member_add(self, request: Request):
+        if not options.get("msteams.personal-installation-link.enabled"):
+            return self.respond(status=204)
+
         data = request.data
         data["conversation_id"] = data["conversation"]["id"]
         tenant_id = data["conversation"]["tenantId"]
@@ -354,19 +382,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "installation_type": "tenant",
         }
         return self._handle_member_add(data, params, build_personal_installation_message)
-
-    def _handle_team_member_added(self, request: Request) -> Response:
-        data = request.data
-        team = data["channelData"]["team"]
-        data["conversation_id"] = team["id"]
-
-        params = {
-            "external_id": team["id"],
-            "external_name": team["name"],
-            "installation_type": "team",
-        }
-
-        return self._handle_member_add(data, params, build_team_installation_message)
 
     def _handle_member_add(
         self,
@@ -540,10 +555,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 # If the user hasn't configured their releases properly, we recieve errors like:
                 # sentry.api.client.ApiError: status=400 body={'statusDetails': {'inNextRelease': [xxx])]}}"
                 # We can mark these as halt
-                elif e.status_code == 400 and e.body.get("statusDetails", {}).get("inNextRelease"):
+                elif e.status_code == 400 and _is_next_release_error(e.body):
                     lifecycle.record_halt(e)
                 elif e.status_code >= 400:
                     lifecycle.record_failure(e)
+                # Answer with the status the API gave us. Leaving `response` unset raised
+                # `UnboundLocalError` instead, so every rejected action came back as a 500 that
+                # the webhook drain treats as retryable, holding the tenant's mailbox behind a
+                # record that can only fail again.
+                response = self.respond(status=e.status_code)
             return response
 
     def _handle_action_submitted(self, request: Request) -> Response:
@@ -553,7 +573,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         tenant_id = channel_data["tenant"]["id"]
         payload = data["value"]["payload"]
         group_id = payload["groupId"]
-        integration_id = payload["integrationId"]
+        integration_id = payload.get("integrationId")
         user_id = data["from"]["id"]
         activity_id = data["replyToId"]
         conversation = data["conversation"]
@@ -562,7 +582,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         else:
             conversation_id = channel_data["channel"]["id"]
 
-        integration = parsing.get_integration_from_card_action(data=data)
+        integration = parsing.get_integration_from_request_data(data=data)
         if integration is None:
             logger.info(
                 "msteams.action.missing-integration", extra={"integration_id": integration_id}
@@ -631,26 +651,52 @@ class MsTeamsWebhookEndpoint(Endpoint):
             issue_change_response = self._issue_state_change(group, identity, data["value"])
 
             # get the rules from the payload
-            rules = tuple(Rule.objects.filter(id__in=payload["rules"]))
+            rule_ids = payload.get("rules", [])
+            workflow_ids = payload.get("workflows", [])
+            origins = tuple(
+                get_notification_origins(
+                    group.project,
+                    workflow_ids=workflow_ids,
+                    legacy_rule_ids=rule_ids,
+                )
+            )
+            metrics.incr(
+                "integrations.msteams.action.rule_lookup",
+                tags={
+                    "has_rule": bool(rule_ids),
+                    "has_workflow_ids": bool(workflow_ids),
+                    "lookup_succeeded": bool(origins),
+                },
+                sample_rate=1.0,
+            )
 
             # pull the event based off our payload
-            event = eventstore.backend.get_event_by_id(group.project_id, payload["eventId"])
-            if event is None:
-                logger.info(
-                    "msteams.action.event-missing",
-                    extra={
-                        "team_id": team_id,
-                        "integration_id": integration.id,
-                        "organization_id": group.organization.id,
-                        "event_id": payload["eventId"],
-                        "project_id": group.project_id,
-                    },
-                )
-                return self.respond(status=404)
+            event = None
+            event_id = payload.get("eventId")
+            if event_id:
+                event = eventstore.backend.get_event_by_id(group.project_id, event_id)
+                if event is None:
+                    logger.info(
+                        "msteams.action.event-missing",
+                        extra={
+                            "team_id": team_id,
+                            "integration_id": integration.id,
+                            "organization_id": group.organization.id,
+                            "event_id": event_id,
+                            "project_id": group.project_id,
+                        },
+                    )
+                    return self.respond(status=404)
 
             # refresh issue and update card
             group.refresh_from_db()
-            card = MSTeamsIssueMessageBuilder(group, event, rules, integration).build_group_card()
+            card = MSTeamsIssueMessageBuilder(
+                group,
+                event,
+                origins,
+                integration,
+                workflow_ids=workflow_ids,
+            ).build_group_card()
             client.update_card(conversation_id, activity_id, card)
 
             return issue_change_response
@@ -674,8 +720,12 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 > 0
             )
             if mentioned:
+                integration = parsing.get_integration_from_channel_data(data)
                 client = get_preinstall_client(data["serviceUrl"])
-                card = build_mentioned_card()
+                if integration is None:
+                    card = build_missing_installation_card()
+                else:
+                    card = build_mentioned_card(team_name=integration.name)
                 conversation_id = data["conversation"]["id"]
                 client.send_card(conversation_id, card)
 

@@ -1,16 +1,16 @@
 import {Fragment, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
+import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {MenuListItem} from '@sentry/scraps/menuListItem';
 
-import {IconChevron} from 'sentry/icons';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
@@ -73,7 +73,7 @@ export interface MenuItemProps extends MenuListItemProps {
   to?: LocationDescriptor;
 }
 
-interface DropdownMenuItemProps {
+interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
   /**
    * Whether to close the menu when an item has been clicked/selected
    */
@@ -86,15 +86,21 @@ interface DropdownMenuItemProps {
    * Tree state (from @react-stately) inherited from parent menu
    */
   state: TreeState<MenuItemProps>;
+  id?: string;
+  /**
+   * Ref to the inner focusable menu item.
+   */
+  menuItemRef?: React.Ref<HTMLElement>;
   /**
    * Handler that is called when the menu should close after selecting an item
    */
   onClose?: () => void;
-  ref?: React.Ref<HTMLLIElement>;
+  ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
   /**
    * Tag name for item wrapper
    */
-  renderAs?: React.ElementType;
+  renderAs?: T;
+  submenuRef?: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -102,16 +108,19 @@ interface DropdownMenuItemProps {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-export function DropdownMenuItem({
+export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   node,
   state,
   closeOnSelect,
   onClose,
-  renderAs = 'li',
+  renderAs,
   ref,
+  menuItemRef,
+  submenuRef,
   ...props
-}: DropdownMenuItemProps) {
-  const innerWrapRef = useRef<HTMLDivElement | null>(null);
+}: DropdownMenuItemProps<T>) {
+  const innerWrapRef = useRef<HTMLElement | null>(null);
+  const lastPointerPosition = useRef<{x: number; y: number} | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {
@@ -127,7 +136,7 @@ export function DropdownMenuItem({
   } = node.value ?? {};
   const isSubmenu = !!submenu;
   const {size} = node.props;
-  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const {rootOverlayState, safetyTriangle} = useContext(DropdownMenuContext);
   const isLink = to || externalHref;
   const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
@@ -225,15 +234,16 @@ export function DropdownMenuItem({
       },
     };
   };
-  const mergedMenuItemContentProps = mergeProps(
+  const mergedMenuItemContentProps: React.HTMLAttributes<HTMLElement> = mergeProps(
     props,
     menuItemProps,
     hoverProps,
     keyboardProps,
     makeInnerWrapProps(),
     // oxlint-disable-next-line react/refs
-    {ref: innerWrapRef, 'data-test-id': key}
+    {ref: mergeRefs(menuItemRef, innerWrapRef), 'data-test-id': key}
   );
+  const {onPointerEnter, onPointerMove, onPointerLeave} = mergedMenuItemContentProps;
   const itemLabel = node.rendered ?? label;
 
   return (
@@ -243,7 +253,35 @@ export function DropdownMenuItem({
       label={itemLabel}
       disabled={isDisabled}
       isFocused={isFocused}
-      innerWrapProps={mergedMenuItemContentProps}
+      innerWrapProps={{
+        ...mergedMenuItemContentProps,
+        onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
+          // React clears currentTarget after dispatch, but hover may be deferred.
+          const savedEvent = {...event, currentTarget: event.currentTarget};
+          const enter = () => onPointerEnter?.(savedEvent);
+          if (safetyTriangle) {
+            safetyTriangle.defer(event, enter);
+          } else {
+            enter();
+          }
+        },
+        onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
+          onPointerMove?.(event);
+        },
+        onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+          safetyTriangle?.leave(event.currentTarget);
+          if (
+            event.pointerType === 'mouse' &&
+            submenuRef?.current &&
+            lastPointerPosition.current
+          ) {
+            safetyTriangle?.start(lastPointerPosition.current, submenuRef.current);
+          }
+          onPointerLeave?.(event);
+        },
+      }}
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingItems={

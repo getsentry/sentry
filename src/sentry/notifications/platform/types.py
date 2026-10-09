@@ -4,8 +4,9 @@ import abc
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal, Protocol
+from uuid import uuid4
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -227,6 +228,15 @@ class NotificationData(BaseModel):
     The source is uniquely attributable to the way this notification was sent. It will be tracked in
     metrics/analytics to determine the egress from a given code-path or service.
     """
+    organization_id: int
+    """
+    The organization this notification is sent for.
+    """
+    notification_uuid: str = Field(default_factory=lambda: str(uuid4()))
+    """
+    Identifies this notification in engagement tracking, so clicks can be tied to the send that
+    produced them.
+    """
 
 
 @dataclass(frozen=True)
@@ -321,6 +331,13 @@ class NotificationRenderedTemplate:
     @property
     def footer_text(self) -> str:
         return self.render_text_blocks(self.footer_blocks)
+
+    # The following are option, but may need to be included in order to preserve existing user
+    # preferences when porting legacy notifications to the platform.
+    email_headers: dict[str, str] | None = None
+    """Additional headers to include when this notification is rendered as email."""
+    email_subject_prefix: str | None = None
+    """A prefix to prepend when this notification is rendered as email."""
 
     # The following are optional, as omitting them will use a default email template which expects
     # the required fields above to be present instead.

@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';

@@ -28,6 +28,7 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
+    NotificationOrigin,
     NotificationSettingEnum,
 )
 from sentry.notifications.utils import (
@@ -90,6 +91,7 @@ class AlertRuleNotification(ProjectNotification):
     ) -> None:
         event = notification.event
         group = event.group
+        assert group is not None
         project = group.project
         super().__init__(project, notification_uuid)
         self.group = group
@@ -99,13 +101,9 @@ class AlertRuleNotification(ProjectNotification):
         self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
 
-        if (
-            event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL
-            or event.group.issue_type.type_id
-            in (
-                PerformanceP95EndpointRegressionGroupType.type_id,
-                ProfileFunctionRegressionType.type_id,
-            )
+        if group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL or group.issue_type.type_id in (
+            PerformanceP95EndpointRegressionGroupType.type_id,
+            ProfileFunctionRegressionType.type_id,
         ):
             # profile issues use the generic template for now
             if (
@@ -114,10 +112,10 @@ class AlertRuleNotification(ProjectNotification):
                 and event.occurrence.evidence_data.get("template_name") == "profile"
             ):
                 email_template_name = GENERIC_TEMPLATE_NAME
-            elif event.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
+            elif group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
                 email_template_name = "performance"
             else:
-                email_template_name = event.group.issue_category.name.lower()
+                email_template_name = group.issue_category.name.lower()
         else:
             email_template_name = GENERIC_TEMPLATE_NAME
 
@@ -131,7 +129,6 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
             notification_type_enum=self.notification_setting_type_enum,
             fallthrough_choice=self.fallthrough_choice,
-            rules=self.rules,
             notification_uuid=self.notification_uuid,
         )
 
@@ -247,6 +244,7 @@ class AlertRuleNotification(ProjectNotification):
         )
 
         if self.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES and template_name != "profile":
+            assert isinstance(self.event, GroupEvent)
             # This can't use data from the occurrence at the moment, so we'll keep fetching the event
             # and gathering span evidence.
 
@@ -278,6 +276,7 @@ class AlertRuleNotification(ProjectNotification):
             context["culprit"] = self.event.occurrence.culprit
 
         if self.group.issue_category not in GROUP_CATEGORIES_CUSTOM_EMAIL:
+            assert isinstance(self.event, GroupEvent)
             generic_issue_data_html = get_generic_data(self.event)
             if generic_issue_data_html:
                 context.update(
@@ -296,7 +295,7 @@ class AlertRuleNotification(ProjectNotification):
         title_str = "Alert triggered"
 
         if self.rules:
-            key, value = get_rule_or_workflow_id(self.rules[0])
+            key, value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
 
             match key:
                 case "workflow_id":
@@ -353,10 +352,14 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
+        alert_id = None
+        if self.rules:
+            rule = self.rules[0]
+            alert_id = rule.link_id if isinstance(rule, NotificationOrigin) else rule.id
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "alert_id": self.rules[0].id if self.rules else None,
+            "alert_id": alert_id,
             **super().get_log_params(recipient),
         }
 

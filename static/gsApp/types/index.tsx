@@ -6,10 +6,6 @@ import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 declare global {
   interface Window {
     /**
-     * Used in admin
-     */
-    __sendGridApiKey: string;
-    /**
      * Google analytics
      */
     ga: any;
@@ -47,7 +43,6 @@ declare module 'sentry/types/system' {
   interface Config {
     'getsentry.amplitudeApiKey'?: string;
     'getsentry.googleMapsApiKey'?: string;
-    'getsentry.sendgridApiKey'?: string;
     'getsentry.stripePublishKey'?: string;
   }
 }
@@ -176,7 +171,14 @@ export type Plan = {
   trialPlan: string | null;
   userSelectable: boolean;
   categoryDisplayNames?: Partial<
-    Record<DataCategory | string, {plural: string; singular: string}>
+    Record<
+      DataCategory | string,
+      {
+        plural: string;
+        singular: string;
+        unitType?: 'microCents';
+      }
+    >
   >;
 };
 
@@ -378,6 +380,8 @@ export type Subscription = {
   // Refetch usage data if Subscription is updated
   isDeleted?: boolean;
 
+  /** Admin-only marker; unavailable until the backend supports it. */
+  isTest?: boolean;
   isTrialStarted?: boolean;
   msaUpdatedForDataConsent?: boolean;
   onDemandBudgets?: SubscriptionOnDemandBudgets;

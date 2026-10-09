@@ -34,7 +34,7 @@ export function useSeerPanel({group, project}: {group: Group; project: Project})
       organization.features.includes('autofix-pr-iteration') ||
       organization.features.includes('autofix-pr-iteration-manual'),
   });
-  const [enableBashTools, setEnableBashTools] = useForceBashMode();
+  const [enableBashMode, setEnableBashMode] = useForceBashMode();
 
   const autofix = useMemo(
     () => ({
@@ -45,10 +45,10 @@ export function useSeerPanel({group, project}: {group: Group; project: Project})
       ) =>
         aiAutofix.startStep(step, {
           ...options,
-          enableBashTools: enableBashTools || undefined,
+          enableBashMode: enableBashMode || undefined,
         }),
     }),
-    [aiAutofix, enableBashTools]
+    [aiAutofix, enableBashMode]
   );
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix: autofix});
@@ -63,13 +63,13 @@ export function useSeerPanel({group, project}: {group: Group; project: Project})
   return {
     aiConfig,
     autofix,
-    enableBashTools,
+    enableBashMode,
     handleCopyMarkdown,
     handleOpenSeerAgent,
     handleRestart,
     referrer,
     runState: aiAutofix.runState,
-    setEnableBashTools,
+    setEnableBashMode,
     warnings: aiAutofix.warnings,
   };
 }

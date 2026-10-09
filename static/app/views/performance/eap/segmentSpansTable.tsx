@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/play';
+import {IconProfiling} from '@sentry/icons/profiling';
 import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -9,8 +11,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
-import {GridEditable} from 'sentry/components/tables/gridEditable';
-import {IconPlay, IconProfiling} from 'sentry/icons';
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
@@ -23,10 +25,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {
-  getAlignment,
-  renderHeadCell,
-} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {getAlignment} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
@@ -39,7 +38,7 @@ import {
   getEAPSegmentSpansListSort,
   SEGMENT_SPANS_CURSOR,
 } from 'sentry/views/performance/eap/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 const LIMIT = 5;
@@ -153,14 +152,14 @@ export function SegmentSpansTable({
         />
       </Header>
 
-      <GridEditable
+      <DataGrid
         isLoading={isLoading}
         error={error}
         data={consolidatedData}
         columnOrder={SEGMENT_SPANS_COLUMN_ORDER}
         grid={{
           getColumnSort: column => ({align: getAlignment(column.key)}),
-          renderHeadCell: column => renderHeadCell({column}),
+          renderHeadCell: column => <ColumnLabel column={column} />,
           renderBodyCell: (column, row) =>
             renderBodyCell(
               column,

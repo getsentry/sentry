@@ -1,8 +1,9 @@
+import {IconAdd} from '@sentry/icons/add';
+
 import {Button} from '@sentry/scraps/button';
 
 import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';

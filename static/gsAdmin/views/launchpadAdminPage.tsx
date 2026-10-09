@@ -94,7 +94,7 @@ export function LaunchpadAdminPage() {
     },
   });
 
-  const fetchArtifactInfo = () => {
+  const fetchArtifactInfo = async () => {
     if (!fetchInfoArtifactId) {
       addErrorMessage('Artifact ID is required');
       return;
@@ -104,20 +104,20 @@ export function LaunchpadAdminPage() {
       return;
     }
 
-    api.request(`/internal/preprod-artifact/${fetchInfoArtifactId}/info/`, {
-      method: 'GET',
-      host: locality?.url,
-      success: (data: any) => {
-        addSuccessMessage(
-          `Artifact info fetched successfully for: ${fetchInfoArtifactId}`
-        );
-        setFetchedArtifactInfo(data);
-        setFetchInfoArtifactId('');
-      },
-      error: () => {
-        addErrorMessage(`Failed to fetch info for artifact: ${fetchInfoArtifactId}`);
-      },
-    });
+    try {
+      const data = await api.requestPromise(
+        `/internal/preprod-artifact/${fetchInfoArtifactId}/info/`,
+        {
+          method: 'GET',
+          host: locality?.url,
+        }
+      );
+      addSuccessMessage(`Artifact info fetched successfully for: ${fetchInfoArtifactId}`);
+      setFetchedArtifactInfo(data);
+      setFetchInfoArtifactId('');
+    } catch {
+      addErrorMessage(`Failed to fetch info for artifact: ${fetchInfoArtifactId}`);
+    }
   };
 
   const {mutate: batchDeleteArtifacts} = useMutation({
@@ -339,15 +339,7 @@ export function LaunchpadAdminPage() {
           }}
         />
 
-        <Grid
-          columns="1fr 1fr"
-          gap="xl"
-          css={css`
-            @media (max-width: 768px) {
-              grid-template-columns: 1fr;
-            }
-          `}
-        >
+        <Grid columns={{zero: '1fr', xl: '1fr 1fr'}} gap="xl">
           <form onSubmit={handleFetchInfoSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Stack gap="md">

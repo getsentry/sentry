@@ -38,7 +38,6 @@ from sentry.utils.auth import (
     get_login_redirect,
     has_user_registration,
     initiate_login,
-    is_react_auth_enabled,
     is_valid_redirect,
     login,
 )
@@ -89,7 +88,6 @@ def should_render_react_auth(request: HttpRequest) -> bool:
         request.method == "GET"
         and request.resolver_match
         and request.resolver_match.url_name in REACT_AUTH_URL_NAMES
-        and is_react_auth_enabled(request)
     )
 
 
@@ -205,8 +203,13 @@ class AuthLoginView(BaseView, ReactMixin):
         ):
             return None
 
+        if request.path_info == reverse("sentry-register"):
+            path = reverse("sentry-register")
+        else:
+            path = reverse("sentry-auth-organization", args=[request.subdomain])
+
         path = construct_link_with_query(
-            path=reverse("sentry-auth-organization", args=[request.subdomain]),
+            path=path,
             query_params=request.GET,
         )
         return HttpResponseRedirect(absolute_uri(path))
@@ -616,8 +619,7 @@ class AuthLoginView(BaseView, ReactMixin):
     def handle_basic_auth(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         """
         Legacy handler that handles GET and POST requests for registration and login.
-        This is still here because it's used by OAuthAuthorizeView and AuthOrganizationLoginView.
-        It will be removed once we decouple those classes from this method TODO(@EricHasegawa).
+        AuthOrganizationLoginView uses this for password authentication and registration.
         """
         op = request.POST.get("op")
         organization = kwargs.pop("organization", None)

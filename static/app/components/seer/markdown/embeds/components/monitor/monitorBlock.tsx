@@ -1,12 +1,18 @@
 import type {ComponentType} from 'react';
+import {IconClock} from '@sentry/icons/clock';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconMobile} from '@sentry/icons/mobile';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
+import {IconTimer} from '@sentry/icons/timer';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {EnabledStatusIndicator} from 'sentry/components/seer/markdown/embeds/components/enabledStatusIndicator';
 import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/cron';
 import {ErrorMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/error';
 import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
@@ -14,15 +20,6 @@ import {MobileBuildMonitor} from 'sentry/components/seer/markdown/embeds/compone
 import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {
-  IconClock,
-  IconGlobe,
-  IconGraph,
-  IconIssues,
-  IconMobile,
-  IconTimer,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -30,7 +27,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
-import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 const MONITOR_TYPE_ICONS: Record<Detector['type'], ComponentType<SVGIconProps>> = {
   error: IconIssues,
@@ -127,17 +123,10 @@ export default function MonitorBlock({id, name}: EmbedOutput<'monitor'>) {
 
   return (
     <SeerEmbedBlock
-      badge={
-        detector ? (
-          <Flex gap="xs">
-            <Tag variant="muted">{getDetectorTypeLabel(detector.type)}</Tag>
-            {detector.enabled ? null : <Tag variant="muted">{t('Disabled')}</Tag>}
-          </Flex>
-        ) : null
-      }
       href={href}
       icon={icon}
       linkLabel={t('View Monitor')}
+      status={detector ? <EnabledStatusIndicator enabled={detector.enabled} /> : null}
       testId="seer-monitor-embed"
       title={detector?.name ?? name ?? t('Monitor %s', id)}
     >

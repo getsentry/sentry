@@ -1,10 +1,16 @@
 import {useTheme} from '@emotion/react';
+import {IconBot} from '@sentry/icons/bot';
+import {IconChat} from '@sentry/icons/chat';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
+import {IconFire} from '@sentry/icons/fire';
+import {IconFix} from '@sentry/icons/fix';
+import {IconList} from '@sentry/icons/list';
+import {IconStack} from '@sentry/icons/stack';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {
   getGenAiOpType,
@@ -12,11 +18,23 @@ import {
   getTimelineColorByOpType,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {isEvaluationNode} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {isMemoryNode} from 'sentry/views/insights/pages/agents/utils/memory';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
-function operationTypeIcon(opType: string | undefined) {
-  switch (opType) {
+function operationTypeIcon(node: AITraceSpanNode) {
+  // Evaluations report the ai_client operation type like LLM calls, but
+  // answer a list of questions about a response rather than produce one.
+  // TODO: Replace with a dedicated evaluation icon once design provides one.
+  if (isEvaluationNode(node)) {
+    return <IconList size="md" />;
+  }
+  // TODO: Replace IconStack with a dedicated memory icon once design provides one.
+  if (isMemoryNode(node)) {
+    return <IconStack size="md" />;
+  }
+  switch (getGenAiOpType(node)) {
     case GenAiOperationType.AGENT:
       return <IconBot size="md" />;
     case GenAiOperationType.AI_CLIENT:
@@ -47,7 +65,7 @@ export function AiSpanStatusIcon({node}: AiSpanStatusIconProps) {
 
   return (
     <Flex align="center" position="relative" style={{color: iconColor}} flexShrink={0}>
-      {operationTypeIcon(getGenAiOpType(node))}
+      {operationTypeIcon(node)}
       {hasErrors && (
         <Tooltip title={t('This span encountered an error')} skipWrapper>
           <Container

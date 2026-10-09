@@ -1,7 +1,8 @@
+import {IconSettings} from '@sentry/icons/settings';
+
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -54,6 +55,9 @@ export function ScmIntegrationSelect({
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
+          // The visible label is only the account name, which does not say
+          // what the control picks.
+          aria-label={t('Integration: %s', selectedIntegration.name)}
           icon={getIntegrationIcon(selectedIntegration.provider.key, 'sm')}
         >
           {selectedIntegration.name}

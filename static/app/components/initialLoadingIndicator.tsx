@@ -10,7 +10,7 @@ interface InitialLoaderSnapshot {
     playbackRate: number;
     startTime: number | null;
   }>;
-  html: string;
+  node: HTMLElement;
 }
 
 function getNumericTime(time: CSSNumberish | null): number | null {
@@ -23,13 +23,13 @@ interface InitialLoadingIndicatorProps {
 
 /**
  * Snapshots the splash loader rendered by Django before React's first commit
- * replaces the contents of its root. Each rendered copy keeps the splash
- * class, allowing bootstrap loading boundaries to hand off the same trusted
- * markup without copying arbitrary application content. Dev-ui includes both
- * seasonal loader variants, so only its visible variant is eligible. Once the
- * splash loader leaves the root, later lazy loads use their normal fallback.
- * Animation timing is captured with the markup so each handoff can continue
- * on the original document timeline.
+ * replaces the contents of its root. Each instance clones the node, so several
+ * bootstrap loading boundaries can hand off the same trusted markup without
+ * copying arbitrary application content. Dev-ui includes both seasonal loader
+ * variants, so only its visible variant is eligible. Once the splash loader
+ * leaves the root, later lazy loads use their normal fallback. Animation timing
+ * is captured with the node so each handoff can continue on the original
+ * document timeline.
  */
 export function InitialLoadingIndicator({fallback = null}: InitialLoadingIndicatorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,15 +51,21 @@ export function InitialLoadingIndicator({fallback = null}: InitialLoadingIndicat
           startTime: getNumericTime(animation.startTime),
         })
       ),
-      html: initialLoader.outerHTML,
+      node: initialLoader.cloneNode(true) as HTMLElement,
     };
   });
 
   useLayoutEffect(() => {
-    const initialLoader = containerRef.current?.querySelector<HTMLElement>(
-      INITIAL_LOADER_SELECTOR
-    );
-    const animations = initialLoader?.getAnimations?.({subtree: true}) ?? [];
+    const container = containerRef.current;
+    const initialLoader = initialLoaderSnapshot?.node;
+
+    if (!container || !initialLoader) {
+      return;
+    }
+
+    container.appendChild(initialLoader);
+
+    const animations = initialLoader.getAnimations?.({subtree: true}) ?? [];
 
     animations.forEach((animation, index) => {
       const state = initialLoaderSnapshot?.animationStates[index];
@@ -79,16 +85,13 @@ export function InitialLoadingIndicator({fallback = null}: InitialLoadingIndicat
         // State transfer is best-effort; the cloned CSS animation keeps running.
       }
     });
+
+    return () => initialLoader.remove();
   }, [initialLoaderSnapshot]);
 
   if (!initialLoaderSnapshot) {
     return fallback;
   }
 
-  return (
-    <div
-      ref={containerRef}
-      dangerouslySetInnerHTML={{__html: initialLoaderSnapshot.html}}
-    />
-  );
+  return <div ref={containerRef} />;
 }

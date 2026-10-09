@@ -1,12 +1,14 @@
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
+
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {Confirm} from 'sentry/components/confirm';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -30,7 +32,6 @@ type Props = {
   onAddWidget: (dataset: DataSet, openWidgetTemplates: boolean) => void;
   onCancel: () => void;
   onCommit: () => void;
-  onDelete: () => void;
   onEdit: () => void;
   organization: Organization;
   widgetLimitReached: boolean;
@@ -46,7 +47,6 @@ export function DashboardActionBar({
   onAddWidget,
   onCancel,
   onCommit,
-  onDelete,
   onEdit,
   widgetLimitReached,
 }: Props) {
@@ -75,15 +75,6 @@ export function DashboardActionBar({
         >
           {t('Save and Finish')}
         </Button>
-        <Confirm
-          priority="danger"
-          message={t('Are you sure you want to delete this dashboard?')}
-          onConfirm={onDelete}
-        >
-          <Button size="sm" variant="danger" data-test-id="dashboard-delete">
-            {t('Delete')}
-          </Button>
-        </Confirm>
         <Button
           size="sm"
           variant="transparent"
@@ -224,15 +215,17 @@ function AddWidgetDropdown({
     <DropdownMenu
       items={items}
       isDisabled={widgetLimitReached || !hasEditAccess}
-      triggerLabel={t('Add Widget')}
-      triggerProps={{
-        'aria-label': t('Add Widget'),
-        size: 'sm',
-        showChevron: true,
-        icon: <IconAdd size="sm" />,
-        tooltipProps: {title: tooltip},
-        variant: 'primary',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          size="sm"
+          icon={<IconAdd />}
+          tooltipProps={{title: tooltip}}
+          variant="primary"
+        >
+          {t('Add Widget')}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

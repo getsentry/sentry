@@ -2,16 +2,17 @@ import {useCallback} from 'react';
 import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
-import type {
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  DataGrid,
+  type GridColumnOrder,
+  type GridColumnSortBy,
+} from 'sentry/components/tables/dataGrid';
 import {UserMisery} from 'sentry/components/userMisery';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -37,7 +38,7 @@ import {
   useDomainViewFilters,
   type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
 interface ProfileEventsTableProps<F extends FieldType> {
@@ -75,7 +76,7 @@ export function ProfileEventsTable<F extends FieldType>(
   );
 
   return (
-    <GridEditable
+    <DataGrid
       isLoading={props.isLoading}
       error={props.error}
       data={props.data?.data ?? []}

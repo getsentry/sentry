@@ -1,5 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
+import {IconAdd} from '@sentry/icons/add';
+import {IconUser} from '@sentry/icons/user';
 import {withProfiler} from '@sentry/react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import uniqBy from 'lodash/uniqBy';
@@ -7,16 +9,15 @@ import uniqBy from 'lodash/uniqBy';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TeamFilter} from 'sentry/components/teamFilter';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {Project, TeamWithProjects} from 'sentry/types/project';
@@ -36,6 +37,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {ProjectCard} from './projectCard';
 import {Resources} from './resources';
@@ -44,6 +46,8 @@ import {getTeamParams} from './utils';
 function ProjectCardList({projects}: {projects: Project[]}) {
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
+  // Sidebar mode scrolls the content pane instead of the window, even when Seer is closed.
+  const isSidebarMode = useIsSeerExplorerSidebarEnabled();
 
   // By default react-lazyload will only check for intesecting components on scroll
   // This forceCheck call is necessary to recalculate when filtering projects
@@ -65,6 +69,7 @@ function ProjectCardList({projects}: {projects: Project[]}) {
           debounce={50}
           height={330}
           offset={400}
+          overflow={isSidebarMode}
           unmountIfInvisible
           key={project.slug}
         >
@@ -199,15 +204,20 @@ function Dashboard() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Projects Dashboard')} orgSlug={organization.slug} />
-      <Layout.Title>
-        {t('All Projects')}
-        <PageHeadingQuestionTooltip
-          docsUrl="https://docs.sentry.io/product/projects/"
-          title={t(
-            "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
-          )}
-        />
-      </Layout.Title>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: t('All Projects'),
+          labelTooltip: (
+            <DocumentationHint docsUrl="https://docs.sentry.io/product/projects/">
+              {t(
+                "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
+              )}
+            </DocumentationHint>
+          ),
+        }}
+      />
       <TopBar.Slot name="actions">
         <LinkButton
           icon={<IconUser />}

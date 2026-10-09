@@ -3,7 +3,6 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -27,6 +26,7 @@ import {ProgressBar} from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TimeSince} from 'sentry/components/timeSince';
+import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
@@ -35,7 +35,6 @@ import type {
   GroupReprocessing,
   InboxDetails,
   PriorityLevel,
-  ProgressState,
 } from 'sentry/types/group';
 import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -46,6 +45,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {ListItemCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -58,16 +58,11 @@ import {
   useOptionalIssueSelectionActions,
   useOptionalIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
-import {ProgressActivityTooltip} from 'sentry/views/issueList/progressActivityTooltip';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
-import {
-  formatProgressState,
-  getProgressIcon,
-} from 'sentry/views/issueList/utils/progress';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 const COLUMNS: GroupListColumn[] = [
@@ -87,7 +82,6 @@ type Props = {
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
-  progressState?: ProgressState | null;
   query?: string;
   queryFilterDescription?: string;
   source?: string;
@@ -130,26 +124,15 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper>
-      {!group.hasSeen && (
-        <Tooltip title={t('Unread')} skipWrapper>
-          <UnreadIndicator
-            data-test-id="unread-issue-indicator"
-            onClick={(e: React.MouseEvent) => {
-              // Toggle checkbox on unread indicator misclick
-              e.stopPropagation();
-              handleToggle(e.shiftKey);
-            }}
-          />
-        </Tooltip>
-      )}
       <CheckboxLabel>
-        <CheckboxWithBackground
+        <ListItemCheckbox
           id={group.id}
           aria-label={t('Select Issue')}
           checked={isSelected}
           disabled={!!displayReprocessingLayout}
           onChange={onChange}
         />
+        {!group.hasSeen && <UnreadIndicator data-test-id="unread-issue-indicator" />}
       </CheckboxLabel>
     </GroupCheckBoxWrapper>
   );
@@ -349,6 +332,65 @@ export function LoadingStreamGroup({
   );
 }
 
+function ReprocessingColumns({group}: {group: GroupReprocessing}) {
+  const theme = useTheme();
+  const {statusDetails, count} = group;
+  const {info, pendingEvents} = statusDetails;
+
+  if (!info) {
+    return null;
+  }
+
+  const {totalEvents, dateCreated} = info;
+
+  const remainingEventsToReprocess = totalEvents - pendingEvents;
+  const remainingEventsToReprocessPercent = percent(
+    remainingEventsToReprocess,
+    totalEvents
+  );
+
+  return (
+    <Fragment>
+      <Flex
+        width={{zero: '85px', xl: '140px'}}
+        alignSelf="center"
+        margin="0 xl"
+        whiteSpace="nowrap"
+        overflow="hidden"
+        style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+      >
+        <TimeSince date={dateCreated} />
+      </Flex>
+      <Container
+        width={{zero: '75px', xl: '140px'}}
+        alignSelf="center"
+        margin="0 xl"
+        whiteSpace="nowrap"
+        overflow="hidden"
+        style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+      >
+        {defined(count) ? (
+          <Fragment>
+            <Count value={remainingEventsToReprocess} />
+            {'/'}
+            <Count value={totalEvents} />
+          </Fragment>
+        ) : (
+          <Placeholder height="17px" />
+        )}
+      </Container>
+      <Container
+        display={{zero: 'none', xl: 'block'}}
+        width="160px"
+        margin="0 xl"
+        alignSelf="center"
+      >
+        <ProgressBar value={remainingEventsToReprocessPercent} />
+      </Container>
+    </Fragment>
+  );
+}
+
 export function StreamGroup({
   group,
   displayReprocessingLayout,
@@ -365,10 +407,7 @@ export function StreamGroup({
   useTintRow = true,
   onPriorityChange,
   onAssigneeChange,
-  progressState,
 }: Props) {
-  const theme = useTheme();
-
   const issueSelectionSummary = useOptionalIssueSelectionSummary();
   const issueSelectionActions = useOptionalIssueSelectionActions();
   const groupId = group.id;
@@ -523,64 +562,6 @@ export function StreamGroup({
         query: filteredQuery,
       },
     };
-  };
-
-  const renderReprocessingColumns = () => {
-    const {statusDetails, count} = group as GroupReprocessing;
-    const {info, pendingEvents} = statusDetails;
-
-    if (!info) {
-      return null;
-    }
-
-    const {totalEvents, dateCreated} = info;
-
-    const remainingEventsToReprocess = totalEvents - pendingEvents;
-    const remainingEventsToReprocessPercent = percent(
-      remainingEventsToReprocess,
-      totalEvents
-    );
-
-    return (
-      <Fragment>
-        <Flex
-          width={{zero: '85px', xl: '140px'}}
-          alignSelf="center"
-          margin="0 xl"
-          whiteSpace="nowrap"
-          overflow="hidden"
-          style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
-        >
-          <TimeSince date={dateCreated} />
-        </Flex>
-        <Container
-          width={{zero: '75px', xl: '140px'}}
-          alignSelf="center"
-          margin="0 xl"
-          whiteSpace="nowrap"
-          overflow="hidden"
-          style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
-        >
-          {defined(count) ? (
-            <Fragment>
-              <Count value={remainingEventsToReprocess} />
-              {'/'}
-              <Count value={totalEvents} />
-            </Fragment>
-          ) : (
-            <Placeholder height="17px" />
-          )}
-        </Container>
-        <Container
-          display={{zero: 'none', xl: 'block'}}
-          width="160px"
-          margin="0 xl"
-          alignSelf="center"
-        >
-          <ProgressBar value={remainingEventsToReprocessPercent} />
-        </Container>
-      </Fragment>
-    );
   };
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
@@ -784,7 +765,7 @@ export function StreamGroup({
         </Container>
       )}
       {displayReprocessingLayout ? (
-        renderReprocessingColumns()
+        <ReprocessingColumns group={group as GroupReprocessing} />
       ) : (
         <Fragment>
           {withColumns.includes('event') && (
@@ -844,18 +825,7 @@ export function StreamGroup({
               alignSelf="center"
               justify="start"
             >
-              {progressState ? (
-                <Container position="relative">
-                  <ProgressActivityTooltip group={group}>
-                    <Stack direction="row" align="center" gap="sm" wrap="nowrap">
-                      {getProgressIcon(progressState)}
-                      {formatProgressState(progressState)}
-                    </Stack>
-                  </ProgressActivityTooltip>
-                </Container>
-              ) : (
-                <Placeholder height="18px" />
-              )}
+              <Placeholder height="18px" />
             </Flex>
           )}
           {(withColumns.includes('assignee') ||
@@ -889,26 +859,18 @@ export function StreamGroup({
 
 const CheckboxLabel = styled('label')`
   position: absolute;
-  top: -1px;
+  top: 0;
   left: 0;
   bottom: 0;
   height: 100%;
   width: 32px;
+  padding-top: 13px;
   padding-left: ${p => p.theme.space.xl};
   margin: 0;
-  margin-top: -1px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-`;
-
-const UnreadIndicator = styled('div')`
-  width: 8px;
-  height: 8px;
-  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-  border-radius: 50%;
-  margin-top: 1px;
-  margin-left: ${p => p.theme.space.xl};
-  z-index: 1;
+  gap: ${p => p.theme.space.sm};
 `;
 
 // Position for wrapper is relative for overlay actions
@@ -920,12 +882,6 @@ const Wrapper = styled(PanelItem)<{
   line-height: 1.1;
   padding: ${p => p.theme.space.md} 0;
   min-height: 82px;
-
-  &:not(:has(:hover)):not(:has(input:checked)):not(:focus-within) {
-    ${CheckboxLabel} {
-      ${p => p.theme.visuallyHidden};
-    }
-  }
 
   [data-issue-title-link] {
     &::before {
@@ -993,18 +949,8 @@ const GroupSummary = styled('div')<{canSelect: boolean}>`
 `;
 
 const GroupCheckBoxWrapper = styled('div')`
-  align-self: flex-start;
   width: 32px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding-top: ${p => p.theme.space.md};
   z-index: 1;
-`;
-
-const CheckboxWithBackground = styled(Checkbox)`
-  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const PrimaryCount = styled(Count)`

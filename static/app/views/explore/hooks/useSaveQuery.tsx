@@ -5,8 +5,8 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -15,7 +15,7 @@ import {
   isExploreSavedQuery,
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
-  type AllSavedQuery,
+  type CombinedSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
@@ -141,7 +141,7 @@ export function useFromSavedQuery() {
   const invalidateSavedQueries = useInvalidateSavedQueries();
 
   const saveQueryFromSavedQuery = useCallback(
-    async (savedQuery: AllSavedQuery) => {
+    async (savedQuery: CombinedSavedQuery) => {
       const response = isExploreSavedQuery(savedQuery)
         ? await api.requestPromise(
             getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
@@ -174,7 +174,7 @@ export function useFromSavedQuery() {
   );
 
   const updateQueryFromSavedQuery = useCallback(
-    async (savedQuery: AllSavedQuery) => {
+    async (savedQuery: CombinedSavedQuery) => {
       const response = isExploreSavedQuery(savedQuery)
         ? await api.requestPromise(
             getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
