@@ -1,16 +1,15 @@
 import type {ReactNode} from 'react';
-import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 
 import {Avatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IdentityIcon} from 'sentry/icons/identityIcon';
 import {t, tct} from 'sentry/locale';
-import {useMedia} from 'sentry/utils/useMedia';
 import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
 
 interface OrganizationCardProps {
@@ -26,8 +25,6 @@ export function OrganizationCard({
   footer,
   onClear,
 }: OrganizationCardProps) {
-  const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const {organization, provider} = authOrganization;
   const avatarProps = organization.avatarUrl
     ? ({
@@ -49,7 +46,7 @@ export function OrganizationCard({
     : t('Members sign in with email and password');
 
   return (
-    <Stack align="start" gap="md">
+    <Stack align="start" gap="md" width="100%">
       <OrganizationCardStack
         width="100%"
         gap="0"
@@ -73,31 +70,44 @@ export function OrganizationCard({
         </Flex>
 
         {footer}
-        {onClear && !isSmallScreen && (
-          <ClearButton
-            aria-label={t('Clear organization login context')}
-            icon={<IconClose />}
-            size="zero"
-            tooltipProps={{title: t('Clear organization login context')}}
-            variant="transparent"
-            onClick={onClear}
-          />
+        {onClear && (
+          <Container
+            position="absolute"
+            display={{zero: 'none', 'screen:sm': 'block'}}
+            css={theme => css`
+              top: calc(${theme.space.lg} + 18px);
+              left: calc(100% + ${theme.space.md});
+              translate: 0 -50%;
+            `}
+          >
+            <ClearButton
+              aria-label={t('Clear organization login context')}
+              icon={<IconClose />}
+              size="zero"
+              tooltipProps={{title: t('Clear organization login context')}}
+              variant="transparent"
+              onClick={onClear}
+            />
+          </Container>
         )}
       </OrganizationCardStack>
-      {onClear && isSmallScreen && (
-        <Button icon={<IconClose />} size="zero" variant="transparent" onClick={onClear}>
-          {t('Wrong Organization')}
-        </Button>
+      {onClear && (
+        <Container display={{zero: 'block', 'screen:sm': 'none'}}>
+          <Button
+            icon={<IconClose />}
+            size="zero"
+            variant="transparent"
+            onClick={onClear}
+          >
+            {t('Wrong Organization')}
+          </Button>
+        </Container>
       )}
     </Stack>
   );
 }
 
 const ClearButton = styled(Button)`
-  position: absolute;
-  top: calc(${p => p.theme.space.lg} + 18px);
-  left: calc(100% + ${p => p.theme.space.md});
-  translate: 0 -50%;
   opacity: 0;
   pointer-events: none;
   transition: opacity 100ms ease;

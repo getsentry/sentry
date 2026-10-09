@@ -258,12 +258,6 @@ def create_sample_time_series(event, release=None):
             now,
             int(count * 1.1),
         )
-        tsdb.backend.incr(
-            TSDBModel.project_total_forwarded,
-            project.id,
-            now,
-            int(count * 1.1),
-        )
         tsdb.backend.incr_multi(
             (
                 (TSDBModel.organization_total_rejected, project.organization_id),

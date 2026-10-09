@@ -13,7 +13,6 @@ from sentry.integrations.pagerduty.client import (
     build_pagerduty_event_payload,
 )
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.models.rule import Rule
 from sentry.notifications.types import RuleFuture
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -105,12 +104,13 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 severity=severity,
             )
 
-            rules: list[Rule] = [f.rule for f in futures]
-            rule = rules[0] if rules else None
+            contexts = [future.context for future in futures]
+            context = contexts[0] if contexts else None
 
-            if rule and rule.label:
+            if context and context.origin.label:
                 data["payload"]["summary"] = truncatechars(
-                    f"[{rule.label}]: {data['payload']['summary']}", PAGERDUTY_SUMMARY_MAX_LENGTH
+                    f"[{context.origin.label}]: {data['payload']['summary']}",
+                    PAGERDUTY_SUMMARY_MAX_LENGTH,
                 )
 
             try:
@@ -128,7 +128,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 )
                 raise
 
-            self.record_notification_sent(event, str(service["id"]), rule, notification_uuid)
+            self.record_notification_sent(event, str(service["id"]), context, notification_uuid)
 
             # TODO(meredith): Maybe have a generic success log statements for
             # first-party integrations similar to plugin `notification.dispatched`

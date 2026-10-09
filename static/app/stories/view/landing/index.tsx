@@ -1,6 +1,6 @@
 import type {PropsWithChildren} from 'react';
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
 import type {LocationDescriptor} from 'history';
@@ -9,9 +9,10 @@ import heroImg from 'sentry-images/stories/landing/robopigeon.png';
 
 import type {LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Image} from '@sentry/scraps/image';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
@@ -52,15 +53,37 @@ export function StoryLanding() {
   return (
     <Fragment>
       <StoryDarkModeProvider>
-        <Hero>
-          <Container>
+        <Flex
+          gap="3xl"
+          align="center"
+          background="secondary"
+          borderBottom="primary"
+          padding="3xl 0"
+        >
+          <Flex
+            maxWidth="1080px"
+            width="100%"
+            flexGrow={1}
+            flexShrink={1}
+            marginLeft="auto"
+            marginRight="auto"
+            direction={{zero: 'column', '3xl': 'row'}}
+            gap="3xl"
+            padding="3xl xl"
+            align="center"
+            justify="center"
+          >
             <Stack gap="2xl">
               <Stack gap="md">
                 <Border />
-                <h1>
-                  Welcome to <TitleEmphasis>Scraps</TitleEmphasis>
-                </h1>
-                <p>{frontmatter.hero.tagline}</p>
+                <Container marginTop="md">
+                  <Heading as="h1">
+                    Welcome to <TitleEmphasis>Scraps</TitleEmphasis>
+                  </Heading>
+                </Container>
+                <Text as="p" size="lg" variant="muted" textWrap="balance">
+                  {frontmatter.hero.tagline}
+                </Text>
               </Stack>
               <Flex gap="md">
                 {frontmatter.hero.actions.map(props => {
@@ -73,30 +96,55 @@ export function StoryLanding() {
                 })}
               </Flex>
             </Stack>
-            <img
+            <HeroImage
               alt={frontmatter.hero.image.alt}
-              width={680}
-              height={320}
+              width="680px"
+              height="auto"
+              loading="eager"
               src={frontmatter.hero.image.file}
             />
-          </Container>
-        </Hero>
+          </Flex>
+        </Flex>
       </StoryDarkModeProvider>
 
-      <Container>
+      <Flex
+        maxWidth="1080px"
+        width="100%"
+        flexGrow={1}
+        flexShrink={1}
+        marginLeft="auto"
+        marginRight="auto"
+        direction={{zero: 'column', '3xl': 'row'}}
+        gap="3xl"
+        padding="3xl xl"
+        align="center"
+        justify="center"
+      >
         <Acronym />
-      </Container>
+      </Flex>
 
-      <Container>
+      <Flex
+        maxWidth="1080px"
+        width="100%"
+        flexGrow={1}
+        flexShrink={1}
+        marginLeft="auto"
+        marginRight="auto"
+        direction={{zero: 'column', '3xl': 'row'}}
+        gap="3xl"
+        padding="3xl xl"
+        align="center"
+        justify="center"
+      >
         <Stack as="section" gap="3xl" flex={1}>
           <Stack gap="md">
-            <h2>Learn the Foundations</h2>
-            <p>
+            <Heading as="h2">Learn the Foundations</Heading>
+            <Text as="p">
               The following guides will help you understand Sentry's foundational design
               principles.
-            </p>
+            </Text>
           </Stack>
-          <CardGrid>
+          <Flex wrap="wrap" gap="xl">
             <Card
               to={{
                 pathname: normalizeUrl(
@@ -145,9 +193,9 @@ export function StoryLanding() {
                 <Text>Layout</Text>
               </CardFigure>
             </Card>
-          </CardGrid>
+          </Flex>
         </Stack>
-      </Container>
+      </Flex>
     </Fragment>
   );
 }
@@ -175,55 +223,8 @@ const TitleEmphasis = styled('em')`
   color: ${p => p.theme.tokens.content.accent};
 `;
 
-const Hero = styled('div')`
-  padding: 48px 0;
-  gap: ${p => p.theme.space['3xl']};
-  display: flex;
-  align-items: center;
-  background: ${p => p.theme.tokens.background.secondary};
-  color: ${p => p.theme.tokens.content.primary};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-  h1 {
-    font-size: 36px;
-    margin-top: ${p => p.theme.space.md};
-  }
-
-  p {
-    font-size: ${p => p.theme.font.size.lg};
-    text-wrap: balance;
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-
-  img {
-    min-width: 320px;
-    height: auto;
-  }
-`;
-
-const Container = styled('div')`
-  max-width: 1080px;
-  width: 100%;
-  flex-grow: 1;
-  flex-shrink: 1;
-  margin-inline: auto;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['3xl']};
-  padding-inline: ${p => p.theme.space.xl};
-  padding-block: ${p => p.theme.space['3xl']};
-  align-items: center;
-  justify-content: center;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: row;
-  }
-`;
-
-const CardGrid = styled('div')`
-  display: flex;
-  flex-flow: row wrap;
-  gap: ${p => p.theme.space.xl};
+const HeroImage = styled(Image)`
+  min-width: 320px;
 `;
 
 interface CardProps {
@@ -234,54 +235,47 @@ interface CardProps {
 
 function Card(props: CardProps) {
   return (
-    <CardLink to={props.to}>
-      {props.children}
-      <CardTitle>{props.title}</CardTitle>
-    </CardLink>
+    <Stack
+      flexGrow={1}
+      width="calc(100% * 3 / 5)"
+      maxWidth={{zero: 'none', '3xl': 'calc(50% - 32px)'}}
+      padding="xl"
+      border="secondary"
+      radius="md"
+      css={cardLinkCss}
+    >
+      {stackProps => (
+        <Link {...stackProps} to={props.to}>
+          {props.children}
+          <Container
+            marginTop="auto"
+            marginBottom="xl"
+            padding="md xl"
+            width="100%"
+            height="24px"
+          >
+            <Text as="span" size="2xl" bold>
+              {props.title}
+            </Text>
+          </Container>
+        </Link>
+      )}
+    </Stack>
   );
 }
-const CardLink = styled(Link)`
-  color: ${p => p.theme.tokens.content.primary};
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  width: calc(100% * 3 / 5);
+
+const cardLinkCss = (theme: Theme) => css`
+  color: ${theme.tokens.content.primary};
   aspect-ratio: 2/1;
-  padding: ${p => p.theme.space.xl};
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.md};
   transition: all 80ms ease-out;
   transition-property: background-color, color, border-color;
 
   &:hover,
   &:focus {
-    background: ${p => p.theme.tokens.background.secondary};
-    color: ${p => p.theme.tokens.content.accent};
-    border-color: ${p => p.theme.tokens.border.primary};
+    background: ${theme.tokens.background.secondary};
+    color: ${theme.tokens.content.accent};
+    border-color: ${theme.tokens.border.primary};
   }
-
-  img {
-    width: 100%;
-    height: auto;
-    max-width: 509px;
-    max-height: 170px;
-  }
-
-  @media screen and (min-width: ${p => p.theme.breakpoints.md}) {
-    max-width: calc(50% - 32px);
-  }
-`;
-
-const CardTitle = styled('span')`
-  margin: 0;
-  margin-top: auto;
-  margin-bottom: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  width: 100%;
-  height: 24px;
-  font-size: 24px;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: currentColor;
 `;
 
 function CardFigure(props: PropsWithChildren) {

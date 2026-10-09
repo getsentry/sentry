@@ -231,7 +231,7 @@ export function DataScrubFormModal({
         <h5>{title}</h5>
       </Header>
       <Body>
-        <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>
+        <Stack gap={{sm: 'md', xl: 'xl'}}>
           {traceItemDatasetsEnabled && (
             <form.AppField name="dataset">
               {field => (
@@ -265,11 +265,9 @@ export function DataScrubFormModal({
             {method => (
               <Grid
                 columns={
-                  method === MethodType.REPLACE
-                    ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
-                    : '1fr'
+                  method === MethodType.REPLACE ? {sm: '1fr', xl: '1fr 1fr'} : '1fr'
                 }
-                gap={{'screen:sm': 'md'}}
+                gap={{xl: 'md'}}
               >
                 <form.AppField
                   name="method"
@@ -320,12 +318,8 @@ export function DataScrubFormModal({
           </form.Subscribe>
 
           <Grid
-            columns={
-              type === RuleType.PATTERN
-                ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
-                : '1fr'
-            }
-            gap={{'screen:sm': 'md'}}
+            columns={type === RuleType.PATTERN ? {sm: '1fr', xl: '1fr 1fr'} : '1fr'}
+            gap={{xl: 'md'}}
           >
             <form.AppField
               name="type"
@@ -598,7 +592,7 @@ function SourceGroup({
 }: React.PropsWithChildren<{isExpanded?: boolean}>) {
   return (
     <SourceGroupContainer isExpanded={isExpanded}>
-      <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>{children}</Stack>
+      <Stack gap={{sm: 'md', xl: 'xl'}}>{children}</Stack>
     </SourceGroupContainer>
   );
 }

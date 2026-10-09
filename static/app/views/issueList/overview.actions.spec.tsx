@@ -12,6 +12,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {TagStore} from 'sentry/stores/tagStore';
@@ -22,11 +24,20 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
+function OverviewInContainer() {
+  return (
+    <Container containerType="inline-size">
+      <IssueListOverview />
+    </Container>
+  );
+}
+
 describe('IssueListOverview (actions)', () => {
   const groupStats = GroupStatsFixture();
   const organization = OrganizationFixture();
 
   beforeEach(() => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1200);
     MockApiClient.clearMockResponses();
     GroupStore.reset();
     IssueListCacheStore.reset();
@@ -84,6 +95,10 @@ describe('IssueListOverview (actions)', () => {
     TagStore.init?.();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('status', () => {
     const group1 = GroupFixture({
       id: '1',
@@ -121,7 +136,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {organization});
+      render(<OverviewInContainer />, {organization});
 
       expect(await screen.findByText('Group 1')).toBeInTheDocument();
       const groups = screen.getAllByTestId('group');
@@ -160,7 +175,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
 
         initialRouterConfig: {
@@ -221,7 +236,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {organization});
+      render(<OverviewInContainer />, {organization});
 
       expect(await screen.findByText('Group 1')).toBeInTheDocument();
       const groups = screen.getAllByTestId('group');
@@ -306,7 +321,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
 
         initialRouterConfig: {
@@ -383,7 +398,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
       });
 
@@ -427,7 +442,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
 
         initialRouterConfig: {
@@ -470,7 +485,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
 
         initialRouterConfig: {
@@ -549,7 +564,7 @@ describe('IssueListOverview (actions)', () => {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
         initialRouterConfig: {
           route: '/organizations/:orgId/issues/',
@@ -601,7 +616,7 @@ describe('IssueListOverview (actions)', () => {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
         initialRouterConfig: {
           route: '/organizations/:orgId/issues/',

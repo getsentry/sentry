@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Heading} from '@sentry/scraps/text';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -137,7 +137,9 @@ export function TermsAndConditions({subscription}: TermsProps) {
           {!policies.baa && (
             <PanelItemPolicy>
               <div>
-                <PolicyTitle>{t('Business Associate Agreement')}</PolicyTitle>
+                <Heading as="h6" size={{zero: 'lg', xl: 'md'}}>
+                  {t('Business Associate Agreement')}
+                </Heading>
               </div>
               <div>
                 <Button
@@ -170,7 +172,9 @@ export function TermsAndConditions({subscription}: TermsProps) {
         <PanelBody data-test-id="compliance-and-security">
           <PanelItemPolicy>
             <div>
-              <PolicyTitle>{t('Security Overview')}</PolicyTitle>
+              <Heading as="h6" size={{zero: 'lg', xl: 'md'}}>
+                {t('Security Overview')}
+              </Heading>
             </div>
             <PolicyStatusRow>
               <StatusIconWithTooltip
@@ -246,9 +250,3 @@ export function TermsAndConditions({subscription}: TermsProps) {
     </Fragment>
   );
 }
-
-const PolicyTitle = styled('h6')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.lg};
-  }
-`;
