@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +12,6 @@ import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {Confirm} from 'sentry/components/confirm';
 import {FormField} from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';

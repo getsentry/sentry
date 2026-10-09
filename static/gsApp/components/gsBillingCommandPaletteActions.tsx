@@ -1,7 +1,11 @@
 import {Fragment} from 'react';
+import {IconCreditCard} from '@sentry/icons/creditCard';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconTag} from '@sentry/icons/tag';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
-import {IconCreditCard, IconDocs, IconGraph, IconLightning, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

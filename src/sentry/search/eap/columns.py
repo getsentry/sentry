@@ -478,6 +478,8 @@ class FunctionDefinition:
     processor: Callable[[Any], Any] | None = None
     # if a function is private, assume it can't be used unless it's provided in `SearchResolverConfig.functions_acl`
     private: bool = False
+    # Usable in arithmetic
+    valid_arithmetic: bool = False
 
     @property
     def required_arguments(

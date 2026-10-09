@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconSearch} from '@sentry/icons/search';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
@@ -18,7 +19,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
