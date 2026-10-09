@@ -15,6 +15,7 @@ import Feature from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {AutofixReferrerInfoTip} from 'sentry/components/events/autofix/v3/autofixReferrerInfoTip';
 import {SeerPanelActions} from 'sentry/components/events/autofix/v3/seerPanelActions';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -337,14 +338,17 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           <Container {...tourProps} width={{zero: '100%', lg: 'auto'}} maxWidth="100%">
             <Flex wrap="wrap" gap={{zero: 'sm', sm: 'xs'}}>
               {currentTab === Tab.AUTOFIX && autofixPanel && (
-                <SeerPanelActions
-                  autofixState={autofixPanel.runState}
-                  enableBashMode={autofixPanel.enableBashMode}
-                  onCopyMarkdown={autofixPanel.handleCopyMarkdown}
-                  onEnableBashModeChange={autofixPanel.setEnableBashMode}
-                  onOpenSeerAgent={autofixPanel.handleOpenSeerAgent}
-                  onReset={autofixPanel.handleRestart}
-                />
+                <Flex align="center" gap="xs">
+                  <AutofixReferrerInfoTip referrer={autofixPanel.referrer} />
+                  <SeerPanelActions
+                    autofixState={autofixPanel.runState}
+                    enableBashMode={autofixPanel.enableBashMode}
+                    onCopyMarkdown={autofixPanel.handleCopyMarkdown}
+                    onEnableBashModeChange={autofixPanel.setEnableBashMode}
+                    onOpenSeerAgent={autofixPanel.handleOpenSeerAgent}
+                    onReset={autofixPanel.handleRestart}
+                  />
+                </Flex>
               )}
               {currentTab === Tab.DETAILS && (
                 <Fragment>

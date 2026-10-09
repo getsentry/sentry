@@ -24,19 +24,6 @@ DECLARE
     fk_drops text[] := '{}';
     fk_adds text[] := '{}';
 BEGIN
-    LOCK TABLE "sentry_release" IN ACCESS EXCLUSIVE MODE;
-
-    id_sequence := pg_get_serial_sequence('sentry_release', 'id');
-    IF id_sequence IS NULL THEN
-        RAISE EXCEPTION 'sentry_release.id has no sequence to carry over';
-    END IF;
-    -- Any ALTER SEQUENCE blocks nextval until commit, so reserve_ids cannot claim an id
-    -- between the snapshot and the drop; the sequence is dropped below regardless.
-    EXECUTE format('ALTER SEQUENCE %s CACHE 1', id_sequence);
-    EXECUTE format(
-        'SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', id_sequence
-    ) INTO next_id;
-
     FOR fk IN
         SELECT
             conrelid::regclass AS table_name,
@@ -45,7 +32,12 @@ BEGIN
             convalidated AS validated
         FROM pg_constraint
         WHERE contype = 'f' AND confrelid = 'sentry_release'::regclass
+        ORDER BY conrelid::regclass::text
     LOOP
+        -- Child tables first and sentry_release last: the order a child write takes them when
+        -- its deferred FK check runs at commit, so the two cannot deadlock.
+        EXECUTE format('LOCK TABLE %s IN ACCESS EXCLUSIVE MODE', fk.table_name);
+
         -- The primary key cannot be dropped while a foreign key still depends on it.
         fk_drop := format(
             'ALTER TABLE %s DROP CONSTRAINT %I', fk.table_name, fk.constraint_name
@@ -65,6 +57,19 @@ BEGIN
         -- Queued for after the column rename, so sentry_release(id) is the wide column.
         fk_adds := array_append(fk_adds, fk_add);
     END LOOP;
+
+    LOCK TABLE "sentry_release" IN ACCESS EXCLUSIVE MODE;
+
+    id_sequence := pg_get_serial_sequence('sentry_release', 'id');
+    IF id_sequence IS NULL THEN
+        RAISE EXCEPTION 'sentry_release.id has no sequence to carry over';
+    END IF;
+    -- Any ALTER SEQUENCE blocks nextval until commit, so reserve_ids cannot claim an id
+    -- between the snapshot and the drop; the sequence is dropped below regardless.
+    EXECUTE format('ALTER SEQUENCE %s CACHE 1', id_sequence);
+    EXECUTE format(
+        'SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', id_sequence
+    ) INTO next_id;
 
     FOREACH fk_drop IN ARRAY fk_drops LOOP
         EXECUTE fk_drop;
@@ -122,14 +127,6 @@ DECLARE
     fk_drops text[] := '{}';
     fk_adds text[] := '{}';
 BEGIN
-    LOCK TABLE "sentry_release" IN ACCESS EXCLUSIVE MODE;
-
-    id_sequence := pg_get_serial_sequence('sentry_release', 'id');
-    EXECUTE format('ALTER SEQUENCE %s CACHE 1', id_sequence);
-    EXECUTE format(
-        'SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', id_sequence
-    ) INTO next_id;
-
     FOR fk IN
         SELECT
             conrelid::regclass AS table_name,
@@ -137,7 +134,10 @@ BEGIN
             pg_get_constraintdef(oid) AS definition
         FROM pg_constraint
         WHERE contype = 'f' AND confrelid = 'sentry_release'::regclass
+        ORDER BY conrelid::regclass::text
     LOOP
+        EXECUTE format('LOCK TABLE %s IN ACCESS EXCLUSIVE MODE', fk.table_name);
+
         -- The primary key cannot be dropped while a foreign key still depends on it.
         fk_drop := format(
             'ALTER TABLE %s DROP CONSTRAINT %I', fk.table_name, fk.constraint_name
@@ -153,6 +153,14 @@ BEGIN
         -- Queued for after the column rename, so sentry_release(id) is the narrow column.
         fk_adds := array_append(fk_adds, fk_add);
     END LOOP;
+
+    LOCK TABLE "sentry_release" IN ACCESS EXCLUSIVE MODE;
+
+    id_sequence := pg_get_serial_sequence('sentry_release', 'id');
+    EXECUTE format('ALTER SEQUENCE %s CACHE 1', id_sequence);
+    EXECUTE format(
+        'SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', id_sequence
+    ) INTO next_id;
 
     FOREACH fk_drop IN ARRAY fk_drops LOOP
         EXECUTE fk_drop;
