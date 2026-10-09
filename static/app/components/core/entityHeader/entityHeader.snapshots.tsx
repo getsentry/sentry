@@ -1,7 +1,22 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {UserFixture} from 'sentry-fixture/user';
+
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
+
+/**
+ * `Avatar` resolves its image through `useQuery`, so any header carrying one
+ * needs a client. The harness provides a theme but no query client.
+ */
+function Header(headerProps: EntityHeaderProps) {
+  return (
+    <QueryClientProvider client={makeTestQueryClient()}>
+      <EntityHeader {...headerProps} />
+    </QueryClientProvider>
+  );
+}
 
 const props: EntityHeaderProps = {
   title: {label: 'Replay user', value: 'anonymous@example.com'},
@@ -27,17 +42,17 @@ describe('EntityHeader', () => {
   // The stats sit beside the title above the `lg` container breakpoint (640px)
   // and drop below the metadata under it. The header establishes its own query
   // container at full width, so the viewport drives the reflow here.
-  it.snapshot('stacked', () => <EntityHeader {...props} />, {
+  it.snapshot('stacked', () => <Header {...props} />, {
     viewport: 480,
     tags: {layout: 'stacked', area: 'core'},
   });
 
-  it.snapshot('side-by-side', () => <EntityHeader {...props} />, {
+  it.snapshot('side-by-side', () => <Header {...props} />, {
     viewport: 900,
     tags: {layout: 'side-by-side', area: 'core'},
   });
 
-  it.snapshot('loading', () => <EntityHeader {...props} isLoading />, {
+  it.snapshot('loading', () => <Header {...props} isLoading />, {
     viewport: 900,
     tags: {state: 'loading', area: 'core'},
   });
@@ -48,7 +63,7 @@ describe('EntityHeader', () => {
   it.snapshot(
     'avatar beside people',
     () => (
-      <EntityHeader
+      <Header
         title={{
           ...props.title,
           leadingGraphic: {type: 'user', user: UserFixture({id: '1', name: 'Alice'})},
@@ -65,7 +80,7 @@ describe('EntityHeader', () => {
     {viewport: 900, tags: {slots: 'avatar-people', area: 'core'}}
   );
 
-  it.snapshot('title only', () => <EntityHeader title={props.title} />, {
+  it.snapshot('title only', () => <Header title={props.title} />, {
     viewport: 900,
     tags: {slots: 'title', area: 'core'},
   });
