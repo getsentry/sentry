@@ -1,4 +1,4 @@
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useFormTypingAnimation} from './useFormTypingAnimation';
 
@@ -10,7 +10,14 @@ describe('useFormTypingAnimation', () => {
     jest.useFakeTimers();
     setValue.mockClear();
   });
-  afterEach(() => jest.useRealTimers());
+  afterEach(() => {
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 
   it('animates text into the target form field', () => {
     const {result} = renderHook(useFormTypingAnimation);

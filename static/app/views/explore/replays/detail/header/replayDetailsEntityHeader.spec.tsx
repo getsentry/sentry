@@ -10,6 +10,7 @@ import {
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  cleanup,
   render,
   renderHookWithProviders,
   screen,
@@ -57,10 +58,9 @@ function readerResultFixture(
     ...overrides,
   };
 }
-
-jest.useFakeTimers();
 describe('ReplayDetailsEntityHeader', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
@@ -68,9 +68,16 @@ describe('ReplayDetailsEntityHeader', () => {
     });
     ProjectsStore.loadInitialData([project]);
   });
-
-  afterEach(() => {
-    ProjectsStore.reset();
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+      ProjectsStore.reset();
+    }
   });
 
   function mockViewedBy(replayId: string) {

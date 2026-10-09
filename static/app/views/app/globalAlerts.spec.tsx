@@ -1,4 +1,4 @@
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
@@ -159,7 +159,12 @@ describe('GlobalAlertProvider', () => {
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      try {
+        cleanup();
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('auto-removes transient alerts after the expiration delay', () => {

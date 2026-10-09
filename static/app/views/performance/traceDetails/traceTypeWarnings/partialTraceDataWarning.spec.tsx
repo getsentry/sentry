@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
@@ -12,12 +12,17 @@ import {PartialTraceDataWarning} from './partialTraceDataWarning';
 
 describe('PartialTraceDataWarning', () => {
   describe('when the trace is older than 30 days', () => {
-    beforeAll(() => {
+    beforeEach(() => {
       jest.useFakeTimers().setSystemTime(new Date(2025, 0, 31));
     });
 
-    afterAll(() => {
-      jest.useRealTimers();
+    afterEach(() => {
+      try {
+        cleanup();
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('should render warning', () => {
@@ -65,12 +70,17 @@ describe('PartialTraceDataWarning', () => {
   });
 
   describe('when the trace is younger than 30 days', () => {
-    beforeAll(() => {
+    beforeEach(() => {
       jest.useFakeTimers().setSystemTime(new Date(2025, 0, 1));
     });
 
-    afterAll(() => {
-      jest.useRealTimers();
+    afterEach(() => {
+      try {
+        cleanup();
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('should not render the warning', () => {

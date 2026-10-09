@@ -1,14 +1,24 @@
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {cleanup, act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useTimeout} from './useTimeout';
 
-jest.useFakeTimers();
-
 describe('useTimeout', () => {
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   const timeMs = 500;
   const onTimeout = jest.fn();
 
   beforeEach(() => {
+    jest.useFakeTimers();
     onTimeout.mockReset();
   });
 
