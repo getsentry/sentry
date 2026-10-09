@@ -413,7 +413,7 @@ export function useConversation(
   const pageCount = data?.pages.length ?? 0;
   const loadNextPage = useCallback(() => {
     if (hasNextPage && !isFetching) {
-      void fetchNextPage();
+      void fetchNextPage({cancelRefetch: false});
     }
   }, [fetchNextPage, hasNextPage, isFetching]);
 

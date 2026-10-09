@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState, type UIEvent} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
@@ -112,13 +112,8 @@ export function ConversationViewContent({
     selectedNodeId: selectedNode?.id ?? null,
   });
 
-  function handleScroll(event: UIEvent<HTMLDivElement>) {
-    const container = event.currentTarget;
-    if (
-      hasNextPage &&
-      !isFetchingNextPage &&
-      container.scrollHeight - container.scrollTop - container.clientHeight < 200
-    ) {
+  function handleWheel() {
+    if (hasNextPage && !isFetchingNextPage) {
       loadNextPage();
     }
   }
@@ -179,7 +174,7 @@ export function ConversationViewContent({
       <ConversationContentLayout
         contentRef={contentRef}
         leftPadding={isTranscript ? '0' : 'md'}
-        onScroll={handleScroll}
+        onWheel={handleWheel}
         left={
           <Fragment>
             {isTranscript ? (

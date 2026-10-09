@@ -120,12 +120,12 @@ export function ConversationContentLayout({
   right,
   leftPadding = 'md',
   contentRef,
-  onScroll,
+  onWheel,
 }: {
   left: React.ReactNode;
   contentRef?: React.Ref<HTMLDivElement>;
   leftPadding?: React.ComponentProps<typeof Container>['padding'];
-  onScroll?: React.UIEventHandler<HTMLDivElement>;
+  onWheel?: React.WheelEventHandler<HTMLDivElement>;
   right?: React.ReactNode;
 }) {
   return (
@@ -146,7 +146,7 @@ export function ConversationContentLayout({
                   ref={contentRef}
                   data-scrollable
                   flex="1"
-                  onScroll={onScroll}
+                  onWheel={onWheel}
                   minWidth="0"
                   minHeight="0"
                   padding={leftPadding}
