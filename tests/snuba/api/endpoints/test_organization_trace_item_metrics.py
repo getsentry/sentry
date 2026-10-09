@@ -60,6 +60,11 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
             features = self.feature_flags
         if query is None:
             query = {"project": self.project.id}
+        # Stay well inside Snuba's 30d tier-1 window. With EAPClient's 30d default,
+        # requests in the first ~3 minutes after midnight UTC get their start
+        # quantized back across midnight, adjust_start_end_window floors it a full
+        # day earlier, and Snuba routes the query to downsampled tier 8.
+        query = {"statsPeriod": "14d", **query}
         url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
         with self.feature(features):
             return self.client.get(
