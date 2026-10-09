@@ -11,9 +11,10 @@ import {
 import {getBootstrapProjectsQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {apiFetch, useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {createConcurrencyLimiter} from 'sentry/utils/api/concurrency/createConcurrencyLimiter';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -51,6 +52,18 @@ function selectReplayRecord(data: ApiResponse<{data: unknown}>) {
   return data.json.data ? mapResponseToReplayRecord(data.json.data) : undefined;
 }
 
+/**
+ * Long replays can have thousands of segments, loaded as one request per page
+ * of segments. Firing them all at once trips the API's concurrent and
+ * per-second rate limits (25 concurrent / 40 per second), and the CORS
+ * preflights for those requests get limited too. Stay well under the
+ * concurrent limit, because other requests on the page share that budget.
+ */
+const limitReplaySegmentsRequest = createConcurrencyLimiter({
+  concurrency: 10,
+  key: 'replay-segments',
+});
+
 export function replayAttachmentsApiOptions({
   organizationIdOrSlug,
   projectIdOrSlug,
@@ -62,7 +75,7 @@ export function replayAttachmentsApiOptions({
   replayId: string;
   query?: {cursor: string; download: boolean; per_page: number};
 }) {
-  return apiOptions.as<unknown>()(
+  const options = apiOptions.as<unknown>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
     {
       path: {
@@ -74,6 +87,11 @@ export function replayAttachmentsApiOptions({
       staleTime: Infinity,
     }
   );
+  return queryOptions({
+    ...options,
+    queryFn: context =>
+      limitReplaySegmentsRequest(() => apiFetch(context), context.signal),
+  });
 }
 
 type Options = {
@@ -183,7 +201,9 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
     Boolean(replayRecord);
 
   const attachmentCursors = Array.from(
-    {length: Math.ceil((replayRecord?.count_segments ?? 0) / SEGMENTS_PER_PAGE)},
+    {
+      length: Math.ceil((replayRecord?.count_segments ?? 0) / SEGMENTS_PER_PAGE),
+    },
     (_, i) => `0:${SEGMENTS_PER_PAGE * i}:0`
   );
 
