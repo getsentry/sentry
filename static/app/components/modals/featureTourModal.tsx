@@ -1,12 +1,12 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export type TourStep = {
@@ -126,74 +126,62 @@ type ContentsProps = ModalRenderProps &
   Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> &
   Pick<State, 'openedAt'>;
 
-type ContentsState = {
-  current: number;
-  openedAt: number;
-};
+function ModalContents({
+  Body,
+  steps,
+  doneText = defaultProps.doneText,
+  doneUrl,
+  closeModal,
+  onAdvance,
+  openedAt,
+}: ContentsProps) {
+  const [current, setCurrent] = useState(0);
 
-class ModalContents extends Component<ContentsProps, ContentsState> {
-  static defaultProps = defaultProps;
-
-  state: ContentsState = {
-    current: 0,
-    openedAt: Date.now(),
+  const handleAdvance = () => {
+    const next = current + 1;
+    setCurrent(next);
+    onAdvance?.(next, Date.now() - openedAt);
   };
 
-  handleAdvance = () => {
-    const {onAdvance, openedAt} = this.props;
-    this.setState(
-      prevState => ({current: prevState.current + 1}),
-      () => {
-        const duration = Date.now() - openedAt;
-        onAdvance?.(this.state.current, duration);
-      }
-    );
-  };
+  const step = steps[current] === undefined ? steps[steps.length - 1]! : steps[current];
+  const hasNext = steps[current + 1] !== undefined;
 
-  render() {
-    const {Body, steps, doneText, doneUrl, closeModal} = this.props;
-    const {current} = this.state;
-
-    const step = steps[current] === undefined ? steps[steps.length - 1]! : steps[current];
-    const hasNext = steps[current + 1] !== undefined;
-
-    return (
-      <Body data-test-id="feature-tour">
-        <CloseButton
-          variant="transparent"
-          size="zero"
-          onClick={closeModal}
-          icon={<IconClose />}
-          aria-label={t('Close tour')}
-        />
-        <Stack align="center" margin="2xl 3xl md 3xl">
-          {step.image}
-          <TourHeader>{step.title}</TourHeader>
-          {step.body}
-          <TourButtonBar>
-            {step.actions && step.actions}
-            {hasNext && (
-              <Button variant="primary" onClick={this.handleAdvance}>
-                {t('Next')}
-              </Button>
-            )}
-            {!hasNext && (
-              <LinkButton
-                external
-                href={doneUrl}
-                onClick={closeModal}
-                variant="primary"
-                aria-label={t('Complete tour')}
-              >
-                {doneText}
-              </LinkButton>
-            )}
-          </TourButtonBar>
-          <StepCounter>{t('%s of %s', current + 1, steps.length)}</StepCounter>
-        </Stack>
-      </Body>
-    );
-  }
+  return (
+    <Body data-test-id="feature-tour">
+      <CloseButton
+        variant="transparent"
+        size="zero"
+        onClick={closeModal}
+        icon={<IconClose />}
+        aria-label={t('Close tour')}
+      />
+      <Stack align="center" margin="2xl 3xl md 3xl">
+        {step.image}
+        <TourHeader>{step.title}</TourHeader>
+        {step.body}
+        <TourButtonBar>
+          {step.actions && step.actions}
+          {hasNext && (
+            <Button variant="primary" onClick={handleAdvance}>
+              {t('Next')}
+            </Button>
+          )}
+          {!hasNext && (
+            <LinkButton
+              external
+              href={doneUrl}
+              onClick={closeModal}
+              variant="primary"
+              aria-label={t('Complete tour')}
+            >
+              {doneText}
+            </LinkButton>
+          )}
+        </TourButtonBar>
+        <StepCounter>{t('%s of %s', current + 1, steps.length)}</StepCounter>
+      </Stack>
+    </Body>
+  );
 }
 
 const CloseButton = styled(Button)`

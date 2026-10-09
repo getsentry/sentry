@@ -1,16 +1,22 @@
 import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconSearch} from '@sentry/icons/search';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -28,10 +34,11 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
+import {t, tct, tn} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -48,9 +55,11 @@ import type {UsageSeries} from 'sentry/views/organizationStats/types';
 type ConditionType =
   | 'error_message'
   | 'error_type'
+  | 'geo_country_code'
   | 'metric_name'
   | 'log_message'
-  | 'release';
+  | 'release'
+  | 'ip_address';
 
 type CustomInboundFilterCondition = {
   type: ConditionType;
@@ -79,8 +88,7 @@ type FilterDataType = 'all' | 'error' | 'metric' | 'log' | 'span';
 type DataTypeOption = {label: string; value: FilterDataType};
 
 // A single editable condition row in the modal. The API stores a list of
-// values per condition, but the UI edits one glob per row, so each row maps to
-// a single-element value list.
+// values per condition; the row edits them as one text with a value per line.
 type ConditionFormValue = {
   property: ConditionType;
   value: string;
@@ -98,11 +106,13 @@ type DataTypeSpec = {
   // type. Offering a data type without it lets the user build a filter the API
   // rejects on save, so mirror the gating here.
   feature?: string;
+  // Shown in the filter table, whose data type column already says "Data Type".
+  tableLabel?: string;
 };
 
 // Declaration order is the order of the data type dropdown.
 const DATA_TYPES: Record<FilterDataType, DataTypeSpec> = {
-  all: {label: t('All Data Types')},
+  all: {label: t('All Data Types'), tableLabel: t('All')},
   error: {label: t('Errors')},
   metric: {label: t('Metrics'), feature: 'tracemetrics-ingestion'},
   log: {label: t('Logs'), feature: 'ourlogs-ingestion'},
@@ -115,13 +125,16 @@ type ConditionSpec = {
   description: string | Record<FilterDataType, string>;
   label: string;
   placeholder: string;
-  // The data type whose field this condition reads. Absent for `release`, which
-  // every data type carries, so it stays on offer whatever the filter targets.
+  // The data type whose field this condition reads. Absent for `release` and
+  // `ip_address`, which every data type carries, so they stay on offer whatever
+  // the filter targets.
   dataType?: FilterDataType;
 };
 
 // Declaration order is the order of the property dropdown, and the first
-// condition of a data type is the one a new row starts with. Keep `release` last.
+// condition of a data type is the one a new row starts with. Keep the conditions
+// every data type carries last, `release` first among them: it is the default
+// for the catch-all.
 const CONDITIONS: Record<ConditionType, ConditionSpec> = {
   error_message: {
     dataType: 'error',
@@ -137,6 +150,14 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     placeholder: t('Glob pattern, e.g. TypeError'),
     description: t(
       'Matches the exception type of an error, e.g. TypeError. Use an Error Message condition to match the message.'
+    ),
+  },
+  geo_country_code: {
+    dataType: 'error',
+    label: t('Country'),
+    placeholder: t('Glob pattern, e.g. US'),
+    description: t(
+      "Matches the two-letter country code of the user's location, e.g. US. Sentry derives it from the sender IP address unless the SDK sets one."
     ),
   },
   metric_name: {
@@ -161,6 +182,13 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
       metric: t('Matches the release attribute of the metric.'),
       span: t('Matches the release attribute of the span.'),
     },
+  },
+  ip_address: {
+    label: t('IP Address'),
+    placeholder: t('IP address or CIDR range, e.g. 203.0.113.7 or 10.0.0.0/8'),
+    description: t(
+      'Matches the IP address the data was sent from. Takes single addresses and CIDR ranges, not glob patterns.'
+    ),
   },
 };
 
@@ -220,6 +248,14 @@ function emptyCondition(property: ConditionType): ConditionFormValue {
   return {property, value: ''};
 }
 
+// The values of a condition row, one per non-empty line of its text.
+function splitConditionValues(text: string): string[] {
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+}
+
 const filterSchema = z.object({
   name: z.string().trim().min(1, t('Give the filter a name')),
   dataType: z.enum(FILTER_DATA_TYPES),
@@ -227,7 +263,12 @@ const filterSchema = z.object({
     .array(
       z.object({
         property: z.enum(CONDITION_TYPES),
-        value: z.string().trim().min(1, t('Enter a value to match')),
+        value: z
+          .string()
+          .refine(
+            text => splitConditionValues(text).length > 0,
+            t('Enter a value to match')
+          ),
       })
     )
     .min(1),
@@ -247,14 +288,16 @@ function getFilterDataType(filter: CustomInboundFilter): FilterDataType {
 
 function getDataTypeLabel(filter: CustomInboundFilter): string {
   const dataType = getFilterDataType(filter);
-  return DATA_TYPES[dataType]?.label ?? dataType;
+  const spec = DATA_TYPES[dataType];
+  return spec?.tableLabel ?? spec?.label ?? dataType;
 }
 
-// Expand the API's per-condition value lists into one editable row per value.
+// One editable row per condition, with its values one per line.
 function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
-  const conditions = filter.conditions.flatMap(condition =>
-    condition.value.map(value => ({property: condition.type, value}))
-  );
+  const conditions = filter.conditions.map(condition => ({
+    property: condition.type,
+    value: condition.value.join('\n'),
+  }));
   const dataType = getFilterDataType(filter);
   return {
     name: filter.name ?? '',
@@ -264,25 +307,39 @@ function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
   };
 }
 
-// Collapse the editable rows back into the API shape, one single-value
-// condition per row.
+// Collapse the editable rows back into the API shape, one condition per row.
 function formValuesToConditions(
   values: FilterFormValues
 ): CustomInboundFilterCondition[] {
   return values.conditions.map(condition => ({
     type: condition.property,
-    value: [condition.value.trim()],
+    value: splitConditionValues(condition.value),
   }));
 }
 
-function getErrorDetail(error: unknown, fallback: string): string {
-  if (error instanceof RequestError) {
-    const detail = error.responseJSON?.detail;
-    if (typeof detail === 'string') {
-      return detail;
-    }
+// The API answers with either `{detail: string}` or a DRF validation error, which
+// nests messages under field names and list indexes, e.g.
+// `{conditions: [{}, {value: ['... is not an IP address or CIDR range.']}]}`. Both
+// shapes have their messages as string leaves.
+function collectErrorMessages(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
   }
-  return fallback;
+  if (Array.isArray(value)) {
+    return value.flatMap(collectErrorMessages);
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value).flatMap(collectErrorMessages);
+  }
+  return [];
+}
+
+function getErrorDetail(error: unknown, fallback: string): string {
+  if (!(error instanceof RequestError)) {
+    return fallback;
+  }
+  const messages = [...new Set(collectErrorMessages(error.responseJSON))];
+  return messages.length > 0 ? messages.join(' ') : fallback;
 }
 
 function getMatchDescription(property: string, dataType: FilterDataType): string {
@@ -310,6 +367,51 @@ function getModalDataTypeOptions(
   ).map(dataTypeOption);
 }
 
+// Conditions that read fields Sentry rewrites after ingestion on obfuscated
+// platforms, which is what the warning in the modal is about.
+const RAW_ERROR_PROPERTIES = new Set<string>(['error_message', 'error_type']);
+
+// Project platforms that usually ship obfuscated code, so their error type and
+// message change once Sentry applies source maps, ProGuard mappings, or debug
+// files. This is a guess from the project setting: the backend decides per event
+// from its payload, so the list only picks who sees the warning.
+const OBFUSCATED_PLATFORMS = new Set<PlatformKey>([
+  ...sourceMaps,
+  ...android,
+  ...gaming,
+  'capacitor',
+  'dart-flutter',
+  'flutter',
+  'ionic',
+  'javascript-capacitor',
+  'javascript-cordova',
+  'minidump',
+  'native-breakpad',
+  'native-crashpad',
+  'native-minidump',
+  'native-qt',
+]);
+
+const OBFUSCATED_ERRORS_DOCS_URL =
+  'https://docs.sentry.io/concepts/data-management/filtering/#error-message-filters-do-not-match-deobfuscated-exception-types';
+
+// Inbound filters run before symbolication, so a pattern copied from an issue on
+// an obfuscated platform misses the raw type and message the filter checks.
+function ObfuscatedErrorWarning({project}: {project: Project}) {
+  if (!project.platform || !OBFUSCATED_PLATFORMS.has(project.platform)) {
+    return null;
+  }
+
+  return (
+    <Alert variant="warning">
+      {tct(
+        'Filters check the error type and message as they arrive, before Sentry applies source maps, ProGuard mappings, or debug files. What you see in an issue can differ from what the filter checks. [link:Learn how to match the incoming error.]',
+        {link: <ExternalLink href={OBFUSCATED_ERRORS_DOCS_URL} />}
+      )}
+    </Alert>
+  );
+}
+
 // Condition values are glob patterns that can get long (full error messages,
 // release ranges), so give the modal more room than the 640px default.
 const filterModalCss = css`
@@ -317,13 +419,63 @@ const filterModalCss = css`
   width: 90vw;
 `;
 
-function ConditionTag({type, value}: {type: ConditionType; value: string}) {
+// Values a condition shows in the table before the rest fold into a count.
+const MAX_VISIBLE_VALUES = 3;
+
+function ValueTag({value}: {value: string}) {
   return (
     <Tag variant="muted">
       <Text monospace size="sm">
-        {`${getCondition(type).label}:${value}`}
+        {value}
       </Text>
     </Tag>
+  );
+}
+
+// One condition of a filter: its property, then the values any of which matches.
+function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}) {
+  const visible = condition.value.slice(0, MAX_VISIBLE_VALUES);
+  const hidden = condition.value.slice(MAX_VISIBLE_VALUES);
+
+  return (
+    <Flex wrap="wrap" gap="xs" align="center">
+      <Text size="sm" variant="muted">
+        {getCondition(condition.type).label}
+      </Text>
+      {visible.map((value, index) => (
+        <Fragment key={index}>
+          {index > 0 && (
+            <Text size="xs" variant="muted">
+              {t('or')}
+            </Text>
+          )}
+          <ValueTag value={value} />
+        </Fragment>
+      ))}
+      {hidden.length > 0 && (
+        <Fragment>
+          <Text size="xs" variant="muted">
+            {t('or')}
+          </Text>
+          <Tag variant="muted">
+            <InfoText
+              size="sm"
+              title={
+                <Stack align="start" gap="xs">
+                  {hidden.map((value, index) => (
+                    <Text key={index} monospace size="sm">
+                      {value}
+                    </Text>
+                  ))}
+                </Stack>
+              }
+            >
+              {tn('%s more', '%s more', hidden.length)}
+            </InfoText>
+          </Tag>
+        </Fragment>
+      )}
+    </Flex>
   );
 }
 
@@ -332,12 +484,14 @@ function CustomFilterModal({
   Body,
   Footer,
   closeModal,
+  project,
   filter,
   dataTypeOptions,
   onSave,
 }: ModalRenderProps & {
   dataTypeOptions: DataTypeOption[];
   onSave: (values: FilterFormValues) => Promise<unknown>;
+  project: Project;
   filter?: CustomInboundFilter;
 }) {
   const defaultValues = filter
@@ -351,6 +505,7 @@ function CustomFilterModal({
     dataTypeOptions,
     filter ? defaultValues.dataType : undefined
   );
+  const theme = useTheme();
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -371,14 +526,14 @@ function CustomFilterModal({
           </Heading>
           <Text variant="muted" size="sm">
             {t(
-              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text.'
+              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. Put one pattern per line to match any of them.'
             )}
           </Text>
         </Stack>
       </Header>
       <Body>
         <Stack gap="xl">
-          <Grid columns="3fr minmax(180px, 1fr)" gap="md">
+          <Grid columns={{zero: '1fr', md: '3fr minmax(180px, 1fr)'}} gap="md">
             <form.AppField name="name">
               {field => (
                 <field.Layout.Stack label={t('Name')} required>
@@ -401,11 +556,14 @@ function CustomFilterModal({
                     onChange={value => {
                       dataTypeField.handleChange(value);
                       // Carry existing rows over to the new data type. A row
-                      // whose property the new data type does not read falls
-                      // back to the default one; release rows stay as they are.
+                      // whose property the new data type does not offer falls
+                      // back to the default one; the rest stay as they are.
+                      const offered = new Set(
+                        getPropertyOptions(value).map(option => option.value)
+                      );
                       form.setFieldValue('conditions', conditions =>
                         conditions.map(condition =>
-                          condition.property === 'release'
+                          offered.has(condition.property)
                             ? condition
                             : {
                                 ...condition,
@@ -434,51 +592,82 @@ function CustomFilterModal({
                           )}
                         </Text>
                       )}
+                      {/* The value textarea grows with its lines, so the row aligns
+                          to the top and the single-line cells center on the control
+                          height to line up with the first line. On a narrow screen
+                          the row folds into property, "matches", and value lines. */}
                       <Stack gap="sm">
                         {conditions.map((condition, index) => (
                           <Grid
                             key={index}
-                            columns="160px max-content 1fr max-content"
-                            gap="md"
-                            align="center"
+                            areas={{
+                              zero: '"property remove" "matches matches" "value value"',
+                              md: '"property matches value remove"',
+                            }}
+                            columns={{
+                              zero: '1fr max-content',
+                              md: '160px max-content 1fr max-content',
+                            }}
+                            gap={{zero: 'xs md', md: 'md'}}
+                            align="start"
                           >
-                            <form.AppField name={`conditions[${index}].property`}>
-                              {propertyField => (
-                                <propertyField.Select
-                                  aria-label={t('Condition property')}
-                                  clearable={false}
-                                  options={getPropertyOptions(dataType)}
-                                  value={propertyField.state.value}
-                                  onChange={value => propertyField.handleChange(value)}
-                                />
-                              )}
-                            </form.AppField>
-                            <InfoText
-                              variant="muted"
-                              title={getMatchDescription(condition.property, dataType)}
+                            <Container area="property">
+                              <form.AppField name={`conditions[${index}].property`}>
+                                {propertyField => (
+                                  <propertyField.Select
+                                    aria-label={t('Condition property')}
+                                    clearable={false}
+                                    options={getPropertyOptions(dataType)}
+                                    value={propertyField.state.value}
+                                    onChange={value => propertyField.handleChange(value)}
+                                  />
+                                )}
+                              </form.AppField>
+                            </Container>
+                            <Flex
+                              area="matches"
+                              align="center"
+                              height={{zero: 'auto', md: theme.form.md.height}}
                             >
-                              {t('matches')}
-                            </InfoText>
-                            <form.AppField name={`conditions[${index}].value`}>
-                              {valueField => (
-                                <valueField.Input
-                                  aria-label={t('Condition value')}
-                                  placeholder={
-                                    getCondition(condition.property).placeholder
-                                  }
-                                  value={valueField.state.value}
-                                  onChange={valueField.handleChange}
-                                />
-                              )}
-                            </form.AppField>
-                            <Button
-                              size="sm"
-                              variant="transparent"
-                              icon={<IconDelete />}
-                              aria-label={t('Remove condition')}
-                              disabled={conditions.length === 1}
-                              onClick={() => conditionsField.removeValue(index)}
-                            />
+                              <InfoText
+                                variant="muted"
+                                title={getMatchDescription(condition.property, dataType)}
+                              >
+                                {t('matches')}
+                              </InfoText>
+                            </Flex>
+                            <Container area="value">
+                              <form.AppField name={`conditions[${index}].value`}>
+                                {valueField => (
+                                  <valueField.TextArea
+                                    aria-label={t('Condition value')}
+                                    placeholder={
+                                      getCondition(condition.property).placeholder
+                                    }
+                                    value={valueField.state.value}
+                                    onChange={valueField.handleChange}
+                                    monospace
+                                    autosize
+                                    rows={1}
+                                    maxRows={10}
+                                  />
+                                )}
+                              </form.AppField>
+                            </Container>
+                            <Flex
+                              area="remove"
+                              align="center"
+                              height={theme.form.md.height}
+                            >
+                              <Button
+                                size="sm"
+                                variant="transparent"
+                                icon={<IconDelete />}
+                                aria-label={t('Remove condition')}
+                                disabled={conditions.length === 1}
+                                onClick={() => conditionsField.removeValue(index)}
+                              />
+                            </Flex>
                           </Grid>
                         ))}
                       </Stack>
@@ -495,6 +684,9 @@ function CustomFilterModal({
                           {t('Add Condition')}
                         </Button>
                       </Flex>
+                      {conditions.some(condition =>
+                        RAW_ERROR_PROPERTIES.has(condition.property)
+                      ) && <ObfuscatedErrorWarning project={project} />}
                     </Stack>
                   );
                 }}
@@ -618,10 +810,10 @@ function FilteredVolumeCells({
   if (isPending) {
     return (
       <Fragment>
-        <SimpleTable.RowCell columnKey="trend">
+        <SimpleTable.RowCell>
           <Placeholder height={`${CHART_HEIGHT}px`} width={`${CHART_WIDTH}px`} />
         </SimpleTable.RowCell>
-        <SimpleTable.RowCell columnKey="filtered">
+        <SimpleTable.RowCell>
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Placeholder height="16px" width="40px" />
           </Flex>
@@ -633,12 +825,12 @@ function FilteredVolumeCells({
   if (isError) {
     return (
       <Fragment>
-        <SimpleTable.RowCell columnKey="trend">
+        <SimpleTable.RowCell>
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
         </SimpleTable.RowCell>
-        <SimpleTable.RowCell columnKey="filtered">
+        <SimpleTable.RowCell>
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
@@ -700,8 +892,13 @@ function FilteredVolumeCells({
 
   return (
     <Fragment>
-      <SimpleTable.RowCell columnKey="trend">
-        <Container width={`${CHART_WIDTH}px`} height={`${CHART_HEIGHT}px`}>
+      <SimpleTable.RowCell>
+        <Container
+          width={`${CHART_WIDTH}px`}
+          height={`${CHART_HEIGHT}px`}
+          role="img"
+          aria-label={t('Filtered volume trend, peak %s', formatAbbreviatedNumber(peak))}
+        >
           <MiniBarChart
             stacked
             animateBars
@@ -722,7 +919,7 @@ function FilteredVolumeCells({
           />
         </Container>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="filtered">
+      <SimpleTable.RowCell>
         <Flex height={`${CHART_HEIGHT}px`} align="center">
           <Text tabular variant={total === 0 ? 'muted' : 'primary'}>
             {formatAbbreviatedNumber(total)}
@@ -741,13 +938,10 @@ function matchesQuery(filter: CustomInboundFilter, query: string) {
   const haystack = [
     filter.name ?? '',
     getDataTypeLabel(filter),
-    ...filter.conditions.flatMap(condition =>
-      condition.value.flatMap(value => [
-        value,
-        getCondition(condition.type).label,
-        `${getCondition(condition.type).label}:${value}`,
-      ])
-    ),
+    ...filter.conditions.flatMap(condition => [
+      getCondition(condition.type).label,
+      ...condition.value,
+    ]),
   ];
   return haystack.some(field => field.toLowerCase().includes(needle));
 }
@@ -898,6 +1092,9 @@ export function CustomFilters({project}: {project: Project}) {
 
   return (
     <Stack gap="lg">
+      <Heading as="h2" size="md">
+        {t('Filter Rules')}
+      </Heading>
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -928,6 +1125,7 @@ export function CustomFilters({project}: {project: Project}) {
               deps => (
                 <CustomFilterModal
                   {...deps}
+                  project={project}
                   dataTypeOptions={dataTypeOptions}
                   onSave={handleCreate}
                 />
@@ -946,9 +1144,8 @@ export function CustomFilters({project}: {project: Project}) {
         <LoadingIndicator />
       ) : (
         <Container containerType="inline-size">
-          <CustomFiltersTable
-            columns={CUSTOM_FILTER_COLUMNS}
-            header={
+          <CustomFiltersTable columns={CUSTOM_FILTER_COLUMNS} customSections scrollable>
+            <SimpleTable.Head sticky>
               <SimpleTable.HeaderRow>
                 <SimpleTable.HeaderCell divider={false}>
                   {t('Active')}
@@ -962,118 +1159,118 @@ export function CustomFilters({project}: {project: Project}) {
                 <SimpleTable.HeaderCell divider={false}>
                   {t('Conditions')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} columnKey="trend">
+                <SimpleTable.HeaderCell divider={false}>
                   {t('Trend')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} columnKey="filtered">
+                <SimpleTable.HeaderCell divider={false}>
                   {t('Filtered')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} columnKey="created">
+                <SimpleTable.HeaderCell divider={false}>
                   {t('Created')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} columnKey="edited">
+                <SimpleTable.HeaderCell divider={false}>
                   {t('Edited')}
                 </SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell divider={false}>
                   {t('Action')}
                 </SimpleTable.HeaderCell>
               </SimpleTable.HeaderRow>
-            }
-          >
-            {visibleFilters.length === 0 && (
-              <SimpleTable.Empty>
-                {filters.length === 0
-                  ? t('No inbound filters found')
-                  : t('No rules match your search')}
-              </SimpleTable.Empty>
-            )}
-            {visibleFilters.map(filter => (
-              <SimpleTable.Row
-                key={filter.id}
-                variant={filter.active ? 'default' : 'faded'}
-              >
-                <SimpleTable.RowCell>
-                  <Switch
-                    aria-label={filter.active ? t('Disable filter') : t('Enable filter')}
-                    checked={filter.active}
-                    disabled={!hasWriteAccess}
-                    onChange={() => handleToggleActive(filter)}
-                  />
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Text ellipsis>{filter.name}</Text>
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Text ellipsis variant="muted">
-                    {getDataTypeLabel(filter)}
-                  </Text>
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Stack align="start" gap="xs">
-                    {filter.conditions.flatMap((condition, conditionIndex) =>
-                      condition.value.map((value, valueIndex) => (
-                        <ConditionTag
-                          key={`${conditionIndex}-${valueIndex}`}
-                          type={condition.type}
-                          value={value}
-                        />
-                      ))
-                    )}
-                  </Stack>
-                </SimpleTable.RowCell>
-                <FilteredVolumeCells
-                  intervals={stats?.intervals ?? []}
-                  seriesByCategory={stats?.seriesByReason.get(
-                    `${OUTCOMES_REASON_PREFIX}${filter.id}`
-                  )}
-                  isPending={isStatsPending}
-                  isError={isStatsError}
-                />
-                <SimpleTable.RowCell whiteSpace="nowrap" columnKey="created">
-                  <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell whiteSpace="nowrap" columnKey="edited">
-                  <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Flex gap="sm">
-                    <Button
-                      size="sm"
-                      variant="transparent"
-                      icon={<IconEdit />}
-                      aria-label={t('Edit filter')}
-                      disabled={!hasWriteAccess}
-                      onClick={() =>
-                        openModal(
-                          deps => (
-                            <CustomFilterModal
-                              {...deps}
-                              filter={filter}
-                              dataTypeOptions={dataTypeOptions}
-                              onSave={values => handleEdit(filter.id, values)}
-                            />
-                          ),
-                          {modalCss: filterModalCss}
-                        )
+            </SimpleTable.Head>
+            <SimpleTable.Body>
+              {visibleFilters.length === 0 && (
+                <SimpleTable.Empty>
+                  {filters.length === 0
+                    ? t('No inbound filters found')
+                    : t('No rules match your search')}
+                </SimpleTable.Empty>
+              )}
+              {visibleFilters.map(filter => (
+                <SimpleTable.Row
+                  key={filter.id}
+                  variant={filter.active ? 'default' : 'faded'}
+                >
+                  <SimpleTable.RowCell>
+                    <Switch
+                      aria-label={
+                        filter.active ? t('Disable filter') : t('Enable filter')
                       }
-                    />
-                    <Confirm
-                      priority="danger"
+                      checked={filter.active}
                       disabled={!hasWriteAccess}
-                      message={t('Are you sure you want to delete this filter?')}
-                      onConfirm={() => handleDelete(filter.id)}
-                    >
+                      onChange={() => handleToggleActive(filter)}
+                    />
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    <InfoText mode="overflowOnly" title={filter.name}>
+                      {filter.name}
+                    </InfoText>
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    <Text ellipsis variant="muted">
+                      {getDataTypeLabel(filter)}
+                    </Text>
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    <Stack align="start" gap="xs">
+                      {filter.conditions.map((condition, index) => (
+                        <ConditionSummary key={index} condition={condition} />
+                      ))}
+                    </Stack>
+                  </SimpleTable.RowCell>
+                  <FilteredVolumeCells
+                    intervals={stats?.intervals ?? []}
+                    seriesByCategory={stats?.seriesByReason.get(
+                      `${OUTCOMES_REASON_PREFIX}${filter.id}`
+                    )}
+                    isPending={isStatsPending}
+                    isError={isStatsError}
+                  />
+                  <SimpleTable.RowCell whiteSpace="nowrap">
+                    <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell whiteSpace="nowrap">
+                    <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    <Flex gap="sm">
                       <Button
                         size="sm"
                         variant="transparent"
-                        icon={<IconDelete />}
-                        aria-label={t('Delete filter')}
+                        icon={<IconEdit />}
+                        aria-label={t('Edit filter')}
+                        disabled={!hasWriteAccess}
+                        onClick={() =>
+                          openModal(
+                            deps => (
+                              <CustomFilterModal
+                                {...deps}
+                                project={project}
+                                filter={filter}
+                                dataTypeOptions={dataTypeOptions}
+                                onSave={values => handleEdit(filter.id, values)}
+                              />
+                            ),
+                            {modalCss: filterModalCss}
+                          )
+                        }
                       />
-                    </Confirm>
-                  </Flex>
-                </SimpleTable.RowCell>
-              </SimpleTable.Row>
-            ))}
+                      <Confirm
+                        priority="danger"
+                        disabled={!hasWriteAccess}
+                        message={t('Are you sure you want to delete this filter?')}
+                        onConfirm={() => handleDelete(filter.id)}
+                      >
+                        <Button
+                          size="sm"
+                          variant="transparent"
+                          icon={<IconDelete />}
+                          aria-label={t('Delete filter')}
+                        />
+                      </Confirm>
+                    </Flex>
+                  </SimpleTable.RowCell>
+                </SimpleTable.Row>
+              ))}
+            </SimpleTable.Body>
           </CustomFiltersTable>
         </Container>
       )}
@@ -1091,11 +1288,15 @@ const CUSTOM_FILTER_COLUMNS: TableColumnConfig[] = [
   {key: 'conditions', width: 'minmax(240px, 2fr)'},
   {key: 'trend', visible: {'3xl': true}, width: '190px'},
   {key: 'filtered', visible: {'2xl': true}, width: '90px'},
-  {key: 'created', visible: {'4xl': true}, width: '90px'},
-  {key: 'edited', visible: {'4xl': true}, width: '90px'},
+  {key: 'created', visible: {'5xl': true}, width: '90px'},
+  {key: 'edited', visible: {'5xl': true}, width: '90px'},
   {key: 'action', width: '110px'},
 ];
 
+// A fixed height keeps the search box and the sections below the table in place
+// while a search shrinks or grows the list. The grid would otherwise stretch its
+// rows to fill the spare height.
 const CustomFiltersTable = styled(SimpleTable)`
-  overflow-x: auto;
+  height: 480px;
+  align-content: start;
 `;

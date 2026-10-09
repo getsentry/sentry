@@ -2,16 +2,20 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
+import orjson
+from django.test import override_settings
+from urllib3.response import HTTPResponse
+
 from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
-@with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerRunsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-runs"
 
@@ -176,8 +180,8 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         assert [r["id"] for r in response.data] == [str(chat.uuid)]
 
     def test_source_in_filter(self) -> None:
-        night_shift = self.create_seer_run(organization=self.organization, user_id=self.user.id)
-        self.create_seer_agent_run(run=night_shift, source="night_shift")
+        agentic_triage = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=agentic_triage, source="night_shift")
         chat = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=chat, source="chat")
         slack = self.create_seer_run(organization=self.organization, user_id=self.user.id)
@@ -186,22 +190,22 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "source:[night_shift, chat]"}
         )
-        assert {r["id"] for r in response.data} == {str(night_shift.uuid), str(chat.uuid)}
+        assert {r["id"] for r in response.data} == {str(agentic_triage.uuid), str(chat.uuid)}
 
     def test_source_wildcard_in_filter(self) -> None:
         # A bracketed list with wildcards collapses to a regex string; it must
         # match via __regex rather than being iterated char-by-char by __in.
         slack = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=slack, source="slack_thread")
-        night_shift = self.create_seer_run(organization=self.organization, user_id=self.user.id)
-        self.create_seer_agent_run(run=night_shift, source="night_shift")
+        agentic_triage = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=agentic_triage, source="night_shift")
         chat = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=chat, source="chat")
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "source:[slack*, night*]"}
         )
-        assert {r["id"] for r in response.data} == {str(slack.uuid), str(night_shift.uuid)}
+        assert {r["id"] for r in response.data} == {str(slack.uuid), str(agentic_triage.uuid)}
 
     def test_project_filter(self) -> None:
         project = self.create_project(organization=self.organization)
@@ -457,6 +461,37 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             f"answer to: {q.question}" for q in QUESTIONS
         ]
         assert mock_run.call_count == len(QUESTIONS)
+
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @with_feature("organizations:seer-run-questions")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_user_question_propagates_request_context_to_seer(self, mock_urlopen) -> None:
+        run = self.create_seer_run(
+            organization=self.organization,
+            user_id=self.user.id,
+            seer_run_state_id=12345,
+            type=SeerRunType.EXPLORER,
+        )
+        mock_urlopen.return_value = HTTPResponse(
+            orjson.dumps({"result": {"answer": "The database is slow."}}), status=200
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"question": ["Why is this slow?"]},
+        )
+
+        row = next(item for item in response.data if item["id"] == str(run.uuid))
+        assert row["outputs"][0]["answer"] == "The database is slow."
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+            actor_type=ActorType.USER,
+        )
 
     @with_feature("organizations:seer-run-questions")
     def test_builtin_and_user_questions_are_additive(self) -> None:

@@ -10,6 +10,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
@@ -58,7 +59,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -70,7 +71,6 @@ from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d' and 'auto'"
@@ -177,7 +177,7 @@ def search_issues(
     environments: Sequence[Environment],
     extra_query_kwargs: None | Mapping[str, Any] = None,
 ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
-    with start_span(name="_search", op="_search"):
+    with traces.start_span(name="_search", attributes={"sentry.op": "_search"}):
         query_kwargs = build_query_params_from_request(
             request, organization, projects, environments
         )
@@ -290,7 +290,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         environments: Sequence[Environment],
         extra_query_kwargs: None | Mapping[str, Any] = None,
     ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
-        return search_issues(request, organization, projects, environments, extra_query_kwargs)
+        try:
+            start, end = get_date_range_from_stats_period(request.GET, optional=True)
+        except InvalidParams as exc:
+            raise ValidationError(str(exc)) from exc
+
+        return search_issues(
+            request,
+            organization,
+            projects,
+            environments,
+            {"date_from": start, "date_to": end, **(extra_query_kwargs or {})},
+        )
 
     @extend_schema(
         operation_id="listOrganizationIssues",
@@ -503,6 +514,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             IssueParams.MUTATE_ISSUE_ID_LIST,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
@@ -554,6 +568,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             IssueParams.DELETE_ISSUE_ID_LIST,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,

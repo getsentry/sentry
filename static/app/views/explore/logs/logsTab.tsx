@@ -1,5 +1,8 @@
 import {memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,6 +12,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {makeDroppedDataQueryKeyPrefix} from 'sentry/components/droppedData/useDroppedData';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -19,13 +23,13 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
-import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
+import {makeEventsTimeSeriesQueryKeyPrefix} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
@@ -172,15 +176,8 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
       validatedSearchQueryData,
     });
 
-  const hasTranslateEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
-
   return (
-    <SearchQueryBuilderProvider
-      enableAISearch={hasTranslateEndpoint}
-      {...searchQueryBuilderProviderProps}
-    >
+    <SearchQueryBuilderProvider enableAISearch {...searchQueryBuilderProviderProps}>
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Grid
@@ -355,7 +352,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     aggregateSortBys,
   });
 
-  const refreshTable = async () => {
+  const refreshData = async () => {
     setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     queryClient.setQueryData(tableData.queryKey, data => {
       if (data?.pages) {
@@ -367,7 +364,17 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       }
       return data;
     });
-    await tableData.refetch();
+    await Promise.all([
+      tableData.refetch(),
+      queryClient.refetchQueries({
+        queryKey: makeEventsTimeSeriesQueryKeyPrefix(organization.slug),
+        type: 'active',
+      }),
+      queryClient.refetchQueries({
+        queryKey: makeDroppedDataQueryKeyPrefix(organization.slug),
+        type: 'active',
+      }),
+    ]);
   };
 
   const openColumnEditor = () => {
@@ -424,7 +431,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       return {
         canManuallyRefresh: false,
         manualRefreshDisabledReason: t(
-          'Auto-refresh is enabled. Please disable auto-refresh to manually refresh the table.'
+          'Auto-refresh is enabled. Please disable auto-refresh to manually refresh.'
         ),
       };
     }
@@ -511,6 +518,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                   <LogsDirectExportModalButton
                     isLoading={tableData.isPending}
                     tableData={tableData.data}
+                    timeseriesIngestDelay={timeseriesIngestDelay}
                     error={tableData.error}
                   />
                 )}
@@ -546,7 +554,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                       size="sm"
                       icon={<IconRefresh />}
                       disabled={!canManuallyRefresh}
-                      onClick={refreshTable}
+                      onClick={refreshData}
                       aria-label={t('Refresh')}
                     />
                   </Tooltip>

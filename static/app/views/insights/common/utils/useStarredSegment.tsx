@@ -8,12 +8,12 @@ import {
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-type StarTransactionParams = {
+type StarServiceSpanParams = {
   project_id?: string;
-  segment_name?: string;
+  service_span?: string;
 };
 
-const URL_PREFIX = '/insights/starred-segments/';
+const URL_PREFIX = '/starred-service-spans/';
 
 interface Props {
   segmentName: string;
@@ -33,9 +33,9 @@ export function useStarredSegment({
   const isMutating = useIsMutating({mutationKey: starredSegmentMutationKey});
 
   const url = `/organizations/${organization.slug}${URL_PREFIX}`;
-  const data: StarTransactionParams = {
+  const data: StarServiceSpanParams = {
     project_id: projectId,
-    segment_name: segmentName,
+    service_span: segmentName,
   };
 
   const onError = (message: string) => {
@@ -56,7 +56,7 @@ export function useStarredSegment({
 
   const {mutate: unstarTransaction} = useMutation({
     mutationKey: starredSegmentMutationKey,
-    mutationFn: () => api.requestPromise(url, {method: 'DELETE', data}),
+    mutationFn: () => api.requestPromise(url, {method: 'DELETE', query: data}),
     onSuccess: () => onSuccess(t('Transaction unstarred')),
     onError: () => onError(t('Failed to unstar transaction')),
   });

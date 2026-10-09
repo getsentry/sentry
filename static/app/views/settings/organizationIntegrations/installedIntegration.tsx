@@ -1,5 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -9,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {
@@ -17,6 +19,7 @@ import type {
   OrganizationIntegration,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import {openGithubPermissionsUpdateModal} from 'sentry/utils/integrations/useAutoOpenPermissionsModal';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -166,6 +169,11 @@ export class InstalledIntegration extends Component<Props> {
                           view: 'integrations_directory_integration_detail',
                           already_installed: true,
                         }}
+                        modalParams={
+                          provider.key === 'slack'
+                            ? getSlackUpgradeModalParams(integration.missingFeatures)
+                            : undefined
+                        }
                         buttonText={t('Update %s', provider.name)}
                         data-test-id="integration-upgrade-button"
                         disabled={disableAction}

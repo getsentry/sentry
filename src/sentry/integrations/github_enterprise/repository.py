@@ -15,6 +15,9 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
     name = "GitHub Enterprise"
     repo_provider = IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
+    # github enterprise has non-unique repository IDs so we'll have to handle transfers differently
+    can_transfer_repositories = False
+
     def _validate_repo(self, client, installation, repo):
         try:
             repo_data = client.get_repo(repo)

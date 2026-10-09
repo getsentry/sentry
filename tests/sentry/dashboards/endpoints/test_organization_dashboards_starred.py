@@ -143,7 +143,44 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
             "dashboard_ids": ["Single dashboard cannot take up multiple positions"]
         }
 
-    def test_throws_an_error_if_reordered_dashboard_ids_are_not_complete(self) -> None:
+    def _starred_order(self) -> list[int]:
+        return list(
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id
+            )
+            .order_by("position")
+            .values_list("dashboard_id", flat=True)
+        )
+
+    def test_reorders_a_subset_of_dashboards(self) -> None:
+        dashboard_4 = self.create_dashboard(title="Dashboard 4")
+        self.create_dashboard_favorite_user(self.dashboard_1, self.user, self.organization, 0)
+        self.create_dashboard_favorite_user(self.dashboard_2, self.user, self.organization, 1)
+        self.create_dashboard_favorite_user(self.dashboard_3, self.user, self.organization, 2)
+        self.create_dashboard_favorite_user(dashboard_4, self.user, self.organization, 3)
+
+        # Swap dashboards 2 and 4; dashboards 1 and 3 keep their slots
+        response = self.do_request(
+            "put",
+            self.url,
+            data={"dashboard_ids": [dashboard_4.id, self.dashboard_2.id]},
+        )
+        assert response.status_code == 204
+        assert self._starred_order() == [
+            self.dashboard_1.id,
+            dashboard_4.id,
+            self.dashboard_3.id,
+            self.dashboard_2.id,
+        ]
+        assert list(
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id
+            )
+            .order_by("position")
+            .values_list("position", flat=True)
+        ) == [0, 1, 2, 3]
+
+    def test_reorders_a_contiguous_subset_of_dashboards(self) -> None:
         self.create_dashboard_favorite_user(self.dashboard_1, self.user, self.organization, 0)
         self.create_dashboard_favorite_user(self.dashboard_2, self.user, self.organization, 1)
         self.create_dashboard_favorite_user(self.dashboard_3, self.user, self.organization, 2)
@@ -151,7 +188,23 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
         response = self.do_request(
             "put",
             self.url,
-            data={"dashboard_ids": [self.dashboard_1.id, self.dashboard_2.id]},
+            data={"dashboard_ids": [self.dashboard_3.id, self.dashboard_2.id]},
+        )
+        assert response.status_code == 204
+        assert self._starred_order() == [
+            self.dashboard_1.id,
+            self.dashboard_3.id,
+            self.dashboard_2.id,
+        ]
+
+    def test_throws_an_error_if_dashboard_is_not_starred(self) -> None:
+        self.create_dashboard_favorite_user(self.dashboard_1, self.user, self.organization, 0)
+        self.create_dashboard_favorite_user(self.dashboard_2, self.user, self.organization, 1)
+
+        response = self.do_request(
+            "put",
+            self.url,
+            data={"dashboard_ids": [self.dashboard_3.id, self.dashboard_1.id]},
         )
         assert response.status_code == 400
         assert response.data == {
@@ -160,6 +213,7 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
                 code="parse_error",
             )
         }
+        assert self._starred_order() == [self.dashboard_1.id, self.dashboard_2.id]
 
     def test_allows_reordering_even_if_no_initial_positions(self) -> None:
         self.create_dashboard_favorite_user(self.dashboard_1, self.user, self.organization, None)

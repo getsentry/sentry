@@ -1,21 +1,26 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.models.group import DEFAULT_TYPE_ID, GroupStatus
+from sentry.models.group import DEFAULT_TYPE_ID, Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.helpers.options import override_options
 from sentry.types.group import PriorityLevel
 from sentry.users.services.user.service import user_service
+from sentry.workflow_engine.handlers.condition.issue_priority_deescalating_handler import (
+    IssuePriorityDeescalatingConditionHandler,
+)
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_data_conditions,
 )
+from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import ActionFilterPreviewPlan
 from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
-class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
+class TestIssuePriorityDeescalatingCondition(ConditionTestCase):
     condition = Condition.ISSUE_PRIORITY_DEESCALATING
 
     def setUp(self) -> None:
@@ -99,6 +104,41 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
 
         self.group.update(status=GroupStatus.RESOLVED)
         self.assert_passes(self.deescalating_dc_critical, self.event_data)
+
+    def test_preview_filters_groups_by_deescalation(self) -> None:
+        plan = ActionFilterPreviewPlan(DataConditionGroup.Type.ALL)
+        IssuePriorityDeescalatingConditionHandler.preview_behavior.filter_preview(
+            plan, PriorityLevel.HIGH
+        )
+
+        self.update_group_and_open_period(priority=PriorityLevel.MEDIUM)
+        assert not Group.objects.filter(id=self.group.id).filter(*plan.group_filters).exists()
+
+        self.update_group_and_open_period(priority=PriorityLevel.HIGH)
+        self.update_group_and_open_period(priority=PriorityLevel.MEDIUM)
+        assert Group.objects.filter(id=self.group.id).filter(*plan.group_filters).exists()
+
+    @override_options(
+        {"workflow_engine.group.type_id.open_periods_type_denylist": [MetricIssue.type_id]}
+    )
+    def test_preview_behavior_excludes_types_without_open_periods(self) -> None:
+        self.update_group_and_open_period(priority=PriorityLevel.HIGH)
+        self.group.update(status=GroupStatus.RESOLVED)
+        plan = ActionFilterPreviewPlan(DataConditionGroup.Type.ALL)
+
+        IssuePriorityDeescalatingConditionHandler.preview_behavior.filter_preview(
+            plan, PriorityLevel.HIGH
+        )
+
+        assert not Group.objects.filter(id=self.group.id).filter(*plan.group_filters).exists()
+
+    def test_preview_behavior_preserves_boolean_comparison(self) -> None:
+        plan = ActionFilterPreviewPlan(DataConditionGroup.Type.ALL)
+        IssuePriorityDeescalatingConditionHandler.preview_behavior.filter_preview(plan, True)
+
+        self.group.update(status=GroupStatus.RESOLVED)
+
+        assert Group.objects.filter(id=self.group.id).filter(*plan.group_filters).exists()
 
     def test_boolean_comparison_preserves_existing_behavior(self) -> None:
         boolean_condition = self.create_data_condition(

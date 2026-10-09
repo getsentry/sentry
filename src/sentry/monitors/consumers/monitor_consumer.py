@@ -36,7 +36,7 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.clock_dispatch import record_pulse_partitions, try_monitor_clock_tick
-from sentry.monitors.constants import PermitCheckInStatus
+from sentry.monitors.constants import MAX_MARGIN, MAX_TIMEOUT, PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.logic.monitor_environment import (
@@ -78,6 +78,7 @@ from sentry.monitors.system_incidents import update_check_in_volume
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     ensure_cron_detector,
+    get_max_timeout_at,
     get_new_timeout_at,
     get_timeout_at,
     signal_first_checkin,
@@ -240,6 +241,13 @@ def _ensure_monitor_with_config(
             owner_user_id = owner_actor.id
         elif owner_actor and owner_actor.is_team:
             owner_team_id = owner_actor.id
+
+    # Clamp instead of rejecting so upserts sent with values above the limits
+    # still create and update the monitor.
+    for key, limit in (("max_runtime", MAX_TIMEOUT), ("checkin_margin", MAX_MARGIN)):
+        value = config.get(key)
+        if isinstance(value, (int, float)) and value > limit:
+            config[key] = limit
 
     validator = ConfigValidator(data=config)
 
@@ -450,7 +458,20 @@ def update_existing_check_in(
         already_user_complete and updated_status == CheckInStatus.IN_PROGRESS
     )
 
-    if already_user_complete and not updated_duration_only and not is_out_of_order_in_progress:
+    # Check-ins can not change once they are older than MAX_TIMEOUT
+    is_past_max_timeout = start_time >= get_max_timeout_at(existing_check_in)
+
+    # In-progress updates can not reopen a timed out check-in
+    is_reopening_timeout = (
+        existing_check_in.status == CheckInStatus.TIMEOUT
+        and updated_status == CheckInStatus.IN_PROGRESS
+    )
+
+    if (
+        (already_user_complete and not updated_duration_only and not is_out_of_order_in_progress)
+        or is_past_max_timeout
+        or is_reopening_timeout
+    ):
         finished_error: CheckinFinished = {
             "type": ProcessingErrorType.CHECKIN_FINISHED,
         }
@@ -726,7 +747,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
         span.set_attribute("result", "failed_checkin_validation")
         logger.info(
             "monitors.consumer.checkin_validation_failed",
-            extra={"guid": guid.hex, **params},
+            extra={"guid": guid.hex, "payload": params},
         )
         track_outcome(
             org_id=project.organization_id,
@@ -798,7 +819,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
         span.set_attribute("result", "failed_validation")
         logger.info(
             "monitors.consumer.monitor_validation_failed",
-            extra={"guid": guid.hex, "project": project.id, **params},
+            extra={"guid": guid.hex, "project": project.id, "payload": params},
         )
         track_outcome(
             org_id=project.organization_id,

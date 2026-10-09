@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Outlet, useMatches} from 'react-router-dom';
+import {Outlet, useMatches} from 'react-router';
 
 import {MCPPageHeader} from 'sentry/views/insights/pages/mcp/mcpPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';

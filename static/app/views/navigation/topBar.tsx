@@ -1,11 +1,14 @@
-import {useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {mergeProps} from '@react-aria/utils';
 
+import {
+  type BreadcrumbListProps,
+  BreadcrumbList,
+  type BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
-import {slot, withSlots} from '@sentry/scraps/slot';
-import {Heading} from '@sentry/scraps/text';
+import {slot} from '@sentry/scraps/slot';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
@@ -30,9 +33,41 @@ import {
 
 const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as const);
 
+type TopBarSlotProps =
+  | {
+      name: 'breadcrumbs';
+      title: BreadcrumbTitleItem;
+      children?: never;
+      items?: BreadcrumbListProps['items'];
+    }
+  | {
+      children: React.ReactNode;
+      name: 'search' | 'actions' | 'feedback';
+      title?: never;
+    };
+
+function TopBarSlot(props: TopBarSlotProps) {
+  if (props.name === 'breadcrumbs') {
+    return (
+      <Fragment>
+        {props.items && props.items.length > 0 && (
+          <Slot name="breadcrumbs">
+            <BreadcrumbList items={props.items} />
+          </Slot>
+        )}
+        <Slot name="title">
+          <BreadcrumbList.Title item={props.title} />
+        </Slot>
+      </Fragment>
+    );
+  }
+
+  return <Slot name={props.name}>{props.children}</Slot>;
+}
+
 function TopBarContent() {
   const theme = useTheme();
-  const {pageContentTop} = useTopOffset();
+  const {topBarTop, pageContentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
   const {isSearchInMobileRow} = useTopBarActionDisplay();
@@ -68,7 +103,7 @@ function TopBarContent() {
       padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={0}
+      top={topBarTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
@@ -76,9 +111,9 @@ function TopBarContent() {
     >
       <SizeProvider size="sm">
         {/*
-         * Breadcrumbs and the title are separate slots so the title slot always
-         * owns the page heading. BreadcrumbList.Title renders title content
-         * without a heading, while this outlet supplies the single <h1>.
+         * Breadcrumbs and the title use separate internal outlets.
+         * BreadcrumbList.Title supplies the single <h1> and keeps page-title
+         * graphics, pagination, and actions outside the heading.
          *
          * The title occupies the remaining inline space (the header is
          * justify="between", so this absorbs the empty middle; content stays
@@ -102,11 +137,7 @@ function TopBarContent() {
 
           <Slot.Outlet name="title">
             {props => (
-              <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
-                {flexProps => (
-                  <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
-                )}
-              </Flex>
+              <Flex {...props} align="center" gap="sm" minWidth="0" flexGrow={1} />
             )}
           </Slot.Outlet>
         </Flex>
@@ -149,4 +180,11 @@ function TopBarContent() {
   );
 }
 
-export const TopBar = withSlots(TopBarContent, Slot);
+export const TopBar = Object.assign(TopBarContent, {
+  Slot: Object.assign(TopBarSlot, {
+    Provider: Slot.Provider,
+    Outlet: Slot.Outlet,
+    Fallback: Slot.Fallback,
+    useSlotOutletRef: Slot.useSlotOutletRef,
+  }),
+});

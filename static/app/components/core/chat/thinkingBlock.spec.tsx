@@ -34,6 +34,18 @@ describe('ThinkingBlock', () => {
     expect(screen.getByText('10.0s')).toBeInTheDocument();
   });
 
+  it('shows zero while the start time is ahead of the client clock', () => {
+    jest.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+
+    render(
+      <ThinkingBlock title="Thinking" startTime={new Date('2025-01-01T00:00:01Z')} />
+    );
+
+    expect(screen.getByText('0.0s')).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(1500));
+    expect(screen.getByText('0.5s')).toBeInTheDocument();
+  });
+
   it('is expanded by default and collapses when endTime arrives', () => {
     jest.useRealTimers();
     const start = new Date();

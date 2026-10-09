@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
@@ -104,13 +103,12 @@ export default function TempestSettings() {
             <Alert
               variant="warning"
               trailingItems={
-                <Button
-                  variant="link"
+                <Alert.Button
+                  variant="transparent"
                   icon={<IconClose />}
                   onClick={dismissPS5Warning}
                   aria-label={t('Dismiss Alert')}
                   tooltipProps={{title: t('Dismiss Alert')}}
-                  size="zero"
                 />
               }
             >

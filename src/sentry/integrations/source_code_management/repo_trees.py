@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
@@ -348,6 +348,17 @@ class RepoTreesIntegration(ABC):
 
         return repo_files
 
+    def get_repo_files_from_cache(self, repo_full_name: str) -> list[str] | None:
+        """Return source-code files from the warm cache, or None on a miss.
+
+        Does not touch the network. Callers can skip expensive branch lookups
+        on a hit and fall back to the full get_cached_repo_files on a miss.
+        """
+        key = f"{self.integration_name}:repo:{repo_full_name}:source-code"
+        if cache.has_key(key):
+            return cache.get(key, [])
+        return None
+
 
 # These are methods that the client for the integration must implement
 class RepoTreesClient(ABC):
@@ -356,7 +367,8 @@ class RepoTreesClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> Sequence[Mapping[str, Any]]:
+        """Entries under the tree. Abstract so an implementation can return its own type."""
         raise NotImplementedError
 
     @abstractmethod

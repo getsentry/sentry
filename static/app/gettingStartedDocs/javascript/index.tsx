@@ -4,7 +4,6 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
 
-import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {featureFlag} from './featureFlag';
 import {feedback} from './feedback';
@@ -40,5 +39,4 @@ export const docs: Docs<PlatformOptions> = {
     docsPlatform: 'javascript',
     packageName: '@sentry/browser',
   }),
-  agentMonitoringOnboarding: agentMonitoring(),
 };

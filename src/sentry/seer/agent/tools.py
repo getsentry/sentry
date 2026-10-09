@@ -2,6 +2,7 @@ import logging
 import random
 import time
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Literal, TypedDict, cast
 
@@ -15,8 +16,6 @@ from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Req
 from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
-from sentry.api.event_search import parse_search_query
-from sentry.api.exceptions import BadRequest as SentryBadRequest
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
 from sentry.api.serializers.models.commit import CommitSerializer
@@ -24,7 +23,6 @@ from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
 from sentry.issues.formatting.mixin import FORMATTER_FEATURE, VALID_FORMATS
@@ -53,10 +51,7 @@ from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import (
     query_replay_id_by_prefix,
     query_replay_instance,
-    query_replays_collection_paginated,
-    replay_url_parser_config,
 )
-from sentry.replays.validators import VALID_FIELD_SET as REPLAY_VALID_FIELD_SET
 from sentry.search.eap.constants import (
     BOOLEAN,
     DOUBLE,
@@ -606,147 +601,6 @@ def execute_trace_table_query(
         raise
 
 
-DEFAULT_REPLAY_SEARCH_FIELDS = [
-    "id",
-    "project_id",
-    "started_at",
-    "finished_at",
-    "duration",
-    "count_errors",
-    "count_dead_clicks",
-    "count_rage_clicks",
-    "count_urls",
-    "urls",
-    "user",
-    "trace_ids",
-    "platform",
-]
-
-
-def execute_replays_query(
-    *,
-    organization_id: int,
-    per_page: int,
-    query: str | None = None,
-    fields: list[str] | None = None,
-    sort: str | None = None,
-    project_ids: list[int] | None = None,
-    project_slugs: list[str] | None = None,
-    stats_period: str | None = None,
-    start: str | None = None,
-    end: str | None = None,
-) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
-    """
-    Execute a session replay search using the dedicated Replay collection query.
-
-    Arg notes:
-        project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
-        project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
-        If neither project_ids nor project_slugs are provided, all active projects will be queried.
-        Start/end params take precedence over stats_period. Defaults to Sentry's standard max period.
-    """
-    try:
-        organization = Organization.objects.get(id=organization_id)
-    except Organization.DoesNotExist:
-        logger.warning(
-            "execute_replays_query: Organization not found", extra={"org_id": organization_id}
-        )
-        return None
-
-    if not features.has("organizations:session-replay", organization):
-        return ExecuteQueryErrorResponse(
-            error="Session Replay is not enabled for this organization."
-        )
-
-    if project_ids and project_slugs:
-        return ExecuteQueryErrorResponse(
-            error="Pass either project_ids or project_slugs, not both."
-        )
-
-    project_filter: dict[str, Any] = {}
-    if project_ids:
-        project_filter["id__in"] = project_ids
-    elif project_slugs:
-        project_filter["slug__in"] = project_slugs
-
-    resolved_project_ids = list(
-        Project.objects.filter(
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-            **project_filter,
-        ).values_list("id", flat=True)
-    )
-    if not resolved_project_ids:
-        return ExecuteQuerySuccessResponse(data=[])
-
-    requested_fields = fields or DEFAULT_REPLAY_SEARCH_FIELDS
-    invalid_fields = sorted(set(requested_fields) - set(REPLAY_VALID_FIELD_SET))
-    if invalid_fields:
-        return ExecuteQueryErrorResponse(
-            error=f"Invalid replay field(s): {', '.join(invalid_fields)}"
-        )
-
-    date_params: dict[str, Any] = {}
-    if start and end:
-        date_params["start"] = start
-        date_params["end"] = end
-    elif stats_period:
-        date_params["statsPeriod"] = stats_period
-
-    try:
-        start_dt, end_dt = get_date_range_from_params(date_params)
-        search_filters = parse_search_query(query or "", config=replay_url_parser_config)
-        response = query_replays_collection_paginated(
-            project_ids=resolved_project_ids,
-            start=start_dt,
-            end=end_dt,
-            environment=[],
-            sort=sort,
-            fields=requested_fields,
-            limit=per_page + 1,
-            offset=0,
-            search_filters=search_filters,
-            preferred_source="scalar",
-            organization=organization,
-            actor=None,
-            referrer=Referrer.SEER_EXPLORER_TOOLS.value,
-        )
-        processed_response = process_raw_response(response.response, fields=requested_fields)
-    except KeyError as e:
-        logger.exception(
-            "execute_replays_query: unsupported response field",
-            extra={
-                "org_id": organization_id,
-                "query": query,
-                "field": e.args[0] if e.args else None,
-            },
-        )
-        return ExecuteQueryErrorResponse(
-            error=f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"
-        )
-    except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest, ParseError) as e:
-        error_detail = str(e)
-        logger.warning(
-            "execute_replays_query: bad request",
-            extra={
-                "org_id": organization_id,
-                "error_detail": error_detail,
-                "query": query,
-                "start": start,
-                "end": end,
-                "project_ids": project_ids,
-                "sort": sort,
-                "fields": fields,
-            },
-        )
-        return ExecuteQueryErrorResponse(error=error_detail)
-
-    return ExecuteQuerySuccessResponse(
-        data=processed_response,
-        meta={"source": response.source, "has_more": response.has_more},
-    )
-
-
 def get_trace_waterfall(
     trace_id: str,
     organization_id: int,
@@ -1205,13 +1059,15 @@ def _get_recommended_event(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEvent | None:
-    """
-    Our own implementation of Group.get_recommended_event. Requires the return event to fall in the time range and have a non-empty trace.
-    Time range defaults to the group's first and last seen times.
-    If multiple events are valid, return the one with highest RECOMMENDED ordering.
-    If no events are valid, return the highest recommended event.
+    """Prefer events with stored spans.
 
-    Also falls back to the regular recommended event in case of query failures or custom timeout.
+    The time range defaults to the group's first and last seen times. Search windows
+    from newest to oldest, choosing the highest RECOMMENDED event with stored spans
+    and an available body in the first matching window.
+
+    If no match is found, a query fails, or the search times out, fall back to the
+    highest RECOMMENDED event with an available body from the newest nonempty window,
+    then to the group's regular recommended event.
     """
     start_time = time.time()
 
@@ -1227,52 +1083,36 @@ def _get_recommended_event(
     retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
     window_start = max(end - window_size, start)
     window_end = end
-    # Fallback to first event we find (most recommended in most recent window).
-    fallback_event: GroupEvent | None = None
+    fallback_events: list[Event] = []
 
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    def get_latest_event() -> GroupEvent | None:
-        """If no events are found in the clamped range, use this query to return most recent event in the full range."""
-        return group.get_latest_event(start=unclamped_start, end=end)
-
-    logger.info(
-        "_get_recommended_event: starting query loop",
-        extra={
-            "organization_id": organization.id,
-            "project_id": group.project.id,
-            "issue_id": group.id,
-            "timedelta": end - start,
-            "start": start,
-            "end": end,
-            "dataset": dataset.value,
-        },
-    )
+    log_context = {
+        "organization_id": organization.id,
+        "project_id": group.project.id,
+        "issue_id": group.id,
+        "timedelta": end - start,
+        "start": start,
+        "end": end,
+        "dataset": dataset.value,
+    }
+    logger.info("_get_recommended_event: starting query loop", extra=log_context)
 
     while window_start >= start:
         if time.time() - start_time > timeout:
             logger.warning(
                 "_get_recommended_event: timeout reached",
-                extra={
-                    "organization_id": organization.id,
-                    "project_id": group.project.id,
-                    "issue_id": group.id,
-                    "timedelta": end - start,
-                    "start": start,
-                    "end": end,
-                    "dataset": dataset.value,
-                    "timeout": timeout,
-                },
+                extra={**log_context, "timeout": timeout},
             )
-            return fallback_event or get_latest_event()
+            break
 
         # Get candidate events with the standard recommended ordering.
         # This is an expensive orderby, hence the inner limit and sliding window.
         try:
-            events: list[Event] = eventstore.backend.get_events_snql(
+            events = eventstore.backend.get_events_snql(
                 organization_id=organization.id,
                 group_id=group.id,
                 start=window_start,
@@ -1287,65 +1127,39 @@ def _get_recommended_event(
                 dataset=dataset,
                 tenant_ids={"organization_id": group.project.organization_id},
                 inner_limit=1000,
+                eager_load_bodies=False,
+                extra_columns=["trace_id"],
             )
         except Exception:
             logger.exception(
                 "_get_recommended_event: eventstore query failed",
-                extra={
-                    "organization_id": organization.id,
-                    "project_id": group.project.id,
-                    "issue_id": group.id,
-                    "dataset": dataset.value,
-                },
+                extra=log_context,
             )
-            return fallback_event or get_latest_event()
+            break
 
-        if events and not fallback_event:
-            fallback_event = events[0].for_group(group)
+        if not fallback_events:
+            fallback_events = events
 
-        trace_ids = list({e.trace_id for e in events if e.trace_id})
+        trace_ids = list({event.trace_id for event in events if event.trace_id})
 
-        if len(trace_ids) > 0:
-            # Query EAP to get the span count of each trace.
-            # Extend the time range by +-1 day to account for min/max trace start/end times.
-            # Clamp spans_start to retention boundary to avoid QueryOutsideRetentionError.
-            spans_start = max(window_start - timedelta(days=1), retention_boundary)
-            spans_end = window_end + timedelta(days=1)
-            count_field = "count(span.duration)"
-
-            try:
-                result = execute_table_query(
-                    org_id=organization.id,
-                    dataset="spans",
-                    per_page=len(trace_ids),
-                    fields=["trace", count_field],
-                    query=f"trace:[{','.join(trace_ids)}]",
-                    start=spans_start.isoformat(),
-                    end=spans_end.isoformat(),
-                )
-            except Exception:
-                logger.exception(
-                    "_get_recommended_event: spans query failed",
-                    extra={
-                        "organization_id": organization.id,
-                        "project_id": group.project.id,
-                        "issue_id": group.id,
-                        "num_trace_ids": len(trace_ids),
-                    },
-                )
-                return fallback_event or get_latest_event()
-
-            if isinstance(result, ExecuteQuerySuccessResponse) and result.data:
-                # Return the first event with a span count greater than 0.
-                traces_with_spans = {
-                    item["trace"]
-                    for item in result.data
-                    if item.get("trace") and item.get(count_field, 0) > 0
-                }
-
-                for e in events:
-                    if e.trace_id in traces_with_spans:
-                        return e.for_group(group)
+        try:
+            # Spans may fall outside the event window.
+            traces_with_spans = _get_traces_with_spans(
+                organization.id,
+                trace_ids,
+                start=max(window_start - timedelta(days=1), retention_boundary),
+                end=window_end + timedelta(days=1),
+            )
+            matching_events = [event for event in events if event.trace_id in traces_with_spans]
+            event = _load_first_available_event(group, matching_events)
+            if event is not None:
+                return event
+        except Exception:
+            logger.exception(
+                "_get_recommended_event: spans query or event load failed",
+                extra={**log_context, "num_trace_ids": len(trace_ids)},
+            )
+            break
 
         if window_start == start:
             break
@@ -1355,18 +1169,49 @@ def _get_recommended_event(
 
     logger.warning(
         "_get_recommended_event: no event with a span found",
-        extra={
-            "issue_id": group.id,
-            "organization_id": organization.id,
-            "project_id": group.project.id,
-            "start": start,
-            "end": end,
-            "timedelta": end - start,
-            "dataset": dataset.value,
-            "has_fallback_event": bool(fallback_event),
-        },
+        extra={**log_context, "has_fallback_event": bool(fallback_events)},
     )
-    return fallback_event or get_latest_event()
+    return _load_first_available_event(group, fallback_events) or group.get_recommended_event(
+        start=unclamped_start, end=end
+    )
+
+
+def _get_traces_with_spans(
+    org_id: int, trace_ids: Sequence[str], start: datetime, end: datetime
+) -> set[str]:
+    if not trace_ids:
+        return set()
+
+    count_field = "count(span.duration)"
+    result = execute_table_query(
+        org_id=org_id,
+        dataset="spans",
+        per_page=len(trace_ids),
+        fields=["trace", count_field],
+        query=f"trace:[{','.join(trace_ids)}]",
+        start=start.isoformat(),
+        end=end.isoformat(),
+    )
+    if not isinstance(result, ExecuteQuerySuccessResponse):
+        return set()
+
+    return {row["trace"] for row in result.data if row.get("trace") and row.get(count_field, 0) > 0}
+
+
+def _load_first_available_event(group: Group, events: Sequence[Event]) -> GroupEvent | None:
+    for event in events:
+        try:
+            # Checking data loads the body on demand.
+            has_data = bool(event.data)
+        except Exception:
+            logger.exception(
+                "_load_first_available_event: body load failed",
+                extra={"project_id": group.project_id, "event_id": event.event_id},
+            )
+            continue
+        if has_data:
+            return event.for_group(group)
+    return None
 
 
 _SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES = [

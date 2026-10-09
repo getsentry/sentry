@@ -6,12 +6,13 @@ from enum import StrEnum
 
 import sentry_sdk
 from django.db.models import Q
+from sentry_sdk import traces
 
 from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.services.eventstore.models import GroupEvent
-from sentry.utils.tracing import trace
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.action_filters import get_action_filters_by_workflows
 from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
@@ -135,7 +136,7 @@ def _get_data_conditions_for_group_by_dcg(dcg_ids: Sequence[int]) -> dict[int, l
     )
 
 
-@trace
+@traces.trace
 @scopedstats.timer()
 def evaluate_workflow_triggers(
     workflows: set[Workflow],
@@ -248,7 +249,7 @@ def evaluate_workflow_triggers(
     return triggered_workflows, queue_items_by_workflow, stats, trigger_evals
 
 
-@trace
+@traces.trace
 @scopedstats.timer()
 def evaluate_workflows_action_filters(
     triggered_workflows: dict[Workflow, DataConditionGroupEvaluation],
@@ -408,9 +409,38 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
         return environment
     elif isinstance(event_data.event, Activity):
-        return None
+        if "activity_environment" not in event_data._cache:
+            event_data._cache["activity_environment"] = _get_environment_by_group(
+                event_data.group.id
+            )
+        return event_data._cache["activity_environment"]
 
     raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
+
+
+def _get_environment_by_group(group_id: int) -> Environment | None:
+    """
+    Activities carry no environment of their own, so use the group's. Returns None unless the
+    group has exactly one existing environment.
+    """
+    environment_ids = list(
+        GroupEnvironment.objects.filter(group_id=group_id).values_list("environment_id", flat=True)
+    )
+
+    environment: Environment | None = None
+    if not environment_ids:
+        outcome = "missing"
+    elif len(environment_ids) > 1:
+        outcome = "ambiguous"
+    else:
+        try:
+            environment = Environment.objects.get_from_cache(id=environment_ids[0])
+            outcome = "resolved"
+        except Environment.DoesNotExist:
+            outcome = "deleted"
+
+    metrics_incr("process_workflows.activity_environment", tags={"outcome": outcome})
+    return environment
 
 
 def _get_associated_workflows(

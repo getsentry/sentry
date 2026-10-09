@@ -1,21 +1,4 @@
-import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
-import {featureFlag} from 'sentry/gettingStartedDocs/node/featureFlag';
-
-import {crashReport} from './crashReport';
-import {logs} from './logs';
-import {mcp} from './mcp';
-import {metrics} from './metrics';
-import {onboarding} from './onboarding';
-import {profiling} from './profiling';
-
-export const docs: Docs = {
-  onboarding,
-  crashReportOnboarding: crashReport,
-  profilingOnboarding: profiling,
-  featureFlagOnboarding: featureFlag(),
-  logsOnboarding: logs,
-  metricsOnboarding: metrics,
-  agentMonitoringOnboarding: agentMonitoring(),
-  mcpOnboarding: mcp,
-};
+// `node-connect` is a legacy platform key: version 11 of the SDK removed the Connect
+// instrumentation, so Connect is no longer offered when creating a project. Projects
+// created before that keep this key, so they resolve to the plain Node docs.
+export {docs} from 'sentry/gettingStartedDocs/node';

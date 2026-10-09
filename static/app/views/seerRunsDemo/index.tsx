@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -10,11 +11,7 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -179,14 +176,11 @@ export default function SeerRunsDemo() {
           <LoadingError onRetry={refetch} />
         ) : (
           <Container>
-            <GridEditable
+            <DataGrid
               isLoading={isPending}
               data={runs}
               columnOrder={columnOrder}
-              grid={{
-                renderHeadCell: column => column.name,
-                renderBodyCell,
-              }}
+              grid={{renderBodyCell}}
               emptyMessage={t('No Seer runs found for this organization.')}
             />
             <Pagination pageLinks={pageLinks} />

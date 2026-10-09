@@ -1,12 +1,16 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconFix} from '@sentry/icons/fix';
+import {IconRefresh} from '@sentry/icons/refresh';
 import classNames from 'classnames';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
@@ -17,7 +21,6 @@ import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourc
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import {StrictClick} from 'sentry/components/strictClick';
-import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';
@@ -200,30 +203,31 @@ export function DeprecatedLine({
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          isExpanded={isExpanded}
           isExpandable={isExpandable}
         >
           {isExpandable ? <InteractionStateLayer /> : null}
-          <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
-            <LeftLineTitle>
-              <div>
-                <LeadHint
-                  nextFrame={nextFrame}
-                  event={event}
-                  isExpanded={isExpanded}
-                  leadsToApp={leadsToApp}
-                />
-                <DefaultTitle
-                  frame={data}
-                  platform={propPlatform ?? 'other'}
-                  isHoverPreviewed={isHoverPreviewed}
-                  meta={frameMeta}
-                  isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
-                />
-              </div>
-            </LeftLineTitle>
-          </DefaultLineTitleWrapper>
-          <FrameActions>
+          <Text italic={!data.inApp} variant={data.inApp ? 'inherit' : 'muted'}>
+            {textProps => (
+              <Flex {...textProps} align="center" minWidth={0}>
+                <Container>
+                  <LeadHint
+                    nextFrame={nextFrame}
+                    event={event}
+                    isExpanded={isExpanded}
+                    leadsToApp={leadsToApp}
+                  />
+                  <DefaultTitle
+                    frame={data}
+                    platform={propPlatform ?? 'other'}
+                    isHoverPreviewed={isHoverPreviewed}
+                    meta={frameMeta}
+                    isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
+                  />
+                </Container>
+              </Flex>
+            )}
+          </Text>
+          <Flex align="center" gap="xs md" justify="end" wrap="wrap">
             <RepeatsIndicator timesRepeated={timesRepeated} />
             {anrCulprit ? (
               <Tag variant="warning" onClick={scrollToSuspectRootCause}>
@@ -250,7 +254,7 @@ export function DeprecatedLine({
               </ErrorBoundary>
             )}
             {hiddenFrameCount ? (
-              <ToggleButton
+              <Button
                 analyticsEventName="Stacktrace Frames: toggled"
                 analyticsEventKey="stacktrace_frames.toggled"
                 analyticsParams={{
@@ -263,16 +267,19 @@ export function DeprecatedLine({
                   onShowFramesToggle?.(e);
                 }}
               >
-                {isShowFramesToggleExpanded
-                  ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
-                  : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
-              </ToggleButton>
+                <Text as="span" bold={false} italic size="sm" variant="secondary">
+                  {isShowFramesToggleExpanded
+                    ? tn('Hide %s more frame', 'Hide %s more frames', hiddenFrameCount)
+                    : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
+                </Text>
+              </Button>
             ) : null}
             {shouldShowSourceMapDebuggerButton ? (
               <Fragment>
-                <SourceMapDebuggerModalButton
+                <Button
                   size="zero"
                   variant="secondary"
+                  icon={<IconFix size="xs" />}
                   tooltipProps={{
                     title: t(
                       'Click to learn how to show the original source code for this stack frame.'
@@ -311,28 +318,31 @@ export function DeprecatedLine({
                     );
                   }}
                 >
-                  <IconFix size="xs" />
-                  <SourceMapDebuggerButtonText>
+                  <Text as="span" size="sm" variant="inherit">
                     {t('Unminify Code')}
-                  </SourceMapDebuggerButtonText>
-                </SourceMapDebuggerModalButton>
+                  </Text>
+                </Button>
               </Fragment>
             ) : null}
             {data.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
             {isExpandable ? (
-              <ToggleContextButton
+              <Button
                 data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
                 size="zero"
                 aria-label={t('Toggle Context')}
                 onClick={toggleContext}
                 variant="transparent"
               >
-                <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
-              </ToggleContextButton>
+                <IconChevron
+                  direction={isExpanded ? 'up' : 'down'}
+                  size="sm"
+                  variant="secondary"
+                />
+              </Button>
             ) : (
-              <div style={{width: 26, height: 20}} />
+              <Container height="20px" width="26px" />
             )}
-          </FrameActions>
+          </Flex>
         </DefaultLine>
       </StrictClick>
       <Context
@@ -361,115 +371,51 @@ function RepeatsIndicator({timesRepeated}: {timesRepeated: number}) {
   }
 
   return (
-    <RepeatedFrames
+    <Container
+      display="inline-block"
       title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
     >
-      <RepeatedContent>
-        <StyledIconRefresh />
-        <span>{timesRepeated}</span>
-      </RepeatedContent>
-    </RepeatedFrames>
+      <Flex align="center" gap="2xs" justify="center" minWidth={0}>
+        <IconRefresh />
+        <Text as="span">{timesRepeated}</Text>
+      </Flex>
+    </Container>
   );
 }
 
-const RepeatedFrames = styled('div')`
-  display: inline-block;
-`;
-
-const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 0;
-  flex: 1;
-  color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
-  font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
-`;
-
-const LeftLineTitle = styled('div')`
-  display: flex;
-  align-items: center;
-  min-width: 0;
-`;
-
-const RepeatedContent = styled(LeftLineTitle)`
-  justify-content: center;
-`;
-
-const FrameActions = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  flex-shrink: 0;
-  margin-left: auto;
-`;
-
-const DefaultLine = styled('div')<{
+type DefaultLineProps = React.ComponentProps<typeof Grid> & {
   isExpandable: boolean;
-  isExpanded: boolean;
   isSubFrame: boolean;
-}>`
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: ${p =>
-    p.isSubFrame ? p.theme.colors.surface200 : p.theme.tokens.background.tertiary};
-  min-height: 40px;
-  word-break: break-word;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  font-size: ${p => p.theme.font.size.sm};
-  line-height: 16px;
-  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
-  code {
-    font-family: ${p => p.theme.font.family.sans};
-  }
+};
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    &:has([data-has-setup]) {
-      flex-wrap: wrap;
-      row-gap: ${p => p.theme.space.xs};
+function DefaultLine({isExpandable, isSubFrame, ...props}: DefaultLineProps) {
+  return (
+    <Grid
+      align="center"
+      columns="var(--default-line-columns, minmax(0, 1fr) max-content)"
+      css={theme => css`
+        background: ${
+          isSubFrame ? theme.colors.surface200 : theme.tokens.background.tertiary
+        };
+        word-break: break-word;
+        font-size: ${theme.font.size.sm};
+        line-height: 16px;
+        cursor: ${isExpandable ? 'pointer' : 'default'};
+        code {
+          font-family: ${theme.font.family.sans};
+        }
 
-      > ${DefaultLineTitleWrapper} {
-        flex-basis: 100%;
-      }
-
-      > ${FrameActions} {
-        flex-basis: 100%;
-        justify-content: flex-end;
-        flex-wrap: wrap;
-        row-gap: ${p => p.theme.space.xs};
-      }
-    }
-  }
-`;
-
-const StyledIconRefresh = styled(IconRefresh)`
-  margin-right: ${p => p.theme.space['2xs']};
-`;
-
-const ToggleContextButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ToggleButton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  font-style: italic;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-
-  &:hover {
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
-
-const SourceMapDebuggerButtonText = styled('span')`
-  margin-left: ${p => p.theme.space.xs};
-`;
-
-const SourceMapDebuggerModalButton = styled(Button)`
-  height: 20px;
-  padding: 0 ${p => p.theme.space.sm};
-  font-size: ${p => p.theme.font.size.sm};
-`;
+        @container (max-width: ${theme.container.xl}) {
+          &:has([data-has-setup]) {
+            --default-line-columns: 1fr;
+            row-gap: ${theme.space.xs};
+          }
+        }
+      `}
+      minHeight="40px"
+      padding="sm lg"
+      position="relative"
+      {...props}
+    />
+  );
+}

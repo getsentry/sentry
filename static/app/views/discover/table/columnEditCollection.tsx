@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
@@ -10,7 +12,6 @@ import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -412,12 +413,10 @@ function ColumnEditCollection({
       canDrag = true,
       isGhost = false,
       gridColumns,
-      disabled = false,
     }: {
       gridColumns: number;
       canDelete?: boolean;
       canDrag?: boolean;
-      disabled?: boolean;
       isGhost?: boolean;
     }
   ) => {
@@ -466,7 +465,6 @@ function ColumnEditCollection({
             takeFocus={i === columns.length - 1}
             otherColumns={columns}
             shouldRenderTag
-            disabled={disabled}
             filterPrimaryOptions={filterPrimaryOptions}
             filterAggregateParameters={filterAggregateParameters}
           />

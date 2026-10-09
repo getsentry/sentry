@@ -1,11 +1,16 @@
+from sentry.models.group import Group
 from sentry.types.group import PriorityLevel
 from sentry.users.services.user.service import user_service
+from sentry.workflow_engine.handlers.condition.issue_priority_greater_or_equal_handler import (
+    IssuePriorityGreaterOrEqualConditionHandler,
+)
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_data_conditions,
 )
-from sentry.workflow_engine.models import DataCondition
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import ActionFilterPreviewPlan
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -66,3 +71,17 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
         DataCondition.objects.filter(id=dc.id).update(comparison="not-a-priority")
         dc.refresh_from_db()
         self.assert_does_not_pass(dc, self.event_data)
+
+    def test_preview_behavior_accepts_legacy_string_comparison(self) -> None:
+        self.group.update(priority=PriorityLevel.HIGH)
+        other_group = self.create_group(project=self.project, priority=PriorityLevel.LOW)
+        plan = ActionFilterPreviewPlan(DataConditionGroup.Type.ALL)
+
+        IssuePriorityGreaterOrEqualConditionHandler.preview_behavior.filter_preview(plan, "high")
+
+        matching_group_ids = set(
+            Group.objects.filter(id__in=[self.group.id, other_group.id])
+            .filter(*plan.group_filters)
+            .values_list("id", flat=True)
+        )
+        assert matching_group_ids == {self.group.id}

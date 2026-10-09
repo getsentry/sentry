@@ -1,6 +1,9 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconNot} from '@sentry/icons/not';
 import partition from 'lodash/partition';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,7 +18,6 @@ import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOn
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {ProgressRing} from 'sentry/components/progressRing';
-import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DemoWalkthroughStore} from 'sentry/stores/demoWalkthroughStore';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
@@ -363,6 +365,7 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
     // opening of the group
     await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
     markTasksAsSeen();
+    // oxlint-disable-next-line react/memo-dependencies
   }, [markTasksAsSeen]);
 
   useEffect(() => {
@@ -421,7 +424,7 @@ function TaskGroup({
   }, [tasks]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect, react/no-deriving-state-in-effects
     setIsExpanded(expanded);
   }, [expanded]);
 
