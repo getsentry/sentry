@@ -1,7 +1,6 @@
 import logging
 from urllib.parse import quote
 
-import phonenumbers
 import requests
 from django.conf import settings
 
@@ -16,6 +15,9 @@ class InvalidPhoneNumber(Exception):
 
 
 def validate_phone_number(phone_number: str) -> bool:
+    # Imported here so web workers do not load the phonenumbers metadata at boot.
+    import phonenumbers
+
     try:
         p = phonenumbers.parse(phone_number, "US")
     except phonenumbers.NumberParseException:
@@ -35,6 +37,8 @@ def phone_number_as_e164(num: str) -> str:
     :return: validated phone number in E.164 format
     :rtype: str
     """
+    import phonenumbers
+
     if validate_phone_number(num):
         p = phonenumbers.parse(num, "US")
         return phonenumbers.format_number(p, phonenumbers.PhoneNumberFormat.E164)
