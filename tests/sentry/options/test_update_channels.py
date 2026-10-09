@@ -86,6 +86,8 @@ def test_self_hosted_channels_can_overwrite_stored_values(manager, channel: Upda
         assert manager.get_last_update_channel("option") == channel
 
 
+# Direct settings keep the isolated manager and store untouched so the test can
+# prove rejected channels perform no storage calls.
 @pytest.mark.parametrize("self_hosted", [False, True])
 def test_retired_automator_channel_rejects_manager_writes(self_hosted: bool) -> None:
     store = Mock(spec=OptionsStore)
@@ -93,7 +95,7 @@ def test_retired_automator_channel_rejects_manager_writes(self_hosted: bool) -> 
     manager.register("option", flags=FLAG_ADMIN_MODIFIABLE)
     channel = UpdateChannel("automator")
 
-    with override_settings(SENTRY_SELF_HOSTED=self_hosted, SENTRY_OPTIONS={}):
+    with override_settings(SENTRY_SELF_HOSTED=self_hosted, SENTRY_OPTIONS={}):  # noqa: S011
         assert manager.can_update("option", channel) == NotWritableReason.CHANNEL_NOT_ALLOWED
         with pytest.raises(ValueError, match="automator update channel is retired"):
             manager.set("option", "changed", channel=channel)
@@ -101,6 +103,8 @@ def test_retired_automator_channel_rejects_manager_writes(self_hosted: bool) -> 
     assert store.mock_calls == []
 
 
+# The option override helper patches manager lookup and store reads; invalid
+# channel validation must be observed without those patches.
 @pytest.mark.parametrize("channel", ["application", "automator", None])
 @pytest.mark.parametrize("self_hosted", [False, True])
 def test_invalid_channels_reject_manager_writes(channel: object, self_hosted: bool) -> None:
@@ -109,7 +113,7 @@ def test_invalid_channels_reject_manager_writes(channel: object, self_hosted: bo
     manager.register("option", flags=FLAG_ADMIN_MODIFIABLE)
     invalid_channel = cast(UpdateChannel, channel)
 
-    with override_settings(SENTRY_SELF_HOSTED=self_hosted, SENTRY_OPTIONS={}):
+    with override_settings(SENTRY_SELF_HOSTED=self_hosted, SENTRY_OPTIONS={}):  # noqa: S011
         with pytest.raises(TypeError, match="channel must be an UpdateChannel"):
             manager.can_update("option", invalid_channel)
         with pytest.raises(TypeError, match="channel must be an UpdateChannel"):
@@ -118,6 +122,8 @@ def test_invalid_channels_reject_manager_writes(channel: object, self_hosted: bo
     assert store.mock_calls == []
 
 
+# Direct settings expose disk priority to the isolated manager while preserving
+# its real lookup and permission checks.
 @pytest.mark.parametrize(
     ("flags", "disk_values", "channel", "outcome"),
     [
@@ -141,7 +147,7 @@ def test_non_writable_options(
     outcome: NotWritableReason,
 ) -> None:
     manager.register("option", flags=flags)
-    with override_settings(SENTRY_OPTIONS=disk_values):
+    with override_settings(SENTRY_OPTIONS=disk_values):  # noqa: S011
         assert manager.can_update("option", channel) == outcome
         with pytest.raises(AssertionError):
             manager.set("option", "value", channel=channel)
