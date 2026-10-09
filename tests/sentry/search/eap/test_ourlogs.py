@@ -451,7 +451,7 @@ class SearchResolverQueryTest(TestCase):
             self.regex_resolver.resolve_query("tags[foo,boolean]://tru.//")
         assert "not a string attribute" in str(err.value)
 
-    def test_regex_value_is_a_literal_outside_logs(self) -> None:
+    def test_regex_value_is_a_literal_when_the_dataset_is_spans(self) -> None:
         resolver = SearchResolver(
             params=SnubaParams(organization=self.organization),
             config=SearchResolverConfig(),
