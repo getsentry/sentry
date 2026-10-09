@@ -103,12 +103,14 @@ function ActionsBarPriority({
         if (column.key === 'select') {
           return (
             <SelectHeaderCell key={column.key}>
-              <Checkbox
-                onChange={toggleSelectAllVisible}
-                checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                aria-label={pageSelected ? t('Deselect all') : t('Select all')}
-                disabled={displayReprocessingActions}
-              />
+              <Flex>
+                <Checkbox
+                  onChange={toggleSelectAllVisible}
+                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                  aria-label={pageSelected ? t('Deselect all') : t('Select all')}
+                  disabled={displayReprocessingActions}
+                />
+              </Flex>
             </SelectHeaderCell>
           );
         }
