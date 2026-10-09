@@ -9,14 +9,15 @@ import {IconProject} from '@sentry/icons/project';
 import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Hovercard} from 'sentry/components/hovercard';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Panel} from 'sentry/components/panels/panel';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
@@ -65,6 +66,13 @@ interface TreeLeaf {
 }
 
 const HOVERCARD_BODY_CLASS_NAME = 'ssrTreeHovercard';
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'path', width: 'minmax(0, 1fr)'},
+  {key: 'errorRate', width: 'max-content'},
+  {key: 'avg', width: 'max-content'},
+  {key: 'p95', width: 'max-content'},
+];
 
 const getP95Threshold = (avg: number) => {
   return {
@@ -158,13 +166,7 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
   return root;
 }
 
-export function BaseServerTree({
-  noVisualizationPadding,
-  query,
-}: {
-  noVisualizationPadding?: boolean;
-  query?: string;
-}) {
+export function BaseServerTree({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
@@ -204,24 +206,33 @@ export function BaseServerTree({
 
   const tree = useMemo(() => mapResponseToTree(treeData), [treeData]);
 
-  const children = (
-    <Fragment>
-      <TreeWidgetVisualization tree={tree} />
-      {treeRequest.isLoading ? (
-        <LoadingIndicator />
-      ) : hasData ? null : (
-        <EmptyMessage size="lg" icon={<IconSearch />}>
-          {t('No results found')}
-        </EmptyMessage>
-      )}
-    </Fragment>
+  return (
+    <FlushTable columns={COLUMNS} customSections scrollable>
+      <SimpleTable.Head sticky>
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Path')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell align="right">{t('Error Rate')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell align="right">{t('Avg')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell align="right">{t('P95')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      </SimpleTable.Head>
+      <SimpleTable.Body>
+        {treeRequest.isLoading ? (
+          <SimpleTable.Loading />
+        ) : hasData ? (
+          tree.children
+            .toSorted(sortTreeChildren)
+            .map((item, index) => <TreeNodeRenderer key={index} item={item} />)
+        ) : (
+          <SimpleTable.Empty>
+            <EmptyMessage size="lg" icon={<IconSearch />}>
+              {t('No results found')}
+            </EmptyMessage>
+          </SimpleTable.Empty>
+        )}
+      </SimpleTable.Body>
+    </FlushTable>
   );
-
-  if (noVisualizationPadding) {
-    return children;
-  }
-
-  return <StyledPanel>{children}</StyledPanel>;
 }
 
 function sortTreeChildren(a: TreeNode, b: TreeNode): number {
@@ -230,20 +241,6 @@ function sortTreeChildren(a: TreeNode, b: TreeNode): number {
   }
 
   return a.name.localeCompare(b.name);
-}
-
-function TreeWidgetVisualization({tree}: {tree: TreeContainer}) {
-  return (
-    <TreeGrid>
-      <HeaderCell>{t('Path')}</HeaderCell>
-      <HeaderCell>{t('Error Rate')}</HeaderCell>
-      <HeaderCell>{t('AVG')}</HeaderCell>
-      <HeaderCell>{t('P95')}</HeaderCell>
-      {tree.children.toSorted(sortTreeChildren).map((item, index) => {
-        return <TreeNodeRenderer key={index} item={item} />;
-      })}
-    </TreeGrid>
-  );
 }
 
 function TreeNodeRenderer({
@@ -278,84 +275,101 @@ function TreeNodeRenderer({
 
   if (item.type === 'component') {
     return (
-      <Fragment>
-        <div>
-          <PathWrapper style={{paddingLeft: indent * 18}}>
+      <SimpleTable.Row>
+        <SimpleTable.RowCell>
+          <Flex align="center" gap="xs" minWidth={0} style={{paddingLeft: indent * 18}}>
+            <Container flexShrink={0} width="24px" height="24px" />
             <IconCode variant="muted" size="xs" />
             <TextOverflow>
               {exploreLink ? <Link to={exploreLink}>{item.name}</Link> : item.name}
             </TextOverflow>
-          </PathWrapper>
-        </div>
-        <div>
+          </Flex>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell justify="end">
           <ErrorRateCell errorRate={item['failure_rate()']} total={item['count()']} />
-        </div>
-        <div>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell justify="end">
           <DurationCell milliseconds={item['avg(span.duration)']} />
-        </div>
-        <div>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell justify="end">
           <DurationCell
             milliseconds={item['p95(span.duration)']}
             thresholds={getP95Threshold(item['avg(span.duration)'])}
           />
-        </div>
-      </Fragment>
+        </SimpleTable.RowCell>
+      </SimpleTable.Row>
     );
   }
 
   return (
     <Fragment>
-      <div>
-        <PathWrapper style={{paddingLeft: indent * 18}}>
-          <StyledIconChevron
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            direction={isCollapsed ? 'right' : 'down'}
-          />
-          {item.type === 'file' ? (
-            <IconFile variant="muted" size="xs" />
-          ) : (
-            <IconProject variant="muted" size="xs" />
-          )}
-          <ClassNames>
-            {({css: className}) => (
-              <Hovercard
-                bodyClassName={HOVERCARD_BODY_CLASS_NAME}
-                containerClassName={className`
-                  min-width: 0;
-                `}
-                className={className`
-                  width: min-content;
-                  max-width: 90vw;
-                  min-width: 0;
-                `}
-                showUnderline={!exploreLink}
-                body={
-                  <OneLineCodeBlock>
-                    <code>{itemPath.join('/')}</code>
-                    <Button
-                      size="zero"
-                      variant="transparent"
-                      icon={<IconCopy size="xs" />}
-                      aria-label={t('Copy')}
-                      onClick={() => {
-                        navigator.clipboard.writeText(itemPath.join('/'));
-                        addSuccessMessage(t('Copied to clipboard'));
-                      }}
-                    />
-                  </OneLineCodeBlock>
-                }
-              >
-                <TextOverflow>
-                  {exploreLink ? <Link to={exploreLink}>{item.name}</Link> : item.name}
-                </TextOverflow>
-              </Hovercard>
+      <SimpleTable.Row>
+        <SimpleTable.RowCell>
+          <Flex align="center" gap="xs" minWidth={0} style={{paddingLeft: indent * 18}}>
+            <Button
+              size="zero"
+              variant="transparent"
+              aria-expanded={!isCollapsed}
+              aria-label={
+                isCollapsed
+                  ? t('Expand %s', itemPath.join('/'))
+                  : t('Collapse %s', itemPath.join('/'))
+              }
+              icon={
+                <IconChevron
+                  variant="muted"
+                  size="xs"
+                  direction={isCollapsed ? 'right' : 'down'}
+                />
+              }
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            />
+            {item.type === 'file' ? (
+              <IconFile variant="muted" size="xs" />
+            ) : (
+              <IconProject variant="muted" size="xs" />
             )}
-          </ClassNames>
-        </PathWrapper>
-      </div>
-      <div />
-      <div />
-      <div />
+            <ClassNames>
+              {({css: className}) => (
+                <Hovercard
+                  bodyClassName={HOVERCARD_BODY_CLASS_NAME}
+                  containerClassName={className`
+                    min-width: 0;
+                  `}
+                  className={className`
+                    width: min-content;
+                    max-width: 90vw;
+                    min-width: 0;
+                  `}
+                  showUnderline={!exploreLink}
+                  body={
+                    <OneLineCodeBlock>
+                      <code>{itemPath.join('/')}</code>
+                      <Button
+                        size="zero"
+                        variant="transparent"
+                        icon={<IconCopy size="xs" />}
+                        aria-label={t('Copy')}
+                        onClick={() => {
+                          navigator.clipboard.writeText(itemPath.join('/'));
+                          addSuccessMessage(t('Copied to clipboard'));
+                        }}
+                      />
+                    </OneLineCodeBlock>
+                  }
+                >
+                  <TextOverflow>
+                    {exploreLink ? <Link to={exploreLink}>{item.name}</Link> : item.name}
+                  </TextOverflow>
+                </Hovercard>
+              )}
+            </ClassNames>
+          </Flex>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell />
+        <SimpleTable.RowCell />
+        <SimpleTable.RowCell />
+      </SimpleTable.Row>
       {!isCollapsed &&
         'children' in item &&
         item.children
@@ -372,36 +386,14 @@ function TreeNodeRenderer({
   );
 }
 
-const HeaderCell = styled('div')`
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.sm};
-  text-transform: uppercase;
-  font-weight: 600;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  white-space: nowrap;
-  line-height: 1;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-`;
+const FlushTable = styled(SimpleTable)`
+  border-width: 1px 0 0;
+  border-radius: 0;
+  margin-top: ${p => p.theme.space.lg};
 
-const PathWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-
-  & > svg {
-    flex-shrink: 0;
+  > thead > tr {
+    border-radius: 0;
   }
-`;
-
-const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.tokens.content.secondary};
-  cursor: pointer;
-  user-select: none;
-  width: 10px;
-  height: 10px;
 `;
 
 const OneLineCodeBlock = styled('pre')`
@@ -415,40 +407,4 @@ const OneLineCodeBlock = styled('pre')`
   margin: 0;
   width: max-content;
   max-width: 100%;
-`;
-
-const TreeGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr min-content min-content min-content;
-  font-size: ${p => p.theme.font.size.md};
-
-  & > * {
-    text-align: right;
-    padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-    background-color: ${p => p.theme.tokens.background.primary};
-    line-height: 1.1;
-  }
-
-  & > *:nth-child(4n + 1) {
-    text-align: left;
-    padding-left: ${p => p.theme.space.xl};
-    min-width: 0;
-  }
-
-  & > *:nth-child(4n) {
-    padding-right: ${p => p.theme.space.xl};
-  }
-
-  & > *:nth-child(8n + 1),
-  & > *:nth-child(8n + 2),
-  & > *:nth-child(8n + 3),
-  & > *:nth-child(8n + 4) {
-    background-color: ${p => p.theme.tokens.background.secondary};
-  }
-`;
-
-const StyledPanel = styled(Panel)`
-  max-height: 400px;
-  overflow-y: auto;
-  margin-top: ${p => p.theme.space.md};
 `;
