@@ -1,5 +1,6 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
@@ -32,7 +33,6 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
@@ -181,8 +181,8 @@ export function TracesTable({
       search: `${getAgentRunsFilter({negated: true})} trace:[${tracesData?.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
-        'count_if(gen_ai.operation.type,equals,ai_client)',
-        'count_if(gen_ai.operation.type,equals,tool)',
+        'count_if(`gen_ai.operation.type:ai_client`)',
+        'count_if(`gen_ai.operation.type:tool`)',
         'sum(gen_ai.usage.total_tokens)',
         'sum(gen_ai.cost.total_tokens)',
       ],
@@ -255,8 +255,8 @@ export function TracesTable({
       >
     >((acc, span) => {
       acc[span.trace] = {
-        llmCalls: Number(span['count_if(gen_ai.operation.type,equals,ai_client)'] ?? 0),
-        toolCalls: Number(span['count_if(gen_ai.operation.type,equals,tool)'] ?? 0),
+        llmCalls: Number(span['count_if(`gen_ai.operation.type:ai_client`)'] ?? 0),
+        toolCalls: Number(span['count_if(`gen_ai.operation.type:tool`)'] ?? 0),
         totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
         totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
         totalErrors: Number(errors[span.trace] ?? 0),

@@ -167,7 +167,10 @@ class AIConversationModelUsage(TypedDict):
 
 
 class AIConversationStats(AIConversationAggregates):
+    cacheReadTokens: int
+    cacheWriteTokens: int
     errorToolNames: list[str]
+    reasoningTokens: int
     usageByModel: list[AIConversationModelUsage]
 
 
@@ -259,7 +262,10 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
     )
     return {
         **conversation_stats,
+        "cacheReadTokens": sum(usage["cacheReadTokens"] for usage in sorted_usage),
+        "cacheWriteTokens": sum(usage["cacheWriteTokens"] for usage in sorted_usage),
         "errorToolNames": sorted(error_tool_names),
+        "reasoningTokens": sum(usage["reasoningTokens"] for usage in sorted_usage),
         "usageByModel": sorted_usage,
     }
 
@@ -303,6 +309,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         Message, tool, and response attributes contain their recorded string values.
         `stats.errors` counts spans whose status is not `ok`, `cancelled`, or `unknown`.
         `stats.errorToolNames` lists tools used by those spans.
+        `stats.inputTokens` includes cache-read and cache-write tokens.
         Without an explicit range, Sentry widens the search across available retention.
         A missing conversation returns an empty `spans` list.
         """

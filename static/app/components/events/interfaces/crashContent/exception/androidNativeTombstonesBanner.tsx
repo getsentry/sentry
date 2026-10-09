@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -9,7 +10,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EntryException, Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';

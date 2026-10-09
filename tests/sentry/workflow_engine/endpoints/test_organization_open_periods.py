@@ -1,20 +1,26 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.utils import timezone
 
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import (
     GroupOpenPeriod,
     create_open_period,
     update_group_open_period,
 )
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
-from sentry.testutils.cases import APITestCase
+from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.endpoints.organization_open_periods import (
+    detector_opens_new_issue_per_activation,
+)
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 
@@ -145,6 +151,110 @@ class OrganizationOpenPeriodsTest(APITestCase):
             qs_params={"detectorId": restricted_detector.id},
             status_code=400,
         )
+
+    def create_detector_issue(
+        self, detector: Detector, first_seen: datetime, linked_at: datetime
+    ) -> Group:
+        group = self.create_group(type=MetricIssue.type_id, first_seen=first_seen)
+
+        self.create_detector_group(detector=detector, group=group, date_added=linked_at)
+
+        return group
+
+    def test_detector_id_returns_open_periods_across_issues(self) -> None:
+        metric_detector = self.create_detector(type=MetricIssue.slug)
+
+        older_issue = self.create_detector_issue(
+            metric_detector,
+            first_seen=timezone.now() - timedelta(minutes=30),
+            linked_at=timezone.now() - timedelta(minutes=30),
+        )
+
+        newer_issue = self.create_detector_issue(
+            metric_detector,
+            first_seen=timezone.now() - timedelta(minutes=10),
+            linked_at=timezone.now() - timedelta(minutes=10),
+        )
+
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"detectorId": metric_detector.id}
+        )
+
+        assert [open_period["groupId"] for open_period in response.data] == [
+            str(newer_issue.id),
+            str(older_issue.id),
+        ]
+
+    def test_detector_id_limits_open_periods_across_issues(self) -> None:
+        metric_detector = self.create_detector(type=MetricIssue.slug)
+
+        self.create_detector_issue(
+            metric_detector,
+            first_seen=timezone.now() - timedelta(minutes=30),
+            linked_at=timezone.now() - timedelta(minutes=30),
+        )
+
+        newer_issue = self.create_detector_issue(
+            metric_detector,
+            first_seen=timezone.now() - timedelta(minutes=10),
+            linked_at=timezone.now() - timedelta(minutes=10),
+        )
+
+        response = self.get_success_response(
+            *self.get_url_args(),
+            qs_params={"detectorId": metric_detector.id, "per_page": 1},
+        )
+
+        assert [open_period["groupId"] for open_period in response.data] == [str(newer_issue.id)]
+
+    def test_detector_id_returns_every_open_period_when_metric_issue_is_reused(self) -> None:
+        metric_detector = self.create_detector(type=MetricIssue.slug)
+
+        issue = self.create_group(
+            type=MetricIssue.type_id,
+            first_seen=timezone.now() - timedelta(minutes=30),
+            status=GroupStatus.RESOLVED,
+            resolved_at=timezone.now() - timedelta(minutes=20),
+        )
+
+        self.create_detector_group(detector=metric_detector, group=issue)
+
+        create_open_period(issue, start_time=timezone.now() - timedelta(minutes=10))
+
+        first_open_period = GroupOpenPeriod.objects.get(group=issue, date_ended__isnull=False)
+
+        second_open_period = GroupOpenPeriod.objects.get(group=issue, date_ended__isnull=True)
+
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"detectorId": metric_detector.id}
+        )
+
+        assert [open_period["id"] for open_period in response.data] == [
+            str(second_open_period.id),
+            str(first_open_period.id),
+        ]
+
+        assert [open_period["groupId"] for open_period in response.data] == [
+            str(issue.id),
+            str(issue.id),
+        ]
+
+    def test_detector_id_returns_latest_issue_when_detector_reuses_issues(self) -> None:
+        DetectorGroup.objects.filter(detector=self.detector).update(
+            date_added=timezone.now() - timedelta(minutes=30)
+        )
+
+        newer_issue = self.create_detector_issue(
+            self.detector,
+            first_seen=timezone.now() - timedelta(minutes=10),
+            linked_at=timezone.now() - timedelta(minutes=10),
+        )
+
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"detectorId": self.detector.id}
+        )
+
+        assert [open_period["groupId"] for open_period in response.data] == [str(newer_issue.id)]
 
     def test_open_periods_resolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
@@ -587,3 +697,20 @@ class OrganizationOpenPeriodsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(open_period_2.id)
+
+
+class DetectorOpensNewIssuePerActivationTest(TestCase):
+    def test_metric_detector_opens_new_issue_per_activation(self) -> None:
+        metric_detector = self.create_detector(type=MetricIssue.slug)
+
+        assert detector_opens_new_issue_per_activation(metric_detector) is True
+
+    def test_error_detector_does_not_open_new_issue_per_activation(self) -> None:
+        error_detector = self.create_detector(type=ErrorGroupType.slug)
+
+        assert detector_opens_new_issue_per_activation(error_detector) is False
+
+    def test_cron_detector_does_not_open_new_issue_per_activation(self) -> None:
+        cron_detector = self.create_detector(type=MonitorIncidentType.slug)
+
+        assert detector_opens_new_issue_per_activation(cron_detector) is False

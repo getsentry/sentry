@@ -83,27 +83,6 @@ describe('processInitQueue', () => {
       );
     });
 
-    it('renders WebAuthn Assert', async () => {
-      window.__onSentryInit = [
-        {
-          component: SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT,
-          container: '#webauthn-container',
-          name: 'renderReact',
-          props: {
-            mode: 'signin',
-          },
-        },
-      ];
-
-      render(<div id="webauthn-container" />);
-      processInitQueue();
-
-      // WebAuthn is not supported in the test environment
-      expect(
-        await screen.findByText(/Your browser does not support WebAuthn/)
-      ).toBeInTheDocument();
-    });
-
     it('renders superuser staff access form', async () => {
       window.__onSentryInit = [
         {
@@ -130,37 +109,33 @@ describe('processInitQueue', () => {
 
   it('renders components queued before and after initialization', async () => {
     const init = {
-      component: SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT,
-      container: '#first-webauthn-container',
+      component: SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM,
+      container: '#first-staff-access-container',
       name: 'renderReact',
-      props: {mode: 'signin'},
     } as const;
 
     render(
       <div>
-        <div id="first-webauthn-container" />
-        <div id="second-webauthn-container" />
+        <div id="first-staff-access-container" />
+        <div id="second-staff-access-container" />
       </div>
     );
+    MockApiClient.addMockResponse({url: '/authenticators/', body: []});
     window.__onSentryInit = [init];
 
     await act(() => processInitQueue());
-    expect(
-      await screen.findByText(/Your browser does not support WebAuthn/)
-    ).toBeInTheDocument();
+    expect(await screen.findByText('COPS/CSM')).toBeInTheDocument();
 
     await processInitQueue();
     act(() => {
       window.__onSentryInit.push({
         ...init,
-        container: '#second-webauthn-container',
+        container: '#second-staff-access-container',
       });
     });
 
     await waitFor(() => {
-      expect(screen.getAllByText(/Your browser does not support WebAuthn/)).toHaveLength(
-        2
-      );
+      expect(screen.getAllByText('COPS/CSM')).toHaveLength(2);
     });
   });
 });

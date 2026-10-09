@@ -1,12 +1,11 @@
 import {useEffect, useRef, useState} from 'react';
 import {Global} from '@emotion/react';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {streamingAnimationStyles, useTextDecodeAnimation} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {IconSeer} from 'sentry/icons';
 
 const ELAPSED_TIME_TICK_INTERVAL_MS = 100;
 

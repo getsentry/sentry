@@ -21,8 +21,7 @@ from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule as RuleModel
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.notifications.utils.rules import split_rules_by_rule_workflow_id
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -32,10 +31,10 @@ from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 
 def _get_records(project: Project, rules: Collection[RuleModel], event: Event) -> list[Record]:
-    rules_and_workflows = split_rules_by_rule_workflow_id(list(rules))
+    origins = [NotificationOrigin.from_legacy_rule(rule) for rule in rules]
     rules_by_identifier_key = {
-        IdentifierKey.RULE: rules_and_workflows.rules,
-        IdentifierKey.WORKFLOW: rules_and_workflows.workflow_rules,
+        IdentifierKey.RULE: [origin for origin in origins if origin.legacy_rule_id is not None],
+        IdentifierKey.WORKFLOW: [origin for origin in origins if origin.legacy_rule_id is None],
     }
     return [
         event_to_record(event, parsed_rules, identifier_key=identifier_key)
@@ -76,7 +75,8 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
             ),
         ]
 
-        records = [event_to_record(event, (rule,)) for event in events]
+        origin = NotificationOrigin.from_legacy_rule(rule)
+        records = [event_to_record(event, (origin,)) for event in events]
 
         digest = build_digest(project, sort_records(records))[0]
 
@@ -125,12 +125,13 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         rule = self.create_project_rule(project=project, environment_id=development.id)
         workflow_id = int(rule.data["actions"][0]["workflow_id"])
         workflow = Workflow.objects.get(id=workflow_id)
-        workflow.update(environment_id=production.id)
+        workflow.update(name="Renamed workflow", environment_id=production.id)
 
         rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
 
         assert rendered_rule.legacy_rule_id == rule.id
         assert rendered_rule.workflow_id == workflow_id
+        assert rendered_rule.label == "Renamed workflow"
         assert rendered_rule.environment_id == production.id
 
     def test_get_rules_from_workflows_uses_unset_workflow_environment(self) -> None:
@@ -284,8 +285,9 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         ]
 
     def test_simple(self) -> None:
+        origin = NotificationOrigin.from_legacy_rule(self.rule)
         records = [
-            event_to_record(event, (self.rule,))
+            event_to_record(event, (origin,))
             for event in self.team1_events + self.team2_events + self.user4_events
         ]
         digest = build_digest(self.project, sort_records(records))[0]
@@ -350,9 +352,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         with patch("sentry.digests.notifications.logger") as mock_logger:
             digest = build_digest(self.project, sort_records(records))[0]
 
-        [digest_rule] = digest.keys()
-        assert digest_rule.legacy_rule_id == rule.id
-        assert digest_rule.workflow_id is None
+        assert digest == {}
         mock_logger.error.assert_called_once_with(
             "digests.build_digest.rule_without_workflow",
             extra={"rule_id": rule.id, "project_id": self.project.id},
@@ -361,7 +361,8 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
     def test_direct_email(self) -> None:
         """When the action type is not Issue Owners, then the target actor gets a digest."""
         self.project_ownership.update(fallthrough=False)
-        records = [event_to_record(event, (self.rule,)) for event in self.team1_events]
+        origin = NotificationOrigin.from_legacy_rule(self.rule)
+        records = [event_to_record(event, (origin,)) for event in self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
 
         expected_result = {self.user1.id: set(self.team1_events)}
@@ -487,7 +488,8 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         events = self.create_events_from_filenames(
             self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
         )
-        records = [event_to_record(event, (self.rule,)) for event in events + self.team1_events]
+        origin = NotificationOrigin.from_legacy_rule(self.rule)
+        records = [event_to_record(event, (origin,)) for event in events + self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
         expected_result = {
             self.user1.id: set(events),

@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStar} from '@sentry/icons/star';
 
 import {Flex} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
@@ -7,11 +8,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
-import {IconStar} from 'sentry/icons';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -23,7 +22,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';

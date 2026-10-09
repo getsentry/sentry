@@ -3,8 +3,6 @@ from unittest import mock
 
 import pytest
 
-from sentry.constants import ObjectStatus
-from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.issue_alert_registry import (
     AzureDevopsIssueAlertHandler,
@@ -23,9 +21,15 @@ from sentry.notifications.notification_action.issue_alert_registry import (
 )
 from sentry.notifications.notification_action.types import (
     BaseIssueAlertHandler,
+    RuleData,
     TicketingIssueAlertHandler,
 )
-from sentry.notifications.types import TEST_NOTIFICATION_ID, ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import (
+    TEST_NOTIFICATION_ID,
+    ActionTargetType,
+    FallthroughChoiceType,
+    NotificationActionContext,
+)
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
     EMAIL_ACTION_DATA_BLOBS,
@@ -99,6 +103,21 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         self.handler = TestHandler()
 
+    def create_context_and_data(
+        self,
+        *,
+        event_data: WorkflowEventData | None = None,
+        workflow_id: int | None = None,
+    ) -> tuple[NotificationActionContext, RuleData]:
+        context = self.handler.create_action_context(
+            self.action,
+            self.detector,
+            event_data or self.event_data,
+            workflow_id=self.workflow.id if workflow_id is None else workflow_id,
+        )
+        data = self.handler.build_rule_data_from_action(self.action, self.detector, context.origin)
+        return context, data
+
     def test_create_rule_instance_from_action_missing_properties_raises_value_error(self) -> None:
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
@@ -107,24 +126,21 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         handler = TestHandler()
         with pytest.raises(ValueError):
-            handler.create_rule_instance_from_action(
+            context = handler.create_action_context(
                 self.action, self.detector, self.event_data, workflow_id=self.workflow.id
             )
+            handler.build_rule_data_from_action(self.action, self.detector, context.origin)
 
-    def test_create_rule_instance_from_action(self) -> None:
-        """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
-        rule = self.handler.create_rule_instance_from_action(
-            self.action, self.detector, self.event_data, workflow_id=self.workflow.id
-        )
+    def test_create_action_context(self) -> None:
+        context, data = self.create_context_and_data()
 
-        assert isinstance(rule, Rule)
-        assert rule.id == self.action.id
-        assert rule.project == self.detector.project
-        assert rule.environment_id is not None
+        assert context.action_id == self.action.id
+        assert context.project == self.detector.project
+        assert context.origin.environment_id is not None
         assert self.workflow.environment is not None
-        assert rule.environment_id == self.workflow.environment.id
-        assert rule.label == self.workflow.name
-        assert rule.data == {
+        assert context.origin.environment_id == self.workflow.environment.id
+        assert context.origin.label == self.workflow.name
+        assert data == {
             "actions": [
                 {
                     "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
@@ -136,8 +152,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 }
             ],
         }
-        assert rule.status == ObjectStatus.ACTIVE
-        assert rule.source == RuleSource.ISSUE
 
     def test_create_notification_origin(self) -> None:
         origin = self.handler.create_notification_origin(
@@ -150,21 +164,17 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert origin.workflow_id == self.workflow.id
         assert origin.legacy_rule_id == self.rule.id
 
-    def test_create_rule_instance_from_action_with_workflow_only(self) -> None:
-        """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
+    def test_create_action_context_with_workflow_only(self) -> None:
         self.rule.delete()
-        rule = self.handler.create_rule_instance_from_action(
-            self.action, self.detector, self.event_data, workflow_id=self.workflow.id
-        )
+        context, data = self.create_context_and_data()
 
-        assert isinstance(rule, Rule)
-        assert rule.id == self.action.id
-        assert rule.project == self.detector.project
-        assert rule.environment_id is not None
+        assert context.action_id == self.action.id
+        assert context.project == self.detector.project
+        assert context.origin.environment_id is not None
         assert self.workflow.environment is not None
-        assert rule.environment_id == self.workflow.environment.id
-        assert rule.label == self.workflow.name
-        assert rule.data == {
+        assert context.origin.environment_id == self.workflow.environment.id
+        assert context.origin.label == self.workflow.name
+        assert data == {
             "actions": [
                 {
                     "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
@@ -175,22 +185,17 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 }
             ]
         }
-        assert rule.status == ObjectStatus.ACTIVE
-        assert rule.source == RuleSource.ISSUE
 
-    def test_create_rule_instance_from_action_deleted_workflow_falls_back_to_detector_name(
+    def test_create_action_context_deleted_workflow_falls_back_to_detector_name(
         self,
     ) -> None:
         """Test that label falls back to detector.name when the workflow no longer exists"""
         workflow_id = self.workflow.id
         self.workflow.delete()
-        rule = self.handler.create_rule_instance_from_action(
-            self.action, self.detector, self.event_data, workflow_id=workflow_id
-        )
+        context, data = self.create_context_and_data(workflow_id=workflow_id)
 
-        assert isinstance(rule, Rule)
-        assert rule.label == self.detector.name
-        assert rule.data == {
+        assert context.origin.label == self.detector.name
+        assert data == {
             "actions": [
                 {
                     "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
@@ -202,26 +207,20 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             ]
         }
 
-    def test_rule_instance_from_action_uses_workflow_name_not_stale_rule_label(
+    def test_action_context_uses_workflow_name_not_stale_rule_label(
         self,
     ) -> None:
         self.workflow.update(name="Renamed Alert Name")
-        rule = self.handler.create_rule_instance_from_action(
-            self.action, self.detector, self.event_data, workflow_id=self.workflow.id
-        )
-        assert isinstance(rule, Rule)
-        assert rule.label == "Renamed Alert Name"
-        assert rule.label != self.rule.label  # legacy rule label is still "Test Alert"
+        context, _ = self.create_context_and_data()
+        assert context.origin.label == "Renamed Alert Name"
+        assert context.origin.label != self.rule.label  # legacy rule label is still "Test Alert"
 
-    def test_create_rule_instance_from_action_with_test_notification_id(self) -> None:
+    def test_create_action_context_with_test_notification_id(self) -> None:
         """Test that Workflow lookup is skipped for test notifications, falling back to detector name"""
-        rule = self.handler.create_rule_instance_from_action(
-            self.action, self.detector, self.event_data, workflow_id=TEST_NOTIFICATION_ID
-        )
+        context, data = self.create_context_and_data(workflow_id=TEST_NOTIFICATION_ID)
 
-        assert isinstance(rule, Rule)
-        assert rule.label == self.detector.name
-        assert rule.data == {
+        assert context.origin.label == self.detector.name
+        assert data == {
             "actions": [
                 {
                     "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
@@ -233,20 +232,16 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             ],
         }
 
-    def test_create_rule_instance_from_action_no_environment(self) -> None:
-        """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
+    def test_create_action_context_no_environment(self) -> None:
         self.create_workflow()
         job = WorkflowEventData(event=self.group_event, workflow_env=None, group=self.group)
-        rule = self.handler.create_rule_instance_from_action(
-            self.action, self.detector, job, workflow_id=self.workflow.id
-        )
+        context, data = self.create_context_and_data(event_data=job)
 
-        assert isinstance(rule, Rule)
-        assert rule.id == self.action.id
-        assert rule.project == self.detector.project
-        assert rule.environment_id is None
-        assert rule.label == self.workflow.name
-        assert rule.data == {
+        assert context.action_id == self.action.id
+        assert context.project == self.detector.project
+        assert context.origin.environment_id is None
+        assert context.origin.label == self.workflow.name
+        assert data == {
             "actions": [
                 {
                     "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
@@ -258,8 +253,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 }
             ],
         }
-        assert rule.status == ObjectStatus.ACTIVE
-        assert rule.source == RuleSource.ISSUE
 
     @mock.patch("sentry.notifications.notification_action.types.invoke_future_with_error_handling")
     @mock.patch("sentry.notifications.notification_action.types.activate_downstream_actions")
@@ -290,8 +283,17 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(
             mock.ANY,
+            mock.ANY,
             self.event_data.event,
-            "12345678-1234-5678-1234-567812345678",  # Rule instance
+            "12345678-1234-5678-1234-567812345678",
+        )
+        context, actions, _, _ = mock_activate_downstream_actions.call_args.args
+        assert isinstance(context, NotificationActionContext)
+        assert context.action_id == self.action.id
+        assert context.origin.workflow_id == self.workflow.id
+        assert context.origin.legacy_rule_id == self.rule.id
+        assert actions[0]["id"] == (
+            "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction"
         )
 
         # Verify callback execution
@@ -464,18 +466,6 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
             "account": "1234567890",
             "team": "team789",
             "priority": "P1",
-        }
-
-    def test_build_rule_action_blob_no_priority(self) -> None:
-        """Test that build_rule_action_blob handles missing priority"""
-        self.action.data = {}
-        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
-
-        assert blob == {
-            "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-            "account": "1234567890",
-            "team": "team789",
-            "priority": "",
         }
 
     @mock.patch("sentry.integrations.opsgenie.client.logger")

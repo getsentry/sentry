@@ -5,6 +5,8 @@ const coreComponentFiles = [
   'static/packages/scraps/src/**/*.{ts,tsx}',
 ];
 
+const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
+
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
@@ -13,6 +15,13 @@ export const incubator = defineConfig({
     {
       files: coreComponentFiles,
       rules: {'@sentry/scraps/prefer-primitives': 'off'},
+    },
+    {
+      files: testFiles,
+      rules: {
+        '@sentry/prefer-fake-timers': 'error',
+        '@sentry/require-fake-timer-cleanup': 'error',
+      },
     },
   ],
 });
@@ -205,8 +214,6 @@ const storyFilesPolicy = {
   ],
 };
 
-const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
-
 /**
  * Import linting uses two complementary approaches:
  *
@@ -236,7 +243,7 @@ const config = defineConfig({
     },
     {
       name: 'import-js',
-      specifier: 'eslint-plugin-import',
+      specifier: 'eslint-plugin-import-x',
     },
     {
       name: 'react-js',
@@ -281,13 +288,21 @@ const config = defineConfig({
       defaultVersion: '19.2',
     },
     'import/resolver': {
-      typescript: {},
+      typescript: {project: './tsconfig.lint.json'},
+    },
+    'import-x/resolver': {
+      typescript: {project: './tsconfig.lint.json'},
     },
     // Analyze both static and dynamic imports for boundary checks.
     // https://www.jsboundaries.dev/docs/setup/settings/#boundariesdependency-nodes
     'boundaries/dependency-nodes': ['import', 'dynamic-import'],
     // Order matters because several element roots are nested inside static/app.
     'boundaries/elements': [
+      {
+        type: 'icons',
+        pattern: 'static/packages/icons/src',
+        partialMatch: false,
+      },
       // Keep core stories inside Scraps; story-files still classifies them as stories.
       {
         type: 'scraps',
@@ -305,7 +320,11 @@ const config = defineConfig({
       },
       {
         type: 'test',
-        pattern: ['tests/js', 'static/packages/scraps/test'],
+        pattern: [
+          'tests/js',
+          'static/packages/scraps/test',
+          'static/packages/icons/test',
+        ],
       },
       // Sentry application and assets.
       {
@@ -1225,6 +1244,43 @@ const config = defineConfig({
             message:
               'Scraps components must use the tracking context instead of importing from sentry/utils/analytics',
           },
+          // Icons are independent of Scraps and the application. Apply this
+          // after the general Scraps allowances so they cannot reopen imports.
+          {
+            from: {element: {type: 'icons'}},
+            disallow: {to: {element: {type: '*'}}},
+          },
+          {
+            from: {element: {type: 'icons'}},
+            allow: [{to: {element: {type: 'icons'}}}],
+          },
+          {
+            from: {
+              element: {
+                types: {
+                  anyOf: [
+                    'sentry',
+                    'getsentry',
+                    'gsAdmin',
+                    'scraps',
+                    'test',
+                    'story-book',
+                    'debug-tools',
+                  ],
+                },
+              },
+            },
+            allow: [
+              {
+                to: {
+                  element: {
+                    type: 'icons',
+                    fileInternalPath: ['icon*.tsx', 'svgIcon.tsx', 'useIconDefaults.tsx'],
+                  },
+                },
+              },
+            ],
+          },
           // Apply story access after Scraps policies so core stories stay
           // accessible to Storybook, but production code cannot import them.
           {
@@ -1440,7 +1496,7 @@ const config = defineConfig({
         },
       },
     ],
-    // https://github.com/import-js/eslint-plugin-import/tree/main/docs/rules
+    // https://github.com/un-ts/eslint-plugin-import-x/tree/master/docs/rules
     'import-js/no-extraneous-dependencies': [
       'error',
       {
@@ -1726,7 +1782,10 @@ const config = defineConfig({
       },
     },
     {
-      files: ['static/packages/scraps/*.config.mjs'],
+      files: [
+        'static/packages/scraps/*.config.mjs',
+        'static/packages/icons/*.config.mjs',
+      ],
       rules: {'boundaries/no-unknown-files': 'off'},
     },
     {
@@ -1768,7 +1827,6 @@ const config = defineConfig({
         'tests/js/jest-pegjs-transform.js',
         'tests/js/sentry-test/jest-environment.js',
         'tests/js/sentry-test/jest-environment-node.js',
-        'tests/js/sentry-test/withTagsAsSpanAttributes.js',
         'tests/js/sentry-test/wrapWithStructuredClone.js',
         'tests/js/sentry-test/mocks/*',
         'tests/js/sentry-test/loadFixtures.ts',
@@ -1863,6 +1921,8 @@ const config = defineConfig({
       files: [
         'static/packages/scraps/src/**/*.spec.tsx',
         'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
+        'static/packages/icons/src/**/*.spec.tsx',
+        'static/packages/icons/test/**/*.{ts,tsx,mjs}',
       ],
       rules: {
         'import/no-relative-parent-imports': 'off',
@@ -1874,7 +1934,7 @@ const config = defineConfig({
               ...restrictedImportPatterns,
               {
                 group: ['sentry/*', 'sentry-test/*', 'sentry-fixture/*'],
-                message: 'Scraps tests must be independent of the Sentry application.',
+                message: 'Package tests must be independent of the Sentry application.',
               },
             ],
             paths: restrictedImportPaths.filter(

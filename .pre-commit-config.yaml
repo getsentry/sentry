@@ -91,6 +91,14 @@ repos:
       # additional_dependencies does not install a flattened dependency tree which is needed by
       # our JavaScript tooling.
 
+      - id: sherif
+        name: sherif
+        language: system
+        files: (^|/)package\.json$|^pnpm-(workspace|lock)\.yaml$
+        entry: pnpm run lint:deps
+        pass_filenames: false
+        require_serial: true
+
       - id: oxlint
         name: oxlint
         language: system

@@ -6,6 +6,7 @@ import {useFocusWithin, useHover} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {ControlContext, HighlightText, LeadWrap} from '@sentry/scraps/compactSelect';
@@ -16,7 +17,6 @@ import {
   type MenuListItemProps,
 } from '@sentry/scraps/menuListItem';
 
-import {IconCheckmark} from 'sentry/icons';
 import type {FormSize} from 'sentry/utils/theme';
 
 export interface GridListOptionProps<

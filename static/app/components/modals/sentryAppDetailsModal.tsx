@@ -1,6 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconFlag} from '@sentry/icons/flag';
 import {useMutation} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
@@ -13,7 +14,6 @@ import {Access} from 'sentry/components/acl/access';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
