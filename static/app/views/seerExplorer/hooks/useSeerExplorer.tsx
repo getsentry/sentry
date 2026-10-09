@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -24,12 +23,8 @@ import {
   toChatPromptMetadata,
   type ChatPrompt,
 } from 'sentry/views/seerExplorer/chatPrompt';
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import type {
-  LLMContextLocation,
-  LLMContextSnapshot,
-} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
-import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
+import type {LLMContextLocation} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -72,46 +67,6 @@ const makeExplorerUpdateUrl = (orgSlug: string, runId: SeerExplorerRunId | null)
   getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
     path: {organizationIdOrSlug: orgSlug, runId: String(runId)},
   });
-
-/** Routes where the LLMContext tree provides structured page context. */
-const STRUCTURED_CONTEXT_ROUTES = new Set([
-  '/dashboard/:dashboardId/',
-  '/dashboard/:dashboardId/widget-builder/widget/new/',
-  '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
-  '/explore/logs/',
-  '/explore/logs/trace/:traceSlug/',
-  '/explore/metrics/',
-  '/explore/profiling/',
-  '/explore/releases/',
-  '/explore/replays/',
-  '/explore/replays/:replaySlug/',
-  '/explore/traces/',
-  '/explore/traces/trace/:traceSlug/',
-  '/issues/',
-  '/issues/views/:viewId/',
-  '/issues/errors-outages/',
-  '/issues/breached-metrics/',
-  '/issues/warnings/',
-  '/issues/:groupId/',
-  '/issues/:groupId/events/',
-  '/issues/:groupId/events/:eventId/',
-  '/issues/:groupId/replays/',
-  '/issues/:groupId/attachments/',
-  '/issues/:groupId/distributions/',
-  '/issues/:groupId/distributions/:tagKey/',
-  '/monitors/',
-  '/monitors/:detectorId/',
-  '/monitors/:detectorId/edit/',
-  '/monitors/alerts/',
-  '/monitors/alerts/:automationId/',
-  '/monitors/alerts/:automationId/edit/',
-  '/monitors/crons/',
-  '/monitors/errors/',
-  '/monitors/metrics/',
-  '/monitors/mobile-builds/',
-  '/monitors/my-monitors/',
-  '/monitors/uptime/',
-]);
 
 const getOptimisticAssistantTexts = () => [
   t('Looking around...'),
@@ -159,9 +114,8 @@ export const useSeerExplorer = () => {
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
-  const captureAsciiSnapshot = useAsciiSnapshot();
+  const capturePageContext = usePageContextCapture();
   const {getPageReferrer} = usePageReferrer();
-  const {getLLMContext} = useLLMContext();
   const timezone = useTimezone();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
     'seer-explorer.override.ctx-eng',
@@ -618,32 +572,10 @@ export const useSeerExplorer = () => {
         dispatch({type: 'set chat prompt', payload: null});
       }
 
-      // The snapshot is the source of location for both branches below, so take it
-      // once here rather than only on the structured path.
-      let snapshot: LLMContextSnapshot | undefined;
-      try {
-        snapshot = getLLMContext();
-      } catch (e) {
-        Sentry.captureException(e);
-      }
-
-      // Send structured LLMContext JSON on allowlisted pages; fall back to a
-      // coarse ASCII screenshot everywhere else.
-      let screenshot: string | undefined;
-      if (
-        snapshot &&
-        overrideCtxEngEnable &&
-        STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer())
-      ) {
-        try {
-          screenshot = JSON.stringify(snapshot);
-        } catch (e) {
-          Sentry.captureException(e);
-          screenshot = captureAsciiSnapshot?.(snapshot?.location);
-        }
-      } else {
-        screenshot = captureAsciiSnapshot?.(snapshot?.location);
-      }
+      const {snapshot, screenshot} = capturePageContext({
+        route: getPageReferrer(),
+        allowStructured: overrideCtxEngEnable,
+      });
 
       const pageName = getPageReferrer();
 
@@ -717,9 +649,8 @@ export const useSeerExplorer = () => {
       orgSlug,
       runId,
       apiData,
-      captureAsciiSnapshot,
+      capturePageContext,
       dispatch,
-      getLLMContext,
       getPageReferrer,
       organization,
       overrideBashModeEnabled,
