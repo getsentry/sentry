@@ -1971,7 +1971,6 @@ module = [
     "tests.sentry.runner.commands",
     "tests.sentry.runner.commands.test_backup",
     "tests.sentry.runner.commands.test_config",
-    "tests.sentry.runner.commands.test_configoptions",
     "tests.sentry.runner.commands.test_createorg",
     "tests.sentry.runner.commands.test_createproject",
     "tests.sentry.runner.commands.test_createuser",
