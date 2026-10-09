@@ -395,7 +395,7 @@ export function ChevronButton(
   props: React.ComponentProps<typeof Button> & {expanded: boolean}
 ) {
   return (
-    <Container as="span" display={{zero: 'none', xl: 'inline-flex'}}>
+    <Container as="span" display="inline-flex">
       <StyledChevronButton {...props} />
     </Container>
   );
@@ -405,14 +405,16 @@ const StyledChevronButton = styled(Button)<{expanded: boolean}>`
   ${p =>
     p.expanded &&
     css`
-      margin-left: -17px;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-
-      &::after {
-        border-left-color: ${p.theme.tokens.border.primary};
+      @container (min-width: ${p.theme.container.xl}) {
+        margin-left: -17px;
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
+
+        &::after {
+          border-left-color: ${p.theme.tokens.border.primary};
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+        }
       }
     `}
 `;
