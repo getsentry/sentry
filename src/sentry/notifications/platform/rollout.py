@@ -1,11 +1,11 @@
 import logging
-import random
 from dataclasses import dataclass
 
 from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.notifications.platform.types import NotificationSource
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +16,8 @@ class NotificationRolloutService:
     Holds all checks and logic for rolling out a new notification to the platform.
       - Checks if the organization has access to the platform via rollout stage Feature Flags
       - Gets the rollout rate for the source from the option mapped to the rollout stage
+      - Buckets the organization deterministically per source, so an organization stays on the
+        same path across sends at partial rollout rates
     """
 
     organization: RpcOrganization | Organization
@@ -26,7 +28,8 @@ class NotificationRolloutService:
             return False
 
         source_rollout_rate = self.get_rollout_rate(option_key, source)
-        return random.randint(0, 99) < 100 * source_rollout_rate
+        bucket = int(md5_text(self.organization.id, source).hexdigest(), 16) % 100
+        return bucket < 100 * source_rollout_rate
 
     def has_feature_flag_access(self) -> str | None:
         internal_testing = features.has(

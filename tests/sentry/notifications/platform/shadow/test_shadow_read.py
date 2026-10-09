@@ -53,7 +53,7 @@ DISCORD_METRIC_CLIENT = "sentry.integrations.discord.actions.metric_alert.Discor
 MSTEAMS_METRIC_SEND = (
     "sentry.integrations.msteams.utils.integration_service.send_msteams_incident_alert_notification"
 )
-SLACK_METRIC_HANDLER = "sentry.notifications.notification_action.metric_alert_registry.handlers.slack_metric_alert_handler"
+PLATFORM_DISPATCH = "sentry.notifications.notification_action.platform_dispatch"
 
 CLIENTS = {
     "issue": {
@@ -422,8 +422,8 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         assert "referrer=metric_alert_slack&" in legacy
         assert "referrer=metric_alert_slack_staging&" in platform
 
-    @mock.patch(f"{SLACK_METRIC_HANDLER}._send_via_notification_platform")
-    @mock.patch(f"{SLACK_METRIC_HANDLER}.NotificationService.has_access", return_value=True)
+    @mock.patch(f"{PLATFORM_DISPATCH}.send_metric_alert")
+    @mock.patch(f"{PLATFORM_DISPATCH}.NotificationService.has_access", return_value=True)
     @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template")
     def test_slack_sent_by_platform_is_not_compared(
         self,
@@ -442,7 +442,7 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         mock_legacy_build.assert_not_called()
         client.return_value.chat_postMessage.assert_not_called()
         mock_render.assert_not_called()
-        assert observation.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED
+        assert observation.results == []
 
     def test_discord_matches(self) -> None:
         action = self.create_shadow_action("discord")
