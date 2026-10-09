@@ -56,21 +56,13 @@ class ChatSuggestionsResult(BaseModel):
     suggestions: list[ChatSuggestion]
 
 
-class ProjectInfoSerializer(serializers.Serializer):
-    slug = serializers.CharField()
-    platform = serializers.CharField(required=False, allow_null=True, default=None)
-
-
 class ChatSuggestionsSerializer(serializers.Serializer):
     route = serializers.CharField(allow_blank=True)
     page_context = serializers.CharField(
         allow_blank=True, max_length=MAX_PAGE_CONTEXT_LENGTH, trim_whitespace=False
     )
-    projects = serializers.ListField(
-        child=ProjectInfoSerializer(),
-        max_length=MAX_PROJECTS,
-        required=False,
-        default=list,
+    project_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list
     )
     route_params = serializers.DictField(
         child=serializers.CharField(), required=False, default=dict
@@ -114,8 +106,15 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
 
         data = dict(serializer.validated_data)
         route_params = data.pop("route_params")
+        projects = self.get_projects(
+            request, organization, project_ids=set(data.pop("project_ids"))
+        )
         payload = {
             **data,
+            "projects": [
+                {"slug": project.slug, "platform": project.platform}
+                for project in sorted(projects, key=lambda project: project.slug)[:MAX_PROJECTS]
+            ],
             "code_mode": features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             ),

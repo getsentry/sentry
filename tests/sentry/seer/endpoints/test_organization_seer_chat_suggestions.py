@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
@@ -10,7 +11,6 @@ from sentry.testutils.helpers.features import with_feature
 PAYLOAD = {
     "route": "/issues/:groupId/",
     "page_context": '{"version": 1, "nodes": []}',
-    "projects": [{"slug": "frontend-web", "platform": "javascript-react"}],
 }
 
 
@@ -32,8 +32,13 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
             "suggestions": [{"text": "What's causing this TypeError?", "kind": "question"}],
             "dropped": {"unknown_type": 1},
         }
+        project = self.create_project(
+            organization=self.organization, slug="frontend-web", platform="javascript-react"
+        )
 
-        response = self.get_success_response(self.organization.slug, **PAYLOAD)
+        response = self.get_success_response(
+            self.organization.slug, **PAYLOAD, project_ids=[project.id]
+        )
 
         assert response.data == {
             "suggestions": [
@@ -45,6 +50,7 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         assert organization == self.organization
         assert payload == {
             **PAYLOAD,
+            "projects": [{"slug": "frontend-web", "platform": "javascript-react"}],
             "code_mode": False,
             "can_create_alerts": True,
             "can_edit_node_type": None,
@@ -109,11 +115,41 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         self.get_error_response(self.organization.slug, status_code=400, route="/issues/")
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
-    def test_returns_400_when_too_many_projects(self, mock_run_oneshot: MagicMock) -> None:
-        projects = [{"slug": f"project-{i}"} for i in range(11)]
+    def test_passes_member_projects_when_none_selected(self, mock_run_oneshot: MagicMock) -> None:
+        mock_run_oneshot.return_value = {"suggestions": []}
+        self.create_project(organization=self.organization, teams=[self.team], slug="mine")
+        self.create_project(
+            organization=self.organization, teams=[self.create_team()], slug="not-mine"
+        )
+
+        self.get_success_response(self.organization.slug, **PAYLOAD)
+
+        assert mock_run_oneshot.call_args.args[1]["projects"] == [
+            {"slug": "mine", "platform": None}
+        ]
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_first_projects_by_slug_when_over_limit(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        mock_run_oneshot.return_value = {"suggestions": []}
+        for i in reversed(range(11)):
+            self.create_project(organization=self.organization, slug=f"project-{i:02}")
+
+        self.get_success_response(
+            self.organization.slug, **PAYLOAD, project_ids=[ALL_ACCESS_PROJECT_ID]
+        )
+
+        assert [p["slug"] for p in mock_run_oneshot.call_args.args[1]["projects"]] == [
+            f"project-{i:02}" for i in range(10)
+        ]
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_returns_403_for_another_orgs_project(self, mock_run_oneshot: MagicMock) -> None:
+        project = self.create_project(organization=self.create_organization())
 
         self.get_error_response(
-            self.organization.slug, status_code=400, **{**PAYLOAD, "projects": projects}
+            self.organization.slug, status_code=403, **PAYLOAD, project_ids=[project.id]
         )
         mock_run_oneshot.assert_not_called()
 
