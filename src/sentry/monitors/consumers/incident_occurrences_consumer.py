@@ -14,8 +14,8 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from cachetools.func import ttl_cache
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
+from sentry_sdk import traces
 from sentry_sdk.traces import StreamedSpan
-from sentry_sdk.tracing import Span, Transaction
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -23,7 +23,6 @@ from sentry.monitors.logic.incident_occurrence import send_incident_occurrence
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident
 from sentry.monitors.system_incidents import TickAnomalyDecision, get_clock_tick_decision
 from sentry.utils import metrics
-from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ def memoized_tick_decision(tick: datetime) -> TickAnomalyDecision | None:
 
 
 def _process_incident_occurrence(
-    message: Message[KafkaPayload | FilteredPayload], span: Transaction | Span | StreamedSpan
+    message: Message[KafkaPayload | FilteredPayload], span: StreamedSpan
 ) -> None:
     """
     Process a incident occurrence message. This will immediately dispatch an
@@ -65,7 +64,7 @@ def _process_incident_occurrence(
         # the tick decision is resolved so we can know if it's OK to dispatch the
         # incident occurrence, or if we should drop the occurrence and mark the
         # associated check-ins as UNKNOWN due to a system incident.
-        set_span_tag(span, "result", "delayed")
+        span.set_attribute("result", "delayed")
 
         # XXX(epurkhiser): MessageRejected tells arroyo that we can't process
         # this message right now and it should try again
@@ -114,23 +113,24 @@ def _process_incident_occurrence(
         ).update(status=CheckInStatus.UNKNOWN)
 
         # Do NOT send the occurrence
-        set_span_tag(span, "result", "dropped")
+        span.set_attribute("result", "dropped")
         metrics.incr("monitors.incident_ocurrences.dropped_incident_occurrence")
         return None
 
     try:
         send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
-        set_span_tag(span, "result", "sent")
+        span.set_attribute("result", "sent")
         metrics.incr("monitors.incident_ocurrences.sent_incident_occurrence")
     except Exception:
         logger.exception("failed_send_incident_occurrence")
 
 
 def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]) -> None:
-    with start_span(
-        op="_process_incident_occurrence",
+    traces.new_trace()
+    with traces.start_span(
         name="monitors.incident_occurrence_consumer",
-        transaction=True,
+        attributes={"sentry.op": "_process_incident_occurrence"},
+        parent_span=None,
     ) as txn:
         _process_incident_occurrence(message, txn)
 

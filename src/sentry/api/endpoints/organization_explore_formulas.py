@@ -251,12 +251,12 @@ class FormulaSerializer(RequestSerializer):
                 parameters,
                 calculations,
                 [SimpleNamespace(**param) for param in data["references"]],
-                resolver.resolve_column,
+                resolver,
             )
         except InvalidSearchQuery as e:
             raise ValidationError(str(e))
         try:
-            parse_arithmetic(formula)
+            parse_arithmetic(formula, definitions=resolver.definitions)
         except (ArithmeticParseError, ArithmeticValidationError) as e:
             raise ValidationError(str(e))
 

@@ -15,9 +15,19 @@ const props: EntityHeaderProps = {
   metadata: {
     label: 'Replay properties',
     items: [
-      {label: 'Started at', values: ['Feb 11, 2026 10:56 CET']},
-      {label: 'Browser', values: ['Chrome', '144.0.0']},
-      {label: 'Operating system', values: ['Windows', '>=10']},
+      {label: 'Started at', type: 'text', value: 'Feb 11, 2026 10:56 CET'},
+      {
+        label: 'Browser',
+        type: 'text',
+        value: 'Chrome',
+        secondary: {label: 'version', value: '144.0.0'},
+      },
+      {
+        label: 'Operating system',
+        type: 'text',
+        value: 'Windows',
+        secondary: {label: 'version', value: '>=10'},
+      },
     ],
   },
   stats: {

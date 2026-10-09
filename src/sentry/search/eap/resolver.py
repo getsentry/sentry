@@ -1492,7 +1492,9 @@ class SearchResolver:
         """Resolve an equation creating a ResolvedEquation object, we don't just return a Column.BinaryFormula since
         it'll help callers with extra information, like the existence of aggregates and the search type
         """
-        operation, fields, functions = arithmetic.parse_arithmetic(equation)
+        operation, fields, functions = arithmetic.parse_arithmetic(
+            equation, definitions=self.definitions
+        )
         # Handle the case where the equation is just a single term
         if isinstance(operation, str):
             # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
@@ -1637,5 +1639,5 @@ class SearchResolver:
 
         arguments = fields.parse_arguments(formula.name, columns)
 
-        equation = resolve_and_parse_formula(formula, arguments, self.resolve_column)
+        equation = resolve_and_parse_formula(formula, arguments, self)
         return self.resolve_equation(equation, alias)
