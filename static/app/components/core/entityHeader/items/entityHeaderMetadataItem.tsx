@@ -3,6 +3,7 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import type {PlatformIcon} from 'platformicons';
 
+import type {UserAvatar} from '@sentry/scraps/avatar';
 import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -28,13 +29,18 @@ interface EntityHeaderMetadataItemBase {
   label: string;
   /**
    * Decorative graphic rendered before the value: an icon from
-   * `@sentry/icons`, or a `PlatformIcon` for a browser, OS or SDK. Drawn in a
-   * fixed 16x16 box, which is held through loading so the row does not narrow
-   * as items resolve.
+   * `@sentry/icons`, a `PlatformIcon` for a browser, OS or SDK, or a
+   * `UserAvatar` for a person. Drawn in a fixed 16x16 box, which is held
+   * through loading so the row does not narrow as items resolve.
+   *
+   * The box sizes itself, not its contents, so draw the graphic at 16 to match
+   * it — `size="md"` on an icon, `size="16px"` on a `PlatformIcon`, `size={16}`
+   * on an avatar.
    */
   leadingGraphic?:
     | React.ReactElement<SVGIconProps>
-    | React.ReactElement<React.ComponentProps<typeof PlatformIcon>>;
+    | React.ReactElement<React.ComponentProps<typeof PlatformIcon>>
+    | React.ReactElement<React.ComponentProps<typeof UserAvatar>>;
   /**
    * How much of the property to draw.
    *

@@ -8,10 +8,12 @@ resources:
   figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1635-47167
 ---
 
+import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 
 import {IconCalendar} from '@sentry/icons/calendar';
+import {PlatformIcon} from 'platformicons';
 import * as Storybook from 'sentry/stories';
 
 export const documentation =
@@ -438,6 +440,55 @@ A value can navigate. `type: 'link'` renders it as one, named from the key and t
 
 `tooltip` adds an explanation on hover against the value, with an underline to signal it.
 
+### Leading graphic
+
+`leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon` for a browser, OS or SDK, or a `UserAvatar` for a person. Unlike the title's, this one is a node — there is no fixed set of things a property can be about, so the slot takes whatever the caller already has rather than growing a `type` for each.
+
+The box is a fixed 16px and holds its width through loading, so the row does not narrow as items resolve. It sizes itself and not its contents, so draw the graphic at 16 to match it.
+
+<Storybook.Demo resizable direction="column" align="stretch">
+  <EntityHeader
+    title={{label: 'Issue type', value: 'ValueError'}}
+    metadata={{
+      label: 'Issue properties',
+      items: [
+        {
+          label: 'Last seen',
+          type: 'text',
+          value: 'Feb 11, 2026 10:56 CET',
+          leadingGraphic: <IconCalendar size="md" />,
+        },
+        {
+          label: 'Browser',
+          type: 'text',
+          value: 'Chrome',
+          secondary: {label: 'version', value: '144.0.0'},
+          leadingGraphic: <PlatformIcon platform="chrome" size="16px" />,
+        },
+        {
+          label: 'Assigned to',
+          type: 'text',
+          value: 'Alice Chen',
+          leadingGraphic: (
+            <UserAvatar
+              user={{id: '1', name: 'Alice Chen', email: 'alice@example.com'}}
+              size={16}
+            />
+          ),
+        },
+      ],
+    }}
+  />
+</Storybook.Demo>
+
+```jsx
+leadingGraphic={<IconCalendar size="md" />}
+leadingGraphic={<PlatformIcon platform="chrome" size="16px" />}
+leadingGraphic={<UserAvatar user={issue.assignee} size={16} />}
+```
+
+The graphic is always decorative, so it is hidden from assistive technology. It has nothing to add: the key is in the DOM whether or not `mode` draws it, so the property is named either way.
+
 ### Accessibility
 
 The row's `label` names it. Without one a screen reader meets a run of unrelated strings with nothing saying they belong together, or to what.
@@ -450,7 +501,7 @@ A description list would tie each label to its value structurally, which sounds 
 
 ### Variants
 
-`variant` colours the value. Use a semantic variant to call out a problem, the way Issue Details renders "Unhandled" in `danger`. It is available on a text value only — a link already spends its colour saying that it navigates, and a red link reads as neither.
+`variant` colours the value. Use a semantic variant to call out a problem, the way Issue Details renders "Unhandled" in `danger`. It is available on a text value only — a link already spends its colour saying that it navigates, and a red link reads as neither. The `Release` row below is a link for that contrast: it takes no `variant` and draws in accent regardless of what sits beside it.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -465,7 +516,13 @@ A description list would tie each label to its value structurally, which sounds 
           mode: 'full',
           variant: 'primary',
         },
-        {label: 'Level', type: 'text', value: 'error', mode: 'full', variant: 'muted'},
+        {
+          label: 'Release',
+          type: 'link',
+          value: '8.42.0',
+          mode: 'full',
+          to: '/releases/8.42.0/',
+        },
         {
           label: 'Handling',
           type: 'text',
@@ -505,7 +562,13 @@ A description list would tie each label to its value structurally, which sounds 
         mode: 'full',
         variant: 'primary',
       },
-      {label: 'Level', type: 'text', value: 'error', mode: 'full', variant: 'muted'},
+      {
+        label: 'Release',
+        type: 'link',
+        value: '8.42.0',
+        mode: 'full',
+        to: '/releases/8.42.0/',
+      },
       {
         label: 'Handling',
         type: 'text',
