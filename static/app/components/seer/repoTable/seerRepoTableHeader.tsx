@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -28,7 +27,6 @@ import {
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 
 interface Props {
-  gridColumns: string;
   isFetchingNextPage: boolean;
   isPending: boolean;
   mutateRepositorySettings: ReturnType<
@@ -60,7 +58,6 @@ const COLUMNS = [
 ];
 
 export function SeerRepoTableHeader({
-  gridColumns,
   isFetchingNextPage,
   isPending,
   mutateRepositorySettings,
@@ -240,42 +237,51 @@ export function SeerRepoTableHeader({
 
   return (
     <Fragment>
-      <ListItemSelectedState selected="none">
-        <TableHeader gridColumns={gridColumns}>
-          <SimpleTable.HeaderCell>
-            <SelectAllCheckbox
-              disabled={isPending || isFetchingNextPage}
-              knownIds={knownIds}
-              listItemCheckboxState={listItemCheckboxState}
-            />
-          </SimpleTable.HeaderCell>
-          {COLUMNS.map(({title, key, sortKey}) => (
-            <SimpleTable.HeaderCell
-              key={key}
-              handleSortClick={
-                sortKey ? () => onSortClick(getNextSort(sortKey, sort)) : undefined
-              }
-              sort={sort?.field === sortKey ? sort.kind : undefined}
-            >
-              {title}
-            </SimpleTable.HeaderCell>
-          ))}
-        </TableHeader>
-      </ListItemSelectedState>
+      <SimpleTable.Head sticky>
+        <ListItemSelectedState selected="none">
+          <SimpleTable.HeaderRow>
+            <SelectAllHeadCell>
+              <SelectAllCheckbox
+                disabled={isPending || isFetchingNextPage}
+                knownIds={knownIds}
+                listItemCheckboxState={listItemCheckboxState}
+              />
+            </SelectAllHeadCell>
+            {COLUMNS.map(({title, key, sortKey}) => (
+              <SimpleTable.HeaderCell
+                key={key}
+                handleSortClick={
+                  sortKey ? () => onSortClick(getNextSort(sortKey, sort)) : undefined
+                }
+                sort={sort?.field === sortKey ? sort.kind : undefined}
+              >
+                {title}
+              </SimpleTable.HeaderCell>
+            ))}
+          </SimpleTable.HeaderRow>
+        </ListItemSelectedState>
 
-      <ListItemSelectedState selected="indeterminate-or-all">
-        <TableHeader gridColumns={gridColumns}>
-          <SimpleTable.HeaderCell variant="first">
-            <SelectAllCheckbox
-              disabled={isPending || isFetchingNextPage}
-              knownIds={knownIds}
-              listItemCheckboxState={listItemCheckboxState}
-            />
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell variant="remaining" divider={false}>
-            <Flex align="center" gap="md">
+        <ListItemSelectedState selected="indeterminate-or-all">
+          <SimpleTable.HeaderRow>
+            <SelectAllHeadCell>
+              <SelectAllCheckbox
+                disabled={isPending || isFetchingNextPage}
+                knownIds={knownIds}
+                listItemCheckboxState={listItemCheckboxState}
+              />
+            </SelectAllHeadCell>
+            <Flex
+              as="th"
+              role="columnheader"
+              aria-colspan={COLUMNS.length}
+              column="2 / -1"
+              align="center"
+              gap="md"
+              padding="0 xl"
+            >
               <CompactSelect
                 disabled={!canWrite}
+                strategy="fixed"
                 size="xs"
                 trigger={props => (
                   <OverlayTrigger.Button {...props}>
@@ -306,6 +312,7 @@ export function SeerRepoTableHeader({
 
               <CompactSelect<CodeReviewTrigger>
                 disabled={!canWrite}
+                strategy="fixed"
                 multiple
                 size="xs"
                 trigger={props => (
@@ -334,51 +341,67 @@ export function SeerRepoTableHeader({
                 }}
               />
             </Flex>
-          </SimpleTable.HeaderCell>
-        </TableHeader>
-      </ListItemSelectedState>
+          </SimpleTable.HeaderRow>
+        </ListItemSelectedState>
+      </SimpleTable.Head>
 
       <ListItemSelectedState selected="indeterminate">
-        <SimpleTable.FullWidthRow>
-          <Alert variant="info" system>
-            <Flex justify="start" width="100%" wrap="wrap" gap="md">
-              {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
-              <a onClick={selectAll}>
-                {/* oxlint-disable-next-line react/refs */}
-                {queryString
-                  ? tct('Select all [count] repositories that match: [queryString].', {
-                      count: listItemCheckboxState.hits,
-                      // oxlint-disable-next-line react/refs
-                      queryString: <var>{queryString}</var>,
-                    })
-                  : t('Select all %s repositories.', listItemCheckboxState.hits)}
-              </a>
-            </Flex>
-          </Alert>
-        </SimpleTable.FullWidthRow>
+        <SimpleTable.Body>
+          <SimpleTable.FullWidthRow>
+            <Alert variant="info" system>
+              <Flex justify="start" width="100%" wrap="wrap" gap="md">
+                {tn(
+                  'Selected %s repository.',
+                  'Selected %s repositories.',
+                  countSelected
+                )}
+                <a onClick={selectAll}>
+                  {/* oxlint-disable-next-line react/refs */}
+                  {queryString
+                    ? tct('Select all [count] repositories that match: [queryString].', {
+                        count: listItemCheckboxState.hits,
+                        // oxlint-disable-next-line react/refs
+                        queryString: <var>{queryString}</var>,
+                      })
+                    : t('Select all %s repositories.', listItemCheckboxState.hits)}
+                </a>
+              </Flex>
+            </Alert>
+          </SimpleTable.FullWidthRow>
+        </SimpleTable.Body>
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="all">
-        <SimpleTable.FullWidthRow>
-          <Alert variant="info" system>
-            {/* oxlint-disable-next-line react/refs */}
-            {queryString
-              ? tct('Selected all [count] repositories matching: [queryString].', {
-                  count: countSelected,
-                  // oxlint-disable-next-line react/refs
-                  queryString: <var>{queryString}</var>,
-                })
-              : countSelected > knownIds.length
-                ? t('Selected all %s+ repositories.', knownIds.length)
-                : tn(
-                    'Selected %s repository.',
-                    'Selected all %s repositories.',
-                    countSelected
-                  )}
-          </Alert>
-        </SimpleTable.FullWidthRow>
+        <SimpleTable.Body>
+          <SimpleTable.FullWidthRow>
+            <Alert variant="info" system>
+              {/* oxlint-disable-next-line react/refs */}
+              {queryString
+                ? tct('Selected all [count] repositories matching: [queryString].', {
+                    count: countSelected,
+                    // oxlint-disable-next-line react/refs
+                    queryString: <var>{queryString}</var>,
+                  })
+                : countSelected > knownIds.length
+                  ? t('Selected all %s+ repositories.', knownIds.length)
+                  : tn(
+                      'Selected %s repository.',
+                      'Selected all %s repositories.',
+                      countSelected
+                    )}
+            </Alert>
+          </SimpleTable.FullWidthRow>
+        </SimpleTable.Body>
       </ListItemSelectedState>
     </Fragment>
+  );
+}
+
+function SelectAllHeadCell({children}: {children: React.ReactNode}) {
+  return (
+    <Flex as="th" role="columnheader" align="center" padding="0 xl">
+      {children}
+    </Flex>
   );
 }
 
@@ -394,6 +417,7 @@ function SelectAllCheckbox({
   return (
     <Checkbox
       id="repository-table-select-all"
+      aria-label={t('Select all repositories')}
       checked={isAllSelected}
       disabled={knownIds.length === 0 || disabled}
       onChange={() => {
@@ -406,11 +430,3 @@ function SelectAllCheckbox({
     />
   );
 }
-
-const TableHeader = styled(SimpleTable.HeaderRow)<{gridColumns: string}>`
-  grid-template-columns: ${p => p.gridColumns};
-  grid-column: unset;
-  grid-row: unset;
-  z-index: ${p => p.theme.zIndex.initial};
-  height: min-content;
-`;
