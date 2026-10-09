@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {
   AutofixExplorerStep,
@@ -302,46 +302,83 @@ describe('AutofixRef embed', () => {
     });
   });
 
-  it('refreshes the page behind it when the step result lands', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
-      body: {autofix: makeRun('processing')},
+  describe('polling', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    render(<InboxBehindThePanel />, {organization});
-
-    expect(await screen.findByText('Finding the root cause…')).toBeInTheDocument();
-    await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(1));
-
-    // The run finishes while the panel is open; the embed polls it up.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
-      body: {autofix: makeRun('completed')},
+    afterEach(async () => {
+      await act(() => jest.runOnlyPendingTimersAsync());
+      jest.useRealTimers();
     });
 
-    expect(
-      await screen.findByText('The cache key collides across orgs', undefined, {
-        timeout: 5000,
-      })
-    ).toBeInTheDocument();
-    await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(2));
-  }, 20_000);
+    it('refreshes the page behind it when the step result lands', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+        body: {autofix: makeRun('processing')},
+      });
 
-  it('leaves the page alone while the step is still running', async () => {
-    const autofixMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
-      body: {autofix: makeRun('processing')},
+      render(<InboxBehindThePanel />, {organization});
+
+      expect(await screen.findByText('Finding the root cause…')).toBeInTheDocument();
+      await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(1));
+
+      // The run finishes while the panel is open; the embed polls it up.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+        body: {autofix: makeRun('completed')},
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(1000));
+      expect(
+        await screen.findByText('The cache key collides across orgs')
+      ).toBeInTheDocument();
+      await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(2));
     });
 
-    render(<InboxBehindThePanel />, {organization});
+    it('leaves the page alone while the step is still running', async () => {
+      const autofixMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+        body: {autofix: makeRun('processing')},
+      });
 
-    expect(await screen.findByText('Finding the root cause…')).toBeInTheDocument();
+      render(<InboxBehindThePanel />, {organization});
 
-    // Let the 1s status poll come round more than once: a partial result must
-    // not yank the list out from under whoever is reading it.
-    await waitFor(() => expect(autofixMock).toHaveBeenCalledTimes(3), {timeout: 5000});
-    expect(issuesMock).toHaveBeenCalledTimes(1);
-  }, 20_000);
+      expect(await screen.findByText('Finding the root cause…')).toBeInTheDocument();
+
+      // Let the 1s status poll come round more than once: a partial result must
+      // not yank the list out from under whoever is reading it.
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(autofixMock).toHaveBeenCalledTimes(3);
+      expect(issuesMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('refreshes again when a pr_iteration embed swaps onto the PR section', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+        body: {autofix: makePrIterationRun({withPullRequest: false})},
+      });
+
+      render(<InboxBehindThePanel step="pr_iteration" />, {organization});
+
+      // With no PR yet, the embed falls back to the completed code_changes
+      // section, so it refreshes once on that.
+      await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(2));
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+        body: {autofix: makePrIterationRun({withPullRequest: true})},
+      });
+
+      // The PR section is `completed` too, so only the section identity changes.
+      // Keying the effect on status alone would sit still right here.
+      // Queried by text, not role: the disclosure panel renders collapsed, so role
+      // queries skip its contents as inaccessible.
+      await act(() => jest.advanceTimersByTimeAsync(1000));
+      expect(await screen.findByText('View getsentry/sentry#1')).toBeInTheDocument();
+      await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(3));
+    });
+  });
 
   describe.each(FORWARD_ACTIONS)(
     'duplicate $step embeds',
@@ -468,33 +505,6 @@ describe('AutofixRef embed', () => {
     expect(getButtons('Continue: Code Changes')).toHaveLength(0);
     expect(getButtons('Draft a pull request')).toHaveLength(1);
   });
-
-  it('refreshes again when a pr_iteration embed swaps onto the PR section', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
-      body: {autofix: makePrIterationRun({withPullRequest: false})},
-    });
-
-    render(<InboxBehindThePanel step="pr_iteration" />, {organization});
-
-    // With no PR yet, the embed falls back to the completed code_changes
-    // section, so it refreshes once on that.
-    await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(2));
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
-      body: {autofix: makePrIterationRun({withPullRequest: true})},
-    });
-
-    // The PR section is `completed` too, so only the section identity changes.
-    // Keying the effect on status alone would sit still right here.
-    // Queried by text, not role: the disclosure panel renders collapsed, so role
-    // queries skip its contents as inaccessible.
-    expect(
-      await screen.findByText('View getsentry/sentry#1', undefined, {timeout: 5000})
-    ).toBeInTheDocument();
-    await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(3));
-  }, 20_000);
 });
 
 const ISSUE = {id: '6789012345', shortId: 'CHECKOUT-42'};
