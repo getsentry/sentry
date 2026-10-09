@@ -54,7 +54,7 @@ class SlowDBQueryDetector(PerformanceDetector):
             )
             return
 
-        description = get_span_description(span).strip()
+        description = get_span_description(span)
 
         if duration_threshold is not None and span_duration >= timedelta(
             milliseconds=duration_threshold
@@ -109,7 +109,6 @@ class SlowDBQueryDetector(PerformanceDetector):
         if not description:
             return False
 
-        description = description.strip()
         if description[:6].upper() != "SELECT":
             return False
 

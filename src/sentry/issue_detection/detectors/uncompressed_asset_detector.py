@@ -95,7 +95,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets with certain file extensions
-        normalized_description = description.strip().upper()
+        normalized_description = description.upper()
         extension = EXTENSION_REGEX.search(normalized_description)
         if extension and extension.group(1) not in FILE_EXTENSION_ALLOWLIST:
             return

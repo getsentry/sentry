@@ -117,7 +117,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if get_span_duration(span) < timedelta(milliseconds=self.settings["minimum_span_duration"]):
             return False
 
-        normalized_description = description.strip().upper()
+        normalized_description = description.upper()
         extension = EXTENSION_REGEX.search(normalized_description)
         if extension and extension.group(1) not in EXTENSION_ALLOW_LIST:
             return False

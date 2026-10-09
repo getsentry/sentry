@@ -96,7 +96,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not description:
             return False
 
-        if description.strip()[:3].upper() != "GET":
+        if description[:3].upper() != "GET":
             return False
 
         url = get_url_from_span(span)

@@ -181,8 +181,8 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if span.get("parent_span_id") in self.gen_ai_spans:
             return False
 
-        if (
-            not description.strip().upper().startswith(("GET", "POST", "DELETE", "PUT", "PATCH"))
+        if not description.upper().startswith(
+            ("GET", "POST", "DELETE", "PUT", "PATCH")
         ):  # Just using all methods to see if anything interesting pops up
             return False
 

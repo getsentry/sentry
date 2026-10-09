@@ -306,7 +306,7 @@ def get_span_evidence_value(span: Span | None = None, include_op: bool = True) -
         return value
 
     op = (span.get("op") or "").strip()
-    desc = get_span_description(span).strip()
+    desc = get_span_description(span)
 
     if not op and desc:
         value = desc
