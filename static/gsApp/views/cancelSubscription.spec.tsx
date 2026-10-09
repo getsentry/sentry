@@ -50,6 +50,20 @@ describe('CancelSubscription', () => {
     expect(submitButton).toBeEnabled();
   });
 
+  it('requires follow-up details before cancelling', async () => {
+    const mock = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'DELETE',
+    });
+    render(<CancelSubscription />);
+
+    await userEvent.click(await screen.findByText('Consolidating Sentry accounts.'));
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel Subscription'}));
+
+    expect(mock).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
+  });
+
   it('can not cancel free plans', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,

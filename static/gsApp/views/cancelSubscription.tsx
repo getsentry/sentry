@@ -181,9 +181,11 @@ function CancelSubscriptionForm() {
             )}
           </Alert>
         </Alert.Container>
-        <Button variant="danger" onClick={() => setUnderstandsMembers(true)}>
-          {t('I understand')}
-        </Button>
+        <Flex justify="end">
+          <Button variant="danger" onClick={() => setUnderstandsMembers(true)}>
+            {t('I understand')}
+          </Button>
+        </Flex>
       </Fragment>
     );
   }
@@ -273,9 +275,14 @@ function CancelSubscriptionForm() {
                 )}
               </form.AppField>
               {selectedReason && (
-                <form.AppField name="followup">
+                <form.AppField
+                  name="followup"
+                  validators={{
+                    onDynamic: z.string().trim().min(1, t('Please provide more details')),
+                  }}
+                >
                   {field => (
-                    <field.Layout.Stack label={followup}>
+                    <field.Layout.Stack label={followup} required>
                       <field.TextArea
                         value={field.state.value}
                         onChange={field.handleChange}
