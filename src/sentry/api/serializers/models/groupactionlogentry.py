@@ -21,6 +21,7 @@ from sentry.issues.action_log.types import (
     CommentAction,
     CommentDeleteAction,
     CommentEditAction,
+    FirstSeenAction,
     GroupActionType,
     GroupActorType,
 )
@@ -63,24 +64,32 @@ class GroupActionLogEntrySerializerResponse(TypedDict):
     dateCreated: datetime
 
 
-def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerResponse:
+def serialize_first_seen_entry(
+    group: "Group", entry: GroupActionLogEntry | None = None
+) -> GroupActionLogEntrySerializerResponse:
     """
-    GALE has no FIRST_SEEN action type, so synthesize the entry the same way
-    ActivityManager.get_activities_for_group does.
+    The first-seen item, in the shape ActivityManager.get_activities_for_group synthesizes.
+
+    Groups created before FIRST_SEEN was logged have no *entry*, so one is synthesized
+    from the group.
     """
     initial_priority_value = group.get_event_metadata().get("initial_priority")
     initial_priority = (
         PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
     )
     return {
-        "id": "0",
+        "id": str(entry.id) if entry else "0",
         "commentId": None,
         "user": None,
         "sentry_app": None,
         "type": ActivityType.FIRST_SEEN.name.lower(),
-        "source": None,
+        "source": entry.source if entry else None,
         "data": {"priority": initial_priority},
-        "dateCreated": group.first_seen,
+        "dateCreated": (
+            entry.action.first_seen
+            if entry and isinstance(entry.action, FirstSeenAction)
+            else group.first_seen
+        ),
     }
 
 
@@ -142,7 +151,8 @@ def get_serialized_activity_items(
     Activity-shaped items for a group, read from the action log.
 
     Comment edits and deletes are folded into the comments they supersede. Expand the fetch
-    window as needed to fill the page with surviving entries, then append first-seen.
+    window as needed to fill the page with surviving entries, then append exactly one
+    first-seen item.
 
     Returns None when the log can't back the response — either the gate is closed or it's
     open and the log is empty — and the caller should fall back to Activity. Reports the
@@ -174,6 +184,14 @@ def get_serialized_activity_items(
         fetch_limit *= 2
         action_log = GroupActionLogEntry.objects.get_actions_for_group(group, fetch_limit)
         entries, latest_text_by_comment = _fold_comment_mutations(action_log)
+
+    # Merges can carry other groups' FIRST_SEEN entries into this log. Only an entry that
+    # is the oldest in the whole log represents this group; when the window doesn't reach
+    # the start of the log, we can't tell, so synthesize as for groups without one.
+    first_seen_entry = None
+    if len(action_log) < fetch_limit and action_log[-1].type == GroupActionType.FIRST_SEEN.value:
+        first_seen_entry = action_log[-1]
+    entries = [entry for entry in entries if entry.type != GroupActionType.FIRST_SEEN.value]
     entries = entries[:limit]
 
     items = serialize(entries, user)
@@ -182,7 +200,7 @@ def get_serialized_activity_items(
             item["data"] = {**item["data"], "text": latest_text_by_comment[entry.id]}
 
     record_activity_read(endpoint, ActivityReadResult.GAL)
-    return [*items, serialize_first_seen_entry(group)]
+    return [*items, serialize_first_seen_entry(group, first_seen_entry)]
 
 
 @register(GroupActionLogEntry)

@@ -81,6 +81,7 @@ from sentry.grouping.ingest.utils import (
     is_non_error_type_group,
 )
 from sentry.grouping.variants import BaseVariant
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
@@ -90,7 +91,13 @@ from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    ActionSource,
+    action_context_scope,
+    publish_action,
+)
+from sentry.issues.action_log.types import FirstSeenAction, first_seen_idempotency_key
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -1676,6 +1683,17 @@ def _create_group(
             raise
 
     create_open_period(group=group, start_time=group.first_seen, event_id=event.event_id)
+
+    # Group creation is on the ingest hot path, so leave the outbox for the periodic
+    # drain rather than flushing on commit.
+    with outbox_context(flush=False):
+        publish_action(
+            FirstSeenAction(first_seen=group.first_seen),
+            source=ActionSource.SYSTEM,
+            group_id=group.id,
+            project=project,
+            idempotency_key=first_seen_idempotency_key(group.id),
+        )
 
     return group
 

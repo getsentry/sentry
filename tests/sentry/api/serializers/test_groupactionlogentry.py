@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -389,6 +390,57 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             )
         assert items is not None
         return items
+
+    def _first_seen(
+        self, group_id: int | None = None, first_seen: datetime | None = None
+    ) -> GroupActionLogEntry:
+        return self.create_group_action_log_entry(
+            type=GroupActionType.FIRST_SEEN,
+            source="system",
+            data={"first_seen": (first_seen or self.group.first_seen).isoformat()},
+            idempotency_key=f"first_seen:{group_id or self.group.id}",
+        )
+
+    def test_logged_first_seen_is_not_duplicated(self) -> None:
+        first_seen = self._first_seen()
+        resolve = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+
+        items = self._activity_items()
+
+        assert [item["type"] for item in items] == ["set_resolved", "first_seen"]
+        assert items[0]["id"] == str(resolve.id)
+        assert items[1]["id"] == str(first_seen.id)
+        assert items[1]["source"] == "system"
+        assert items[1]["dateCreated"] == self.group.first_seen
+
+    def test_logged_first_seen_uses_the_entry_first_seen(self) -> None:
+        entry_first_seen = self.group.first_seen - timedelta(days=1)
+        self._first_seen(first_seen=entry_first_seen)
+
+        items = self._activity_items()
+
+        assert items[-1]["type"] == "first_seen"
+        assert items[-1]["dateCreated"] == entry_first_seen
+
+    def test_first_seen_that_is_not_oldest_is_dropped(self) -> None:
+        own_first_seen = self._first_seen()
+        self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        # e.g. carried over from a group merged into this one
+        self._first_seen(group_id=self.group.id + 1)
+
+        items = self._activity_items()
+
+        assert [item["type"] for item in items] == ["set_resolved", "first_seen"]
+        assert items[1]["id"] == str(own_first_seen.id)
+
+    def test_first_seen_is_synthesized_when_not_oldest_in_log(self) -> None:
+        resolve = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        self._first_seen(group_id=self.group.id + 1)
+
+        items = self._activity_items()
+
+        assert [item["id"] for item in items] == [str(resolve.id), "0"]
+        assert items[1]["type"] == "first_seen"
 
     def test_comment_edit_replaces_the_comment_text(self) -> None:
         comment = self._comment(123, "original")
