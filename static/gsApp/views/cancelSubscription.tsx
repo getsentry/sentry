@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -7,6 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -116,16 +116,6 @@ function CancelSubscriptionForm() {
     onSubmit: ({value}) => handleSubmit(value),
   });
 
-  const handleSubmitSuccess = (resp: {details?: string}) => {
-    SubscriptionStore.loadData(organization.slug);
-    const msg = resp.details || t('Successfully cancelled subscription');
-
-    addSuccessMessage(msg);
-    navigate({
-      pathname: normalizeUrl(`/settings/${organization.slug}/billing/`),
-    });
-  };
-
   const mutation = useMutation({
     mutationFn: (data: {checkboxes: string[]; followup: string; reason: string}) =>
       fetchMutation<{details?: string}>({
@@ -135,7 +125,15 @@ function CancelSubscriptionForm() {
         method: 'DELETE',
         data,
       }),
-    onSuccess: handleSubmitSuccess,
+    onSuccess: resp => {
+      SubscriptionStore.loadData(organization.slug);
+      const msg = resp.details || t('Successfully cancelled subscription');
+
+      addSuccessMessage(msg);
+      navigate({
+        pathname: normalizeUrl(`/settings/${organization.slug}/billing/`),
+      });
+    },
     onError: error => {
       const detail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
@@ -245,12 +243,12 @@ function CancelSubscriptionForm() {
                   >
                     {CANCEL_STEPS.map(cancel => (
                       <field.Radio.Item key={cancel.reason[0]} value={cancel.reason[0]}>
-                        <RadioContainer>
+                        <Stack>
                           {cancel.reason[1]}
                           {cancel.checkboxes &&
                             state.val === cancel.reason[0] &&
                             cancel.checkboxes.map(([name, label]) => (
-                              <ExtraContainer key={name}>
+                              <Flex key={name} align="center" gap="md" padding="md 0">
                                 <Checkbox
                                   data-test-id={`checkbox-${name}`}
                                   checked={state.checkboxes[name]}
@@ -266,9 +264,9 @@ function CancelSubscriptionForm() {
                                   }}
                                 />
                                 {label}
-                              </ExtraContainer>
+                              </Flex>
                             ))}
-                        </RadioContainer>
+                        </Stack>
                       </field.Radio.Item>
                     ))}
                   </field.Radio.Group>
@@ -288,7 +286,7 @@ function CancelSubscriptionForm() {
               </form.AppField>
             )}
 
-            <ButtonList>
+            <Grid display="inline-grid" flow="column" gap="md" marginTop="md">
               <form.SubmitButton variant="danger" disabled={!state.canSubmit}>
                 {t('Cancel Subscription')}
               </form.SubmitButton>
@@ -299,20 +297,13 @@ function CancelSubscriptionForm() {
               >
                 {t('Never Mind')}
               </Button>
-            </ButtonList>
+            </Grid>
           </form.AppForm>
         </PanelBody>
       </Panel>
     </Fragment>
   );
 }
-
-const ButtonList = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
-  margin-top: ${p => p.theme.space.md};
-`;
 
 function CancelSubscriptionPage() {
   const title = t('Cancel Subscription');
@@ -324,26 +315,5 @@ function CancelSubscriptionPage() {
     </SubscriptionPageContainer>
   );
 }
-
-const RadioContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-
-  label {
-    grid-template-columns: max-content 1fr;
-    grid-template-rows: auto auto;
-
-    > div:last-child {
-      grid-column: 2;
-    }
-  }
-`;
-
-const ExtraContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.md} 0;
-`;
 
 export default CancelSubscriptionPage;
