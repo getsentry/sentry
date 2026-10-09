@@ -3,11 +3,47 @@
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
+from sentry.ai_monitoring.utils import canonical_model_name
+
 DETECTION_WINDOW_DAYS = 7
+
+# Provider documentation is the only source for cacheable prefix minimums:
+# https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+# https://platform.openai.com/docs/guides/prompt-caching
+# https://ai.google.dev/gemini-api/docs/caching
+# Keys are canonical model names. A key covers variants and snapshots.
+MIN_CACHEABLE_PREFIX_TOKENS_BY_MODEL: dict[str, int] = {
+    "claude-fable-5": 512,
+    "claude-mythos-5": 512,
+    "claude-opus-5": 512,
+    "claude-sonnet-5-5": 512,
+    "claude-3-5-haiku": 2_048,
+    "claude-mythos-preview": 2_048,
+    "claude-opus-4-7": 2_048,
+    "claude-haiku-4-5": 4_096,
+    "claude-opus-4-5": 4_096,
+    "claude-opus-4-6": 4_096,
+    "gemini-2-5-flash": 2_048,
+    "gemini-2-5-pro": 2_048,
+    "gemini-3": 4_096,
+}
+
+# OpenAI and most Claude models use this minimum.
+DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS = 1_024
+MIN_CALLS_FOR_CONFIDENCE = 200
+MIN_SAMPLED_CALLS = 50
+NOT_CACHING_MAX_HIT_RATE = 0.05
+THRASH_MAX_HIT_RATE = 0.30
+THRASH_MIN_CREATION_INPUT_FRACTION = 0.3
+
+# These integrations omit cache-token attributes when their values are zero.
+POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS = ("gemini", "gpt")
+POSITIVE_ONLY_CACHE_REPORTING_MODEL_PATTERN = re.compile(r"(?:^|[/:])o\d")
 
 
 @dataclass(frozen=True)
@@ -28,6 +64,31 @@ class AgentLabelSource(StrEnum):
 
     AGENT_NAME = "gen_ai.agent.name"
     OPERATION_NAME = "gen_ai.operation.name"
+
+
+class CacheOutcome(StrEnum):
+    HEALTHY = "healthy"
+    NOT_CACHING = "not_caching"
+    THRASH = "thrash"
+    INELIGIBLE = "ineligible"
+
+
+FLAGGED_OUTCOMES = frozenset({CacheOutcome.NOT_CACHING, CacheOutcome.THRASH})
+
+
+class OutcomeReason(StrEnum):
+    SMALL_PROMPTS = "small_prompts"
+    LOW_VOLUME = "low_volume"
+    FEW_STORED_SPANS = "few_stored_spans"
+    CACHE_ACTIVITY = "cache_activity"
+    ZERO_CACHE_TOKENS = "zero_cache_tokens"
+    POSITIVE_ONLY_REPORTER = "positive_only_reporter"
+
+
+@dataclass(frozen=True)
+class Classification:
+    outcome: CacheOutcome
+    reason: OutcomeReason
 
 
 @dataclass(frozen=True)
@@ -88,3 +149,65 @@ class CallSiteStats:
     @property
     def has_cache_activity(self) -> bool:
         return self.sum_cache_read_tokens > 0 or self.sum_cache_creation_tokens > 0
+
+
+@dataclass(frozen=True)
+class CacheFinding:
+    classification: Classification
+    stats: CallSiteStats
+
+    @property
+    def outcome(self) -> CacheOutcome:
+        return self.classification.outcome
+
+    @property
+    def severity(self) -> float:
+        return self.stats.uncached_tokens + self.stats.unrecouped_cache_write_tokens
+
+
+def classify_call_site(stats: CallSiteStats) -> Classification:
+    """Classify token sums before traffic and instrumentation probes."""
+    if stats.avg_input_tokens < min_cacheable_prefix_tokens(stats.model):
+        return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.SMALL_PROMPTS)
+    if stats.call_count < MIN_CALLS_FOR_CONFIDENCE:
+        return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_VOLUME)
+    if stats.sampled_call_count < MIN_SAMPLED_CALLS:
+        return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.FEW_STORED_SPANS)
+
+    if (
+        stats.sum_cache_creation_tokens > 0
+        and stats.hit_rate < THRASH_MAX_HIT_RATE
+        and stats.sum_cache_creation_tokens
+        >= THRASH_MIN_CREATION_INPUT_FRACTION * stats.sum_input_tokens
+    ):
+        return Classification(CacheOutcome.THRASH, OutcomeReason.CACHE_ACTIVITY)
+
+    if stats.hit_rate < NOT_CACHING_MAX_HIT_RATE:
+        if stats.has_cache_activity:
+            reason = OutcomeReason.CACHE_ACTIVITY
+        elif reports_only_positive_cache_values(stats.model):
+            reason = OutcomeReason.POSITIVE_ONLY_REPORTER
+        else:
+            reason = OutcomeReason.ZERO_CACHE_TOKENS
+        return Classification(CacheOutcome.NOT_CACHING, reason)
+
+    return Classification(CacheOutcome.HEALTHY, OutcomeReason.CACHE_ACTIVITY)
+
+
+def min_cacheable_prefix_tokens(model: str) -> int:
+    name = canonical_model_name(model)
+    matches = [
+        key
+        for key in MIN_CACHEABLE_PREFIX_TOKENS_BY_MODEL
+        if name == key or name.startswith(f"{key}-")
+    ]
+    if not matches:
+        return DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS
+    return MIN_CACHEABLE_PREFIX_TOKENS_BY_MODEL[max(matches, key=len)]
+
+
+def reports_only_positive_cache_values(model: str) -> bool:
+    normalized = model.lower()
+    if any(marker in normalized for marker in POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS):
+        return True
+    return POSITIVE_ONLY_CACHE_REPORTING_MODEL_PATTERN.search(normalized) is not None
