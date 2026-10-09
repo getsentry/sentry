@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 import orjson
 from django.utils.encoding import force_str
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.integrations.types import ExternalProviders
@@ -19,7 +20,6 @@ from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_unsubscribe_link
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -116,20 +116,26 @@ def send_notification_as_email(
 ) -> None:
     for recipient in recipients:
         recipient_actor = Actor.from_object(recipient)
-        with start_span(op="notification.send_email", name="one_recipient"):
+        with traces.start_span(
+            name="one_recipient", attributes={"sentry.op": "notification.send_email"}
+        ):
             if recipient_actor.is_team:
                 # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
                 continue
             _log_message(notification, recipient_actor)
 
-            with start_span(op="notification.send_email", name="build_message"):
+            with traces.start_span(
+                name="build_message", attributes={"sentry.op": "notification.send_email"}
+            ):
                 msg = MessageBuilder(
                     **get_builder_args(
                         notification, recipient_actor, shared_context, extra_context_by_actor
                     )
                 )
 
-            with start_span(op="notification.send_email", name="send_message"):
+            with traces.start_span(
+                name="send_message", attributes={"sentry.op": "notification.send_email"}
+            ):
                 # TODO: find better way of handling this
                 add_users_kwargs = {}
                 if isinstance(notification, ProjectNotification):

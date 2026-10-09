@@ -184,17 +184,17 @@ export function getMemoryPreview(memory: Memory | undefined | null): string {
       return memory.query ? `“${memory.query}”` : '';
     case MemoryOperation.CREATE:
     case MemoryOperation.UPSERT:
-      return recordsSummary(memory) ?? '';
+      return recordsSummary(memory) || '';
     case MemoryOperation.UPDATE:
-      return recordsSummary(memory) ?? memory.recordId ?? memory.storeId ?? '';
+      return recordsSummary(memory) || memory.recordId || memory.storeId || '';
     case MemoryOperation.DELETE:
       // A deleted record's content is not meaningful, so show only the count.
-      return memoriesCount(memory) ?? memory.recordId ?? t('all memories');
+      return memoriesCount(memory) || memory.recordId || t('all memories');
     case MemoryOperation.CREATE_STORE:
     case MemoryOperation.DELETE_STORE:
-      return memory.storeId ?? '';
+      return memory.storeId || '';
     default:
-      return recordsSummary(memory) ?? memory.storeId ?? '';
+      return recordsSummary(memory) || memory.storeId || '';
   }
 }
 

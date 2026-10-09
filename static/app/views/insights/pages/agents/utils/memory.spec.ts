@@ -177,6 +177,19 @@ describe('getMemoryPreview', () => {
     ).toBe('ms_1');
   });
 
+  it('ignores empty-string attributes in the fallbacks', () => {
+    expect(
+      getMemoryPreview(
+        makeMemory({operation: 'delete_memory', recordId: '', storeId: ''})
+      )
+    ).toBe('all memories');
+    expect(
+      getMemoryPreview(
+        makeMemory({operation: 'update_memory', recordId: '', storeId: 'ms_1'})
+      )
+    ).toBe('ms_1');
+  });
+
   it('is empty for no memory', () => {
     expect(getMemoryPreview(null)).toBe('');
   });
