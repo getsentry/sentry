@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from unittest import mock
 
 import pytest
 
+from sentry.ai_monitoring.issues.llm_cache_detection import query as query_module
 from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
     AgentLabelSource,
     DetectionWindow,
@@ -12,6 +14,8 @@ from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
 from sentry.ai_monitoring.issues.llm_cache_detection.query import (
     AGENT_NAME,
     AVG_INPUT_TOKENS,
+    CACHE_CREATION_TOKENS,
+    CACHE_READ_TOKENS,
     CALL_SITE_GROUPS_LIMIT,
     COUNT,
     COUNT_SAMPLE,
@@ -22,8 +26,11 @@ from sentry.ai_monitoring.issues.llm_cache_detection.query import (
     SUM_CACHE_READ_TOKENS,
     SUM_INPUT_TOKENS,
     DroppedRowReason,
+    _build_group_filter,
     _to_call_sites,
+    count_spans_with_cache_attributes,
     fetch_call_site_stats,
+    fetch_call_site_warmth,
 )
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaRow
@@ -140,6 +147,72 @@ def test_fetch_call_site_stats(row_count: int, truncated: bool) -> None:
     assert kwargs["limit"] == CALL_SITE_GROUPS_LIMIT
     assert kwargs["referrer"] == Referrer.ISSUES_LLM_CACHE_DETECTION.value
     assert kwargs["sampling_mode"] == "NORMAL"
+
+
+def test_build_group_filter_uses_the_call_site_label_source() -> None:
+    named = _to_call_sites([make_row()])[0][0]
+    fallback = _to_call_sites([make_row(**{AGENT_NAME: None})])[0][0]
+
+    assert _build_group_filter(named) == (
+        "gen_ai.operation.type:ai_client "
+        "!gen_ai.operation.name:embeddings "
+        "has:gen_ai.usage.input_tokens "
+        'gen_ai.agent.name:"Reviewer" '
+        'span.name:"generate_content" '
+        'gen_ai.request.model:"model-x"'
+    )
+    assert '!has:gen_ai.agent.name gen_ai.operation.name:"chat"' in (
+        _build_group_filter(fallback) or ""
+    )
+    assert _build_group_filter(replace(named, model="invalid\\")) is None
+
+
+def test_fetch_call_site_warmth() -> None:
+    project = mock.Mock(spec=Project)
+    project.organization = mock.Mock()
+    window = DetectionWindow(
+        start=datetime(2026, 1, 1, tzinfo=UTC),
+        end=datetime(2026, 1, 8, tzinfo=UTC),
+    )
+    stats = _to_call_sites([make_row()])[0][0]
+    processed = mock.Mock(
+        timeseries=[{"time": 0, COUNT: 10}, {"time": 300, COUNT: 0}],
+        sample_count=[{COUNT: 2}],
+    )
+    query_result = mock.Mock(data={"processed_timeseries": processed})
+
+    with mock.patch.object(Spans, "run_timeseries_query", return_value=query_result) as run_query:
+        warmth = fetch_call_site_warmth(project, stats, window)
+
+    assert warmth is not None
+    assert warmth.total_call_count == 10
+    assert warmth.total_sample_count == 2
+    assert warmth.warm_call_count == 5
+    kwargs = run_query.call_args.kwargs
+    assert kwargs["params"].granularity_secs == 300
+    assert kwargs["y_axes"] == [COUNT]
+    assert kwargs["referrer"] == Referrer.ISSUES_LLM_CACHE_DETECTION.value
+
+
+def test_count_spans_with_cache_attributes() -> None:
+    project = mock.Mock(spec=Project)
+    window = DetectionWindow(
+        start=datetime(2026, 1, 1, tzinfo=UTC),
+        end=datetime(2026, 1, 8, tzinfo=UTC),
+    )
+    stats = _to_call_sites([make_row()])[0][0]
+
+    with mock.patch.object(
+        query_module, "_run_spans_query", return_value={"data": [{COUNT: 7}]}
+    ) as run_query:
+        count = count_spans_with_cache_attributes(project, stats, window)
+
+    assert count == 7
+    kwargs = run_query.call_args.kwargs
+    assert kwargs["selected_columns"] == [COUNT]
+    assert kwargs["orderby"] is None
+    assert kwargs["limit"] == 1
+    assert f"(has:{CACHE_READ_TOKENS} OR has:{CACHE_CREATION_TOKENS})" in kwargs["query_string"]
 
 
 def test_to_call_sites_treats_missing_token_aggregates_as_zero() -> None:
