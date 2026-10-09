@@ -1,6 +1,6 @@
 ---
 title: EntityHeader
-description: The band of entity context below the TopBar on a detail page — what this thing is, how it is doing, and a few facts about it.
+description: A page header component used specifically for displaying key data about a specific entity or event.
 category: layout
 source: '@sentry/scraps/entityHeader'
 resources:
@@ -19,15 +19,17 @@ import * as Storybook from 'sentry/stories';
 export const documentation =
   import('!!type-loader!@sentry/scraps/entityHeader/entityHeader');
 
-`EntityHeader` is the detail-page header. You supply content — a title, some stats, some facts — and it owns the layout, the density, the responsive reflow, and the loading skeletons.
+The `EntityHeader` primary goal is unify the presentation of key data pertaining to specific entity or event typically shown at the top of a page. It deliberately does **not** render breadcrumbs, the page `h1`, or global actions. Those belong to the TopBar and its slots (`TopBar.Slot name="breadcrumbs"` / `"title"`). The title here is an `h2`.
 
-It deliberately does **not** render breadcrumbs, the page `h1`, or global actions. Those belong to the TopBar and its slots (`TopBar.Slot name="breadcrumbs"` / `"title"`). The title here is an `h2`.
+`EntityHeader` comes with the following features.
 
-It reflows against **its container's** width, not the viewport's — on a routed page that is the content column, so it reacts when a side panel opens. Above the `lg` container breakpoint (640px) the stats sit beside the title; below it they move to their own row _beneath_ the metadata and left-align. That is a reorder rather than a wrap, which is why the layout is a grid. Every example on this page sits in a resizable window, so you can drag any of them past the breakpoint to watch it.
+1. Responsive behaviour is baked in using [Container Queries](https://sentry.sentry.io/scraps/core/container/#container-queries) API.
+2. Interstitial loading states are baked in using the [Placeholder Component](https://sentry.sentry.io/scraps/product/components/placeholder/)
+3. Comprehensive properties for improved screen-reader support
 
 ## Usage
 
-Use `EntityHeader` on a detail page — a single issue, trace, replay, release, or build. Not on list or landing pages, which have no one entity to be about.
+Only `title` is required. The grid template is built from whichever other slots you pass, so an omitted one leaves no empty row behind.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -119,8 +121,6 @@ Use `EntityHeader` on a detail page — a single issue, trace, replay, release, 
 />
 ```
 
-Only `title` is required. The grid template is built from whichever other slots you pass, so an omitted one leaves no empty row behind.
-
 `stats`, `metadata.items` and `title.tags` drop `null` entries, so a conditional can be written inline. Items are keyed by their position in the array you wrote rather than in the filtered result, so one appearing or disappearing never remounts its neighbours.
 
 ```jsx
@@ -134,9 +134,12 @@ stats={{label: 'Replay stats', items: [
 
 Pass `isLoading` and every slot renders a skeleton sized from the typography it will hold. The skeleton comes from the same declarations as the loaded state, so the two cannot drift apart — there is no placeholder twin to maintain.
 
-Each slot is replaced whole, stat labels included. A label is static and could be shown straight away, but a half-drawn stat next to a loading title reads as broken rather than as loading.
+A declared slot holds its space before its contents arrive. Passing `metadata` reserves the row even while every item is still `null`, so a header whose facts all land at once does not grow a row and push the page down. Only an omitted slot leaves no row behind.
 
-Skeleton widths are fixed per slot rather than configurable. A caller-supplied width is a measurement of one page's data on one day, and it goes stale silently; the row it was protecting only ever shifts sideways, which costs far less than the vertical movement the reserved rows above already prevent.
+`subtitle` is the exception, because a node gives nothing to declare with: one that has not loaded is indistinguishable from one that was never passed, so its line appears when the text does.
+
+> [!NOTE]
+> Skeleton widths aren't cofigurable.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -190,10 +193,6 @@ Skeleton widths are fixed per slot rather than configurable. A caller-supplied w
 />
 ```
 
-A declared slot holds its space before its contents arrive. Passing `metadata` reserves the row even while every item is still `null`, so a header whose facts all land at once does not grow a row and push the page down. Only an omitted slot leaves no row behind.
-
-`subtitle` is the exception, because a node gives nothing to declare with: one that has not loaded is indistinguishable from one that was never passed, so its line appears when the text does.
-
 Slots that resolve on their own schedule carry their own flag, additive to the header's: `people.isLoading` for the avatar stack, and `isLoading` on an individual stat. Use the latter when a count arrives after the entity does — an issue knows its title before it knows how many events it has, and a stat without the flag would render the zero it happens to hold. The entity's own fields stay live throughout.
 
 ```jsx
@@ -206,19 +205,11 @@ The header sets `aria-busy` while any slot is loading. Note that this is a state
 
 ## Title
 
-A title is a `label` and a `value`. The `value` renders — it is the entity's name. The `label` says what that name _is_, and is not rendered.
+Its a requirement for titles to have a `label` and a `value` . The `value` is what is what gets rendered on the screen and the `label` is used to contextualise that value to users who depend on screen readers.
 
 ```jsx
 title={{label: t('Replay user'), value: replay.user.display_name}}
 ```
-
-### Accessibility
-
-The title is an `h2`, named from both halves, so heading navigation lands on "Replay user, anonymous@example.com" rather than a bare string.
-
-That is why `label` is required. A sighted reader knows `anonymous@example.com` is a person from the avatar beside it and the breadcrumb above it; someone jumping straight to the heading has neither. The label is the text equivalent of what the avatar is doing visually — which is also why it is the one label in this component that is not rendered.
-
-The title is never a link. A heading that is wholly a link announces as both, and the breadcrumb above it already handles going up. While loading, the heading stays in the tree named by its `label` alone, so the page's structure does not change as data lands and no value is asserted before it is known.
 
 ### Leading graphic
 
@@ -279,11 +270,7 @@ leadingGraphic={{type: 'platform', platform: 'javascript'}}
 
 `project` and `platform` draw the same badge but take what the caller actually holds: a trace knows its projects and the header maps them to platforms, a build has only inferred a platform from a file type. A `project` graphic whose projects have no known platform falls back to the generic platform tile, not to the all-projects glyph — that one means a saved view, not an entity.
 
-The box is always 24px. A project or platform badge fills it; a user avatar is drawn at 20 and centred, because the avatars in the people slot are 24 with a 2px border and so show a 20px disc — a borderless 24 here would be the larger of the two circles in the same header.
-
-The graphic is decorative by default — a platform icon next to "ValueError" tells a screen reader nothing the title has not. Give it a `label` when it carries something the title does not, such as which projects a trace touched, and it becomes an image in its own right.
-
-It is deliberately not focusable, since a named image is announced without focus. That makes `tooltip` mouse-only: use it for elaboration and keep anything a user needs in `label`.
+The graphic is decorative and non focusable by default because users that depend on screen readers receive no benefit from them. By using the `label`, guarantees context is never lost for sight-impared users.
 
 ### Tags
 
@@ -292,8 +279,6 @@ It is deliberately not focusable, since a named image is announced without focus
 ```jsx
 tags={[isLive ? <Tag key="live" variant="success">{t('Live')}</Tag> : null]}
 ```
-
-They are siblings of the heading, not part of it, so a tag's text is not in the heading's accessible name. Someone navigating by heading hears the title and not the tag. Keep tags to state that is reinforced elsewhere on the page, and do not let one be the only place something is said.
 
 ## Stats
 
