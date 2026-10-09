@@ -118,12 +118,20 @@ aliases retain their existing precedence.
 
 Deploy setting support and the application state API before GetSentry's deployment
 writers or newsletter state consumer. GetSentry's normal Sentry dependency bump
-must include both parts of readiness. This cutover
-requires those writers and consumers, the newsletter state consumer and direct
-single tenant replay settings deployed everywhere and soaked. Verify candidate
-settings and currently served values against every serving workload, including
-jobs and canaries. Remove deployment values after stopping all legacy watchers,
-so value removal does not delete their database rows through legacy sync.
+must include both parts of readiness. This cutover requires those writers and
+consumers, the newsletter state consumer and direct single tenant replay settings
+deployed everywhere and soaked. Verify candidate settings and currently served
+values against every serving workload, including jobs and canaries.
+
+Pause legacy ConfigMap delivery and drain or cancel queued and in-flight legacy
+applies before removing deployment declarations from either source path. Protect
+the exact delivered ConfigMap hashes and revisions and existing option rows.
+Existing watchers must see unchanged legacy ConfigMaps until they are stopped;
+new namespace delivery remains active. Source declaration removal does not
+authorize delivering omissions to old watchers or implicitly deleting their
+rows. Keep legacy delivery paused through watcher retirement. Rollback restores
+and reconciles declarations, ConfigMaps and currently served values before
+reenabling delivery.
 Unused deployment schema entries may remain until final GetSentry cleanup.
 
 Deploy runtime schema coverage, preserved runtime values and the aligned
@@ -132,9 +140,13 @@ mount its runtime options and feature namespaces. The Seer token metrics option
 remains a runtime boolean; deploy its schema and preserve its currently served
 value before deploying the automator registration added by this cutover.
 
-Stop embedded reporters before starting the independent reporters. Verify one
-observer per target and signed delivery for both namespaces before retiring all
-legacy watcher workloads. Keep the database, declaration mirror, legacy pipeline
+Roll existing watcher workloads to the sync-only GetSentry image and verify every
+old embedded reporter process has terminated before starting independent
+reporters. Verify one observer per target and signed delivery for both namespaces
+before stopping all legacy watcher workloads. Serving mounts, schema support,
+current value parity and direct replay configuration must be proven in every
+serving workload. Source merges alone do not prove that serving images or schemas
+have deployed. Keep the database, declaration mirror, paused legacy pipeline
 definition and protected configuration snapshots available for rollback. Archive
 the exact externally delivered legacy ConfigMaps before infrastructure removal;
 manifests alone do not contain their deployed values.
@@ -142,8 +154,9 @@ manifests alone do not contain their deployed values.
 Export surviving deployment option rows before removing their registrations;
 unregistered keys are excluded from legacy synchronization. Keep those exports
 out of source control. Retain the previous settings and configuration artifacts
-for rollback until the rollback window closes. Delete surviving rows only after
-that window closes and their backups are confirmed.
+and protected row backups until the rollback window closes. Delete candidate
+rows only after authoritative policy deploys and soaks, their exact private
+cleanup plans are reviewed, and their backups are confirmed.
 
 After the settings rollout, SaaS single organization login always uses the direct
 integration app credential pair, including empty partners. Retired app option
@@ -170,23 +183,33 @@ lookup. Roll back the cutover before reverting consumers to legacy options.
 
 `can_update` now accepts `(key, channel)`. The requested value and `include_drift`
 arguments are removed because writability no longer depends on stored values or
-the previous update channel. `UpdateChannel.AUTOMATOR` and the `DRIFTED` rejection
-reason are removed. `APPLICATION`, `CLI`, `ADMIN`, `UNKNOWN`, and `KILLSWITCH`
-remain supported. `sentry configoptions` is retired; `sentry config` remains
-available for self-hosted option reads and writes. The three options used only
-by legacy audit and webhook presenters are unregistered.
+the previous update channel. The `DRIFTED` rejection reason is removed.
+`UpdateChannel.AUTOMATOR` remains solely as historical row metadata, including
+protected application state and exact backup restoration. Manager and store
+writes reject this channel before mutation, including on self-hosted instances.
+Invalid channel objects raise `TypeError` instead of inheriting unrestricted
+permissions. `APPLICATION`, `CLI`, `ADMIN`, `UNKNOWN`, and `KILLSWITCH` remain
+supported for active writes. `sentry configoptions` is retired; `sentry config`
+remains available for self-hosted option reads and writes. The three options used
+only by legacy audit and webhook presenters are unregistered.
 
-Deploy this final cleanup after the settings migration, authoritative SaaS
-read policy, and application state API have deployed everywhere and soaked.
-The independent change reporter must be delivering notifications, the legacy
-automator must be stopped, and value-preserving rollback must be rehearsed.
-Complete guarded row cleanup and confirm protected backups and rollback closure.
+Deploy authoritative reads and active command, drift, presenter and ownership
+retirement together after readiness, migrated consumers and current fleet parity
+have been verified. All legacy watchers must already be stopped, the independent
+reporter must deliver notifications, and source declaration removal and its
+replacement schema/type/coverage CI must be complete. Dormant GetSentry legacy
+clients may remain until final asset removal, but no workload can run them after
+the command is retired. Value-preserving rollback uses the previous image and
+protected snapshots; guarded row cleanup and rollback closure are later gates.
 
-Inventory both Option tables and prove that no retained row has
-`last_updated_by="automator"`, including application state and other protected
-rows. Removing known configuration rows does not prove this condition. A
-protected row with that metadata requires an operator decision; this cleanup
-neither deletes it nor rewrites its metadata. The remaining store, cache and
+After authoritative policy deploys everywhere and soaks, review exact private
+cleanup plans, confirm protected backups and perform guarded row cleanup. Retain
+protected application state and its historical metadata. Historical reads and
+cache repair remain supported, and exact restore may persist the original raw
+row metadata directly without authorizing a new automator write through the
+manager or store. No enum cleanup requires rewriting or deleting protected rows.
+Final GetSentry and automator asset removal requires completed cleanup, verified
+backups, soak and closure of the rollback window. The remaining store, cache and
 synchronization task continue serving application state and self-hosted options.
 
 Deploy Sentry command and registration retirement before final GetSentry schema

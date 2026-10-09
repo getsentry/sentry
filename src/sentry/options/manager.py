@@ -51,6 +51,9 @@ class UpdateChannel(Enum):
     APPLICATION = "application"
     # Any change made by the sentry Admin UI.
     ADMIN = "admin"
+    # Retained for historical rows and exact backup restoration, including
+    # protected application state. New automator writes are always rejected.
+    AUTOMATOR = "automator"
     # Any change made through the sentry CLI with the exceptions of
     # killswitches.
     CLI = "cli"
@@ -61,6 +64,14 @@ class UpdateChannel(Enum):
     @classmethod
     def choices(cls) -> Sequence[tuple[str, str]]:
         return [(i.name, i.value) for i in cls]
+
+
+# Historical channels remain valid metadata but cannot authorize new mutations.
+def _validate_write_channel(channel: UpdateChannel) -> None:
+    if not isinstance(channel, UpdateChannel):
+        raise TypeError("channel must be an UpdateChannel")
+    if channel is UpdateChannel.AUTOMATOR:
+        raise ValueError("The automator update channel is retired")
 
 
 class NotWritableReason(Enum):
@@ -137,7 +148,8 @@ DEFAULT_KEY_GRACE = 60
 # Some update channel can only update options that have a specific flag.
 # This dictionary contains the mapping between update channels and required
 # flag.
-# If a channel is not in the dictionary it does not have restrictions.
+# Active channels outside this mapping have no additional flag restriction.
+# The historical automator channel cannot authorize writes.
 WRITE_REQUIRED_FLAGS = {
     UpdateChannel.ADMIN: FLAG_ADMIN_MODIFIABLE,
 }
@@ -209,6 +221,7 @@ class OptionsManager:
         if self._is_saas_runtime_option(opt):
             raise AssertionError("%r cannot be changed at runtime" % key)
 
+        _validate_write_channel(channel)
         not_writable_reason = self.can_update(key, channel)
 
         # If an option isn't able to exist in the store or is immutable, we can't set it at runtime
@@ -529,10 +542,15 @@ class OptionsManager:
         configuration and update channel, without consulting stored values.
         """
 
+        if not isinstance(channel, UpdateChannel):
+            raise TypeError("channel must be an UpdateChannel")
+
         required_flag = WRITE_REQUIRED_FLAGS.get(channel)
         opt = self.lookup_key(key)
         if self._is_saas_runtime_option(opt):
             return NotWritableReason.READONLY
+        if channel is UpdateChannel.AUTOMATOR:
+            return NotWritableReason.CHANNEL_NOT_ALLOWED
         if opt.has_any_flag({FLAG_NOSTORE, FLAG_IMMUTABLE}):
             return NotWritableReason.READONLY
         if opt.has_any_flag({FLAG_PRIORITIZE_DISK}) and key in settings.SENTRY_OPTIONS:

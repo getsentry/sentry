@@ -1,6 +1,6 @@
 from functools import cached_property
 from typing import cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid1
 
 import pytest
@@ -15,6 +15,60 @@ from sentry.options.store import OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.types import Any
+
+
+@pytest.mark.parametrize("method", ["set", "set_store"])
+def test_retired_automator_channel_rejects_store_writes(method: str) -> None:
+    cache = Mock()
+    store = OptionsStore(cache=cache)
+    model = Mock()
+    key = application_state._key("sentry:install-id")
+    channel = UpdateChannel("automator")
+
+    with patch.object(OptionsStore, "model", model):
+        with pytest.raises(ValueError, match="automator update channel is retired"):
+            getattr(store, method)(key, "changed", channel)
+
+    assert model.mock_calls == []
+    assert cache.mock_calls == []
+    assert store._local_cache == {}
+
+
+@pytest.mark.parametrize("channel", ["application", "automator", None])
+@pytest.mark.parametrize("method", ["set", "set_store"])
+def test_invalid_channels_reject_store_writes(channel: object, method: str) -> None:
+    cache = Mock()
+    store = OptionsStore(cache=cache)
+    model = Mock()
+    key = application_state._key("sentry:install-id")
+
+    with patch.object(OptionsStore, "model", model):
+        with pytest.raises(TypeError, match="channel must be an UpdateChannel"):
+            getattr(store, method)(key, "changed", cast(UpdateChannel, channel))
+
+    assert model.mock_calls == []
+    assert cache.mock_calls == []
+    assert store._local_cache == {}
+
+
+@pytest.mark.parametrize("name", ["legacy", "sentry:install-id"])
+def test_historical_automator_metadata_remains_readable(name: str) -> None:
+    assert ("AUTOMATOR", "automator") in UpdateChannel.choices()
+    row = Mock(last_updated_by="automator")
+    model = Mock()
+    model.objects.get.return_value = row
+    cache = Mock()
+    store = OptionsStore(cache=cache)
+    manager = OptionsManager(store=store)
+    manager.register("legacy")
+    key = manager.make_key(name, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+
+    with patch.object(OptionsStore, "model", model):
+        assert store.get_last_update_channel(key) == UpdateChannel("automator")
+
+    assert row.last_updated_by == "automator"
+    model.objects.get.assert_called_once_with(key=name)
+    assert cache.mock_calls == []
 
 
 @pytest.mark.parametrize(

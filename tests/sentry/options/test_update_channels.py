@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from typing import cast
+from unittest.mock import Mock, patch
 
 import pytest
 from django.conf import settings
@@ -65,7 +66,16 @@ def test_writability_requires_no_store_read(manager, channel: UpdateChannel) -> 
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("channel", list(UpdateChannel))
+@pytest.mark.parametrize(
+    "channel",
+    [
+        UpdateChannel.UNKNOWN,
+        UpdateChannel.APPLICATION,
+        UpdateChannel.ADMIN,
+        UpdateChannel.CLI,
+        UpdateChannel.KILLSWITCH,
+    ],
+)
 def test_self_hosted_channels_can_overwrite_stored_values(manager, channel: UpdateChannel) -> None:
     manager.register("option", flags=FLAG_ADMIN_MODIFIABLE)
     with override_settings(SENTRY_SELF_HOSTED=True):
@@ -74,6 +84,38 @@ def test_self_hosted_channels_can_overwrite_stored_values(manager, channel: Upda
         manager.set("option", "changed", channel=channel)
         assert manager.get("option") == "changed"
         assert manager.get_last_update_channel("option") == channel
+
+
+@pytest.mark.parametrize("self_hosted", [False, True])
+def test_retired_automator_channel_rejects_manager_writes(self_hosted: bool) -> None:
+    store = Mock(spec=OptionsStore)
+    manager = OptionsManager(store=store)
+    manager.register("option", flags=FLAG_ADMIN_MODIFIABLE)
+    channel = UpdateChannel("automator")
+
+    with override_settings(SENTRY_SELF_HOSTED=self_hosted, SENTRY_OPTIONS={}):
+        assert manager.can_update("option", channel) == NotWritableReason.CHANNEL_NOT_ALLOWED
+        with pytest.raises(ValueError, match="automator update channel is retired"):
+            manager.set("option", "changed", channel=channel)
+
+    assert store.mock_calls == []
+
+
+@pytest.mark.parametrize("channel", ["application", "automator", None])
+@pytest.mark.parametrize("self_hosted", [False, True])
+def test_invalid_channels_reject_manager_writes(channel: object, self_hosted: bool) -> None:
+    store = Mock(spec=OptionsStore)
+    manager = OptionsManager(store=store)
+    manager.register("option", flags=FLAG_ADMIN_MODIFIABLE)
+    invalid_channel = cast(UpdateChannel, channel)
+
+    with override_settings(SENTRY_SELF_HOSTED=self_hosted, SENTRY_OPTIONS={}):
+        with pytest.raises(TypeError, match="channel must be an UpdateChannel"):
+            manager.can_update("option", invalid_channel)
+        with pytest.raises(TypeError, match="channel must be an UpdateChannel"):
+            manager.set("option", "changed", channel=invalid_channel)
+
+    assert store.mock_calls == []
 
 
 @pytest.mark.parametrize(
