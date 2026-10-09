@@ -128,6 +128,12 @@ function HeaderCell({
   ...props
 }: HeaderCellProps) {
   const density = useContext(DensityContext);
+  const isSortable = !!handleSortClick || !!to;
+  // `remaining` and `full-width` cells hold bulk actions rather than a column label.
+  // Any overlays make the cell render through the sortable label, whose truncating
+  // `overflow: hidden` clips dropdown menus opened from those actions.
+  const isActionSlot = variant === 'remaining' || variant === 'full-width';
+  const hasOverlays = isSortable || divider || !isActionSlot;
 
   return (
     <ColumnHeaderCell
@@ -136,10 +142,12 @@ function HeaderCell({
       density={density}
       onSort={handleSortClick}
       overlays={
-        <Fragment>
-          {divider && <HeaderDivider />}
-          {(handleSortClick || to) && <InteractionStateLayer />}
-        </Fragment>
+        hasOverlays ? (
+          <Fragment>
+            {divider && <HeaderDivider />}
+            {isSortable && <InteractionStateLayer />}
+          </Fragment>
+        ) : undefined
       }
       to={to}
       scope="col"
