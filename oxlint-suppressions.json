@@ -9,16 +9,6 @@
       "count": 3
     }
   },
-  "static/app/actionCreators/organization.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/actionCreators/organizations.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/actionCreators/tags.tsx": {
     "layering/dependencies": {
       "count": 1
@@ -235,153 +225,13 @@
       "count": 2
     }
   },
-  "static/app/components/core/alert/alertLink.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/alert/index.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/components/core/badge/alertBadge.tsx": {
     "layering/dependencies": {
       "count": 1
     }
   },
-  "static/app/components/core/compactSelect/compactSelect.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/compactSelect/composite.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/compactSelect/control.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/compactSelect/gridList/index.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/components/core/compactSelect/gridList/option.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/compactSelect/gridList/section.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/components/core/compactSelect/index.tsx": {
-    "import/no-cycle": {
-      "count": 4
-    }
-  },
-  "static/app/components/core/compactSelect/list.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/components/core/compactSelect/listBox/index.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/components/core/compactSelect/listBox/option.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/compactSelect/listBox/section.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
   "static/app/components/core/drawer/components.tsx": {
     "layering/dependencies": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/dropdownMenu/content.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/dropdownMenu/dropdownMenu.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/dropdownMenu/index.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/dropdownMenu/item.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/dropdownMenu/list.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/components/core/dropdownMenu/submenu.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/components/core/form/field/baseField.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/form/field/meta.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/input/index.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/components/core/input/numberDragInput.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/input/numberInput.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/overlayTrigger.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/components/core/select/index.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/components/core/select/option.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/select/select.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -534,9 +384,6 @@
     }
   },
   "static/app/components/events/contexts/contextDataSection.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    },
     "layering/dependencies": {
       "count": 2
     }
@@ -546,157 +393,9 @@
       "count": 1
     }
   },
-  "static/app/components/events/contexts/index.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/accessibility.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/app.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/art.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/browser.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/cloudResource.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/culture.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/dartContext.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/device.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/flutterContext.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/gpu.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/gpuCrash.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/memoryInfo.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/missingInstrumentation.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/os.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/profile.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/reactNativeContext.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/replay.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/runtime.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/state.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/threadPoolInfo.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/components/events/contexts/knownContext/trace.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    },
     "layering/dependencies": {
       "count": 2
-    }
-  },
-  "static/app/components/events/contexts/knownContext/user.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/knownContext/wer.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/platformContext/laravel.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/platformContext/react.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/platformContext/spring.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/platformContext/unity.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/contexts/platformContext/utils.tsx": {
-    "import/no-cycle": {
-      "count": 5
-    }
-  },
-  "static/app/components/events/contexts/utils.tsx": {
-    "import/no-cycle": {
-      "count": 24
     }
   },
   "static/app/components/events/eventAttachments.tsx": {
@@ -891,19 +590,6 @@
   "static/app/components/events/groupingInfo/groupingComponent.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/components/events/groupingInfo/groupingComponentChildren.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/groupingInfo/groupingComponentStacktrace.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/components/events/groupingInfo/groupingInfoSection.tsx": {
@@ -1058,11 +744,6 @@
   "static/app/components/events/interfaces/performance/tracePreview.tsx": {
     "layering/dependencies": {
       "count": 12
-    }
-  },
-  "static/app/components/events/interfaces/performance/utils.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/components/events/interfaces/request/index.tsx": {
@@ -1534,9 +1215,6 @@
     }
   },
   "static/app/components/metrics/chart/chart.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    },
     "layering/dependencies": {
       "count": 1
     }
@@ -1893,9 +1571,6 @@
     }
   },
   "static/app/components/performance/spanSearchQueryBuilder.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    },
     "layering/dependencies": {
       "count": 5
     }
@@ -1971,9 +1646,6 @@
     }
   },
   "static/app/components/preprod/preprodSearchBar.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    },
     "layering/dependencies": {
       "count": 4
     }
@@ -2029,15 +1701,9 @@
   "static/app/components/profiling/flamegraph/flamegraphDrawer/flamegraphDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    },
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/components/profiling/flamegraph/flamegraphDrawer/profileDetails.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    },
     "layering/dependencies": {
       "count": 5
     }
@@ -2386,20 +2052,12 @@
     }
   },
   "static/app/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup.ts": {
-    "import/no-cycle": {
-      "count": 1
-    },
     "layering/dependencies": {
       "count": 3
     }
   },
   "static/app/components/searchQueryBuilder/askSeerCombobox/utils.ts": {
     "layering/dependencies": {
-      "count": 3
-    }
-  },
-  "static/app/components/searchQueryBuilder/formattedQuery.tsx": {
-    "import/no-cycle": {
       "count": 3
     }
   },
@@ -2428,44 +2086,9 @@
       "count": 1
     }
   },
-  "static/app/components/searchQueryBuilder/tokens/filter/aggregateKey.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/components/searchQueryBuilder/tokens/filter/filter.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/components/searchQueryBuilder/tokens/filter/filterKey.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/components/searchQueryBuilder/tokens/filter/filterKeyCombobox.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/searchQueryBuilder/tokens/filter/filterKeyDetailsTooltip.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/searchQueryBuilder/tokens/filter/filterOperator.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/components/searchQueryBuilder/tokens/filter/functionDescription.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/components/searchQueryBuilder/tokens/filter/parametersCombobox.tsx": {
-    "import/no-cycle": {
-      "count": 2
     }
   },
   "static/app/components/searchQueryBuilder/tokens/filter/specificDatePicker.tsx": {
@@ -2475,11 +2098,6 @@
   },
   "static/app/components/searchQueryBuilder/tokens/filter/unstyledButton.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -2498,34 +2116,11 @@
       "count": 3
     }
   },
-  "static/app/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/components/searchQueryBuilder/tokens/filterKeyListBox/utils.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     },
-    "import/no-cycle": {
-      "count": 2
-    },
     "layering/dependencies": {
-      "count": 1
-    }
-  },
-  "static/app/components/searchQueryBuilder/tokens/useSortedFilterKeyItems.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/searchSyntax/parser.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/components/searchSyntax/utils.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -3075,16 +2670,6 @@
       "count": 1
     }
   },
-  "static/app/stores/projectsStore.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/stores/teamStore.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/stories/apiReference.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -3128,36 +2713,10 @@
   "static/app/stories/view/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "import/no-cycle": {
-      "count": 4
-    }
-  },
-  "static/app/stories/view/storyExports.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/stories/view/storyFooter.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/stories/view/storyHeader.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/stories/view/storySearch.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/stories/view/storySidebar.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -3171,39 +2730,18 @@
       "count": 1
     }
   },
-  "static/app/stories/view/storyTree.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/utils/api/apiFetch.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/utils/api/apiOptions.ts": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/utils/categoricalTimeSeries/transformTableToCategoricalSeries.ts": {
     "layering/dependencies": {
       "count": 1
     }
   },
   "static/app/utils/dashboards/issueFieldRenderers.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    },
     "layering/dependencies": {
       "count": 4
     }
   },
   "static/app/utils/discover/arrayValue.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -3212,15 +2750,7 @@
       "count": 1
     }
   },
-  "static/app/utils/discover/discoverQuery.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/utils/discover/eventView.tsx": {
-    "import/no-cycle": {
-      "count": 4
-    },
     "layering/dependencies": {
       "count": 5
     }
@@ -3229,9 +2759,6 @@
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     },
-    "import/no-cycle": {
-      "count": 2
-    },
     "layering/dependencies": {
       "count": 20
     }
@@ -3239,11 +2766,6 @@
   "static/app/utils/discover/fields.tsx": {
     "layering/dependencies": {
       "count": 4
-    }
-  },
-  "static/app/utils/discover/genericDiscoverQuery.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/utils/discover/styles.tsx": {
@@ -3257,9 +2779,6 @@
     }
   },
   "static/app/utils/discover/urls.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    },
     "layering/dependencies": {
       "count": 2
     }
@@ -3380,15 +2899,7 @@
     }
   },
   "static/app/utils/performance/contexts/metricsEnhancedPerformanceDataContext.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    },
     "layering/dependencies": {
-      "count": 1
-    }
-  },
-  "static/app/utils/performance/contexts/metricsEnhancedSetting.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -3430,11 +2941,6 @@
   "static/app/utils/profiling/spanTree.tsx": {
     "layering/dependencies": {
       "count": 1
-    }
-  },
-  "static/app/utils/queryClient.tsx": {
-    "import/no-cycle": {
-      "count": 2
     }
   },
   "static/app/utils/replayCount/useReplayCountForTransaction.tsx": {
@@ -3518,17 +3024,11 @@
     }
   },
   "static/app/utils/timeSeries/transformLegacySeriesToTimeSeries.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    },
     "layering/dependencies": {
       "count": 1
     }
   },
   "static/app/utils/timeSeries/useFetchEventsTimeSeries.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    },
     "layering/dependencies": {
       "count": 3
     }
@@ -3603,59 +3103,9 @@
       "count": 1
     }
   },
-  "static/app/views/automations/components/actionFilters/eventFrequency.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/automations/components/actionFilters/eventUniqueUserFrequency.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/automations/components/actionFilters/percentSessions.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/automations/components/actionFilters/subfiltersList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/automations/components/actionNodes.tsx": {
-    "import/no-cycle": {
-      "count": 5
-    }
-  },
-  "static/app/views/automations/components/actions/azureDevOps.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/automations/components/actions/github.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/automations/components/actions/githubEnterprise.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/automations/components/actions/jira.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/automations/components/actions/jiraServer.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/automations/components/actions/ticketActionSettingsButton.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/automations/components/automationActionSummary.tsx": {
@@ -3683,11 +3133,6 @@
       "count": 1
     }
   },
-  "static/app/views/automations/components/dataConditionNodes.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
   "static/app/views/automations/components/editConnectedMonitors.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3698,159 +3143,23 @@
       "count": 1
     }
   },
-  "static/app/views/dashboards/dashboard.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/base.tsx": {
-    "import/no-cycle": {
-      "count": 9
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/errors.tsx": {
-    "import/no-cycle": {
-      "count": 10
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/events.tsx": {
-    "import/no-cycle": {
-      "count": 7
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/issues.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/logs.tsx": {
-    "import/no-cycle": {
-      "count": 10
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/mobileAppSize.tsx": {
-    "import/no-cycle": {
-      "count": 8
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/releases.tsx": {
-    "import/no-cycle": {
-      "count": 6
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/spans.tsx": {
-    "import/no-cycle": {
-      "count": 14
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/traceMetrics.tsx": {
-    "import/no-cycle": {
-      "count": 9
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/transactions.tsx": {
-    "import/no-cycle": {
-      "count": 6
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/datasetConfig/utils/getSeriesRequestData.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/dashboards/editAccessModal.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/globalFilter/addFilter.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
   "static/app/views/dashboards/globalFilter/filterSelector.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    },
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/dashboards/globalFilter/filterSelectorTrigger.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/globalFilter/numericFilterSelector.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/dashboards/globalFilter/numericFilterSelectorTrigger.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/dashboards/releasesSelectControl.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
-  "static/app/views/dashboards/sortableWidget.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/dashboards/utils.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/dashboards/utils/getWidgetExploreUrl.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/dashboards/utils/transformEventsResponseToSeries.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/dashboards/utils/transformEventsStatsToSeries.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/utils/transformSessionsResponseToSeries.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/utils/transformSessionsResponseToTable.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/utils/transformTimeSeriesResponseToSeries.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar.tsx": {
-    "import/no-cycle": {
       "count": 2
     }
   },
@@ -3869,17 +3178,9 @@
       "count": 2
     }
   },
-  "static/app/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
   "static/app/views/dashboards/widgetBuilder/components/newWidgetBuilder.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
-    },
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/queryFilterBuilder.tsx": {
@@ -3887,72 +3188,9 @@
       "count": 1
     }
   },
-  "static/app/views/dashboards/widgetBuilder/components/sortBySelectors.tsx": {
-    "import/no-cycle": {
-      "count": 4
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/dashboards/widgetBuilder/components/visualize/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
-    },
-    "import/no-cycle": {
-      "count": 14
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/selectRow.tsx": {
-    "import/no-cycle": {
-      "count": 8
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector.tsx": {
-    "import/no-cycle": {
-      "count": 4
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow.tsx": {
-    "import/no-cycle": {
-      "count": 4
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/builderStateMetricsQueryParamsProvider.tsx": {
-    "import/no-cycle": {
-      "count": 5
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/index.tsx": {
-    "import/no-cycle": {
-      "count": 7
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricQueryRows.tsx": {
-    "import/no-cycle": {
-      "count": 8
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricToolbar.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils.tsx": {
-    "import/no-cycle": {
-      "count": 5
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/widgetBuilderSlideout.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/widgetTemplatesList.tsx": {
@@ -3960,132 +3198,14 @@
       "count": 3
     }
   },
-  "static/app/views/dashboards/widgetBuilder/contexts/widgetBuilderContext.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState.tsx": {
-    "import/no-cycle": {
-      "count": 4
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig.ts": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/issueWidget/utils.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/utils.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate.ts": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget.ts": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams.ts": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/utils/getSelectedAggregate.ts": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetCard/canScaleThresholds.ts": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/dashboards/widgetCard/chart.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
-  "static/app/views/dashboards/widgetCard/genericWidgetQueries.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/useErrorsWidgetQuery.tsx": {
-    "import/no-cycle": {
-      "count": 5
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/useIssuesWidgetQuery.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/useLogsWidgetQuery.tsx": {
-    "import/no-cycle": {
-      "count": 5
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/useMobileAppSizeWidgetQuery.tsx": {
-    "import/no-cycle": {
-      "count": 4
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/useReleasesWidgetQuery.tsx": {
-    "import/no-cycle": {
-      "count": 6
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/useSpansWidgetQuery.tsx": {
-    "import/no-cycle": {
-      "count": 5
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/useTraceMetricsWidgetQuery.tsx": {
-    "import/no-cycle": {
-      "count": 8
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/useTransactionsWidgetQuery.tsx": {
-    "import/no-cycle": {
-      "count": 4
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/utils/releases.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetCard/index.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetCard/releaseWidgetQueries.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
   "static/app/views/dashboards/widgetCard/toolbar.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    },
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/dashboards/widgetCard/tooltipIconTrigger.tsx": {
@@ -4111,11 +3231,6 @@
   "static/app/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/dashboards/widgets/tableWidget/tableWidgetVisualization.stories.tsx": {
@@ -4178,11 +3293,6 @@
       "count": 1
     }
   },
-  "static/app/views/detectors/components/forms/metric/metricFormData.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/detectors/components/forms/metric/queryFilterBuilder.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4208,29 +3318,14 @@
       "count": 1
     }
   },
-  "static/app/views/detectors/components/uptime/assertions/opCommon.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/detectors/components/uptime/assertions/opGroup.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/detectors/components/uptime/assertions/utils.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
   "static/app/views/detectors/components/uptime/detailsTimelineLegend.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/detectors/components/uptime/formErrors.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/detectors/components/uptime/uptimeAlertForm.tsx": {
@@ -4248,21 +3343,6 @@
       "count": 2
     }
   },
-  "static/app/views/detectors/datasetConfig/components/metricsSearchBar.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/detectors/datasetConfig/getDatasetConfig.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/detectors/datasetConfig/metrics.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/discover/eventDetails.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4278,33 +3358,13 @@
       "count": 4
     }
   },
-  "static/app/views/discover/results/data.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/discover/results/issueListSeerComboBox.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/discover/results/resultsChart.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
-  "static/app/views/discover/results/resultsSearchQueryBuilder.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
   "static/app/views/discover/results/sampleDataAlert.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/discover/savedQuery/utils.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -4323,38 +3383,8 @@
       "count": 1
     }
   },
-  "static/app/views/discover/table/quickContext/eventContext.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/discover/table/quickContext/issueContext.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/discover/table/quickContext/quickContextHovercard.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/discover/table/quickContext/quickContextWrapper.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/discover/table/quickContext/releaseContext.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/discover/table/quickContext/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
-    }
-  },
-  "static/app/views/discover/utils.tsx": {
-    "import/no-cycle": {
       "count": 4
     }
   },
@@ -4373,44 +3403,14 @@
       "count": 1
     }
   },
-  "static/app/views/explore/components/conditionalAggregateFilterBar.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
   "static/app/views/explore/components/toolbar/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/components/toolbar/toolbarVisualize/visualizeEquation.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/components/traceItemSearchQueryBuilder.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
   "static/app/views/explore/contexts/logs/logsPageParams.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/explore/contexts/logs/logsPageParams.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/contexts/logs/sortBys.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/contexts/pageParamsContext/visualizes.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/explore/exploreLocationQueryParamsProvider.spec.tsx": {
@@ -4420,21 +3420,6 @@
   },
   "static/app/views/explore/hooks/useAddToDashboard.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/hooks/useGetTraceItemAttributeTagKeys.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/hooks/useSaveMultiQuery.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/hooks/useTraceItemAttributes.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -4458,34 +3443,9 @@
       "count": 1
     }
   },
-  "static/app/views/explore/logs/logsToolbar.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
   "static/app/views/explore/logs/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 6
-    }
-  },
-  "static/app/views/explore/metrics/hooks/metricBoundsApiOptions.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/metrics/hooks/metricHeatMapApiOptions.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/metrics/hooks/useMetricHeatMapData.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/explore/metrics/hooks/useMetricReferences.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/explore/metrics/hooks/useSaveMetricsMultiQuery.spec.tsx": {
@@ -4493,29 +3453,9 @@
       "count": 2
     }
   },
-  "static/app/views/explore/metrics/hooks/useStableLabels.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/metrics/metricInfoTabs/metricInfoTabStyles.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/explore/metrics/metricsTabSeerComboBox.tsx": {
-    "import/no-cycle": {
-      "count": 5
-    }
-  },
-  "static/app/views/explore/metrics/metricToolbar/aggregateDropdown.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/metrics/metricToolbar/filter.tsx": {
-    "import/no-cycle": {
-      "count": 3
     }
   },
   "static/app/views/explore/metrics/metricToolbar/index.spec.tsx": {
@@ -4523,43 +3463,8 @@
       "count": 1
     }
   },
-  "static/app/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/explore/metrics/metricToolbar/metricSelector/metricSelector.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/explore/metrics/multiMetricsQueryParams.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/metrics/parseAggregateExpression.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/metrics/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/metrics/useMetricQueriesController.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/explore/metrics/utils.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/multiQueryMode/content.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -4595,11 +3500,6 @@
   },
   "static/app/views/explore/profiling/profileFlamechart.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/queryParams/visualize.ts": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -4656,9 +3556,6 @@
   "static/app/views/explore/releases/list/releaseCard/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 5
-    },
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/explore/releases/list/releaseCard/releaseCardCommits.tsx": {
@@ -4669,9 +3566,6 @@
   "static/app/views/explore/releases/list/releaseCard/releaseCardProjectRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    },
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/explore/releases/list/releaseCard/releaseCardStatsPeriod.tsx": {
@@ -4764,11 +3658,6 @@
       "count": 1
     }
   },
-  "static/app/views/explore/seerQuery.ts": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/spans/charts/confidenceFooter.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4812,19 +3701,6 @@
   "static/app/views/explore/toolbar/toolbarVisualize.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/explore/utils.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/explore/utils/conditionalAggregate.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/insights/browser/resources/components/sampleImages.tsx": {
@@ -4847,18 +3723,8 @@
       "count": 3
     }
   },
-  "static/app/views/insights/common/components/chart.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/insights/common/components/chartPanel.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/insights/common/components/fullSpanDescription.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -4877,34 +3743,9 @@
       "count": 1
     }
   },
-  "static/app/views/insights/common/components/tableCells/spanDescriptionCell.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/insights/common/components/textAlign.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/insights/common/queries/getSeriesEventView.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/insights/common/queries/useDiscover.ts": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/insights/common/queries/useSortedTimeSeries.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/insights/common/queries/useSpansQuery.tsx": {
-    "import/no-cycle": {
-      "count": 2
     }
   },
   "static/app/views/insights/crons/components/checkInCell.tsx": {
@@ -5052,21 +3893,6 @@
       "count": 1
     }
   },
-  "static/app/views/issueDetails/eventDetails.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueDetails/eventGraph.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueDetails/eventGraphWidget.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/issueDetails/eventListTable.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -5089,11 +3915,6 @@
   },
   "static/app/views/issueDetails/groupEventAttachments/screenshotCard.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueDetails/groupEventDetails/groupEventDetailsContent.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -5147,18 +3968,8 @@
       "count": 1
     }
   },
-  "static/app/views/issueDetails/sidebar/detectorSection.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/issueDetails/sidebar/firstLastSeenSection.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueDetails/sidebar/mergedSidebarSection.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -5172,28 +3983,8 @@
       "count": 1
     }
   },
-  "static/app/views/issueDetails/sidebar/sidebar.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/issueDetails/sidebar/similarIssuesSidebarSection.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueList/actions/extraDescription.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/issueList/actions/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueList/actions/utils.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -5215,16 +4006,6 @@
   "static/app/views/issueList/newViewEmptyState.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    }
-  },
-  "static/app/views/navigation/secondary/sections/issues/issueViews/issueViewItem.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/navigation/secondary/sections/issues/issueViews/issueViews.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/onboarding/components/firstEventFooter.tsx": {
@@ -5275,14 +4056,6 @@
   "static/app/views/performance/eap/segmentSpansTable.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/eap/useSegmentSpansQuery.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/performance/landing/widgets/components/accordion.tsx": {
@@ -5298,11 +4071,6 @@
   "static/app/views/performance/landing/widgets/components/selectableList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    }
-  },
-  "static/app/views/performance/landing/widgets/utils.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/performance/landing/widgets/widgets/histogramWidget.tsx": {
@@ -5345,11 +4113,6 @@
       "count": 4
     }
   },
-  "static/app/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -5363,11 +4126,6 @@
   "static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/description.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/performance/traceDetails/traceDrawer/details/span/index.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/performance/traceDetails/traceDrawer/details/styles.tsx": {
@@ -5390,64 +4148,9 @@
       "count": 5
     }
   },
-  "static/app/views/performance/traceDetails/traceHeader/breadcrumbs.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
   "static/app/views/performance/traceDetails/traceHeader/highlights.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    }
-  },
-  "static/app/views/performance/traceDetails/traceModels/makeExampleTrace.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/traceModels/traceTree.tsx": {
-    "import/no-cycle": {
-      "count": 8
-    }
-  },
-  "static/app/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/performance/traceDetails/traceModels/traceTreeNode/errorNode.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/traceModels/traceTreeNode/noInstrumentationNode.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/traceModels/traceTreeNode/parentAutogroupNode.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/performance/traceDetails/traceModels/traceTreeNode/siblingAutogroupNode.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/traceModels/traceTreeNode/traceNode.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/traceModels/traceTreeNode/uptimeCheckNode.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/performance/traceDetails/traceModels/traceTreeNode/uptimeCheckTimingNode.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/performance/traceDetails/traceOurlogs.tsx": {
@@ -5458,58 +4161,30 @@
   "static/app/views/performance/traceDetails/traceRow/traceAutogroupedRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/performance/traceDetails/traceRow/traceEAPSpanRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/traceRow/traceErrorRow.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
   "static/app/views/performance/traceDetails/traceRow/traceMissingInstrumentationRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/traceRow/traceRootNode.tsx": {
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/performance/traceDetails/traceRow/traceRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "import/no-cycle": {
       "count": 1
     }
   },
   "static/app/views/performance/traceDetails/traceRow/traceUptimeCheckNode.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/performance/traceDetails/traceRow/traceUptimeCheckTimingNode.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -5523,33 +4198,13 @@
       "count": 2
     }
   },
-  "static/app/views/performance/traceDetails/traceTarget.ts": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/performance/traceDetails/traceTypeWarnings/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
-  "static/app/views/performance/traceDetails/traceUrl.ts": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
   "static/app/views/performance/traceDetails/traceWaterfallState.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/transactionSummary/header.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/transactionSummary/pageLayout.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -5563,21 +4218,6 @@
       "count": 1
     }
   },
-  "static/app/views/performance/transactionSummary/transactionOverview/content.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/transactionSummary/transactionOverview/eapChartsWidget.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/transactionSummary/transactionOverview/useWidgetChartVisualization.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/performance/transactionSummary/transactionProfiles/content.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
@@ -5586,16 +4226,6 @@
   "static/app/views/performance/transactionSummary/transactionThresholdModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/performance/transactionSummary/utils.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/app/views/performance/utils/index.tsx": {
-    "import/no-cycle": {
-      "count": 2
     }
   },
   "static/app/views/preprod/buildComparison/header/buildCompareHeaderContent.tsx": {
@@ -5678,33 +4308,8 @@
       "count": 1
     }
   },
-  "static/app/views/projectDetail/charts/projectBaseSessionsChart.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
-  "static/app/views/projectDetail/charts/projectSessionsAnrRequest.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/projectDetail/charts/projectSessionsChartRequest.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/projectDetail/projectCharts.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/projectInstall/createProject.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/projectInstall/issueAlertNotificationOptions.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -5716,18 +4321,10 @@
   "static/app/views/projectInstall/messagingIntegrationAlertRule.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "import/no-cycle": {
-      "count": 2
     }
   },
   "static/app/views/projectInstall/otherPlatformsInfo.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/projectInstall/useMessagingChannel.ts": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -5939,9 +4536,6 @@
   "static/app/views/settings/dynamicSampling/organizationSampling.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    },
-    "import/no-cycle": {
-      "count": 1
     }
   },
   "static/app/views/settings/dynamicSampling/projectSampling.tsx": {
@@ -5969,16 +4563,8 @@
       "count": 6
     }
   },
-  "static/app/views/settings/dynamicSampling/samplingModeSwitch.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/dynamicSampling/samplingModeSwitchModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -6007,16 +4593,6 @@
       "count": 2
     }
   },
-  "static/app/views/settings/organizationAuthTokens/authTokenRow.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/organizationAuthTokens/index.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/organizationDeveloperSettings/permissionsObserver.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -6029,14 +4605,6 @@
   },
   "static/app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLog.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLogDetails.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -6087,16 +4655,6 @@
   },
   "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/organizationIntegrations/webhookConfigurations.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/organizationIntegrations/webhookDetailedView.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },
@@ -6515,21 +5073,6 @@
       "count": 2
     }
   },
-  "static/gsApp/utils/billing.tsx": {
-    "import/no-cycle": {
-      "count": 2
-    }
-  },
-  "static/gsApp/utils/dataCategory.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/gsApp/utils/formatCurrency.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
   "static/gsApp/views/amCheckout/components/cartDiff.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -6550,11 +5093,6 @@
       "count": 1
     }
   },
-  "static/gsApp/views/amCheckout/utils.tsx": {
-    "import/no-cycle": {
-      "count": 3
-    }
-  },
   "static/gsApp/views/cancelSubscription.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -6573,11 +5111,6 @@
   "static/gsApp/views/seerAutomation/onboarding/onboardingLegacy.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/gsApp/views/spendLimits/utils.tsx": {
-    "import/no-cycle": {
-      "count": 3
     }
   },
   "static/gsApp/views/spikeProtection/components/accordionRow.tsx": {
@@ -6617,26 +5150,6 @@
   },
   "static/gsApp/views/subscriptionPage/usageTotalsTable.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/packages/scraps/src/layout/index.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/packages/scraps/src/layout/stack.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/packages/scraps/src/separator/index.tsx": {
-    "import/no-cycle": {
-      "count": 1
-    }
-  },
-  "static/packages/scraps/src/separator/separator.tsx": {
-    "import/no-cycle": {
       "count": 1
     }
   },

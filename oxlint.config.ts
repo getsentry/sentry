@@ -38,9 +38,6 @@ export const incubator = defineConfig({
         ],
       },
     ],
-    // Import cycles make module evaluation order matter, e.g. a `jest.mock`
-    // factory that spreads `jest.requireActual()` can capture a half-loaded module.
-    'import/no-cycle': 'error',
   },
   overrides: [
     {
