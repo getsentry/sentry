@@ -16,6 +16,7 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {getMonitorRefetchInterval, getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -33,8 +34,6 @@ import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneO
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
-
-import {getMonitorRefetchInterval, getNextCheckInEnv} from './utils';
 
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);

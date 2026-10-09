@@ -89,7 +89,7 @@ export function List({
         }
         header={
           <SimpleTable.HeaderRow>
-            <MergeHeaderCell columnKey="merge">
+            <MergeHeaderCell>
               <Confirm
                 disabled={mergeCount === 0}
                 message={tn(
@@ -104,18 +104,16 @@ export function List({
                 </Button>
               </Confirm>
             </MergeHeaderCell>
-            <SimpleTable.HeaderCell align="center" columnKey="events">
-              {t('Events')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell align="center" columnKey="exception">
+            <SimpleTable.HeaderCell align="center">{t('Events')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="center">
               {t('Exception')}
             </SimpleTable.HeaderCell>
             {!hasSimilarityEmbeddingsFeature && (
-              <SimpleTable.HeaderCell align="center" columnKey="message">
+              <SimpleTable.HeaderCell align="center">
                 {t('Message')}
               </SimpleTable.HeaderCell>
             )}
-            <SimpleTable.HeaderCell columnKey="actions" />
+            <SimpleTable.HeaderCell />
           </SimpleTable.HeaderRow>
         }
       >

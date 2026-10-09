@@ -5,7 +5,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {blockRendersToolContent} from 'sentry/views/seerExplorer/components/chat/toolUse';
+import {
+  blockRendersToolContent,
+  findLatestTodos,
+} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {
   AgentWriteApproval,
   Block,
@@ -237,9 +240,13 @@ describe('ToolUseBlock', () => {
         })
       );
     });
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'approve',
-    });
+    expect(respondToUserInput).toHaveBeenCalledWith(
+      APPROVAL_ID,
+      {
+        decision: 'approve',
+      },
+      {onError: expect.any(Function)}
+    );
   });
 
   it('allows an active approval with invalid grant data to be rejected', async () => {
@@ -261,9 +268,13 @@ describe('ToolUseBlock', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
 
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'reject',
-    });
+    expect(respondToUserInput).toHaveBeenCalledWith(
+      APPROVAL_ID,
+      {
+        decision: 'reject',
+      },
+      {onError: expect.any(Function)}
+    );
   });
 
   it('does not resume with approval when only some scopes are granted', async () => {
@@ -296,10 +307,14 @@ describe('ToolUseBlock', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
     await waitFor(() => {
-      expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-        decision: 'reject',
-        reason: 'insufficient_scope',
-      });
+      expect(respondToUserInput).toHaveBeenCalledWith(
+        APPROVAL_ID,
+        {
+          decision: 'reject',
+          reason: 'insufficient_scope',
+        },
+        {onError: expect.any(Function)}
+      );
     });
 
     expect(
@@ -364,9 +379,13 @@ describe('ToolUseBlock', () => {
     });
 
     await waitFor(() => {
-      expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-        decision: 'approve',
-      });
+      expect(respondToUserInput).toHaveBeenCalledWith(
+        APPROVAL_ID,
+        {
+          decision: 'approve',
+        },
+        {onError: expect.any(Function)}
+      );
     });
 
     expect(
@@ -393,14 +412,39 @@ describe('ToolUseBlock', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'reject',
-    });
+    expect(respondToUserInput).toHaveBeenCalledWith(
+      APPROVAL_ID,
+      {
+        decision: 'reject',
+      },
+      {onError: expect.any(Function)}
+    );
     expect(approveRequest).not.toHaveBeenCalled();
     expect(
       screen.getByText('Access not granted for reading and writing Projects')
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Approve'})).not.toBeInTheDocument();
+  });
+
+  it('shows the approval prompt again when the response fails to send', async () => {
+    const respondToUserInput = jest.fn(
+      (_inputId: string, _data?: unknown, options?: {onError?: () => void}) =>
+        options?.onError?.()
+    );
+    render(
+      <BlockComponent
+        block={createAgentApprovalBlock()}
+        blockIndex={0}
+        pendingInput={createPendingAgentApproval()}
+        respondToUserInput={respondToUserInput}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
+
+    expect(respondToUserInput).toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Reject'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Approve'})).toBeInTheDocument();
   });
 
   it('renders todo list for todo_write tool calls', () => {
@@ -739,6 +783,56 @@ describe('ToolUseBlock', () => {
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('is%3Aunresolved'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
     expect(screen.getAllByRole('button')).toHaveLength(1);
+  });
+
+  it('links a direct spans API query without separate tool link metadata', () => {
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_links: [null],
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'done',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'api',
+                method: 'GET',
+                path: '/api/0/organizations/{organization_id_or_slug}/events/',
+                path_params: {organization_id_or_slug: 'org-slug'},
+                resolved_path:
+                  '/api/0/organizations/org-slug/events/?dataset=spans&field=span.op&field=count()&query=span.op%3Adb&project=2&statsPeriod=30d&sort=-count()',
+                title: 'Querying spans for database calls',
+                status: 200,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    expect(screen.getByText('Querying spans for database calls')).toBeInTheDocument();
+    const link = screen.getByRole('button', {name: 'View spans'});
+    const url = new URL(link.getAttribute('href')!, 'https://example.com');
+    expect(url.pathname).toBe('/organizations/org-slug/traces/');
+    expect(url.searchParams.get('query')).toBe('span.op:db');
+    expect(url.searchParams.get('project')).toBe('2');
+    expect(url.searchParams.get('statsPeriod')).toBe('30d');
+    expect(url.searchParams.get('mode')).toBe('aggregate');
+    // The aggregate table sorts from its own key, not the samples `sort`.
+    expect(url.searchParams.get('aggregateSort')).toBe('-count()');
+    expect(url.searchParams.get('sort')).toBeNull();
+    expect(
+      url.searchParams.getAll('aggregateField').map(value => JSON.parse(value))
+    ).toEqual([{yAxes: ['count()']}, {groupBy: 'span.op'}]);
   });
 
   it('does not double-render a classic link present in both channels', () => {
@@ -1251,34 +1345,12 @@ describe('ToolUseBlock', () => {
       expect(screen.getByText('Searching for the issue')).toBeInTheDocument();
     });
 
-    it('keeps the placeholder up while a search runs, which reports no calls', () => {
+    it('does not render a placeholder while a search runs', () => {
       render(<BlockComponent block={runningBlock()} blockIndex={0} />);
-      expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
+      expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
     });
 
-    it('renders the same placeholder a block with no tool calls yet would', () => {
-      // The transition the fix is about: the spinner must not vanish, move or change when the tool
-      // call attaches, so both states have to render the identical element.
-      const before = render(
-        <BlockComponent
-          block={createBlock({
-            loading: true,
-            message: {role: 'tool_use', content: null, tool_calls: null},
-          })}
-          blockIndex={0}
-        />
-      );
-      const placeholder = screen.getByRole('status', {name: 'Loading'}).outerHTML;
-      before.unmount();
-
-      render(<BlockComponent block={runningBlock()} blockIndex={0} />);
-      expect(screen.getByRole('status', {name: 'Loading'}).outerHTML).toBe(placeholder);
-    });
-
-    it('keeps the placeholder up alongside an in-flight call row', () => {
-      // The mirror publishes a record when a call starts, so this row is spinning too. Hiding the
-      // placeholder whenever a row spins would blink it out and back on every call the execute
-      // makes; the two say different things and are allowed to coexist.
+    it('uses only the call status for an in-flight call row', () => {
       const block = executeBlock([
         {id: 1, kind: 'api', method: 'GET', path: '/issues/', title: 'Listing issues'},
       ]);
@@ -1287,12 +1359,10 @@ describe('ToolUseBlock', () => {
 
       expect(screen.getByText('Listing issues')).toBeInTheDocument();
       expect(screen.getByLabelText('Running')).toBeInTheDocument();
-      expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
+      expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
     });
 
-    it('keeps the placeholder up after the last call has returned', () => {
-      // The sandbox is still working after its final call came back, and no row says so: they have
-      // all settled to a checkmark.
+    it('does not add a placeholder after the last call has returned', () => {
       const block = executeBlock([
         {
           id: 1,
@@ -1308,122 +1378,7 @@ describe('ToolUseBlock', () => {
 
       expect(screen.getByLabelText('Succeeded')).toBeInTheDocument();
       expect(screen.queryByLabelText('Running')).not.toBeInTheDocument();
-      expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
-    });
-
-    it('does not spin for a call with no id, which can never be seen settling', () => {
-      // Results are matched to calls by id. Treating an id-less call as running would keep the
-      // placeholder up for as long as the block claims to be loading, with nothing able to clear
-      // it. Matches how `liveCallsForCallId` decides what is pending.
-      const block = runningBlock({
-        message: {
-          role: 'tool_use',
-          content: null,
-          tool_calls: [{id: undefined, function: 'sentry_api_search', args: '{}'}],
-        },
-      });
-
-      render(<BlockComponent block={block} blockIndex={0} />);
       expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
-    });
-
-    it('drops the placeholder once the call reports back', () => {
-      const block = runningBlock({
-        loading: false,
-        tool_results: [
-          {
-            tool_call_id: 'call-1',
-            tool_call_function: 'sentry_api_search',
-            content: 'ran',
-          },
-        ],
-      });
-
-      render(<BlockComponent block={block} blockIndex={0} />);
-      expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
-    });
-
-    it('keeps it up while one of two calls is still in flight', () => {
-      // `loading` stays true until every call in the block responds, so it cannot be the signal on
-      // its own — the block would keep spinning after the last call settled.
-      const block = runningBlock({
-        message: {
-          role: 'tool_use',
-          content: null,
-          tool_calls: [
-            {id: 'call-1', function: 'sentry_api_search', args: '{}'},
-            {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
-          ],
-        },
-        tool_results: [
-          {
-            tool_call_id: 'call-1',
-            tool_call_function: 'sentry_api_search',
-            content: 'ran',
-          },
-        ],
-      });
-
-      render(<BlockComponent block={block} blockIndex={0} />);
-      expect(screen.getAllByRole('status', {name: 'Loading'})).toHaveLength(1);
-    });
-
-    it('renders one placeholder for a block, not one per in-flight call', () => {
-      const block = runningBlock({
-        message: {
-          role: 'tool_use',
-          content: null,
-          tool_calls: [
-            {id: 'call-1', function: 'sentry_api_search', args: '{}'},
-            {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
-          ],
-        },
-      });
-
-      render(<BlockComponent block={block} blockIndex={0} />);
-      expect(screen.getAllByRole('status', {name: 'Loading'})).toHaveLength(1);
-    });
-
-    it('puts the placeholder after every row, not beside the running call', () => {
-      // The running call is first, so a per-call placeholder would land between the two calls'
-      // rows and read as a stalled row rather than as the block still working.
-      const block = runningBlock({
-        message: {
-          role: 'tool_use',
-          content: null,
-          tool_calls: [
-            {id: 'call-1', function: 'sentry_api_execute', args: '{}'},
-            {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
-          ],
-        },
-        tool_results: [
-          {
-            tool_call_id: 'call-2',
-            tool_call_function: 'sentry_api_execute',
-            content: 'ran',
-            structuredContent: {
-              calls: [
-                {
-                  id: 1,
-                  kind: 'api',
-                  method: 'GET',
-                  path: '/issues/',
-                  title: 'Listing issues',
-                  status: 200,
-                },
-              ],
-            },
-          },
-        ],
-      });
-
-      render(<BlockComponent block={block} blockIndex={0} />);
-
-      const spinner = screen.getByRole('status', {name: 'Loading'});
-      const row = screen.getByText('Listing issues');
-      expect(
-        row.compareDocumentPosition(spinner) & Node.DOCUMENT_POSITION_FOLLOWING
-      ).toBeTruthy();
     });
 
     it('leaves a classic tool to its own label rather than adding a placeholder', () => {
@@ -1571,7 +1526,7 @@ describe('blockRendersToolContent', () => {
       links: [{kind: 'get_issue_details', params: {is_error: true}}],
     });
 
-    expect(blockRendersToolContent(block, [block])).toBe(false);
+    expect(blockRendersToolContent(block, findLatestTodos([block]))).toBe(false);
   });
 
   it('counts a link that did not error', () => {
@@ -1579,7 +1534,7 @@ describe('blockRendersToolContent', () => {
       links: [{kind: 'get_issue_details', params: {issueId: '4521'}}],
     });
 
-    expect(blockRendersToolContent(block, [block])).toBe(true);
+    expect(blockRendersToolContent(block, findLatestTodos([block]))).toBe(true);
   });
 
   it('ignores todos superseded by a later block', () => {
@@ -1592,7 +1547,7 @@ describe('blockRendersToolContent', () => {
     });
     const blocks = [stale, newest];
 
-    expect(blockRendersToolContent(stale, blocks)).toBe(false);
-    expect(blockRendersToolContent(newest, blocks)).toBe(true);
+    expect(blockRendersToolContent(stale, findLatestTodos(blocks))).toBe(false);
+    expect(blockRendersToolContent(newest, findLatestTodos(blocks))).toBe(true);
   });
 });

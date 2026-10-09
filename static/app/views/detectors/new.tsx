@@ -5,7 +5,6 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit';
 import {t, tct} from 'sentry/locale';
@@ -23,16 +22,17 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 function NewDetectorBreadcrumbs() {
   const organization = useOrganization();
-  const newMonitorName = t('New Monitor');
 
   return (
-    <Breadcrumbs
-      crumbs={[
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{type: 'page-title', label: t('New Monitor')}}
+      items={[
         {
+          type: 'link',
           label: t('Monitors'),
           to: makeMonitorBasePathname(organization.slug),
         },
-        {label: newMonitorName},
       ]}
     />
   );
@@ -67,9 +67,7 @@ export default function DetectorNew() {
       <SentryDocumentTitle title={t('New Monitor')} />
       <EditLayoutDeprecated.Header maxWidth={maxWidth}>
         <EditLayoutDeprecated.HeaderContent>
-          <TopBar.Slot name="title">
-            <NewDetectorBreadcrumbs />
-          </TopBar.Slot>
+          <NewDetectorBreadcrumbs />
           <Text as="p" size="md" variant="muted">
             {tct(
               'Monitors detect problems in your application and create Sentry Issues. [docsLink:Read the Docs].',

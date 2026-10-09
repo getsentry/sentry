@@ -30,15 +30,14 @@ import {
   getTableSortOptions,
   getTimeseriesSortOptions,
   transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+} from 'sentry/views/dashboards/datasetConfig/events';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   extractTraceMetricFromColumn,
-  getTraceMetricAggregateSource,
+  getTraceMetricDisplayFields,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import {
@@ -219,19 +218,15 @@ function useTraceMetricsSearchBarDataProvider(
 
 function useTraceMetricsSearchScope() {
   const {state: widgetBuilderState} = useWidgetBuilderContext();
-  const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 
-  const aggregateSource = getTraceMetricAggregateSource(
+  const displayFields = getTraceMetricDisplayFields(
     widgetBuilderState.displayType,
     widgetBuilderState.yAxis,
     widgetBuilderState.fields
   );
   const traceMetrics =
-    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
-  const hasMultipleMetrics = hasMultipleMetricsSelected(
-    traceMetrics,
-    hasMultiMetricSelection
-  );
+    displayFields?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
+  const hasMultipleMetrics = hasMultipleMetricsSelected(traceMetrics);
   const attributeQuery =
     !hasMultipleMetrics && traceMetrics[0]
       ? createTraceMetricFilter(traceMetrics[0])
@@ -378,6 +373,7 @@ export const TraceMetricsConfig: DatasetConfig<
           widgetQuery,
           timeSeries,
         }),
+        timeSeries,
       };
     });
   },

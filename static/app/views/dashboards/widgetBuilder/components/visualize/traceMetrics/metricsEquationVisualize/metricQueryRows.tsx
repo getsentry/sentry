@@ -1,10 +1,10 @@
 import {type RefObject, useCallback, useEffect, useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
@@ -14,7 +14,7 @@ import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/compone
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {MAX_METRIC_ALLOWED_LABEL_VALUE} from 'sentry/views/explore/metrics/constants';
 import {
   extractReferenceLabels,
@@ -77,7 +77,7 @@ export function MetricQueryRows({
   const referenceMap = useMetricReferences(metricQueries);
   const addAggregate = useAddMetricQuery({});
 
-  const aggregateSource = getTraceMetricAggregateSource(
+  const aggregateSource = getTraceMetricAggregates(
     state.displayType,
     state.yAxis,
     state.fields

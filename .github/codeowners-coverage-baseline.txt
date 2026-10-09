@@ -291,14 +291,12 @@ src/sentry/web_vitals/types.py
 src/sentry/wsgi.py
 src/sudo/LICENSE
 src/sudo/__init__.py
-src/sudo/forms.py
 src/sudo/middleware.py
 src/sudo/models.py
 src/sudo/py.typed
 src/sudo/settings.py
 src/sudo/signals.py
 src/sudo/utils.py
-src/sudo/views.py
 static/app/__mocks__/api.tsx
 static/app/__mocks__/prismjs.tsx
 static/app/__mocks__/react-date-range.tsx
@@ -1271,8 +1269,6 @@ static/app/types/workflowEngine/dataConditions.tsx
 static/app/types/workflowEngine/detectors.tsx
 static/app/utils.spec.tsx
 static/app/utils.tsx
-static/app/views/acceptOrganizationInvite/index.spec.tsx
-static/app/views/acceptOrganizationInvite/index.tsx
 static/app/views/acceptProjectTransfer/index.spec.tsx
 static/app/views/acceptProjectTransfer/index.tsx
 static/app/views/app/alertMessage.tsx
@@ -1652,11 +1648,6 @@ tests/acceptance/test_teams_list.py
 tests/acceptance/test_trace_view_from_explore.py
 tests/acceptance/test_trace_view_waterfall.py
 tests/conftest.py
-tests/flagpole/__init__.py
-tests/flagpole/test_conditions.py
-tests/flagpole/test_evaluation_context.py
-tests/flagpole/test_feature.py
-tests/flagpole/test_flagpole_eval.py
 tests/integration/__init__.py
 tests/integration/fixtures/csp/chrome_input.json
 tests/integration/fixtures/csp/chrome_output.json
@@ -1817,7 +1808,6 @@ tests/js/fixtures/vercelIntegration.ts
 tests/js/fixtures/widget.ts
 tests/js/fixtures/widgetQuery.ts
 tests/js/fixtures/workflowEngine.ts
-tests/js/instrumentedEnv/userEventIntegration.ts
 tests/js/jest-pegjs-transform.js
 tests/js/setup.ts
 tests/js/setupFramework.ts

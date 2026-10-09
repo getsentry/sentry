@@ -1,5 +1,6 @@
 import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import isEqual from 'lodash/isEqual';
@@ -8,7 +9,6 @@ import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -450,6 +450,7 @@ export function CartDiff({
       currentValues: currentReserved,
       newValues: newReserved,
     });
+    // oxlint-disable-next-line react/memo-dependencies
   }, [activePlan, formData.reserved, subscription.categories]);
 
   const getSharedOnDemandChanges = useCallback((): SharedOnDemandChange[] => {
@@ -515,6 +516,7 @@ export function CartDiff({
       newValues: parsedNewOnDemandBudget,
       shouldIncludeZero: currentBudgetMode === newBudgetMode,
     });
+    // oxlint-disable-next-line react/memo-dependencies
   }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 
   const planChanges = useMemo(() => getPlanChanges(), [getPlanChanges]);

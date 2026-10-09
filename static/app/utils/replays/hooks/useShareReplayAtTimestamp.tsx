@@ -1,5 +1,5 @@
 import {useCallback, useState} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';

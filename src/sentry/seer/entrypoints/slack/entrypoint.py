@@ -324,7 +324,7 @@ class SlackAutofixEntrypoint(
         send_thread_update(
             install=self.install,
             thread=self.thread,
-            data=SeerAutofixError(error_message=error),
+            data=SeerAutofixError(organization_id=self.organization_id, error_message=error),
             ephemeral_user_id=self.slack_request.user_id,
         )
 
@@ -341,7 +341,7 @@ class SlackAutofixEntrypoint(
         send_thread_update(
             install=self.install,
             thread=self.thread,
-            data=SeerAutofixError(error_message=error),
+            data=SeerAutofixError(organization_id=self.organization_id, error_message=error),
             ephemeral_user_id=self.slack_request.user_id,
         )
 
@@ -479,7 +479,12 @@ class SlackAutofixEntrypoint(
                         "changes": changes_list,
                     }
                 )
-            case SentryAppEventType.SEER_PR_CREATED | SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
+            # Skipped for now, as it would repeat PR_CREATED's message. Seer will eventually always
+            # mark PRs ready for review (after fixing CI in draft, or giving up on CI), and we plan
+            # to post a separate "ready for a human to review" message in Slack at that point.
+            case SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
+                return
+            case SentryAppEventType.SEER_PR_CREATED:
                 pull_requests = [
                     pr_payload.get("pull_request", {})
                     for pr_payload in event_payload.get("pull_requests", [])
@@ -570,7 +575,7 @@ class SlackAgentEntrypoint(
         send_thread_update(
             install=self.install,
             thread=self.thread,
-            data=SeerAgentError(error_message=error),
+            data=SeerAgentError(organization_id=self.organization_id, error_message=error),
             ephemeral_user_id=self.slack_user_id,
         )
 
@@ -632,7 +637,8 @@ class SlackAgentEntrypoint(
             and pending_user_input.input_type == "agent_write_approval"
         ) or not summary:
             response_data: SeerAgentError | SeerAgentResponse = SeerAgentError(
-                error_message="Seer was unable to generate a response."
+                organization_id=organization_id,
+                error_message="Seer was unable to generate a response.",
             )
         else:
             missing_scope_url = _get_missing_scope_settings_url(

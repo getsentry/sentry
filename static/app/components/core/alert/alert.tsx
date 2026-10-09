@@ -1,15 +1,19 @@
 import {useRef, useState} from 'react';
 import {css, type SerializedStyles, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconInfo} from '@sentry/icons/info';
+import {IconNot} from '@sentry/icons/not';
+import {IconWarning} from '@sentry/icons/warning';
 import classNames from 'classnames';
 import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {AlertVariant} from 'sentry/utils/theme';

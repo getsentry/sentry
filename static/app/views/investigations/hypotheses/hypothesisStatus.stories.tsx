@@ -15,24 +15,17 @@ export default Storybook.story('Investigations — Hypothesis status', story => 
   story('A verdict the agent reached', () => (
     <Fragment>
       <p>
-        The status box is the dot-and-label line a hypothesis card leads with. It is not a
-        render of one field: the label comes from <code>effectiveStatus</code>,{' '}
-        <code>decisionSource</code> and the shape of <code>verificationSteps</code>{' '}
-        together. Every row below is the projection shape that actually produces that box.
+        The status sits beside the hypothesis number. Its label comes from{' '}
+        <code>effectiveStatus</code>, <code>decisionSource</code> and the shape of{' '}
+        <code>verificationSteps</code> together. Every row below is the projection shape
+        that produces that status.
       </p>
-      <p>
-        Confidence is only meaningful once the agent has settled, so it is appended only
-        for those statuses. It is read from <code>hypothesis.confidence</code>, falling
-        back to <code>agentVerdict.confidence</code> for a projection that has filled in
-        only the latter.
-      </p>
+      <p>Confidence percentages are omitted from every state.</p>
       <p>
         Colour is deliberately sparing. <code>supported</code> and <code>accepted</code>{' '}
-        are the only greens. <code>refuted</code> and <code>inconclusive</code> are amber:
-        a hypothesis the agent tested and closed is not an error, but it is still a result
-        worth registering as you scan the row. <code>rejected</code> and{' '}
-        <code>cancelled</code> stay muted — nobody tested those — and of the settled
-        statuses only <code>failed</code> is dangerous.
+        are green. <code>inconclusive</code> is amber, while <code>refuted</code>,{' '}
+        <code>rejected</code> and <code>cancelled</code> are gray. <code>failed</code> is
+        red. Each is a coloured dot beside a label in the same colour.
       </p>
       <StatusBoxes rows={SETTLED} />
     </Fragment>
@@ -61,10 +54,9 @@ export default Storybook.story('Investigations — Hypothesis status', story => 
         the verdict is missing.
       </p>
       <p>
-        Only <em>Verifying…</em> is coloured, and it is the only one drawn as a spinning
-        ring rather than a dot — the agent is doing something, where the others are places
-        the hypothesis has come to a stop, however briefly. A column of moving indicators
-        would claim everything is live when nothing is.
+        <em>Verifying…</em> is purple, and its dot pulses to mark active work. The other
+        three stages are gray while the hypothesis is being prepared or waiting for a
+        verdict.
       </p>
       <StatusBoxes rows={IN_FLIGHT} />
     </Fragment>
@@ -124,7 +116,7 @@ const SETTLED: StatusBoxRow[] = [
   },
   {
     key: 'refuted',
-    caption: "effectiveStatus: 'refuted' — tested and closed, so it reads amber",
+    caption: "effectiveStatus: 'refuted' — ruled out, in gray",
     hypothesis: InvestigationHypothesisFixture({
       effectiveStatus: 'refuted',
       confidence: 0.91,
@@ -217,7 +209,7 @@ const IN_FLIGHT: StatusBoxRow[] = [
   },
   {
     key: 'checking',
-    caption: "status: 'running' — live work, and the only box that spins",
+    caption: "status: 'running' — live work, in pulsing purple",
     hypothesis: InvestigationHypothesisFixture({
       status: 'running',
       effectiveStatus: 'investigating',

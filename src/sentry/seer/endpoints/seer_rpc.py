@@ -23,16 +23,9 @@ from rest_framework.exceptions import (
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
-from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
-    AttributeDistributionsRequest,
-    StatsType,
-    TraceItemStatsRequest,
-)
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -41,10 +34,8 @@ from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentic
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.client_kind import ClientKind, client_kind_scope
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
-from sentry.api.utils import get_date_range_from_params
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
-from sentry.exceptions import InvalidSearchQuery
 from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
@@ -63,10 +54,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.pr_metrics.judge import update_pr_metrics
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
-from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.events.types import SnubaParams
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.seer.agent.context_engine_utils import get_instrumentation_types
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
 from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
@@ -81,7 +69,6 @@ from sentry.seer.agent.monitoring_providers import (
 )
 from sentry.seer.agent.on_completion_hook import call_on_completion_hook
 from sentry.seer.agent.tools import (
-    execute_replays_query,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
@@ -133,8 +120,6 @@ from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
-    AttributeBucket,
-    AttributesAndValuesResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
@@ -166,7 +151,6 @@ from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.groupreference import find_fix_statements
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
     get_viewer_context,
     observe_viewer_context_propagation,
@@ -288,7 +272,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
-    @trace
+    @traces.trace
     def _is_authorized(self, request: Request) -> bool:
         return bool(request.auth) and isinstance(
             request.successful_authenticator,
@@ -348,7 +332,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         if viewer is None or viewer.organization_id != organization_id:
             raise PermissionDenied("Viewer context organization does not match request")
 
-    @trace
+    @traces.trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
@@ -360,7 +344,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return result.dict()
         return result
 
-    @trace
+    @traces.trace
     def post(self, request: Request, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         sentry_sdk.set_attribute("rpc.method", method_name)
@@ -498,7 +482,7 @@ def get_organization_features(
 
     feature_set: set[str] = set()
 
-    with start_span(op="features.check", name="check batch features"):
+    with traces.start_span(name="check batch features", attributes={"sentry.op": "features.check"}):
         batch = features.batch_has(
             list(features_to_check),
             actor=actor,
@@ -512,7 +496,9 @@ def get_organization_features(
                     feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
                 features_to_check.discard(name)
 
-    with start_span(op="features.check", name="check individual features"):
+    with traces.start_span(
+        name="check individual features", attributes={"sentry.op": "features.check"}
+    ):
         for name in features_to_check:
             if features.has(name, organization, actor=actor, skip_entity=True):
                 feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
@@ -527,107 +513,6 @@ class SentryOrganizaionIdsAndSlugs(TypedDict):
 
 def get_organization_autofix_consent(*, org_id: int) -> OrganizationAutofixConsentResponse:
     return OrganizationAutofixConsentResponse(consent=True)
-
-
-def get_attributes_and_values(
-    *,
-    org_id: int,
-    project_ids: list[int],
-    stats_period: str | None = None,
-    start: str | None = None,
-    end: str | None = None,
-    max_values: int = 100,
-    max_attributes: int = 1000,
-    sampled: bool = True,
-    attributes_ignored: list[str] | None = None,
-) -> AttributesAndValuesResponse:
-    """
-    Fetches all string attributes and the corresponding values with counts for a given period.
-    """
-    start_dt, end_dt = get_date_range_from_params(
-        {"start": start, "end": end, "statsPeriod": stats_period},
-    )
-
-    start_time_proto = ProtobufTimestamp()
-    start_time_proto.FromDatetime(start_dt)
-    end_time_proto = ProtobufTimestamp()
-    end_time_proto.FromDatetime(end_dt)
-
-    sampling_mode = (
-        DownsampledStorageConfig.MODE_NORMAL
-        if sampled
-        else DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
-    )
-
-    meta = RequestMeta(
-        organization_id=org_id,
-        cogs_category="events_analytics_platform",
-        referrer=Referrer.SEER_RPC.value,
-        project_ids=project_ids,
-        start_timestamp=start_time_proto,
-        end_timestamp=end_time_proto,
-        trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-        downsampled_storage_config=DownsampledStorageConfig(mode=sampling_mode),
-    )
-
-    if attributes_ignored:
-        filter = TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(
-                    name="attr_key",
-                    type=AttributeKey.TYPE_STRING,
-                ),
-                op=ComparisonFilter.OP_NOT_IN,
-                value=AttributeValue(
-                    val_str_array=StrArray(
-                        values=attributes_ignored,
-                    ),
-                ),
-            ),
-        )
-    else:
-        filter = TraceItemFilter()
-
-    stats_type = StatsType(
-        attribute_distributions=AttributeDistributionsRequest(
-            max_buckets=max_values,
-            max_attributes=max_attributes,
-        )
-    )
-    rpc_request = TraceItemStatsRequest(
-        filter=filter,
-        meta=meta,
-        stats_types=[stats_type],
-    )
-    rpc_response = snuba_rpc.trace_item_stats_rpc(rpc_request)
-
-    resolver = SearchResolver(
-        params=SnubaParams(
-            start=start_dt,
-            end=end_dt,
-        ),
-        config=SearchResolverConfig(),
-        definitions=SPAN_DEFINITIONS,
-    )
-
-    attributes_and_values: dict[str, list[AttributeBucket]] = {}
-    for result in rpc_response.results:
-        for attribute in result.attribute_distributions.attributes:
-            try:
-                resolved_attribute, _ = resolver.resolve_attribute(attribute.attribute_name)
-                attribute_name = resolved_attribute.public_alias
-            except InvalidSearchQuery:
-                attribute_name = attribute.attribute_name
-
-            if attribute.buckets:
-                if attribute_name not in attributes_and_values:
-                    attributes_and_values[attribute_name] = []
-                attributes_and_values[attribute_name].extend(
-                    AttributeBucket(value=value.label, count=value.value)
-                    for value in attribute.buckets
-                )
-
-    return AttributesAndValuesResponse(attributes_and_values=attributes_and_values)
 
 
 def get_attributes_for_span(
@@ -982,18 +867,13 @@ def refresh_monitoring_provider_token(
 
     try:
         provider.refresh_identity(identity)
-    except IdentityNotValid as exc:
-        upstream_error = ""
-        cause = exc.__cause__
-        if cause is not None and hasattr(cause, "response") and cause.response is not None:
-            upstream_error = cause.response.text[:512]
+    except IdentityNotValid:
         logger.exception(
             "monitoring_provider.refresh.identity_not_valid",
             extra={
                 "identity_id": identity_id,
                 "provider": idp.type,
                 "has_refresh_token": "refresh_token" in identity.data,
-                "upstream_error": upstream_error,
             },
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
@@ -1066,7 +946,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Assisted query
     "get_attribute_names": seer_rpc(get_attribute_names),
     "get_attribute_values_with_substring": seer_rpc(get_attribute_values_with_substring),
-    "get_attributes_and_values": seer_rpc(get_attributes_and_values),
     "get_metric_metadata": seer_rpc(get_metric_metadata),
     "get_issue_filter_keys": seer_rpc(get_issue_filter_keys),
     "get_filter_key_values": seer_rpc(get_filter_key_values),
@@ -1091,7 +970,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "execute_table_query": seer_rpc(execute_table_query),
     "execute_timeseries_query": seer_rpc(execute_timeseries_query),
     "execute_trace_table_query": seer_rpc(execute_trace_table_query),
-    "execute_replays_query": seer_rpc(execute_replays_query),
     "execute_issues_query": seer_rpc(execute_issues_query),
     "get_repository_definition": seer_rpc(get_repository_definition),
     "call_custom_tool": seer_rpc(call_custom_tool),

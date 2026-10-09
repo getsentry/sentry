@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
@@ -8,7 +9,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -50,8 +50,8 @@ export function RootAllocationCard({
     <Container margin="xl 0">
       {!rootAllocation && (
         <Card data-test-id="missing-root">
-          <Flex justify="between">
-            <Container marginRight="xl">
+          <Flex direction={{zero: 'column', md: 'row'}} justify="between" gap="xl">
+            <Container>
               {t(
                 'There is currently no organization-level allocation for this billing metric. '
               )}
@@ -69,11 +69,12 @@ export function RootAllocationCard({
                 )}
               </Text>
             </Container>
-            <Flex justify="center" align="center" area="bt" column="-auto / span 1">
+            <Flex justify="center" align="center" width={{zero: '100%', md: 'auto'}}>
               <Button
                 icon={<IconAdd />}
                 onClick={createRootAllocation}
                 disabled={rootAllocation}
+                style={{flexGrow: 1}}
               >
                 {t('Create Organization-Level Allocation')}
               </Button>

@@ -1,7 +1,7 @@
-import {keepPreviousData} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {BillingDetails} from 'getsentry/types';
@@ -9,22 +9,22 @@ import type {BillingDetails} from 'getsentry/types';
 export function useBillingDetails() {
   const organization = useOrganization();
 
-  return useApiQuery<BillingDetails>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
+  return useQuery({
+    ...apiOptions.as<BillingDetails>()(
+      '/customers/$organizationIdOrSlug/billing-details/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-      retry: (failureCount, apiError: any) => {
-        // Don't retry on auth errors
-        if (apiError.status === 401 || apiError.status === 403) {
-          return false;
-        }
-        return failureCount < 3;
-      },
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    retry: (failureCount, error) => {
+      if (
+        error instanceof RequestError &&
+        (error.status === 401 || error.status === 403)
+      ) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
 }

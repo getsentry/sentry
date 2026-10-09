@@ -3,6 +3,7 @@ from collections.abc import Mapping
 
 from django.conf import settings
 from django.utils import timezone
+from sentry_sdk import traces
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
@@ -26,7 +27,6 @@ from sentry.tasks.seer.delete_seer_grouping_records import delete_seer_grouping_
 from sentry.utils import json, metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.json import JSONDecodeError
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def make_similar_issues_request(
     )
 
 
-@trace
+@traces.trace
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
     metric_tags: Mapping[str, str | int | bool] | None = None,

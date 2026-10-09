@@ -1,30 +1,19 @@
-import {Global, css} from '@emotion/react';
+import {IconCode} from '@sentry/icons/code';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconStack} from '@sentry/icons/stack';
 
-import {Container, Flex} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 
-import {IdBadge} from 'sentry/components/idBadge';
-import * as Layout from 'sentry/components/layouts/thirds';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
-
-const TITLE_MARKER_ATTR = 'data-snapshot-header-title';
-
-const topBarShrinkOverride = css`
-  *:has(> [${TITLE_MARKER_ATTR}]) {
-    flex: 1;
-    min-width: 0;
-  }
-  *:has(> [${TITLE_MARKER_ATTR}]) + * {
-    flex-shrink: 0;
-  }
-`;
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface SnapshotHeaderContentProps {
   data: SnapshotDetailsApiResponse;
@@ -38,107 +27,61 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
   const shaUrl = getShaUrl(vcs_info, vcs_info.head_sha);
   const prUrl = getPrUrl(vcs_info);
   const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
+  const items: BreadcrumbListProps['items'] = [];
 
-  function renderVcsRef() {
-    if (vcs_info.pr_number && prUrl) {
-      return (
-        <Flex align="center" gap="xs" flexShrink={0}>
-          <IconPullRequest size="xs" />
-          <ExternalLink href={prUrl}>
-            <Text size="sm" variant="accent" wrap="nowrap">
-              #{vcs_info.pr_number}
-              {vcs_info.head_ref ? ` (${vcs_info.head_ref})` : ''}
-            </Text>
-          </ExternalLink>
-        </Flex>
-      );
-    }
-
-    if (vcs_info.head_ref) {
-      const branchLabel = branchUrl ? (
-        <ExternalLink href={branchUrl}>
-          <Text size="sm" variant="accent" wrap="nowrap">
-            {vcs_info.head_ref}
-          </Text>
-        </ExternalLink>
-      ) : (
-        <Text size="sm" wrap="nowrap">
-          {vcs_info.head_ref}
-        </Text>
-      );
-
-      return (
-        <Flex align="center" gap="xs" flexShrink={0}>
-          <IconStack size="xs" />
-          {branchLabel}
-        </Flex>
-      );
-    }
-
-    return null;
+  if (project) {
+    items.push({
+      type: 'link',
+      label: project.slug,
+      to: `${makeProjectsPathname({path: `/${project.slug}/`, organization})}?project=${project.id}`,
+      leadingGraphic: <ProjectAvatar project={project} size={16} />,
+    });
+  }
+  if (shortSha && shaUrl) {
+    items.push({
+      type: 'link',
+      label: shortSha,
+      externalHref: shaUrl,
+      leadingGraphic: <IconCommit size="xs" />,
+    });
+  }
+  if (vcs_info.pr_number && prUrl) {
+    items.push({
+      type: 'link',
+      label: `#${vcs_info.pr_number}${vcs_info.head_ref ? ` (${vcs_info.head_ref})` : ''}`,
+      externalHref: prUrl,
+      leadingGraphic: <IconPullRequest size="xs" />,
+    });
+  } else if (vcs_info.head_ref && branchUrl) {
+    items.push({
+      type: 'link',
+      label: vcs_info.head_ref,
+      externalHref: branchUrl,
+      leadingGraphic: <IconStack size="xs" />,
+    });
+  }
+  if (appId) {
+    items.push({
+      type: 'link',
+      label: appId,
+      to: `/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`,
+      leadingGraphic: <IconCode size="xs" />,
+    });
   }
 
   return (
-    <Layout.Title>
-      <Global styles={topBarShrinkOverride} />
-      <Flex
-        align="center"
-        gap="md"
-        minWidth={0}
-        overflow="hidden"
-        {...{[TITLE_MARKER_ATTR]: ''}}
-      >
-        {t('Snapshots')}
-        <Container display={{zero: 'none', '3xs': 'flex'}}>
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/snapshots/"
-            title={t('Catch visual regressions before they reach users.')}
-          />
-        </Container>
-
-        {project && (
-          <Container display={{zero: 'none', md: 'block'}}>
-            <Text as="div" size="sm">
-              <IdBadge project={project} avatarSize={16} />
-            </Text>
-          </Container>
-        )}
-
-        <Flex
-          align="center"
-          gap="md"
-          flexShrink={1}
-          minWidth={0}
-          overflow="hidden"
-          display={{zero: 'none', xs: 'flex'}}
-        >
-          {shortSha && shaUrl && (
-            <Flex align="center" gap="xs" flexShrink={0}>
-              <IconCommit size="xs" />
-              <ExternalLink href={shaUrl}>
-                <Text size="sm" variant="accent" monospace wrap="nowrap">
-                  {shortSha}
-                </Text>
-              </ExternalLink>
-            </Flex>
-          )}
-
-          {renderVcsRef()}
-
-          {appId && (
-            <Flex align="center" gap="xs" minWidth={0}>
-              <IconCode size="xs" style={{flexShrink: 0}} />
-              <Link
-                to={`/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`}
-              >
-                <Text size="sm" variant="accent" monospace ellipsis>
-                  {appId}
-                </Text>
-              </Link>
-            </Flex>
-          )}
-        </Flex>
-      </Flex>
-    </Layout.Title>
+    <TopBar.Slot
+      name="breadcrumbs"
+      items={items}
+      title={{
+        type: 'page-title',
+        label: t('Snapshots'),
+        labelTooltip: (
+          <DocumentationHint docsUrl="https://docs.sentry.io/product/snapshots/">
+            {t('Catch visual regressions before they reach users.')}
+          </DocumentationHint>
+        ),
+      }}
+    />
   );
 }

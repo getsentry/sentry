@@ -12,11 +12,13 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -234,14 +236,23 @@ export function invalidateIssueQueries({
   });
 }
 
-export function performBulkUpdate({
+function getBulkUpdateErrorMessage(error: unknown): string {
+  const fallback = t('Unable to update issues');
+  if (!(error instanceof RequestError) || error.status !== 400) {
+    return fallback;
+  }
+
+  const message = getWorkflowEngineResponseErrorMessage(error.responseJSON);
+  return message ? t('Unable to update issues: %s', message) : fallback;
+}
+
+export async function performBulkUpdate({
   api,
   data,
   itemIds,
   organizationSlug,
   query,
   selection,
-  onError,
   onSuccess,
 }: {
   api: Client;
@@ -250,7 +261,6 @@ export function performBulkUpdate({
   organizationSlug: string;
   query: string;
   selection: PageFilters;
-  onError?: () => void;
   onSuccess?: (itemIds: string[] | undefined) => void;
 }) {
   const projectConstraints = {
@@ -259,9 +269,8 @@ export function performBulkUpdate({
 
   addLoadingMessage(t('Saving changes…'));
 
-  bulkUpdate(
-    api,
-    {
+  try {
+    await bulkUpdate(api, {
       orgId: organizationSlug,
       itemIds,
       data,
@@ -270,17 +279,11 @@ export function performBulkUpdate({
       failSilently: true,
       ...projectConstraints,
       ...selection.datetime,
-    },
-    {
-      success: () => {
-        clearIndicators();
-        onSuccess?.(itemIds);
-      },
-      error: () => {
-        clearIndicators();
-        addErrorMessage(t('Unable to update issues'));
-        onError?.();
-      },
-    }
-  );
+    });
+    clearIndicators();
+    onSuccess?.(itemIds);
+  } catch (error) {
+    clearIndicators();
+    addErrorMessage(getBulkUpdateErrorMessage(error));
+  }
 }

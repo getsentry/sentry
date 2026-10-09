@@ -47,7 +47,6 @@ from sentry.locks import locks
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardHiddenUser,
     DashboardLastVisited,
 )
 from sentry.models.organization import Organization
@@ -375,10 +374,10 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int)
 
 class OrganizationDashboardsPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "dashboard:read"],
+        "POST": ["org:read", "org:write", "org:admin", "dashboard:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "dashboard:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:delete"],
     }
 
     def has_object_permission(
@@ -409,6 +408,17 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         return True
 
 
+class OrganizationDashboardsCreatePermission(OrganizationDashboardsPermission):
+    # `dashboard:create` is only accepted here, where POST creates a new dashboard.
+    # Other dashboard endpoints use POST to modify existing dashboards (e.g.
+    # revision restore), so the shared permission must not accept it.
+    # `dashboard:write` stays listed for tokens whose stored scopes predate `dashboard:create`.
+    scope_map = {
+        **OrganizationDashboardsPermission.scope_map,
+        "POST": ["org:read", "org:write", "org:admin", "dashboard:create", "dashboard:write"],
+    }
+
+
 @extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
@@ -417,7 +427,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.DASHBOARDS
-    permission_classes = (OrganizationDashboardsPermission,)
+    permission_classes = (OrganizationDashboardsCreatePermission,)
 
     @extend_schema(
         operation_id="listOrganizationDashboards",
@@ -520,13 +530,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
             if hidden_prebuilt_ids:
                 dashboards = dashboards.exclude(prebuilt_id__in=hidden_prebuilt_ids)
-
-        if "showUserHidden" not in filters:
-            dashboards = dashboards.exclude(
-                id__in=DashboardHiddenUser.objects.filter(user_id=request.user.id).values(
-                    "dashboard_id"
-                )
-            )
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")

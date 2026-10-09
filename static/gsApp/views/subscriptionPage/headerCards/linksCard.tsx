@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
+import {IconList} from '@sentry/icons/list';
+import {IconSubscribed} from '@sentry/icons/subscribed';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import {IconList, IconSubscribed, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

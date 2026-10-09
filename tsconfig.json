@@ -1,22 +1,13 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.json",
 
   "compilerOptions": {
-    // NOTE: We DO NOT use typescript to compile the application. SWC is
-    // responsible for handing transformation of tsx files into plain JavaScript
-    "module": "preserve",
-    "target": "ES2022",
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-
     // We add esnext to lib to pull in types for all newer ECMAScript features
     "lib": ["esnext", "dom", "dom.iterable", "webworker"],
 
-    // Skip type checking of all declaration files
-    "skipLibCheck": true,
-
     // Explicitly list which @types/* packages to include as global types
-    "types": ["gtag.js", "jest", "node", "@rspack/core/module"],
+    "types": ["gtag.js", "jest", "node", "@rspack/core/module", "trusted-types"],
 
     // We do not actually use tsc to output any JavaScript anywhere
     "noEmit": true,
@@ -26,27 +17,18 @@
     "jsx": "preserve",
     "jsxImportSource": "@emotion/react",
 
-    // Type checking specific options
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noUncheckedIndexedAccess": true,
-    "strict": true,
     "strictBindCallApply": false,
-    "useUnknownInCatchVariables": true,
-
-    "pretty": false,
-    "checkJs": true,
-
-    "experimentalDecorators": false,
-    "resolveJsonModule": true,
-    "verbatimModuleSyntax": true,
 
     "paths": {
-      "@sentry/scraps/*": ["./static/app/components/core/*"],
+      "react-router": ["./static/app/utils/reactRouterV6/types.d.ts"],
+      "react-router/dom": ["./static/app/utils/reactRouterV6/dom.ts"],
+      "@sentry/scraps/text": ["./static/app/components/core/text/index.tsx"],
+      "@sentry/scraps": ["./static/packages/scraps/src/index.ts"],
+      // The app falls back to core components until they move into scraps.
+      "@sentry/scraps/*": [
+        "./static/packages/scraps/src/*",
+        "./static/app/components/core/*"
+      ],
       "sentry/*": ["./static/app/*"],
       "sentry-fixture/*": ["./tests/js/fixtures/*"],
       "sentry-test/*": ["./tests/js/sentry-test/*"],
@@ -70,5 +52,14 @@
     "config",
     "scripts"
   ],
-  "exclude": ["./node_modules", "static/app/serviceWorker/worker"]
+  "exclude": [
+    "./node_modules",
+    "static/app/serviceWorker/worker",
+    // Referenced packages are checked separately and consumed as declarations.
+    "static/packages"
+  ],
+  "references": [
+    {"path": "./static/packages/icons"},
+    {"path": "./static/packages/scraps/tsconfig.test.json"}
+  ]
 }

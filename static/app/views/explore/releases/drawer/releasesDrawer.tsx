@@ -68,6 +68,7 @@ export function ReleasesDrawer() {
         source: rdChart ?? rdSource ?? 'unknown',
       });
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, rd, rdProject, rdRelease, rdSource, rdChart]);
 
   useEffect(() => {

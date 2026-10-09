@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +11,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import {useScmMessagingIntegrationsQuery} from 'sentry/components/onboarding/scm/useScmMessagingIntegrationsQuery';
 import {isIntegrationActive} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -102,6 +102,8 @@ export function openMsTeamsConnectionModal(
 ) {
   openModal(
     deps => <MsTeamsConnection {...deps} provider={provider} onConnected={onConnected} />,
-    {closeEvents: 'none'}
+    // Escape closes the modal like the close button does; a backdrop click
+    // must not, so the handoff to the Teams marketplace is not lost by accident.
+    {closeEvents: 'escape-key'}
   );
 }

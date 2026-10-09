@@ -1,4 +1,4 @@
-import {useMatches, type UIMatch} from 'react-router-dom';
+import {useMatches, type UIMatch} from 'react-router';
 
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -49,6 +49,17 @@ function getCurrentRouteInfo({
   );
 
   return {baseUrl, currentTab};
+}
+
+/**
+ * The tab on its own, for components that only need to know where they are.
+ * Unlike `useGroupDetailsRoute()` this needs no `GroupIdProvider`, so it also
+ * works in the sidebar and other places mounted beside the group route.
+ */
+export function useCurrentTab(): Tab {
+  const params = useParams<{tagKey?: string}>();
+  const matches = useMatches();
+  return getCurrentTab({matches, params});
 }
 
 export function useGroupDetailsRoute(): {

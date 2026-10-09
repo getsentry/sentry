@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconDownload} from '@sentry/icons/download';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -15,7 +17,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconChevron, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -130,85 +131,89 @@ type RowProps = {
   subscription: Subscription;
 };
 
+function OnDemandUsage({
+  history,
+  sortedCategories,
+}: {
+  history: BillingHistory;
+  sortedCategories: BillingMetricHistory[];
+}) {
+  if (!history.onDemandMaxSpend) {
+    return null;
+  }
+
+  const ondemandUsageItems = sortedCategories.map(metricHistory => {
+    const onDemandBudget =
+      history.onDemandBudgetMode === OnDemandBudgetMode.SHARED
+        ? history.onDemandMaxSpend
+        : metricHistory.onDemandBudget;
+
+    return (
+      <tr key={`ondemand-${metricHistory.category}`}>
+        <td>{getCategoryDisplay({plan: history.planDetails, metricHistory})}</td>
+        <td>{displayPriceWithCents({cents: metricHistory.onDemandSpendUsed})}</td>
+        <td>
+          {history.onDemandMaxSpend === UNLIMITED_ONDEMAND
+            ? UNLIMITED
+            : history.onDemandBudgetMode === OnDemandBudgetMode.SHARED
+              ? '\u2014'
+              : displayPriceWithCents({cents: onDemandBudget})}
+        </td>
+        <td>
+          {history.onDemandMaxSpend === UNLIMITED_ONDEMAND || onDemandBudget === 0
+            ? '0%'
+            : formatPercentage(metricHistory.onDemandSpendUsed / onDemandBudget, 0)}
+        </td>
+      </tr>
+    );
+  });
+
+  return (
+    <HistoryTable>
+      <thead>
+        <tr>
+          <th>
+            {tct('[budgetTerm] Spend[suffix]', {
+              budgetTerm: displayBudgetName(history.planDetails, {
+                title: true,
+              }),
+              suffix: history.planDetails?.hasOnDemandModes
+                ? history.onDemandBudgetMode === OnDemandBudgetMode.PER_CATEGORY
+                  ? ' (Per-Category)'
+                  : ' (Shared)'
+                : '',
+            })}
+          </th>
+          <th>{t('Amount Spent')}</th>
+          <th>{t('Maximum')}</th>
+          <th>{t('Used (%)')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {ondemandUsageItems}
+        <tr>
+          <td>{t('Total')}</td>
+          <td>{displayPriceWithCents({cents: history.onDemandSpend})}</td>
+          <td>
+            {history.onDemandMaxSpend === UNLIMITED_ONDEMAND
+              ? UNLIMITED
+              : displayPriceWithCents({cents: history.onDemandMaxSpend})}
+          </td>
+          <td>
+            {history.onDemandMaxSpend === UNLIMITED_ONDEMAND
+              ? '0%'
+              : formatPercentage(history.onDemandSpend / history.onDemandMaxSpend, 0)}
+          </td>
+        </tr>
+      </tbody>
+    </HistoryTable>
+  );
+}
+
 function UsageHistoryRow({history}: RowProps) {
   const organization = useOrganization();
   const [expanded, setExpanded] = useState(history.isCurrent);
   const {projects, onSearch: onProjectSearch} = useProjects();
-
-  function renderOnDemandUsage({
-    sortedCategories,
-  }: {
-    sortedCategories: BillingMetricHistory[];
-  }) {
-    if (!history.onDemandMaxSpend) {
-      return null;
-    }
-
-    const ondemandUsageItems: React.ReactNode[] = sortedCategories.map(metricHistory => {
-      const onDemandBudget =
-        history.onDemandBudgetMode === OnDemandBudgetMode.SHARED
-          ? history.onDemandMaxSpend
-          : metricHistory.onDemandBudget;
-
-      return (
-        <tr key={`ondemand-${metricHistory.category}`}>
-          <td>{getCategoryDisplay({plan: history.planDetails, metricHistory})}</td>
-          <td>{displayPriceWithCents({cents: metricHistory.onDemandSpendUsed})}</td>
-          <td>
-            {history.onDemandMaxSpend === UNLIMITED_ONDEMAND
-              ? UNLIMITED
-              : history.onDemandBudgetMode === OnDemandBudgetMode.SHARED
-                ? '\u2014'
-                : displayPriceWithCents({cents: onDemandBudget})}
-          </td>
-          <td>
-            {history.onDemandMaxSpend === UNLIMITED_ONDEMAND || onDemandBudget === 0
-              ? '0%'
-              : formatPercentage(metricHistory.onDemandSpendUsed / onDemandBudget, 0)}
-          </td>
-        </tr>
-      );
-    });
-
-    return (
-      <HistoryTable key="ondemand">
-        <thead>
-          <tr>
-            <th>
-              {tct('[budgetTerm] Spend[suffix]', {
-                budgetTerm: displayBudgetName(history.planDetails, {title: true}),
-                suffix: history.planDetails?.hasOnDemandModes
-                  ? history.onDemandBudgetMode === OnDemandBudgetMode.PER_CATEGORY
-                    ? ' (Per-Category)'
-                    : ' (Shared)'
-                  : '',
-              })}
-            </th>
-            <th>{t('Amount Spent')}</th>
-            <th>{t('Maximum')}</th>
-            <th>{t('Used (%)')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ondemandUsageItems}
-          <tr>
-            <td>{t('Total')}</td>
-            <td>{displayPriceWithCents({cents: history.onDemandSpend})}</td>
-            <td>
-              {history.onDemandMaxSpend === UNLIMITED_ONDEMAND
-                ? UNLIMITED
-                : displayPriceWithCents({cents: history.onDemandMaxSpend})}
-            </td>
-            <td>
-              {history.onDemandMaxSpend === UNLIMITED_ONDEMAND
-                ? '0%'
-                : formatPercentage(history.onDemandSpend / history.onDemandMaxSpend, 0)}
-            </td>
-          </tr>
-        </tbody>
-      </HistoryTable>
-    );
-  }
 
   const {categories} = history;
 
@@ -264,7 +269,10 @@ function UsageHistoryRow({history}: RowProps) {
                 {t('Download Project Breakdown')}
               </OverlayTrigger.Button>
             )}
-            search={{placeholder: t('Filter projects'), onChange: onProjectSearch}}
+            search={{
+              placeholder: t('Filter projects'),
+              onChange: onProjectSearch,
+            }}
             options={projects.map(project => ({
               value: project.slug,
               label: project.slug,
@@ -346,7 +354,7 @@ function UsageHistoryRow({history}: RowProps) {
                 ))}
             </tbody>
           </HistoryTable>
-          {renderOnDemandUsage({sortedCategories})}
+          <OnDemandUsage history={history} sortedCategories={sortedCategories} />
         </Container>
       )}
     </StyledPanelItem>

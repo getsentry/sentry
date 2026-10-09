@@ -4,8 +4,10 @@
 import datetime
 import logging
 import shutil
+import sys
 import time
 from os import environ, path
+from unittest import mock
 from urllib.parse import urlparse
 
 import docker.errors
@@ -123,7 +125,16 @@ def relay_server_setup(live_server, tmpdir_factory):
     # Some structure similar to what the live_server fixture returns
     server_info = {"url": f"http://127.0.0.1:{relay_port}", "options": options}
 
-    yield server_info
+    # Relay keeps idle upstream connections open past the global 5s socket timeout.
+    httpd = live_server.thread.httpd
+    handle_error = httpd.handle_error
+
+    def _handle_error(request, client_address):
+        if not isinstance(sys.exception(), TimeoutError):
+            handle_error(request, client_address)
+
+    with mock.patch.object(httpd, "handle_error", _handle_error):
+        yield server_info
 
     # cleanup
     shutil.rmtree(config_path)

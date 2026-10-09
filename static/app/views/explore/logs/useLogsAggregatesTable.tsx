@@ -1,13 +1,15 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
@@ -25,6 +27,10 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  areAllVisualizesInvalidConditionalFilters,
+  getConditionalFilterInvalidSeriesMessageForVisualizes,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 
@@ -49,6 +55,16 @@ export function useLogsAggregatesTable({
   limit,
   referrer,
 }: UseLogsAggregatesTableOptions) {
+  const unvalidatedVisualizes = useQueryParamsVisualizes();
+  const skippedForInvalidConditionalFilter = useMemo(
+    () => areAllVisualizesInvalidConditionalFilters(unvalidatedVisualizes),
+    [unvalidatedVisualizes]
+  );
+  const invalidConditionalFilterMessage = useMemo(
+    () => getConditionalFilterInvalidSeriesMessageForVisualizes(unvalidatedVisualizes),
+    [unvalidatedVisualizes]
+  );
+
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useLogsAggregatesTableImpl>['result']) => {
       const json = results.data?.json;
@@ -62,9 +78,9 @@ export function useLogsAggregatesTable({
   const {result, pageLinks, eventView} = useProgressiveQuery<
     typeof useLogsAggregatesTableImpl
   >({
-    queryHookImplementation: useLogsAggregatesTableImpl,
+    queryHookImplementation: useLogsAggregatesTableImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
-      enabled,
+      enabled: enabled && !skippedForInvalidConditionalFilter,
       limit,
       referrer,
     },
@@ -73,16 +89,51 @@ export function useLogsAggregatesTable({
     },
   });
 
-  return {
-    data: result.data?.json,
-    isLoading: result.isLoading,
-    isPending: result.isPending,
-    isError: result.isError,
-    error: result.error,
-    refetch: result.refetch,
-    pageLinks,
+  const {
+    data: resultData,
+    error: resultError,
+    isError: resultIsError,
+    isLoading: resultIsLoading,
+    isPending: resultIsPending,
+    refetch,
+  } = result;
+
+  return useMemo(() => {
+    if (skippedForInvalidConditionalFilter) {
+      return {
+        data: undefined,
+        isLoading: false,
+        isPending: false,
+        isError: true,
+        error: new QueryError(invalidConditionalFilterMessage),
+        refetch,
+        pageLinks: undefined,
+        eventView,
+      };
+    }
+
+    return {
+      data: resultData?.json,
+      isLoading: resultIsLoading,
+      isPending: resultIsPending,
+      isError: resultIsError,
+      error: resultError,
+      refetch,
+      pageLinks,
+      eventView,
+    };
+  }, [
     eventView,
-  };
+    invalidConditionalFilterMessage,
+    pageLinks,
+    refetch,
+    resultData,
+    resultError,
+    resultIsError,
+    resultIsLoading,
+    resultIsPending,
+    skippedForInvalidConditionalFilter,
+  ]);
 }
 
 function useLogsAggregatesTableImpl({
@@ -129,11 +180,17 @@ function useLogsAggregatesApiOptions({
   const location = useLocation();
   const projectIds = useLogsFrozenProjectIds();
   const groupBys = useQueryParamsGroupBys();
-  const visualizes = useQueryParamsVisualizes();
+  const visualizes = useQueryParamsVisualizes({validate: true});
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const aggregateCursor = useQueryParamsAggregateCursor();
   const [caseInsensitive] = useCaseInsensitivity();
   const fields = getLogsAggregatesFields(groupBys, visualizes);
+  // Drop orderbys that point at series removed by `_if` validation.
+  const allowedFields = new Set(fields);
+  const validSortBys = aggregateSortBys.filter(sort => allowedFields.has(sort.field));
+  const resolvedSortBys = validSortBys.length
+    ? validSortBys
+    : defaultAggregateSortBys(visualizes.map(visualize => visualize.yAxis));
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -145,7 +202,7 @@ function useLogsAggregatesApiOptions({
   const eventView = getEventView(
     search,
     fields,
-    aggregateSortBys.slice(),
+    resolvedSortBys.slice(),
     pageFilters,
     dataset,
     projectIds ?? pageFilters.projects

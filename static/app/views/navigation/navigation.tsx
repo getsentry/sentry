@@ -1,5 +1,11 @@
 import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
+import {IconCompass} from '@sentry/icons/compass';
+import {IconDashboard} from '@sentry/icons/dashboard';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconSiren} from '@sentry/icons/siren';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {Stack, Flex} from '@sentry/scraps/layout';
@@ -8,14 +14,6 @@ import {SizeProvider} from '@sentry/scraps/sizeContext';
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
-import {
-  IconCompass,
-  IconDashboard,
-  IconGraph,
-  IconIssues,
-  IconSettings,
-  IconSiren,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -48,6 +46,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 function NavigationImpl() {
+  const organization = useOrganization({allowNull: true});
   const collapsedNavigation = useCollapsedNavigation();
   const {view} = useSecondaryNavigation();
 
@@ -91,31 +90,33 @@ function NavigationImpl() {
     <Fragment>
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
-          <OrganizationDropdown />
+          {organization ? <OrganizationDropdown /> : <UserDropdown />}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List ref={ref}>
           <PrimaryNavigationItems listRef={ref} />
         </PrimaryNavigation.List>
 
-        <SizeProvider size="sm">
-          <Stack
-            gap={layout === 'mobile' ? undefined : 'md'}
-            marginTop="auto"
-            paddingBottom="md"
-          >
-            <PrimaryNavigation.FooterItems>
-              <PrimaryNavigationFooterItems>
-                <ErrorBoundary customComponent={null}>
-                  <PrimaryNavigationWhatsNew />
-                </ErrorBoundary>
-                <PrimaryNavigationHelpMenu />
-              </PrimaryNavigationFooterItems>
-            </PrimaryNavigation.FooterItems>
-            <PrimaryNavigation.FooterItems>
-              <PrimaryNavigationFooterItemsUserDropdown />
-            </PrimaryNavigation.FooterItems>
-          </Stack>
-        </SizeProvider>
+        {organization && (
+          <SizeProvider size="sm">
+            <Stack
+              gap={layout === 'mobile' ? undefined : 'md'}
+              marginTop="auto"
+              paddingBottom="md"
+            >
+              <PrimaryNavigation.FooterItems>
+                <PrimaryNavigationFooterItems>
+                  <ErrorBoundary customComponent={null}>
+                    <PrimaryNavigationWhatsNew />
+                  </ErrorBoundary>
+                  <PrimaryNavigationHelpMenu />
+                </PrimaryNavigationFooterItems>
+              </PrimaryNavigation.FooterItems>
+              <PrimaryNavigation.FooterItems>
+                <PrimaryNavigationFooterItemsUserDropdown />
+              </PrimaryNavigation.FooterItems>
+            </Stack>
+          </SizeProvider>
+        )}
       </PrimaryNavigation.Sidebar>
 
       {isCollapsed ? (
@@ -149,14 +150,42 @@ interface PrimaryNavigationItemsProps {
 }
 
 export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
-  const organization = useOrganization();
-  const prefix = `organizations/${organization.slug}`;
+  const organization = useOrganization({allowNull: true});
 
   const fallbackRef = useRef<HTMLUListElement>(null);
 
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({
     ref: listRef ?? fallbackRef,
   });
+
+  const settingsPath = organization
+    ? `/settings/${organization.slug}/`
+    : '/settings/account/';
+  const settingsItem = (
+    <NavigationTourElement id={NavigationTour.SETTINGS} title={null} description={null}>
+      {tourProps => (
+        <PrimaryNavigation.ListItem>
+          <PrimaryNavigation.Link
+            to={settingsPath}
+            analyticsKey="settings"
+            label={t('Settings')}
+            {...mergeProps(
+              makeNavigationItemProps('settings', settingsPath, '/settings/'),
+              tourProps
+            )}
+          >
+            <IconSettings />
+          </PrimaryNavigation.Link>
+        </PrimaryNavigation.ListItem>
+      )}
+    </NavigationTourElement>
+  );
+
+  if (!organization) {
+    return settingsItem;
+  }
+
+  const prefix = `organizations/${organization.slug}`;
 
   return (
     <Fragment>
@@ -273,27 +302,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </PrimaryNavigation.Link>
       </PrimaryNavigation.ListItem>
 
-      <NavigationTourElement id={NavigationTour.SETTINGS} title={null} description={null}>
-        {tourProps => (
-          <PrimaryNavigation.ListItem>
-            <PrimaryNavigation.Link
-              to={`/settings/${organization.slug}/`}
-              analyticsKey="settings"
-              label={t('Settings')}
-              {...mergeProps(
-                makeNavigationItemProps(
-                  'settings',
-                  `/settings/${organization.slug}/`,
-                  '/settings/'
-                ),
-                tourProps
-              )}
-            >
-              <IconSettings />
-            </PrimaryNavigation.Link>
-          </PrimaryNavigation.ListItem>
-        )}
-      </NavigationTourElement>
+      {settingsItem}
     </Fragment>
   );
 }
@@ -302,7 +311,11 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
  * Returns the list of items from the footer of the primary navigation
  */
 export function PrimaryNavigationFooterItems({children}: PropsWithChildren) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
+
+  if (!organization) {
+    return children;
+  }
 
   return (
     <Fragment>
