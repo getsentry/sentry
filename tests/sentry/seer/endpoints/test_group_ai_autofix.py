@@ -987,6 +987,32 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 404, response.data
         mock_trigger_explorer.assert_not_called()
 
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient.get_run")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_rejects_run_from_another_project(self, mock_trigger, mock_get_run):
+        """A member keeps an issue they can access and swaps run_id for another project's run."""
+        group = self.create_group()
+        other_project = self.create_project(organization=self.organization)
+        other_group = self.create_group(project=other_project)
+        foreign_run = self.create_seer_run(organization=self.organization, seer_run_state_id=4242)
+        self.create_seer_agent_run(
+            run=foreign_run,
+            source="autofix",
+            group=other_group,
+            project=other_project,
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "solution", "run_id": 4242, "user_context": "Find a solution"},
+            format="json",
+        )
+
+        assert response.status_code == 404, response.data
+        mock_get_run.assert_not_called()
+        mock_trigger.assert_not_called()
+
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     def test_insert_index_rejected_when_coding_agent_exists(

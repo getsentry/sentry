@@ -39,6 +39,8 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.dispatch import (
     AutofixFeatureArgs,
+    autofix_run_targets_other_issue,
+    require_autofix_run_for_group,
     trigger_autofix_feature,
 )
 from sentry.seer.autofix.feature.models import (
@@ -431,13 +433,24 @@ def get_autofix_run_state(group: Group, run_id: int) -> SeerRunState:
     return _get_group_run_state(client, group, run_id)
 
 
+def _reject_foreign_autofix_run(group: Group, run_id: int) -> None:
+    if autofix_run_targets_other_issue(group, run_id):
+        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+
+
 def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
+    # The local mirror is the access check. Seer session metadata is not: it is
+    # fetched with the caller-supplied run_id and must not be able to authorize it.
+    _reject_foreign_autofix_run(group, state.run_id)
     group_id = state.metadata.get("group_id") if state.metadata else None
     if group_id != group.id:
         raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
 
 def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> SeerRunState:
+    # Reject a foreign run before asking Seer for it, so a swapped run_id never
+    # reads or continues another project's session.
+    _reject_foreign_autofix_run(group, run_id)
     try:
         state = client.get_run(run_id)
     except ValueError:
@@ -506,14 +519,7 @@ def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None
 
 
 def _assert_existing_run_belongs_to_group(group: Group, run_id: int) -> None:
-    has_matching_run = SeerRun.objects.filter(
-        organization_id=group.organization.id,
-        seer_run_state_id=run_id,
-        agent__group_id=group.id,
-        agent__source__in=(FEATURE_ID, LEGACY_FEATURE_ID),
-    ).exists()
-    if not has_matching_run:
-        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+    require_autofix_run_for_group(group, run_id)
 
 
 @traces.trace
