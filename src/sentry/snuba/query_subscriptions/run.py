@@ -44,6 +44,7 @@ def _process_subscription_message(message_bytes: bytes, dataset: Dataset) -> Non
             parent_span=None,
         )
     finally:
+        propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
         propagation_context.custom_sampling_context = prev_sampling_context
     with (
         span,
