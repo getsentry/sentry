@@ -255,3 +255,23 @@ class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStat
                 )
             ],
         )
+
+
+class SeerInvestigationError(NotificationData):
+    error_message: str
+    source: NotificationSource = NotificationSource.SEER_INVESTIGATION_ERROR
+
+
+@template_registry.register(NotificationSource.SEER_INVESTIGATION_ERROR)
+class SeerInvestigationErrorTemplate(NotificationTemplate[SeerInvestigationError]):
+    category = NotificationCategory.SEER
+    example_data = SeerInvestigationError(
+        organization_id=1, error_message="An unexpected error occurred"
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerInvestigationError) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer couldn't start an investigation",
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.error_message)])],
+        )

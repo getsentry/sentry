@@ -8,6 +8,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerInvestigationError,
+    SeerInvestigationErrorTemplate,
     SeerInvestigationStatus,
     SeerInvestigationStatusTemplate,
     _get_next_stopping_point,
@@ -147,3 +149,14 @@ class SeerInvestigationStatusTemplateTest(TestCase):
         assert rendered.subject == "Seer investigation started"
         assert isinstance(rendered.body[0], ParagraphSection)
         assert rendered.body[0].blocks[0].text == "Seer started an investigation for this alert."
+
+
+class SeerInvestigationErrorTemplateTest(TestCase):
+    def test_render(self) -> None:
+        rendered = SeerInvestigationErrorTemplate().render(
+            SeerInvestigationError(organization_id=1, error_message="Something broke")
+        )
+
+        assert rendered.subject == "Seer couldn't start an investigation"
+        assert isinstance(rendered.body[0], ParagraphSection)
+        assert rendered.body[0].blocks[0].text == "Something broke"

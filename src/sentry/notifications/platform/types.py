@@ -73,6 +73,7 @@ class NotificationSource(StrEnum):
     SEER_AGENT_ERROR = "seer-agent-error"
     SEER_AGENT_WRITE_APPROVAL = "seer-agent-write-approval"
     SEER_INVESTIGATION_STATUS = "seer-investigation-status"
+    SEER_INVESTIGATION_ERROR = "seer-investigation-error"
 
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
@@ -138,6 +139,7 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SEER_AGENT_ERROR,
         NotificationSource.SEER_AGENT_WRITE_APPROVAL,
         NotificationSource.SEER_INVESTIGATION_STATUS,
+        NotificationSource.SEER_INVESTIGATION_ERROR,
     ],
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,

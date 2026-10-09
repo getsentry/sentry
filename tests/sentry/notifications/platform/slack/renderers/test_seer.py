@@ -28,6 +28,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixCodeChange,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
+    SeerInvestigationError,
+    SeerInvestigationErrorTemplate,
     SeerInvestigationStatus,
     SeerInvestigationStatusTemplate,
 )
@@ -442,6 +444,19 @@ class SeerSlackRendererInvestigationTest(TestCase):
         )
 
         text = "<@U0123456789> started a Seer investigation for this alert."
+        assert renderable["text"] == text
+        (block,) = renderable["blocks"]
+        assert isinstance(block, MarkdownBlock)
+        assert block.text == text
+
+    def test_render_investigation_error(self) -> None:
+        renderable = NotificationService.render_template(
+            data=SeerInvestigationError(organization_id=1, error_message="Something broke"),
+            template=SeerInvestigationErrorTemplate(),
+            provider=SlackNotificationProvider,
+        )
+
+        text = "Seer couldn't start an investigation: Something broke"
         assert renderable["text"] == text
         (block,) = renderable["blocks"]
         assert isinstance(block, MarkdownBlock)

@@ -30,6 +30,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerInvestigationError,
     SeerInvestigationStatus,
 )
 from sentry.notifications.platform.types import (
@@ -99,6 +100,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
         NotificationSource.SEER_INVESTIGATION_STATUS,
+        NotificationSource.SEER_INVESTIGATION_ERROR,
     ],
 )
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
@@ -122,6 +124,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_agent_response(data)
         elif isinstance(data, SeerInvestigationStatus):
             return cls._render_investigation_status(data)
+        elif isinstance(data, SeerInvestigationError):
+            return cls._render_investigation_error(data)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -271,6 +275,11 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def _render_investigation_status(cls, data: SeerInvestigationStatus) -> SlackRenderable:
         text = f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+        return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
+
+    @classmethod
+    def _render_investigation_error(cls, data: SeerInvestigationError) -> SlackRenderable:
+        text = f"Seer couldn't start an investigation: {data.error_message}"
         return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
 
     @classmethod

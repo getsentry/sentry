@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
-from slack_sdk.models.blocks import MarkdownBlock
-
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
@@ -21,6 +19,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixError,
     SeerAutofixUpdate,
+    SeerInvestigationError,
+    SeerInvestigationErrorTemplate,
     SeerInvestigationStatus,
     SeerInvestigationStatusTemplate,
 )
@@ -803,12 +803,16 @@ class SlackInvestigationEntrypoint(
     def on_trigger_investigation_error(self, *, error: str) -> None:
         from sentry.integrations.slack.workspace import send_threaded_ephemeral_message
 
-        text = f"Seer couldn't start an investigation: {error}"
+        renderable = NotificationService.render_template(
+            data=SeerInvestigationError(organization_id=self.organization.id, error_message=error),
+            template=SeerInvestigationErrorTemplate(),
+            provider=provider_registry.get(NotificationProviderKey.SLACK),
+        )
         try:
             send_threaded_ephemeral_message(
                 integration_id=self.install.model.id,
                 channel_id=self.channel_id,
-                renderable=SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text),
+                renderable=renderable,
                 slack_user_id=self.slack_user_id,
                 thread_ts=self.alert_thread_ts,
             )
