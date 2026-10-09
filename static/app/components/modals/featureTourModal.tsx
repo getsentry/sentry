@@ -1,4 +1,4 @@
-import {Component, Fragment, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 
@@ -45,23 +45,6 @@ type Props = {
   onCloseModal?: (currentIndex: number, durationOpen: number) => void;
 };
 
-type State = {
-  /**
-   * The last known step
-   */
-  current: number;
-
-  /**
-   * The timestamp when the modal was shown.
-   * Used to calculate how long the modal was open
-   */
-  openedAt: number;
-};
-
-const defaultProps = {
-  doneText: t('Done'),
-};
-
 /**
  * Provide a showModal action to the child function that lets
  * a tour be triggered.
@@ -72,64 +55,69 @@ const defaultProps = {
  * trigger re-renders in the modal contents. This requires a bit of duplicate state
  * to be managed around the current step.
  */
-export class FeatureTourModal extends Component<Props, State> {
-  static defaultProps = defaultProps;
+export function FeatureTourModal({
+  children,
+  steps,
+  doneUrl,
+  doneText = t('Done'),
+  onAdvance,
+  onCloseModal,
+}: Props) {
+  // These values are only read inside callbacks, never during render,
+  // so refs avoid unnecessary re-renders.
+  const openedAtRef = useRef<number>(0);
+  const currentRef = useRef<number>(0);
 
-  state: State = {
-    openedAt: 0,
-    current: 0,
-  };
+  const handleAdvance = useCallback(
+    (current: number, duration: number) => {
+      currentRef.current = current;
+      onAdvance?.(current, duration);
+    },
+    [onAdvance]
+  );
 
-  // Record the step change and call the callback this component was given.
-  handleAdvance = (current: number, duration: number) => {
-    this.setState({current});
-    this.props.onAdvance?.(current, duration);
-  };
-
-  handleShow = () => {
-    this.setState({openedAt: Date.now()}, () => {
-      const modalProps = {
-        steps: this.props.steps,
-        onAdvance: this.handleAdvance,
-        openedAt: this.state.openedAt,
-        doneText: this.props.doneText,
-        doneUrl: this.props.doneUrl,
-      };
-      openModal(deps => <ModalContents {...deps} {...modalProps} />, {
-        onClose: this.handleClose,
-      });
-    });
-  };
-
-  handleClose = () => {
+  const handleClose = useCallback(() => {
     // The bootstrap modal and modal store both call this callback.
-    // We use the state flag to deduplicate actions to upstream components.
-    if (this.state.openedAt === 0) {
+    // We use the ref flag to deduplicate actions to upstream components.
+    if (openedAtRef.current === 0) {
       return;
     }
-    const {onCloseModal} = this.props;
+    const duration = Date.now() - openedAtRef.current;
+    onCloseModal?.(currentRef.current, duration);
 
-    const duration = Date.now() - this.state.openedAt;
-    onCloseModal?.(this.state.current, duration);
+    // Reset now that the modal is closed, used to deduplicate close actions.
+    openedAtRef.current = 0;
+    currentRef.current = 0;
+  }, [onCloseModal]);
 
-    // Reset the state now that the modal is closed, used to deduplicate close actions.
-    this.setState({openedAt: 0, current: 0});
-  };
+  const handleShow = useCallback(() => {
+    openedAtRef.current = Date.now();
+    const modalProps = {
+      steps,
+      onAdvance: handleAdvance,
+      openedAt: openedAtRef.current,
+      doneText,
+      doneUrl,
+    };
+    openModal(deps => <ModalContents {...deps} {...modalProps} />, {
+      onClose: handleClose,
+    });
+  }, [steps, handleAdvance, doneText, doneUrl, handleClose]);
 
-  render() {
-    const {children} = this.props;
-    return <Fragment>{children({showModal: this.handleShow})}</Fragment>;
-  }
+  // showModal only reads refs when the child invokes it from an event handler.
+  // oxlint-disable-next-line react/refs
+  return children({showModal: handleShow});
 }
 
 type ContentsProps = ModalRenderProps &
-  Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> &
-  Pick<State, 'openedAt'>;
+  Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> & {
+    openedAt: number;
+  };
 
 function ModalContents({
   Body,
   steps,
-  doneText = defaultProps.doneText,
+  doneText = t('Done'),
   doneUrl,
   closeModal,
   onAdvance,
