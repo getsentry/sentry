@@ -12,6 +12,7 @@ from ..detectors.utils import (
     fingerprint_http_spans,
     get_notification_attachment_body,
     get_numeric_value_from_span,
+    get_span_description,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -63,7 +64,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
     def _store_performance_problem(self, span: Span) -> None:
         fingerprint = self._fingerprint(span)
         offender_span_id: str = span["span_id"]
-        desc: str = span.get("description", "")
+        desc = get_span_description(span)
 
         evidence_data = {
             "parent_span_ids": [],
@@ -104,7 +105,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         span_id = span.get("span_id", None)
         op: str = span.get("op", "") or ""
         hash = span.get("hash", None)
-        description: str = span.get("description", "") or ""
+        description = get_span_description(span)
 
         if not span_id or not op or not hash or not description:
             return False

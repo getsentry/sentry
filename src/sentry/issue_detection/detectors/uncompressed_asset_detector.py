@@ -14,6 +14,7 @@ from ..detectors.utils import (
     get_browser_name,
     get_notification_attachment_body,
     get_numeric_value_from_span,
+    get_span_description,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -46,7 +47,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     def visit_span(self, span: Span) -> None:
         op = span.get("op", None)
-        description = span.get("description", "")
+        description = get_span_description(span)
         if not op:
             return
 

@@ -9,6 +9,7 @@ from sentry.issue_detection.detectors.utils import (
     get_duration_between_spans,
     get_max_span_duration,
     get_notification_attachment_body,
+    get_span_description,
     get_span_duration,
     get_span_evidence_value,
     get_total_span_duration,
@@ -169,7 +170,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         span_id = span.get("span_id", None)
         op: str = span.get("op", "") or ""
         hash = span.get("hash", None)
-        description: str = span.get("description", "") or ""
+        description = get_span_description(span)
 
         if not span_id or not op or not hash or not description:
             return False
