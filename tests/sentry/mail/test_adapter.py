@@ -46,6 +46,7 @@ from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
     NotificationActionContext,
+    NotificationOrigin,
     RuleFuture,
 )
 from sentry.notifications.utils.digest import get_digest_subject
@@ -1400,9 +1401,10 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=project)
+        origin = NotificationOrigin.from_legacy_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project, (event_to_record(event, (origin,)), event_to_record(event2, (origin,)))
         )
 
         with self.tasks():
@@ -1456,9 +1458,10 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=project)
+        origin = NotificationOrigin.from_legacy_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project, (event_to_record(event, (origin,)), event_to_record(event2, (origin,)))
         )
 
         features = ["organizations:session-replay"]
@@ -1484,8 +1487,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     def test_notify_digest_single_record(self, send_async: MagicMock, notify: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(project=self.project)
+        origin = NotificationOrigin.from_legacy_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        digest = build_digest(self.project, (event_to_record(event, (rule,)),))
+        digest = build_digest(self.project, (event_to_record(event, (origin,)),))
         self.adapter.notify_digest(
             self.project,
             digest,
@@ -1511,9 +1515,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=self.project)
+        origin = NotificationOrigin.from_legacy_rule(rule)
 
         digest = build_digest(
-            self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            self.project,
+            (event_to_record(event, (origin,)), event_to_record(event2, (origin,))),
         )
 
         with self.tasks():
@@ -1552,9 +1558,10 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             "targetIdentifier": str(444),
         }
         rule = self.create_project_rule(name="a rule", action_data=[action_data])
+        origin = NotificationOrigin.from_legacy_rule(rule)
 
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project, (event_to_record(event, (origin,)), event_to_record(event2, (origin,)))
         )
 
         with self.tasks():
