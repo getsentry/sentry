@@ -6,7 +6,11 @@ import {
   useAsyncQueuer,
   type ReactAsyncQueuer,
 } from '@tanstack/react-pacer';
+import type {QueryFunctionContext} from '@tanstack/react-query';
 
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -28,6 +32,56 @@ export function useWidgetQueryQueue() {
   const queueContext = useContext(WidgetQueueContext);
 
   return queueContext ? queueContext : {queue: undefined};
+}
+
+// HTTP status of a failed widget request, for metric attributes. Rate limited
+// requests (429) are the main thing worth separating from other failures.
+function getErrorStatus(error: unknown): string {
+  return error instanceof RequestError && error.status ? String(error.status) : 'unknown';
+}
+
+// The query key holds the resolved URL, so swap the org slug for a placeholder to
+// keep the metric attribute low cardinality
+function getEndpointForMetrics(url: string): string {
+  return url.replace(/^\/organizations\/[^/]+\//, '/organizations/{org}/');
+}
+
+/**
+ * Fetches a widget query through the widget query queue when one is available,
+ * otherwise fetches it directly. Failures are counted with their HTTP status and
+ * endpoint so rate limiting and other errors show up in metrics.
+ *
+ * Note that the queue never sees the failure: the request promise is settled
+ * here, so the queue's retryer only ever observes a resolved task.
+ */
+export function queueApiFetch<TResponseData>(
+  queue: WidgetQueryQueue | undefined,
+  context: QueryFunctionContext<ApiQueryKey>
+): Promise<ApiResponse<TResponseData>> {
+  const [url] = context.queryKey;
+  const trackFailure = (error: unknown) => {
+    metrics.count('dashboards.widget_query.failed', 1, {
+      attributes: {endpoint: getEndpointForMetrics(url), status: getErrorStatus(error)},
+    });
+  };
+
+  if (!queue) {
+    return apiFetch<TResponseData>(context).catch(error => {
+      trackFailure(error);
+      throw error;
+    });
+  }
+
+  return new Promise((resolve, reject) => {
+    const fetchDataRef = {
+      current: () =>
+        apiFetch<TResponseData>(context).then(resolve, error => {
+          trackFailure(error);
+          reject(error);
+        }),
+    };
+    queue.addItem({fetchDataRef});
+  });
 }
 
 // Lowest known safe value for customers — used when the org option is unset so we

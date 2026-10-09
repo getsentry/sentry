@@ -6,7 +6,7 @@ import {sessionsApiOptions} from 'sentry/actionCreators/sessions';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -15,7 +15,10 @@ import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import {getWidgetInterval} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {
+  queueApiFetch,
+  useWidgetQueryQueue,
+} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
@@ -93,16 +96,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
         ...baseOptions,
         staleTime: getWidgetStaleTime(pageFilters),
         queryFn: (context): Promise<ApiResponse<SessionApiResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<SessionApiResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<SessionApiResponse>(context);
+          return queueApiFetch<SessionApiResponse>(queue, context);
         },
         enabled,
         retry: false,
@@ -246,16 +240,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
         ...baseOptions,
         staleTime: getWidgetStaleTime(pageFilters),
         queryFn: (context): Promise<ApiResponse<SessionApiResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<SessionApiResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<SessionApiResponse>(context);
+          return queueApiFetch<SessionApiResponse>(queue, context);
         },
         enabled,
         retry: false,

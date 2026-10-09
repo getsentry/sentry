@@ -12,6 +12,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {useReleasesSeriesQuery, useReleasesTableQuery} from './useReleasesWidgetQuery';
 
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
+  ...jest.requireActual('sentry/views/dashboards/utils/widgetQueryQueue'),
   useWidgetQueryQueue: () => ({queue: null}),
 }));
 

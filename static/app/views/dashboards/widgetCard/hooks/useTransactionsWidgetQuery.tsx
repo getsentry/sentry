@@ -8,7 +8,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
@@ -22,7 +22,10 @@ import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {
+  queueApiFetch,
+  useWidgetQueryQueue,
+} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
@@ -118,17 +121,7 @@ export function useTransactionsSeriesQuery(
           }
         ),
         queryFn: (context): Promise<ApiResponse<TransactionsSeriesResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<TransactionsSeriesResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-
-          return apiFetch<TransactionsSeriesResponse>(context);
+          return queueApiFetch<TransactionsSeriesResponse>(queue, context);
         },
         enabled,
         retry: false,
@@ -266,16 +259,7 @@ export function useTransactionsTableQuery(
           }
         ),
         queryFn: (context): Promise<ApiResponse<TransactionsTableResponse>> => {
-          if (queue) {
-            return new Promise((resolve, reject) => {
-              const fetchFnRef = {
-                current: () =>
-                  apiFetch<TransactionsTableResponse>(context).then(resolve, reject),
-              };
-              queue.addItem({fetchDataRef: fetchFnRef});
-            });
-          }
-          return apiFetch<TransactionsTableResponse>(context);
+          return queueApiFetch<TransactionsTableResponse>(queue, context);
         },
         enabled,
         retry: false,
