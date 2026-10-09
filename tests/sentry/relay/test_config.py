@@ -305,7 +305,7 @@ def test_project_config_json_expansion(default_project: MagicMock, option_enable
     project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
-    # TODO: call _validate_project_config once sentry-relay is bumped, 0.9.31 strips the feature.
+    _validate_project_config(cfg["config"])
     exposed_features = get_path(cfg, "config", "features") or []
 
     assert ("projects:relay-automatic-json-expansion" in exposed_features) == option_enabled
