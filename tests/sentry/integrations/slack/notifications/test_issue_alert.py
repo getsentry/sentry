@@ -349,13 +349,12 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
     def _assert_issue_owners_env_block(
         self, rule: Rule | NotificationOrigin, environment: Environment
     ) -> None:
-        _, workflow_id_value = get_rule_or_workflow_id(rule, prefer="workflow_id")
+        if isinstance(rule, Rule):
+            origin = NotificationOrigin.from_legacy_rule(rule)
+        else:
+            origin = rule
+        _, workflow_id_value = get_rule_or_workflow_id(origin, prefer="workflow_id")
         workflow_id = int(workflow_id_value)
-        origin = (
-            rule
-            if isinstance(rule, NotificationOrigin)
-            else NotificationOrigin.from_legacy_rule(rule)
-        )
         event = self.store_event(
             data={"message": "Hello world", "level": "error", "environment": environment.name},
             project_id=self.project.id,

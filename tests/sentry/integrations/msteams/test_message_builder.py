@@ -49,6 +49,7 @@ from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.notifications.types import NotificationOrigin
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
@@ -117,10 +118,11 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert self.event1.group is not None
         self.group1 = self.event1.group
 
-        self.rules = [
+        persisted_rules = [
             self.create_project_rule(name="rule1"),
             self.create_project_rule(name="rule2"),
         ]
+        self.rules = [NotificationOrigin.from_legacy_rule(rule) for rule in persisted_rules]
 
     def test_simple(self) -> None:
         card = MSTeamsMessageBuilder().build(
@@ -422,18 +424,21 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_action_payload_includes_rule_and_workflow_ids(self) -> None:
-        self.rules[0].data["actions"][0].update(
-            {"legacy_rule_id": self.rules[0].id, "workflow_id": 123}
+        rule = NotificationOrigin(
+            label=self.rules[0].label,
+            environment_id=self.rules[0].environment_id,
+            legacy_rule_id=self.rules[0].legacy_rule_id,
+            workflow_id=123,
         )
 
         payload = MSTeamsIssueMessageBuilder(
             group=self.group1,
             event=self.event1,
-            rules=[self.rules[0]],
+            rules=[rule],
             integration=self.integration,
         ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
 
-        assert payload["rules"] == [self.rules[0].id]
+        assert payload["rules"] == [self.rules[0].legacy_rule_id]
         assert payload["workflows"] == [123]
 
     def test_issue_description_uses_event(self) -> None:
