@@ -144,19 +144,21 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                     {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}, status=200
                 )
 
+            version = data.get("version")
+            dist = data.get("dist")
+
+            # This has to be validated before setting the assemble status, otherwise a rejected
+            # request leaves a `CREATED` status behind that short-circuits any retry.
+            if not version and dist:
+                return Response(
+                    {"error": "You need to specify a release together with a dist"}, status=400
+                )
+
             set_assemble_status(
                 AssembleTask.ARTIFACT_BUNDLE, organization.id, checksum, ChunkFileState.CREATED
             )
 
             from sentry.tasks.assemble import assemble_artifacts
-
-            version = data.get("version")
-            dist = data.get("dist")
-
-            if not version and dist:
-                return Response(
-                    {"error": "You need to specify a release together with a dist"}, status=400
-                )
 
             with start_span(
                 op="artifact_bundle.assemble.start_assemble_artifacts",
