@@ -51,11 +51,22 @@ Use `EntityHeader` on a detail page — a single issue, trace, replay, release, 
       items: [
         {
           label: 'Started at',
-          values: ['Feb 11, 2026 10:56 CET'],
+          type: 'text',
+          value: 'Feb 11, 2026 10:56 CET',
           leadingGraphic: <IconCalendar size="md" />,
         },
-        {label: 'Browser', values: ['Chrome', '144.0.0']},
-        {label: 'Operating system', values: ['Windows', '>=10']},
+        {
+          label: 'Browser',
+          type: 'text',
+          value: 'Chrome',
+          secondary: {label: 'version', value: '144.0.0'},
+        },
+        {
+          label: 'Operating system',
+          type: 'text',
+          value: 'Windows',
+          secondary: {label: 'version', value: '>=10'},
+        },
       ],
     }}
   />
@@ -85,11 +96,22 @@ Use `EntityHeader` on a detail page — a single issue, trace, replay, release, 
     items: [
       {
         label: 'Started at',
-        values: ['Feb 11, 2026 10:56 CET'],
+        type: 'text',
+        value: 'Feb 11, 2026 10:56 CET',
         leadingGraphic: <IconCalendar size="md" />,
       },
-      {label: 'Browser', values: ['Chrome', '144.0.0']},
-      {label: 'Operating system', values: ['Windows', '>=10']},
+      {
+        label: 'Browser',
+        type: 'text',
+        value: 'Chrome',
+        secondary: {label: 'version', value: '144.0.0'},
+      },
+      {
+        label: 'Operating system',
+        type: 'text',
+        value: 'Windows',
+        secondary: {label: 'version', value: '>=10'},
+      },
     ],
   }}
 />
@@ -128,8 +150,13 @@ Skeleton widths are fixed per slot rather than configurable. A caller-supplied w
     metadata={{
       label: 'Replay properties',
       items: [
-        {label: 'Started at', values: ['Feb 11, 2026 10:56 CET']},
-        {label: 'Browser', values: ['Chrome', '144.0.0']},
+        {label: 'Started at', type: 'text', value: 'Feb 11, 2026 10:56 CET'},
+        {
+          label: 'Browser',
+          type: 'text',
+          value: 'Chrome',
+          secondary: {label: 'version', value: '144.0.0'},
+        },
       ],
     }}
   />
@@ -149,8 +176,13 @@ Skeleton widths are fixed per slot rather than configurable. A caller-supplied w
   metadata={{
     label: 'Replay properties',
     items: [
-      {label: 'Started at', values: ['Feb 11, 2026 10:56 CET']},
-      {label: 'Browser', values: ['Chrome', '144.0.0']},
+      {label: 'Started at', type: 'text', value: 'Feb 11, 2026 10:56 CET'},
+      {
+        label: 'Browser',
+        type: 'text',
+        value: 'Chrome',
+        secondary: {label: 'version', value: '144.0.0'},
+      },
     ],
   }}
 />
@@ -374,7 +406,7 @@ A stack of faces says nothing on its own, which is why `label` is required. The 
 
 ## Metadata
 
-The metadata row is a list of properties. Each item is one property: a `label` saying what it is, and one or more `values`.
+The metadata row is a list of properties. Each item is one property: a `label` saying what it is, a `value`, and optionally a `secondary` qualifier.
 
 ```jsx
 metadata={{
@@ -382,28 +414,43 @@ metadata={{
   items: [
     {
       label: t('Browser'),
-      values: [browser.name, browser.version],
+      type: 'text', value: browser.name, secondary: {label: 'version', value: browser.version},
       leadingGraphic: <PlatformIcon platform={platform} size="16px" />,
     },
   ],
 }}
 ```
 
-Two values rather than one joined string is the point: a browser is its name _and_ its version, and joining them at the call site loses that. An item needs at least one — a label followed by nothing reads as a property that failed to load.
+Two values rather than one joined string is the point: a browser is its name _and_ its version, and joining them at the call site loses that. Two is also the ceiling — a property needing three is two properties.
 
-`tooltip` adds an explanation on hover, with an underline to signal it.
+With one value, `label` is its key — "Started at". With two, it is the parent of both, and `secondary.label` names the child: "version" under "Browser" composes to "Browser version", which is what the row announces and what the qualifier shows on hover.
+
+A value can navigate. `type: 'link'` renders it as one, named from the key and the value together so a links list reads "Release 8.42.0" rather than a bare version. Note the mirror of a stat, where the _label_ links instead: there a link named by a bare count says nothing, while here the value is where the user is going.
+
+```jsx
+{
+  label: t('Release'),
+  type: 'link',
+  value: release.version,
+  to: releaseUrl,
+}
+```
+
+`tooltip` adds an explanation on hover against the value, with an underline to signal it.
 
 ### Accessibility
 
 The row's `label` names it. Without one a screen reader meets a run of unrelated strings with nothing saying they belong together, or to what.
 
-Each item's own label is in the DOM whether or not it is on screen, so an item is one stop that reads "Started at, 2 hours ago". `mode` decides whether that label is also drawn — `compact` leaves naming the property to the graphic beside it, `full` spells it out. Either way the label is announced; the mode is a question of visibility only.
+Every key is in the DOM whether or not it is on screen, so an item reads "Browser, Chrome, Browser version, 144.0.0" — more words than a single label, but no value arrives unexplained. `mode` decides whether the parent key is also drawn: `compact` leaves naming the property to the graphic beside it, `full` spells it out. The child key stays hidden either way, and the mode never changes what is announced.
+
+A link is the exception: it is named from the key and the value together, so the key is not repeated beside it in `compact` mode.
 
 A description list would tie each label to its value structurally, which sounds like the better answer and is not: marking them up as a `dt` and a `dd` made VoiceOver narrate the pairing itself — "term", then "selectable list item", then "end of term" — before it reached the value. One named item beats two correctly-related ones.
 
 ### Variants
 
-`variant` colours the values. It defaults to `muted`; use a semantic variant to call out a problem, the way Issue Details renders "Unhandled" in `danger`.
+`variant` colours the value. Use a semantic variant to call out a problem, the way Issue Details renders "Unhandled" in `danger`. It is available on a text value only — a link already spends its colour saying that it navigates, and a red link reads as neither.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -411,11 +458,35 @@ A description list would tie each label to its value structurally, which sounds 
     metadata={{
       label: 'Issue properties',
       items: [
-        {label: 'Mechanism', values: ['generic'], mode: 'full', variant: 'primary'},
-        {label: 'Level', values: ['error'], mode: 'full', variant: 'muted'},
-        {label: 'Handling', values: ['Unhandled'], mode: 'full', variant: 'danger'},
-        {label: 'Status', values: ['Resolved'], mode: 'full', variant: 'success'},
-        {label: 'Trend', values: ['Regressed'], mode: 'full', variant: 'warning'},
+        {
+          label: 'Mechanism',
+          type: 'text',
+          value: 'generic',
+          mode: 'full',
+          variant: 'primary',
+        },
+        {label: 'Level', type: 'text', value: 'error', mode: 'full', variant: 'muted'},
+        {
+          label: 'Handling',
+          type: 'text',
+          value: 'Unhandled',
+          mode: 'full',
+          variant: 'danger',
+        },
+        {
+          label: 'Status',
+          type: 'text',
+          value: 'Resolved',
+          mode: 'full',
+          variant: 'success',
+        },
+        {
+          label: 'Trend',
+          type: 'text',
+          value: 'Regressed',
+          mode: 'full',
+          variant: 'warning',
+        },
       ],
     }}
   />
@@ -427,14 +498,38 @@ A description list would tie each label to its value structurally, which sounds 
   metadata={{
     label: 'Issue properties',
     items: [
-      {label: 'Mechanism', values: ['generic'], mode: 'full', variant: 'primary'},
-      {label: 'Level', values: ['error'], mode: 'full', variant: 'muted'},
-      {label: 'Handling', values: ['Unhandled'], mode: 'full', variant: 'danger'},
-      {label: 'Status', values: ['Resolved'], mode: 'full', variant: 'success'},
-      {label: 'Trend', values: ['Regressed'], mode: 'full', variant: 'warning'},
+      {
+        label: 'Mechanism',
+        type: 'text',
+        value: 'generic',
+        mode: 'full',
+        variant: 'primary',
+      },
+      {label: 'Level', type: 'text', value: 'error', mode: 'full', variant: 'muted'},
+      {
+        label: 'Handling',
+        type: 'text',
+        value: 'Unhandled',
+        mode: 'full',
+        variant: 'danger',
+      },
+      {
+        label: 'Status',
+        type: 'text',
+        value: 'Resolved',
+        mode: 'full',
+        variant: 'success',
+      },
+      {
+        label: 'Trend',
+        type: 'text',
+        value: 'Regressed',
+        mode: 'full',
+        variant: 'warning',
+      },
     ],
   }}
 />
 ```
 
-The set is narrower than `ContentVariant` — `primary`, `muted`, `danger`, `success`, `warning` — because a tooltipped item also has to colour its underline, and `Tooltip` supports fewer. Keeping one list means the two cannot disagree.
+The set is narrower than `ContentVariant` — `primary`, `muted`, `danger`, `success`, `warning` — because a tooltipped value also colours its underline, and `Tooltip` takes a smaller set. Keeping one list means the two cannot disagree. `muted` resolves to `content.secondary`, so the only colours out of reach are `accent`, which would read as a link, and `promotion`.

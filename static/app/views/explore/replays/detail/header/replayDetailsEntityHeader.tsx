@@ -25,13 +25,6 @@ interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-function nameAndVersion(
-  name: string,
-  version: string | null
-): [React.ReactNode, ...React.ReactNode[]] {
-  return version ? [name, version] : [name];
-}
-
 export function ReplayDetailsEntityHeader({readerResult}: Props) {
   const location = useLocation();
   const matches = useMatches();
@@ -147,18 +140,13 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
             ? {
                 leadingGraphic: <IconCalendar size="md" variant="muted" />,
                 label: t('Started at'),
-                values: [
+                type: 'text',
+                value:
                   prefs.timestampType === 'absolute' ? (
-                    <DateTime
-                      key="started"
-                      year
-                      timeZone
-                      date={replayRecord.started_at}
-                    />
+                    <DateTime year timeZone date={replayRecord.started_at} />
                   ) : (
-                    <TimeSince key="started" date={replayRecord.started_at} />
+                    <TimeSince date={replayRecord.started_at} />
                   ),
-                ],
               }
             : null,
           replayRecord?.browser.name
@@ -173,10 +161,11 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                   />
                 ),
                 label: t('Browser'),
-                values: nameAndVersion(
-                  replayRecord.browser.name,
-                  replayRecord.browser.version
-                ),
+                type: 'text',
+                value: replayRecord.browser.name,
+                secondary: replayRecord.browser.version
+                  ? {label: t('version'), value: replayRecord.browser.version}
+                  : undefined,
               }
             : null,
           replayRecord?.os.name
@@ -191,7 +180,11 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                   />
                 ),
                 label: t('Operating system'),
-                values: nameAndVersion(replayRecord.os.name, replayRecord.os.version),
+                type: 'text',
+                value: replayRecord.os.name,
+                secondary: replayRecord.os.version
+                  ? {label: t('version'), value: replayRecord.os.version}
+                  : undefined,
               }
             : null,
         ],
