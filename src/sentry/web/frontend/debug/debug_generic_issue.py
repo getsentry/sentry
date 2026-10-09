@@ -6,7 +6,7 @@ from django.views.generic import View
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils import get_generic_data
 from sentry.notifications.utils.links import get_group_settings_link, get_rules
 from sentry.utils import json
@@ -25,7 +25,13 @@ class DebugGenericIssueEmailView(View):
         assert event.occurrence is not None
         group = event.group
 
-        rule = Rule(id=1, label="An example rule")
+        origin = NotificationOrigin(
+            label="An example rule",
+            environment_id=None,
+            workflow_id=None,
+            legacy_rule_id=1,
+        )
+        rules = get_rules([origin], org, project, group.type)
 
         generic_issue_data_html = get_generic_data(event)
         section_header = "Issue Data" if generic_issue_data_html else ""
@@ -34,8 +40,8 @@ class DebugGenericIssueEmailView(View):
             html_template="sentry/emails/generic.html",
             text_template="sentry/emails/generic.txt",
             context={
-                "rule": rule,
-                "rules": get_rules([rule], org, project, group.type),
+                "rule": rules[0],
+                "rules": rules,
                 "group": group,
                 "event": event,
                 "timezone": zoneinfo.ZoneInfo("Europe/Vienna"),
@@ -44,7 +50,7 @@ class DebugGenericIssueEmailView(View):
                 "link": get_group_settings_link(
                     group,
                     None,
-                    get_rules([rule], org, project, group.type),
+                    rules,
                 ),
                 "generic_issue_data": [(section_header, mark_safe(generic_issue_data_html), None)],
                 "tags": event.tags,

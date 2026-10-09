@@ -28,7 +28,6 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
-    NotificationOrigin,
     NotificationSettingEnum,
 )
 from sentry.notifications.utils import (
@@ -352,27 +351,25 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
-        alert_id = None
-        if self.rules:
-            rule = self.rules[0]
-            alert_id = rule.link_id if isinstance(rule, NotificationOrigin) else rule.id
+        origin = self.rules[0] if self.rules else None
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "alert_id": alert_id,
+            "workflow_id": origin.workflow_id if origin else None,
+            "alert_id": origin.legacy_rule_id if origin else None,
             **super().get_log_params(recipient),
         }
 
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
-        log_params = self.get_log_params(recipient)
+        origin = self.rules[0] if self.rules else None
         try:
             analytics.record(
                 AlertSentEvent(
                     organization_id=self.organization.id,
                     project_id=self.project.id,
                     provider=provider.name,
-                    alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+                    alert_id=origin.link_id if origin else "",
                     alert_type="issue_alert",
                     external_id=str(recipient.id),
                     notification_uuid=self.notification_uuid,
