@@ -38,6 +38,7 @@ import {
   visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
 import {
+  getValidToolLinks,
   resolveLink,
   subjectFromCallRecord,
   subjectFromToolLink,
@@ -49,10 +50,7 @@ import type {
   ToolLink,
   ToolResult,
 } from 'sentry/views/seerExplorer/types';
-import {
-  getToolsStringFromBlock,
-  getValidToolLinks,
-} from 'sentry/views/seerExplorer/utils';
+import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import type {ToolUseBlockProps} from './shared';
 import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';
