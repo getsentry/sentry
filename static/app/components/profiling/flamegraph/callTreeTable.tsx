@@ -64,8 +64,16 @@ function scrollCallTreeTableToNode(
   }
 
   const depth = coordinates?.depth ?? node?.item.depth;
-  if (depth !== undefined) {
-    table.scrollLeft = depth * INDENT_WIDTH;
+  if (depth === undefined) {
+    return;
+  }
+
+  // Only scroll sideways when the row's indented content starts outside the left half
+  // of the frame column, so a user's own horizontal scroll survives keyboard navigation.
+  const indent = depth * INDENT_WIDTH;
+  const frameColumnWidth = table.clientWidth - 2 * WEIGHT_COLUMN_WIDTH;
+  if (indent < table.scrollLeft || indent > table.scrollLeft + frameColumnWidth / 2) {
+    table.scrollLeft = indent;
   }
 }
 

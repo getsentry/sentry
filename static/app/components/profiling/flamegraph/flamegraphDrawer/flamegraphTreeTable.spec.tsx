@@ -128,6 +128,34 @@ describe('FlamegraphTreeTable', () => {
     expect(table.scrollLeft).toBe(100);
   });
 
+  it('keeps the horizontal scroll position when an arrow key selects a row whose indent is in view', async () => {
+    renderTreeTable();
+    await userEvent.click(within(getRow('root')).getByRole('button', {name: 'Expand'}));
+    const table = screen.getByRole('treegrid', {name: 'Call tree'});
+    jest.spyOn(table, 'clientWidth', 'get').mockReturnValue(800);
+    await userEvent.click(getRow('parent'));
+    table.scrollLeft = 10;
+
+    await userEvent.keyboard('{ArrowDown}');
+
+    expect(getRow('another')).toHaveAttribute('aria-selected', 'true');
+    expect(table.scrollLeft).toBe(10);
+  });
+
+  it('scrolls to the indent when an arrow key selects a row whose indent is out of view', async () => {
+    renderTreeTable();
+    await userEvent.click(within(getRow('root')).getByRole('button', {name: 'Expand'}));
+    const table = screen.getByRole('treegrid', {name: 'Call tree'});
+    jest.spyOn(table, 'clientWidth', 'get').mockReturnValue(800);
+    await userEvent.click(getRow('parent'));
+    table.scrollLeft = 300;
+
+    await userEvent.keyboard('{ArrowDown}');
+
+    expect(getRow('another')).toHaveAttribute('aria-selected', 'true');
+    expect(table.scrollLeft).toBe(14);
+  });
+
   it('sorts frames by name when the frame header is clicked', async () => {
     renderTreeTable();
 
