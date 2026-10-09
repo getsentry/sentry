@@ -43,9 +43,7 @@ def override_options(options):
     # old option keys visible to them until callers override the settings.
     settings_mapper = {**options_mapper, **migrated_options_mapper}
     migrated_settings = {
-        settings_mapper[key]: value
-        for key, value in options.items()
-        if key in settings_mapper
+        settings_mapper[key]: value for key, value in options.items() if key in settings_mapper
     }
     with override_settings(SENTRY_OPTIONS=new_options, **migrated_settings):
         with (

@@ -168,7 +168,6 @@ class GCPIdentityProviderTest(TestCase):
         SENTRY_GCP_CLIENT_SECRET="my-client-secret", SENTRY_GCP_CLIENT_ID="my-client-id"
     )
     def test_get_refresh_token_params(self) -> None:
-
         identity = MagicMock()
         params = self.provider.get_refresh_token_params("refresh-token-123", identity)
 

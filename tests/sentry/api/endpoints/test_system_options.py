@@ -13,11 +13,15 @@ from sentry.web.client_config import get_client_config
 class SystemOptionsTest(APITestCase):
     url = reverse("sentry-api-0-system-options")
 
+    # Keep real store reads so this verifies the API write reaches client configuration.
     def test_support_email_update_is_visible_in_client_config(self) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
 
-        with override_settings(SENTRY_SYSTEM_SUPPORT_EMAIL="", SENTRY_OPTIONS={}):
+        with override_settings(
+            SENTRY_SYSTEM_SUPPORT_EMAIL="",
+            SENTRY_OPTIONS={},  # noqa: S011
+        ):
             response = self.client.put(self.url, {"system.support-email": "support@example.com"})
 
             assert response.status_code == 200
