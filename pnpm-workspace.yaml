@@ -1,5 +1,6 @@
 packages:
   - api-docs
+  - static/packages/icons
   - static/packages/scraps
   - static/oxlint/eslintPluginScraps
   - static/oxlint/eslintPluginSentry

@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState, type ReactNode} from 'react';
+import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -12,7 +13,6 @@ import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import {DataGrid} from 'sentry/components/tables/dataGrid';
-import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

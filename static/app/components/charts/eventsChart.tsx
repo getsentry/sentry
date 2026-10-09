@@ -1,6 +1,7 @@
 import {isValidElement, memo, useCallback, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
+import {IconWarning} from '@sentry/icons/warning';
 import type {
   EChartsOption,
   LegendComponentOption,
@@ -30,7 +31,6 @@ import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
 } from 'sentry/components/droppedData/useDroppedDataBand';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';

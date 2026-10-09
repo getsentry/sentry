@@ -1,4 +1,6 @@
 import {Fragment, useMemo} from 'react';
+import {IconList} from '@sentry/icons/list';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -18,8 +20,6 @@ import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetA
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {IconList} from 'sentry/icons/iconList';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

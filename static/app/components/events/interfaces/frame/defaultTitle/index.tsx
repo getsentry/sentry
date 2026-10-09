@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
+import {IconQuestion} from '@sentry/icons/question';
 
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -16,7 +18,6 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {Truncate} from 'sentry/components/truncate';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';

@@ -52,6 +52,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
         attribute_resolver=count_argument_resolver_optimized(
             TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES
         ),
+        valid_arithmetic=True,
     ),
     "count_unique": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_UNIQ,
@@ -86,6 +87,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
+        valid_arithmetic=True,
     ),
     "sum": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
@@ -116,6 +118,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
+        valid_arithmetic=True,
     ),
     "avg": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
@@ -147,6 +150,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
+        valid_arithmetic=True,
     ),
     "p50": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_P50,
@@ -178,6 +182,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
+        valid_arithmetic=True,
     ),
     "p75": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_P75,
@@ -209,6 +214,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
+        valid_arithmetic=True,
     ),
     "p90": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_P90,
@@ -240,6 +246,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
+        valid_arithmetic=True,
     ),
     "p95": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_P95,
@@ -271,6 +278,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
+        valid_arithmetic=True,
     ),
     "p99": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_P99,
@@ -302,6 +310,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
+        valid_arithmetic=True,
     ),
     "max": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
@@ -333,6 +342,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
+        valid_arithmetic=True,
     ),
     "min": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_MIN,
@@ -364,6 +374,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
+        valid_arithmetic=True,
     ),
 }
 
@@ -383,6 +394,7 @@ def if_combinator(definition: AggregateDefinition) -> AggregateDefinition:
             ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
             *definition.arguments,
         ],
+        valid_arithmetic=definition.valid_arithmetic,
     )
 
 
