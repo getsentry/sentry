@@ -179,18 +179,17 @@ const StyledBadge = styled(Badge)`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  @container (min-width: ${p => p.theme.container.xl}) {
-    max-width: 300px;
-  }
+  max-width: min(300px, 100%);
 `;
 
 const ButtonLabelWrapper = styled('span')`
   gap: ${p => p.theme.space.xs};
   width: 100%;
+  min-width: 0;
   text-align: left;
   align-items: center;
   display: inline-grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
 `;
 
 const MenuTitleWrapper = styled('span')`
