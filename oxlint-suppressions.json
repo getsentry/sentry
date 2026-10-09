@@ -34,6 +34,11 @@
       "count": 1
     }
   },
+  "static/app/components/arithmeticBuilder/conditionalFilter/conditionalFilterAutocomplete.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/components/arithmeticBuilder/token/deleteButton.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -110,6 +115,9 @@
     }
   },
   "static/app/components/confirm.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 10
     }
@@ -144,6 +152,11 @@
       "count": 2
     }
   },
+  "static/app/components/core/chat/thinkingBlock.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/components/core/form/field/selectField.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 1
@@ -156,6 +169,21 @@
   },
   "static/app/components/core/form/field/textAreaField.spec.tsx": {
     "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
+  "static/app/components/core/relativeTime/relativeTime.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/components/core/toast/toast.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/components/core/useScrollLock.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }
   },
@@ -569,6 +597,11 @@
       "count": 1
     }
   },
+  "static/app/components/frontendVersionContext.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/components/group/externalIssuesList/issueTrackerActions.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -604,6 +637,11 @@
       "count": 5
     }
   },
+  "static/app/components/groupHeaderRow.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/components/groupMetaRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -630,6 +668,9 @@
     }
   },
   "static/app/components/hovercard.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -652,6 +693,11 @@
   "static/app/components/lastCommit.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    }
+  },
+  "static/app/components/lazyLoad.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
     }
   },
   "static/app/components/messagingIntegrations/addIntegrationRow.tsx": {
@@ -764,6 +810,11 @@
       "count": 1
     }
   },
+  "static/app/components/modals/redirectToProject.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/components/modals/reprocessEventModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -786,6 +837,16 @@
   },
   "static/app/components/modals/widgetBuilder/addToDashboardModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboarding/agenticProgress/useAgenticSetupRun.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboarding/createSampleEventButton.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }
   },
@@ -831,6 +892,11 @@
   },
   "static/app/components/onboarding/scm/scmCardButton.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/onboarding/scm/scmPlatformFeaturesCore.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }
   },
@@ -1019,6 +1085,16 @@
       "count": 1
     }
   },
+  "static/app/components/replays/bulkDelete/replayBulkDeleteAuditLog.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/canvasReplayerPlugin.spec.ts": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    }
+  },
   "static/app/components/replays/diff/learnMoreButton.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -1080,7 +1156,15 @@
     }
   },
   "static/app/components/replays/replayContext.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/replayLiveIndicator.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 2
     }
   },
@@ -1121,6 +1205,16 @@
   },
   "static/app/components/replays/timeAndScrubberGrid.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/components/replays/usePlaylistQuery.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/components/replays/videoReplayer.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 2
     }
   },
@@ -1185,6 +1279,9 @@
     }
   },
   "static/app/components/searchQueryBuilder/index.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -1362,6 +1459,11 @@
       "count": 1
     }
   },
+  "static/app/components/stackTrace/stackTrace.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 3
+    }
+  },
   "static/app/components/stream/group.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
@@ -1397,6 +1499,11 @@
       "count": 1
     }
   },
+  "static/app/components/timeRangeSelector/utils.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/components/tokenizedInput/token/deletableToken.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1410,6 +1517,11 @@
   "static/app/components/tours/startTour.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    }
+  },
+  "static/app/components/version.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
     }
   },
   "static/app/components/versionHoverCard.tsx": {
@@ -1483,6 +1595,9 @@
     }
   },
   "static/app/makeLazyloadComponent.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -1552,6 +1667,11 @@
       "count": 1
     }
   },
+  "static/app/utils/demoMode/index.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/utils/discover/arrayValue.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1577,8 +1697,38 @@
       "count": 2
     }
   },
+  "static/app/utils/profiling/canvasScheduler.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 6
+    }
+  },
+  "static/app/utils/replays/hooks/usePollReplayRecord.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    }
+  },
   "static/app/utils/replays/hooks/useShareReplayAtTimestamp.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/utils/replays/timer.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    }
+  },
+  "static/app/utils/useBreakpoints.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/utils/useDispatchingReducer.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/utils/useEventWaiter.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 2
     }
   },
@@ -1597,6 +1747,11 @@
       "count": 1
     }
   },
+  "static/app/utils/useRAF.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/utils/useResizableDrawer.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1605,6 +1760,11 @@
   "static/app/utils/useSyncedLocalStorageState.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "static/app/utils/useTimeout.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
     }
   },
   "static/app/views/admin/adminEnvironment.tsx": {
@@ -1632,6 +1792,11 @@
       "count": 1
     }
   },
+  "static/app/views/app/globalAlerts.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/views/app/index.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 2
@@ -1645,6 +1810,16 @@
   "static/app/views/auth/layout.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    }
+  },
+  "static/app/views/authV2/authLogin/components/sms2faMethod.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/views/authV2/passwordReset/index.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
     }
   },
   "static/app/views/authV2/useBrandedAuthLoading.spec.tsx": {
@@ -1664,6 +1839,11 @@
   },
   "static/app/views/automations/components/automationActionSummary.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/automations/components/automationAlertPreview.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 2
     }
   },
@@ -1712,6 +1892,11 @@
       "count": 1
     }
   },
+  "static/app/views/dashboards/releasesSelectControl.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    }
+  },
   "static/app/views/dashboards/releasesSelectControl.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -1750,6 +1935,11 @@
   "static/app/views/dashboards/widgetBuilder/components/widgetTemplatesList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
     }
   },
   "static/app/views/dashboards/widgetCard/chart.tsx": {
@@ -1977,12 +2167,25 @@
       "count": 1
     }
   },
+  "static/app/views/explore/hooks/useTraceItemDetails.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/logs/exports/logsDirectExportModalButton.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/views/explore/logs/fieldRenderers.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "static/app/views/explore/logs/logsAutoRefresh.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -2000,6 +2203,21 @@
   "static/app/views/explore/logs/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 6
+    }
+  },
+  "static/app/views/explore/logs/tables/logsInfiniteTable.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/views/explore/logs/tables/logsTableRow.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/metrics/hooks/partitionHeatMapWindows.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
     }
   },
   "static/app/views/explore/metrics/hooks/useSaveMetricsMultiQuery.spec.tsx": {
@@ -2135,8 +2353,18 @@
       "count": 2
     }
   },
+  "static/app/views/explore/replays/detail/ai/useRotatingMessage.spec.ts": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/views/explore/replays/detail/console/consoleLogRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "static/app/views/explore/replays/detail/header/replayDetailsEntityHeader.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 2
     }
   },
@@ -2390,6 +2618,11 @@
       "count": 1
     }
   },
+  "static/app/views/insights/pages/transactionNameSearchBar.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/views/insights/uptime/components/overviewTimeline/overviewRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2403,6 +2636,11 @@
   "static/app/views/investigations/detail/index.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 4
+    }
+  },
+  "static/app/views/investigations/detail/runTimer.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
     }
   },
   "static/app/views/investigations/hypotheses/investigationHypotheses.spec.tsx": {
@@ -2550,6 +2788,11 @@
       "count": 1
     }
   },
+  "static/app/views/issueDetails/sidebar/metricDetectorTriggeredSection.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 3
+    }
+  },
   "static/app/views/issueDetails/sidebar/participantList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -2560,8 +2803,23 @@
       "count": 1
     }
   },
+  "static/app/views/issueDetails/sidebar/seerDrawer.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueDetails/useEngagedViewTracking.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/views/issueList/actions/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/issueList/issueViews/createIssueViewModal.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }
   },
@@ -2580,13 +2838,38 @@
       "count": 1
     }
   },
+  "static/app/views/issueList/issueViews/useFormTypingAnimation.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/views/issueList/newViewEmptyState.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
     }
   },
+  "static/app/views/issueList/overview.polling.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/views/navigation/primary/whatsNew.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 5
+    }
+  },
   "static/app/views/onboarding/components/firstEventFooter.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/onboarding/components/onboardingSkipButton.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/app/views/onboarding/onboarding.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }
   },
@@ -2672,6 +2955,11 @@
   },
   "static/app/views/performance/onboarding.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/trace.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }
   },
@@ -2775,8 +3063,18 @@
       "count": 2
     }
   },
+  "static/app/views/performance/traceDetails/traceTypeWarnings/partialTraceDataWarning.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    }
+  },
   "static/app/views/performance/traceDetails/traceTypeWarnings/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/performance/traceDetails/traceWaterfallState.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }
   },
@@ -2815,6 +3113,11 @@
       "count": 1
     }
   },
+  "static/app/views/preprod/buildDetails/buildDetails.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    }
+  },
   "static/app/views/preprod/buildDetails/main/insights/insightInfoModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2827,6 +3130,11 @@
   },
   "static/app/views/preprod/components/appIcon.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/preprod/components/installDetailsContent.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }
   },
@@ -2890,6 +3198,11 @@
       "count": 1
     }
   },
+  "static/app/views/projectInstall/createProject.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/views/projectInstall/createProject.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2950,6 +3263,11 @@
       "count": 1
     }
   },
+  "static/app/views/seerExplorer/components/chat/responseGroup.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/views/seerExplorer/components/chat/toolUse.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2990,9 +3308,19 @@
       "count": 1
     }
   },
+  "static/app/views/seerExplorer/xray/seerXRayOverlay.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/views/seerExplorer/xray/seerXRayOverlay.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "static/app/views/seerWorkflows/index.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 2
     }
   },
   "static/app/views/seerWorkflows/overview/index.spec.tsx": {
@@ -3283,6 +3611,16 @@
       "count": 2
     }
   },
+  "static/app/views/settings/organizationRepositories/hooks/useSyncRepositories.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 3
+    }
+  },
+  "static/app/views/settings/organizationTeams/organizationTeams.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/app/views/settings/organizationTeams/organizationTeams.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3528,6 +3866,16 @@
       "count": 4
     }
   },
+  "static/gsApp/components/billingDetails/form.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/creditCardEdit/intentForms/innerIntentForm.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/gsApp/components/dataConsentModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
@@ -3613,6 +3961,11 @@
       "count": 1
     }
   },
+  "static/gsApp/components/upsellModal/details.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 1
+    }
+  },
   "static/gsApp/components/upsellModal/featureList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3671,6 +4024,16 @@
   "static/gsApp/overrides/targetedOnboardingHeader.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    }
+  },
+  "static/gsApp/overrides/useMaxPickableDays.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 5
+    }
+  },
+  "static/gsApp/overrides/useRouteActivatedHook.spec.tsx": {
+    "@sentry/require-fake-timer-cleanup": {
+      "count": 9
     }
   },
   "static/gsApp/views/amCheckout/components/cartDiff.tsx": {
