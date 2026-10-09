@@ -25,7 +25,11 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import StacktraceInfo
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import symbolication_tasks
+from sentry.taskworker.namespaces import (
+    symbolication_js_tasks,
+    symbolication_jvm_tasks,
+    symbolication_tasks,
+)
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
 
@@ -266,9 +270,15 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
     and can be spawned as one.
     """
 
+    namespace = {
+        SymbolicatorFunction.js: symbolication_js_tasks,
+        SymbolicatorFunction.jvm: symbolication_jvm_tasks,
+    }.get(task_kind.function, symbolication_tasks)
+
     @instrumented_task(
         name=name,
-        namespace=symbolication_tasks,
+        namespace=namespace,
+        alias_namespace=symbolication_tasks,
         processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
         silo_mode=SiloMode.CELL,
     )
