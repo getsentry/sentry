@@ -114,18 +114,18 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         self.get_error_response(self.organization.slug, status_code=400, route="/issues/")
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
-    def test_passes_member_projects_when_none_selected(self, mock_run_oneshot: MagicMock) -> None:
+    def test_passes_no_projects_for_my_or_all_projects(self, mock_run_oneshot: MagicMock) -> None:
         mock_run_oneshot.return_value = {"suggestions": []}
         self.create_project(organization=self.organization, teams=[self.team], slug="mine")
-        self.create_project(
-            organization=self.organization, teams=[self.create_team()], slug="not-mine"
-        )
 
-        self.get_success_response(self.organization.slug, **PAYLOAD)
+        for project_ids in ([], [-1]):
+            with self.subTest(project_ids=project_ids):
+                self.get_success_response(
+                    self.organization.slug, **PAYLOAD, project_ids=project_ids
+                )
 
-        assert mock_run_oneshot.call_args.args[1]["projects"] == [
-            {"slug": "mine", "platform": None}
-        ]
+                assert mock_run_oneshot.call_args.args[1]["projects"] == []
+                mock_run_oneshot.reset_mock()
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_returns_403_for_another_orgs_project(self, mock_run_oneshot: MagicMock) -> None:

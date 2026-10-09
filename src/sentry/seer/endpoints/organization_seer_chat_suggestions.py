@@ -17,6 +17,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import Dashboard
 from sentry.models.organization import Organization
@@ -104,15 +105,20 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
 
         data = dict(serializer.validated_data)
         route_params = data.pop("route_params")
-        projects = self.get_projects(
-            request, organization, project_ids=set(data.pop("project_ids"))
-        )
+        project_ids = set(data.pop("project_ids"))
+        # Only explicit selections: My/All Projects can be thousands of projects in large orgs.
+        if project_ids and ALL_ACCESS_PROJECT_ID not in project_ids:
+            projects = self.get_projects(
+                request, organization, project_ids=set(sorted(project_ids)[:MAX_PROJECTS])
+            )
+        else:
+            projects = []
         payload = {
             **data,
             "page_context": data["page_context"][:MAX_PAGE_CONTEXT_LENGTH],
             "projects": [
                 {"slug": project.slug, "platform": project.platform}
-                for project in sorted(projects, key=lambda project: project.slug)[:MAX_PROJECTS]
+                for project in sorted(projects, key=lambda project: project.slug)
             ],
             "code_mode": features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
