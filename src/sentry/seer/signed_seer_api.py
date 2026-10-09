@@ -166,23 +166,16 @@ def make_signed_seer_api_request(
 
     resolved = _resolve_viewer_context(viewer_context, endpoint=metrics_endpoint or parsed.path)
     observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
+    # Fail closed: a request without a signed ViewerContext must never reach Seer.
+    viewer_context_header = encode_viewer_context(resolved)
 
     auth_headers = sign_with_seer_secret(body)
 
     headers: dict[str, str] = {
         "content-type": "application/json;charset=utf-8",
         **auth_headers,
+        "X-Viewer-Context": viewer_context_header,
     }
-
-    try:
-        headers["X-Viewer-Context"] = encode_viewer_context(resolved)
-    except ValueError:
-        logger.warning(
-            "viewer_context_jwt.no_signing_key",
-            extra={"reason": "No key available to sign viewer context JWT."},
-        )
-    except Exception:
-        logger.exception("Failed to encode viewer context JWT for call to Seer.")
 
     options: dict[str, Any] = {}
     if timeout:
