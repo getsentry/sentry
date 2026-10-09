@@ -17,7 +17,7 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 
-import {NoContext} from './quickContextWrapper';
+import {NoContext} from './noContext';
 import {
   ContextBody,
   ContextContainer,
