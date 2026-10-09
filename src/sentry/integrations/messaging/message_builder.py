@@ -9,13 +9,12 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.notifications.utils.rules import get_key_from_rule_data, get_rule_or_workflow_id
+from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
@@ -251,10 +250,11 @@ def build_attachment_replay_link(
     return None
 
 
-def build_rule_url(rule: Rule | NotificationOrigin, group: Group, project: Project) -> str:
+def build_rule_url(rule: NotificationOrigin, group: Group, project: Project) -> str:
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
+    rule_id = rule.legacy_rule_id
+    assert rule_id is not None
     rule_url = f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule_id}/details/"
 
     return absolute_uri(rule_url)
@@ -264,7 +264,7 @@ def build_footer(
     group: Group,
     project: Project,
     url_format: str,
-    rules: Sequence[Rule | NotificationOrigin] | None = None,
+    rules: Sequence[NotificationOrigin] | None = None,
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
