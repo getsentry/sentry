@@ -6,9 +6,11 @@ import functools
 import hashlib
 import logging
 import time
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Mapping
 from typing import Any, TypeVar, overload
 
+from django.conf import settings
+from django.utils.module_loading import import_string
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
 from sentry_sdk import traces
@@ -101,6 +103,27 @@ def _should_log_trace() -> bool:
     return trace_hash < int(effective_rate * 10000)
 
 
+@functools.cache
+def _load_metric_tags_provider(path: str) -> Callable[[Message], Mapping[str, str]]:
+    return import_string(path)
+
+
+def _get_extra_metric_tags(request: Message) -> Mapping[str, str]:
+    """
+    Return extra tags for the service method metrics from the provider configured in
+    ``SENTRY_BILLING_SERVICE_METRIC_TAGS_PROVIDER``. A failing provider must never break
+    the service call, so errors are logged and no extra tags are added.
+    """
+    provider_path = settings.SENTRY_BILLING_SERVICE_METRIC_TAGS_PROVIDER
+    if not provider_path:
+        return {}
+    try:
+        return _load_metric_tags_provider(provider_path)(request)
+    except Exception:
+        logger.exception("billing.service.metric_tags_provider.error")
+        return {}
+
+
 @overload
 def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]: ...
 
@@ -153,7 +176,6 @@ def service_method(
         def wrapper(self: BillingService, request: T) -> R:
             service_name = self.__class__.__name__
             method_name = func.__name__
-            metric_tags = {"service": service_name, "method": method_name}
 
             # Validate input is a protobuf message
             if not isinstance(request, Message):
@@ -161,6 +183,12 @@ def service_method(
                     f"{service_name}.{method_name} expects a protobuf Message, "
                     f"got {type(request).__name__}"
                 )
+
+            metric_tags = {
+                **_get_extra_metric_tags(request),
+                "service": service_name,
+                "method": method_name,
+            }
 
             with _propagate_sample_rate(trace_log_sample_rate):
                 start_time = time.time()
