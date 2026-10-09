@@ -32,9 +32,9 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'provider', width: 'min-content'},
-  {key: 'flag', width: 'minmax(min-content, 0.7fr)'},
+  {key: 'flag', width: 'minmax(min-content, 1fr)'},
   {key: 'action', width: 'min-content'},
-  {key: 'date', width: 'minmax(min-content, 0.5fr)'},
+  {key: 'date', width: 'minmax(min-content, 0.4fr)'},
   {key: 'actions', width: 'min-content'},
 ];
 
