@@ -89,9 +89,26 @@ describe('ProjectCard', () => {
 
     render(<ProjectCard project={project} hasProjectAccess={false} />);
 
+    const table = await screen.findByRole('table', {name: 'Latest Deploys'});
+    const rows = within(table).getAllByRole('row');
+    const [betaRow, productionRow] = rows;
+
     expect(screen.queryByRole('button', {name: 'Track Deploys'})).not.toBeInTheDocument();
-    expect(await screen.findByText('beta')).toBeInTheDocument();
-    expect(screen.getByText('production')).toBeInTheDocument();
+    expect(rows).toHaveLength(2);
+    expect(
+      within(betaRow!)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    ).toEqual(['beta', '123456', expect.any(String)]);
+    expect(
+      within(productionRow!)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    ).toEqual(['production', '123123', expect.any(String)]);
+    expect(within(betaRow!).getByRole('link', {name: '123456'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('rdRelease=123456')
+    );
     expect(screen.queryByText('staging')).not.toBeInTheDocument();
   });
 
