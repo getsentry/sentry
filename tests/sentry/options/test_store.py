@@ -36,6 +36,8 @@ def test_state_read_validation_rejects_invalid_stored_values(
     store.set_cache.assert_not_called()
 
 
+# Direct settings exercise fallback after a store miss; the option helper also
+# replaces store reads and would obscure that boundary.
 @pytest.mark.parametrize("setting_name", ["SENTRY_OPTIONS", "SENTRY_DEFAULT_OPTIONS"])
 @pytest.mark.parametrize(
     ("name", "value"),
@@ -54,7 +56,7 @@ def test_state_read_validation_rejects_invalid_configured_values(
     store = MagicMock(spec=OptionsStore)
     store.get.return_value = None
     with (
-        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),
+        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),  # noqa: S011
         override_settings(**{setting_name: {name: value}}),
         patch.object(application_state, "default_store", store),
         pytest.raises(TypeError, match="Application state"),
@@ -87,6 +89,7 @@ def test_state_read_validation_preserves_valid_stored_values(
     store.set_cache.assert_not_called()
 
 
+# Keep configured fallback lookup separate from the mocked store read.
 @pytest.mark.parametrize("setting_name", ["SENTRY_OPTIONS", "SENTRY_DEFAULT_OPTIONS"])
 @pytest.mark.parametrize(
     ("name", "value"),
@@ -103,7 +106,7 @@ def test_state_read_validation_preserves_valid_configured_values(
     store = MagicMock(spec=OptionsStore)
     store.get.return_value = None
     with (
-        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),
+        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),  # noqa: S011
         override_settings(**{setting_name: {name: value}}),
         patch.object(application_state, "default_store", store),
     ):
@@ -111,11 +114,12 @@ def test_state_read_validation_preserves_valid_configured_values(
     assert store.set_cache.call_args.args[1] is value
 
 
+# An empty settings dictionary must reach the legacy fallback after a store miss.
 def test_state_read_validation_preserves_missing_value_fallback() -> None:
     store = MagicMock(spec=OptionsStore)
     store.get.return_value = None
     with (
-        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),
+        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),  # noqa: S011
         patch.object(application_state, "default_store", store),
     ):
         assert application_state.get("sentry:last_worker_ping") == ""
@@ -342,11 +346,13 @@ class ApplicationStateTest(TestCase):
         assert not Option.objects.filter(key=name).exists()
         assert application_state.get("sentry:last_worker_ping") == ""
 
+    # Observe persisted state replacing configured fallbacks and deletion exposing
+    # the fallback again; the option helper would mask those store transitions.
     def test_state_preserves_self_hosted_fallbacks(self) -> None:
         from sentry import application_state
 
         with self.settings(
-            SENTRY_OPTIONS={"sentry:install-id": "configured-installation"},
+            SENTRY_OPTIONS={"sentry:install-id": "configured-installation"},  # noqa: S011
             SENTRY_DEFAULT_OPTIONS={"sentry:install-id": "default-installation"},
         ):
             assert application_state.get("sentry:install-id") == "configured-installation"
