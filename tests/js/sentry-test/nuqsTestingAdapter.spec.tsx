@@ -11,6 +11,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
+
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
@@ -21,7 +23,7 @@ describe('SentryNuqsTestingAdapter', () => {
 
     function QueryStateButton() {
       const [query, setQuery] = useQueryState('query', parseAsString);
-      return <button onClick={() => setQuery('updated')}>{query}</button>;
+      return <Button onClick={() => setQuery('updated')}>{query}</Button>;
     }
 
     const {router} = render(<QueryStateButton />, {
