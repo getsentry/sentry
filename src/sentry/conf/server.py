@@ -2605,9 +2605,6 @@ SENTRY_PROFILES_FILE_STORAGE_CONFIG: dict[str, Any] = {
 }
 SENTRY_CONTROL_FILE_STORAGE_BACKEND = ""
 SENTRY_CONTROL_FILE_STORAGE_CONFIG: dict[str, Any] = {}
-# Deployment writers record explicit settings while deprecated aliases coexist.
-# Remove this provenance after those writers and their legacy remaps are retired.
-SENTRY_CONFIGURED_OPTION_SETTINGS: frozenset[str] = frozenset()
 SENTRY_AUTH_FLY_CLIENT_SECRET = ""
 SENTRY_AUTH_GOOGLE_CLIENT_SECRET = ""
 SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY = ""
@@ -2642,6 +2639,7 @@ SENTRY_GITHUB_CONSOLE_SDK_APP_ID: int = 0
 SENTRY_SLACK_CLIENT_ID: str = ""
 SENTRY_SLACK_STAGING_CLIENT_ID: str = ""
 SENTRY_MSTEAMS_CLIENT_ID: str = ""
+# Empty tenant ID uses the multi-tenant botframework.com OAuth authority.
 SENTRY_MSTEAMS_TENANT_ID: str = ""
 SENTRY_VERCEL_CLIENT_ID: str = ""
 SENTRY_DISCORD_APPLICATION_ID: str = ""
@@ -3429,12 +3427,6 @@ USE_ROLE_SWAPPING_IN_TESTS = True
 
 # Threshold for the number of timeouts needed in a day to disable an integration
 BROKEN_TIMEOUT_THRESHOLD = 1000
-
-# This webhook url can be configured to log the changes made to runtime options as they
-# are changed by sentry configoptions.
-OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
-
-OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False

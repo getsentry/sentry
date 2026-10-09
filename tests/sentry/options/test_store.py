@@ -1,6 +1,6 @@
 from functools import cached_property
 from typing import cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid1
 
 import pytest
@@ -10,10 +10,65 @@ from django.test import override_settings
 
 from sentry import application_state
 from sentry.models.options.option import Option
-from sentry.options.manager import OptionsManager, UpdateChannel
+from sentry.options.manager import DEFAULT_FLAGS, OptionsManager, UpdateChannel
 from sentry.options.store import OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.utils.types import Any
+
+
+@pytest.mark.parametrize("method", ["set", "set_store"])
+def test_retired_automator_channel_rejects_store_writes(method: str) -> None:
+    cache = Mock()
+    store = OptionsStore(cache=cache)
+    model = Mock()
+    key = application_state._key("sentry:install-id")
+    channel = UpdateChannel("automator")
+
+    with patch.object(OptionsStore, "model", model):
+        with pytest.raises(ValueError, match="automator update channel is retired"):
+            getattr(store, method)(key, "changed", channel)
+
+    assert model.mock_calls == []
+    assert cache.mock_calls == []
+    assert store._local_cache == {}
+
+
+@pytest.mark.parametrize("channel", ["application", "automator", None])
+@pytest.mark.parametrize("method", ["set", "set_store"])
+def test_invalid_channels_reject_store_writes(channel: object, method: str) -> None:
+    cache = Mock()
+    store = OptionsStore(cache=cache)
+    model = Mock()
+    key = application_state._key("sentry:install-id")
+
+    with patch.object(OptionsStore, "model", model):
+        with pytest.raises(TypeError, match="channel must be an UpdateChannel"):
+            getattr(store, method)(key, "changed", cast(UpdateChannel, channel))
+
+    assert model.mock_calls == []
+    assert cache.mock_calls == []
+    assert store._local_cache == {}
+
+
+@pytest.mark.parametrize("name", ["legacy", "sentry:install-id"])
+def test_historical_automator_metadata_remains_readable(name: str) -> None:
+    assert ("AUTOMATOR", "automator") in UpdateChannel.choices()
+    row = Mock(last_updated_by="automator")
+    model = Mock()
+    model.objects.get.return_value = row
+    cache = Mock()
+    store = OptionsStore(cache=cache)
+    manager = OptionsManager(store=store)
+    manager.register("legacy")
+    key = manager.make_key(name, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+
+    with patch.object(OptionsStore, "model", model):
+        assert store.get_last_update_channel(key) == UpdateChannel("automator")
+
+    assert row.last_updated_by == "automator"
+    model.objects.get.assert_called_once_with(key=name)
+    assert cache.mock_calls == []
 
 
 @pytest.mark.parametrize(
@@ -162,6 +217,24 @@ class OptionsStoreTest(TestCase):
 
     def test_not_in_store(self) -> None:
         assert self.store.get_last_update_channel(self.key) is None
+
+    def test_restored_historical_automator_state_preserves_metadata(self) -> None:
+        key = application_state._key("sentry:install-id")
+        self.store.set_store(key, "historical-install-id", UpdateChannel.APPLICATION)
+        Option.objects.filter(key=key.name).update(last_updated_by="automator")
+        row = Option.objects.get(key=key.name)
+        original_updated = row.last_updated
+
+        assert self.store.get_store(key) == "historical-install-id"
+        assert self.store.get_cache(key) == "historical-install-id"
+        assert self.store.get_last_update_channel(key) == UpdateChannel.AUTOMATOR
+        with pytest.raises(ValueError, match="automator update channel is retired"):
+            self.store.set(key, "changed", UpdateChannel.AUTOMATOR)
+
+        row.refresh_from_db()
+        assert row.value == "historical-install-id"
+        assert row.last_updated_by == "automator"
+        assert row.last_updated == original_updated
 
     def test_simple_without_cache(self) -> None:
         store = OptionsStore(cache=None)
@@ -321,12 +394,13 @@ class ApplicationStateTest(TestCase):
         ]
         for name, value in string_states:
             with self.subTest(name=name):
-                self.manager.set(name, value)
+                key = self.manager.make_key(name, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+                self.store.set_store(key, value, UpdateChannel.UNKNOWN)
                 assert application_state.get(name) == value
                 assert application_state.set(name, value)
                 assert Option.objects.get(key=name).value == value
-                assert self.manager.get(name) == value
-                assert self.store.cache.get(self.manager.lookup_key(name).cache_key) == value
+                assert self.store.get(key) == value
+                assert self.store.cache.get(key.cache_key) == value
                 assert application_state.delete(name)
                 assert not Option.objects.filter(key=name).exists()
                 assert application_state.get(name) == ""
@@ -336,12 +410,13 @@ class ApplicationStateTest(TestCase):
 
         name = "sentry:last_worker_ping"
         value = 1234.5
-        self.manager.set(name, value)
+        key = self.manager.make_key(name, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+        self.store.set_store(key, value, UpdateChannel.UNKNOWN)
         assert application_state.get("sentry:last_worker_ping") == value
         assert application_state.set("sentry:last_worker_ping", value)
         assert Option.objects.get(key=name).value == value
-        assert self.manager.get(name) == value
-        assert self.store.cache.get(self.manager.lookup_key(name).cache_key) == value
+        assert self.store.get(key) == value
+        assert self.store.cache.get(key.cache_key) == value
         assert application_state.delete("sentry:last_worker_ping")
         assert not Option.objects.filter(key=name).exists()
         assert application_state.get("sentry:last_worker_ping") == ""

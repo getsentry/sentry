@@ -42,10 +42,21 @@ stay scoped to their projects. The registered
 An audit of GetSentry found one global state consumer, the local newsletter's
 installation ID read, and no global `getsentry:*` state callers.
 
-Legacy `sentry.options` prefix lookup remains available during deployment of
-this API. GetSentry must adopt the state API after its Sentry dependency includes
-it. Remove implicit lookup for unregistered `sentry:*` and `getsentry:*` keys
-only after the GetSentry consumer migration has deployed everywhere and the
-call audit confirms no remaining global callers. Keep the Option store,
-`sync_options`, and its cache while application state uses them. No row migration
-or deletion is needed, and rollback to legacy consumers reads the same values.
+Unregistered `sentry:*` and `getsentry:*` names now raise `UnknownOption`
+through `sentry.options`, including reads, writes, deletes, and presence checks.
+Registered runtime options still resolve normally. The cache repair task uses
+`application_state.sync_cache()` for the six state keys when a row has no
+option registration, retaining recovery from failed cache writes.
+
+## Deployment prerequisites
+
+Deploy the Sentry API and GetSentry newsletter consumer migration everywhere
+before this removal. Audit serving code, one-off jobs, CLI tooling, and scoped
+callers; soak the consumer migration in every region before proceeding. Keep
+an approved backup of application-state rows, including their update metadata,
+and verify cache repair before deployment. The removal does not migrate or
+delete rows or cached values. Keep the Option store, `sync_options`, and its
+cache while application state uses them.
+
+Rollback this removal before rolling back any consumer to `sentry.options`.
+The old and new consumers use the same persisted values and cache keys.

@@ -36,7 +36,12 @@ def test_system_token_state() -> None:
 @django_db_all
 @control_silo_test
 def test_system_token_preserves_existing_value() -> None:
-    options.set("sentry:system-token", "existing-system-token")
+    options.default_store.set_store(
+        application_state._key("sentry:system-token"),
+        "existing-system-token",
+        channel=options.UpdateChannel.UNKNOWN,
+    )
+    options.default_store.delete_cache(application_state._key("sentry:system-token"))
     try:
         with patch("sentry.auth.system.secrets.token_hex", side_effect=AssertionError):
             assert get_system_token() == "existing-system-token"

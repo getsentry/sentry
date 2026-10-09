@@ -60,7 +60,7 @@ from sentry.utils.settings import (
 def _get_support_mail() -> str | None:
     """Returns the most appropriate support email address"""
 
-    return options.get("system.support-email") or options.get("system.admin-email") or None
+    return settings.SENTRY_SYSTEM_SUPPORT_EMAIL or options.get("system.admin-email") or None
 
 
 def _get_version_info():

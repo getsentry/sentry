@@ -33,7 +33,6 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 INSTALLATION_ID = "i_01example"
@@ -50,7 +49,7 @@ PRIVATE_KEY_PEM = (
 )
 # Applied per test: as a class decorator this context manager replaces the class with a
 # function, and pytest then collects nothing from it.
-APP_OPTIONS = override_options({"cursor-origin-app.id": APP_ID})
+APP_OPTIONS = override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID)
 APP_SETTINGS = override_settings(SENTRY_CURSOR_ORIGIN_APP_PRIVATE_KEY=PRIVATE_KEY_PEM)
 SYNC_TASK = "sentry.integrations.cursor_origin.integration.sync_repos_for_org"
 
@@ -150,7 +149,7 @@ class BuildIntegrationTest(TestCase):
 
 class BuildInstallUrlTest(TestCase):
     def test_carries_the_app_id_scopes_and_state(self) -> None:
-        with self.options({"cursor-origin-app.id": APP_ID}):
+        with override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID):
             url = build_install_url(state="sig", redirect_uri="https://sentry.io/cb")
 
         query = parse_qs(urlparse(url).query)
@@ -160,14 +159,14 @@ class BuildInstallUrlTest(TestCase):
         assert query["scope"] == [" ".join(CURSOR_ORIGIN_SCOPES)]
 
     def test_keeps_scopes_the_customer_already_granted(self) -> None:
-        with self.options({"cursor-origin-app.id": APP_ID}):
+        with override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID):
             url = build_install_url(state="sig", redirect_uri="https://sentry.io/cb")
 
         query = parse_qs(urlparse(url).query)
         assert query["include_granted_scopes"] == ["true"]
 
     def test_scopes_are_space_separated_with_percent_20(self) -> None:
-        with self.options({"cursor-origin-app.id": APP_ID}):
+        with override_settings(SENTRY_CURSOR_ORIGIN_APP_ID=APP_ID):
             url = build_install_url(state="sig", redirect_uri="https://sentry.io/cb")
 
         assert "scope=repository%3Acontents%3Aread%20repository" in url
