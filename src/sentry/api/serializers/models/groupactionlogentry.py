@@ -21,6 +21,7 @@ from sentry.issues.action_log.types import (
     CommentAction,
     CommentDeleteAction,
     CommentEditAction,
+    FirstSeenAction,
     GroupActionType,
     GroupActorType,
 )
@@ -69,8 +70,8 @@ def serialize_first_seen_entry(
     """
     The first-seen item, in the shape ActivityManager.get_activities_for_group synthesizes.
 
-    Groups created before FIRST_SEEN was logged have no *entry*, so one is synthesized.
-    The date always comes from the group, since merges can move its first_seen earlier.
+    Groups created before FIRST_SEEN was logged have no *entry*, so one is synthesized
+    from the group.
     """
     initial_priority_value = group.get_event_metadata().get("initial_priority")
     initial_priority = (
@@ -84,7 +85,11 @@ def serialize_first_seen_entry(
         "type": ActivityType.FIRST_SEEN.name.lower(),
         "source": entry.source if entry else None,
         "data": {"priority": initial_priority},
-        "dateCreated": group.first_seen,
+        "dateCreated": (
+            entry.action.first_seen
+            if entry and isinstance(entry.action, FirstSeenAction)
+            else group.first_seen
+        ),
     }
 
 

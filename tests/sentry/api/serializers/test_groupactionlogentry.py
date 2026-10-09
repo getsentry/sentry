@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -390,11 +391,13 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert items is not None
         return items
 
-    def _first_seen(self, group_id: int | None = None) -> GroupActionLogEntry:
+    def _first_seen(
+        self, group_id: int | None = None, first_seen: datetime | None = None
+    ) -> GroupActionLogEntry:
         return self.create_group_action_log_entry(
             type=GroupActionType.FIRST_SEEN,
             source="system",
-            data={"first_seen": self.group.first_seen.isoformat()},
+            data={"first_seen": (first_seen or self.group.first_seen).isoformat()},
             idempotency_key=f"first_seen:{group_id or self.group.id}",
         )
 
@@ -409,6 +412,15 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert items[1]["id"] == str(first_seen.id)
         assert items[1]["source"] == "system"
         assert items[1]["dateCreated"] == self.group.first_seen
+
+    def test_logged_first_seen_uses_the_entry_first_seen(self) -> None:
+        entry_first_seen = self.group.first_seen - timedelta(days=1)
+        self._first_seen(first_seen=entry_first_seen)
+
+        items = self._activity_items()
+
+        assert items[-1]["type"] == "first_seen"
+        assert items[-1]["dateCreated"] == entry_first_seen
 
     def test_first_seen_that_is_not_oldest_is_dropped(self) -> None:
         own_first_seen = self._first_seen()

@@ -43,7 +43,7 @@ class FirstSeenActionLogTest(TestCase):
             group_id=group_id,
             source=ActionSource.SYSTEM,
             actor=SYSTEM_ACTOR,
-            first_seen=group.first_seen.isoformat(),
+            first_seen=group.first_seen,
         )
 
     def test_not_republished_for_existing_group(self) -> None:
