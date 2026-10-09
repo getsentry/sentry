@@ -23,31 +23,31 @@ CONVERSATION_AGGREGATE_DEFINITIONS = {
     "endTimestamp": ("max(timestamp)", "end_timestamp"),
     "errors": ("failure_count()", "errors"),
     "generationDuration": (
-        "sum_if(span.duration,gen_ai.operation.type,equals,ai_client)",
+        "sum_if(`gen_ai.operation.type:ai_client`,span.duration)",
         "generation_duration",
     ),
     "inputTokens": (
-        "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)",
+        "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.input_tokens)",
         "input_tokens",
     ),
-    "llmCalls": ("count_if(gen_ai.operation.type,equals,ai_client)", "llm_calls"),
+    "llmCalls": ("count_if(`gen_ai.operation.type:ai_client`)", "llm_calls"),
     "outputTokens": (
-        "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)",
+        "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.output_tokens)",
         "output_tokens",
     ),
     "startTimestamp": ("min(timestamp)", "start_timestamp"),
-    "toolCalls": ("count_if(gen_ai.operation.type,equals,tool)", "tool_calls"),
+    "toolCalls": ("count_if(`gen_ai.operation.type:tool`)", "tool_calls"),
     "toolErrors": ("failure_count_if(gen_ai.operation.type,equals,tool)", "tool_errors"),
     "toolNames": (
         "collect_unique_if(`gen_ai.operation.type:tool`,gen_ai.tool.name)",
         "tool_names",
     ),
     "totalCost": (
-        "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
+        "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.total_tokens)",
         "total_cost",
     ),
     "totalTokens": (
-        "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
+        "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.total_tokens)",
         "total_tokens",
     ),
 }

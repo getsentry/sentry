@@ -2666,7 +2666,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         response = self.do_request(
             {
-                "field": ["p75_if(span.duration, is_transaction, equals, true)"],
+                "field": ["p75_if(`is_transaction:true`, span.duration)"],
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spans",
@@ -2679,15 +2679,13 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data == [
             {
-                "p75_if(span.duration, is_transaction, equals, true)": 3000,
+                "p75_if(`is_transaction:true`, span.duration)": 3000,
             },
         ]
 
         assert meta["dataset"] == "spans"
-        assert meta["units"] == {
-            "p75_if(span.duration, is_transaction, equals, true)": "millisecond"
-        }
-        assert meta["fields"] == {"p75_if(span.duration, is_transaction, equals, true)": "duration"}
+        assert meta["units"] == {"p75_if(`is_transaction:true`, span.duration)": "millisecond"}
+        assert meta["fields"] == {"p75_if(`is_transaction:true`, span.duration)": "duration"}
 
     def test_is_transaction(self) -> None:
         self.store_spans(
@@ -3397,46 +3395,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(
             {
                 "field": [
-                    "avg_if(span.duration, span.op, equals, queue.process)",
-                    "avg_if(span.duration, span.op, equals, queue.publish)",
-                ],
-                "project": self.project.id,
-                "dataset": "spans",
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 1
-        assert data[0]["avg_if(span.duration, span.op, equals, queue.process)"] == 1500.0
-        assert data[0]["avg_if(span.duration, span.op, equals, queue.publish)"] == 3000.0
-        assert meta["dataset"] == "spans"
-
-    def test_avg_if_new_syntax(self) -> None:
-        self.store_spans(
-            [
-                self.create_span(
-                    {"op": "queue.process", "sentry_tags": {"op": "queue.process"}},
-                    duration=1000,
-                    start_ts=self.ten_mins_ago,
-                ),
-                self.create_span(
-                    {"op": "queue.process", "sentry_tags": {"op": "queue.process"}},
-                    duration=2000,
-                    start_ts=self.ten_mins_ago,
-                ),
-                self.create_span(
-                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
-                    duration=3000,
-                    start_ts=self.ten_mins_ago,
-                ),
-            ],
-        )
-
-        response = self.do_request(
-            {
-                "field": [
                     "avg_if(`span.op:queue.process`, span.duration)",
                     "avg_if(`span.op:queue.publish`, span.duration)",
                 ],
@@ -3504,7 +3462,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(
             {
                 "field": [
-                    "avg_if(span.duration, span.duration, equals, queue.process)",
+                    "avg_if(`span.duration:queue.process`, span.duration)",
                 ],
                 "project": self.project.id,
                 "dataset": "spans",
@@ -3513,23 +3471,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 400, response.content
         assert (
-            "Span.Duration Is Invalid For Parameter 2 In Avg_If. Its A Millisecond Type Field, But It Must Be One Of These Types: {'String'}"
+            "Span.Duration: Invalid Number: Queue.Process. Expected Number Then Optional K, M, Or B Suffix (E.G. 500K)."
             == response.data["detail"].title()
         )
-
-    def test_count_if_invalid_param(self) -> None:
-        response = self.do_request(
-            {
-                "field": [
-                    "count_if(span.description, snequals, queue.process)",
-                ],
-                "project": self.project.id,
-                "dataset": "spans",
-            }
-        )
-
-        assert response.status_code == 400, response.content
-        assert "Invalid parameter snequals" in response.data["detail"]
 
     def test_any_if_combinator(self) -> None:
         self.store_spans(
@@ -5214,29 +5158,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
-    def test_count_if_two_args(self):
-        """count_if should have an operator"""
-        self.store_spans(
-            [
-                self.create_span({"sentry_tags": {"release": "foo"}}),
-                self.create_span(
-                    {"sentry_tags": {"release": "bar"}},
-                    duration=10,
-                    start_ts=self.ten_mins_ago,
-                ),
-            ],
-        )
-
-        response = self.do_request(
-            {
-                "field": ["count_if(release,foo)"],
-                "query": "",
-                "project": self.project.id,
-                "dataset": "spans",
-            }
-        )
-        assert response.status_code == 400, response.content
-
     def test_span_ops_breakdown(self) -> None:
         self.store_spans(
             [
@@ -6610,9 +6531,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
         response = self.do_request(
             {
-                "field": ["count_if(span.status,equals,success)"],
+                "field": ["count_if(`span.status:success`)"],
                 "query": "",
-                "orderby": "count_if(span.status,equals,success)",
+                "orderby": "count_if(`span.status:success`)",
                 "project": self.project.id,
                 "dataset": "spans",
             }
@@ -6624,12 +6545,12 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data == [
             {
-                "count_if(span.status,equals,success)": 1,
+                "count_if(`span.status:success`)": 1,
             },
         ]
         assert meta["dataset"] == "spans"
-        assert meta["fields"]["count_if(span.status,equals,success)"] == "integer"
-        assert meta["units"]["count_if(span.status,equals,success)"] is None
+        assert meta["fields"]["count_if(`span.status:success`)"] == "integer"
+        assert meta["units"]["count_if(`span.status:success`)"] is None
 
     def test_count_if_span_status_equation_quoted(self) -> None:
         self.store_spans(
@@ -6647,7 +6568,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 ),
             ],
         )
-        equation = 'equation|count_if(span.status,equals,"success")'
+        equation = 'equation|count_if(`span.status:"success"`)'
         response = self.do_request(
             {
                 "field": [equation],
@@ -6672,7 +6593,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["fields"][equation] == "integer"
         assert meta["units"][equation] is None
 
-        equation = 'equation|count_if(span.status,equals,"")'
+        equation = 'equation|count_if(`span.status:""`)'
         response = self.do_request(
             {
                 "field": [equation],
@@ -6722,9 +6643,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
         response = self.do_request(
             {
-                "field": ["count_if(span.duration,greater,300)"],
+                "field": ["count_if(`span.duration:>300`)"],
                 "query": "",
-                "orderby": "count_if(span.duration,greater,300)",
+                "orderby": "count_if(`span.duration:>300`)",
                 "project": self.project.id,
                 "dataset": "spans",
             }
@@ -6736,110 +6657,10 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data == [
             {
-                "count_if(span.duration,greater,300)": 2,
+                "count_if(`span.duration:>300`)": 2,
             },
         ]
         assert meta["dataset"] == "spans"
-
-    def test_count_if_between(self) -> None:
-        self.store_spans(
-            [
-                self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success"}},
-                    start_ts=self.ten_mins_ago,
-                    duration=299,
-                ),
-                self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success"}},
-                    start_ts=self.ten_mins_ago,
-                    duration=300,
-                ),
-                self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success"}},
-                    start_ts=self.ten_mins_ago,
-                    duration=399,
-                ),
-                self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success"}},
-                    start_ts=self.ten_mins_ago,
-                    duration=400,
-                ),
-                self.create_span(
-                    {
-                        "description": "bar",
-                        "sentry_tags": {"status": "invalid_argument"},
-                    },
-                    start_ts=self.ten_mins_ago,
-                    duration=200,
-                ),
-            ],
-        )
-        response = self.do_request(
-            {
-                "field": ["count_if(span.duration,between,300,399)"],
-                "query": "",
-                "orderby": "count_if(span.duration,between,300,399)",
-                "project": self.project.id,
-                "dataset": "spans",
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 1
-        assert data == [
-            {
-                "count_if(span.duration,between,300,399)": 2,
-            },
-        ]
-        assert meta["dataset"] == "spans"
-
-    def test_count_if_between_raises_with_second_value_missing(self) -> None:
-        response = self.do_request(
-            {
-                "field": ["count_if(span.duration,between,300)"],
-                "query": "",
-                "orderby": "count_if(span.duration,between,300)",
-                "project": self.project.id,
-                "dataset": "spans",
-            }
-        )
-        assert response.status_code == 400, response.content
-        assert "between operator requires two values" in response.data["detail"]
-
-    def test_count_if_between_raises_with_second_value_less_than_first(self) -> None:
-        response = self.do_request(
-            {
-                "field": ["count_if(span.duration,between,300,299)"],
-                "query": "",
-                "orderby": "count_if(span.duration,between,300,299)",
-                "project": self.project.id,
-                "dataset": "spans",
-            }
-        )
-        assert response.status_code == 400, response.content
-        assert (
-            "Fourth Parameter 299 Must Be Greater Than Third Parameter 300"
-            in response.data["detail"].title()
-        )
-
-    def test_count_if_numeric_raises_invalid_search_query_with_bad_value(self) -> None:
-        response = self.do_request(
-            {
-                "field": ["count_if(span.duration,greater,three)"],
-                "query": "",
-                "orderby": "count_if(span.duration,greater,three)",
-                "project": self.project.id,
-                "dataset": "spans",
-            }
-        )
-
-        assert response.status_code == 400, response.content
-        assert (
-            "Invalid Third Parameter Three. Must Be Of Type Number"
-            in response.data["detail"].title()
-        )
 
     def test_count_if_integer(self) -> None:
         self.store_spans(
@@ -6866,9 +6687,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
         response = self.do_request(
             {
-                "field": ["count_if(gen_ai.usage.total_tokens,greater,200)"],
+                "field": ["count_if(`gen_ai.usage.total_tokens:>200`)"],
                 "query": "",
-                "orderby": "count_if(gen_ai.usage.total_tokens,greater,200)",
+                "orderby": "count_if(`gen_ai.usage.total_tokens:>200`)",
                 "project": self.project.id,
                 "dataset": "spans",
             }
@@ -6880,7 +6701,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data == [
             {
-                "count_if(gen_ai.usage.total_tokens,greater,200)": 1,
+                "count_if(`gen_ai.usage.total_tokens:>200`)": 1,
             },
         ]
         assert meta["dataset"] == "spans"

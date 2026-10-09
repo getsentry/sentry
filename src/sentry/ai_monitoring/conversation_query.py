@@ -68,7 +68,7 @@ def _compile_alias_filter(condition: Node, key: Node, resolver: SearchResolver) 
     """Replace a table alias with the EAP expression that calculates it.
 
     For example, `conversation.totalCost:>10` becomes
-    `sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):>10`.
+    `sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.total_tokens):>10`.
     """
     expression, alias = AI_CONVERSATIONS_FIELDS[key.text.strip('"')]
     query = condition.text.replace(key.text, expression, 1)
