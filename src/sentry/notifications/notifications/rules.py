@@ -4,7 +4,7 @@ import logging
 import zoneinfo
 from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import UTC, tzinfo
-from typing import Any, cast
+from typing import Any
 
 import sentry_sdk
 
@@ -51,7 +51,7 @@ from sentry.notifications.utils.links import (
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.plugins.base.structs import Notification
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service
@@ -213,7 +213,7 @@ class AlertRuleNotification(ProjectNotification):
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
-            "commits": get_commits(self.project, cast(Event, self.event)),
+            "commits": get_commits(self.project, self.event),
             "environment": environment,
             "slack_link": get_integration_link(
                 self.organization, IntegrationProviderSlug.SLACK.value, self.notification_uuid
