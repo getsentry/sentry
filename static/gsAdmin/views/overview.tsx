@@ -12,9 +12,11 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {DocIntegration} from 'sentry/types/integrations';
 
 import {CustomerContact} from 'admin/components/customerContact';
@@ -26,15 +28,15 @@ import {PercentChange} from 'admin/components/percentChange';
  * THIS COMPONENT WILL SOON BE REMOVED
  */
 const getAppRow = (row: any) => [
-  <td key={`${row.name}-name`}>
+  <SimpleTable.RowCell key={`${row.name}-name`}>
     <Flex align="center" gap="md">
       <SentryAppAvatar size={16} sentryApp={row} />
       {row.name}
     </Flex>
-  </td>,
-  <td key={`${row.name}-value`} style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key={`${row.name}-value`} justify="end">
     {row.installs.toLocaleString()}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 /**
@@ -42,15 +44,15 @@ const getAppRow = (row: any) => [
  * THIS COMPONENT WILL SOON BE REMOVED
  */
 const getDocIntegrationRow = (doc: DocIntegration) => [
-  <td key={`${doc.name}-name`}>
+  <SimpleTable.RowCell key={`${doc.name}-name`}>
     <Flex align="center" gap="md">
       <DocIntegrationAvatar size={16} docIntegration={doc} />
       {doc.name}
     </Flex>
-  </td>,
-  <td key={`${doc.name}-value`} style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key={`${doc.name}-value`} justify="end">
     {doc.popularity}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 /**
@@ -67,10 +69,8 @@ function SentryAppList() {
       }}
       hasPagination={false}
       columns={[
-        <th key="apps">Name</th>,
-        <th key="installs" style={{width: 150, textAlign: 'right'}}>
-          Installs
-        </th>,
+        {key: 'apps', label: 'Name'},
+        {key: 'installs', label: 'Installs', width: 150, align: 'right'},
       ]}
       columnsForRow={getAppRow}
       inPanel
@@ -92,10 +92,8 @@ function DocIntegrationList() {
       }}
       hasPagination={false}
       columns={[
-        <th key="apps">Name</th>,
-        <th key="popularity" style={{width: 150, textAlign: 'right'}}>
-          Popularity
-        </th>,
+        {key: 'apps', label: 'Name'},
+        {key: 'popularity', label: 'Popularity', width: 150, align: 'right'},
       ]}
       columnsForRow={getDocIntegrationRow}
       inPanel
@@ -108,23 +106,23 @@ function DocIntegrationList() {
  * THIS COMPONENT WILL SOON BE REMOVED
  */
 const getCustomerRow = (row: any) => [
-  <td key="customer">
+  <SimpleTable.RowCell key="customer">
     <CustomerName>
       <OrganizationAvatar size={36} organization={row} />
       <div>
         <strong>
           <Link to={`/_admin/customers/${row.slug}/`}>{row.name}</Link>
         </strong>
-        <small> — {row.slug}</small>
+        <Text size="xs"> — {row.slug}</Text>
       </div>
       <div>
-        <small>
+        <Text size="xs">
           {row.owner && (
             <span>
               <CustomerContact owner={row.owner} />
             </span>
           )}
-        </small>
+        </Text>
         {row.isSuspended && (
           <Tooltip title={row.suspensionReason}>
             <Tag variant="danger">Suspended</Tag>
@@ -132,25 +130,25 @@ const getCustomerRow = (row: any) => [
         )}
       </div>
     </CustomerName>
-  </td>,
-  <td key="events" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="events" direction="column" gap="xs">
     {row.stats.events24h.toLocaleString()}
-    <br />
-    <small>
+    <Text size="xs">
       <PercentChange current={row.stats.events24h} prev={row.stats.eventsPrev24h} />
-    </small>
-  </td>,
-  <td key="members" style={{textAlign: 'center'}}>
+    </Text>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="members" justify="center">
     {row.totalMembers.toLocaleString()}
-  </td>,
-  <td key="status" style={{textAlign: 'center'}}>
-    <CustomerStatus customer={row} />
-  </td>,
-  <td key="joined" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="status" justify="center">
+    <Text align="center">
+      <CustomerStatus customer={row} />
+    </Text>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="joined" direction="column" align="end" gap="xs">
     {moment(row.dateJoined).format('MMMM YYYY')}
-    <br />
-    <small>{moment(row.dateJoined).fromNow()}</small>
-  </td>,
+    <Text size="xs">{moment(row.dateJoined).fromNow()}</Text>
+  </SimpleTable.RowCell>,
 ];
 
 const CustomerName = styled('div')`
@@ -196,19 +194,11 @@ function CustomersByVolume() {
         defaultSort="events.24h"
         hasPagination={false}
         columns={[
-          <th key="customer">Customer</th>,
-          <th key="events" style={{width: 130, textAlign: 'center'}}>
-            Events (24h)
-          </th>,
-          <th key="members" style={{width: 100, textAlign: 'center'}}>
-            Members
-          </th>,
-          <th key="status" style={{width: 150, textAlign: 'center'}}>
-            Status
-          </th>,
-          <th key="joined" style={{width: 150, textAlign: 'right'}}>
-            Joined
-          </th>,
+          {key: 'customer', label: 'Customer'},
+          {key: 'events', label: 'Events (24h)', width: 130, align: 'center'},
+          {key: 'members', label: 'Members', width: 100, align: 'center'},
+          {key: 'status', label: 'Status', width: 150, align: 'center'},
+          {key: 'joined', label: 'Joined', width: 150, align: 'right'},
         ]}
         columnsForRow={getCustomerRow}
         inPanel

@@ -6,7 +6,8 @@ import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
-import {ResultGrid} from 'sentry/components/resultGrid';
+import {ResultGrid, type ResultGridColumn} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
@@ -41,17 +42,17 @@ export default function AdminRelays() {
 
   const getRow = (row: RelayRow) => {
     return [
-      <td key="id">
+      <SimpleTable.RowCell key="id">
         <strong>{row.relayId}</strong>
-      </td>,
-      <td key="key">{row.publicKey}</td>,
-      <td key="firstSeen" style={{textAlign: 'right'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="key">{row.publicKey}</SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="firstSeen" justify="end">
         {prettyDate(row.firstSeen)}
-      </td>,
-      <td key="lastSeen" style={{textAlign: 'right'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="lastSeen" justify="end">
         {prettyDate(row.lastSeen)}
-      </td>,
-      <td key="tools" style={{textAlign: 'right'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="tools" justify="end">
         <span className="editor-tools">
           <Confirm
             message={t('Are you sure you wish to delete this relay?')}
@@ -62,22 +63,16 @@ export default function AdminRelays() {
             </Button>
           </Confirm>
         </span>
-      </td>,
+      </SimpleTable.RowCell>,
     ];
   };
 
-  const columns = [
-    <th key="id" style={{width: 350, textAlign: 'left'}}>
-      Relay
-    </th>,
-    <th key="key">Public Key</th>,
-    <th key="firstSeen" style={{width: 150, textAlign: 'right'}}>
-      First seen
-    </th>,
-    <th key="lastSeen" style={{width: 150, textAlign: 'right'}}>
-      Last seen
-    </th>,
-    <th key="tools" />,
+  const columns: ResultGridColumn[] = [
+    {key: 'id', label: 'Relay', width: 350},
+    {key: 'key', label: 'Public Key'},
+    {key: 'firstSeen', label: 'First seen', width: 150, align: 'right'},
+    {key: 'lastSeen', label: 'Last seen', width: 150, align: 'right'},
+    {key: 'tools', label: t('Actions'), hideLabel: true},
   ];
 
   return (

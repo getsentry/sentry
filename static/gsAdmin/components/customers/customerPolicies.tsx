@@ -3,19 +3,20 @@ import moment from 'moment-timezone';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 const getRow = (row: any) => [
-  <td key="name">
+  <SimpleTable.RowCell key="name">
     <ExternalLink href={row.url}>
       {row.name} {' — '} {row.version}
     </ExternalLink>
-  </td>,
-  <td key="user" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="user" justify="center">
     {!!row.consent && (row.consent.userEmail || row.consent.userName)}
-  </td>,
-  <td key="when" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="when" justify="end">
     {!!row.consent && moment(row.consent.createdAt).fromNow()}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function CustomerPolicies({orgId}: any) {
@@ -28,13 +29,9 @@ export function CustomerPolicies({orgId}: any) {
       defaultParams={{per_page: 10}}
       useQueryString={false}
       columns={[
-        <th key="name">Policy</th>,
-        <th key="user" style={{width: 150, textAlign: 'center'}}>
-          User
-        </th>,
-        <th key="when" style={{width: 150, textAlign: 'right'}}>
-          When
-        </th>,
+        {key: 'name', label: 'Policy'},
+        {key: 'user', label: 'User', width: 150, align: 'center'},
+        {key: 'when', label: 'When', width: 150, align: 'right'},
       ]}
       keyForRow={row => row.slug}
       rowsFromData={data => Object.values(data)}
