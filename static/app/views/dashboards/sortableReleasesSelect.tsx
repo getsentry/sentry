@@ -55,11 +55,11 @@ export function SortableReleasesSelect({
   );
 }
 
-// PageFilterBar reserves space for a date filter in its last slot. Keep the
-// release sort button and its filter bar at their natural widths instead.
+// PageFilterBar reserves space for a date filter in its last slot. Cap this
+// group's width at the release selector's 300px limit plus the square sort button.
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: max-content;
-  max-width: 100%;
+  max-width: min(100%, calc(300px + ${p => p.theme.form.md.height}));
 
   & > * {
     &:last-child {
