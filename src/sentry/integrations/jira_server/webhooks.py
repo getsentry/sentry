@@ -53,7 +53,8 @@ def get_integration_from_token(token: str | None) -> RpcIntegration:
     if not integration:
         raise ValueError("Could not find integration for token")
     try:
-        jwt.decode(token, integration.metadata["webhook_secret"])
+        # Jira Server webhook tokens are long-lived and were generated without an expiration.
+        jwt.decode(token, integration.metadata["webhook_secret"], require_exp=False)
     except Exception as err:
         raise ValueError(f"Could not validate JWT. Got {err}")
 
