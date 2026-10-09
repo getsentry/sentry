@@ -2259,11 +2259,6 @@
       "count": 1
     }
   },
-  "static/app/views/insights/crons/components/overviewTimeline/overviewRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 7
-    }
-  },
   "static/app/views/insights/crons/components/processingErrors/monitorProcessingErrors.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
