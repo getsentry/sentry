@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
@@ -35,7 +35,6 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'flag', width: 'minmax(min-content, 1fr)'},
   {key: 'action', width: 'min-content'},
   {key: 'date', width: 'minmax(min-content, 0.4fr)'},
-  {key: 'actions', width: 'min-content'},
 ];
 
 interface Props {
@@ -90,7 +89,6 @@ export function FlagDetailsDrawerContent({group}: Props) {
               <SimpleTable.HeaderCell>{t('Flag Name')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell sort="desc">{t('Date')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell aria-label={t('Actions')} />
             </SimpleTable.HeaderRow>
           }
         >
@@ -170,10 +168,8 @@ function FlagDetailsRow({flagValue}: {flagValue: RawFlag}) {
           <SimpleTable.RowCell>
             {getFlagActionLabel(flagValue.action)}
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell>
+          <SimpleTable.RowCell position="relative">
             <DateTime date={flagValue.createdAt} year timeZone />
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell>
             <FlagValueActionsMenu flagValue={flagValue} />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
@@ -190,7 +186,6 @@ function GroupFirstSeenRow({group}: {group: Group}) {
       <SimpleTable.RowCell>
         <DateTime date={group.firstSeen} year timeZone />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell />
     </SimpleTable.Row>
   );
 }
@@ -203,44 +198,53 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
 
   return (
     <RevealOnHover.Action visible={isVisible}>
-      <DropdownMenu
-        size="xs"
-        strategy="fixed"
-        onOpenChange={isOpen => setIsVisible(isOpen)}
-        trigger={triggerProps => (
-          <OverlayTrigger.IconButton
-            {...triggerProps}
-            aria-label={t('Flag Audit Log Actions Menu')}
-            icon={<IconEllipsis />}
-          />
-        )}
-        items={[
-          {
-            key: 'view-issues-true',
-            label: t('Search issues where this flag value is TRUE'),
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: {query: `${makeFeatureFlagSearchKey(key)}:"true"`},
+      <Flex
+        position="absolute"
+        top="0"
+        bottom="0"
+        right="0"
+        align="center"
+        padding="0 xl"
+      >
+        <DropdownMenu
+          size="xs"
+          strategy="fixed"
+          onOpenChange={isOpen => setIsVisible(isOpen)}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              aria-label={t('Flag Audit Log Actions Menu')}
+              icon={<IconEllipsis />}
+            />
+          )}
+          items={[
+            {
+              key: 'view-issues-true',
+              label: t('Search issues where this flag value is TRUE'),
+              to: {
+                pathname: `/organizations/${organization.slug}/issues/`,
+                query: {query: `${makeFeatureFlagSearchKey(key)}:"true"`},
+              },
             },
-          },
-          {
-            key: 'view-issues-false',
-            label: t('Search issues where this flag value is FALSE'),
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: {query: `${makeFeatureFlagSearchKey(key)}:"false"`},
+            {
+              key: 'view-issues-false',
+              label: t('Search issues where this flag value is FALSE'),
+              to: {
+                pathname: `/organizations/${organization.slug}/issues/`,
+                query: {query: `${makeFeatureFlagSearchKey(key)}:"false"`},
+              },
             },
-          },
-          {
-            key: 'copy-value',
-            label: t('Copy flag value to clipboard'),
-            onAction: () =>
-              copy(flagValue.flag, {
-                successMessage: t('Copied flag value to clipboard'),
-              }),
-          },
-        ]}
-      />
+            {
+              key: 'copy-value',
+              label: t('Copy flag value to clipboard'),
+              onAction: () =>
+                copy(flagValue.flag, {
+                  successMessage: t('Copied flag value to clipboard'),
+                }),
+            },
+          ]}
+        />
+      </Flex>
     </RevealOnHover.Action>
   );
 }

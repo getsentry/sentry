@@ -149,7 +149,7 @@ describe('FlagDetailsDrawerContent', () => {
     expect(rows).toHaveLength(4);
     expect(newerRow).toHaveTextContent('newer-provider');
     expect(olderRow).toHaveTextContent('older-provider');
-    expect(firstSeenCells).toHaveLength(4);
+    expect(firstSeenCells).toHaveLength(3);
     expect(firstSeenCells[0]).toHaveTextContent('Issue First Seen');
     expect(firstSeenCells[2]).toHaveTextContent('Feb 1, 2021');
   });
