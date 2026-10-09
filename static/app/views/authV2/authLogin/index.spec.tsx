@@ -16,16 +16,16 @@ import AuthLogin from './index';
 jest.mock('sentry/utils/analytics');
 
 describe('AuthLogin', () => {
-  beforeEach(() => {
-    jest.mocked(trackAnalytics).mockClear();
-    ConfigStore.set('singleOrganization', false);
-  });
-
   beforeAll(() => {
     Object.defineProperty(document, 'elementFromPoint', {
       configurable: true,
       value: jest.fn(() => null),
     });
+  });
+
+  beforeEach(() => {
+    jest.mocked(trackAnalytics).mockClear();
+    ConfigStore.set('singleOrganization', false);
   });
 
   afterAll(() => {

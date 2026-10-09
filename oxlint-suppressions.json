@@ -1156,9 +1156,6 @@
     }
   },
   "static/app/components/replays/replayContext.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
