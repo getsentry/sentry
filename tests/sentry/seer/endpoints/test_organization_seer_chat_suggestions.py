@@ -10,7 +10,7 @@ from sentry.testutils.helpers.features import with_feature
 PAYLOAD = {
     "route": "/issues/:groupId/",
     "page_context": '{"version": 1, "nodes": []}',
-    "projects": [{"slug": "frontend-web", "platform": "javascript-react", "sends": ["replays"]}],
+    "projects": [{"slug": "frontend-web", "platform": "javascript-react"}],
 }
 
 
@@ -107,6 +107,15 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
 
     def test_returns_400_when_page_context_is_missing(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400, route="/issues/")
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_returns_400_when_too_many_projects(self, mock_run_oneshot: MagicMock) -> None:
+        projects = [{"slug": f"project-{i}"} for i in range(11)]
+
+        self.get_error_response(
+            self.organization.slug, status_code=400, **{**PAYLOAD, "projects": projects}
+        )
+        mock_run_oneshot.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_returns_403_when_ai_features_are_hidden(self, mock_run_oneshot: MagicMock) -> None:

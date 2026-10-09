@@ -43,6 +43,7 @@ from sentry.workflow_engine.models import Detector, Workflow
 logger = logging.getLogger(__name__)
 
 MAX_PAGE_CONTEXT_LENGTH = 50_000
+MAX_PROJECTS = 10
 
 
 class ChatSuggestion(BaseModel):
@@ -58,8 +59,6 @@ class ChatSuggestionsResult(BaseModel):
 class ProjectInfoSerializer(serializers.Serializer):
     slug = serializers.CharField()
     platform = serializers.CharField(required=False, allow_null=True, default=None)
-    # Does the project send insights, replays, logs, profiles, etc.?
-    sends = serializers.ListField(child=serializers.CharField(), required=False, default=list)
 
 
 class ChatSuggestionsSerializer(serializers.Serializer):
@@ -67,7 +66,12 @@ class ChatSuggestionsSerializer(serializers.Serializer):
     page_context = serializers.CharField(
         allow_blank=True, max_length=MAX_PAGE_CONTEXT_LENGTH, trim_whitespace=False
     )
-    projects = ProjectInfoSerializer(many=True, required=False, default=list)
+    projects = ProjectInfoSerializer(
+        many=True,
+        required=False,
+        default=list,
+        max_length=MAX_PROJECTS,  # type: ignore[call-arg]  # many=True -> ListSerializer
+    )
     route_params = serializers.DictField(
         child=serializers.CharField(), required=False, default=dict
     )
