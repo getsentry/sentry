@@ -1,25 +1,23 @@
 import {Fragment, useEffect} from 'react';
+import {IconBroadcast} from '@sentry/icons/broadcast';
+import {IconBuilding} from '@sentry/icons/building';
+import {IconDiscord} from '@sentry/icons/discord';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGroup} from '@sentry/icons/group';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconOpen} from '@sentry/icons/open';
+import {IconQuestion} from '@sentry/icons/question';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconSupport} from '@sentry/icons/support';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {
-  IconBroadcast,
-  IconBuilding,
-  IconDiscord,
-  IconDocs,
-  IconEllipsis,
-  IconGithub,
-  IconGroup,
-  IconMegaphone,
-  IconOpen,
-  IconQuestion,
-  IconSentry,
-  IconSupport,
-} from 'sentry/icons';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
