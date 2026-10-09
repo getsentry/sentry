@@ -231,3 +231,47 @@ class SeerAgentWriteApprovalTemplate(NotificationTemplate[SeerAgentWriteApproval
 
     def render(self, data: SeerAgentWriteApproval) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(subject="Seer Agent Write Approval", body=[])
+
+
+class SeerInvestigationStarted(NotificationData):
+    """Posted in the alert's Slack thread when someone starts a Seer investigation."""
+
+    slack_user_id: str
+    source: NotificationSource = NotificationSource.SEER_INVESTIGATION_STARTED
+
+
+@template_registry.register(NotificationSource.SEER_INVESTIGATION_STARTED)
+class SeerInvestigationStartedTemplate(NotificationTemplate[SeerInvestigationStarted]):
+    category = NotificationCategory.SEER
+    example_data = SeerInvestigationStarted(organization_id=1, slack_user_id="U0123456789")
+    hide_from_debugger = True
+
+    def render(self, data: SeerInvestigationStarted) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer investigation started",
+            body=[
+                ParagraphSection(
+                    blocks=[PlainTextBlock(text="Seer started an investigation for this alert.")]
+                )
+            ],
+        )
+
+
+class SeerInvestigationError(NotificationData):
+    error_message: str
+    source: NotificationSource = NotificationSource.SEER_INVESTIGATION_ERROR
+
+
+@template_registry.register(NotificationSource.SEER_INVESTIGATION_ERROR)
+class SeerInvestigationErrorTemplate(NotificationTemplate[SeerInvestigationError]):
+    category = NotificationCategory.SEER
+    example_data = SeerInvestigationError(
+        organization_id=1, error_message="An unexpected error occurred"
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerInvestigationError) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer couldn't start an investigation",
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=data.error_message)])],
+        )
