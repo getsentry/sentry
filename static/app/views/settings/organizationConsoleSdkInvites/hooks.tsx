@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {
   addErrorMessage,
@@ -7,8 +7,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {tct} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export interface ConsoleSdkInviteUser {
@@ -31,15 +32,14 @@ interface UseRevokeConsoleSdkPlatformInviteParams {
 }
 
 export function useConsoleSdkInvites(orgSlug: string) {
-  return useApiQuery<ConsoleSdkInviteUser[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
+  return useQuery(
+    apiOptions.as<ConsoleSdkInviteUser[]>()(
+      '/organizations/$organizationIdOrSlug/console-sdk-invites/',
+      {
         path: {organizationIdOrSlug: orgSlug},
-      }),
-    ],
-    {
-      staleTime: 5000,
-    }
+        staleTime: 5000,
+      }
+    )
   );
 }
 
