@@ -3,7 +3,6 @@ import {createPortal} from 'react-dom';
 import {
   Outlet,
   UNSAFE_createMemoryHistory,
-  UNSAFE_createRouter,
   useRouteError,
   type DataRouter,
   type InitialEntry,
@@ -11,7 +10,6 @@ import {
   type RouteObject,
   type To,
 } from 'react-router';
-import {RouterProvider} from 'react-router/dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @sentry/no-vanilla-emotion
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {QueryClientProvider} from '@tanstack/react-query';
@@ -38,6 +36,7 @@ import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext'
 import {initializeOrg} from './initializeOrg';
 import {SentryNuqsTestingAdapter} from './nuqsTestingAdapter';
 import {makeTestQueryClient} from './queryClient';
+import {createTestRouter, TestRouterProvider} from './reactRouter';
 import {ScrapsTestingProviders} from './scrapsTestingProviders';
 
 interface ProviderOptions {
@@ -246,14 +245,10 @@ function makeRouter({
       ]
     : childRoutes;
 
-  const router = UNSAFE_createRouter({
-    future: {
-      v7_prependBasename: true,
-      v7_relativeSplatPath: true,
-    },
+  const router = createTestRouter({
     history,
     routes,
-  }).initialize();
+  });
 
   return router;
 }
@@ -371,10 +366,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     outletContext,
   });
 
-  const renderResult = rtl.render(
-    <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
-    options
-  );
+  const renderResult = rtl.render(<TestRouterProvider router={memoryRouter} />, options);
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -384,11 +376,11 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
       outletContext,
     });
 
-    renderResult.rerender(
-      <RouterProvider router={newRouter} future={{v7_startTransition: true}} />
-    );
+    renderResult.rerender(<TestRouterProvider router={newRouter} />);
     // Force the router to update children
-    rtl.act(() => newRouter.revalidate());
+    rtl.act(() => {
+      newRouter.revalidate();
+    });
   };
 
   const testRouter = new TestRouter(memoryRouter);
@@ -427,7 +419,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       outletContext,
     });
 
-    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
+    return <TestRouterProvider router={memoryRouter} />;
   }
 
   const {initialProps, ...rest} = options;

@@ -1,8 +1,8 @@
 import {createMemoryRouter} from 'react-router';
-import {RouterProvider} from 'react-router/dom';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
+import {TestRouterProvider} from 'sentry-test/reactRouter';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -21,7 +21,7 @@ describe('buttonTracking', () => {
 
   const wrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={organization}>
-      <RouterProvider
+      <TestRouterProvider
         router={createMemoryRouter(
           [
             {
@@ -50,14 +50,13 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: [`/settings/${organization.slug}/${project.slug}/`]}
         )}
-        future={{v7_startTransition: true}}
       />
     </OrganizationContext>
   );
 
   const anonymousWrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={null}>
-      <RouterProvider
+      <TestRouterProvider
         router={createMemoryRouter(
           [
             {
@@ -68,7 +67,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: ['/auth/login/']}
         )}
-        future={{v7_startTransition: true}}
       />
     </OrganizationContext>
   );
