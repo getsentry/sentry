@@ -70,7 +70,6 @@
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry/conventions": "^0.26.0",
     "@sentry/core": "11.0.0",
-    "@sentry/icons": "workspace:*",
     "@sentry/node": "11.0.0",
     "@sentry/react": "11.0.0",
     "@sentry/sqlish": "1.0.1",

@@ -28,27 +28,20 @@ const productionEntryPoints = [
 ];
 
 const frontendWorkspace = {
-  entry: [
-    '**/*.spec.{js,ts,tsx}',
-    '**/*.snapshots.tsx',
-    '**/*.stories.{js,ts,tsx}',
-    '**/*.mdx',
-    // figma code connect files - consumed by Figma CLI
-    '**/*.figma.{tsx,jsx}',
-  ],
+  entry: ['**/*.spec.{js,ts,tsx}'],
   project: [
-    '**/*.{js,ts,tsx,mdx,less}!',
+    '**/*.{js,ts,tsx,mdx}!',
     // fixtures and helpers are only used in tests and stories
     '!**/{fixtures,__fixtures__}/**!',
     '!**/*{t,T}estUtils*.{js,ts,tsx}!',
     '!**/__stories__/*.{js,ts,tsx}!',
     '!stories/**/*.{js,ts,tsx}!',
   ],
-  // Styles are handled by Rspack, so do not report them as unused files.
-  ignoreFiles: ['**/*.less'],
 };
 
 const config: KnipConfig = {
+  // MDX tooling is declared at the root, but stories belong to the app workspace.
+  compilers: {mdx: true},
   workspaces: {
     '.': {
       entry: [
@@ -94,20 +87,36 @@ const config: KnipConfig = {
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
         ...frontendWorkspace.entry,
+        '**/*.snapshots.tsx',
+        '**/*.stories.{js,ts,tsx}',
+        '**/*.mdx',
+        // figma code connect files - consumed by Figma CLI
+        '**/*.figma.{tsx,jsx}',
         'stories/storybook.tsx',
         'stories/playground/*.tsx',
       ],
+      // Imported through the getsentry/* source alias.
+      ignoreDependencies: ['@sentry-internal/gs-app'],
     },
-    'static/gsApp': frontendWorkspace,
-    'static/gsAdmin': frontendWorkspace,
+    'static/gsApp': {
+      ...frontendWorkspace,
+      entry: [...frontendWorkspace.entry, '**/*.snapshots.tsx'],
+      // Imported through the sentry/* source alias.
+      ignoreDependencies: ['@sentry-internal/app'],
+    },
+    'static/gsAdmin': {
+      ...frontendWorkspace,
+      // Imported through the sentry/* and getsentry/* source aliases.
+      ignoreDependencies: ['@sentry-internal/app', '@sentry-internal/gs-app'],
+    },
     'static/packages/icons': {
       // test helpers are only used outside production.
-      project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!', '!test/**!'],
+      project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!', '!test/**!'],
       includeEntryExports: true,
     },
     'static/packages/scraps': {
       project: [
-        '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!',
+        '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.
         '!{test,scripts}/**!',
       ],
