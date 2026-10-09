@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {
   useQuery,
@@ -13,15 +12,11 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Integration, RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -40,13 +35,14 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {RepositoryProjectPathConfigModal} from './repositoryProjectPathConfigForm';
-import {
-  ButtonWrapper,
-  InputPathColumn,
-  NameRepoColumn,
-  OutputPathColumn,
-  RepositoryProjectPathConfigRow,
-} from './repositoryProjectPathConfigRow';
+import {RepositoryProjectPathConfigRow} from './repositoryProjectPathConfigRow';
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'codeMapping', width: 'minmax(200px, 4.5fr)'},
+  {key: 'stackRoot', width: 'minmax(150px, 2.5fr)'},
+  {key: 'sourceRoot', width: 'minmax(150px, 2.5fr)'},
+  {key: 'actions', width: 'max-content'},
+];
 
 function getDocsLink(integration: Integration): string {
   /** Accounts for some asymmetry between docs links and provider keys */
@@ -163,6 +159,7 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
     data: pathConfigsResponse,
     isPending: isPendingPathConfigs,
     isError: isErrorPathConfigs,
+    refetch: refetchPathConfigs,
   } = useQuery({
     ...pathConfigsQueryOptions,
     select: selectJsonWithHeaders,
@@ -184,6 +181,7 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
     isError: isErrorRepos,
     hasNextPage: hasNextReposPage,
     isFetchingNextPage: isFetchingNextReposPage,
+    refetch: refetchRepos,
   } = repositoriesQuery;
 
   const isPendingRepos =
@@ -246,19 +244,6 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
   };
 
   const isLoading = isPendingPathConfigs || isPendingRepos;
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (isErrorPathConfigs) {
-    return <LoadingError message={t('Error loading code mappings')} />;
-  }
-
-  if (isErrorRepos) {
-    return <LoadingError message={t('Error loading repositories')} />;
-  }
-
   const pathConfigsPageLinks = pathConfigsResponse?.headers.Link;
   const docsLink = getDocsLink(integration);
 
@@ -284,26 +269,43 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
         )}
       </TextBlock>
 
-      <Panel>
-        <PanelHeader disablePadding hasButtons>
-          <HeaderLayout>
-            <NameRepoColumn>{t('Code Mappings')}</NameRepoColumn>
-            <InputPathColumn>{t('Stack Trace Root')}</InputPathColumn>
-            <OutputPathColumn>{t('Source Code Root')}</OutputPathColumn>
-            <ButtonWrapper>
+      <SimpleTable
+        aria-label={t('Code Mappings')}
+        columns={COLUMNS}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Code Mappings')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Stack Trace Root')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Source Code Root')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="right">
               <Button
                 data-test-id="add-mapping-button"
                 onClick={() => openCodeMappingModal()}
                 size="xs"
                 icon={<IconAdd />}
+                disabled={isLoading || isErrorPathConfigs || isErrorRepos}
               >
                 {t('Add Code Mapping')}
               </Button>
-            </ButtonWrapper>
-          </HeaderLayout>
-        </PanelHeader>
-        <PanelBody>
-          {pathConfigs.length === 0 && (
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {isLoading ? (
+          <SimpleTable.Loading />
+        ) : isErrorPathConfigs ? (
+          <SimpleTable.Error
+            message={t('Error loading code mappings')}
+            onRetry={refetchPathConfigs}
+          />
+        ) : isErrorRepos ? (
+          <SimpleTable.Error
+            message={t('Error loading repositories')}
+            onRetry={refetchRepos}
+          />
+        ) : pathConfigs.length === 0 ? (
+          <SimpleTable.Empty>
             <EmptyMessage
               icon={getIntegrationIcon(integration.provider.key, 'lg')}
               action={
@@ -325,8 +327,9 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
             >
               {t('Set up stack trace linking by adding a code mapping.')}
             </EmptyMessage>
-          )}
-          {pathConfigs
+          </SimpleTable.Empty>
+        ) : (
+          pathConfigs
             .map(pathConfig => {
               const project = getMatchingProject(pathConfig);
               // this should never happen since our pathConfig would be deleted
@@ -335,36 +338,19 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
                 return null;
               }
               return (
-                <PanelItem key={pathConfig.id}>
-                  <Layout>
-                    <RepositoryProjectPathConfigRow
-                      pathConfig={pathConfig}
-                      project={project}
-                      onEdit={openCodeMappingModal}
-                      onDelete={() => deletePathConfig(pathConfig)}
-                    />
-                  </Layout>
-                </PanelItem>
+                <RepositoryProjectPathConfigRow
+                  key={pathConfig.id}
+                  pathConfig={pathConfig}
+                  project={project}
+                  onEdit={openCodeMappingModal}
+                  onDelete={() => deletePathConfig(pathConfig)}
+                />
               );
             })
-            .filter(item => !!item)}
-        </PanelBody>
-      </Panel>
+            .filter(item => !!item)
+        )}
+      </SimpleTable>
       {pathConfigsPageLinks && <Pagination pageLinks={pathConfigsPageLinks} />}
     </Fragment>
   );
 }
-
-const Layout = styled('div')`
-  display: grid;
-  grid-column-gap: ${p => p.theme.space.md};
-  width: 100%;
-  align-items: center;
-  grid-template-columns: 4.5fr 2.5fr 2.5fr max-content;
-  grid-template-areas: 'name-repo input-path output-path button';
-`;
-
-const HeaderLayout = styled(Layout)`
-  align-items: center;
-  margin: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.xl};
-`;
