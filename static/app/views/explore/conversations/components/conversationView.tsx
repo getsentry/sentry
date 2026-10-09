@@ -80,6 +80,10 @@ export function ConversationViewContent({
     focusedTool,
     isLoading,
   });
+  const needsMoreSelectionData = Boolean(
+    (selectedSpanId && !selectedNode) || focusedTool
+  );
+  const hasUnresolvedSelection = !selectedNode && needsMoreSelectionData;
 
   // The timeline opens on its first span by default; the transcript opens on
   // nothing. This default is view-local (never written to the URL) so returning
@@ -98,11 +102,20 @@ export function ConversationViewContent({
     if (selectedNode) {
       return selectedNode;
     }
+    if (hasUnresolvedSelection) {
+      return;
+    }
     if (isTimeline && !timelineDefaultDismissed) {
       return defaultTimelineNode;
     }
     return;
-  }, [selectedNode, isTimeline, timelineDefaultDismissed, defaultTimelineNode]);
+  }, [
+    selectedNode,
+    hasUnresolvedSelection,
+    isTimeline,
+    timelineDefaultDismissed,
+    defaultTimelineNode,
+  ]);
 
   // Each tab keeps its own scroll position in the shared content container; a
   // selected span is scrolled into view instead when switching tabs. This keys
@@ -133,10 +146,6 @@ export function ConversationViewContent({
     observer.observe(target);
     return () => observer.disconnect();
   }, [contentRef, hasNextPage, isFetchingNextPage, isNextPageError, loadNextPage]);
-
-  const needsMoreSelectionData = Boolean(
-    (selectedSpanId && !selectedNode) || focusedTool
-  );
 
   useEffect(() => {
     if (!isLoading && canAutoFetchNextPage && needsMoreSelectionData) {
@@ -171,11 +180,8 @@ export function ConversationViewContent({
   }, [error, isEmptyConversation]);
 
   const isTranscript = !isTimeline;
-  const isDetailLoading = Boolean(
-    selectedSpanId &&
-    !displayedNode &&
-    (isLoading || canAutoFetchNextPage || isFetchingNextPage)
-  );
+  const isDetailLoading =
+    hasUnresolvedSelection && (isLoading || canAutoFetchNextPage || isFetchingNextPage);
 
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;

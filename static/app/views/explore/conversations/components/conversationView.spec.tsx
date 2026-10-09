@@ -214,6 +214,22 @@ describe('ConversationViewContent', () => {
     expect(nextRequest).toHaveBeenCalledTimes(1);
   });
 
+  it('does not show the timeline default while a deep link is unresolved', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      match: [MockApiClient.matchQuery({cursor: 'next'})],
+      statusCode: 500,
+    });
+
+    renderView({activeTab: 'timeline', selectedSpanId: 'span-b'});
+
+    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(screen.queryByText('ID: span-a')).not.toBeInTheDocument();
+    expect(detailPane()).not.toBeInTheDocument();
+  });
+
   it('shows the span ID of the open span', async () => {
     renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
 
