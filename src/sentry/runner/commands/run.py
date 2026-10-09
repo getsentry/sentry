@@ -5,19 +5,17 @@ import os
 import random
 import signal
 import time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import click
 import taskbroker_client.constants as taskworker_constants
+from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
 from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
-
-if TYPE_CHECKING:
-    from taskbroker_client.scheduler import ScheduleRunner
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 logger = logging.getLogger("sentry.runner.commands.run")
@@ -115,7 +113,6 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
     """
     from django.conf import settings
-    from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
     from sentry.taskworker.runtime import app
     from sentry.utils.redis import redis_clusters
