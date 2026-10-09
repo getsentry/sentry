@@ -66,11 +66,11 @@ class ChatSuggestionsSerializer(serializers.Serializer):
     page_context = serializers.CharField(
         allow_blank=True, max_length=MAX_PAGE_CONTEXT_LENGTH, trim_whitespace=False
     )
-    projects = ProjectInfoSerializer(
-        many=True,
+    projects = serializers.ListField(
+        child=ProjectInfoSerializer(),
+        max_length=MAX_PROJECTS,
         required=False,
         default=list,
-        max_length=MAX_PROJECTS,  # type: ignore[call-arg]  # many=True -> ListSerializer
     )
     route_params = serializers.DictField(
         child=serializers.CharField(), required=False, default=dict
