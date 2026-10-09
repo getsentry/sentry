@@ -1,6 +1,3 @@
-from collections.abc import Mapping
-from typing import Any
-
 from django.db import router
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
@@ -37,13 +34,6 @@ class StarSegmentSerializer(serializers.Serializer):
         help_text="The ID of the project the service span belongs to.",
     )
 
-    def to_internal_value(self, data: Any) -> Any:
-        # `segment_name` is the undocumented legacy name for `service_span`.
-        if isinstance(data, Mapping) and "service_span" not in data and "segment_name" in data:
-            data = {key: data.get(key) for key in data}
-            data["service_span"] = data.pop("segment_name")
-        return super().to_internal_value(data)
-
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
@@ -66,10 +56,6 @@ class OrganizationStarredServiceSpansEndpoint(OrganizationEndpoint):
         return features.has(
             "organizations:insights-modules-use-eap", organization, actor=request.user
         )
-
-    def get_delete_data(self, request: Request) -> Mapping[str, Any]:
-        # OpenAPI has no request body for DELETE, so the documented contract is query params.
-        return request.query_params
 
     @extend_schema(
         operation_id="starOrganizationServiceSpan",
@@ -161,7 +147,7 @@ class OrganizationStarredServiceSpansEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
-        serializer = StarSegmentSerializer(data=self.get_delete_data(request))
+        serializer = StarSegmentSerializer(data=request.query_params)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
@@ -182,18 +168,3 @@ class OrganizationStarredServiceSpansEndpoint(OrganizationEndpoint):
         ).delete()
 
         return Response(status=status.HTTP_200_OK)
-
-
-@cell_silo_endpoint
-class InsightsStarredSegmentsEndpoint(OrganizationStarredServiceSpansEndpoint):
-    """
-    Legacy route for `OrganizationStarredServiceSpansEndpoint`, still called by the frontend.
-    """
-
-    publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
-    }
-
-    def get_delete_data(self, request: Request) -> Mapping[str, Any]:
-        return request.data
