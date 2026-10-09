@@ -7,7 +7,7 @@ the frontend; it is additive/optional so old seer responses (no field) still par
 
 from __future__ import annotations
 
-from sentry.seer.agent.client_models import SeerRunState, ToolResult
+from sentry.seer.agent.client_models import Message, SeerRunState, ToolResult
 
 
 def test_structured_content_is_parsed_from_seer():
@@ -69,3 +69,12 @@ def test_in_flight_tool_activity_reaches_the_frontend():
     block = state.dict()["blocks"][0]
     assert block["live_calls"] == live_calls
     assert block["progress"] == progress
+
+
+def test_attachment_keys_survive_seer_response_parsing():
+    message = Message.parse_obj({"role": "user", "content": "hello", "attachment_keys": ["key"]})
+    assert message.dict()["attachment_keys"] == ["key"]
+
+
+def test_old_seer_message_defaults_to_no_attachments():
+    assert Message(role="user", content="hello").attachment_keys == []
