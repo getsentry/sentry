@@ -11,7 +11,7 @@ import {execFileSync} from 'node:child_process';
 import {writeFileSync} from 'node:fs';
 import * as path from 'node:path';
 
-// eslint-disable-next-line boundaries/dependencies, import-js/no-relative-packages -- codegen script bundles the app schema source
+// eslint-disable-next-line import-js/no-relative-packages -- codegen script bundles the app schema source
 import {seerEmbedsToJsonSchemas} from '../static/app/components/seer/markdown/embeds/schemas';
 
 const OUT_PATH = path.resolve(

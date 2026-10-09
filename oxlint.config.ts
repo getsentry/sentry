@@ -931,44 +931,16 @@ const config = defineConfig({
         checkInternals: true,
         message: '{{from.element.type}} is not allowed to import {{to.element.type}}',
         policies: [
-          // Sentry is the shared base application. GetSentry and gsAdmin inherit
-          // it, while their own elements remain private to their applications.
+          // Package dependencies and import rules govern application and Icons
+          // access. Keep the file-level restrictions below in boundaries.
           {
-            from: {
-              element: {
-                types: {
-                  anyOf: [
-                    'sentry',
-                    'getsentry',
-                    'gsAdmin',
-                    'test',
-                    'story-book',
-                    'debug-tools',
-                  ],
-                },
-              },
-            },
             allow: [
               {
                 to: {
                   element: {
-                    type: 'sentry*',
-                  },
-                },
-              },
-            ],
-          },
-          {
-            from: {
-              element: {
-                type: 'getsentry',
-              },
-            },
-            allow: [
-              {
-                to: {
-                  element: {
-                    type: 'getsentry',
+                    types: {
+                      anyOf: ['sentry*', 'getsentry', 'gsAdmin', 'icons'],
+                    },
                   },
                 },
               },
@@ -987,17 +959,6 @@ const config = defineConfig({
                 },
               },
             },
-            allow: [
-              {
-                to: {
-                  element: {
-                    types: {
-                      anyOf: ['gsAdmin', 'getsentry'],
-                    },
-                  },
-                },
-              },
-            ],
           },
           {
             from: {
@@ -1031,27 +992,8 @@ const config = defineConfig({
               },
             ],
           },
-          // Story files inherit their containing application's permissions
-          // above. Storybook itself can load Storybook files.
+          // Storybook can load story files and shared test fixtures.
           storyFilesPolicy,
-          // GetSentry fixtures contain GetSentry types and need the same access
-          // as tests living under static/gsApp.
-          {
-            from: {
-              file: {
-                path: 'tests/js/getsentry-test/**/*',
-              },
-            },
-            allow: [
-              {
-                to: {
-                  element: {
-                    type: 'getsentry',
-                  },
-                },
-              },
-            ],
-          },
           {
             from: {
               file: {
@@ -1180,32 +1122,7 @@ const config = defineConfig({
               },
             ],
           },
-          // TODO: Re-enable this restriction once Scraps is isolated from
-          // Sentry. Scraps currently imports Sentry extensively.
-          // {
-          //   "from": {"element": {"type": "scraps"}},
-          //   "disallow": {"to": {"element": {"type": "sentry*"}}}
-          // },
-          // Temporary migration allowance until Scraps is isolated.
-          // TODO: Remove once the above setting is enabled.
-          {
-            from: {
-              element: {
-                type: 'scraps',
-              },
-            },
-            allow: [
-              {
-                to: {
-                  element: {
-                    type: 'sentry*',
-                  },
-                },
-              },
-            ],
-          },
-          // Keep the temporary Sentry allowance above, but do not allow
-          // scraps to import the legacy locale module. Use useTranslation()
+          // Scraps must not import the legacy locale module. Use useTranslation()
           // from the scraps translation context instead.
           {
             from: {
@@ -1240,43 +1157,6 @@ const config = defineConfig({
             },
             message:
               'Scraps components must use the tracking context instead of importing from sentry/utils/analytics',
-          },
-          // Icons are independent of Scraps and the application. Apply this
-          // after the general Scraps allowances so they cannot reopen imports.
-          {
-            from: {element: {type: 'icons'}},
-            disallow: {to: {element: {type: '*'}}},
-          },
-          {
-            from: {element: {type: 'icons'}},
-            allow: [{to: {element: {type: 'icons'}}}],
-          },
-          {
-            from: {
-              element: {
-                types: {
-                  anyOf: [
-                    'sentry',
-                    'getsentry',
-                    'gsAdmin',
-                    'scraps',
-                    'test',
-                    'story-book',
-                    'debug-tools',
-                  ],
-                },
-              },
-            },
-            allow: [
-              {
-                to: {
-                  element: {
-                    type: 'icons',
-                    fileInternalPath: ['icon*.tsx', 'svgIcon.tsx', 'useIconDefaults.tsx'],
-                  },
-                },
-              },
-            ],
           },
           // Apply story access after Scraps policies so core stories stay
           // accessible to Storybook, but production code cannot import them.
