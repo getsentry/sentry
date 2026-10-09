@@ -3,35 +3,36 @@ import moment from 'moment-timezone';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {CreateBroadcastModal} from 'admin/components/createBroadcastModal';
 import {PageHeader} from 'admin/components/pageHeader';
 
 const getRow = (row: any) => [
-  <td key="title">
+  <SimpleTable.RowCell key="title" direction="column" align="start" gap="xs">
     <strong>
       <Link to={`/_admin/broadcasts/${row.id}/`}>{row.title}</Link>
     </strong>
-    <br />
-    <small>
+    <Text size="xs">
       <a href={row.link}>{row.link}</a>
-    </small>
-  </td>,
-  <td key="users" style={{textAlign: 'center'}}>
+    </Text>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="users" justify="center">
     {row.userCount >= 0 ? row.userCount.toLocaleString() : ''}
-  </td>,
-  <td key="status" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="status" justify="center">
     {row.isActive ? 'Active' : 'Inactive'}
-  </td>,
-  <td key="expires" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="expires" justify="end">
     {row.dateExpires ? moment(row.dateExpires).fromNow() : '∞'}
-  </td>,
-  <td key="created" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="created" justify="end">
     {moment(row.dateCreated).fromNow()}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function Broadcasts() {
@@ -68,19 +69,11 @@ export function Broadcasts() {
         path="/_admin/broadcasts/"
         endpoint="/broadcasts/?show=all"
         columns={[
-          <th key="title">Title</th>,
-          <th key="users" style={{width: 120, textAlign: 'center'}}>
-            Users Seen
-          </th>,
-          <th key="status" style={{width: 80, textAlign: 'center'}}>
-            Status
-          </th>,
-          <th key="expires" style={{width: 120, textAlign: 'right'}}>
-            Expires
-          </th>,
-          <th key="created" style={{width: 120, textAlign: 'right'}}>
-            Created
-          </th>,
+          {key: 'title', label: 'Title'},
+          {key: 'users', label: 'Users Seen', width: 120, align: 'center'},
+          {key: 'status', label: 'Status', width: 80, align: 'center'},
+          {key: 'expires', label: 'Expires', width: 120, align: 'right'},
+          {key: 'created', label: 'Created', width: 120, align: 'right'},
         ]}
         columnsForRow={getRow}
         hasSearch

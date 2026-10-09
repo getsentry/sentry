@@ -1,8 +1,10 @@
 import moment from 'moment-timezone';
 
 import {Stack, Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
@@ -26,19 +28,11 @@ export function CustomerHistory({orgId, ...props}: Props) {
       defaultParams={{per_page: 10}}
       useQueryString={false}
       columns={[
-        <th key="period">Period</th>,
-        <th key="onDemand" style={{width: 200, textAlign: 'right'}}>
-          Pay-as-you-go
-        </th>,
-        <th key="reserved" style={{width: 200, textAlign: 'right'}}>
-          Reserved
-        </th>,
-        <th key="gifted" style={{width: 200, textAlign: 'right'}}>
-          Gifted
-        </th>,
-        <th key="usage" style={{width: 200, textAlign: 'right'}}>
-          Usage
-        </th>,
+        {key: 'period', label: 'Period'},
+        {key: 'onDemand', label: 'Pay-as-you-go', width: 200, align: 'right'},
+        {key: 'reserved', label: 'Reserved', width: 200, align: 'right'},
+        {key: 'gifted', label: 'Gifted', width: 200, align: 'right'},
+        {key: 'usage', label: 'Usage', width: 200, align: 'right'},
       ]}
       columnsForRow={(row: BillingHistory) => {
         const sortedCategories = sortCategories(row.categories);
@@ -74,28 +68,28 @@ export function CustomerHistory({orgId, ...props}: Props) {
         });
 
         return [
-          <td key="period">
+          <SimpleTable.RowCell key="period" direction="column" align="start" gap="xs">
             {moment(row.periodStart).format('ll')} › {moment(row.periodEnd).format('ll')}
-            <div>
-              <small>
-                {row.plan} — {row.planName}
-                {row.isCurrent && (
-                  <span>
-                    {' '}
-                    — <strong>Current</strong>
-                  </span>
-                )}
-              </small>
-            </div>
-          </td>,
-          <td key="onDemand" style={{textAlign: 'right'}}>
-            {formatCurrency(row.onDemandSpend)} /{' '}
-            {row.onDemandMaxSpend === -1
-              ? 'unlimited'
-              : formatCurrency(row.onDemandMaxSpend)}
-          </td>,
-          <td key="reserved" style={{textAlign: 'right'}}>
-            <Stack gap="xs">
+            <Text size="xs">
+              {row.plan} — {row.planName}
+              {row.isCurrent && (
+                <span>
+                  {' '}
+                  — <strong>Current</strong>
+                </span>
+              )}
+            </Text>
+          </SimpleTable.RowCell>,
+          <SimpleTable.RowCell key="onDemand" justify="end">
+            <Text align="right">
+              {formatCurrency(row.onDemandSpend)} /{' '}
+              {row.onDemandMaxSpend === -1
+                ? 'unlimited'
+                : formatCurrency(row.onDemandMaxSpend)}
+            </Text>
+          </SimpleTable.RowCell>,
+          <SimpleTable.RowCell key="reserved" justify="end">
+            <Stack gap="xs" align="end">
               {sortedCategories
                 .filter(({reserved}) => reserved !== RESERVED_BUDGET_QUOTA)
                 .map(({category, reserved}) => (
@@ -121,9 +115,9 @@ export function CustomerHistory({orgId, ...props}: Props) {
                 );
               })}
             </Stack>
-          </td>,
-          <td key="gifted" style={{textAlign: 'right'}}>
-            <Stack gap="xs">
+          </SimpleTable.RowCell>,
+          <SimpleTable.RowCell key="gifted" justify="end">
+            <Stack gap="xs" align="end">
               {sortedCategories
                 .filter(category => category.reserved !== RESERVED_BUDGET_QUOTA)
                 .map(({category, free}) => (
@@ -151,9 +145,9 @@ export function CustomerHistory({orgId, ...props}: Props) {
                 );
               })}
             </Stack>
-          </td>,
-          <td key="usage" style={{textAlign: 'right'}}>
-            <Stack gap="xs">
+          </SimpleTable.RowCell>,
+          <SimpleTable.RowCell key="usage" justify="end">
+            <Stack gap="xs" align="end">
               {sortedCategories.map(({category, usage}) => (
                 <div key={category}>
                   {formatUsageWithUnits(usage, category, {
@@ -178,7 +172,7 @@ export function CustomerHistory({orgId, ...props}: Props) {
                 </div>
               ))}
             </Stack>
-          </td>,
+          </SimpleTable.RowCell>,
         ];
       }}
       {...props}
