@@ -5,6 +5,7 @@ from sentry.search.eap.aggregate_utils import count_processor
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
+    NumericArgumentDefinition,
     count_argument_resolver_optimized,
 )
 
@@ -35,16 +36,7 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_SUM,
         default_search_type="integer",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
+            NumericArgumentDefinition(),
         ],
         valid_arithmetic=True,
     ),

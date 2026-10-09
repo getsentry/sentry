@@ -7,8 +7,8 @@ import {Text} from '@sentry/scraps/text';
 import {
   DroppedDataCategoryList,
   droppedEventsToCategorySections,
-} from 'sentry/components/droppedData/droppedDataCategoryList';
-import {DroppedDataChart} from 'sentry/components/droppedData/droppedDataChart';
+} from 'sentry/components/droppedData/drawer/categoryList';
+import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedEventsChart';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';

@@ -2343,7 +2343,7 @@ describe('Investigation detail', () => {
     );
 
     expect(await within(header).findByText('Completed')).toBeInTheDocument();
-    expect(within(header).getByRole('timer')).toHaveTextContent('35.0 s');
+    expect(within(header).getByRole('timer')).toHaveTextContent('35.0s');
     expect(within(header).queryByText('Synthesizing…')).not.toBeInTheDocument();
     // The header badge carries a finished run; the block above the hypotheses
     // only shows while there is something still in flight or needing attention.
