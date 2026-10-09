@@ -30,9 +30,9 @@ bootstrap; API gateway has no GitHub login consumers.
 The symbolicator, symbol server, and chart rendering enablement flags are
 also deployment settings; they no longer change while the process is running.
 
-`system.support-email` continues to use the legacy option read while the admin
-API accepts updates. `SENTRY_SYSTEM_SUPPORT_EMAIL` is prepared for the later
-cutover, which removes that editable option and switches the client config read.
+Client configuration reads support email from `SENTRY_SYSTEM_SUPPORT_EMAIL`.
+The admin API rejects the retired `system.support-email` option; change the
+deployment setting and restart the process to update the address.
 
 | Option key | Django setting |
 | --- | --- |
