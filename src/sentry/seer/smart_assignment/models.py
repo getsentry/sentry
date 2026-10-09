@@ -14,8 +14,6 @@ Also includes some utility functions for validating assignments.
 
 from __future__ import annotations
 
-from typing import Literal
-
 from django.db import models
 from pydantic import BaseModel, Field
 
@@ -90,6 +88,7 @@ class SmartAssignmentPayload(BaseModel):
     group_id: int
     project_slug: str | None = None
     connected_repos: list[str] = Field(default_factory=list)
+    is_prefetch_enabled: bool = False
 
 
 class RankedCandidate(BaseModel):
