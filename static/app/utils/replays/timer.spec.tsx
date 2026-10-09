@@ -1,8 +1,15 @@
 import {Timer} from './timer';
 
-jest.useFakeTimers();
-
 describe('Replay Timer', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => {
+    try {
+      jest.runOnlyPendingTimers();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('works', () => {
     const timer = new Timer();
 

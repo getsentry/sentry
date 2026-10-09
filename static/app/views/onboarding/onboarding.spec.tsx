@@ -9,6 +9,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {
   act,
+  cleanup,
   render,
   renderGlobalModal,
   renderHookWithProviders,
@@ -179,51 +180,62 @@ describe('Onboarding', () => {
       });
     });
 
-    it('calls trackAnalytics and activateSidebar on skip click', async () => {
-      jest.useFakeTimers();
-      const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
+    describe('with fake timers', () => {
+      afterEach(async () => {
+        try {
+          cleanup();
+          await act(async () => {
+            await jest.runOnlyPendingTimersAsync();
+          });
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+      it('calls trackAnalytics and activateSidebar on skip click', async () => {
+        jest.useFakeTimers();
+        const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
 
-      try {
-        render(
-          <OnboardingContextProvider>
-            <OnboardingWithoutContext />
-          </OnboardingContextProvider>,
-          {
-            initialRouterConfig: {
-              location: {
-                pathname: '/onboarding/org-slug/welcome/',
+        try {
+          render(
+            <OnboardingContextProvider>
+              <OnboardingWithoutContext />
+            </OnboardingContextProvider>,
+            {
+              initialRouterConfig: {
+                location: {
+                  pathname: '/onboarding/org-slug/welcome/',
+                },
+                route: '/onboarding/:orgId/:step/',
               },
-              route: '/onboarding/:orgId/:step/',
-            },
-          }
-        );
+            }
+          );
 
-        renderGlobalModal();
-        await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}), {
-          delay: null,
-        });
-        const dialog = within(screen.getByRole('dialog'));
-        await userEvent.click(
-          dialog.getByRole('button', {
-            name: "I'll read the docs myself",
-          }),
-          {delay: null}
-        );
+          renderGlobalModal();
+          await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}), {
+            delay: null,
+          });
+          const dialog = within(screen.getByRole('dialog'));
+          await userEvent.click(
+            dialog.getByRole('button', {
+              name: "I'll read the docs myself",
+            }),
+            {delay: null}
+          );
 
-        expect(trackAnalytics).toHaveBeenCalledWith(
-          'onboarding.scm_header_skip_clicked',
-          expect.objectContaining({
-            organization: expect.objectContaining({slug: 'org-slug'}),
-          })
-        );
+          expect(trackAnalytics).toHaveBeenCalledWith(
+            'onboarding.scm_header_skip_clicked',
+            expect.objectContaining({
+              organization: expect.objectContaining({slug: 'org-slug'}),
+            })
+          );
 
-        jest.runAllTimers();
+          jest.runAllTimers();
 
-        expect(openSpy).toHaveBeenCalled();
-      } finally {
-        jest.useRealTimers();
-        openSpy.mockRestore();
-      }
+          expect(openSpy).toHaveBeenCalled();
+        } finally {
+          openSpy.mockRestore();
+        }
+      });
     });
   });
 

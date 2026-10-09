@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
@@ -16,11 +21,20 @@ function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
   });
 }
 
-jest.useFakeTimers();
-
 describe('usePollReplayRecord', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     MockApiClient.clearMockResponses();
+  });
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
   it('should fetch count_segments', async () => {
     const countSegments = 10;

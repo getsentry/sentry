@@ -2,7 +2,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {IssueType} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,8 +21,13 @@ describe('useEngagedViewTracking', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.clearAllMocks();
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+      jest.clearAllMocks();
+    }
   });
 
   it('records engaged view event after 10 seconds', () => {

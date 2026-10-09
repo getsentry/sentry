@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   act,
+  cleanup,
   render,
   renderHookWithProviders,
   screen,
@@ -397,59 +398,69 @@ describe('useTraceItemDetails', () => {
     await waitFor(() => expect(result.current.isTraceItemDetailsPending).toBe(false));
   });
 
-  it('does not fetch details when the hovered element unmounts before the hover timeout elapses', async () => {
-    jest.useFakeTimers();
-    initializePageFilters({
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
-    const traceItemDetailsMock = addTraceItemDetailsMock();
-    const sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null> = {
-      current: null,
-    };
+    it('does not fetch details when the hovered element unmounts before the hover timeout elapses', async () => {
+      jest.useFakeTimers();
+      initializePageFilters({
+        period: '14d',
+        start: null,
+        end: null,
+        utc: false,
+      });
+      const traceItemDetailsMock = addTraceItemDetailsMock();
+      const sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null> = {
+        current: null,
+      };
 
-    const {unmount} = render(
-      <HoverPrefetchTarget sharedHoverTimeoutRef={sharedHoverTimeoutRef} />,
-      {organization}
-    );
+      const {unmount} = render(
+        <HoverPrefetchTarget sharedHoverTimeoutRef={sharedHoverTimeoutRef} />,
+        {organization}
+      );
 
-    await userEvent.hover(screen.getByTestId('hover-prefetch-target'), {delay: null});
-    unmount();
-    act(() => {
-      jest.advanceTimersByTime(HOVER_TIMEOUT * 10);
-    });
+      await userEvent.hover(screen.getByTestId('hover-prefetch-target'), {delay: null});
+      unmount();
+      act(() => {
+        jest.advanceTimersByTime(HOVER_TIMEOUT * 10);
+      });
 
-    expect(traceItemDetailsMock).not.toHaveBeenCalled();
-    expect(sharedHoverTimeoutRef.current).toBeNull();
-    jest.useRealTimers();
-  });
-
-  it('fetches details when the hovered element stays mounted past the hover timeout', async () => {
-    jest.useFakeTimers();
-    initializePageFilters({
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    });
-    const traceItemDetailsMock = addTraceItemDetailsMock();
-
-    render(<HoverPrefetchTarget sharedHoverTimeoutRef={{current: null}} />, {
-      organization,
+      expect(traceItemDetailsMock).not.toHaveBeenCalled();
+      expect(sharedHoverTimeoutRef.current).toBeNull();
     });
 
-    await waitFor(() => expect(ProjectsStore.getState().projects).toHaveLength(1));
-    await userEvent.hover(screen.getByTestId('hover-prefetch-target'), {delay: null});
-    act(() => {
-      jest.advanceTimersByTime(HOVER_TIMEOUT + 1);
-    });
+    it('fetches details when the hovered element stays mounted past the hover timeout', async () => {
+      jest.useFakeTimers();
+      initializePageFilters({
+        period: '14d',
+        start: null,
+        end: null,
+        utc: false,
+      });
+      const traceItemDetailsMock = addTraceItemDetailsMock();
 
-    await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
-    // Flush the .then() callback that reads cached data after prefetch
-    await act(async () => {});
-    jest.useRealTimers();
+      render(<HoverPrefetchTarget sharedHoverTimeoutRef={{current: null}} />, {
+        organization,
+      });
+
+      await waitFor(() => expect(ProjectsStore.getState().projects).toHaveLength(1));
+      await userEvent.hover(screen.getByTestId('hover-prefetch-target'), {delay: null});
+      act(() => {
+        jest.advanceTimersByTime(HOVER_TIMEOUT + 1);
+      });
+
+      await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
+      // Flush the .then() callback that reads cached data after prefetch
+      await act(async () => {});
+    });
   });
 
   it('runs the prefetch on mount when enabled and the project is ready', () => {

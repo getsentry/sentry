@@ -1,7 +1,14 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeClosableHeader,
@@ -165,7 +172,12 @@ describe('CreateIssueViewModal', () => {
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      try {
+        cleanup();
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('applies a generated title when name is empty', async () => {

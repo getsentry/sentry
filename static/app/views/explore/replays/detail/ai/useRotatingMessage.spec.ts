@@ -1,4 +1,4 @@
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useRotatingMessage} from 'sentry/views/explore/replays/detail/ai/useRotatingMessage';
 
@@ -10,8 +10,13 @@ describe('useRotatingMessage', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.restoreAllMocks();
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+    }
   });
 
   it('starts with a message from the list', () => {

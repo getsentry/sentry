@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
@@ -11,69 +16,80 @@ describe('useEventWaiter', () => {
     ProjectsStore.reset();
   });
 
-  it('waits for the first project event and resolves the matching issue', async () => {
-    jest.useFakeTimers();
-
-    const org = OrganizationFixture();
-    const project = ProjectFixture({firstEvent: null});
-
-    // Start with a project *without* a first event
-    const projectApiMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
+  describe('first event resolution', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('waits for the first project event and resolves the matching issue', async () => {
+      jest.useFakeTimers();
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'error',
-          organization: org,
-          project,
-        }),
-      {organization: org}
-    );
+      const org = OrganizationFixture();
+      const project = ProjectFixture({firstEvent: null});
 
-    // Initially null
-    expect(result.current).toBeNull();
+      // Start with a project *without* a first event
+      const projectApiMock = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/`,
+        method: 'GET',
+        body: project,
+      });
 
-    // Flush the initial fetch before the first event exists
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(1);
+      const {result} = renderHookWithProviders(
+        () =>
+          useEventWaiter({
+            eventType: 'error',
+            organization: org,
+            project,
+          }),
+        {organization: org}
+      );
+
+      // Initially null
+      expect(result.current).toBeNull();
+
+      // Flush the initial fetch before the first event exists
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1);
+      });
+      expect(result.current).toBeNull();
+
+      // Simulate first event arriving on subsequent poll
+      const events = [
+        {id: 1, firstSeen: '2019-05-01T00:00:00.000Z'},
+        {id: 2, firstSeen: null},
+      ];
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/`,
+        method: 'GET',
+        body: ProjectFixture({firstEvent: '2019-05-01T00:00:00.000Z'}),
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'GET',
+        body: events,
+      });
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(5000);
+      });
+      // Flush the issues query that starts once the first event is detected
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1);
+      });
+
+      expect(result.current).toEqual(events[0]);
+
+      // Verify polling stops after resolution
+      projectApiMock.mockClear();
     });
-    expect(result.current).toBeNull();
-
-    // Simulate first event arriving on subsequent poll
-    const events = [
-      {id: 1, firstSeen: '2019-05-01T00:00:00.000Z'},
-      {id: 2, firstSeen: null},
-    ];
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      body: ProjectFixture({firstEvent: '2019-05-01T00:00:00.000Z'}),
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/issues/`,
-      method: 'GET',
-      body: events,
-    });
-
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(5000);
-    });
-    // Flush the issues query that starts once the first event is detected
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(1);
-    });
-
-    expect(result.current).toEqual(events[0]);
-
-    // Verify polling stops after resolution
-    projectApiMock.mockClear();
-    jest.useRealTimers();
   });
 
   it('returns true when first event has expired (no matching issue)', async () => {
@@ -158,46 +174,56 @@ describe('useEventWaiter', () => {
     expect(projectApiMock).not.toHaveBeenCalled();
   });
 
-  it('stops polling after first event is detected', async () => {
-    jest.useFakeTimers();
-
-    const org = OrganizationFixture();
-    const project = ProjectFixture({firstEvent: null});
-
-    // API returns a project with firstTransactionEvent already set
-    const projectApiMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      body: ProjectFixture({firstTransactionEvent: true}),
+  describe('polling completion', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('stops polling after first event is detected', async () => {
+      jest.useFakeTimers();
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'transaction',
-          organization: org,
-          project,
-        }),
-      {organization: org}
-    );
+      const org = OrganizationFixture();
+      const project = ProjectFixture({firstEvent: null});
 
-    // Flush the initial fetch
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(1);
+      // API returns a project with firstTransactionEvent already set
+      const projectApiMock = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/`,
+        method: 'GET',
+        body: ProjectFixture({firstTransactionEvent: true}),
+      });
+
+      const {result} = renderHookWithProviders(
+        () =>
+          useEventWaiter({
+            eventType: 'transaction',
+            organization: org,
+            project,
+          }),
+        {organization: org}
+      );
+
+      // Flush the initial fetch
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1);
+      });
+
+      expect(result.current).toBe(true);
+      expect(projectApiMock).toHaveBeenCalledTimes(1);
+
+      // Advance well past multiple poll intervals
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1000);
+      });
+
+      // Polling should have stopped — no calls beyond the initial fetch
+      expect(projectApiMock).toHaveBeenCalledTimes(1);
     });
-
-    expect(result.current).toBe(true);
-    expect(projectApiMock).toHaveBeenCalledTimes(1);
-
-    // Advance well past multiple poll intervals
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(1000);
-    });
-
-    // Polling should have stopped — no calls beyond the initial fetch
-    expect(projectApiMock).toHaveBeenCalledTimes(1);
-
-    jest.useRealTimers();
   });
 
   it.each([

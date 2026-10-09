@@ -29,7 +29,11 @@ describe('parseStatsPeriod', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    try {
+      jest.runOnlyPendingTimers();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('parses a range of hours', () => {
