@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import login as login_user
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import router, transaction
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
@@ -23,12 +23,9 @@ from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.lost_password_hash import lost_password_hash_service
 from sentry.users.services.user.service import user_service
-from sentry.users.web.accounts_form import (
-    ChangePasswordRecoverForm,
-    RecoverPasswordForm,
-    RelocationForm,
-)
+from sentry.users.web.accounts_form import RelocationForm
 from sentry.utils import auth
+from sentry.utils.auth import construct_link_with_query
 from sentry.utils.signing import unsign
 from sentry.web.decorators import login_required, set_referrer_policy
 from sentry.web.frontend.base import control_silo_view
@@ -70,60 +67,16 @@ def expired(request: HttpRequest, user: User) -> HttpResponse:
     hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
     LostPasswordHash.send_recover_password_email(user, hash, request.META["REMOTE_ADDR"])
 
-    context = {"email": user.email}
-    return render_to_response(get_template("recover", "expired"), context, request)
+    path = construct_link_with_query(
+        reverse("sentry-account-recover"), {"email": user.email, "sent": "1"}
+    )
+    return HttpResponseRedirect(path)
 
 
 @control_silo_view
+@require_http_methods(["GET", "HEAD"])
 def recover(request: HttpRequest) -> HttpResponse:
-    from sentry import ratelimits as ratelimiter
-
-    extra = {
-        "ip_address": request.META["REMOTE_ADDR"],
-        "user_agent": request.META.get("HTTP_USER_AGENT"),
-    }
-
-    if request.method == "POST" and ratelimiter.backend.is_limited(
-        "accounts:recover:{}".format(extra["ip_address"]),
-        limit=5,
-        window=60,  # 5 per minute should be enough for anyone
-    ):
-        logger.warning("recover.rate-limited", extra=extra)
-
-        return HttpResponse(
-            "You have made too many password recovery attempts. Please try again later.",
-            content_type="text/plain",
-            status=429,
-        )
-
-    prefill = {"user": request.GET.get("email")}
-
-    form = RecoverPasswordForm(request.POST or None, initial=prefill)
-    extra["user_recovered"] = form.data.get("user")
-
-    if form.is_valid():
-        email = form.cleaned_data["user"]
-        if email:
-            password_hash = lost_password_hash_service.get_or_create(user_id=email.id)
-            LostPasswordHash.send_recover_password_email(
-                email, password_hash.hash, request.META["REMOTE_ADDR"]
-            )
-
-            extra["passwordhash_id"] = password_hash.id
-            extra["user_id"] = password_hash.user_id
-
-            logger.info("recover.sent", extra=extra)
-
-        context = {"email": email}
-
-        return render_to_response(get_template("recover", "sent"), context, request)
-
-    if form.errors:
-        logger.warning("recover.error", extra=extra)
-
-    context = {"form": form}
-
-    return render_to_response(get_template("recover", "index"), context, request)
+    return ReactMixin().handle_react(request)
 
 
 @set_referrer_policy("strict-origin-when-cross-origin")
@@ -197,7 +150,9 @@ def recover_confirm(
 ) -> HttpResponse:
     from sentry import ratelimits as ratelimiter
 
-    if request.method == "GET" and mode == "recover":
+    if mode in {"recover", "set_password"}:
+        if request.method not in {"GET", "HEAD"}:
+            return HttpResponseNotAllowed(["GET", "HEAD"])
         return ReactMixin().handle_react(request)
 
     try:
@@ -230,10 +185,8 @@ def recover_confirm(
             status=429,
         )
 
-    # TODO(getsentry/team-ospo#190): Clean up ternary logic and only show relocation form if user is unclaimed
-    form_cls = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm
     if request.method == "POST":
-        form = form_cls(request.POST, user=user)
+        form = RelocationForm(request.POST, user=user)
         if form.is_valid():
             if mode == "relocate":
                 # Relocation form requires users to accept TOS and privacy policy with an org
@@ -294,7 +247,7 @@ def recover_confirm(
 
             return login_redirect(request)
     else:
-        form = form_cls(user=user)
+        form = RelocationForm(user=user)
 
     return render_to_response(get_template(mode, "confirm"), {"form": form}, request)
 
