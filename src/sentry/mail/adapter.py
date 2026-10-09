@@ -23,7 +23,6 @@ from sentry.notifications.types import (
     RuleFuture as RuleFuture,
 )
 from sentry.notifications.utils.participants import get_notification_recipients
-from sentry.notifications.utils.rules import split_rules_by_rule_workflow_id
 from sentry.plugins.base.structs import Notification
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
@@ -64,8 +63,8 @@ class MailAdapter:
         }
         log_event = "dispatched"
         for future in futures:
-            rules.append(future.rule)
-            extra["rule_id"] = future.rule.id
+            rules.append(future.context.origin)
+            extra["rule_id"] = future.context.action_id
             if not future.kwargs:
                 continue
             raise NotImplementedError(
@@ -84,10 +83,9 @@ class MailAdapter:
 
             digest_key = unsplit_key(project, target_type, target_identifier, fallthrough_choice)
             extra["digest_key"] = digest_key
-            rules_and_workflows = split_rules_by_rule_workflow_id(rules, prefer="workflow_id")
             rules_by_identifier_key = {
-                IdentifierKey.RULE: rules_and_workflows.rules,
-                IdentifierKey.WORKFLOW: rules_and_workflows.workflow_rules,
+                IdentifierKey.RULE: [rule for rule in rules if rule.workflow_id is None],
+                IdentifierKey.WORKFLOW: [rule for rule in rules if rule.workflow_id is not None],
             }
             immediate_delivery = False
             for identifier_key, parsed_rules in rules_by_identifier_key.items():

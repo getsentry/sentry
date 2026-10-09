@@ -1,5 +1,4 @@
-from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from collections.abc import Iterable
 from typing import Literal
 
 from sentry.models.project import Project
@@ -94,27 +93,6 @@ def get_key_from_rule_data(rule: Rule | NotificationOrigin, key: str) -> str:
     value = rule.data.get("actions", [{}])[0].get(key)
     assert value is not None
     return value
-
-
-@dataclass
-class RulesAndWorkflows:
-    rules: list[Rule]
-    workflow_rules: list[Rule]  # workflows as fake Rules
-
-
-def split_rules_by_rule_workflow_id(
-    rules: Sequence[Rule], *, prefer: RuleIdType = "legacy_rule_id"
-) -> RulesAndWorkflows:
-    parsed_rules = []
-    workflow_rules = []
-    for rule in rules:
-        key, _ = get_rule_or_workflow_id(rule, prefer=prefer)
-        match key:
-            case "workflow_id":
-                workflow_rules.append(rule)
-            case "legacy_rule_id":
-                parsed_rules.append(rule)
-    return RulesAndWorkflows(rules=parsed_rules, workflow_rules=workflow_rules)
 
 
 def get_rule_or_workflow_id(

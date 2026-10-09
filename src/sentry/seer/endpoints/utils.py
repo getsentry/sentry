@@ -15,6 +15,9 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
+SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],

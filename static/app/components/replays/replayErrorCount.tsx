@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
+import {IconFire} from '@sentry/icons/fire';
 
 import {Flex} from '@sentry/scraps/layout';
-
-import {IconFire} from 'sentry/icons/iconFire';
 
 /**
  * A replay's error count, flagged with the fire icon once there is anything to

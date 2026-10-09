@@ -9,7 +9,6 @@ from sentry import tsdb
 from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.notifications.utils.rules import get_notification_origins
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -74,7 +73,7 @@ def unsplit_key(
 
 def event_to_record(
     event: Event | GroupEvent,
-    rules: Sequence[Rule],
+    rules: Sequence[NotificationOrigin],
     notification_uuid: str | None = None,
     identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:
@@ -85,8 +84,7 @@ def event_to_record(
     # TODO(iamrajjoshi): Creating a PR to fix this
     assert event.group is not None
     rule_ids = []
-    for rule in rules:
-        origin = NotificationOrigin.from_legacy_rule(rule)
+    for origin in rules:
         rule_id = (
             origin.legacy_rule_id if identifier_key == IdentifierKey.RULE else origin.workflow_id
         )
