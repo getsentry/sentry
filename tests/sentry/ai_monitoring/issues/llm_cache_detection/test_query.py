@@ -19,8 +19,10 @@ from sentry.ai_monitoring.issues.llm_cache_detection.query import (
     CALL_SITE_GROUPS_LIMIT,
     COUNT,
     COUNT_SAMPLE,
+    INPUT_TOKENS,
     MODEL,
     OPERATION_NAME,
+    SAMPLE_CALLS_LIMIT,
     SPAN_NAME,
     SUM_CACHE_CREATION_TOKENS,
     SUM_CACHE_READ_TOKENS,
@@ -31,6 +33,7 @@ from sentry.ai_monitoring.issues.llm_cache_detection.query import (
     count_spans_with_cache_attributes,
     fetch_call_site_stats,
     fetch_call_site_warmth,
+    fetch_sample_calls,
 )
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaRow
@@ -213,6 +216,52 @@ def test_count_spans_with_cache_attributes() -> None:
     assert kwargs["orderby"] is None
     assert kwargs["limit"] == 1
     assert f"(has:{CACHE_READ_TOKENS} OR has:{CACHE_CREATION_TOKENS})" in kwargs["query_string"]
+
+
+def test_fetch_sample_calls_returns_one_call_per_trace() -> None:
+    project = mock.Mock(spec=Project)
+    window = DetectionWindow(
+        start=datetime(2026, 1, 1, tzinfo=UTC),
+        end=datetime(2026, 1, 8, tzinfo=UTC),
+    )
+    stats = _to_call_sites([make_row()])[0][0]
+    rows = [
+        {
+            "trace": "trace-a",
+            "id": "span-1",
+            "timestamp": "2026-01-07T00:00:00Z",
+            INPUT_TOKENS: 4_000,
+            CACHE_READ_TOKENS: 100,
+        },
+        {"trace": "trace-a", "id": "span-2", "timestamp": "2026-01-06T00:00:00Z"},
+        {"trace": "trace-b", "id": "span-3", "timestamp": "2026-01-05T00:00:00Z"},
+        {"trace": "trace-c", "id": "span-4"},
+    ]
+
+    with mock.patch.object(
+        query_module, "_run_spans_query", return_value={"data": rows}
+    ) as run_query:
+        samples = fetch_sample_calls(project, stats, window)
+
+    assert samples is not None
+    assert [(sample.trace_id, sample.span_id) for sample in samples] == [
+        ("trace-a", "span-1"),
+        ("trace-b", "span-3"),
+    ]
+    assert samples[0].input_tokens == 4_000
+    assert samples[0].cache_read_tokens == 100
+    assert samples[0].cache_creation_tokens == 0
+    kwargs = run_query.call_args.kwargs
+    assert kwargs["selected_columns"] == [
+        "trace",
+        "id",
+        "timestamp",
+        INPUT_TOKENS,
+        CACHE_READ_TOKENS,
+        CACHE_CREATION_TOKENS,
+    ]
+    assert kwargs["orderby"] == [f"-{INPUT_TOKENS}"]
+    assert kwargs["limit"] == SAMPLE_CALLS_LIMIT * 3
 
 
 def test_to_call_sites_treats_missing_token_aggregates_as_zero() -> None:
