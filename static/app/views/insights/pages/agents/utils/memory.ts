@@ -172,9 +172,7 @@ function recordsSummary(memory: Memory): string | undefined {
 
 /**
  * One-line summary of a memory operation for the timeline and transcript, e.g.
- * a search query, a stored record's text, or `3 memories`. Uses `||` so the
- * empty strings the conversation endpoint sends for absent attributes fall
- * through to the next option rather than blanking the preview.
+ * a search query, a stored record's text, or `3 memories`.
  */
 export function getMemoryPreview(memory: Memory | undefined | null): string {
   if (!memory) {
