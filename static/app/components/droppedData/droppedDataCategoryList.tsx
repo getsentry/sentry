@@ -1,8 +1,10 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {IconChevron} from '@sentry/icons/chevron';
 
-import {InfoText} from '@sentry/scraps/info';
+import {Button} from '@sentry/scraps/button';
+import {useDrawerContentContext} from '@sentry/scraps/drawer';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -15,8 +17,11 @@ import {
   reasonTitle,
 } from 'sentry/components/droppedData/utils';
 import {TimeSince} from 'sentry/components/timeSince';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ReasonRow {
   category: string;
@@ -115,7 +120,11 @@ export function droppedEventsToCategorySections(
   return sections;
 }
 
-const COLUMNS = '1fr 110px 96px';
+const COLUMNS = '1fr 110px 96px 48px';
+
+function categoryInfoForRow(category: string) {
+  return Object.values(DATA_CATEGORY_INFO).find(info => info.name === category);
+}
 
 function ColorDot({color}: {color: string}) {
   return (
@@ -125,25 +134,6 @@ function ColorDot({color}: {color: string}) {
       radius="full"
       style={{backgroundColor: color}}
     />
-  );
-}
-
-function ReasonCodes({row}: {row: ReasonRow}) {
-  return (
-    <Grid columns="auto auto" gap="xs md" align="baseline">
-      <Text size="sm" variant="muted">
-        {t('Reason')}
-      </Text>
-      <Text size="sm" monospace>
-        {row.reason}
-      </Text>
-      <Text size="sm" variant="muted">
-        {t('Outcome')}
-      </Text>
-      <Text size="sm" monospace>
-        {row.outcome}
-      </Text>
-    </Grid>
   );
 }
 
@@ -179,12 +169,150 @@ function ReasonDescriptionLine({reason, category}: {category: string; reason: st
   );
 }
 
+function FixThisMenu({row, onInvestigate}: {row: ReasonRow; onInvestigate?: () => void}) {
+  const organization = useOrganization();
+  const {onClose: closeDroppedDataDrawer} = useDrawerContentContext();
+
+  const info = categoryInfoForRow(row.category);
+
+  const settingsTo = normalizeUrl(
+    `/settings/${organization.slug}/stats/${info ? `?dataCategory=${info.plural}` : ''}`
+  );
+
+  // TODO: this will be a dynamic URL once the per-reason docs page
+  // fully up-to-date.
+  const docsHref = 'https://docs.sentry.io/';
+
+  const items: MenuItemProps[] = [
+    ...(onInvestigate
+      ? [
+          {
+            key: 'investigate',
+            label: t('Investigate'),
+            // TODO: A follow-up PR will seed Seer with per-reason context via
+            // `openChatPrompt`.
+            onAction: () => {
+              closeDroppedDataDrawer?.();
+              onInvestigate();
+            },
+          },
+        ]
+      : []),
+    {
+      key: 'project-settings',
+      label: t('Project Settings'),
+      to: settingsTo,
+    },
+    {
+      key: 'docs',
+      label: t('Go to Docs'),
+      externalHref: docsHref,
+    },
+  ];
+
+  return (
+    <DropdownMenu
+      items={items}
+      position="bottom-end"
+      trigger={(triggerProps, isOpen) => (
+        <Button {...triggerProps} variant="primary" size="sm" aria-expanded={isOpen}>
+          {t('Fix this')}
+        </Button>
+      )}
+    />
+  );
+}
+
+function ReasonExpansion({
+  row,
+  isLast,
+  onInvestigate,
+}: {
+  isLast: boolean;
+  row: ReasonRow;
+  onInvestigate?: () => void;
+}) {
+  return (
+    <Flex
+      align="center"
+      justify="between"
+      gap="md"
+      padding="lg xl"
+      background="secondary"
+      borderBottom={isLast ? 'none' : 'muted'}
+    >
+      {/* TODO: full description of the reason will be wired in separately. */}
+      <Text size="md">{t('A short description of this drop reason will go here.')}</Text>
+      <FixThisMenu row={row} onInvestigate={onInvestigate} />
+    </Flex>
+  );
+}
+
+function ReasonTableRow({
+  row,
+  totalBuckets,
+  isLast,
+  onInvestigate,
+}: {
+  isLast: boolean;
+  row: ReasonRow;
+  totalBuckets: number;
+  onInvestigate?: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Fragment>
+      <Grid
+        columns={COLUMNS}
+        align="center"
+        borderBottom={expanded || !isLast ? 'muted' : 'none'}
+      >
+        <Stack gap="xs" padding="md xl">
+          <Flex align="baseline" gap="md">
+            <Text size="md">{reasonTitle(row.reason)}</Text>
+            <Text size="sm" variant="muted">
+              <TimeSince date={row.lastSeen} unitStyle="short" disabledAbsoluteTooltip />
+            </Text>
+          </Flex>
+          <ReasonDescriptionLine reason={row.reason} category={row.category} />
+        </Stack>
+        <Container padding="md xl">
+          <Text size="md" variant="muted" tabular>
+            {t('%s of %s', row.droppedBuckets, totalBuckets)}
+          </Text>
+        </Container>
+        <Container padding="md xl">
+          <Text size="md" variant="muted" tabular>
+            {formatDroppedShare(row.shareRatio)}
+          </Text>
+        </Container>
+        <Flex align="center" justify="center">
+          <Button
+            size="xs"
+            variant="transparent"
+            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="xs" />}
+            aria-label={t('Toggle fix options')}
+            aria-expanded={expanded}
+            onClick={() => setExpanded(value => !value)}
+          />
+        </Flex>
+      </Grid>
+      {expanded && (
+        <ReasonExpansion row={row} isLast={isLast} onInvestigate={onInvestigate} />
+      )}
+    </Fragment>
+  );
+}
+
 function ReasonTable({
   reasons,
   totalBuckets,
+  onInvestigate,
 }: {
   reasons: ReasonRow[];
   totalBuckets: number;
+  onInvestigate?: () => void;
 }) {
   return (
     <Stack radius="md" overflow="hidden" border="muted">
@@ -204,36 +332,16 @@ function ReasonTable({
             {t('Share')}
           </Text>
         </Container>
+        <Container padding="lg xl" borderBottom="muted" />
       </Grid>
       {reasons.map((row, index) => (
-        <Grid
+        <ReasonTableRow
           key={`${row.outcome}:${row.reason}`}
-          columns={COLUMNS}
-          align="center"
-          borderBottom={index === reasons.length - 1 ? 'none' : 'muted'}
-        >
-          <Stack gap="xs" padding="md xl">
-            <Flex align="baseline" gap="md">
-              <InfoText size="md" bold title={<ReasonCodes row={row} />}>
-                {reasonTitle(row.reason)}
-              </InfoText>
-              <Text size="sm" variant="muted">
-                <TimeSince date={row.lastSeen} unitStyle="short" />
-              </Text>
-            </Flex>
-            <ReasonDescriptionLine reason={row.reason} category={row.category} />
-          </Stack>
-          <Container padding="md xl">
-            <Text size="md" variant="muted" tabular>
-              {t('%s of %s', row.droppedBuckets, totalBuckets)}
-            </Text>
-          </Container>
-          <Container padding="md xl">
-            <Text size="md" variant="muted" tabular>
-              {formatDroppedShare(row.shareRatio)}
-            </Text>
-          </Container>
-        </Grid>
+          row={row}
+          totalBuckets={totalBuckets}
+          isLast={index === reasons.length - 1}
+          onInvestigate={onInvestigate}
+        />
       ))}
     </Stack>
   );
@@ -243,10 +351,12 @@ function CategorySectionRow({
   section,
   color,
   totalBuckets,
+  onInvestigate,
 }: {
   color: string;
   section: CategorySection;
   totalBuckets: number;
+  onInvestigate?: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -275,7 +385,13 @@ function CategorySectionRow({
         </Flex>
         <IconChevron direction={expanded ? 'up' : 'down'} size="xs" />
       </Flex>
-      {expanded && <ReasonTable reasons={section.reasons} totalBuckets={totalBuckets} />}
+      {expanded && (
+        <ReasonTable
+          reasons={section.reasons}
+          totalBuckets={totalBuckets}
+          onInvestigate={onInvestigate}
+        />
+      )}
     </Stack>
   );
 }
@@ -283,11 +399,13 @@ function CategorySectionRow({
 interface DroppedDataCategoryListProps {
   acceptedEvents: DroppedEventsBucket[];
   droppedEvents: DroppedEventsBucket[];
+  onInvestigate?: () => void;
 }
 
 export function DroppedDataCategoryList({
   droppedEvents,
   acceptedEvents,
+  onInvestigate,
 }: DroppedDataCategoryListProps) {
   const theme = useTheme();
   const sections = droppedEventsToCategorySections(droppedEvents, acceptedEvents);
@@ -304,6 +422,7 @@ export function DroppedDataCategoryList({
           section={section}
           color={colors[section.label]!}
           totalBuckets={totalBuckets}
+          onInvestigate={onInvestigate}
         />
       ))}
     </Stack>
