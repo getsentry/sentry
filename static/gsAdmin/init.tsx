@@ -37,7 +37,7 @@ export function renderApp() {
     <QueryClientProvider client={queryClient}>
       <DocumentTitleManager>
         <NuqsAdapter defaultOptions={{shallow: false}}>
-          <RouterProvider router={router} />
+          <RouterProvider router={router} useTransitions={false} />
         </NuqsAdapter>
       </DocumentTitleManager>
     </QueryClientProvider>

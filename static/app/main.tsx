@@ -57,7 +57,7 @@ export function Main() {
                 <NuqsAdapter defaultOptions={{shallow: false}}>
                   <CommandPaletteProvider>
                     <RouteConfigProvider value={router.routes}>
-                      <RouterProvider router={router} />
+                      <RouterProvider router={router} useTransitions={false} />
                     </RouteConfigProvider>
                   </CommandPaletteProvider>
                 </NuqsAdapter>

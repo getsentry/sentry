@@ -24,5 +24,5 @@ export function TestRouterProvider({
           ComponentProps<typeof RouterProviderV6>,
           'future'
         >);
-  return <RouterProvider {...props} router={router} />;
+  return <RouterProvider {...props} router={router} useTransitions={false} />;
 }
