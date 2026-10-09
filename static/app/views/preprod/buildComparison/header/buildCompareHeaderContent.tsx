@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {IconCode} from '@sentry/icons/code';
 import {IconDownload} from '@sentry/icons/download';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
@@ -96,11 +95,11 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             </Flex>
           )}
           <Flex gap="sm" align="center">
-            <InfoIcon>
+            <Flex justify="center" align="center" width="24px" height="24px">
               {buildDetails.app_info.platform ? (
                 <PlatformIcon platform={buildDetails.app_info.platform} alt="" />
               ) : null}
-            </InfoIcon>
+            </Flex>
             <Text>
               {buildDetails.app_info.platform
                 ? getReadablePlatformLabel(buildDetails.app_info.platform)
@@ -109,9 +108,9 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           </Flex>
           <Tooltip title={t('Application ID')}>
             <Flex gap="sm" align="center">
-              <InfoIcon>
+              <Flex justify="center" align="center" width="24px" height="24px">
                 <IconJson />
-              </InfoIcon>
+              </Flex>
               <Text>{buildDetails.app_info.app_id}</Text>
             </Flex>
           </Tooltip>
@@ -199,11 +198,3 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
     </Flex>
   );
 }
-
-const InfoIcon = styled('div')`
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;

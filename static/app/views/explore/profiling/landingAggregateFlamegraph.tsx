@@ -5,7 +5,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
@@ -107,7 +107,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 
   return (
     <AggregateFlamegraphToolbarContainer>
-      <ViewSelectContainer>
+      <Container minWidth="160px">
         <SegmentedControl
           aria-label={t('View')}
           size="xs"
@@ -119,7 +119,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
           </SegmentedControl.Item>
           <SegmentedControl.Item key="call tree">{t('Call Tree')}</SegmentedControl.Item>
         </SegmentedControl>
-      </ViewSelectContainer>
+      </Container>
       <AggregateFlamegraphSearch
         spans={spans}
         canvasPoolManager={props.canvasPoolManager}
@@ -134,21 +134,17 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         value={props.frameFilter}
         options={frameSelectOptions}
       />
-      <CollapseExpandButtonContainer>
+      <Container width="28px">
         <CollapseExpandButton
           aria-label={props.expanded ? t('Collapse sidebar') : t('Expande sidebar')}
           size="xs"
           icon={<IconDoubleChevron direction={props.expanded ? 'right' : 'left'} />}
           onClick={() => props.setExpanded(!props.expanded)}
         />
-      </CollapseExpandButtonContainer>
+      </Container>
     </AggregateFlamegraphToolbarContainer>
   );
 }
-
-const CollapseExpandButtonContainer = styled('div')`
-  width: 28px;
-`;
 
 const CollapseExpandButton = styled(Button)`
   width: 28px;
@@ -288,7 +284,14 @@ export function LandingAggregateFlamegraph({
       <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
         <FlamegraphThemeProvider>
           <FlamegraphProvider>
-            <AggregateFlamegraphLayout>
+            <Grid
+              width="100%"
+              height="100%"
+              position="absolute"
+              top="0px"
+              left="0px"
+              columns="1fr auto"
+            >
               <Stack flex="1 1 100%">
                 <AggregateFlamegraphToolbar
                   scheduler={scheduler}
@@ -345,7 +348,7 @@ export function LandingAggregateFlamegraph({
               <AggregateFlamegraphSidePanelContainer visible={showSidePanel}>
                 <AggregateFlamegraphSidePanel scheduler={scheduler} />
               </AggregateFlamegraphSidePanelContainer>
-            </AggregateFlamegraphLayout>
+            </Grid>
           </FlamegraphProvider>
         </FlamegraphThemeProvider>
       </FlamegraphStateProvider>
@@ -359,16 +362,6 @@ export function LandingAggregateFlamegraph({
  */
 const toolbarHeight = '41px';
 
-const AggregateFlamegraphLayout = styled('div')`
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  left: 0px;
-  top: 0px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-`;
-
 const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
   max-width: 300px;
 `;
@@ -380,10 +373,6 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   height: ${toolbarHeight};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const ViewSelectContainer = styled('div')`
-  min-width: 160px;
 `;
 
 const RequestStateMessageContainer = styled('div')`

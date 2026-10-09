@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t, tct} from 'sentry/locale';
@@ -23,7 +24,7 @@ function DisabledAlert({organization, features}: Props) {
     <PlanFeature {...{organization, features}}>
       {({plan}) => (
         <StyledPanelAlert variant="muted">
-          <Container>
+          <Grid align="center" gap="md" columns="1fr max-content max-content">
             <span>
               {plan === null
                 ? t('Custom Rate Limits are not available on your plan.')
@@ -59,7 +60,7 @@ function DisabledAlert({organization, features}: Props) {
             >
               {t('Documentation')}
             </LearnMoreButton>
-          </Container>
+          </Grid>
         </StyledPanelAlert>
       )}
     </PlanFeature>
@@ -67,13 +68,6 @@ function DisabledAlert({organization, features}: Props) {
 }
 
 const StyledPanelAlert = styled(PanelAlert)`
-  align-items: center;
-`;
-
-const Container = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content max-content;
-  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 

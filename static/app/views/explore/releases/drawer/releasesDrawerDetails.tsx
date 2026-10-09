@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
@@ -128,7 +128,7 @@ function ReleasesDrawerContent({
       <EventDrawerBody>
         <div>
           <Title>{t('Details')}</Title>
-          <Details>
+          <Grid align="start" gap="2xl" columns="1fr 1fr">
             <ErrorBoundary mini>
               <GeneralCard
                 isMetaError={isMetaError}
@@ -141,7 +141,7 @@ function ReleasesDrawerContent({
             <ErrorBoundary mini>
               <DeploysCard release={release} projectSlug={project?.slug} />
             </ErrorBoundary>
-          </Details>
+          </Grid>
 
           <Title>{t('New Issues')}</Title>
           <ErrorBoundary mini>
@@ -322,13 +322,6 @@ export function ReleasesDrawerDetails({
     </EventDrawerContainer>
   );
 }
-
-const Details = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space['2xl']};
-  align-items: start;
-`;
 
 const Title = styled('div')`
   font-size: ${p => p.theme.font.size.lg};

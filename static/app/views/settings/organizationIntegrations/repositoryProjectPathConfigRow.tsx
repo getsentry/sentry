@@ -4,7 +4,7 @@ import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps, Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
@@ -31,7 +31,9 @@ export function RepositoryProjectPathConfigRow({
     <Fragment>
       <NameRepoColumn>
         <Stack>
-          <RepoName>{pathConfig.repoName}</RepoName>
+          <Container as="span" paddingBottom="md">
+            {pathConfig.repoName}
+          </Container>
           <ProjectAndBranch>
             <IdBadge
               project={project}
@@ -79,10 +81,6 @@ export function RepositoryProjectPathConfigRow({
     </Fragment>
   );
 }
-
-const RepoName = styled('span')`
-  padding-bottom: ${p => p.theme.space.md};
-`;
 
 const ProjectAndBranch = styled('div')`
   display: flex;

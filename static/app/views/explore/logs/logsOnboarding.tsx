@@ -86,9 +86,9 @@ function LogDrainsLink({project}: {project: Project}) {
     : undefined;
 
   return (
-    <LogDrainsLinkWrapper>
+    <Container paddingTop="xl">
       <BodyTitle>{t('Log Drains and Forwarders')}</BodyTitle>
-      <SubTitle>
+      <Container marginBottom="md">
         {platformDoc
           ? tct(
               'You can use [link:Log Drains] to send logs from platforms like [platformLink], or via the [otlpLink:OpenTelemetry Collector].',
@@ -114,8 +114,8 @@ function LogDrainsLink({project}: {project: Project}) {
                 ),
               }
             )}
-      </SubTitle>
-    </LogDrainsLinkWrapper>
+      </Container>
+    </Container>
   );
 }
 
@@ -157,9 +157,9 @@ function OnboardingPanel({
               <Flex justify="between" gap="2xl" radius="md" padding="3xl">
                 <Container flex={{zero: 1, xl: 0.65}}>
                   <Title>{t('Logs in Sentry')}</Title>
-                  <SubTitle>
+                  <Container marginBottom="md">
                     {t('Search and visualize application logs at scale.')}
-                  </SubTitle>
+                  </Container>
                   <BulletList>
                     <li>{t('View logs in context with errors and traces')}</li>
                     <li>{t('Query, filter, and group logs by any attribute')}</li>
@@ -178,7 +178,7 @@ function OnboardingPanel({
                   {children}
                   <LogDrainsLink project={project} />
                 </Setup>
-                <Preview>
+                <Container padding="3xl">
                   {doesNotSupportLogging ? (
                     // Platforms without logging support can't run the AI-assisted
                     // setup (and would never receive a first log), so show the
@@ -199,12 +199,12 @@ function OnboardingPanel({
                           <FeatureBadge type="experimental" />
                         </Flex>
                       </BodyTitle>
-                      <SubTitle>
+                      <Container marginBottom="md">
                         {tct(
                           'First, run this command to install the [pluginLink:Sentry plugin]:',
                           {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
                         )}
-                      </SubTitle>
+                      </Container>
                       <Container marginTop="md" marginBottom="2xl">
                         <OnboardingCodeSnippet
                           language="bash"
@@ -213,7 +213,9 @@ function OnboardingPanel({
                           {INSTALL_PLUGIN_COMMAND}
                         </OnboardingCodeSnippet>
                       </Container>
-                      <SubTitle>{t('Then paste this in your agent of choice:')}</SubTitle>
+                      <Container marginBottom="md">
+                        {t('Then paste this in your agent of choice:')}
+                      </Container>
                       <Container marginTop="md" marginBottom="2xl">
                         <OnboardingCodeSnippet
                           language="text"
@@ -229,7 +231,7 @@ function OnboardingPanel({
                       )}
                     </Fragment>
                   )}
-                </Preview>
+                </Container>
                 {doesNotSupportLogging ? null : (
                   <OrDivider aria-hidden>{t('OR')}</OrDivider>
                 )}
@@ -479,14 +481,6 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   color: ${p => p.theme.tokens.content.success};
 `;
 
-const SubTitle = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const LogDrainsLinkWrapper = styled('div')`
-  padding-top: ${p => p.theme.space.xl};
-`;
-
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -513,10 +507,6 @@ const Setup = styled('div')`
     height: 95%;
     border-right: 1px ${p => p.theme.tokens.border.primary} solid;
   }
-`;
-
-const Preview = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 // Sits on top of the vertical divider (Setup's :after) at the horizontal center
@@ -562,10 +552,6 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const OnboardingContainer = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-`;
-
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
@@ -598,10 +584,10 @@ export function LogsTabOnboarding({
             <SetupLogsButton />
           </Flex>
         </ExploreFilterSection>
-        <OnboardingContainer>
+        <Container marginTop="md">
           <ExploreQuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
           <Onboarding project={project} organization={organization} />
-        </OnboardingContainer>
+        </Container>
       </Layout.Main>
     </ExploreBodySearch>
   );

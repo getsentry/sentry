@@ -9,7 +9,7 @@ import pick from 'lodash/pick';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
@@ -87,9 +87,9 @@ export function OverviewRow({
           query,
         }}
       >
-        <DetailsHeadline>
+        <Grid gap="md" columns="1fr minmax(30px, max-content)">
           <Name>{monitor.name}</Name>
-        </DetailsHeadline>
+        </Grid>
         <Stack gap="xs">
           <OwnershipDetails>
             <ProjectBadge project={monitor.project} avatarSize={12} disableLink />
@@ -232,12 +232,6 @@ const DetailsArea = styled('div')`
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 0;
   position: relative;
-`;
-
-const DetailsHeadline = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  grid-template-columns: 1fr minmax(30px, max-content);
 `;
 
 const OwnershipDetails = styled('div')`

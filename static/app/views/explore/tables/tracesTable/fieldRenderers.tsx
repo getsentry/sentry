@@ -5,7 +5,7 @@ import type {Location} from 'history';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -42,13 +42,9 @@ import {
   isPartialSpanOrTraceData,
 } from './utils';
 
-export const ProjectBadgeWrapper = styled('span')`
-  /**
-   * Max of 2 visible projects, 16px each, 2px border, 8px overlap.
-   */
-  width: 32px;
-  min-width: 32px;
-`;
+export function ProjectBadgeWrapper(props: ContainerProps<'span'>) {
+  return <Container as="span" width="32px" minWidth="32px" {...props} />;
+}
 
 export function SpanDescriptionRenderer({
   span,

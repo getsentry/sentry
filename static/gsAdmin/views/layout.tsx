@@ -167,7 +167,7 @@ export function Layout() {
                 <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
                 <NavLink to="/_admin/seer/">Seer</NavLink>
               </Navigation>
-              <SidebarActions>
+              <Stack align="start" gap="md">
                 <ThemeToggle
                   variant="transparent"
                   size="zero"
@@ -181,7 +181,7 @@ export function Layout() {
                 >
                   {isDark ? 'Light mode' : 'Dark mode'}
                 </ThemeToggle>
-              </SidebarActions>
+              </Stack>
             </Sidebar>
             <Stack
               minWidth={0}
@@ -299,13 +299,6 @@ const Sidebar = styled('section')<{isCollapsed?: boolean; isOpen?: boolean}>`
       transform 0.2s ease,
       visibility 0s linear ${p => (p.isOpen ? '0s' : '0.2s')};
   }
-`;
-
-const SidebarActions = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${p => p.theme.space.md};
 `;
 
 const CollapseButton = styled(Button)`

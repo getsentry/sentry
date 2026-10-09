@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -23,14 +23,14 @@ export function SelectorLink({
   const organization = useOrganization();
   const location = useLocation();
   const hovercardContent = (
-    <TooltipContainer>
+    <Grid gap="md" flow="row">
       {t('Search for replays with clicks on the element')}
       <Container overflow="scroll">
         <CodeBlock hideCopyButton language="javascript">
           {value}
         </CodeBlock>
       </Container>
-    </TooltipContainer>
+    </Grid>
   );
 
   const pathname = makeReplaysPathname({
@@ -65,10 +65,4 @@ const StyledLink = styled(Link)`
 
 const StyledTextOverflow = styled(TextOverflow)`
   color: ${p => p.theme.tokens.content.accent};
-`;
-
-const TooltipContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
-  gap: ${p => p.theme.space.md};
 `;

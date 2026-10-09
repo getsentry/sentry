@@ -6,7 +6,7 @@ import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container as ScrapsContainer} from '@sentry/scraps/layout';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
@@ -147,7 +147,7 @@ function QuotaExceededContent({
   // If ONLY PAYG-ineligible categories are exceeded, show Contact Sales content
   if (paygIneligibleCategories.length > 0 && otherCategories.length === 0) {
     return (
-      <Container>
+      <ScrapsContainer background="primary">
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
@@ -184,14 +184,14 @@ function QuotaExceededContent({
             )}
           </Flex>
         </Body>
-      </Container>
+      </ScrapsContainer>
     );
   }
 
   // If BOTH PAYG-ineligible and other categories are exceeded, show both sections
   if (paygIneligibleCategories.length > 0 && otherCategories.length > 0) {
     return (
-      <Container>
+      <ScrapsContainer background="primary">
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
@@ -277,13 +277,13 @@ function QuotaExceededContent({
             )}
           </Flex>
         </Body>
-      </Container>
+      </ScrapsContainer>
     );
   }
 
   // Standard content for PAYG-eligible categories only
   return (
-    <Container>
+    <ScrapsContainer background="primary">
       <Header>
         <HeaderTitle>{t('Billing Status')}</HeaderTitle>
       </Header>
@@ -352,7 +352,7 @@ function QuotaExceededContent({
           )}
         </Flex>
       </Body>
-    </Container>
+    </ScrapsContainer>
   );
 }
 
@@ -543,10 +543,6 @@ export function PrimaryNavigationQuotaExceeded({
     </Fragment>
   );
 }
-
-const Container = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-`;
 
 const Header = styled('div')`
   background: ${p => p.theme.tokens.background.primary};

@@ -219,14 +219,14 @@ function OnboardingPanel({
               <Divider />
               <Body>
                 <Setup>{children}</Setup>
-                <Preview>
+                <Container padding="3xl">
                   <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
                   <Arcade
                     src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
                     loading="lazy"
                     allowFullScreen
                   />
-                </Preview>
+                </Container>
               </Body>
             </div>
           </TabSelectionScope>
@@ -521,10 +521,6 @@ const Setup = styled('div')`
     height: 95%;
     border-right: 1px ${p => p.theme.tokens.border.primary} solid;
   }
-`;
-
-const Preview = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`

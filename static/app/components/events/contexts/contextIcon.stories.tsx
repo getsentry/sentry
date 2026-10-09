@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Grid as ScrapsGrid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ContextIcon, NAMES} from 'sentry/components/events/contexts/contextIcon';
@@ -7,7 +8,9 @@ import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ContextIcon', story => {
   story('All', () => (
-    <Grid
+    <ScrapsGrid
+      align="center"
+      gap="md"
       style={{
         gridAutoFlow: 'column',
         gridTemplateRows: `repeat(${Math.ceil(NAMES.length / 4)}, 1fr)`,
@@ -28,15 +31,9 @@ export default Storybook.story('ContextIcon', story => {
           </Tooltip>
         );
       })}
-    </Grid>
+    </ScrapsGrid>
   ));
 });
-
-const Grid = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
 
 const Cell = styled('div')`
   display: flex;

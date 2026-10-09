@@ -1129,7 +1129,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
             </DndContext>
           </StyledFieldGroup>
           {canAddFields && (
-            <AddButtons>
+            <Flex display="inline-flex" gap="lg">
               <AddButton
                 variant="link"
                 disabled={disableTransactionWidget || hasMaxMetrics}
@@ -1197,7 +1197,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                     {t('+ Add Equation')}
                   </AddButton>
                 )}
-            </AddButtons>
+            </Flex>
           )}
         </Fragment>
       )}
@@ -1303,11 +1303,6 @@ export const FieldExtras = styled('div')<{compact: boolean}>`
 
 const AddButton = styled(Button)`
   margin-top: ${p => p.theme.space.md};
-`;
-
-const AddButtons = styled('div')`
-  display: inline-flex;
-  gap: ${p => p.theme.space.lg};
 `;
 
 export const StyledArithmeticInput = styled(ArithmeticInput)`

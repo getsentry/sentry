@@ -1,8 +1,8 @@
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {IconFix} from '@sentry/icons/fix';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {
@@ -107,16 +107,10 @@ export function IssueSourceMapsDebuggerAction() {
         );
       }}
     >
-      <UnminifyActionContent>
+      <Flex as="span" display="inline-flex" align="center" gap="xs">
         <IconFix size="xs" />
         <span>{t('Unminify Code')}</span>
-      </UnminifyActionContent>
+      </Flex>
     </Button>
   );
 }
-
-const UnminifyActionContent = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;

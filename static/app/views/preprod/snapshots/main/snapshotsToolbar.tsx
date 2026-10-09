@@ -13,7 +13,7 @@ import {IconStack} from '@sentry/icons/stack';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -216,7 +216,7 @@ export function ColorPickerButton({
   }, [isOpen]);
 
   return (
-    <ColorPickerWrapper ref={pickerRef}>
+    <Flex align="center" gap="2xs" position="relative" ref={pickerRef}>
       <Tooltip title={toggleLabel} skipWrapper>
         <Button
           size="xs"
@@ -269,7 +269,7 @@ export function ColorPickerButton({
           </Flex>
         </ColorPickerDropdown>
       )}
-    </ColorPickerWrapper>
+    </Flex>
   );
 }
 
@@ -323,13 +323,6 @@ export function DiffModeToggle({
   );
 }
 
-const ColorPickerWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space['2xs']};
-`;
-
 const ColorPickerDropdown = styled('div')`
   position: absolute;
   top: 100%;
@@ -359,11 +352,9 @@ const ColorTrigger = styled('button')<{$color: string; $slash: boolean}>`
   }
 `;
 
-export const ProgressPill = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
+export function ProgressPill(props: FlexProps) {
+  return <Flex align="center" gap="sm" {...props} />;
+}
 
 export const ProgressCounter = styled(Text)`
   white-space: nowrap;

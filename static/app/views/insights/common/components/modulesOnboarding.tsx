@@ -16,7 +16,7 @@ import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container as ScrapsContainer} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Panel} from 'sentry/components/panels/panel';
@@ -57,9 +57,14 @@ export function ModulesOnboardingPanel({
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
     <Panel>
-      <Container>
+      <ScrapsContainer
+        padding="3xl"
+        minHeight="160px"
+        overflow="hidden"
+        position="relative"
+      >
         <Flex align="stretch" wrap="wrap-reverse" gap="3xl">
-          <ModuleInfo>
+          <ScrapsContainer flex="5" width="100%">
             <Fragment>
               <Header>{emptyStateContent.heading}</Header>
               <p>{emptyStateContent.description}</p>
@@ -75,15 +80,15 @@ export function ModulesOnboardingPanel({
                 </ul>
               </ValueProp>
             </SplitContainer>
-          </ModuleInfo>
-          <Sidebar>
+          </ScrapsContainer>
+          <ScrapsContainer flex="3" position="relative">
             <PerfImage src={emptyStateImg} />
-          </Sidebar>
+          </ScrapsContainer>
         </Flex>
         <LinkButton variant="primary" external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
-      </Container>
+      </ScrapsContainer>
     </Panel>
   );
 }
@@ -100,7 +105,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
   return (
-    <ModulePreviewContainer>
+    <ScrapsContainer flex="2" padding="2xl" background="secondary" width="100%">
       <ModulePreviewImage src={emptyStateContent.imageSrc} />
       {emptyStateContent.supportedSdks && (
         <SupportedSdkContainer>
@@ -122,25 +127,13 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
           </Flex>
         </SupportedSdkContainer>
       )}
-    </ModulePreviewContainer>
+    </ScrapsContainer>
   );
 }
-
-const Sidebar = styled('div')`
-  position: relative;
-  flex: 3;
-`;
 
 const PerfImage = styled('img')`
   max-width: 100%;
   min-width: 200px;
-`;
-
-const Container = styled('div')`
-  position: relative;
-  overflow: hidden;
-  min-height: 160px;
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Header = styled('h3')`
@@ -153,24 +146,12 @@ const SplitContainer = styled(Panel)`
   overflow: hidden;
 `;
 
-const ModuleInfo = styled('div')`
-  flex: 5;
-  width: 100%;
-`;
-
 const ModulePreviewImage = styled('img')`
   max-width: 100%;
   display: block;
   margin: auto;
   margin-bottom: ${p => p.theme.space.xl};
   object-fit: contain;
-`;
-
-const ModulePreviewContainer = styled('div')`
-  flex: 2;
-  width: 100%;
-  padding: ${p => p.theme.space['2xl']};
-  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const SupportedSdkContainer = styled('div')`

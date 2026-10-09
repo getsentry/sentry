@@ -7,6 +7,7 @@ import {IconClose} from '@sentry/icons/close';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
+import {Grid} from '@sentry/scraps/layout';
 
 import {Confirm} from 'sentry/components/confirm';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
@@ -104,7 +105,7 @@ export function InviteRequestRow({
         <div>{inviteRequest.teams.join(', ')}</div>
       )}
 
-      <ButtonGroup>
+      <Grid display="inline-grid" gap="md" columns="repeat(2, max-content)">
         <Button
           size="sm"
           busy={inviteRequestBusy[inviteRequest.id]}
@@ -151,7 +152,7 @@ export function InviteRequestRow({
             {t('Approve')}
           </Button>
         </Confirm>
-      </ButtonGroup>
+      </Grid>
     </StyledPanelItem>
   );
 
@@ -197,10 +198,4 @@ const TeamSelectControl = styled(TeamSelector)`
     max-width: 150px;
     word-break: break-all;
   }
-`;
-
-const ButtonGroup = styled('div')`
-  display: inline-grid;
-  grid-template-columns: repeat(2, max-content);
-  gap: ${p => p.theme.space.md};
 `;

@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   type MenuItemProps,
 } from '@sentry/scraps/dropdownMenu';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -107,7 +108,17 @@ export function InlineIssueTrackerActions({
         const sharedButtonProps: ButtonProps = {
           size: 'zero',
           icon: integration.displayIcon ? (
-            <IssueTrackerIcon>{integration.displayIcon}</IssueTrackerIcon>
+            <Flex
+              as="span"
+              display="inline-flex"
+              justify="center"
+              align="center"
+              flexShrink={0}
+              width="14px"
+              height="14px"
+            >
+              {integration.displayIcon}
+            </Flex>
           ) : undefined,
           variant: 'transparent',
           children: <IssueActionName>{integration.displayName}</IssueActionName>,
@@ -294,9 +305,18 @@ export function IssueTrackerActionDropdown({
             textValue,
             details: isDisabled ? tooltipTitle : details,
             leadingItems: (
-              <IssueTrackerIcon style={{transform: 'translateY(3px)'}}>
+              <Flex
+                as="span"
+                display="inline-flex"
+                justify="center"
+                align="center"
+                flexShrink={0}
+                width="14px"
+                height="14px"
+                style={{transform: 'translateY(3px)'}}
+              >
                 {integration.displayIcon}
-              </IssueTrackerIcon>
+              </Flex>
             ),
             disabled: isDisabled,
             onAction,
@@ -354,15 +374,6 @@ const FullWidthButton = styled(Button)`
 
 const FullWidthDropdownButton = styled(DropdownButton)`
   ${fullWidthButtonStyles}
-`;
-
-const IssueTrackerIcon = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
 `;
 
 const IssueActionName = styled('div')`

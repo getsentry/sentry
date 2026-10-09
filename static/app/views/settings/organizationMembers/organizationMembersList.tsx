@@ -1,10 +1,9 @@
 import {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {IconMail} from '@sentry/icons/mail';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -358,11 +357,16 @@ function OrganizationMembersList() {
       {!isDemoModeActive() && inviteRequests.length > 0 && (
         <Panel>
           <PanelHeader>
-            <StyledPanelItem>
+            <Grid
+              align="center"
+              gap="xl"
+              width="100%"
+              columns="minmax(150px, auto) minmax(100px, 140px) 420px"
+            >
               <div>{t('Pending Members')}</div>
               <div>{t('Role')}</div>
               <div>{t('Teams')}</div>
-            </StyledPanelItem>
+            </Grid>
           </PanelHeader>
           <PanelBody>
             {inviteRequests.map(inviteRequest => (
@@ -380,7 +384,7 @@ function OrganizationMembersList() {
           </PanelBody>
         </Panel>
       )}
-      <SearchWrapperWithFilter>
+      <Container marginBottom="lg">
         <Flex align="center" gap="lg">
           <MembersFilter
             roles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
@@ -399,7 +403,7 @@ function OrganizationMembersList() {
           </Container>
           {action}
         </Flex>
-      </SearchWrapperWithFilter>
+      </Container>
       <Panel data-test-id="org-member-list">
         <MemberListHeader members={membersToShow} organization={organization} />
         <PanelBody>
@@ -441,18 +445,6 @@ function OrganizationMembersList() {
     </Fragment>
   );
 }
-
-const SearchWrapperWithFilter = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
-`;
-
-const StyledPanelItem = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
-  gap: ${p => p.theme.space.xl};
-  align-items: center;
-  width: 100%;
-`;
 
 export default OrganizationMembersList;
 

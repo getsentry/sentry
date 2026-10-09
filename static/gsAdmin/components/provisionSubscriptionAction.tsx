@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
 import {Input} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 
@@ -664,7 +665,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             {this.state.errorMessage ? (
               <div className="alert alert-error">{this.state.errorMessage}</div>
             ) : null}
-            <Columns>
+            <Grid gap="2xl" columns="1fr 1fr">
               <div>
                 <SelectFieldWrapper label="Plan" name="plan">
                   <Select
@@ -1212,7 +1213,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                   </DollarsContainer>
                 </FormFieldWrapper>
               </div>
-            </Columns>
+            </Grid>
             <div className="modal-footer">
               <button type="button" className="btn btn-default" onClick={closeModal}>
                 Cancel
@@ -1227,12 +1228,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     );
   }
 }
-
-const Columns = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space['2xl']};
-`;
 
 const SectionHeader = styled('h5')`
   margin-bottom: 0;

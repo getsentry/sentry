@@ -4,7 +4,7 @@ import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import {MenuItem} from 'sentry/components/menuItem';
@@ -81,7 +81,7 @@ export function OperationSort({eventView, location, tableMeta, title: Title}: Pr
       },
     ];
     const menuContent = (
-      <DropdownContent>
+      <Container maxHeight="250px" overflowY="auto">
         {[
           {operation: 'spans.http', title: t('Sort By HTTP')},
           {operation: 'spans.db', title: t('Sort By DB')},
@@ -107,7 +107,7 @@ export function OperationSort({eventView, location, tableMeta, title: Title}: Pr
             </Flex>
           </DropdownMenuItem>
         ))}
-      </DropdownContent>
+      </Container>
     );
 
     return createPortal(
@@ -236,11 +236,6 @@ const RadioLabel = styled('label')`
 
 const StyledRadio = styled(Radio)`
   margin: 0;
-`;
-
-const DropdownContent = styled('div')`
-  max-height: 250px;
-  overflow-y: auto;
 `;
 
 const TitleWrapper = styled('div')`

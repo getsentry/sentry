@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -102,11 +103,11 @@ export function FrameHeader({actions}: FrameHeaderProps) {
         <FrameContext frame={frame} platform={platform} />
       </MainContent>
 
-      <ActionArea>
+      <Flex align="center" gap="xs" minWidth="0">
         <TrailingActions data-test-id="core-stacktrace-frame-trailing">
           {resolvedActions}
         </TrailingActions>
-      </ActionArea>
+      </Flex>
     </HeaderGrid>
   );
 }
@@ -172,20 +173,36 @@ function FrameContext({frame, platform}: {frame: Frame; platform: PlatformKey}) 
   return (
     <ContextWrapper>
       {hasFrameFunction ? (
-        <FunctionContext>
+        <Flex
+          as="span"
+          display="inline-flex"
+          align="baseline"
+          flex="0 1 auto"
+          gap="sm"
+          minWidth="0"
+          overflow="hidden"
+        >
           <Text as="span" size="xs" variant="muted" monospace>
             {t('in')}
           </Text>
           <FuncName>{frameFunctionName}</FuncName>
-        </FunctionContext>
+        </Flex>
       ) : null}
       {showPackage ? (
-        <PackageContext>
+        <Flex
+          as="span"
+          display="inline-flex"
+          align="baseline"
+          flex="0 999 auto"
+          gap="sm"
+          minWidth="0"
+          overflow="hidden"
+        >
           <Text as="span" size="xs" variant="muted" monospace>
             {t('within')}
           </Text>
           <PkgName>{frame.package}</PkgName>
-        </PackageContext>
+        </Flex>
       ) : null}
     </ContextWrapper>
   );
@@ -281,13 +298,6 @@ const MainContent = styled('div')<{isExpanded: boolean; isMuted: boolean}>`
   min-width: 0;
 `;
 
-const ActionArea = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  min-width: 0;
-`;
-
 const TrailingActions = styled('div')`
   display: flex;
   align-items: center;
@@ -342,24 +352,6 @@ const ContextWrapper = styled('span')`
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
-`;
-
-const FunctionContext = styled('span')`
-  display: inline-flex;
-  align-items: baseline;
-  flex: 0 1 auto;
-  gap: ${p => p.theme.space.sm};
-  min-width: 0;
-  overflow: hidden;
-`;
-
-const PackageContext = styled('span')`
-  display: inline-flex;
-  align-items: baseline;
-  flex: 0 999 auto;
-  gap: ${p => p.theme.space.sm};
-  min-width: 0;
-  overflow: hidden;
 `;
 
 const FuncName = styled('span')`

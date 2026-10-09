@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
 
+import {Grid} from '@sentry/scraps/layout';
 import type {MultiValueProps, OptionTypeBase} from '@sentry/scraps/select';
 import {components as selectComponents} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -24,11 +25,11 @@ export function EmailValue<Option extends OptionTypeBase>({
       children
     ) : (
       <Tooltip disabled={!error} title={error}>
-        <EmailLabel>
+        <Grid display="inline-grid" align="center" gap="xs" flow="column">
           {children}
           {!status.sent && !status.error && <SendingIndicator size={14} />}
           {status.error && <IconWarning legacySize="10px" />}
-        </EmailLabel>
+        </Grid>
       </Tooltip>
     );
 
@@ -36,13 +37,6 @@ export function EmailValue<Option extends OptionTypeBase>({
     <selectComponents.MultiValue {...props}>{emailLabel}</selectComponents.MultiValue>
   );
 }
-
-const EmailLabel = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.xs};
-  align-items: center;
-`;
 
 const SendingIndicator = styled(LoadingIndicator)`
   margin: 0;
