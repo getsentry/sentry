@@ -1,9 +1,8 @@
 import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -96,48 +95,33 @@ export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Pr
   return (
     <Fragment>
       <Flex justify="end" align="start" className="no-print">
-        <EmailForm method="post" action="" onSubmit={handleSend}>
-          {invoice.isPaid && (
-            <Fragment>
-              <Input type="email" name="email" placeholder="you@example.com" />
-              <StyledButton type="submit" variant="primary">
-                {t('Email Receipt')}
-              </StyledButton>
-            </Fragment>
+        <Grid
+          flow={{zero: 'row', xl: 'column'}}
+          align="start"
+          gap="md"
+          width={{zero: '100%', xl: 'auto'}}
+          margin="0"
+        >
+          {gridProps => (
+            <form method="post" action="" onSubmit={handleSend} {...gridProps}>
+              {invoice.isPaid && (
+                <Fragment>
+                  <Input type="email" name="email" placeholder="you@example.com" />
+                  <Button type="submit" variant="primary">
+                    {t('Email Receipt')}
+                  </Button>
+                </Fragment>
+              )}
+              {showPayNowButton && (
+                <Button variant="primary" onClick={handlePayNow} data-test-id="pay-now">
+                  {t('Pay Now')}
+                </Button>
+              )}
+              <LinkButton href={invoice.receipt.url}>{t('Save PDF')}</LinkButton>
+            </form>
           )}
-          {showPayNowButton && (
-            <StyledButton variant="primary" onClick={handlePayNow} data-test-id="pay-now">
-              {t('Pay Now')}
-            </StyledButton>
-          )}
-          <StyledLinkButton href={invoice.receipt.url}>{t('Save PDF')}</StyledLinkButton>
-        </EmailForm>
+        </Grid>
       </Flex>
     </Fragment>
   );
 }
-
-const EmailForm = styled('form')`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: start;
-  gap: ${p => p.theme.space.md};
-
-  /* override selector in PanelBody > form */
-  && {
-    margin: 0;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-auto-flow: row;
-    width: 100%;
-  }
-`;
-
-const StyledButton = styled(Button)`
-  flex-shrink: 0;
-`;
-
-const StyledLinkButton = styled(LinkButton)`
-  flex-shrink: 0;
-`;
