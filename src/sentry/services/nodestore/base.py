@@ -137,9 +137,12 @@ class NodeStorage(local, Service):
         {"message": "hello world"}
         """
         with traces.start_span(
-            name="nodestore.get", attributes={"sentry.op": "nodestore.get"}
+            name="nodestore.get",
+            attributes={
+                "sentry.op": "nodestore.get",
+                "node_id": id,
+            },
         ) as span:
-            span.set_attribute("node_id", id)
             if subkey is None:
                 item_from_cache = self._get_cache_item(id)
                 if item_from_cache:
