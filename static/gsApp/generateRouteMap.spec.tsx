@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 // Full-coverage (SaaS) variant of the route-map generator: it registers the
-// getsentry overrides before walking, so the four routes:* injection hooks
+// getsentry overrides before walking, so the routes:* injection hooks
 // resolve and the map covers the full sentry.io route universe.
 //
 // The jest mocks below are duplicated from generateRouteMap.spec.tsx because
@@ -11,6 +11,8 @@
 import fs from 'node:fs';
 // eslint-disable-next-line import/no-nodejs-modules
 import path from 'node:path';
+
+import {matchRoutes} from 'react-router';
 
 import * as constants from 'sentry/constants';
 import {getOverride} from 'sentry/overrideRegistry';
@@ -95,6 +97,39 @@ describe('route map generation (getsentry / full coverage)', () => {
     );
     expect(subscription).toBeDefined();
   });
+
+  it.each([false, true])(
+    'matches project Seer settings with breadcrumbs (customer domain: %s)',
+    customerDomain => {
+      jest
+        .spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get')
+        .mockReturnValue(customerDomain);
+      const prefix = customerDomain ? '/settings/' : '/settings/org-slug/';
+      const matches = matchRoutes(buildRoutes(), `${prefix}projects/javascript/seer/`);
+
+      expect(matches?.at(-1)?.route).toMatchObject({
+        path: 'seer/',
+        handle: {name: 'Seer'},
+      });
+      expect((matches?.at(-1)?.route.element as React.ReactElement).type).toHaveProperty(
+        '__modulePath',
+        'getsentry/views/seerAutomation/projectDetails'
+      );
+      expect(matches?.some(match => match.route.path === 'projects/:projectId/')).toBe(
+        true
+      );
+      expect(
+        matches?.flatMap(match => match.route.handle?.settingsBreadcrumb ?? [])
+      ).toEqual([
+        {type: 'link', label: 'Settings', to: '/settings/'},
+        {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/seer/',
+        },
+      ]);
+    }
+  );
 
   it('writes the full route-map artifact when GENERATE_ROUTE_MAP is set', () => {
     if (!process.env.GENERATE_ROUTE_MAP) {

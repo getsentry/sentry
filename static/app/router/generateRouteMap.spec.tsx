@@ -132,10 +132,13 @@ describe('route map generation (open-source)', () => {
   });
 
   it('records the open-source subset as a partial (no getsentry overrides)', () => {
-    const {meta} = generateRouteMap();
+    const {meta, routes} = generateRouteMap();
     expect(meta.routeCount).toBeGreaterThan(0);
     // Without registerGsAppOverrides(), the route-injection hooks are empty.
     expect(meta.overridesPopulated).toBe(false);
+    expect(
+      routes.some(r => r.component === 'getsentry/views/seerAutomation/projectDetails')
+    ).toBe(false);
   });
 
   it('writes the route-map artifact when GENERATE_ROUTE_MAP is set', () => {
