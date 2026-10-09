@@ -2,15 +2,22 @@ from typing import Callable
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
 
-from sentry.search.eap import constants
 from sentry.search.eap.aggregate_utils import apply_combinators, count_processor, if_query_validator
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
+    NumericArgumentDefinition,
     ValueArgumentDefinition,
     count_argument_resolver_optimized,
 )
 from sentry.search.eap.common_aggregates import count_unique_aggregate_definition
+
+
+class NumericDefinition(AggregateDefinition):
+    default_search_type = "number"
+    arguments = [NumericArgumentDefinition()]
+    valid_arithmetic = True
+
 
 LOGS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
@@ -36,166 +43,32 @@ LOG_AGGREGATE_DEFINITIONS = {
         valid_arithmetic=True,
     ),
     "count_unique": count_unique_aggregate_definition(),
-    "sum": AggregateDefinition(
+    "sum": NumericDefinition(
         internal_function=Function.FUNCTION_SUM,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-        valid_arithmetic=True,
     ),
-    "avg": AggregateDefinition(
+    "avg": NumericDefinition(
         internal_function=Function.FUNCTION_AVG,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-        valid_arithmetic=True,
     ),
-    "p50": AggregateDefinition(
+    "p50": NumericDefinition(
         internal_function=Function.FUNCTION_P50,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-        valid_arithmetic=True,
     ),
-    "p75": AggregateDefinition(
+    "p75": NumericDefinition(
         internal_function=Function.FUNCTION_P75,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-        valid_arithmetic=True,
     ),
-    "p90": AggregateDefinition(
+    "p90": NumericDefinition(
         internal_function=Function.FUNCTION_P90,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-        valid_arithmetic=True,
     ),
-    "p95": AggregateDefinition(
+    "p95": NumericDefinition(
         internal_function=Function.FUNCTION_P95,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-        valid_arithmetic=True,
     ),
-    "p99": AggregateDefinition(
+    "p99": NumericDefinition(
         internal_function=Function.FUNCTION_P99,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-        valid_arithmetic=True,
     ),
-    "max": AggregateDefinition(
+    "max": NumericDefinition(
         internal_function=Function.FUNCTION_MAX,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-        valid_arithmetic=True,
     ),
-    "min": AggregateDefinition(
+    "min": NumericDefinition(
         internal_function=Function.FUNCTION_MIN,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
-        ],
-        valid_arithmetic=True,
     ),
 }
 
