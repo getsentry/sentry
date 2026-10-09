@@ -7,7 +7,6 @@ from django.urls import ResolverMatch
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 
-from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.options import register
@@ -192,7 +191,6 @@ class TestDeprecationDecorator(APITestCase):
                     },
                 ),
             ):
-                options.delete("api.deprecation.brownout-duration")
                 self.assert_denied_request("GET")
 
             with (
@@ -203,7 +201,6 @@ class TestDeprecationDecorator(APITestCase):
                     },
                 ),
             ):
-                options.delete("api.deprecation.brownout-cron")
                 self.assert_allowed_request("GET")
 
             with (
@@ -214,7 +211,6 @@ class TestDeprecationDecorator(APITestCase):
                     },
                 ),
             ):
-                options.delete("api.deprecation.brownout-cron")
                 self.assert_denied_request("GET")
 
     def test_with_url_names(self) -> None:
