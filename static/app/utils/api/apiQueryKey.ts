@@ -1,5 +1,3 @@
-import {z} from 'zod';
-
 import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 export type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
@@ -15,20 +13,6 @@ export type QueryKeyEndpointOptions = {
   method?: RequestMethod;
   query?: Record<string, unknown>;
 };
-
-const apiUrlSchema = z.custom<ApiUrl>(val => typeof val === 'string');
-const optionsSchema = z.custom<QueryKeyEndpointOptions>(
-  val => typeof val === 'object' && val !== null && !Array.isArray(val)
-);
-const markerSchema = z.object({infinite: z.boolean()});
-
-const queryKeySchema = z
-  .tuple([apiUrlSchema, optionsSchema, markerSchema])
-  .transform(([url, options, marker]) => ({
-    url,
-    options,
-    isInfinite: marker.infinite,
-  }));
 
 export type CanonicalApiQueryKey = readonly [
   ApiUrl,
@@ -48,13 +32,49 @@ export type InfiniteApiQueryKey = readonly [
   {infinite: true},
 ];
 
-type ParsedQueryKey = z.infer<typeof queryKeySchema>;
+type ParsedQueryKey = {
+  isInfinite: boolean;
+  options: QueryKeyEndpointOptions;
+  url: ApiUrl;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isEndpointOptions(value: unknown): value is QueryKeyEndpointOptions {
+  return isRecord(value);
+}
+
+/**
+ * Validates the canonical `[url, options, {infinite}]` form. Returns undefined
+ * for anything else, including keys with more or fewer than three slots.
+ */
+function toParsedQueryKey(queryKey: readonly unknown[]): ParsedQueryKey | undefined {
+  if (queryKey.length !== 3) {
+    return undefined;
+  }
+  const [url, options, marker] = queryKey;
+  if (
+    typeof url !== 'string' ||
+    !isEndpointOptions(options) ||
+    !isRecord(marker) ||
+    typeof marker.infinite !== 'boolean'
+  ) {
+    return undefined;
+  }
+  return {url: url as ApiUrl, options, isInfinite: marker.infinite};
+}
 
 export function parseQueryKey(
   queryKey: ApiQueryKey | InfiniteApiQueryKey
 ): ParsedQueryKey {
   const normalized = queryKey.length === 3 ? queryKey : normalizeQueryKey(queryKey);
-  return queryKeySchema.parse(normalized);
+  const parsed = toParsedQueryKey(normalized);
+  if (!parsed) {
+    throw new Error('Invalid API query key');
+  }
+  return parsed;
 }
 
 const safeParseCache = new WeakMap<readonly unknown[], ParsedQueryKey | undefined>();
@@ -66,7 +86,7 @@ export function safeParseQueryKey(
     return safeParseCache.get(queryKey);
   }
 
-  const result = queryKeySchema.safeParse(queryKey).data;
+  const result = toParsedQueryKey(queryKey);
   safeParseCache.set(queryKey, result);
   return result;
 }
