@@ -259,6 +259,7 @@ class TestSiloMultiDatabaseRouter(SiloRouter):
     secondary_db_models = {
         "sentry_monitor",
         "sentry_monitorcheckin",
+        "sentry_monitorcheckinconfig",
         "sentry_monitorenvironment",
         "sentry_monitorincident",
         "sentry_monitorlocation",
