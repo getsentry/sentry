@@ -1,10 +1,10 @@
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 

@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {IconOpen} from '@sentry/icons/open';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -15,7 +16,6 @@ import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLa
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
 import {
   DEFAULT_CODE_REVIEW_TRIGGERS,

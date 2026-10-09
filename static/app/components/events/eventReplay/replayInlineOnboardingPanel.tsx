@@ -1,5 +1,5 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
@@ -10,12 +10,10 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
-import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -29,13 +27,11 @@ export default function ReplayInlineOnboardingPanel({
   platform,
   projectId,
 }: OnboardingCTAProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   const platformKey = platforms.find(p => p.id === platform) ?? otherPlatform;
   const platformName = platformKey === otherPlatform ? '' : platformKey.name;
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
     feature: 'issue_replay_inline_onboarding',
@@ -71,7 +67,9 @@ export default function ReplayInlineOnboardingPanel({
             </Button>
           </Flex>
         </div>
-        {!isScreenSmall && <Background image={replayInlineOnboarding} />}
+        <Container display={{zero: 'none', xl: 'block'}}>
+          <Background image={replayInlineOnboarding} />
+        </Container>
         <CloseDropdownMenu
           position="bottom-end"
           trigger={triggerProps => (

@@ -6,6 +6,7 @@ import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconResize} from '@sentry/icons/resize';
 import * as Sentry from '@sentry/react';
 import {connect} from 'echarts/core';
 import cloneDeep from 'lodash/cloneDeep';
@@ -15,7 +16,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';

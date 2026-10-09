@@ -1,13 +1,13 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
 import type {InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
 
-import {IconSearch} from 'sentry/icons';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 
 interface SearchBarProps extends Omit<InputProps, 'onChange'> {
