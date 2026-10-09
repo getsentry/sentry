@@ -25,6 +25,8 @@ class DebugOAuthAuthorizeView(View):
                     "Read access to organization details.",
                     "Read and write access to projects.",
                 ],
+                "read_permissions": ["Read access to organization details."],
+                "write_permissions": ["Read and write access to projects."],
             },
             request,
         )

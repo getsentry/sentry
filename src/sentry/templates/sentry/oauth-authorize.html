@@ -1,66 +1,413 @@
-{% extends "sentry/bases/auth.html" %}
+{% extends "sentry/layout.html" %}
 
-{% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_assets %}
-{% load sentry_avatars %}
 
 {% block title %}{% trans "Authorize Application" %} | {{ block.super }}{% endblock %}
+{% block wrapperclass %}oauth-consent-page{% endblock %}
 
-{% block auth_main %}
-  <form class="form-stacked" action="." method="post" autocomplete="off">
-    {% csrf_token %}
-    {% if tx_id %}<input type="hidden" name="tx_id" value="{{ tx_id }}">{% endif %}
+{% block initial_data %}
+  {{ block.super }}
+  <style>
+    .oauth-consent-page {
+      background: #fff;
+      color: #2f2937;
+    }
 
-    <div>
-      <p><strong>{{ application.name }}</strong> is requesting access to your Sentry account linked to ({{ user.username }}). Granting this access will give {{ application.name }} access to your account details, including:</p>
-      <ul>
-        <li>Your name</li>
-        <li>Your email address</li>
-      </ul>
-      <p>
-        {% if organization_options|length != 1 %}
-        <!-- If application needs user level access or it's org level access and user has multiple orgs -->
-          {{ application.name }} will also have the following permissions to your Sentry organizations:
-        {% else %}
-        <!-- If user only has one org and application requires org level access, choose that org by default -->
-          {{ application.name }} will also have the following permissions to your Sentry organization <strong>{{organization_options.0.name}}</strong>:
-          <input type="hidden" name="selected_organization_id" value="{{ organization_options.0.id }}">
-        {% endif %}
-      </p>
-      <ul>
-        {% for permission in permissions %}
-          <li>{{ permission }}</li>
-        {% endfor %}
-      </ul>
+    .oauth-consent-layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 44vw) minmax(0, 1fr);
+      min-height: 100vh;
+    }
 
-      {% if organization_options|length > 1 %}
-        <!-- If there are multiple organizations and application requires org level access, show the selector -->
-        <label for="organization">Select one of your sentry organizations to grant access to:</label>
-        <select name="selected_organization_id" id="organization_id">
-            {% for organization in organization_options %}
-                <option value="{{ organization.id }}">{{ organization.name }}</option>
-            {% endfor %}
-        </select>
-      {% endif %}
-      {% if application.terms_url or application.privacy_url %}
-        <p><small>
-          {% if application.terms_url %}
-            <a href="{{ application.terms_url }}">Terms of Use</a>
-            {% if application.privacy_url %} &mdash; {% endif %}
+    .oauth-consent-art {
+      position: sticky;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 18%, rgba(255, 70, 165, 0.9) 0 4%, transparent 24%),
+        radial-gradient(circle at 82% 78%, rgba(117, 78, 255, 0.9) 0 8%, transparent 30%),
+        linear-gradient(145deg, #27143d 0%, #3d1c62 48%, #1e1235 100%);
+    }
+
+    .oauth-consent-art::before {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+      background-size: 24px 24px;
+      content: "";
+      mask-image: linear-gradient(to bottom right, black, transparent 76%);
+    }
+
+    .oauth-consent-art::after {
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      border: 2px solid rgba(255, 255, 255, 0.16);
+      border-radius: 72px;
+      content: "";
+      transform: rotate(24deg);
+    }
+
+    .oauth-consent-brand {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      color: #fff;
+    }
+
+    .oauth-consent-brand-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 112px;
+      height: 112px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(10px);
+      transform: rotate(-6deg);
+    }
+
+    .oauth-consent-brand-mark img {
+      width: 58px;
+      filter: invert(1);
+      transform: rotate(6deg);
+    }
+
+    .oauth-consent-brand-name {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .oauth-consent-main {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      padding: 32px clamp(28px, 6vw, 88px) 48px;
+    }
+
+    .oauth-consent-header {
+      display: flex;
+      justify-content: center;
+    }
+
+    .oauth-consent-header img {
+      width: 34px;
+      height: 34px;
+    }
+
+    .oauth-consent-content {
+      width: 100%;
+      max-width: 560px;
+      margin: clamp(48px, 9vh, 96px) auto 0;
+    }
+
+    .oauth-consent-content h1 {
+      margin-bottom: 12px;
+      font-size: clamp(28px, 3vw, 36px);
+      letter-spacing: -0.03em;
+    }
+
+    .oauth-consent-intro {
+      margin-bottom: 32px;
+      color: #716b78;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .oauth-consent-section {
+      margin-bottom: 28px;
+    }
+
+    .oauth-consent-section h2 {
+      margin-bottom: 10px;
+      font-size: 15px;
+      letter-spacing: 0.01em;
+    }
+
+    .oauth-permission-list {
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      border: 1px solid #e7e3e8;
+      border-radius: 10px;
+      background: #fff;
+      list-style: none;
+    }
+
+    .oauth-permission-list li {
+      position: relative;
+      padding: 14px 18px 14px 44px;
+      line-height: 1.5;
+    }
+
+    .oauth-permission-list li + li {
+      border-top: 1px solid #eeeaf0;
+    }
+
+    .oauth-permission-list li::before {
+      position: absolute;
+      top: 15px;
+      left: 18px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #eeeafd;
+      color: #6c5fc7;
+      content: "✓";
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 16px;
+      text-align: center;
+    }
+
+    .oauth-write-section .oauth-permission-list {
+      border-color: #e3c984;
+    }
+
+    .oauth-write-section .oauth-permission-list li::before {
+      background: #fff2cc;
+      color: #8a6500;
+    }
+
+    .oauth-write-warning {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border: 1px solid #e3c984;
+      border-radius: 8px;
+      background: #fff9e8;
+      color: #59480e;
+      line-height: 1.5;
+    }
+
+    .oauth-organization {
+      margin-bottom: 28px;
+      padding: 16px 18px;
+      border: 1px solid #e7e3e8;
+      border-radius: 10px;
+      background: #f8f7f9;
+    }
+
+    .oauth-organization label,
+    .oauth-organization-title {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .oauth-organization p {
+      margin: 0;
+      color: #716b78;
+    }
+
+    .oauth-organization select {
+      width: 100%;
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 1px solid #c9c3cc;
+      border-radius: 7px;
+      background: #fff;
+    }
+
+    .oauth-policy-links {
+      margin-bottom: 24px;
+      color: #716b78;
+      font-size: 13px;
+    }
+
+    .oauth-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .oauth-button {
+      min-height: 42px;
+      padding: 9px 18px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      font-weight: 600;
+      transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+    }
+
+    .oauth-button:focus-visible {
+      outline: 2px solid #6c5fc7;
+      outline-offset: 2px;
+    }
+
+    .oauth-button-secondary {
+      border-color: #c9c3cc;
+      background: #fff;
+      color: #2f2937;
+    }
+
+    .oauth-button-secondary:hover {
+      background: #f5f3f7;
+    }
+
+    .oauth-button-primary {
+      background: #6c5fc7;
+      color: #fff;
+    }
+
+    .oauth-button-primary:hover:not(:disabled) {
+      background: #5848b8;
+    }
+
+    .oauth-button-primary:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .oauth-consent-help {
+      margin-top: 32px;
+      color: #807984;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 800px) {
+      .oauth-consent-layout {
+        display: block;
+      }
+
+      .oauth-consent-art {
+        display: none;
+      }
+
+      .oauth-consent-main {
+        min-height: 100vh;
+        padding: 24px 20px 40px;
+      }
+
+      .oauth-consent-content {
+        margin-top: 48px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .oauth-actions {
+        flex-direction: column-reverse;
+      }
+
+      .oauth-button {
+        width: 100%;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block preload_data %}{% endblock %}
+
+{% block body %}
+  <main class="oauth-consent-layout">
+    <aside class="oauth-consent-art" aria-hidden="true">
+      <div class="oauth-consent-brand">
+        <div class="oauth-consent-brand-mark">
+          <img src="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" alt="">
+        </div>
+        <div class="oauth-consent-brand-name">Sentry</div>
+      </div>
+    </aside>
+
+    <section class="oauth-consent-main">
+      <header class="oauth-consent-header">
+        <img src="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" alt="Sentry">
+      </header>
+
+      <div class="oauth-consent-content">
+        <h1>{% blocktrans with application_name=application.name %}Authorize {{ application_name }}{% endblocktrans %}</h1>
+        <p class="oauth-consent-intro">
+          {% if user.username %}
+            {% blocktrans with application_name=application.name username=user.username %}{{ application_name }} wants to access your Sentry account as {{ username }}.{% endblocktrans %}
+          {% else %}
+            {% blocktrans with application_name=application.name %}{{ application_name }} wants to access your Sentry account.{% endblocktrans %}
           {% endif %}
-          {% if application.privacy_url %}
-            <a href="{{ application.privacy_url }}">Privacy Policy</a>
-          {% endif %}
-        </small></p>
-      {% endif %}
-    </div>
+        </p>
 
-    <div class="auth-footer">
-      <button type="submit" class="btn btn-primary" name="op" value="approve" disabled>{% trans "Approve" %}</button>
-      <button type="submit" class="btn btn-danger" name="op" value="deny">{% trans "Deny" %}</button>
-    </div>
-  </form>
+        <form action="." method="post" autocomplete="off">
+          {% csrf_token %}
+          {% if tx_id %}<input type="hidden" name="tx_id" value="{{ tx_id }}">{% endif %}
+
+          <section class="oauth-consent-section" aria-labelledby="read-access-heading">
+            <h2 id="read-access-heading">{% trans "Read access" %}</h2>
+            <ul class="oauth-permission-list">
+              <li>{% trans "Your name and email address" %}</li>
+              {% for permission in read_permissions %}
+                <li>{{ permission }}</li>
+              {% endfor %}
+            </ul>
+          </section>
+
+          {% if write_permissions %}
+            <section class="oauth-consent-section oauth-write-section" aria-labelledby="write-access-heading">
+              <h2 id="write-access-heading">{% trans "Write access" %}</h2>
+              <ul class="oauth-permission-list">
+                {% for permission in write_permissions %}
+                  <li>{{ permission }}</li>
+                {% endfor %}
+              </ul>
+              <div class="oauth-write-warning" role="note">
+                <strong>{% trans "Review write access before approving." %}</strong><br>
+                {% blocktrans with application_name=application.name %}{{ application_name }} can use these permissions to change Sentry data.{% endblocktrans %}
+              </div>
+            </section>
+          {% endif %}
+
+          {% if organization_options|length == 1 %}
+            <div class="oauth-organization">
+              <span class="oauth-organization-title">{% trans "Organization access" %}</span>
+              <p>
+                {% blocktrans with organization_name=organization_options.0.name %}Access is limited to {{ organization_name }}.{% endblocktrans %}
+              </p>
+              <input type="hidden" name="selected_organization_id" value="{{ organization_options.0.id }}">
+            </div>
+          {% elif organization_options|length > 1 %}
+            <div class="oauth-organization">
+              <label for="organization_id">{% trans "Choose an organization" %}</label>
+              <select name="selected_organization_id" id="organization_id">
+                {% for organization in organization_options %}
+                  <option value="{{ organization.id }}">{{ organization.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          {% endif %}
+
+          {% if application.terms_url or application.privacy_url %}
+            <p class="oauth-policy-links">
+              {% trans "Review this application's" %}
+              {% if application.terms_url %}
+                <a href="{{ application.terms_url }}">{% trans "Terms of Use" %}</a>{% if application.privacy_url %} {% trans "and" %} {% endif %}
+              {% endif %}
+              {% if application.privacy_url %}
+                <a href="{{ application.privacy_url }}">{% trans "Privacy Policy" %}</a>
+              {% endif %}
+            </p>
+          {% endif %}
+
+          <div class="oauth-actions">
+            <button type="submit" class="oauth-button oauth-button-secondary" name="op" value="deny">{% trans "Deny" %}</button>
+            <button type="submit" class="oauth-button oauth-button-primary" name="op" value="approve" disabled>{% trans "Approve" %}</button>
+          </div>
+        </form>
+
+        <p class="oauth-consent-help">
+          {% blocktrans %}Need help? Visit the <a href="https://www.sentry.help/">Sentry Help Center</a>.{% endblocktrans %}
+        </p>
+      </div>
+    </section>
+  </main>
+
   {% script %}
   <script>
     (function () {
