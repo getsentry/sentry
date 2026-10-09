@@ -407,6 +407,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         {"detail": "run_id is required for pr_iteration"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+                if request.user.id is None:
+                    raise PermissionDenied(SEER_PERMISSION_DENIED)
 
                 error_response = handle_ui_feedback(
                     group=group,
