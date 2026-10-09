@@ -4,14 +4,27 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from enum import StrEnum
 
 from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
     AgentLabelSource,
     CallSiteStats,
+    DetectionWindow,
 )
-from sentry.search.events.types import SnubaRow
+from sentry.models.project import Project
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.events.types import SnubaParams, SnubaRow
+from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
+
+# ai_client is derived from span op at ingestion. It covers LLM calls from all
+# SDKs while excluding agent spans with reaggregated token totals.
+GEN_AI_CALL_FILTER = (
+    "gen_ai.operation.type:ai_client "
+    "!gen_ai.operation.name:embeddings "
+    "has:gen_ai.usage.input_tokens"
+)
 
 INPUT_TOKENS = "gen_ai.usage.input_tokens"
 MODEL = "gen_ai.request.model"
@@ -35,6 +48,10 @@ COUNT = "count()"
 # Unlike count(), this records stored spans instead of extrapolated calls.
 COUNT_SAMPLE = "count_sample()"
 
+# Order by input tokens so the highest-volume groups fit when the query reaches
+# its limit. Agent operation groups may be folded after this limit is applied.
+CALL_SITE_GROUPS_LIMIT = 300
+
 
 class DroppedRowReason(StrEnum):
     """What an aggregate row lacked that a call site is keyed on."""
@@ -42,6 +59,40 @@ class DroppedRowReason(StrEnum):
     NO_LABEL = "no_label"
     NO_SPAN_NAME = "no_span_name"
     NO_MODEL = "no_model"
+
+
+@dataclass(frozen=True)
+class CallSiteQueryResult:
+    call_sites: list[CallSiteStats]
+    dropped_calls: Counter[DroppedRowReason]
+    truncated: bool
+
+
+def _run_spans_query(
+    project: Project,
+    window: DetectionWindow,
+    *,
+    query_string: str,
+    selected_columns: list[str],
+    orderby: list[str] | None,
+    limit: int,
+) -> EAPResponse:
+    return Spans.run_table_query(
+        params=SnubaParams(
+            start=window.start,
+            end=window.end,
+            projects=[project],
+            organization=project.organization,
+        ),
+        query_string=query_string,
+        selected_columns=selected_columns,
+        orderby=orderby,
+        offset=0,
+        limit=limit,
+        referrer=Referrer.ISSUES_LLM_CACHE_DETECTION.value,
+        config=SearchResolverConfig(auto_fields=True),
+        sampling_mode="NORMAL",
+    )
 
 
 def _token_count(row: SnubaRow, column: str) -> float:
@@ -110,3 +161,33 @@ def _to_call_sites(
         seen = call_sites.get(stats.group_key)
         call_sites[stats.group_key] = stats if seen is None else _combine(seen, stats)
     return list(call_sites.values()), dropped_calls
+
+
+def fetch_call_site_stats(project: Project, window: DetectionWindow) -> CallSiteQueryResult:
+    """Aggregate LLM calls by agent label, span name, and model."""
+    result = _run_spans_query(
+        project,
+        window,
+        query_string=GEN_AI_CALL_FILTER,
+        selected_columns=[
+            AGENT_NAME,
+            OPERATION_NAME,
+            SPAN_NAME,
+            MODEL,
+            COUNT,
+            COUNT_SAMPLE,
+            SUM_INPUT_TOKENS,
+            SUM_CACHE_READ_TOKENS,
+            SUM_CACHE_CREATION_TOKENS,
+            AVG_INPUT_TOKENS,
+        ],
+        orderby=[f"-{SUM_INPUT_TOKENS}"],
+        limit=CALL_SITE_GROUPS_LIMIT,
+    )
+    rows = result.get("data", [])
+    call_sites, dropped_calls = _to_call_sites(rows)
+    return CallSiteQueryResult(
+        call_sites=call_sites,
+        dropped_calls=dropped_calls,
+        truncated=len(rows) >= CALL_SITE_GROUPS_LIMIT,
+    )
