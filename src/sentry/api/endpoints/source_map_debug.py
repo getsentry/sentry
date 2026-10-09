@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal, TypedDict
 
@@ -40,10 +41,12 @@ from sentry.models.releasefile import (
 )
 from sentry.sdk_updates import get_sdk_index
 from sentry.services import eventstore
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
+
+logger = logging.getLogger(__name__)
 
 MIN_JS_SDK_VERSION_FOR_DEBUG_IDS = "7.56.0"
 MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS = "5.11.1"
@@ -673,27 +676,42 @@ def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set
     long as the bundles' files add up to at most that many rows. The newest bundle is always read,
     up to that many rows if it alone has more files. Files only found in older bundles, or beyond
     the rows read, are reported as not found.
+
+    The bundles are picked from the release's newest `URL_MATCH_MAX_BUNDLES` bundles of any
+    project, so a project whose bundles in the release are all older than those has none picked.
     """
     max_index_rows = options.get("sourcemaps.source-map-debug.url-match-max-index-rows")
     if max_index_rows <= 0:
         return None
 
-    newest_bundles = (
+    # The `(organization_id, release_name, dist_name, artifact_bundle_id)` index isn't ordered by
+    # bundle across dists, so Postgres reads all of the release's links to find the newest. That's
+    # cheap on its own, but joining every link to its project link and bundle takes seconds on
+    # releases with tens of thousands of bundles, so only the newest links are joined below.
+    release_bundle_ids = list(
         ReleaseArtifactBundle.objects.filter(
             organization_id=project.organization_id,
             release_name=release.version,
-            artifact_bundle__projectartifactbundle__project_id=project.id,
+        )
+        .order_by("-artifact_bundle_id")
+        .values_list("artifact_bundle_id", flat=True)[:URL_MATCH_MAX_BUNDLES]
+    )
+    newest_bundles = (
+        ProjectArtifactBundle.objects.filter(
+            project_id=project.id, artifact_bundle_id__in=release_bundle_ids
         )
         .values_list("artifact_bundle_id", "artifact_bundle__artifact_count")
-        .order_by("-artifact_bundle_id")[:URL_MATCH_MAX_BUNDLES]
+        .order_by("-artifact_bundle_id")
     )
     # Using a dict to keep the order and drop bundles repeated by links to several dists.
     bundle_ids: dict[int, None] = {}
     index_rows = 0
+    truncated_by: str | None = None
     for bundle_id, artifact_count in newest_bundles:
         if bundle_id in bundle_ids:
             continue
         if bundle_ids and index_rows + artifact_count > max_index_rows:
+            truncated_by = "index_rows"
             break
         bundle_ids[bundle_id] = None
         index_rows += artifact_count
@@ -701,13 +719,38 @@ def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set
     # The bundles all belong to the project's organization, and filtering on it as well could make
     # Postgres also read the organization's slice of the organization index. The limit holds the
     # rows read to the budget even when the newest bundle alone has more files.
-    index_rows_query = (
+    rows = list(
         ArtifactBundleIndex.objects.filter(artifact_bundle_id__in=list(bundle_ids))
         .order_by("-artifact_bundle_id")
-        .values_list("artifact_bundle_id", "url")[:max_index_rows]
+        .values_list("artifact_bundle_id", "url")[: max_index_rows + 1]
     )
+    if len(rows) > max_index_rows:
+        del rows[max_index_rows:]
+        truncated_by = "index_rows"
+    if truncated_by is None and len(release_bundle_ids) == URL_MATCH_MAX_BUNDLES:
+        # The project may have older bundles in the release that weren't considered.
+        truncated_by = "max_bundles"
+
+    metrics.distribution("source_map_debug.url_match.index_rows", len(rows))
+    metrics.incr("source_map_debug.url_match", tags={"truncated": truncated_by or "false"})
+    # Files left out are reported as not found. The metric can't say for which releases, and the
+    # endpoint gets few enough requests to log each truncated one.
+    if truncated_by is not None:
+        logger.info(
+            "source_map_debug.url_match.truncated",
+            extra={
+                "organization_id": project.organization_id,
+                "project_id": project.id,
+                "release": release.version,
+                "truncated_by": truncated_by,
+                "max_index_rows": max_index_rows,
+                "bundles": len(bundle_ids),
+                "index_rows": len(rows),
+            },
+        )
+
     release_bundle_urls: dict[str, set[int]] = {}
-    for bundle_id, url in index_rows_query:
+    for bundle_id, url in rows:
         release_bundle_urls.setdefault(url, set()).add(bundle_id)
     return release_bundle_urls
 
