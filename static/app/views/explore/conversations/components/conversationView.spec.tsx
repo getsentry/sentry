@@ -7,6 +7,21 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConversationViewContent} from './conversationView';
 
 const CONVERSATION_ID = 'conv-1';
+const originalIntersectionObserver = window.IntersectionObserver;
+let triggerIntersection: ((isIntersecting: boolean) => void) | undefined;
+
+class MockIntersectionObserver {
+  constructor(callback: IntersectionObserverCallback) {
+    triggerIntersection = isIntersecting =>
+      callback(
+        [{isIntersecting} as IntersectionObserverEntry],
+        this as unknown as IntersectionObserver
+      );
+  }
+
+  observe() {}
+  disconnect() {}
+}
 
 function spanFixture(overrides: Record<string, unknown>) {
   return {
@@ -92,6 +107,9 @@ function detailPane() {
 
 describe('ConversationViewContent', () => {
   beforeEach(() => {
+    window.IntersectionObserver =
+      MockIntersectionObserver as unknown as typeof IntersectionObserver;
+    triggerIntersection = undefined;
     // jsdom implements neither scroll API the view relies on: the detail pane
     // calls scrollTo, and switching tabs reveals a selected span via scrollIntoView.
     Element.prototype.scrollTo = jest.fn();
@@ -104,6 +122,10 @@ describe('ConversationViewContent', () => {
     mockConversation();
   });
 
+  afterAll(() => {
+    window.IntersectionObserver = originalIntersectionObserver;
+  });
+
   it('opens no span by default on the transcript', async () => {
     renderView({activeTab: 'transcript'});
 
@@ -111,7 +133,7 @@ describe('ConversationViewContent', () => {
     expect(detailPane()).not.toBeInTheDocument();
   });
 
-  it('loads the next page when scrolling the timeline', async () => {
+  it('loads the next page when the pagination footer is visible', async () => {
     MockApiClient.clearMockResponses();
     mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
     const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {
@@ -127,15 +149,35 @@ describe('ConversationViewContent', () => {
     expect(
       scrollContainer.querySelector('[data-test-id="loading-indicator"]')
     ).toBeInTheDocument();
-    act(() =>
-      scrollContainer.dispatchEvent(new WheelEvent('wheel', {bubbles: true, deltaY: 100}))
-    );
+    act(() => triggerIntersection?.(true));
 
     await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('second turn')).toBeInTheDocument();
     expect(
       scrollContainer.querySelector('[data-test-id="loading-indicator"]')
     ).toBeInTheDocument();
+  });
+
+  it('keeps loaded spans visible and offers retry when pagination fails', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      match: [MockApiClient.matchQuery({cursor: 'next'})],
+      statusCode: 500,
+    });
+
+    renderView();
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    act(() => triggerIntersection?.(true));
+
+    const retry = await screen.findByRole('button', {name: 'Retry'});
+    expect(screen.getByText('First answer')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(retry);
+    await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(2));
   });
 
   it('opens the first span by default on the timeline', async () => {

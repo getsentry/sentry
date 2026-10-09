@@ -125,6 +125,7 @@ function ConversationDetailPage() {
           conversationId={conversationId}
           title={title}
           project={project}
+          hasMoreSpans={hasNextPage}
           isLoading={isInitialLoading}
         />
       </Container>

@@ -1,7 +1,8 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -62,6 +63,7 @@ export function ConversationViewContent({
     isFetchingNextPage,
     error,
     loadNextPage,
+    isNextPageError,
   } = useConversation({...conversation, autoFetchAll: false});
 
   const [detailState, setDetailState] = useQueryStates(
@@ -112,11 +114,25 @@ export function ConversationViewContent({
     selectedNodeId: selectedNode?.id ?? null,
   });
 
-  function handleWheel() {
-    if (hasNextPage && !isFetchingNextPage) {
-      loadNextPage();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasNextPage || isFetchingNextPage || isNextPageError) {
+      return;
     }
-  }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          loadNextPage();
+        }
+      },
+      {root: contentRef.current}
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [contentRef, hasNextPage, isFetchingNextPage, isNextPageError, loadNextPage]);
 
   const needsMoreSelectionData = Boolean(
     (selectedSpanId && !selectedNode) || focusedTool
@@ -174,7 +190,6 @@ export function ConversationViewContent({
       <ConversationContentLayout
         contentRef={contentRef}
         leftPadding={isTranscript ? '0' : 'md'}
-        onWheel={handleWheel}
         left={
           <Fragment>
             {isTranscript ? (
@@ -195,8 +210,14 @@ export function ConversationViewContent({
               />
             )}
             {(hasNextPage || isFetchingNextPage) && (
-              <Flex align="center" justify="center" minHeight="120px">
-                <LoadingIndicator size={24} />
+              <Flex ref={loadMoreRef} align="center" justify="center" minHeight="120px">
+                {isNextPageError ? (
+                  <Button size="sm" onClick={loadNextPage}>
+                    {t('Retry')}
+                  </Button>
+                ) : (
+                  <LoadingIndicator size={24} />
+                )}
               </Flex>
             )}
           </Fragment>

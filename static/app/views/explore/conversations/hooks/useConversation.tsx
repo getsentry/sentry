@@ -131,6 +131,7 @@ interface UseConversationResult {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   isLoading: boolean;
+  isNextPageError: boolean;
   loadNextPage: () => void;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
@@ -468,6 +469,7 @@ export function useConversation(
       isFetchingNextPage: false,
       isLoading: false,
       loadNextPage,
+      isNextPageError: false,
       error: false,
       title: null,
     };
@@ -482,6 +484,7 @@ export function useConversation(
     isFetchingNextPage,
     isLoading: isLoading || nextAutoFetchPage !== null,
     loadNextPage,
+    isNextPageError: isFetchNextPageError,
     error: isLoadingError || (autoFetchAll && isFetchNextPageError),
     title,
   };
