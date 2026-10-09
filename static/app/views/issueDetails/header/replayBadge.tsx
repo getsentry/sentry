@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/play';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';

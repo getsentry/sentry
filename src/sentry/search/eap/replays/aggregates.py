@@ -29,6 +29,7 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
             )
         ],
         attribute_resolver=count_argument_resolver_optimized(REPLAYS_ALWAYS_PRESENT_ATTRIBUTES),
+        valid_arithmetic=True,
     ),
     "sum": AggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
@@ -45,6 +46,7 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "min": AggregateDefinition(
         internal_function=Function.FUNCTION_MIN,
@@ -63,6 +65,7 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "max": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
@@ -81,5 +84,6 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
 }

@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 
@@ -21,7 +22,6 @@ import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';

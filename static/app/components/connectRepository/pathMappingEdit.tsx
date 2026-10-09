@@ -1,9 +1,12 @@
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconBranch} from '@sentry/icons/branch';
+import {IconSentry} from '@sentry/icons/sentry';
+
 import {Tag} from '@sentry/scraps/badge';
 import {withFieldGroup} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconArrow, IconBranch, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 

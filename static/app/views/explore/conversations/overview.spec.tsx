@@ -334,7 +334,6 @@ describe('ConversationsOverviewPage', () => {
       body: [
         {
           conversationId: 'abcdef12',
-          duration: 1000,
           endTimestamp: 2000,
           errors: 0,
           firstInput: null,
@@ -345,6 +344,7 @@ describe('ConversationsOverviewPage', () => {
           outputTokens: 0,
           projectId: null,
           startTimestamp: 1000,
+          timeSpan: 1000,
           toolCalls: 0,
           toolErrors: 0,
           toolNames: [],
@@ -406,13 +406,13 @@ describe('ConversationsOverviewPage', () => {
       body: [
         {
           conversationId: 'conversation-id',
-          duration: 1000,
           endTimestamp: 2000,
           errors: 0,
           firstInput: null,
           lastOutput: null,
           llmCalls: 1,
           startTimestamp: 1000,
+          timeSpan: 1000,
           toolCalls: 0,
           toolErrors: 0,
           toolNames: [],
@@ -505,7 +505,7 @@ describe('ConversationsOverviewPage', () => {
 
     const aliases = [
       'conversation.age',
-      'conversation.duration',
+      'conversation.timeSpan',
       'conversation.generationDuration',
       'conversation.errors',
       'conversation.messages',
