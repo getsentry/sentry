@@ -3,6 +3,9 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconFire} from '@sentry/icons/fire';
+import {IconUser} from '@sentry/icons/user';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
@@ -17,7 +20,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCalendar, IconFire, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';

@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconMail} from '@sentry/icons/mail';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -17,7 +19,6 @@ import {Card} from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {OnCallServiceForm} from 'sentry/components/notificationActions/forms/onCallServiceForm';
 import {SlackForm} from 'sentry/components/notificationActions/forms/slackForm';
-import {IconEllipsis, IconMail} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {

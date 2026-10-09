@@ -1,13 +1,21 @@
-import {useTheme} from '@emotion/react';
-
-import type {ContentVariant, IconSize} from '@sentry/scraps/theme';
+import type {Ref, SVGAttributes} from 'react';
 
 import {useIconDefaults} from './useIconDefaults';
+import {useIconTheme} from './useIconTheme';
 
-export type IconVariant = ContentVariant | 'muted';
+export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+export type IconVariant =
+  | 'accent'
+  | 'danger'
+  | 'promotion'
+  | 'success'
+  | 'warning'
+  | 'primary'
+  | 'secondary'
+  | 'muted';
 
 export interface SVGIconProps extends Omit<
-  React.SVGAttributes<SVGSVGElement>,
+  SVGAttributes<SVGSVGElement>,
   'color' | 'type'
 > {
   /**
@@ -16,13 +24,13 @@ export interface SVGIconProps extends Omit<
    * @deprecated
    */
   legacySize?: string;
-  ref?: React.Ref<SVGSVGElement>;
+  ref?: Ref<SVGSVGElement>;
   size?: IconSize;
   variant?: IconVariant;
 }
 
 export function SvgIcon(props: SVGIconProps) {
-  const theme = useTheme();
+  const theme = useIconTheme();
   const iconProps = useIconDefaults(props);
   const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'md'];
 

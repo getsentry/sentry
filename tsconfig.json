@@ -58,5 +58,8 @@
     // Referenced packages are checked separately and consumed as declarations.
     "static/packages"
   ],
-  "references": [{"path": "./static/packages/scraps/tsconfig.test.json"}]
+  "references": [
+    {"path": "./static/packages/icons"},
+    {"path": "./static/packages/scraps/tsconfig.test.json"}
+  ]
 }

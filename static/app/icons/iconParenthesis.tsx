@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
-
-import type {SVGIconProps} from './svgIcon';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 interface Props extends SVGIconProps {
   side?: 'left' | 'right';

@@ -2,6 +2,8 @@ import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
 import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
+import {IconNext} from '@sentry/icons/next';
+import {IconPrevious} from '@sentry/icons/previous';
 import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -19,7 +21,6 @@ import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseBu
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
 import {TimeAndScrubberGrid} from 'sentry/components/replays/timeAndScrubberGrid';
-import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';

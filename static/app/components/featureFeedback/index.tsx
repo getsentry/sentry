@@ -1,3 +1,5 @@
+import {IconMegaphone} from '@sentry/icons/megaphone';
+
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
@@ -5,7 +7,6 @@ import {useModal} from '@sentry/scraps/modal';
 import type {FeedbackModalProps} from 'sentry/components/featureFeedback/feedbackModal';
 import {FeedbackModal, modalCss} from 'sentry/components/featureFeedback/feedbackModal';
 import type {Data} from 'sentry/components/forms/types';
-import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
