@@ -115,6 +115,7 @@
     "./open": "./src/iconOpen.tsx",
     "./option": "./src/iconOption.tsx",
     "./panel": "./src/iconPanel.tsx",
+    "./parenthesis": "./src/iconParenthesis.tsx",
     "./pause": "./src/iconPause.tsx",
     "./perforce": "./src/iconPerforce.tsx",
     "./pieHalf": "./src/iconPieHalf.tsx",
@@ -189,6 +190,7 @@
     "typecheck": "tsc --build tsconfig.json"
   },
   "dependencies": {
+    "@emotion/styled": "^11.14.0",
     "framer-motion": "12.38.0"
   },
   "devDependencies": {
