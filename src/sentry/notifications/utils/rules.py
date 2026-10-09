@@ -1,10 +1,15 @@
+import logging
 from collections.abc import Iterable
 from typing import Literal
 
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import NotificationOrigin
+from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
+
+logger = logging.getLogger(__name__)
 
 RuleIdType = Literal["workflow_id", "legacy_rule_id"]
 
@@ -115,3 +120,20 @@ def get_rule_or_workflow_id(
     if isinstance(rule, Rule):
         return ("legacy_rule_id", str(rule.id))
     raise AssertionError("Notification origin requires a workflow or legacy rule ID")
+
+
+def get_workflow_url(rule: Rule | NotificationOrigin, organization_slug: str) -> str | None:
+    try:
+        key, value = get_rule_or_workflow_id(rule, prefer="workflow_id")
+    except AssertionError:
+        legacy_rule_id = None
+    else:
+        if key == "workflow_id":
+            return absolute_uri(create_link_to_workflow(organization_slug, value))
+        legacy_rule_id = value
+
+    logger.warning(
+        "notifications.workflow_url.missing_workflow_id",
+        extra={"legacy_rule_id": legacy_rule_id},
+    )
+    return None
