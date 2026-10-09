@@ -63,10 +63,12 @@ jobs:
           mkdir schemas
           sentry rpcschema --loglevel=WARNING > rpc_method_schema.json
 
+      # Runs oasdiff directly from the getsentry/image-mirror copy instead of
+      # oasdiff/oasdiff-action, which builds FROM tufin/oasdiff:main on Docker Hub.
       - name: Output RPC schema comparison
-        uses: oasdiff/oasdiff-action/breaking@a2ff6682b27d175162a74c09ace8771bd3d512f8 # A few commits after v0.0.19 to get fixes
         if: steps.changes.outputs.api_docs == 'true'
-        with:
-          base: sentry-api-schema/rpc_method_schema.json
-          revision: ./rpc_method_schema.json
-          fail-on: WARN
+        run: |
+          docker run --rm -v "$PWD:$PWD" -w "$PWD" \
+            ghcr.io/getsentry/image-mirror-tufin-oasdiff:v1.33.0 \
+            breaking sentry-api-schema/rpc_method_schema.json ./rpc_method_schema.json \
+            --fail-on WARN --format githubactions
