@@ -195,8 +195,8 @@ def prepare_organization_report(
     email_override: str | None = None,
 ):
     traces.new_trace()
-    active_propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
-    prev_sampling_context = active_propagation_context.custom_sampling_context
+    propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+    prev_sampling_context = propagation_context.custom_sampling_context
     Scope.set_custom_sampling_context({"sample_rate": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING})
     try:
         span = traces.start_span(
@@ -205,8 +205,8 @@ def prepare_organization_report(
             parent_span=None,
         )
     finally:
-        active_propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
-        active_propagation_context.custom_sampling_context = prev_sampling_context
+        propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+        propagation_context.custom_sampling_context = prev_sampling_context
     with span:
         batch_id = str(batch_id)
         if email_override and not isinstance(target_user, int):
