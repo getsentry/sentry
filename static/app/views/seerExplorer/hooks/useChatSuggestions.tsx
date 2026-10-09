@@ -20,7 +20,6 @@ import {getSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/
 
 const SUGGESTIONS_TIMEOUT_MS = 4000;
 const MAX_PAGE_CONTEXT_LENGTH = 50_000;
-const MAX_PROJECTS = 10;
 
 class SuggestionsTimeoutError extends Error {
   constructor() {
@@ -69,11 +68,9 @@ export function useChatSuggestions({
       projects
     );
     const selectedIds = new Set(selection.projects.map(String));
-    return (
-      selectionMode === 'explicit'
-        ? projects.filter(project => selectedIds.has(project.id))
-        : projects.filter(project => project.isMember)
-    ).slice(0, MAX_PROJECTS);
+    return selectionMode === 'explicit'
+      ? projects.filter(project => selectedIds.has(project.id))
+      : projects.filter(project => project.isMember);
   }, [selection.projects, projects]);
 
   const query = useQuery({
@@ -82,7 +79,7 @@ export function useChatSuggestions({
       organization?.slug,
       route,
       params,
-      selectedProjects.map(project => project.slug),
+      selection.projects,
       allowStructuredContext,
     ],
     queryFn: () => {
@@ -100,10 +97,7 @@ export function useChatSuggestions({
             route,
             route_params: params,
             page_context: (pageContext ?? '').slice(0, MAX_PAGE_CONTEXT_LENGTH),
-            projects: selectedProjects.map(project => ({
-              slug: project.slug,
-              platform: project.platform ?? null,
-            })),
+            project_ids: selection.projects,
           },
         }),
         SUGGESTIONS_TIMEOUT_MS
