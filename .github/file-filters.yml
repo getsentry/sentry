@@ -19,6 +19,8 @@ testable_rules_changed: &testable_rules_changed
   - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'jest.config.ts'
+  - added|deleted|modified: 'build-utils/react-router{,.test}.ts'
+  - added|deleted|modified: '.github/workflows/scripts/jest-test-config.sh'
   - added|deleted|modified: 'scripts/{test,testCi}.js'
   - added|deleted|modified: 'static/packages/**/package.json'
   - added|deleted|modified: 'pnpm-lock.yaml'

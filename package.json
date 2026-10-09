@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "rm -f node_modules/.bin/sentry",
-    "typecheck": "tsc --build tsconfig.json static/app/serviceWorker/worker/tsconfig.json --builders 2",
+    "typecheck": "node scripts/typecheck.ts",
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
     "test": "node scripts/test.js --watch",
@@ -277,6 +277,7 @@
     "playwright": "^1.61.1",
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.19.0",
+    "react-router-v8": "npm:react-router@8.4.0",
     "run-on-changed": "0.4.0",
     "sherif": "1.13.0",
     "sirv": "^3.0.2",

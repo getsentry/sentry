@@ -329,7 +329,7 @@ jest.mock('@sentry/react', function sentryReact() {
       set: jest.fn(),
       distribution: jest.fn(),
     },
-    reactRouterV6BrowserTracingIntegration: jest.fn().mockReturnValue({}),
+    reactRouterBrowserTracingIntegration: jest.fn().mockReturnValue({}),
     browserTracingIntegration: jest.fn().mockReturnValue({}),
     browserProfilingIntegration: jest.fn().mockReturnValue({}),
     addEventProcessor: jest.fn(),

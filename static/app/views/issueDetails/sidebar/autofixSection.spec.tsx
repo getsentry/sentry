@@ -34,6 +34,7 @@ function matchesForTab(tab: Tab) {
       pathname: '/organizations/org-slug/issues/1/',
       params: {orgId: 'org-slug', groupId: '1'},
       data: null,
+      loaderData: null,
       handle: {path: TabPaths[tab]},
     },
   ];

@@ -29,14 +29,17 @@
 
 ### Routing
 
-- Routes defined in `static/app/routes.tsx`
-- The app still runs React Router V6; follow V6 routing patterns and behavior.
+- Routes defined in `static/app/router/routes.tsx`
+- Local development runs React Router V8. Production and deploy previews remain
+  on V6. Application tests and typechecks run against both versions.
+  `build-utils/react-router.ts` selects the build runtime and Nuqs adapter together.
 - Use V8 import paths: import router APIs and types from `react-router`, and
   `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
-  runtime through `static/app/utils/reactRouterV6`.
+  runtime through `static/app/utils/reactRouterV6` outside local development.
 - Only the compatibility modules may import `react-router-dom` or
   `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
-  Nuqs adapters and Sentry tracing integrations remain V6.
+  Use Sentry's version-neutral router tracing integration and wrapper. Keep the
+  Nuqs V6 adapter import; V8 builds and tests alias it to the V8 adapter.
 - Lazy load route components when possible
 
 ### Frontend API Calls

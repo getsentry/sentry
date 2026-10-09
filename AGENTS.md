@@ -76,7 +76,7 @@ Dev server URLs: full devserver `http://dev.getsentry.net:8000`; frontend-only `
 
 #### Typechecking
 
-Run the `pnpm run typecheck` script. It checks the app, service worker, and referenced workspace packages in dependency order. Package checks emit declarations into ignored `.types` directories; the app check uses those declarations. CI uses this same top-level command. It does not accept file paths. Add new isolated packages to the root tsconfig references. DO NOT use `tsc` directly.
+Run `pnpm run typecheck` to check the app against React Router V6 and V8, plus the service worker and referenced workspace packages in dependency order. Set `SENTRY_REACT_ROUTER_VERSION=6` or `8` to check one version. Package checks emit declarations into ignored `.types` directories; the app check uses those declarations. CI uses the same command in a router-version matrix. It does not accept file paths. Add new isolated packages to the root tsconfig references. DO NOT use `tsc` directly.
 
 Extend `tsconfig.base.json` for shared compiler checks. Keep app aliases, environment types, and emit settings in each project config.
 
@@ -97,7 +97,7 @@ pnpm test-ci <file_path>                       # run tests
 pnpm test-ci components/avatar.spec.tsx        # specific file(s)
 ```
 
-`test-ci` runs app tests first, then workspace package tests in parallel. File arguments select app tests; package tests always run. In sharded CI, only shard 0 runs package tests.
+`test-ci` runs app tests against React Router V6 and V8, then workspace package tests once. File arguments select app tests. Set `SENTRY_REACT_ROUTER_VERSION=6` or `8` to run one version. CI uses the existing shards for each router version; only V6 shard 0 runs package tests and router build checks.
 
 ### Context-Aware Loading
 

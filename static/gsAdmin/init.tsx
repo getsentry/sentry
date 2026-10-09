@@ -1,7 +1,7 @@
 import {createRoot} from 'react-dom/client';
 import {createBrowserRouter} from 'react-router';
 import {RouterProvider} from 'react-router/dom';
-import {wrapCreateBrowserRouterV6} from '@sentry/react';
+import {wrapCreateBrowserRouter} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
@@ -25,7 +25,7 @@ export function init(config: Config) {
 
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
-const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
+const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createBrowserRouter);
 const router = sentryCreateBrowserRouter(routes);
 
 setApiNavigate(createReactRouter3Navigate(router));
@@ -37,7 +37,7 @@ export function renderApp() {
     <QueryClientProvider client={queryClient}>
       <DocumentTitleManager>
         <NuqsAdapter defaultOptions={{shallow: false}}>
-          <RouterProvider router={router} />
+          <RouterProvider router={router} useTransitions={false} />
         </NuqsAdapter>
       </DocumentTitleManager>
     </QueryClientProvider>
