@@ -35,8 +35,15 @@ URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
                 \[
                 (
                     # At least one NB-NS-LH character. Also allows spaces in order to catch values
-                    # like `[Filtered UUID]` and `[REDACTED IP]`.
+                    # like `[Filtered UUID]` and `[REDACTED IP]`. The second alternative here is the
+                    # same as the first, but surrounded by an extra set of brackets, which happens
+                    # when the contents of an already-bracketed IPv6 literal gets scrubbed, turning
+                    # `http://[::1]:8090/some/path` into `http://[[ip]]:8090/some/path`.
                     [^\[\]/'"`\\<>{}|\^?#]+
+                    |
+                    \[
+                        [^\[\]/'"`\\<>{}|\^?#]+
+                    \]
                 )
                 \]
             )
