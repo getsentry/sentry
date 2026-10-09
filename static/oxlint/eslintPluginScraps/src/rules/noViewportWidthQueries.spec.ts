@@ -9,10 +9,6 @@ ruleTester.run('no-viewport-width-queries', noViewportWidthQueries, {
   valid: [
     {
       filename,
-      code: "import styled from '@emotion/styled'; const Box = styled.div`@container (max-width: 768px) { color: red; }`;",
-    },
-    {
-      filename,
       code: "import styled from '@emotion/styled'; const Box = styled.div`@media (prefers-reduced-motion: reduce) { color: red; }`;",
     },
     {
@@ -41,6 +37,16 @@ ruleTester.run('no-viewport-width-queries', noViewportWidthQueries, {
     },
   ],
   invalid: [
+    {
+      filename,
+      code: "import styled from '@emotion/styled'; const Box = styled.div`@container (max-width: 768px) { color: red; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "const style = {'@container (max-width: 768px)': {display: 'none'}};",
+      errors: [{messageId: 'forbidden'}],
+    },
     {
       filename,
       code: "import styled from '@emotion/styled'; const Box = styled.div`@media (max-width: 800px) { width: 100%; }`;",

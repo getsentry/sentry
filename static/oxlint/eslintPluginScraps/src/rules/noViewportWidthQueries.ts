@@ -1,6 +1,7 @@
 import {defineRule, type ESTree} from '@oxlint/plugins';
 
-const WIDTH_MEDIA_QUERY = /@media[^{;]+\b(?:min-width|max-width|width)\s*(?::|[<>]=?)/g;
+const WIDTH_QUERY =
+  /@(?:media|container)[^{;]+\b(?:min-width|max-width|width)\s*(?::|[<>]=?)/g;
 const WIDTH_FEATURE = /\b(?:min-width|max-width|width)\s*(?::|[<>]=?)/;
 
 function isModalCss(node: ESTree.Node): boolean {
@@ -24,12 +25,12 @@ export const noViewportWidthQueries = defineRule({
   meta: {
     type: 'problem',
     docs: {
-      description: 'Prefer container queries for component width-dependent layout',
+      description: 'Prefer responsive primitives for width-dependent component layout',
     },
     schema: [],
     messages: {
       forbidden:
-        'Use a container query or container-responsive prop for width-dependent layout. Viewport width is allowed in modalCss and drawers.',
+        'Use responsive primitive props for width-dependent layout. Reserve handwritten container queries for CSS that props cannot express.',
     },
   },
   create(context) {
@@ -90,10 +91,10 @@ export const noViewportWidthQueries = defineRule({
           return;
         }
         for (const quasi of node.quasi.quasis) {
-          if (WIDTH_MEDIA_QUERY.test(quasi.value.raw)) {
+          if (WIDTH_QUERY.test(quasi.value.raw)) {
             context.report({node: quasi, messageId: 'forbidden'});
           }
-          WIDTH_MEDIA_QUERY.lastIndex = 0;
+          WIDTH_QUERY.lastIndex = 0;
         }
       },
       CallExpression(node) {
@@ -131,7 +132,9 @@ export const noViewportWidthQueries = defineRule({
               : undefined;
         if (
           keyName &&
-          /@media[^{;]+\b(?:min-width|max-width|width)\s*(?::|[<>]=?)/.test(keyName)
+          /@(?:media|container)[^{;]+\b(?:min-width|max-width|width)\s*(?::|[<>]=?)/.test(
+            keyName
+          )
         ) {
           context.report({node: key, messageId: 'forbidden'});
           return;
