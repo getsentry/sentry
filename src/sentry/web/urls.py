@@ -54,7 +54,6 @@ from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.signup_verification_pending import SignupVerificationPendingView
 from sentry.web.frontend.sso_signup_verification import SSOSignupVerificationView
-from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 
@@ -337,11 +336,6 @@ urlpatterns += [
         r"^account/",
         include(
             [
-                re_path(
-                    r"^sudo/$",
-                    SudoView.as_view(),
-                    name="sentry-sudo",
-                ),
                 re_path(
                     r"^confirm-email/$",
                     accounts.start_confirm_email,
@@ -1374,10 +1368,6 @@ urlpatterns += [
                 re_path(
                     r"^bitbucket-server/",
                     include("sentry.integrations.bitbucket_server.urls"),
-                ),
-                re_path(
-                    r"^vercel/",
-                    include("sentry.integrations.vercel.urls"),
                 ),
                 re_path(
                     r"^msteams/",

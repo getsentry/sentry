@@ -6,7 +6,6 @@ from typing import cast
 
 import sentry_sdk
 
-from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import (
     OPSGENIE_DEFAULT_PRIORITY,
     OpsgenieClient,
@@ -80,7 +79,8 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
                 sentry_sdk.capture_exception(e)
                 return
             try:
-                rules = [f.rule for f in futures]
+                contexts = [future.context for future in futures]
+                rules = [context.origin for context in contexts]
                 payload = client.build_issue_alert_payload(
                     data=event,
                     rules=rules,
@@ -113,8 +113,8 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
                     "team_id": team["id"],
                 },
             )
-            rule = rules[0] if rules else None
-            self.record_notification_sent(event, team["id"], rule, notification_uuid)
+            context = contexts[0] if contexts else None
+            self.record_notification_sent(event, team["id"], context, notification_uuid)
 
         key = f"opsgenie:{integration.id}:{team['id']}:{priority}"
         yield self.future(send_notification, key=key)
@@ -138,12 +138,4 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
 
         return self.label.format(
             account=self.get_integration_name(), team=team_name, priority=priority
-        )
-
-    def get_form_instance(self) -> OpsgenieNotifyTeamForm:
-        return OpsgenieNotifyTeamForm(
-            self.data,
-            org_id=self.project.organization_id,
-            integrations=self.get_integrations(),
-            teams=self.get_teams(),
         )

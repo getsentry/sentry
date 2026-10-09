@@ -1,5 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconProfiling} from '@sentry/icons/profiling';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
@@ -10,7 +12,6 @@ import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/is
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   DeviceContextKey,

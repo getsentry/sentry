@@ -13,11 +13,17 @@ resources:
     WAI-ARIA Menu: https://www.w3.org/WAI/ARIA/apg/patterns/menu/
 ---
 
+import {useState} from 'react';
+
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {IconCopy, IconDelete, IconDownload, IconEdit} from 'sentry/icons';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEdit} from '@sentry/icons/edit';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/dropdownMenu');
@@ -153,6 +159,102 @@ Group related items by adding `children` without setting `submenu`. Use `to` for
 ```
 
 Submenus open on hover or with the right arrow key. Pass an object to `submenu` to set a title or change the submenu position.
+
+### Moving into a submenu
+
+Choose Left or Right to change the submenu direction. Move the pointer diagonally from Export toward a format near the bottom of its submenu. The submenu stays open while crossing neighboring items. Moving away or pausing over a neighboring item activates that item.
+
+export function SubmenuNavigationDemo() {
+  const [position, setPosition] = useState('right-start');
+  return (
+    <Flex direction="column" align="center" gap="xl">
+      <SegmentedControl
+        aria-label="Submenu direction"
+        value={position}
+        onChange={setPosition}
+      >
+        <SegmentedControl.Item key="left-start">Left</SegmentedControl.Item>
+        <SegmentedControl.Item key="right-start">Right</SegmentedControl.Item>
+      </SegmentedControl>
+      <DropdownMenu
+        triggerLabel="Submenu navigation"
+        items={[
+          {
+            key: 'export',
+            label: 'Export',
+            submenu: {position},
+            children: [
+              {key: 'csv', label: 'CSV'},
+              {key: 'json', label: 'JSON'},
+              {key: 'xlsx', label: 'Excel'},
+              {key: 'pdf', label: 'PDF'},
+              {key: 'html', label: 'HTML'},
+            ],
+          },
+          {
+            key: 'share',
+            label: 'Share',
+            submenu: {position},
+            children: [
+              {key: 'copy-link', label: 'Copy link'},
+              {key: 'embed', label: 'Embed'},
+            ],
+          },
+          {key: 'archive', label: 'Archive'},
+        ]}
+      />
+    </Flex>
+  );
+}
+
+<Storybook.Demo>
+  <SubmenuNavigationDemo />
+</Storybook.Demo>
+
+```jsx
+function SubmenuNavigationDemo() {
+  const [position, setPosition] = useState('right-start');
+  return (
+    <Flex direction="column" align="center" gap="xl">
+      <SegmentedControl
+        aria-label="Submenu direction"
+        value={position}
+        onChange={setPosition}
+      >
+        <SegmentedControl.Item key="left-start">Left</SegmentedControl.Item>
+        <SegmentedControl.Item key="right-start">Right</SegmentedControl.Item>
+      </SegmentedControl>
+      <DropdownMenu
+        triggerLabel="Submenu navigation"
+        items={[
+          {
+            key: 'export',
+            label: 'Export',
+            submenu: {position},
+            children: [
+              {key: 'csv', label: 'CSV'},
+              {key: 'json', label: 'JSON'},
+              {key: 'xlsx', label: 'Excel'},
+              {key: 'pdf', label: 'PDF'},
+              {key: 'html', label: 'HTML'},
+            ],
+          },
+          {
+            key: 'share',
+            label: 'Share',
+            submenu: {position},
+            children: [
+              {key: 'copy-link', label: 'Copy link'},
+              {key: 'embed', label: 'Embed'},
+            ],
+          },
+          {key: 'archive', label: 'Archive'},
+        ]}
+      />
+    </Flex>
+  );
+}
+```
 
 ## Sizes, Custom Triggers, and Footers
 

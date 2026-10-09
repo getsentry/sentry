@@ -1,5 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconArrow} from '@sentry/icons/arrow';
 import * as Sentry from '@sentry/react';
 import {
   mutationOptions,
@@ -11,7 +13,7 @@ import {
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -24,7 +26,6 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   Integration,
@@ -48,9 +49,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {CrumbLink} from 'sentry/views/settings/components/settingsBreadcrumb';
-import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {Divider} from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {GcpConnectionStatus} from './gcpConnectionStatus';
@@ -189,6 +187,7 @@ function IntegrationMainTab({
 }) {
   const instructions =
     integration.dynamicDisplayInformation?.configure_integration?.instructions;
+  const externalUrl = getIntegrationExternalUrl(integration);
 
   const integrationEndpoint = getApiUrl(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
@@ -284,13 +283,23 @@ function IntegrationMainTab({
         />
       )}
 
-      {(integration.configOrganization?.length ?? 0) > 0 && (
+      {(externalUrl || (integration.configOrganization?.length ?? 0) > 0) && (
         <FieldGroup
           title={
             integration.provider.aspects.configure_integration?.title ||
             t('Organization Integration Settings')
           }
         >
+          {externalUrl && (
+            <Flex gap="xl" align="center" justify="between">
+              <Container width="50%">
+                <Text>{t('Integration URL')}</Text>
+              </Container>
+              <Container flexGrow={1}>
+                <ExternalLink href={externalUrl}>{integration.domainName}</ExternalLink>
+              </Container>
+            </Flex>
+          )}
           {integration.configOrganization?.map(fieldConfig => (
             <BackendJsonAutoSaveForm
               key={fieldConfig.name}
@@ -491,6 +500,7 @@ function ConfigureIntegration() {
   const settingsInstructions =
     integration.dynamicDisplayInformation?.configure_integration?.instructions;
   const hasSettingsTabContent =
+    Boolean(getIntegrationExternalUrl(integration)) ||
     (integration.configOrganization?.length ?? 0) > 0 ||
     (settingsInstructions?.length ?? 0) > 0 ||
     provider.features.includes('alert-rule') ||
@@ -622,34 +632,20 @@ function IntegrationNavigationHeader({
 }) {
   const organization = useOrganization();
   const {providerKey} = useParams<{providerKey: string}>();
-  const externalUrl = getIntegrationExternalUrl(integration);
   const configurationsHref = `/settings/${organization.slug}/integrations/${providerKey}/?tab=configurations`;
 
   return (
     <Fragment>
       <SentryDocumentTitle title={integration.provider.name} />
       <SettingsPageHeader
-        title={
-          <Flex align="center" gap="sm">
-            <CrumbLink to={configurationsHref}>{t('Configurations')}</CrumbLink>
-            <Divider />
-            <IntegrationIcon size={18} integration={integration} />
-            {externalUrl ? (
-              <Text>
-                {textProps => (
-                  <ExternalLink {...textProps} href={externalUrl}>
-                    {integration.name}
-                  </ExternalLink>
-                )}
-              </Text>
-            ) : (
-              <Text>{integration.name}</Text>
-            )}
-          </Flex>
-        }
+        breadcrumbs={[{type: 'link', label: t('Configurations'), to: configurationsHref}]}
+        title={{
+          type: 'page-title',
+          label: integration.name,
+          leadingGraphic: <IntegrationIcon size={16} integration={integration} />,
+        }}
         action={action}
       />
-      <BreadcrumbTitle title={integration.provider.name} />
     </Fragment>
   );
 }

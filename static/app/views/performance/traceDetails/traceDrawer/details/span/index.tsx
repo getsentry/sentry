@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 import type {Location} from 'history';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -13,7 +14,6 @@ import {
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   EntryType,

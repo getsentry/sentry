@@ -1,16 +1,18 @@
 import {Fragment, useRef, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {withForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import {PathMapping} from './pathMapping';
 import type {PathMappingValue} from './type';
+import {getPathMappingWarnings} from './warnings';
 
 interface RowMeta {
   id: number;
@@ -18,9 +20,6 @@ interface RowMeta {
 }
 
 const EMPTY_MAPPING: PathMappingValue = {stackRoot: '', sourceRoot: '', branch: ''};
-
-const hasContent = (value: PathMappingValue) =>
-  value.stackRoot.trim() !== '' || value.sourceRoot.trim() !== '';
 
 const mappingKey = (value: PathMappingValue, branchFallback: string) => {
   const {stackRoot, sourceRoot, branch} = normalizePathMapping(value, branchFallback);
@@ -32,19 +31,16 @@ const hasDuplicateMappings = (values: PathMappingValue[], branchFallback: string
   return new Set(keys).size !== keys.length;
 };
 
+// Collapsing a row promotes it to an established mapping so reopening it
+// shows the summary pinned above the editor, even if the row is still empty.
 const clearIsNewOnCollapse = (
   meta: RowMeta[],
-  collapsingId: number | null,
-  values: PathMappingValue[]
+  collapsingId: number | null
 ): RowMeta[] => {
   if (collapsingId === null) {
     return meta;
   }
-  return meta.map((m, i) =>
-    m.id === collapsingId && hasContent(values[i] ?? EMPTY_MAPPING)
-      ? {...m, isNew: false}
-      : m
-  );
+  return meta.map(m => (m.id === collapsingId ? {...m, isNew: false} : m));
 };
 
 export const PathMappingList = withForm({
@@ -54,9 +50,19 @@ export const PathMappingList = withForm({
   },
   props: {} as {
     defaultBranch?: string;
+    existingMappings?: RepositoryProjectPathConfig[];
+    projectSlug?: string;
     providerKey?: string;
+    seededById?: Map<string, RepositoryProjectPathConfig>;
   },
-  render: function PathMappingListRender({form, providerKey, defaultBranch}) {
+  render: function PathMappingListRender({
+    form,
+    providerKey,
+    defaultBranch,
+    existingMappings,
+    projectSlug,
+    seededById,
+  }) {
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
     const newRowValue: PathMappingValue = {...EMPTY_MAPPING, branch: branchFallback};
 
@@ -66,7 +72,7 @@ export const PathMappingList = withForm({
     const [rowMeta, setRowMeta] = useState<RowMeta[]>(() => {
       const initial = form.state.values.pathMappings;
       idRef.current = initial.length;
-      return initial.map((v, i) => ({id: i, isNew: !hasContent(v)}));
+      return initial.map((v, i) => ({id: i, isNew: !v.id}));
     });
 
     const [openId, setOpenId] = useState<number | null>(() =>
@@ -74,8 +80,7 @@ export const PathMappingList = withForm({
     );
 
     const toggle = (id: number) => {
-      const currentValues = form.state.values.pathMappings;
-      setRowMeta(prev => clearIsNewOnCollapse(prev, openId, currentValues));
+      setRowMeta(prev => clearIsNewOnCollapse(prev, openId));
       setOpenId(prev => (prev === id ? null : id));
     };
 
@@ -107,20 +112,22 @@ export const PathMappingList = withForm({
 
             const handleAddAnother = () => {
               const id = nextId();
-              const currentValues = form.state.values.pathMappings;
               field.pushValue(newRowValue);
               setRowMeta(prev => [
-                ...clearIsNewOnCollapse(prev, openId, currentValues),
+                ...clearIsNewOnCollapse(prev, openId),
                 {id, isNew: true},
               ]);
               setOpenId(id);
             };
 
-            // Subscribe to live per-row values so the duplicate check and
-            // collapsed summaries update while the user types.
             return (
               <form.Subscribe selector={state => state.values.pathMappings}>
                 {pathMappings => {
+                  const warnings = getPathMappingWarnings(
+                    pathMappings,
+                    existingMappings,
+                    seededById
+                  );
                   const addDisabledReason = hasDuplicateMappings(
                     pathMappings,
                     branchFallback
@@ -138,11 +145,14 @@ export const PathMappingList = withForm({
                             <PathMapping
                               key={meta.id}
                               editing={openId === meta.id}
+                              enableDelete={pathMappings.length > 1}
                               fields={fields}
                               form={form}
                               isNew={meta.isNew}
                               value={value}
+                              warning={warnings[i]}
                               providerKey={providerKey}
+                              projectSlug={projectSlug}
                               defaultBranch={defaultBranch}
                               onDelete={() => handleDelete(i)}
                               onExpandToggle={() => toggle(meta.id)}

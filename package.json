@@ -14,17 +14,18 @@
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
     "test": "node scripts/test.js --watch",
-    "test-ci": "node scripts/test.js --ci --maxWorkers=75% --colors",
+    "test-ci": "node scripts/testCi.js",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "node scripts/test.js --bail --findRelatedTests -u",
     "test-staged": "node scripts/test.js --findRelatedTests $(git diff --name-only --cached)",
-    "lint": "pnpm run lint:format && pnpm run lint:js && pnpm run lint:css",
-    "lint:js": "oxlint",
+    "lint": "pnpm run lint:deps && pnpm run lint:format && pnpm run lint:js && pnpm run lint:css",
+    "lint:deps": "sherif --ignore-rule root-package-dependencies",
+    "lint:js": "node scripts/custom-oxlint.ts",
     "lint:js:changed": "run-on-changed",
     "lint:css": "stylelint '**/*.[jt]sx'",
     "lint:format": "oxfmt --check",
     "fix": "pnpm run fix:format && pnpm run fix:oxlint",
-    "fix:oxlint": "oxlint --fix",
+    "fix:oxlint": "pnpm run lint:js --fix",
     "fix:format": "oxfmt",
     "dev": "pnpm install --frozen-lockfile && sentry devserver",
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_UI_HOT_RELOAD=1 node scripts/dev-ui-server.ts",
@@ -101,15 +102,16 @@
     "@react-stately/tree": "3.10.1",
     "@react-types/shared": "3.36.0",
     "@remix-run/router": "1.23.4",
-    "@rsbuild/core": "^2.2.4",
+    "@rsbuild/core": "^2.2.12",
     "@rsbuild/plugin-basic-ssl": "^2.0.0",
-    "@rsdoctor/rspack-plugin": "1.6.3",
-    "@rspack/core": "2.2.3",
+    "@rsdoctor/rspack-plugin": "1.6.4",
+    "@rspack/core": "2.2.8",
     "@rspack/plugin-react-refresh": "2.0.2",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry/browser": "11.0.0",
-    "@sentry/conventions": "^0.25.0",
+    "@sentry/conventions": "^0.26.0",
     "@sentry/core": "11.0.0",
+    "@sentry/icons": "workspace:*",
     "@sentry/node": "11.0.0",
     "@sentry/react": "11.0.0",
     "@sentry/release-parser": "^1.3.1",
@@ -118,10 +120,10 @@
     "@sentry/rrweb-snapshot": "2.44.0",
     "@sentry/sqlish": "1.0.1",
     "@sentry/status-page-list": "^0.6.1",
-    "@sentry/webpack-plugin": "5.3.0",
+    "@sentry/webpack-plugin": "5.4.1",
     "@stripe/react-stripe-js": "^3.9.2",
     "@stripe/stripe-js": "^5.10.0",
-    "@swc/plugin-emotion": "15.0.0",
+    "@swc/plugin-emotion": "19.0.0",
     "@tanstack/query-async-storage-persister": "5.101.4",
     "@tanstack/react-devtools": "0.9.9",
     "@tanstack/react-form": "1.28.6",
@@ -205,6 +207,7 @@
     "react-grid-layout": "1.5.3",
     "react-lazyload": "^3.2.1",
     "react-popper": "^2.3.0",
+    "react-router": "6.30.6",
     "react-router-dom": "6.30.6",
     "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",
@@ -218,7 +221,7 @@
     "sprintf-js": "1.0.3",
     "style-loader": "4.0.0",
     "swc-plugin-component-annotate": "1.18.0",
-    "ts-checker-rspack-plugin": "1.6.1",
+    "ts-checker-rspack-plugin": "1.6.2",
     "tslib": "^2.8.1",
     "type-fest": "^5.8.0",
     "yaml": "2.9.0",
@@ -235,10 +238,10 @@
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@jest/types": "30.5.1",
     "@mdx-js/mdx": "3.1.1",
-    "@sentry/jest-environment": "8.0.0",
+    "@sentry/jest-environment": "8.1.0",
     "@sentry/rrweb-types": "2.44.0",
-    "@swc-contrib/mut-cjs-exports": "15.0.0",
-    "@swc/core": "1.16.2",
+    "@swc-contrib/mut-cjs-exports": "19.0.0",
+    "@swc/core": "1.16.13",
     "@swc/jest": "0.2.39",
     "@tanstack/eslint-plugin-query": "5.101.4",
     "@testing-library/dom": "10.4.1",
@@ -251,7 +254,7 @@
     "@types/node": "24.13.2",
     "eslint": "10.8.0",
     "eslint-import-resolver-typescript": "4.4.5",
-    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-import-x": "4.17.1",
     "eslint-plugin-jest-dom": "5.10.1",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-you-might-not-need-an-effect": "1.0.2",
@@ -263,8 +266,9 @@
     "jest-canvas-mock": "^2.5.8",
     "jest-environment-node": "30.5.1",
     "jest-fail-on-console": "3.3.4",
+    "jest-resolve": "30.5.1",
     "jsdom": "30.1.1",
-    "knip": "6.32.1",
+    "knip": "6.40.0",
     "odiff-bin": "4.3.8",
     "oxfmt": "^0.70.0",
     "oxlint": "1.85.0",
@@ -274,6 +278,7 @@
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.19.0",
     "run-on-changed": "0.4.0",
+    "sherif": "1.13.0",
     "sirv": "^3.0.2",
     "stylelint": "16.26.1",
     "stylelint-config-recommended": "^14.0.1",
@@ -304,52 +309,7 @@
       "current node"
     ]
   },
-  "packageManager": "pnpm@10.30.2",
-  "pnpm": {
-    "overrides": {
-      "@isaacs/brace-expansion": "5.0.1",
-      "diff@>=4.0.0 <4.0.4": "4.0.4",
-      "diff@>=5.0.0 <5.2.2": "5.2.2"
-    },
-    "packageExtensions": {
-      "@sentry/webpack-plugin@5.3.0": {
-        "peerDependenciesMeta": {
-          "webpack": {
-            "optional": true
-          }
-        }
-      },
-      "compression-webpack-plugin@12.0.0": {
-        "peerDependenciesMeta": {
-          "webpack": {
-            "optional": true
-          }
-        }
-      },
-      "style-loader@4.0.0": {
-        "peerDependenciesMeta": {
-          "webpack": {
-            "optional": true
-          }
-        }
-      }
-    },
-    "onlyBuiltDependencies": [
-      "@sentry-internal/node-cpu-profiler",
-      "@sentry/cli",
-      "@swc/core",
-      "core-js",
-      "esbuild",
-      "odiff-bin",
-      "unrs-resolver"
-    ],
-    "patchedDependencies": {
-      "zod@4.3.5": "patches/zod@4.3.5.patch",
-      "zrender@6.1.0": "patches/zrender@6.1.0.patch",
-      "css-tree@3.2.1": "patches/css-tree@3.2.1.patch",
-      "jest-runtime@30.5.1": "patches/jest-runtime@30.5.1.patch"
-    }
-  },
+  "packageManager": "pnpm@12.10.1",
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000"
 }

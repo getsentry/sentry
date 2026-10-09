@@ -1,6 +1,7 @@
+import {IconCommit} from '@sentry/icons/commit';
+
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconCommit} from 'sentry/icons';
 import type {Commit} from 'sentry/types/integrations';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 

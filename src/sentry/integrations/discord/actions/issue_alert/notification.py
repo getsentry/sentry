@@ -1,7 +1,6 @@
 from collections.abc import Generator, Sequence
 from typing import Any
 
-from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.integrations.discord.spec import DiscordMessagingSpec
@@ -11,6 +10,8 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.types import RuleFuture
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -49,10 +50,12 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             return
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
-            rules = [f.rule for f in futures]
+            contexts = [future.context for future in futures]
+            rules = [context.origin for context in contexts]
             message = DiscordIssuesMessageBuilder(
                 event.group, event=event, tags=tags, rules=rules
             ).build(notification_uuid=notification_uuid)
+            record_legacy_render(NotificationProviderKey.DISCORD, message)
 
             client = DiscordClient()
             with MessagingInteractionEvent(
@@ -77,8 +80,8 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
                     lifecycle.record_failure(e)
 
-            rule = rules[0] if rules else None
-            self.record_notification_sent(event, channel_id, rule, notification_uuid)
+            context = contexts[0] if contexts else None
+            self.record_notification_sent(event, channel_id, context, notification_uuid)
 
         key = f"discord:{integration.id}:{channel_id}"
 
@@ -103,6 +106,3 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
-
-    def get_form_instance(self) -> DiscordNotifyServiceForm:
-        return DiscordNotifyServiceForm(self.data, integrations=self.get_integrations())

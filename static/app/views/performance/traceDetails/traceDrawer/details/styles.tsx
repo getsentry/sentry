@@ -2,6 +2,12 @@ import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import {IconCircleFill} from '@sentry/icons/circleFill';
+import {IconFocus} from '@sentry/icons/focus';
+import {IconJson} from '@sentry/icons/json';
+import {IconPanel} from '@sentry/icons/panel';
+import {IconProfiling} from '@sentry/icons/profiling';
+import {IconTerminal} from '@sentry/icons/terminal';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -24,19 +30,8 @@ import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
   KeyValueTableCard,
-  KeyValueTableCardPanel,
   type KeyValueTableDataRowProps,
-  KeyValueTableSubject,
-  KeyValueTableValueSection,
 } from 'sentry/components/tables/keyValueTable';
-import {
-  IconCircleFill,
-  IconFocus,
-  IconJson,
-  IconPanel,
-  IconProfiling,
-  IconTerminal,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -614,47 +609,25 @@ function SectionCard({
   items,
   title,
   sortAlphabetically = false,
-  itemProps = {},
+  itemProps,
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
   itemProps?: Partial<KeyValueTableDataRowProps>;
   sortAlphabetically?: boolean;
 }) {
-  const contentItems = items.map(item => ({item, ...itemProps}));
+  const contentItems = items.map(item => ({item}));
 
   return (
-    <CardWrapper>
-      <KeyValueTableCard
-        title={title}
-        contentItems={contentItems}
-        sortAlphabetically={sortAlphabetically}
-        truncateLength={SECTION_CARD_TRUNCATE_LENGTH}
-      />
-    </CardWrapper>
+    <KeyValueTableCard
+      title={title}
+      contentItems={contentItems}
+      itemProps={itemProps}
+      sortAlphabetically={sortAlphabetically}
+      truncateLength={SECTION_CARD_TRUNCATE_LENGTH}
+    />
   );
 }
-
-// This is trace-view specific styling. The card is rendered in a number of different places
-// with tests failing otherwise, since @container queries are not supported by the version of
-// jsdom currently used by jest.
-const CardWrapper = styled('div')`
-  ${KeyValueTableCardPanel} {
-    container-type: inline-size;
-  }
-
-  ${KeyValueTableSubject} {
-    display: flex;
-    align-items: center;
-    @container (width < 350px) {
-      max-width: 200px;
-    }
-  }
-
-  ${KeyValueTableValueSection} {
-    align-items: center;
-  }
-`;
 
 function MultilineText({
   children,

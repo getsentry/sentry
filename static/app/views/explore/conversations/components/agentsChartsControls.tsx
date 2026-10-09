@@ -1,9 +1,10 @@
+import {IconClock} from '@sentry/icons/clock';
+
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   ChartIntervalUnspecifiedStrategy,

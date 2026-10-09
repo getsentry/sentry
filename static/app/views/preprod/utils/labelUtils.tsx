@@ -1,4 +1,5 @@
-import {IconArrow} from 'sentry/icons';
+import {IconArrow} from '@sentry/icons/arrow';
+
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {unreachable} from 'sentry/utils/unreachable';

@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
+import {IconClock} from '@sentry/icons/clock';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -18,7 +19,6 @@ import {
   RELEASES_SORT_OPTIONS,
   ReleasesSortOption,
 } from 'sentry/constants/releases';
-import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -29,6 +29,7 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {
+  getTagKeysInMultipleDatasets,
   globalFilterKeysAreEqual,
   globalFiltersAreEqual,
   mergeGlobalFilters,
@@ -210,6 +211,11 @@ export function FiltersBar({
     organization,
     isNavigationTypeExperimentEnabled
   );
+  const visibleGlobalFilters = activeGlobalFilters.filter(
+    filter =>
+      !hidesNavigationTypeChip(filter, organization, isNavigationTypeSwitcherShown)
+  );
+  const tagKeysInMultipleDatasets = getTagKeysInMultipleDatasets(visibleGlobalFilters);
 
   const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
   return (
@@ -284,47 +290,39 @@ export function FiltersBar({
             onChange={updateGlobalFilters}
           />
         )}
-        {activeGlobalFilters
-          .filter(
-            filter =>
-              !hidesNavigationTypeChip(
-                filter,
-                organization,
-                isNavigationTypeSwitcherShown
+        {visibleGlobalFilters.map(filter => (
+          <GenericFilterSelector
+            disableRemoveFilter={
+              isPrebuiltDashboard &&
+              prebuiltDashboardFilters.some(
+                prebuiltFilter =>
+                  prebuiltFilter.tag.key === filter.tag.key &&
+                  prebuiltFilter.dataset === filter.dataset
               )
-          )
-          .map(filter => (
-            <GenericFilterSelector
-              disableRemoveFilter={
-                isPrebuiltDashboard &&
-                prebuiltDashboardFilters.some(
-                  prebuiltFilter =>
-                    prebuiltFilter.tag.key === filter.tag.key &&
-                    prebuiltFilter.dataset === filter.dataset
+            }
+            key={`${filter.tag.key}:${filter.dataset}:${filter.value}`}
+            globalFilter={filter}
+            showDatasetLabel={tagKeysInMultipleDatasets.has(filter.tag.key)}
+            searchBarData={getSearchBarData(filter.dataset)}
+            onUpdateFilter={updatedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.map(f =>
+                  globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
                 )
-              }
-              key={filter.tag.key + filter.value}
-              globalFilter={filter}
-              searchBarData={getSearchBarData(filter.dataset)}
-              onUpdateFilter={updatedFilter => {
-                updateGlobalFilters(
-                  activeGlobalFilters.map(f =>
-                    globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
-                  )
-                );
-              }}
-              onRemoveFilter={removedFilter => {
-                updateGlobalFilters(
-                  activeGlobalFilters.filter(
-                    f => !globalFilterKeysAreEqual(f, removedFilter)
-                  )
-                );
-                trackAnalytics('dashboards2.global_filter.remove', {
-                  organization,
-                });
-              }}
-            />
-          ))}
+              );
+            }}
+            onRemoveFilter={removedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.filter(
+                  f => !globalFilterKeysAreEqual(f, removedFilter)
+                )
+              );
+              trackAnalytics('dashboards2.global_filter.remove', {
+                organization,
+              });
+            }}
+          />
+        ))}
         <AddFilter
           globalFilters={activeGlobalFilters}
           getSearchBarData={getSearchBarData}

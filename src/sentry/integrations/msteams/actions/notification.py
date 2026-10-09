@@ -6,13 +6,14 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.types import RuleFuture
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -55,10 +56,12 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             return
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
-            rules = [f.rule for f in futures]
+            contexts = [future.context for future in futures]
+            rules = [context.origin for context in contexts]
             card = MSTeamsIssueMessageBuilder(
                 event.group, event, rules, integration
             ).build_group_card(notification_uuid=notification_uuid)
+            record_legacy_render(NotificationProviderKey.MSTEAMS, card)
 
             client = MsTeamsClient(integration)
             with MessagingInteractionEvent(
@@ -70,8 +73,8 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
                     client.send_card(channel, card)
                 except (ApiError, IntegrationError) as e:
                     record_lifecycle_termination_level(lifecycle, e)
-            rule = rules[0] if rules else None
-            self.record_notification_sent(event, channel, rule, notification_uuid)
+            context = contexts[0] if contexts else None
+            self.record_notification_sent(event, channel, context, notification_uuid)
 
         key = f"msteams:{integration.id}:{channel}"
 
@@ -89,6 +92,3 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
         return self.label.format(
             team=self.get_integration_name(), channel=self.get_option("channel")
         )
-
-    def get_form_instance(self) -> MsTeamsNotifyServiceForm:
-        return MsTeamsNotifyServiceForm(self.data, integrations=self.get_integrations())

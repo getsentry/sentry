@@ -7203,29 +7203,50 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             expected_user_misery, rel=1e-3
         )
 
-    def test_link_field_fails(self) -> None:
+    def test_span_links_field_filter_and_group_by(self) -> None:
+        linked_span_id = "8873a98879faf06d"
+        links = f'[{{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"{linked_span_id}","sampled":true,"attributes":{{"sentry.link.type":"previous_trace"}}}}]'
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "linked", "sentry_tags": {"links": links}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "linked", "sentry_tags": {"links": links}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span({"description": "unlinked"}, start_ts=self.ten_mins_ago),
+            ],
+        )
+
         response = self.do_request(
             {
-                "field": ["span.status", "description", "count()"],
-                "query": "sentry.links:foo",
+                "field": ["sentry.links", "description"],
+                "query": f"sentry.links:*{linked_span_id}*",
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": "spans",
             }
         )
+        assert response.status_code == 200, response.content
+        assert [row["sentry.links"] for row in response.data["data"]] == [links, links]
+        assert response.data["meta"]["fields"]["sentry.links"] == "string"
 
-        assert response.status_code == 400, response.content
         response = self.do_request(
             {
-                "field": ["sentry.links", "description", "count()"],
+                "field": ["sentry.links", "count()"],
                 "query": "",
-                "orderby": "description",
+                "orderby": "-count()",
                 "project": self.project.id,
                 "dataset": "spans",
             }
         )
-
-        assert response.status_code == 400, response.content
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"sentry.links": links, "count()": 2},
+            {"sentry.links": None, "count()": 1},
+        ]
 
     def test_formula_filtering(self) -> None:
         self.store_spans(
@@ -7726,3 +7747,58 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "count()": 1,
             }
         ]
+
+    def test_user_formula(self) -> None:
+        self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])
+        self.create_explore_saved_formula(
+            organization=self.organization,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["formula.apdex(span.duration, 300)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+            features={"organizations:explore-saved-formulas": True},
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"formula.apdex(span.duration, 300)": 0.5}]
+        assert response.data["meta"]["fields"] == {
+            "formula.apdex(span.duration, 300)": "number",
+        }
+
+    def test_user_formula_invalid_arguments(self) -> None:
+        self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])
+        self.create_explore_saved_formula(
+            organization=self.organization,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["formula.apdex(span.duration, fan.duration)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+            features={"organizations:explore-saved-formulas": True},
+        )
+        assert response.status_code == 400, response.content
+        assert (
+            "threshold expected a number but got 'fan.duration' instead" in response.data["detail"]
+        )
+
+    def test_unknown_formula(self) -> None:
+        self.create_explore_saved_formula(
+            organization=self.organization,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["formula.altisaur(span.duration, fan.duration)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+            features={"organizations:explore-saved-formulas": True},
+        )
+        assert response.status_code == 400, response.content
+        assert "Unknown function formula.altisaur" in response.data["detail"]

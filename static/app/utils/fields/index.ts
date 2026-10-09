@@ -259,6 +259,10 @@ type OTAFieldKey =
  */
 export const DEFAULT_TAG_DESCRIPTION = t('A tag sent with one or more events');
 
+export const DEFAULT_ATTRIBUTE_DESCRIPTION = t(
+  'An attribute sent with one or more events'
+);
+
 export enum WebVital {
   FP = 'measurements.fp',
   FCP = 'measurements.fcp',
@@ -1009,9 +1013,9 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
 ];
 
 /**
- * Span aggregates that EAP generates an `_if` combinator for. Used by Explore series
- * filters and equation builders. See `SPAN_AGGREGATE_COMBINATORS` in
- * `src/sentry/search/eap/spans/aggregates.py`.
+ * Aggregates that EAP generates an `_if` combinator for. Used by Explore series
+ * filters and equation builders. See `SPAN_AGGREGATE_COMBINATORS` and
+ * `LOG_AGGREGATE_COMBINATORS` under `src/sentry/search/eap/`.
  */
 export const EXPLORE_FILTERABLE_AGGREGATES: AggregationKey[] = [
   AggregationKey.COUNT,
@@ -1031,38 +1035,21 @@ export const EXPLORE_FILTERABLE_AGGREGATES: AggregationKey[] = [
 /**
  * EAP conditional aggregates offered in the Explore equation builder
  * (`avg_if(\`span.op:db\`,span.duration)`). The first argument is a backtick-wrapped
- * search filter, followed by the base aggregate's parameters. Only included when
- * `explore-conditional-aggregates` is enabled; see {@link getExploreEquationAggregates}.
+ * search filter, followed by the base aggregate's parameters.
  */
 export const ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES: string[] =
   EXPLORE_FILTERABLE_AGGREGATES.map(name => `${name}_if`);
 
-export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
+/**
+ * Aggregates offered in the Explore equation builder. Discover `avg_if` / `count_if`
+ * are replaced by the EAP `_if` combinators (`avg_if`, `count_if`, `sum_if`, …).
+ */
+export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: string[] = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  AggregationKey.AVG_IF,
-  AggregationKey.COUNT_IF,
+  ...ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES,
   AggregationKey.APDEX,
   AggregationKey.USER_MISERY,
 ];
-
-/**
- * Aggregates offered in the Explore equation builder. When
- * `explore-conditional-aggregates` is on, Discover `avg_if` / `count_if` are replaced by
- * the EAP `_if` combinators (`avg_if`, `count_if`, `sum_if`, …).
- */
-export function getExploreEquationAggregates(
-  hasConditionalAggregates: boolean
-): string[] {
-  if (!hasConditionalAggregates) {
-    return ALLOWED_EXPLORE_EQUATION_AGGREGATES;
-  }
-  return [
-    ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-    ...ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES,
-    AggregationKey.APDEX,
-    AggregationKey.USER_MISERY,
-  ];
-}
 
 const LOG_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
@@ -3505,9 +3492,9 @@ export const getFieldDefinition = (
 };
 
 /**
- * Span field definitions for the Explore equation builder. When
- * `explore-conditional-aggregates` is on, `_if` combinators use the EAP filter-first
- * signature (`avg_if(\`span.op:db\`,span.duration)`), including `count_if`.
+ * Span field definitions for the Explore equation builder. `_if` combinators use the
+ * EAP filter-first signature (`avg_if(\`span.op:db\`,span.duration)`), including
+ * `count_if`.
  *
  * Existing Discover-style calls (`avg_if(span.duration,span.op,equals,db)`) keep the
  * Discover definition so editing them does not reinterpret the first column as a filter.
@@ -3516,20 +3503,17 @@ export const getFieldDefinition = (
 export function getExploreEquationFieldDefinition(
   key: string,
   kind?: FieldKind,
-  hasConditionalAggregates = false,
   attributeTexts?: readonly string[]
 ): FieldDefinition | null {
-  if (hasConditionalAggregates) {
-    const conditionalDefinition = SPAN_CONDITIONAL_AGGREGATION_FIELDS[key];
-    if (conditionalDefinition) {
-      if (usesDiscoverStyleConditionalAggregateArgs(attributeTexts)) {
-        // Only Discover-defined `_if`s (`avg_if`/`count_if`) should stay on the Discover
-        // arity. EAP-only combinators (`sum_if`, …) have no Discover definition — keep
-        // the filter-first signature even when the first arg is not backtick-wrapped yet.
-        return getFieldDefinition(key, 'span', kind) ?? conditionalDefinition;
-      }
-      return conditionalDefinition;
+  const conditionalDefinition = SPAN_CONDITIONAL_AGGREGATION_FIELDS[key];
+  if (conditionalDefinition) {
+    if (usesDiscoverStyleConditionalAggregateArgs(attributeTexts)) {
+      // Only Discover-defined `_if`s (`avg_if`/`count_if`) should stay on the Discover
+      // arity. EAP-only combinators (`sum_if`, …) have no Discover definition — keep
+      // the filter-first signature even when the first arg is not backtick-wrapped yet.
+      return getFieldDefinition(key, 'span', kind) ?? conditionalDefinition;
     }
+    return conditionalDefinition;
   }
   return getFieldDefinition(key, 'span', kind);
 }
