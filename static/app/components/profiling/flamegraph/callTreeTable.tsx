@@ -28,7 +28,7 @@ import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtuali
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
 const ROW_HEIGHT = 24;
-const WEIGHT_COLUMN_WIDTH = 190;
+const WEIGHT_COLUMN_WIDTH = 150;
 const INDENT_WIDTH = 14;
 
 const COLUMNS: TableColumnConfig[] = [
@@ -157,6 +157,7 @@ export function CallTreeTable({
       aria-label={t('Call tree')}
       columns={COLUMNS}
       customSections
+      density="compressed"
       maxHeight="100%"
       ref={ref}
       role="treegrid"
@@ -219,7 +220,7 @@ export function CallTreeTableWeightCell({
   relativeWeight,
 }: CallTreeTableWeightCellProps) {
   return (
-    <SimpleTable.RowCell justify="end" gap="sm" padding="0 xl" role="gridcell">
+    <SimpleTable.RowCell justify="end" gap="sm" role="gridcell">
       {relativeWeight === undefined ? null : (
         <WeightBar style={{transform: `scaleX(${relativeWeight / 100})`}} />
       )}
@@ -265,11 +266,13 @@ export function CallTreeTableFrameCell({
   };
 
   return (
+    // The expand toggle is as tall as the row, so this cell can't take the
+    // table's vertical padding without spilling into the neighboring rows.
     <SimpleTable.RowCell
       gap="xs"
-      padding="0 xl"
+      padding="0 md"
       role="gridcell"
-      style={{paddingLeft: `calc(${theme.space.xl} + ${node.depth * INDENT_WIDTH}px)`}}
+      style={{paddingLeft: `calc(${theme.space.md} + ${node.depth * INDENT_WIDTH}px)`}}
     >
       <Container
         flexShrink={0}
