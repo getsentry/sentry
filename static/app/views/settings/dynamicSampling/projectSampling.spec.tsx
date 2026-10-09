@@ -14,6 +14,7 @@ jest.mock('@tanstack/react-virtual', () => ({
         key: index,
         index,
         start: index * 63,
+        end: (index + 1) * 63,
         size: 63,
       }))
     ),

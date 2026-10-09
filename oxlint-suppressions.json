@@ -3061,7 +3061,7 @@
   },
   "static/app/views/settings/dynamicSampling/projectsTable.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 2
+      "count": 1
     }
   },
   "static/app/views/settings/dynamicSampling/samplingBreakdown.tsx": {

@@ -3,16 +3,16 @@ import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
+import {IconChevron, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -52,7 +52,14 @@ interface Props {
   onChange?: (projectId: string, value: string) => void;
 }
 
-const BASE_ROW_HEIGHT = 63;
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'project', width: 'minmax(0, 1fr)'},
+  {key: 'accepted', width: '165px'},
+  {key: 'stored', width: '165px'},
+  {key: 'rate', width: '152px'},
+];
+
+const BASE_ROW_HEIGHT = 77;
 const MAX_SCROLL_HEIGHT = 400;
 
 export function ProjectsTable({
@@ -68,7 +75,7 @@ export function ProjectsTable({
   const [tableSort, setTableSort] = useState<'asc' | 'desc'>('desc');
   // We store the expanded items at list level to allow calculating item height
   const [expandedItems, setExpandedItems] = useState(new Set());
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
 
   const handleToggleItemExpanded = useCallback((id: string) => {
     setExpandedItems(value => {
@@ -110,79 +117,68 @@ export function ProjectsTable({
     [sortedItems]
   );
 
-  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
-    count: sortedItems.length,
-    getScrollElement: () => scrollContainerRef.current,
+  const {paddingBottom, paddingTop, virtualItems, virtualizer} = useVirtualRows({
+    count: isLoading ? 0 : sortedItems.length,
+    getScrollElement: () => tableRef.current,
     estimateSize: index =>
       sortedItems[index]?.isExpanded
-        ? BASE_ROW_HEIGHT + (sortedItems[index].subProjects.length + 1) * 21
+        ? BASE_ROW_HEIGHT + (sortedItems[index].subProjects.length + 1) * 24
         : BASE_ROW_HEIGHT,
     getItemKey,
   });
 
   return (
-    <Fragment>
-      <TableHeader background="secondary" overflow="hidden">
-        <Cell direction="column" padding="xl">
-          {t('Originating Project')}
-        </Cell>
-        <SortableHeader type="button" key="spans" onClick={handleTableSort}>
-          {t('Accepted Spans')}
-          <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
-        </SortableHeader>
-        <Cell direction="column" padding="xl" align="end">
-          {period === '24h' ? t('Stored Spans (24h)') : t('Stored Spans (30d)')}
-        </Cell>
-        <Cell direction="column" padding="xl" align="end">
-          {rateHeader}
-        </Cell>
-      </TableHeader>
-      {isLoading && <LoadingIndicator />}
-
-      {items.length === 0 && !isLoading && (
-        <EmptyStateWarning>
-          <p>{emptyMessage}</p>
-        </EmptyStateWarning>
-      )}
-      {!isLoading && items.length > 0 && (
-        <Container
-          ref={scrollContainerRef}
-          overflowY="auto"
-          style={{height: Math.min(totalSize, MAX_SCROLL_HEIGHT)}}
-        >
-          <div style={{height: totalSize, position: 'relative'}}>
-            {virtualItems.map(virtualRow => {
-              const item = sortedItems[virtualRow.index];
-              if (!item) {
-                return null;
-              }
-              return (
-                <div
-                  key={virtualRow.key}
-                  data-index={virtualRow.index}
-                  ref={virtualizer.measureElement}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  <TableRow
-                    canEdit={canEdit}
-                    onChange={onChange}
-                    toggleExpanded={handleToggleItemExpanded}
-                    hasAccess={hasAccess}
-                    {...item}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </Container>
-      )}
-    </Fragment>
+    <FlushTable
+      aria-label={t('Projects')}
+      columns={COLUMNS}
+      customSections
+      maxHeight={`${MAX_SCROLL_HEIGHT}px`}
+      ref={tableRef}
+      scrollable
+    >
+      <SimpleTable.Head sticky>
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Originating Project')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell
+            align="right"
+            handleSortClick={handleTableSort}
+            sort={tableSort}
+          >
+            {t('Accepted Spans')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell align="right">
+            {period === '24h' ? t('Stored Spans (24h)') : t('Stored Spans (30d)')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell align="right">{rateHeader}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      </SimpleTable.Head>
+      <SimpleTable.Body style={{paddingBottom, paddingTop}}>
+        {isLoading ? (
+          <SimpleTable.Loading />
+        ) : items.length === 0 ? (
+          <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
+        ) : (
+          virtualItems.map(virtualRow => {
+            const item = sortedItems[virtualRow.index];
+            if (!item) {
+              return null;
+            }
+            return (
+              <TableRow
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                canEdit={canEdit}
+                onChange={onChange}
+                toggleExpanded={handleToggleItemExpanded}
+                hasAccess={hasAccess}
+                {...item}
+              />
+            );
+          })
+        )}
+      </SimpleTable.Body>
+    </FlushTable>
   );
 }
 
@@ -295,13 +291,17 @@ const TableRow = memo(function TableRowImpl({
   subProjects,
   error,
   onChange,
+  ref,
+  'data-index': dataIndex,
 }: {
   count: number;
+  'data-index': number;
   hasAccess: boolean;
   initialSampleRate: string;
   isExpanded: boolean;
   ownCount: number;
   project: Project;
+  ref: React.Ref<HTMLTableRowElement>;
   sampleRate: string;
   subProjects: SubProject[];
   toggleExpanded: (id: string) => void;
@@ -330,8 +330,8 @@ const TableRow = memo(function TableRowImpl({
 
   const storedSpans = Math.floor(count * parsePercent(sampleRate));
   return (
-    <TableRowWrapper overflow="hidden">
-      <Cell direction="column" padding="md xl">
+    <SimpleTable.Row ref={ref} data-index={dataIndex}>
+      <SimpleTable.RowCell direction="column" align="stretch" alignSelf="stretch">
         <FirstCellLine
           align="center"
           height="32px"
@@ -363,14 +363,14 @@ const TableRow = memo(function TableRowImpl({
           )}
         </FirstCellLine>
         <SubProjects data-is-first-column>{subProjectContent}</SubProjects>
-      </Cell>
-      <Cell direction="column" padding="md xl" align="end">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell direction="column" align="end" alignSelf="stretch">
         <FirstCellLine align="center" height="32px" justify="end">
           {formatAbbreviatedNumber(count)}
         </FirstCellLine>
         <SubContent>{subSpansContent}</SubContent>
-      </Cell>
-      <Cell direction="column" padding="md xl" align="end">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell direction="column" align="end" alignSelf="stretch">
         <FirstCellLine align="center" height="32px" justify="end">
           {formatAbbreviatedNumber(storedSpans)}
         </FirstCellLine>
@@ -382,8 +382,13 @@ const TableRow = memo(function TableRowImpl({
             isExpanded
           )}
         </SubContent>
-      </Cell>
-      <Stack padding="xl xl md xl" gap="xs" style={{minWidth: 0}}>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell
+        direction="column"
+        align="stretch"
+        alignSelf="stretch"
+        gap="xs"
+      >
         <FirstCellLine align="center" height="32px">
           <Tooltip disabled={!permissionTooltip} title={permissionTooltip}>
             <PercentInput
@@ -405,30 +410,10 @@ const TableRow = memo(function TableRowImpl({
             {t('previous: %s%%', initialSampleRate)}
           </Text>
         )}
-      </Stack>
-    </TableRowWrapper>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 });
-
-const SortableHeader = styled('button')`
-  border: none;
-  background: none;
-  cursor: pointer;
-  display: flex;
-  text-transform: inherit;
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const TableRowWrapper = styled(Grid)`
-  grid-template-columns: 1fr 165px 165px 152px;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const Cell = styled(Flex)`
-  min-width: 0;
-`;
 
 const FirstCellLine = styled(Flex)`
   & > * {
@@ -505,18 +490,16 @@ const SettingsButton = styled(LinkButton)`
   &:focus {
     visibility: visible;
   }
-  ${Cell}:hover & {
+  tr:hover & {
     visibility: visible;
   }
 `;
 
-const TableHeader = styled(TableRowWrapper)`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-transform: uppercase;
-  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  white-space: nowrap;
-  line-height: 1;
-  height: 45px;
+const FlushTable = styled(SimpleTable)`
+  border: 0;
+  border-radius: 0;
+
+  > thead > tr {
+    border-radius: 0;
+  }
 `;

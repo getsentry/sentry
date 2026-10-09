@@ -307,4 +307,18 @@ describe('SimpleTable component', () => {
     expect(rules).toContain('overflow: hidden');
     expect(rules).not.toContain('grid-template-rows');
   });
+
+  it('passes the row element to a ref when given a callback ref', () => {
+    const ref = jest.fn();
+
+    render(
+      <SimpleTable>
+        <SimpleTable.Row ref={ref}>
+          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    expect(ref).toHaveBeenCalledWith(screen.getByRole('row'));
+  });
 });
