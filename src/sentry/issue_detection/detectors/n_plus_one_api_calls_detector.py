@@ -10,6 +10,7 @@ from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     fingerprint_http_spans,
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
     get_total_span_duration,
     get_url_from_span,
@@ -91,11 +92,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not span_id or not parent_span_id or not op or not hash:
             return False
 
-        description = span.get("description")
+        description = get_span_description(span)
         if not description:
             return False
 
-        if description.strip()[:3].upper() != "GET":
+        if description[:3].upper() != "GET":
             return False
 
         url = get_url_from_span(span)
@@ -174,7 +175,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         problem_description = self._get_parameterized_url(self.spans[0])
         if problem_description == "":
             problem_description = os.path.commonprefix(
-                [span.get("description", "") or "" for span in self.spans]
+                [get_span_description(span) for span in self.spans]
             )
 
         parent_span_id = last_span.get("parent_span_id")
