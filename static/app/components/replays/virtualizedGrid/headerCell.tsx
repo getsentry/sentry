@@ -1,10 +1,11 @@
-import type {CSSProperties, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {SortableHeaderCell} from 'sentry/components/tables/sortableHeaderCell';
-import {IconInfo} from 'sentry/icons';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 
 type BaseRecord = Record<string, unknown>;
 export interface SortConfig<RecordType extends BaseRecord> {
@@ -14,11 +15,11 @@ export interface SortConfig<RecordType extends BaseRecord> {
 }
 
 type Props<SortableRecord extends BaseRecord> = {
+  align: undefined | ColumnAlign;
   field: string;
   handleSort: (fieldName: string) => void;
   label: ReactNode;
   sortConfig: SortConfig<SortableRecord>;
-  style: CSSProperties;
   tooltipTitle: undefined | ReactNode;
 };
 
@@ -33,18 +34,18 @@ function CatchClicks({children}: {children: ReactNode}) {
 }
 
 export function HeaderCell<T extends BaseRecord>({
+  align,
   field,
   handleSort,
   label,
   sortConfig,
-  style,
   tooltipTitle,
 }: Props<T>) {
   return (
-    <HeaderButton
-      direction={sortConfig.by === field ? (sortConfig.asc ? 'asc' : 'desc') : undefined}
-      onSort={() => handleSort(field)}
-      style={style}
+    <SimpleTable.HeaderCell
+      align={align}
+      handleSortClick={() => handleSort(field)}
+      sort={sortConfig.by === field ? (sortConfig.asc ? 'asc' : 'desc') : undefined}
     >
       {label}
       {tooltipTitle ? (
@@ -52,21 +53,6 @@ export function HeaderCell<T extends BaseRecord>({
           <StyledIconInfo size="xs" />
         </Tooltip>
       ) : null}
-    </HeaderButton>
+    </SimpleTable.HeaderCell>
   );
 }
-
-const HeaderButton = styled(SortableHeaderCell)`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.tokens.background.secondary};
-  color: ${p => p.theme.tokens.content.secondary};
-
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 16px;
-  text-transform: uppercase;
-
-  width: 100%;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs}
-    ${p => p.theme.space.lg};
-`;

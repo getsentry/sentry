@@ -1,8 +1,9 @@
+import {IconGraph} from '@sentry/icons/graph';
+
 import {
   ResourceLink,
   type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconGraph} from 'sentry/icons';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {getMetricsQueryHref, type MetricsQueryData} from './metricsQueryUtils';

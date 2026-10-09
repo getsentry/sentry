@@ -279,6 +279,7 @@ class TestTriggerAutofixFeature(TestCase):
             "agent_run_options"
         ]
         assert agent_run_options["enable_coding"] is True
+        assert agent_run_options["enable_pr_context_tools"] is False
 
     def test_pr_iteration_enables_coding_and_sends_its_step_args(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -308,6 +309,7 @@ class TestTriggerAutofixFeature(TestCase):
         assert mock_client_cls.call_args.kwargs["enable_coding"] is True
         continue_kwargs = mock_client_cls.return_value.continue_feature_run.call_args.kwargs
         assert continue_kwargs["agent_run_options"]["enable_coding"] is True
+        assert continue_kwargs["agent_run_options"]["enable_pr_context_tools"] is True
         assert continue_kwargs["payload"]["step_args"] == {
             "iteration_index": 2,
             "iteration_id": 41,

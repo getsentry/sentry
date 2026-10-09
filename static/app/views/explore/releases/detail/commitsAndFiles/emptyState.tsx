@@ -1,3 +1,5 @@
+import {IconCommit} from '@sentry/icons/commit';
+
 import {LinkButton} from '@sentry/scraps/button';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -5,7 +7,6 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Body, Main} from 'sentry/components/layouts/thirds';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {

@@ -1,7 +1,8 @@
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {
   useDeleteQueryAtIndex,

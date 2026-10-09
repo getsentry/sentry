@@ -14,6 +14,7 @@ from sentry.dynamic_sampling.per_org.gate import (
     metrics_sample_rate,
 )
 from sentry.utils import metrics
+from sentry.utils.snuba import SnubaError
 from sentry.utils.snuba_rpc import (
     SnubaRPCError,
     SnubaRPCTimeout,
@@ -147,7 +148,7 @@ def track_dynamic_sampling(func: F) -> F:
                 result = exc.status
             except SnubaRPCTimeout:
                 result = DynamicSamplingStatus.SNUBA_TIMEOUT
-            except (SnubaRPCError, SnubaRPCTooManySimultaneous):
+            except (SnubaError, SnubaRPCError, SnubaRPCTooManySimultaneous):
                 result = DynamicSamplingStatus.SNUBA_ERROR
             except Exception as exc:
                 emit_status(status_metric, DynamicSamplingStatus.FAILED)

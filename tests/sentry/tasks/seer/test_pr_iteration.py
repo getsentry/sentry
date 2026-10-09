@@ -79,6 +79,7 @@ from sentry.tasks.seer.pr_iteration import (
 )
 from sentry.testutils.cases import TestCase
 
+FEEDBACK_PATH = "sentry.seer.autofix.pr_iteration.feedback"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
@@ -1828,6 +1829,81 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             self._call()
 
         mock_trigger.assert_not_called()
+
+    def _human_iteration_block(self, idx: int) -> MemoryBlock:
+        return MemoryBlock(
+            id=f"iter{idx}",
+            message=Message(
+                role="assistant",
+                metadata={
+                    "step": "pr_iteration",
+                    "iteration_index": idx,
+                    "feedback": serialize_feedback([self._review_feedback(idx)]),
+                },
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_at_the_total_cap_is_dropped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # Human iterations break the streak, but the total cap still holds.
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._human_iteration_block(i) for i in range(1, 4)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with patch(f"{FEEDBACK_PATH}.MAX_TOTAL_ITERATIONS", 3):
+            self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_below_the_total_cap_is_triggered(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._human_iteration_block(i) for i in range(1, 3)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with patch(f"{FEEDBACK_PATH}.MAX_TOTAL_ITERATIONS", 3):
+            self._call()
+
+        mock_trigger.assert_called_once()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_human_feedback_at_the_total_cap_is_triggered(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._human_iteration_block(i) for i in range(1, 4)]
+        )
+        review = self._review_feedback(777)
+        mock_pop.return_value = [self._queued(review)]
+
+        with patch(f"{FEEDBACK_PATH}.MAX_TOTAL_ITERATIONS", 3):
+            self._call()
+
+        mock_trigger.assert_called_once()
+        _, kwargs = mock_trigger.call_args
+        assert [f.feedback_id for f in kwargs["feedback"]] == [review.feedback_id]
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

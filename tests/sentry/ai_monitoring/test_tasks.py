@@ -1,11 +1,15 @@
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
+import orjson
 import pytest
 from django.db import IntegrityError, router, transaction
 from django.db.models.query import QuerySet
+from django.test import override_settings
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
+from urllib3.response import HTTPResponse
 
 from sentry.ai_monitoring.conversation_titles import (
     LEGACY_GEN_AI_REQUEST_MESSAGES,
@@ -26,10 +30,17 @@ from sentry.ai_monitoring.tasks import (
     generate_ai_conversation_title,
     spawn_conversation_title_generation,
 )
+from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 TS = 1609455600.0
 
@@ -443,6 +454,49 @@ class SpawnConversationTitleGenerationTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
+
+    @override_settings(
+        SEER_API_SHARED_SECRET="viewer-context-test-secret",
+        SENTRY_VIEWER_CONTEXT_ENABLED=True,
+    )
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    @patch(DELAY)
+    def test_propagates_system_viewer_context_to_seer(
+        self, mock_delay: MagicMock, mock_urlopen: MagicMock
+    ) -> None:
+        activations: list[TaskActivation] = []
+        dispatched_kwargs: list[dict[str, Any]] = []
+
+        def capture_dispatch(**kwargs: Any) -> None:
+            dispatched_kwargs.append(kwargs)
+            task = cast(Any, generate_ai_conversation_title).__wrapped__
+            activations.append(task.create_activation(args=[], kwargs=kwargs))
+
+        mock_delay.side_effect = capture_dispatch
+        mock_urlopen.return_value = HTTPResponse(
+            orjson.dumps({"result": {"title": "Password Reset Guidance"}}), status=200
+        )
+
+        with override_options({CONVERSATION_TITLE_ROLLOUT_RATE_OPTION: 1.0}):
+            spawn_conversation_title_generation(
+                [make_gen_ai_span(project_id=self.project.id)], self.project
+            )
+
+            assert len(activations) == 1
+            assert get_viewer_context() is None
+            with ViewerContextHook().on_execute(dict(activations[0].headers)):
+                generate_ai_conversation_title(**dispatched_kwargs[0])
+
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.project.organization_id,
+            project_id=self.project.id,
+            actor_type=ActorType.SYSTEM,
+        )
+        assert get_viewer_context() is None
 
     @patch(DELAY)
     def test_enqueues_earliest_span_per_conversation(self, mock_delay: MagicMock) -> None:

@@ -1,19 +1,30 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.eventstore import backend as eventstore
 from sentry.models.group import DEFAULT_TYPE_ID
 from sentry.tasks.seer.backfill_supergroups_lightweight import (
     backfill_supergroups_lightweight_for_org,
 )
+from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SnubaError
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    viewer_context_scope,
+)
 
 TEST_BATCH_SIZE = 5
+TEST_SEER_SECRET = "viewer-context-test-secret-at-least-32-bytes"
 
 
 def _make_event_data(message="test error", fingerprint=None):
@@ -71,6 +82,36 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
         assert body["organization_id"] == self.organization.id
         assert body["issue"]["id"] == self.group.id
         assert len(body["issue"]["events"]) == 1
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @override_settings(SEER_API_SHARED_SECRET=TEST_SEER_SECRET)
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_task_activation_propagates_viewer_context_to_seer(self, mock_urlopen: Any) -> None:
+        mock_urlopen.return_value = HTTPResponse(b"", status=200)
+        task = cast(Any, backfill_supergroups_lightweight_for_org)
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=self.organization.id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ):
+            activation = task.create_activation(
+                args=[],
+                kwargs={"organization_id": self.organization.id},
+            )
+
+        with patch.object(task.namespace, "send_task"):
+            with ViewerContextHook().on_execute(dict(activation.headers)):
+                task(organization_id=self.organization.id)
+
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key=TEST_SEER_SECRET,
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
+            actor_type=ActorType.SYSTEM,
+        )
 
     @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
     @patch(

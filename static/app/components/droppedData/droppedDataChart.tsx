@@ -4,10 +4,10 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {getOutcomeColors, outcomeLabel} from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -20,37 +20,37 @@ function orderOutcomes(outcomes: string[]): string[] {
   return [...outcomes].sort();
 }
 
-export function annotationsToSeries(
-  annotations: Annotation[]
+export function droppedEventsToSeries(
+  droppedEvents: DroppedEventsBucket[]
 ): Record<string, TimeSeries> {
   // Bars only stack when every series has a value at the same timestamps, so
   // build one shared, sorted time axis and zerofill each outcome onto it.
-  const timestamps = [...new Set(annotations.map(annotation => annotation.start))].sort(
+  const timestamps = [...new Set(droppedEvents.map(event => event.start))].sort(
     (a, b) => a - b
   );
-  // Each annotation's (start, end) is its bucket, so its span is the interval.
-  const interval = annotations[0] ? annotations[0].end - annotations[0].start : 0;
+  // Each event's (start, end) is its bucket, so its span is the interval.
+  const interval = droppedEvents[0] ? droppedEvents[0].end - droppedEvents[0].start : 0;
 
-  const eventCountByLabelAndTimestamp = new Map<string, Map<number, number>>();
-  for (const annotation of annotations) {
-    const label = outcomeLabel(annotation.outcome);
-    const eventCountByTimestamp =
-      eventCountByLabelAndTimestamp.get(label) ?? new Map<number, number>();
-    eventCountByTimestamp.set(
-      annotation.start,
-      (eventCountByTimestamp.get(annotation.start) ?? 0) + annotation.eventCount
+  const countByLabelAndTimestamp = new Map<string, Map<number, number>>();
+  for (const event of droppedEvents) {
+    const label = outcomeLabel(event.outcome);
+    const countByTimestamp =
+      countByLabelAndTimestamp.get(label) ?? new Map<number, number>();
+    countByTimestamp.set(
+      event.start,
+      (countByTimestamp.get(event.start) ?? 0) + event.count
     );
-    eventCountByLabelAndTimestamp.set(label, eventCountByTimestamp);
+    countByLabelAndTimestamp.set(label, countByTimestamp);
   }
 
   const seriesByLabel: Record<string, TimeSeries> = {};
-  for (const [label, eventCountByTimestamp] of eventCountByLabelAndTimestamp) {
+  for (const [label, countByTimestamp] of countByLabelAndTimestamp) {
     seriesByLabel[label] = {
       yAxis: label,
       meta: {valueType: 'integer', valueUnit: null, interval},
       values: timestamps.map(timestamp => ({
         timestamp,
-        value: eventCountByTimestamp.get(timestamp) ?? 0,
+        value: countByTimestamp.get(timestamp) ?? 0,
       })),
     };
   }
@@ -83,14 +83,14 @@ function ChartLegend({
 }
 
 interface DroppedDataChartProps {
-  droppedAnnotations: Annotation[];
+  droppedEvents: DroppedEventsBucket[];
 }
 
-export function DroppedDataChart({droppedAnnotations}: DroppedDataChartProps) {
+export function DroppedDataChart({droppedEvents}: DroppedDataChartProps) {
   const theme = useTheme();
 
   const {outcomes, colors, plottables} = useMemo(() => {
-    const series = annotationsToSeries(droppedAnnotations);
+    const series = droppedEventsToSeries(droppedEvents);
     const orderedOutcomes = orderOutcomes(Object.keys(series));
     const outcomeColors = getOutcomeColors(orderedOutcomes, theme);
 
@@ -106,12 +106,9 @@ export function DroppedDataChart({droppedAnnotations}: DroppedDataChartProps) {
           })
       ),
     };
-  }, [droppedAnnotations, theme]);
+  }, [droppedEvents, theme]);
 
-  const totalDropped = droppedAnnotations.reduce(
-    (sum, annotation) => sum + annotation.eventCount,
-    0
-  );
+  const totalDropped = droppedEvents.reduce((sum, event) => sum + event.count, 0);
 
   return (
     <Container

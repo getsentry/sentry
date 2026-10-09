@@ -1,4 +1,7 @@
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -11,7 +14,6 @@ import {Confirm} from 'sentry/components/confirm';
 import {FileSize} from 'sentry/components/fileSize';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 

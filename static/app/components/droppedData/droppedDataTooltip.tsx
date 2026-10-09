@@ -7,7 +7,7 @@ import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  type AnnotationBucket,
+  type DroppedDataBucket,
   formatDroppedShare,
   type OutcomeVolume,
 } from 'sentry/components/droppedData/utils';
@@ -56,8 +56,8 @@ function formatBucketRange(start: number, end: number, timezone: string): string
   return `${startMoment.format(getFormat({year: showYear}))} - ${endMoment.format(endFormat)}`;
 }
 
-function totalEventCount(bucket: AnnotationBucket): number {
-  return bucket.dropped.eventCount + bucket.accepted.eventCount;
+function totalEventCount(bucket: DroppedDataBucket): number {
+  return bucket.dropped.count + bucket.accepted.count;
 }
 
 function VolumeRow({label, value, total}: Ratio & {label: string}) {
@@ -73,7 +73,7 @@ function VolumeRow({label, value, total}: Ratio & {label: string}) {
 }
 
 interface DroppedDataTooltipProps {
-  bucket: AnnotationBucket;
+  bucket: DroppedDataBucket;
   timezone: string;
 }
 
@@ -95,7 +95,7 @@ export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) 
             <VolumeRow
               key={outcome.outcome}
               label={outcomeLabel(outcome)}
-              {...formatCountRatio(outcome.eventCount, totalEvents)}
+              {...formatCountRatio(outcome.count, totalEvents)}
             />
           ))}
         </Stack>

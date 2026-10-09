@@ -9,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, quotas
+from sentry import audit_log, features, quotas
 from sentry.api.base import BaseEndpointMixin
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
@@ -51,6 +51,13 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 "monitors.serializer.expand_alert_rule",
                 extra={"organization_id": project.organization_id, **attribution},
             )
+
+            if features.has(
+                "organizations:crons-disable-alert-rule",
+                project.organization,
+                actor=request.user,
+            ):
+                expand = [value for value in expand if value != "alertRule"]
 
         return self.respond(
             serialize(

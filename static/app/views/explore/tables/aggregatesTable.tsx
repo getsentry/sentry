@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStack} from '@sentry/icons/stack';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -8,9 +9,8 @@ import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {DataTable} from 'sentry/components/tables/dataTable';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
-import {IconStack} from 'sentry/icons/iconStack';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -129,18 +129,18 @@ export function AggregatesTable({
 
   return (
     <Fragment>
-      <DataTable
-        fields={visibleFields}
+      <SimpleTable
+        columns={visibleFields.map(field => ({key: field, resizable: true}))}
         minimumColumnWidth={50}
-        prefixColumnWidth="min-content"
-      >
-        <DataTable.Head>
-          <DataTable.Row>
-            <DataTable.HeadCell isFirst={false} />
+        prependColumnWidths={['min-content']}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell />
             {visibleAggregateFields.map((aggregateField, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <DataTable.HeadCell key={i} isFirst={i === 0} />;
+                return <SimpleTable.HeaderCell key={i} />;
               }
 
               const field = isGroupBy(aggregateField)
@@ -158,114 +158,112 @@ export function AggregatesTable({
               }
 
               return (
-                <DataTable.HeadCell
+                <SimpleTable.HeaderCell
                   align={align}
                   columnIndex={i}
                   key={i}
-                  isFirst={i === 0}
-                  onSort={updateSort}
+                  handleSortClick={updateSort}
                   sort={direction}
                 >
                   {label}
-                </DataTable.HeadCell>
+                </SimpleTable.HeaderCell>
               );
             })}
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {result.isPending ? (
-            <DataTable.Loading />
-          ) : result.isError ? (
-            <DataTable.Error />
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => {
-              const menuItems: MenuItemProps[] = [
-                {
-                  key: 'view-samples',
-                  label: t('View Samples'),
-                  to: viewSamplesTarget({
-                    location,
-                    query,
-                    fields,
-                    groupBys,
-                    visualizes,
-                    sorts,
-                    row,
-                    projects,
-                  }),
-                },
-              ];
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {result.isPending ? (
+          <SimpleTable.Loading />
+        ) : result.isError ? (
+          <SimpleTable.Error />
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => {
+            const menuItems: MenuItemProps[] = [
+              {
+                key: 'view-samples',
+                label: t('View Samples'),
+                to: viewSamplesTarget({
+                  location,
+                  query,
+                  fields,
+                  groupBys,
+                  visualizes,
+                  sorts,
+                  row,
+                  projects,
+                }),
+              },
+            ];
 
-              const traceSlug = row[`any(${SpanFields.TRACE})`];
-              const timestamp = row[`any(${SpanFields.TIMESTAMP})`];
-              if (traceSlug && timestamp) {
-                menuItems.push({
-                  key: 'view-random-trace',
-                  label: t('View Random Trace'),
-                  to: getTraceDetailsUrl({
-                    organization,
-                    traceSlug,
-                    timestamp,
-                    targetId: undefined,
-                    eventId: undefined,
-                    location,
-                    source: TraceViewSources.TRACES,
-                    dateSelection: normalizeDateTimeParams(selection.datetime),
-                  }),
-                });
-              }
+            const traceSlug = row[`any(${SpanFields.TRACE})`];
+            const timestamp = row[`any(${SpanFields.TIMESTAMP})`];
+            if (traceSlug && timestamp) {
+              menuItems.push({
+                key: 'view-random-trace',
+                label: t('View Random Trace'),
+                to: getTraceDetailsUrl({
+                  organization,
+                  traceSlug,
+                  timestamp,
+                  targetId: undefined,
+                  eventId: undefined,
+                  location,
+                  source: TraceViewSources.TRACES,
+                  dateSelection: normalizeDateTimeParams(selection.datetime),
+                }),
+              });
+            }
 
-              return (
-                <DataTable.Row key={i}>
-                  <DataTable.Cell>
-                    {topEvents &&
-                      i < topEvents &&
-                      !parseCursor(aggregateCursor)?.offset && (
-                        <TopResultsIndicator color={palette[i]!} />
-                      )}
-                    <DropdownMenu
-                      items={menuItems}
-                      usePortal
-                      strategy="fixed"
-                      size="sm"
-                      offset={4}
-                      minMenuWidth={0}
-                      trigger={triggerProps => (
-                        <OverlayTrigger.IconButton
-                          {...triggerProps}
-                          aria-label={t('View Samples')}
-                          icon={<IconStack />}
-                          variant="transparent"
-                          size="zero"
-                        />
-                      )}
-                    />
-                  </DataTable.Cell>
-                  {visibleAggregateFields.map((aggregateField, j) => {
-                    const field = isGroupBy(aggregateField)
-                      ? aggregateField.groupBy
-                      : aggregateField.yAxis;
+            return (
+              <SimpleTable.Row key={i}>
+                <SimpleTable.RowCell>
+                  {topEvents &&
+                    i < topEvents &&
+                    !parseCursor(aggregateCursor)?.offset && (
+                      <TopResultsIndicator color={palette[i]!} />
+                    )}
+                  <DropdownMenu
+                    items={menuItems}
+                    usePortal
+                    strategy="fixed"
+                    size="sm"
+                    offset={4}
+                    minMenuWidth={0}
+                    trigger={triggerProps => (
+                      <OverlayTrigger.IconButton
+                        {...triggerProps}
+                        aria-label={t('View Samples')}
+                        icon={<IconStack />}
+                        variant="transparent"
+                        size="zero"
+                      />
+                    )}
+                  />
+                </SimpleTable.RowCell>
+                {visibleAggregateFields.map((aggregateField, j) => {
+                  const field = isGroupBy(aggregateField)
+                    ? aggregateField.groupBy
+                    : aggregateField.yAxis;
 
-                    return (
-                      <DataTable.Cell key={j}>
-                        <FieldRenderer
-                          column={columns[field]}
-                          data={row}
-                          disableTraceLinks
-                          unit={meta?.units?.[field]}
-                          meta={meta}
-                        />
-                      </DataTable.Cell>
-                    );
-                  })}
-                </DataTable.Row>
-              );
-            })
-          ) : (
-            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
-          )}
-        </DataTable.Body>
-      </DataTable>
+                  return (
+                    <SimpleTable.RowCell key={j}>
+                      <FieldRenderer
+                        column={columns[field]}
+                        data={row}
+                        disableTraceLinks
+                        unit={meta?.units?.[field]}
+                        meta={meta}
+                      />
+                    </SimpleTable.RowCell>
+                  );
+                })}
+              </SimpleTable.Row>
+            );
+          })
+        ) : (
+          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+        )}
+      </SimpleTable>
       <Pagination
         pageLinks={result.pageLinks}
         paginationAnalyticsEvent={paginationAnalyticsEvent}

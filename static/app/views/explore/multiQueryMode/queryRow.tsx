@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Grid} from '@sentry/scraps/layout';
 
 import {LazyRender} from 'sentry/components/lazyRender';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -76,16 +77,25 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
 
   return (
     <Fragment>
-      <QueryConstructionSection>
+      <Grid
+        gap="md"
+        marginBottom="md"
+        columns={{zero: '1fr', '4xl': 'minmax(400px, 1fr) 1fr'}}
+      >
         <SearchBarSection query={queryParts} index={index} />
-        <DropDownGrid>
+        <Grid columns="repeat(3, minmax(0, auto)) min-content" align="end" gap="md">
           <VisualizeSection query={queryParts} index={index} />
           <GroupBySection query={queryParts} index={index} />
           <SortBySection query={queryParts} index={index} />
           <MenuSection index={index} totalQueryRows={totalQueryRows} />
-        </DropDownGrid>
-      </QueryConstructionSection>
-      <QueryVisualizationSection data-test-id={`section-visualization-${index}`}>
+        </Grid>
+      </Grid>
+      <Grid
+        columns="2fr 1.2fr"
+        gap="md"
+        marginBottom="xl"
+        data-test-id={`section-visualization-${index}`}
+      >
         <LazyRender containerHeight={260} withoutContainer>
           <MultiQueryModeChart
             index={index}
@@ -101,31 +111,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             spansTableResult={spansTableResult}
           />
         </LazyRender>
-      </QueryVisualizationSection>
+      </Grid>
     </Fragment>
   );
 }
-
-const QueryConstructionSection = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: minmax(400px, 1fr) 1fr;
-  }
-`;
-
-const DropDownGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, auto)) min-content;
-  align-items: end;
-  gap: ${p => p.theme.space.md};
-`;
-
-const QueryVisualizationSection = styled('div')`
-  display: grid;
-  grid-template-columns: 2fr 1.2fr;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.xl};
-`;

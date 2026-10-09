@@ -1,3 +1,5 @@
+import {IconLightning} from '@sentry/icons/lightning';
+
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -8,7 +10,6 @@ import {
   buildInstallationMenuItems,
   NEW_INSTALL_KEY,
 } from 'sentry/components/pipeline/integrationGitHub';
-import {IconLightning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {ScmGithubMultiOrgInstallProps} from 'sentry/types/overrides';

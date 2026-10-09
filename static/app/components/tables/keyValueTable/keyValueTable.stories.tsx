@@ -1,17 +1,22 @@
 import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {
+  KeyValueColumns,
   KeyValueTableCard,
   KeyValueTableCardGrid,
+  KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
-import {IconEdit, IconSentry, IconSettings} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 
 export default Storybook.story('KeyValueTable', story => {
   story('Usage', () => (
@@ -181,6 +186,39 @@ export default Storybook.story('KeyValueTable', story => {
           <KeyValueTableCard contentItems={contentItems.slice(0, 8)} />
           <KeyValueTableCard contentItems={contentItems.slice(2, 5)} />
         </KeyValueTableCardGrid>
+      </Fragment>
+    );
+  });
+
+  story('<KeyValueColumns />', () => {
+    const theme = useTheme();
+    const contentItems = generateContentItems(theme);
+
+    return (
+      <Fragment>
+        <p>
+          <code>{'<KeyValueColumns/>'}</code> flows rows into side-by-side columns
+          separated by dividers, without a panel around them. Its <code>children</code>{' '}
+          function receives the column count, measured from the available width unless{' '}
+          <code>columnCount</code> is set, and returns one array of rows per column.
+        </p>
+        <p>
+          <CodeBlock language="jsx">
+            {`<KeyValueColumns>
+  {columnCount => splitIntoColumns(rows, columnCount)}
+</KeyValueColumns>`}
+          </CodeBlock>
+        </p>
+        <KeyValueColumns columnCount={2}>
+          {columnCount =>
+            splitIntoColumns(
+              contentItems.map((rowProps, index) => (
+                <KeyValueTableDataRow key={index} {...rowProps} />
+              )),
+              columnCount
+            )
+          }
+        </KeyValueColumns>
       </Fragment>
     );
   });

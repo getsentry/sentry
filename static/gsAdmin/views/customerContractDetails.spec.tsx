@@ -52,14 +52,14 @@ describe('CustomerContractDetails', () => {
 
     expect(await screen.findByText('Contract Overview')).toBeInTheDocument();
 
-    expect(screen.getByText('Billing Period:')).toBeInTheDocument();
-    expect(screen.getByText('Contract Period:')).toBeInTheDocument();
-    expect(screen.getAllByText('Base Price:').length).toBeGreaterThan(0);
-    expect(screen.getByText('Max Spend:')).toBeInTheDocument();
-    expect(screen.getByText('Contract ID:')).toBeInTheDocument();
-    expect(screen.getByText('Type:')).toBeInTheDocument();
-    expect(screen.getByText('Channel:')).toBeInTheDocument();
-    expect(screen.getByText('Billing Country:')).toBeInTheDocument();
+    expect(screen.getByText('Billing Period')).toBeInTheDocument();
+    expect(screen.getByText('Contract Period')).toBeInTheDocument();
+    expect(screen.getAllByText('Base Price').length).toBeGreaterThan(0);
+    expect(screen.getByText('Max Spend')).toBeInTheDocument();
+    expect(screen.getByText('Contract ID')).toBeInTheDocument();
+    expect(screen.getByText('Type')).toBeInTheDocument();
+    expect(screen.getByText('Channel')).toBeInTheDocument();
+    expect(screen.getByText('Billing Country')).toBeInTheDocument();
 
     expect(screen.getByText('contract-123')).toBeInTheDocument();
     expect(screen.getByText('Credit Card')).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('CustomerContractDetails', () => {
 
     expect(screen.getByText('SKU Pricing')).toBeInTheDocument();
     expect(screen.getByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Volume:')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Volume')).toBeInTheDocument();
     expect(screen.getByText('100,000')).toBeInTheDocument();
     expect(screen.getByText('$0.00000100')).toBeInTheDocument();
     expect(screen.getByText('$0.00000200')).toBeInTheDocument();
@@ -116,8 +116,8 @@ describe('CustomerContractDetails', () => {
 
     expect(await screen.findByText('Shared Budgets')).toBeInTheDocument();
     expect(screen.getByText('Errors, Transactions')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Budget:')).toBeInTheDocument();
-    expect(screen.getAllByText('PAYG Budget:').length).toBeGreaterThan(0);
+    expect(screen.getByText('Reserved Budget')).toBeInTheDocument();
+    expect(screen.getAllByText('PAYG Budget').length).toBeGreaterThan(0);
   });
 
   it('handles missing optional fields gracefully', async () => {
