@@ -57,7 +57,7 @@ from sentry.utils.last_seen import LAST_SEEN_INTERVAL_SECONDS
 from sentry.utils.local_cache import LRUCache, SizedKeyCache, ThreadSafeCache
 from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
-from sentry.utils.safe import strict_trim
+from sentry.utils.safe import get_json_bytes, strict_trim
 from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
@@ -74,6 +74,8 @@ MAX_SPAN_DATA_VALUE_LENGTH = 500
 MAX_EVIDENCE_VALUE_LENGTH = 500
 MAX_EVIDENCE_LIST_ITEMS = 100
 MAX_OCCURRENCE_TAGS_BYTES = 16_384
+MAX_OCCURRENCE_EXTRA_BYTES = 16_384
+MAX_OCCURRENCE_BREADCRUMBS_BYTES = 16_384
 
 # The `evidence_data` values we actually use for issue details and Seer - all others are dropped
 # when we produce the occurrence
@@ -544,6 +546,36 @@ def _trim_event_data_for_occurrence(event_data: dict[str, Any]) -> None:
             logger.info(
                 "issue_detection.shim.tags_dropped",
                 extra={"initial_count": initial_tag_count, "final_count": final_tag_count},
+            )
+
+    if "breadcrumbs" in event_data:
+        initial_breadcrumb_count = len(event_data["breadcrumbs"])
+
+        event_data["breadcrumbs"] = strict_trim(
+            event_data["breadcrumbs"], MAX_OCCURRENCE_BREADCRUMBS_BYTES
+        )
+
+        final_breadcrumb_count = len(event_data["breadcrumbs"])
+        if final_breadcrumb_count < initial_breadcrumb_count:
+            logger.info(
+                "issue_detection.shim.breadcrumbs_dropped",
+                extra={
+                    "initial_count": initial_breadcrumb_count,
+                    "final_count": final_breadcrumb_count,
+                },
+            )
+
+    if "extra" in event_data:
+        initial_extra_size = get_json_bytes(event_data["extra"])
+
+        event_data["extra"] = strict_trim(event_data["extra"], MAX_OCCURRENCE_EXTRA_BYTES)
+
+        # Unlike with tags and breadcrumbs above, `extra` is arbitrarily nested, so it doesn't make
+        # sense to use count as a before and after
+        if initial_extra_size > MAX_OCCURRENCE_EXTRA_BYTES:
+            logger.info(
+                "issue_detection.shim.extra_trimmed",
+                extra={"initial_size": initial_extra_size},
             )
 
 
