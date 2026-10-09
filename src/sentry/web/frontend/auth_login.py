@@ -115,6 +115,9 @@ class AuthLoginView(BaseView, ReactMixin):
         return super().handle(request, *args, **kwargs)
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+        if request.user.is_authenticated and not request.user.is_active:
+            return self.redirect(reverse("sentry-reactivate-account"))
+
         customer_domain_redirect = self.get_customer_domain_login_redirect(request)
         if customer_domain_redirect is not None:
             return customer_domain_redirect

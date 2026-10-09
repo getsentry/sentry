@@ -38,6 +38,15 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     def path(self) -> str:
         return reverse("sentry-login")
 
+    def test_redirects_inactive_session_to_reactivation(self) -> None:
+        user = self.create_user("user@example.com", is_active=False)
+        self.login_as(user)
+
+        response = self.client.get(reverse("sentry-login"), {"next": "/settings/account/"})
+
+        assert response.status_code == 302
+        assert response["Location"] == reverse("sentry-reactivate-account")
+
     def allow_registration(self):
         return self.options({"auth.allow-registration": True})
 
