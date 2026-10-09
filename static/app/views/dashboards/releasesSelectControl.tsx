@@ -179,7 +179,7 @@ const StyledBadge = styled(Badge)`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  max-width: min(300px, 100%);
+  max-width: 300px;
 `;
 
 const ButtonLabelWrapper = styled('span')`
