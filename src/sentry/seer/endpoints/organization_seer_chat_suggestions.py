@@ -141,7 +141,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             )
             suggestions = ChatSuggestionsResult.parse_obj(result).suggestions
         except Exception:
-            logger.exception("seer.chat_suggestions.failed")
+            logger.warning("seer.chat_suggestions.failed", exc_info=True)
             metrics.incr("seer.chat_suggestions", tags={"result": "request_error"})
             return Response({"detail": "Failed to generate suggestions"}, status=502)
 
