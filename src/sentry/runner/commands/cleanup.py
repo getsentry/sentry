@@ -154,7 +154,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 propagation_context.custom_sampling_context = prev_sampling_context
 
             with span:
-                task_execution(model_name, chunk, project_id)
+                task_execution(model_name, chunk, project_id, deferred_filter)
         except Exception:
             metrics.incr(
                 "cleanup.error",
