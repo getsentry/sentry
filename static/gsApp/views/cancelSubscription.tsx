@@ -217,7 +217,6 @@ function CancelSubscriptionForm() {
                 {field => (
                   <Container width="fit-content" maxWidth="100%">
                     <field.Radio.Group
-                      align="start"
                       value={field.state.value}
                       onChange={val => {
                         field.handleChange(val);
