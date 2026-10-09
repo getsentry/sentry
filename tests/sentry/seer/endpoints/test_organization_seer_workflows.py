@@ -428,6 +428,95 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             response = self.get_success_response(self.organization.slug)
         assert [item["id"] for item in response.data] == [str(workflow.id)]
 
+    def test_history_hides_triage_runs_outside_user_access(self) -> None:
+        # Materialize the default project before creating the member. The team
+        # fixture joins every organization member that already exists.
+        project = self.project
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+        other_team = self.create_team(organization=self.organization, members=[member])
+        member_project = self.create_project(organization=self.organization, teams=[other_team])
+
+        group = self.create_group(project=project)
+        repo = self.create_repo()
+        pull_request = self.create_pull_request(
+            repository_id=repo.id,
+            organization_id=self.organization.id,
+            title="private fix",
+            message="private patch notes",
+        )
+        issue_seer_run = self.create_seer_run(organization=self.organization)
+        SeerRunPullRequest.objects.create(seer_run=issue_seer_run, pull_request=pull_request)
+
+        hidden = SeerWorkflowRun.objects.create(
+            organization=self.organization,
+            extras={"target_project_ids": [project.id]},
+        )
+        SeerAgenticTriageRunResult.objects.create(
+            run=hidden,
+            kind="agentic_triage",
+            group=group,
+            result_seer_run=issue_seer_run,
+            extras={"action": "autofix", "reason": "private checkout bug"},
+        )
+        org_wide = SeerWorkflowRun.objects.create(organization=self.organization)
+        SeerAgenticTriageRunResult.objects.create(
+            run=org_wide,
+            kind="agentic_triage",
+            group=group,
+            extras={"action": "skip", "reason": "private org-wide rationale"},
+        )
+        mixed = SeerWorkflowRun.objects.create(
+            organization=self.organization,
+            extras={"target_project_ids": [project.id, member_project.id]},
+        )
+        visible = SeerWorkflowRun.objects.create(
+            organization=self.organization,
+            extras={"target_project_ids": [member_project.id]},
+        )
+        unscoped = SeerWorkflowRun.objects.create(organization=self.organization)
+        expected_ids = {
+            str(hidden.id),
+            str(org_wide.id),
+            str(mixed.id),
+            str(visible.id),
+            str(unscoped.id),
+        }
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+        assert {item["id"] for item in response.data} == expected_ids
+
+        self.login_as(member)
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+        assert {item["id"] for item in response.data} == {str(visible.id), str(unscoped.id)}
+
+        self.create_team_membership(team=self.team, user=member)
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+        assert {item["id"] for item in response.data} == expected_ids
+
+    def test_open_membership_shows_triage_runs_for_other_projects(self) -> None:
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+        other_team = self.create_team(organization=self.organization, members=[member])
+        self.create_project(organization=self.organization, teams=[other_team])
+        run = SeerWorkflowRun.objects.create(
+            organization=self.organization,
+            extras={"target_project_ids": [self.project.id]},
+        )
+
+        self.login_as(member)
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert [item["id"] for item in response.data] == [str(run.id)]
+
     def create_agent_workflow(
         self, strategy: SeerWorkflowStrategy, feature_id: str
     ) -> SeerWorkflowRun:
