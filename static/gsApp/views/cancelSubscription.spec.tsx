@@ -111,7 +111,9 @@ describe('CancelSubscription', () => {
     expect(radio).toBeInTheDocument();
 
     await userEvent.click(radio);
-    await userEvent.click(screen.getByTestId('checkbox-reach_out'));
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: /Prefer to share feedback live/})
+    );
     await userEvent.type(screen.getByRole('textbox'), 'Cancellation reason');
     await userEvent.click(screen.getByRole('button', {name: /Cancel Subscription/}));
 

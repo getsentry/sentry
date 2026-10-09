@@ -32,7 +32,7 @@ import type {Subscription} from 'getsentry/types';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type CancelReason = [string, React.ReactNode];
-type CancelCheckbox = [string, React.ReactNode];
+type CancelCheckbox = [string, string];
 
 const CANCEL_STEPS: Array<{
   followup: React.ReactNode;
@@ -245,7 +245,7 @@ function CancelSubscriptionForm() {
                                       padding="md 0"
                                     >
                                       <Checkbox
-                                        data-test-id={`checkbox-${name}`}
+                                        aria-label={label}
                                         checked={checkboxes[name]}
                                         name={name}
                                         onChange={event => {
