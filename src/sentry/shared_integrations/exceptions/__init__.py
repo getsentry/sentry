@@ -18,12 +18,14 @@ __all__ = (
     "ApiConflictError",
     "ApiHostError",
     "ApiPaginationTruncated",
+    "ApiRestrictedIPError",
     "ApiTimeoutError",
     "ApiUnauthorized",
     "ApiRateLimitedError",
     "ApiInvalidRequestError",
     "IntegrationError",
     "IntegrationFormError",
+    "IntegrationProxyInternalError",
     "UnsupportedResponseType",
 )
 
@@ -115,6 +117,23 @@ class ApiHostError(ApiError):
     def from_request(cls, request: _RequestHasUrl) -> ApiHostError:
         host = urlparse(request.url).netloc
         return cls(f"Unable to reach host: {host}", url=request.url)
+
+
+class ApiRestrictedIPError(ApiHostError):
+    """
+    Sentry's own egress allowlist refused the destination, so the third party was never
+    contacted. Distinguishable from a provider genuinely being unreachable, which shares
+    the 503 status code.
+    """
+
+
+class IntegrationProxyInternalError(ApiError):
+    """
+    The Control Silo proxy failed before or instead of reaching the third party, so the
+    status belongs to us rather than the provider. Identified by the proxy's
+    X-Sentry-Internal-Proxy-Failure response header, since every status the proxy emits
+    collides with one a provider can emit.
+    """
 
 
 class UnknownHostError(ApiError):
