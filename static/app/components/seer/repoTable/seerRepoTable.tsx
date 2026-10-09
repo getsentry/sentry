@@ -1,25 +1,23 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Grid, Stack} from '@sentry/scraps/layout';
+import {useTableElement, type TableColumnConfig} from '@sentry/scraps/table';
 
 import {
   isSeerSupportedProvider,
   useSeerSupportedProviderIds,
 } from 'sentry/components/events/autofix/utils';
-import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SeerRepoTableHeader} from 'sentry/components/seer/repoTable/seerRepoTableHeader';
 import {SeerRepoTableRow} from 'sentry/components/seer/repoTable/seerRepoTableRow';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconSearch} from 'sentry/icons/iconSearch';
@@ -28,22 +26,23 @@ import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
-import {
-  ListItemCheckboxProvider,
-  useListItemCheckboxContext,
-} from 'sentry/utils/list/useListItemCheckboxState';
+import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
-const GRID_COLUMNS = '48px 1fr 138px 150px';
-const SELECTED_ROW_HEIGHT = 44;
-const BOTTOM_PADDING = 24; // px gap between table bottom and viewport edge
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'select', width: 'max-content'},
+  {key: 'name', width: 'minmax(0, 1fr)'},
+  {key: 'code_review', width: '138px'},
+  {key: 'trigger', width: '150px'},
+];
+
 const estimateSize = () => 68;
 
 export function SeerRepoTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const scrollBodyRef = useRef<HTMLDivElement>(null);
 
   const [searchTerm, setSearchTerm] = useQueryState(
     'query',
@@ -205,9 +204,14 @@ export function SeerRepoTable() {
         knownIds={knownIds}
         endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
-        <TablePanel>
+        <SimpleTable
+          aria-label={t('Repositories')}
+          columns={COLUMNS}
+          customSections
+          maxHeight="100%"
+          scrollable
+        >
           <SeerRepoTableHeader
-            gridColumns={GRID_COLUMNS}
             isFetchingNextPage={isFetchingAllPages}
             isPending={isPending}
             mutateRepositorySettings={mutateRepositorySettingsAsync}
@@ -216,133 +220,73 @@ export function SeerRepoTable() {
             sort={sort}
           />
           {isPending ? (
-            <Flex justify="center" align="center" padding="xl" style={{minHeight: 200}}>
-              <LoadingIndicator />
-            </Flex>
+            <SimpleTable.Body>
+              <SimpleTable.Loading />
+            </SimpleTable.Body>
           ) : isError ? (
-            <Flex justify="center" align="center" padding="xl" style={{minHeight: 200}}>
-              <LoadingError />
-            </Flex>
+            <SimpleTable.Body>
+              <SimpleTable.Error />
+            </SimpleTable.Body>
           ) : repositories.length === 0 ? (
-            <Flex justify="center" align="center" padding="xl" style={{minHeight: 200}}>
-              <Text variant="muted" size="md">
+            <SimpleTable.Body>
+              <SimpleTable.Empty>
                 {searchTerm
                   ? tct('No repositories found matching [searchTerm]', {
                       searchTerm: <code>{searchTerm}</code>,
                     })
                   : t('No repositories found')}
-              </Text>
-            </Flex>
+              </SimpleTable.Empty>
+            </SimpleTable.Body>
           ) : (
-            <VirtualizedRepoTable
-              hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingAllPages}
+            <VirtualizedRepoTableBody
               mutateRepositorySettings={mutateRepositorySettings}
               repositories={repositories}
-              scrollBodyRef={scrollBodyRef}
             />
           )}
-        </TablePanel>
+        </SimpleTable>
       </ListItemCheckboxProvider>
     </Fragment>
   );
 }
 
-function VirtualizedRepoTable({
-  hasNextPage,
-  isFetchingNextPage,
+function VirtualizedRepoTableBody({
   mutateRepositorySettings,
   repositories,
-  scrollBodyRef,
 }: {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   repositories: RepositoryWithSettings[];
-  scrollBodyRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const {totalSize, virtualItems} = useVirtualRows({
-    count: repositories?.length ?? 0,
-    getScrollElement: () => scrollBodyRef.current,
+  const tableRef = useTableElement();
+
+  const getItemKey = useCallback(
+    (index: number) => repositories[index]?.id ?? index,
+    [repositories]
+  );
+
+  const {paddingBottom, paddingTop, virtualItems, virtualizer} = useVirtualRows({
+    count: repositories.length,
     estimateSize,
-    overscan: 1,
+    getItemKey,
+    getScrollElement: () => tableRef.current,
   });
 
-  const [scrollBodyHeight, setScrollBodyHeight] = useState<number | undefined>(undefined);
-
-  const setScrollBodyRef = useCallback(
-    (el: HTMLDivElement | null) => {
-      scrollBodyRef.current = el;
-      if (el) {
-        const measure = () => {
-          const top = el.getBoundingClientRect().top;
-          setScrollBodyHeight(Math.round(top + BOTTOM_PADDING));
-        };
-        requestAnimationFrame(measure);
-      }
-    },
-    [scrollBodyRef]
-  );
-
-  const {isAnySelected} = useListItemCheckboxContext();
-
-  const maxHeight = scrollBodyHeight
-    ? isAnySelected
-      ? SELECTED_ROW_HEIGHT + scrollBodyHeight
-      : scrollBodyHeight
-    : undefined;
   return (
-    <ScrollableBody
-      ref={setScrollBodyRef}
-      style={{
-        minHeight: Math.min(10, repositories.length) * estimateSize(),
-        maxHeight: maxHeight ? `calc(100vh - ${Math.round(maxHeight)}px)` : undefined,
-      }}
-    >
-      <VirtualInner style={{height: totalSize}}>
-        {virtualItems.map(virtualItem => {
-          const repository = repositories[virtualItem.index];
-          if (!repository) {
-            return null;
-          }
-          return (
-            <SeerRepoTableRow
-              key={repository.id}
-              gridColumns={GRID_COLUMNS}
-              style={{transform: `translateY(${virtualItem.start}px)`}}
-              mutateRepositorySettings={mutateRepositorySettings}
-              repository={repository}
-            />
-          );
-        })}
-      </VirtualInner>
-      {hasNextPage || isFetchingNextPage ? (
-        <StickyLoadingRow align="center" justify="center" padding="md" borderTop="muted">
-          <LoadingIndicator mini />
-        </StickyLoadingRow>
-      ) : null}
-    </ScrollableBody>
+    <SimpleTable.Body style={{paddingBottom, paddingTop}}>
+      {virtualItems.map(virtualItem => {
+        const repository = repositories[virtualItem.index];
+        if (!repository) {
+          return null;
+        }
+        return (
+          <SeerRepoTableRow
+            key={virtualItem.key}
+            data-index={virtualItem.index}
+            ref={virtualizer.measureElement}
+            mutateRepositorySettings={mutateRepositorySettings}
+            repository={repository}
+          />
+        );
+      })}
+    </SimpleTable.Body>
   );
 }
-
-const TablePanel = styled(Panel)`
-  margin: 0;
-  width: 100%;
-  overflow: hidden;
-`;
-
-const ScrollableBody = styled('div')`
-  position: relative;
-  overflow-y: auto;
-`;
-
-const VirtualInner = styled('div')`
-  position: relative;
-  width: 100%;
-`;
-
-const StickyLoadingRow = styled(Flex)`
-  position: sticky;
-  bottom: 0;
-  background: ${p => p.theme.tokens.background.primary};
-`;

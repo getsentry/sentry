@@ -1,6 +1,7 @@
+import type {ComponentProps} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
@@ -28,18 +29,15 @@ import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface Props {
-  gridColumns: string;
+interface Props extends Omit<ComponentProps<typeof SimpleTable.Row>, 'children'> {
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   repository: RepositoryWithSettings;
-  style?: React.CSSProperties;
 }
 
 export function SeerRepoTableRow({
-  gridColumns,
   mutateRepositorySettings,
   repository,
-  style,
+  ...rowProps
 }: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -47,17 +45,7 @@ export function SeerRepoTableRow({
   const canWrite = useCanWriteSettings();
 
   return (
-    <Grid
-      columns={gridColumns}
-      align="center"
-      style={style}
-      role="row"
-      position="absolute"
-      top="0"
-      left="0"
-      width="100%"
-      borderBottom="muted"
-    >
+    <SimpleTable.Row {...rowProps}>
       <SimpleTable.RowCell>
         <ListItemSelectCheckbox
           htmlPrefix="seer-repo-table-select"
@@ -158,7 +146,7 @@ export function SeerRepoTableRow({
             ))}
         </Text>
       </SimpleTable.RowCell>
-    </Grid>
+    </SimpleTable.Row>
   );
 }
 
