@@ -1,11 +1,11 @@
 import {RuleTester} from 'oxlint/plugins-dev';
 
-import {noDirectResponsiveQueries} from './noDirectResponsiveQueries';
+import {preferContainerResponsiveProps} from './preferContainerResponsiveProps';
 
 const ruleTester = new RuleTester();
 const filename = '/project/static/app/views/example.tsx';
 
-ruleTester.run('no-direct-responsive-queries', noDirectResponsiveQueries, {
+ruleTester.run('prefer-container-responsive-props', preferContainerResponsiveProps, {
   valid: [
     {
       filename,

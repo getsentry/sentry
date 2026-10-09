@@ -19,7 +19,7 @@ function isModalCss(node: ESTree.Node): boolean {
   return false;
 }
 
-export const noDirectResponsiveQueries = defineRule({
+export const preferContainerResponsiveProps = defineRule({
   meta: {
     type: 'problem',
     docs: {
