@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container as ScrapsContainer} from '@sentry/scraps/layout';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
@@ -211,11 +211,15 @@ function ViewHierarchy({
           <TreeContainer>
             <div ref={hoveredGhostRowRef} />
             <div ref={clickedGhostRowRef} />
-            <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
-              <RenderedItemsContainer style={containerStyles}>
+            <ScrapsContainer
+              padding="0 lg lg lg"
+              ref={setScrollContainerRef}
+              style={scrollContainerStyles}
+            >
+              <ScrapsContainer position="relative" style={containerStyles}>
                 {renderedItems}
-              </RenderedItemsContainer>
-            </ScrollContainer>
+              </ScrapsContainer>
+            </ScrapsContainer>
           </TreeContainer>
           {defined(selectedNode) && (
             <DetailsContainer>
@@ -241,15 +245,14 @@ function ViewHierarchy({
     </Fragment>
   );
 
-  return <Container>{viewHierarchyContent}</Container>;
+  return (
+    <ScrapsContainer marginLeft="xl" position="relative">
+      {viewHierarchyContent}
+    </ScrapsContainer>
+  );
 }
 
 export {ViewHierarchy};
-
-const Container = styled('div')`
-  position: relative;
-  margin-left: ${p => p.theme.space.xl};
-`;
 
 const Left = styled('div')<{hasRight?: boolean}>`
   width: ${p => (p.hasRight ? '40%' : '100%')};
@@ -280,14 +283,6 @@ const DetailsContainer = styled('div')`
   border: 1px solid ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
   overflow: auto;
-`;
-
-const ScrollContainer = styled('div')`
-  padding: 0 ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.lg};
-`;
-
-const RenderedItemsContainer = styled('div')`
-  position: relative;
 `;
 
 const TreeItem = styled('div')`
