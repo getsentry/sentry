@@ -1,18 +1,19 @@
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
-import {droppedEventsToSeries} from './droppedEventsChart';
+import {droppedEventsToSeries} from './droppedDataChart';
 
 describe('droppedEventsToSeries', () => {
   it('returns an empty object for no events', () => {
     expect(droppedEventsToSeries([])).toEqual({});
   });
 
-  it('groups events by outcome, mapping to a user-facing label', () => {
+  it('keys series by outcome, labeling each with its user-facing name', () => {
     const series = droppedEventsToSeries([
       DroppedEventFixture({outcome: 'rate_limited', start: 0, end: 1, count: 5}),
     ]);
 
-    expect(Object.keys(series)).toEqual(['Rate limited']);
+    expect(Object.keys(series)).toEqual(['rate_limited']);
+    expect(series.rate_limited!.yAxis).toBe('Rate Limited');
   });
 
   it('maps each known outcome to its label', () => {
@@ -22,10 +23,10 @@ describe('droppedEventsToSeries', () => {
       DroppedEventFixture({outcome: 'invalid', start: 0, end: 1, count: 1}),
     ]);
 
-    expect(Object.keys(series).sort()).toEqual([
-      'Client discard',
-      'Inbound filter',
-      'Invalid or malformed',
+    expect(Object.values(series).map(s => s.yAxis)).toEqual([
+      'Client Discard',
+      'Inbound Filter',
+      'Invalid or Malformed',
     ]);
   });
 
@@ -38,12 +39,12 @@ describe('droppedEventsToSeries', () => {
     ]);
 
     // Both series cover all three sorted timestamps, zerofilled where missing.
-    expect(series['Client discard']!.values).toEqual([
+    expect(series.client_discard!.values).toEqual([
       {timestamp: 0, value: 1},
       {timestamp: 1, value: 0},
       {timestamp: 2, value: 3},
     ]);
-    expect(series['Rate limited']!.values).toEqual([
+    expect(series.rate_limited!.values).toEqual([
       {timestamp: 0, value: 0},
       {timestamp: 1, value: 7},
       {timestamp: 2, value: 0},
@@ -56,7 +57,7 @@ describe('droppedEventsToSeries', () => {
       DroppedEventFixture({outcome: 'invalid', start: 0, end: 1, count: 6}),
     ]);
 
-    expect(series['Invalid or malformed']!.values).toEqual([{timestamp: 0, value: 10}]);
+    expect(series.invalid!.values).toEqual([{timestamp: 0, value: 10}]);
   });
 
   it('derives the interval from an event bucket span', () => {
@@ -64,6 +65,6 @@ describe('droppedEventsToSeries', () => {
       DroppedEventFixture({outcome: 'filtered', start: 0, end: 60_000, count: 1}),
     ]);
 
-    expect(series['Inbound filter']!.meta.interval).toBe(60_000);
+    expect(series.filtered!.meta.interval).toBe(60_000);
   });
 });

@@ -79,6 +79,31 @@ describe('useDroppedDataDrawer', () => {
     await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
   });
 
+  it('shows an error with retry when the request fails', async () => {
+    const failedRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(
+      await screen.findByText('There was an error loading dropped data.')
+    ).toBeInTheDocument();
+    expect(failedRequest).toHaveBeenCalledTimes(1);
+
+    MockApiClient.clearMockResponses();
+    mockDroppedData(10, '14d');
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+  });
+
   it('opens when the URL already has the drawer param', async () => {
     mockDroppedData(10, '14d');
 
