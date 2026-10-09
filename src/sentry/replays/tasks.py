@@ -10,7 +10,6 @@ from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
-from sentry.replays.consumers.recording import commit_message, process_message
 from sentry.replays.lib.kafka import PROCESS_REPLAY_RECORDING_TASK_NAME, publish_replay_event
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -86,6 +85,10 @@ def process_replay_recording(message_bytes: bytes) -> None:
     As such, the task signature, name and namespace cannot be changed without
     coordination.
     """
+    # Imported here so web workers do not load the recording ingest pipeline and the
+    # GCS client at boot. The replay delete endpoint imports this module for delete_replay.
+    from sentry.replays.consumers.recording import commit_message, process_message
+
     processed_message = process_message(message_bytes)
     if processed_message:
         # The per-partition query caches that the consumer builds in
