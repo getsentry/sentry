@@ -20,14 +20,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
-import {resolveLink, subjectFromToolLink} from 'sentry/views/seerExplorer/links';
+import {
+  getValidToolLinks,
+  resolveLink,
+  subjectFromToolLink,
+} from 'sentry/views/seerExplorer/links';
 import type {
   Artifact,
   Block,
@@ -35,7 +37,6 @@ import type {
   SeerExplorerSidebarPosition,
   ToolCall,
   ToolLink,
-  ToolResult,
 } from 'sentry/views/seerExplorer/types';
 
 /**
@@ -458,55 +459,6 @@ export function getToolsStringFromBlock(block: Block): string[] {
   return tools;
 }
 
-export function getValidToolLinks(
-  tool_links: Array<ToolLink | null>,
-  tool_results: Array<ToolResult | null>,
-  tool_calls: ToolCall[],
-  organization: Organization,
-  projects?: Array<{id: string; slug: string}>
-) {
-  // Get valid tool links sorted by their corresponding tool call indices
-  // Also create a mapping from tool call index to sorted link index
-  const mappedLinks = tool_links
-    .map((link, idx) => {
-      if (!link) {
-        return null;
-      }
-
-      // Don't show links for tools that returned errors, but do show for empty results
-      if (link.params?.is_error === true) {
-        return null;
-      }
-
-      // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
-      const toolCallId = tool_results[idx]?.tool_call_id;
-      const toolCallIndex = toolCallId
-        ? tool_calls.findIndex(call => call.id === toolCallId)
-        : -1;
-      const canBuildUrl =
-        resolveLink(subjectFromToolLink(link), {organization, projects})?.url !==
-        undefined;
-
-      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
-        return {link, toolCallIndex};
-      }
-      return null;
-    })
-    .filter(item => item !== null)
-    .sort((a, b) => a.toolCallIndex - b.toolCallIndex);
-
-  // Create mapping from tool call index to sorted link index
-  const toolCallToLinkMap = new Map<number, number>();
-  mappedLinks.forEach((item, sortedIndex) => {
-    toolCallToLinkMap.set(item.toolCallIndex, sortedIndex);
-  });
-
-  return {
-    sortedToolLinks: mappedLinks.map(item => item.link),
-    toolCallToLinkIndexMap: toolCallToLinkMap,
-  };
-}
-
 /**
  * Returns a callback to get the route string (normalized path) of the current page for analytics, e.g. /issues/:groupId/.
  * This callback is stable to avoid triggering analytics and re-renders when the location changes.
@@ -849,36 +801,6 @@ export function getExplorerFeedbackOptions(
         : {conversations_url: getConversationsUrlForExternalUse('sentry', runId)}),
     },
   };
-}
-
-/**
- * Checks if Seer Explorer is enabled for the organization.
- * Requires the rollout flag and:
- * - AI features allowed for the organization (see areAiFeaturesAllowed)
- * - Organization has not disabled open membership
- */
-export function isSeerExplorerEnabled(organization: Organization | null): boolean {
-  if (!organization) {
-    return false;
-  }
-
-  return (
-    organization.openMembership &&
-    areAiFeaturesAllowed(organization) &&
-    organization.features.includes('seer-explorer')
-  );
-}
-
-/**
- * Whether Seer Explorer should render as a persistent, resizable split-panel
- * sidebar instead of an overlay drawer.
- */
-export function useIsSeerExplorerSidebarEnabled(): boolean {
-  const organization = useOrganization({allowNull: true});
-  return (
-    isSeerExplorerEnabled(organization) &&
-    !!organization?.features.includes('seer-explorer-persistent-sidebar')
-  );
 }
 
 /**

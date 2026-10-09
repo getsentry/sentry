@@ -23,6 +23,7 @@ import {
 } from 'sentry/components/seer/autofixChatContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {serializeChatPromptContext} from 'sentry/views/seerExplorer/chatPrompt';
@@ -44,7 +45,6 @@ import type {
 } from 'sentry/views/seerExplorer/types';
 import {
   getSeerExplorerAnalyticsBrowserSize,
-  useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
   useRemoveSeerExplorerRunIdParam,
   useSeerExplorerDeepLink,
