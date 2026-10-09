@@ -1,7 +1,7 @@
 import {type ReactNode, useCallback, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
@@ -364,92 +364,107 @@ describe('MetricToolbar', () => {
     });
   });
 
-  it('does not remove selected group bys using placeholder validation data', async () => {
-    const delayedValidateMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/validate/',
-      asyncDelay: 1000,
-      body: makeValidationBody([
-        {
-          attrType: null,
-          error: 'Invalid attribute',
-          name: 'invalid.attribute',
-          valid: false,
-        },
-      ]),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/validate/',
-      match: [
-        (_url, options) => JSON.stringify(options.query?.field).includes('valid.first'),
-      ],
-      body: makeValidationBody([
-        {
-          attrType: 'string',
-          error: null,
-          name: 'valid.first',
-          valid: true,
-        },
-        {
-          attrType: null,
-          error: 'Invalid attribute',
-          name: 'invalid.attribute',
-          valid: false,
-        },
-      ]),
+  describe('does not remove selected group bys using placeholder validation data with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    const visualize = new VisualizeFunction('sum(value,test_metric,distribution,none)');
-    const initialQueryParams = new ReadableQueryParams({
-      extrapolate: true,
-      mode: Mode.AGGREGATE,
-      query: '',
-      cursor: '',
-      fields: ['id', 'timestamp'],
-      sortBys: [{field: 'timestamp', kind: 'desc'}],
-      aggregateCursor: '',
-      aggregateFields: [{groupBy: 'valid.first'}, visualize],
-      aggregateSortBys: [{field: visualize.yAxis, kind: 'desc'}],
+    afterEach(async () => {
+      await act(() => jest.runOnlyPendingTimersAsync());
+      jest.useRealTimers();
     });
-    const nextQueryParams = initialQueryParams.replace({
-      aggregateFields: [{groupBy: 'invalid.attribute'}, visualize],
-    });
-    let currentGroupBys: readonly string[] = [];
 
-    function Component() {
-      const [queryParams, setQueryParams] = useState(initialQueryParams);
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
-      currentGroupBys = queryParams.groupBys;
+    it('does not remove selected group bys using placeholder validation data', async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const delayedValidateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/validate/',
+        asyncDelay: 1000,
+        body: makeValidationBody([
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+        ]),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/validate/',
+        match: [
+          (_url, options) => JSON.stringify(options.query?.field).includes('valid.first'),
+        ],
+        body: makeValidationBody([
+          {
+            attrType: 'string',
+            error: null,
+            name: 'valid.first',
+            valid: true,
+          },
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+        ]),
+      });
 
-      return (
-        <MultiMetricsQueryParamsProvider>
-          <button type="button" onClick={() => setQueryParams(nextQueryParams)}>
-            Load invalid group by
-          </button>
-          <MetricsQueryParamsProvider
-            traceMetric={{name: 'test_metric', type: 'distribution'}}
-            queryParams={queryParams}
-            setQueryParams={setQueryParams}
-            removeMetric={() => {}}
-            setTraceMetric={() => {}}
-          >
-            <MetricToolbar
+      const visualize = new VisualizeFunction('sum(value,test_metric,distribution,none)');
+      const initialQueryParams = new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: '',
+        cursor: '',
+        fields: ['id', 'timestamp'],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateCursor: '',
+        aggregateFields: [{groupBy: 'valid.first'}, visualize],
+        aggregateSortBys: [{field: visualize.yAxis, kind: 'desc'}],
+      });
+      const nextQueryParams = initialQueryParams.replace({
+        aggregateFields: [{groupBy: 'invalid.attribute'}, visualize],
+      });
+      let currentGroupBys: readonly string[] = [];
+
+      function Component() {
+        const [queryParams, setQueryParams] = useState(initialQueryParams);
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+        currentGroupBys = queryParams.groupBys;
+
+        return (
+          <MultiMetricsQueryParamsProvider>
+            <button type="button" onClick={() => setQueryParams(nextQueryParams)}>
+              Load invalid group by
+            </button>
+            <MetricsQueryParamsProvider
               traceMetric={{name: 'test_metric', type: 'distribution'}}
-              queryLabel="A"
-            />
-          </MetricsQueryParamsProvider>
-        </MultiMetricsQueryParamsProvider>
-      );
-    }
+              queryParams={queryParams}
+              setQueryParams={setQueryParams}
+              removeMetric={() => {}}
+              setTraceMetric={() => {}}
+            >
+              <MetricToolbar
+                traceMetric={{name: 'test_metric', type: 'distribution'}}
+                queryLabel="A"
+              />
+            </MetricsQueryParamsProvider>
+          </MultiMetricsQueryParamsProvider>
+        );
+      }
 
-    render(<Component />);
+      render(<Component />);
 
-    expect(await screen.findByRole('button', {name: /valid.first/})).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Load invalid group by'}));
+      expect(
+        await screen.findByRole('button', {name: /valid.first/})
+      ).toBeInTheDocument();
+      await user.click(screen.getByRole('button', {name: 'Load invalid group by'}));
 
-    await waitFor(() => expect(delayedValidateMock).toHaveBeenCalled());
-    expect(currentGroupBys).toEqual(['invalid.attribute']);
+      await waitFor(() => expect(delayedValidateMock).toHaveBeenCalled());
+      expect(currentGroupBys).toEqual(['invalid.attribute']);
 
-    await waitFor(() => expect(currentGroupBys).toEqual([]), {timeout: 2000});
+      await act(() => jest.advanceTimersByTimeAsync(1000));
+      await waitFor(() => expect(currentGroupBys).toEqual([]));
+    });
   });
 
   it('removes invalid selected group bys and preserves empty values', async () => {

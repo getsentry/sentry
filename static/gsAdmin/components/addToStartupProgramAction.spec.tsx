@@ -263,12 +263,9 @@ describe('AddToStartupProgramAction', () => {
 
     await userEvent.click(submitButton, {pointerEventsCheck: 0});
 
-    await waitFor(
-      () => {
-        expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toBeEnabled();
-      },
-      {timeout: 5_000}
-    );
+    await waitFor(() => {
+      expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toBeEnabled();
+    });
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeEnabled();
     expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled();
   }, 25_000);

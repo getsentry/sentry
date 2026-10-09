@@ -75,12 +75,7 @@ describe('processInitQueue', () => {
       render(<div id="setup-wizard-container" />);
       processInitQueue();
 
-      await waitFor(
-        () => {
-          expect(screen.getByText('Select your Sentry project')).toBeInTheDocument();
-        },
-        {timeout: 5000}
-      );
+      expect(await screen.findByText('Select your Sentry project')).toBeInTheDocument();
     });
 
     it('renders superuser staff access form', async () => {

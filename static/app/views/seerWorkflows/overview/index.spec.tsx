@@ -852,20 +852,30 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('5 users')).toBeInTheDocument();
   });
 
-  it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
-    mockOverview({
-      base: {autofix_root_cause: [rootCauseRun]},
-      issueStatsStatusCode: 500,
+  describe('shows the cards when the issueStats call fails instead of blocking forever with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    renderPage();
+    afterEach(async () => {
+      await act(() => jest.runOnlyPendingTimersAsync());
+      jest.useRealTimers();
+    });
 
-    // A failed vitals call must not withhold the cards forever; once the query
-    // settles (after its one retry) the cards render. The timeout covers the
-    // issueStats retry backoff.
-    expect(
-      await screen.findByText('TypeError in checkout cart', undefined, {timeout: 5000})
-    ).toBeInTheDocument();
+    it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
+      mockOverview({
+        base: {autofix_root_cause: [rootCauseRun]},
+        issueStatsStatusCode: 500,
+      });
+
+      renderPage();
+
+      await waitFor(() =>
+        expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0)
+      );
+      await act(() => jest.advanceTimersByTimeAsync(1000));
+      expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+    });
   });
 
   it('fetches the vitals once for a stable run set, without looping', async () => {
@@ -2341,9 +2351,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByText('There was an error loading data.', undefined, {
-        timeout: 5000,
-      })
+      await screen.findByText('There was an error loading data.')
     ).toBeInTheDocument();
   });
 
@@ -2356,7 +2364,7 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    const retry = await screen.findByRole('button', {name: 'Retry'}, {timeout: 5000});
+    const retry = await screen.findByRole('button', {name: 'Retry'});
     expect(projectConfigRequest).toHaveBeenCalledTimes(1);
 
     await userEvent.click(retry);

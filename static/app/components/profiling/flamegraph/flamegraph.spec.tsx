@@ -151,9 +151,7 @@ describe('Flamegraph', () => {
       },
     });
 
-    const frames = await screen.findAllByTestId('flamegraph-frame', undefined, {
-      timeout: 5000,
-    });
+    const frames = await screen.findAllByTestId('flamegraph-frame');
 
     // 1 for main view and 1 for minimap
     expect(frames).toHaveLength(2);

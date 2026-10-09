@@ -91,7 +91,7 @@ describe('dashboard embed', () => {
 
     // The block's name is the collapse toggle; the link out is a separate target.
     expect(
-      await screen.findByRole('button', {name: 'Application health'}, {timeout: 5_000})
+      await screen.findByRole('button', {name: 'Application health'})
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Dashboard'})).toHaveAttribute(
       'href',

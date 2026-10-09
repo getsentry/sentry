@@ -185,8 +185,6 @@ describe('TextAreaField auto-save', () => {
     textarea.focus();
     await userEvent.tab();
 
-    // Wait a bit to ensure no mutation is triggered
-    await new Promise(resolve => setTimeout(resolve, 100));
     expect(mutationFn).not.toHaveBeenCalled();
   });
 });
