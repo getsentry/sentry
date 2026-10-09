@@ -11,10 +11,11 @@ import {
   waitForDrawerToHide,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
@@ -45,7 +46,7 @@ function DroppedDataTrigger({enabled, interval}: {enabled?: boolean; interval?: 
     {dataset: DiscoverDatasets.SPANS, interval},
     {enabled}
   );
-  return <button onClick={openDroppedDataDrawer}>Open dropped data</button>;
+  return <Button onClick={openDroppedDataDrawer}>Open dropped data</Button>;
 }
 
 describe('useDroppedDataDrawer', () => {

@@ -3,7 +3,7 @@ import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
-import {DroppedDataDrawer} from 'sentry/components/droppedData/droppedDataDrawer';
+import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';

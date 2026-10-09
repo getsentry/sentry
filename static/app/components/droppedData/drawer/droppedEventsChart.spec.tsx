@@ -1,6 +1,6 @@
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
-import {droppedEventsToSeries} from './droppedDataChart';
+import {droppedEventsToSeries} from './droppedEventsChart';
 
 describe('droppedEventsToSeries', () => {
   it('returns an empty object for no events', () => {
