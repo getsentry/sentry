@@ -8,13 +8,13 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import {severityColor, withAlpha} from 'sentry/components/droppedData/band/severityColor';
 import {
   BAND_HEIGHT,
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
-} from 'sentry/components/droppedData/useDroppedDataBand';
-import {severityColor, withAlpha} from 'sentry/components/droppedData/utils';
+} from 'sentry/components/droppedData/band/useDroppedDataBand';
+import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};

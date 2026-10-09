@@ -230,7 +230,7 @@ class BaseIssueAlertHandler(ABC):
     ) -> RuleData:
         action_blob = cls.build_rule_action_blob(action, detector.linked_project.organization.id)
 
-        if origin.legacy_rule_id == TEST_NOTIFICATION_ID:
+        if origin.is_test_notification():
             action_blob["legacy_rule_id"] = TEST_NOTIFICATION_ID
         else:
             assert origin.workflow_id is not None
@@ -238,7 +238,7 @@ class BaseIssueAlertHandler(ABC):
             if origin.legacy_rule_id is not None:
                 action_blob["legacy_rule_id"] = origin.legacy_rule_id
 
-        if origin.legacy_rule_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
+        if origin.is_test_notification() and action.type == Action.Type.EMAIL:
             action_blob["skipDigests"] = True
 
         return {"actions": [action_blob]}
@@ -393,7 +393,7 @@ class BaseIssueAlertHandler(ABC):
             )
 
             # Execute the futures
-            if context.origin.legacy_rule_id == TEST_NOTIFICATION_ID:
+            if context.origin.is_test_notification():
                 cls.send_test_notification(invocation.event_data, futures)
             else:
                 cls.execute_futures(invocation.event_data, futures)

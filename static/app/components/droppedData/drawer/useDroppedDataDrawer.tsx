@@ -3,14 +3,14 @@ import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
-import {DroppedDataDrawer} from 'sentry/components/droppedData/droppedDataDrawer';
+import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
 

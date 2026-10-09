@@ -11,7 +11,7 @@ from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
-from sentry.notifications.types import TEST_NOTIFICATION_ID, NotificationOrigin
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
@@ -57,7 +57,7 @@ class OpsgenieClient(ApiClient):
             workflow_id = rule.workflow_id
             if workflow_id is None:
                 # Test notifications have no backing workflow, so nothing to link to.
-                if rule.legacy_rule_id != TEST_NOTIFICATION_ID:
+                if not rule.is_test_notification():
                     logger.warning(
                         "opsgenie.issue_alert.missing_workflow_id",
                         extra={
