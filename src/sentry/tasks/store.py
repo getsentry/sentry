@@ -239,12 +239,9 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
-            unprocessed = None
             inline_backup = in_rollout_group("store.reprocessing-inline-backup.rollout", event_id)
             if not inline_backup or options.get("store.reprocessing-inline-backup.legacy"):
                 reprocessing2.backup_unprocessed_event(data=original_data)
-            if inline_backup and not options.get("store.reprocessing-force-disable"):
-                unprocessed = original_data
 
             submit_symbolicate(
                 SymbolicatorTaskKind(
@@ -257,7 +254,7 @@ def _do_preprocess_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
-                unprocessed=unprocessed,
+                unprocessed_pending=inline_backup,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
