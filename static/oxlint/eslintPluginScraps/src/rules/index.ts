@@ -1,8 +1,8 @@
 import {noCoreImport} from './noCoreImport.ts';
+import {noDirectResponsiveQueries} from './noDirectResponsiveQueries.ts';
 import {noDoubleDollarInterpolation} from './noDoubleDollarInterpolation.ts';
 import {noRestrictedModuleMocks} from './noRestrictedModuleMocks.ts';
 import {noTokenImport} from './noTokenImport.ts';
-import {noViewportWidthQueries} from './noViewportWidthQueries.ts';
 import {preferInfoText} from './preferInfoText.ts';
 import {preferPrimitives} from './preferPrimitives.ts';
 import {preferStackForColumnFlex} from './preferStackForColumnFlex.ts';
@@ -15,7 +15,7 @@ export const rules = {
   'no-double-dollar-interpolation': noDoubleDollarInterpolation,
   'no-restricted-module-mocks': noRestrictedModuleMocks,
   'no-token-import': noTokenImport,
-  'no-viewport-width-queries': noViewportWidthQueries,
+  'no-direct-responsive-queries': noDirectResponsiveQueries,
   'prefer-info-text': preferInfoText,
   'prefer-primitives': preferPrimitives,
   'prefer-stack-for-column-flex': preferStackForColumnFlex,

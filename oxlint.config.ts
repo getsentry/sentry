@@ -10,7 +10,7 @@ const coreComponentFiles = [
 export const incubator = defineConfig({
   rules: {
     '@sentry/scraps/prefer-primitives': 'error',
-    '@sentry/scraps/no-viewport-width-queries': 'error',
+    '@sentry/scraps/no-direct-responsive-queries': 'error',
   },
   overrides: [
     {
@@ -19,7 +19,7 @@ export const incubator = defineConfig({
     },
     {
       files: ['**/*.spec.{js,jsx,ts,tsx}'],
-      rules: {'@sentry/scraps/no-viewport-width-queries': 'off'},
+      rules: {'@sentry/scraps/no-direct-responsive-queries': 'off'},
     },
   ],
 });

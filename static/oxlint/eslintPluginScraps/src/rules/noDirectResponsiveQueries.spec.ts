@@ -1,11 +1,11 @@
 import {RuleTester} from 'oxlint/plugins-dev';
 
-import {noViewportWidthQueries} from './noViewportWidthQueries';
+import {noDirectResponsiveQueries} from './noDirectResponsiveQueries';
 
 const ruleTester = new RuleTester();
 const filename = '/project/static/app/views/example.tsx';
 
-ruleTester.run('no-viewport-width-queries', noViewportWidthQueries, {
+ruleTester.run('no-direct-responsive-queries', noDirectResponsiveQueries, {
   valid: [
     {
       filename,

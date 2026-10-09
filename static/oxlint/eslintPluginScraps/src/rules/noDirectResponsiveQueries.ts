@@ -19,7 +19,7 @@ function isModalCss(node: ESTree.Node): boolean {
   return false;
 }
 
-export const noViewportWidthQueries = defineRule({
+export const noDirectResponsiveQueries = defineRule({
   meta: {
     type: 'problem',
     docs: {
