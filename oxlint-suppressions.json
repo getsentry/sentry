@@ -64,6 +64,11 @@
       "count": 2
     }
   },
+  "static/app/components/brandPageLayout/index.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 7
+    }
+  },
   "static/app/components/carousel.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -975,6 +980,9 @@
     }
   },
   "static/app/components/replays/breadcrumbs/replayTimelineEvents.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -1574,6 +1582,16 @@
       "count": 2
     }
   },
+  "static/app/views/authV2/authLogin/components/organizationCard.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 2
+    }
+  },
+  "static/app/views/authV2/useBrandedArtworkLoading.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 1
+    }
+  },
   "static/app/views/authV2/useBrandedAuthLoading.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -1660,6 +1678,9 @@
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/newWidgetBuilder.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 9
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 4
     }
@@ -1672,6 +1693,11 @@
   "static/app/views/dashboards/widgetBuilder/components/visualize/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/components/widgetBuilderSlideout.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 1
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/widgetTemplatesList.tsx": {
@@ -1942,6 +1968,11 @@
   "static/app/views/explore/metrics/metricToolbar/index.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "static/app/views/explore/metrics/metricToolbar/metricSelector/metricSelector.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 14
     }
   },
   "static/app/views/explore/metrics/styles.tsx": {
@@ -2499,6 +2530,21 @@
       "count": 3
     }
   },
+  "static/app/views/navigation/primaryNavigationContext.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 1
+    }
+  },
+  "static/app/views/navigation/topBar.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 4
+    }
+  },
+  "static/app/views/navigation/useTopOffset.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 1
+    }
+  },
   "static/app/views/onboarding/components/firstEventFooter.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2507,6 +2553,11 @@
   "static/app/views/onboarding/scmMessaging.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    }
+  },
+  "static/app/views/organizationLayout/index.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 2
     }
   },
   "static/app/views/organizationStats/teamInsights/teamIssuesAge.tsx": {
@@ -2882,6 +2933,11 @@
   "static/app/views/seerExplorer/components/inputSection.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "static/app/views/seerExplorer/components/seerExplorerContent.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 2
     }
   },
   "static/app/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout.spec.tsx": {
@@ -3390,6 +3446,9 @@
     }
   },
   "static/gsAdmin/views/layout.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 6
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
@@ -3446,6 +3505,11 @@
   },
   "static/gsApp/components/features/disabledSelectorItems.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/gsApp/components/features/illustrations/performanceBackground.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
       "count": 1
     }
   },
@@ -3572,6 +3636,11 @@
   "static/gsApp/views/amCheckout/components/unitTypeItem.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    }
+  },
+  "static/gsApp/views/amCheckout/components/volumeSliders.tsx": {
+    "@sentry/scraps/no-viewport-width-queries": {
+      "count": 1
     }
   },
   "static/gsApp/views/amCheckout/index.tsx": {
