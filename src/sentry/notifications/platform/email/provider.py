@@ -13,6 +13,7 @@ from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -40,7 +41,11 @@ type EmailRenderable = EmailMultiAlternatives
 class EmailRenderer(NotificationRenderer[EmailRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> EmailRenderable:
         html_body_blocks = cls.render_body_blocks_to_html_string(rendered_template.body)
         txt_body_blocks = cls.render_body_blocks_to_txt_string(rendered_template.body)

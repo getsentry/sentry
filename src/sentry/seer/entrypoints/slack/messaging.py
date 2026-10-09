@@ -26,6 +26,11 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixUpdate,
 )
+from sentry.notifications.platform.tracking import (
+    NotificationLinkDecorator,
+    NotificationTrackingContext,
+    record_sent,
+)
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.metrics import (
@@ -75,7 +80,7 @@ def send_thread_update(
         )
         provider = provider_registry.get(NotificationProviderKey.SLACK)
         template_cls = template_registry.get(data.source)
-        renderable, _ = NotificationService.render_template(
+        renderable, links = NotificationService.render_template(
             data=data, template=template_cls(), provider=provider
         )
         try:
@@ -94,6 +99,17 @@ def send_thread_update(
                     renderable=renderable,
                 )
                 message_ts = response.get("ts") if response else None
+            if response is not None:
+                record_sent(
+                    NotificationTrackingContext(
+                        source=data.source,
+                        provider=NotificationProviderKey.SLACK,
+                        category=template_cls.category,
+                        notification_uuid=data.notification_uuid,
+                        organization_id=data.organization_id,
+                    ),
+                    links=links,
+                )
             run_id = getattr(data, "run_id", None)
             if (
                 message_ts
@@ -284,8 +300,14 @@ def update_existing_message(
 
         parsed_blocks = [Block.parse(block) for block in blocks]
         footer_extra_text = f"(ty <@{slack_user_id}>)" if slack_user_id else None
+        link_decorator = NotificationLinkDecorator(
+            data=data, provider=NotificationProviderKey.SLACK
+        )
         footer_blocks = SeerSlackRenderer.render_footer_blocks(
-            data=data, extra_text=footer_extra_text, has_complete_stage=has_complete_stage
+            data=data,
+            link_decorator=link_decorator,
+            extra_text=footer_extra_text,
+            has_complete_stage=has_complete_stage,
         )
         parsed_blocks.extend(footer_blocks)
 
@@ -298,9 +320,20 @@ def update_existing_message(
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
             )
-
         except (IntegrationError, IntegrationConfigurationError) as e:
             lifecycle.record_halt(halt_reason=e)
+            return
+
+        record_sent(
+            NotificationTrackingContext(
+                source=data.source,
+                provider=NotificationProviderKey.SLACK,
+                category=template_registry.get(data.source).category,
+                notification_uuid=data.notification_uuid,
+                organization_id=data.organization_id,
+            ),
+            links=link_decorator.links,
+        )
 
 
 @all_silo_function
