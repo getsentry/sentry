@@ -109,13 +109,12 @@ function SingleIssueBlock({id, shortId}: IssueEmbedProps) {
 
 /**
  * The issue row sits flush in the card: the card's own border already frames
- * it, so `GroupList`'s panel border, rounding, and trailing margin would only
- * draw a second box inside the first. A direct-child selector rather than
- * `${Panel}`, because `GroupList` renders a `styled(Panel)` whose class no
- * longer carries `Panel`'s own selector target.
+ * it, so `GroupList`'s table border, rounding, and trailing margin would only
+ * draw a second box inside the first.
  */
 const FlushPreview = styled('div')`
-  > div {
+  > div,
+  > div > table {
     border: 0;
     border-radius: 0;
     margin-bottom: 0;

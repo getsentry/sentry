@@ -1,9 +1,7 @@
-import {useResponsivePropValue} from '@sentry/scraps/layout';
-
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
-import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
@@ -13,6 +11,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NoGroupsHandler} from './noGroupsHandler';
 
 type GroupListBodyProps = {
+  canSelect: boolean;
   displayReprocessingLayout: boolean;
   error: string | null;
   groupIds: string[];
@@ -27,6 +26,7 @@ type GroupListBodyProps = {
 };
 
 type GroupListProps = {
+  canSelect: boolean;
   displayReprocessingLayout: boolean;
   groupIds: string[];
   groupStatsPeriod: string;
@@ -35,7 +35,7 @@ type GroupListProps = {
   query: string;
 };
 
-const DEFAULT_COLUMNS: GroupListColumn[] = [
+export const ISSUE_LIST_COLUMNS: GroupListColumn[] = [
   'graph',
   'firstSeen',
   'lastSeen',
@@ -43,30 +43,33 @@ const DEFAULT_COLUMNS: GroupListColumn[] = [
   'users',
   'priority',
   'assignee',
-  'lastTriggered',
 ];
 
 function LoadingSkeleton({
+  canSelect,
   pageSize,
   displayReprocessingLayout,
 }: {
+  canSelect: boolean;
   displayReprocessingLayout: boolean;
   pageSize: number;
 }) {
   return (
-    <PanelBody>
+    <SimpleTable.Body>
       {Array.from({length: pageSize}).map((_, index) => (
         <LoadingStreamGroup
           key={`loading-group-${index}`}
+          canSelect={canSelect}
           displayReprocessingLayout={displayReprocessingLayout}
-          withColumns={DEFAULT_COLUMNS}
+          withColumns={ISSUE_LIST_COLUMNS}
         />
       ))}
-    </PanelBody>
+    </SimpleTable.Body>
   );
 }
 
 export function GroupListBody({
+  canSelect,
   groupIds,
   memberList,
   query,
@@ -84,6 +87,7 @@ export function GroupListBody({
   if (loading) {
     return (
       <LoadingSkeleton
+        canSelect={canSelect}
         displayReprocessingLayout={displayReprocessingLayout}
         pageSize={pageSize}
       />
@@ -91,22 +95,33 @@ export function GroupListBody({
   }
 
   if (error) {
-    return <LoadingError message={error} onRetry={refetchGroups} />;
+    return (
+      <SimpleTable.Body>
+        <SimpleTable.FullWidthRow>
+          <LoadingError message={error} onRetry={refetchGroups} />
+        </SimpleTable.FullWidthRow>
+      </SimpleTable.Body>
+    );
   }
 
   if (!groupIds.length) {
     return (
-      <NoGroupsHandler
-        organization={organization}
-        query={query}
-        selectedProjectIds={selectedProjectIds}
-        groupIds={groupIds}
-      />
+      <SimpleTable.Body>
+        <SimpleTable.FullWidthRow>
+          <NoGroupsHandler
+            organization={organization}
+            query={query}
+            selectedProjectIds={selectedProjectIds}
+            groupIds={groupIds}
+          />
+        </SimpleTable.FullWidthRow>
+      </SimpleTable.Body>
     );
   }
 
   return (
     <GroupList
+      canSelect={canSelect}
       groupIds={groupIds}
       memberList={memberList}
       query={query}
@@ -118,6 +133,7 @@ export function GroupListBody({
 }
 
 function GroupList({
+  canSelect,
   groupIds,
   memberList,
   query,
@@ -126,10 +142,9 @@ function GroupList({
   onActionTaken,
 }: GroupListProps) {
   const topIssue = groupIds[0];
-  const selectDisabled = useResponsivePropValue({zero: true, xl: false});
 
   return (
-    <PanelBody>
+    <SimpleTable.Body>
       {groupIds.map(id => {
         const group = GroupStore.get(id) as Group | undefined;
         if (!group) {
@@ -145,12 +160,12 @@ function GroupList({
             memberList={group.project ? memberList?.get(group.project.slug) : undefined}
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
-            canSelect={!selectDisabled}
+            canSelect={canSelect}
             onPriorityChange={priority => onActionTaken([id], {priority})}
-            withColumns={DEFAULT_COLUMNS}
+            withColumns={ISSUE_LIST_COLUMNS}
           />
         );
       })}
-    </PanelBody>
+    </SimpleTable.Body>
   );
 }
