@@ -1089,6 +1089,11 @@
       "count": 2
     }
   },
+  "static/app/components/replays/virtualizedGrid/bodyCell.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
   "static/app/components/replays/virtualizedGrid/detailsSplitDivider.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1462,11 +1467,6 @@
   "static/app/stories/view/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/stories/view/landing/index.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
     }
   },
   "static/app/stories/view/storyHeader.tsx": {
@@ -1939,11 +1939,6 @@
       "count": 1
     }
   },
-  "static/app/views/explore/metrics/metricsOnboarding.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/metrics/metricToolbar/index.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1957,11 +1952,6 @@
   "static/app/views/explore/multiQueryMode/queryConstructors/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/explore/multiQueryMode/queryRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
     }
   },
   "static/app/views/explore/profiling/continuousProfileFlamegraph.tsx": {
@@ -3306,7 +3296,7 @@
   },
   "static/gsAdmin/components/customers/customerOverview.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 11
+      "count": 1
     }
   },
   "static/gsAdmin/components/customers/customerStats.tsx": {
@@ -3347,11 +3337,6 @@
   "static/gsAdmin/components/toggleConsolePlatformsModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/gsAdmin/components/users/userOverview.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 4
     }
   },
   "static/gsAdmin/views/billingPlans.tsx": {
@@ -3574,11 +3559,6 @@
       "count": 3
     }
   },
-  "static/gsApp/views/amCheckout/components/volumeSliders.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
   "static/gsApp/views/amCheckout/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -3601,12 +3581,7 @@
   },
   "static/gsApp/views/legalAndCompliance/policyRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
-  "static/gsApp/views/legalAndCompliance/termsAndConditions.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
+      "count": 2
     }
   },
   "static/gsApp/views/seerAutomation/onboarding/onboardingLegacy.tsx": {

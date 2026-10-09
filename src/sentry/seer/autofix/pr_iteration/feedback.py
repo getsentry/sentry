@@ -137,8 +137,6 @@ MAX_TOTAL_ITERATIONS = 25
 
 def total_iteration_cap_reached(run_state: SeerRunState) -> bool:
     """Whether the run has hit ``MAX_TOTAL_ITERATIONS`` iterations."""
-    from sentry.seer.autofix.autofix_agent import get_iterations
-
     return len(get_iterations(run_state)) >= MAX_TOTAL_ITERATIONS
 
 

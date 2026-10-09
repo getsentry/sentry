@@ -16,7 +16,7 @@ describe('canScaleThresholds', () => {
     'count()',
     `count(${SpanFields.SPAN_DURATION})`,
     'count(custom_field)',
-    `count_if(${SpanFields.SPAN_STATUS},equals,error)`,
+    `count_if(\`${SpanFields.SPAN_STATUS}:error\`)`,
     'failure_count()',
     'sum(session)',
     `sum(${SpanFields.SPAN_DURATION})`,

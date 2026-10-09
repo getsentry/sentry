@@ -2,13 +2,12 @@ import type {HTMLAttributes, MouseEvent, ReactNode} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import type {LocationDescriptor} from 'history';
 
 import {FLEX_JUSTIFY_CONTENT, type FlexJustify} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {IconArrow} from 'sentry/icons';
 
 export type SortDirection = 'asc' | 'desc';
 

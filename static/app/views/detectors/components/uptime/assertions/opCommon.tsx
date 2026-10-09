@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import {useDraggable} from '@dnd-kit/core';
+import {IconDelete} from '@sentry/icons/delete';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,7 +10,6 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {AssertionFormError} from 'sentry/views/detectors/components/uptime/formErrors';
 import {

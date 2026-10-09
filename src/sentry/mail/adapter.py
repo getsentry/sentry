@@ -64,8 +64,8 @@ class MailAdapter:
         }
         log_event = "dispatched"
         for future in futures:
-            rules.append(future.rule)
-            extra["rule_id"] = future.rule.id
+            rules.append(future.context.origin)
+            extra["rule_id"] = future.context.action_id
             if not future.kwargs:
                 continue
             raise NotImplementedError(

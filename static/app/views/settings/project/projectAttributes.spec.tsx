@@ -1,7 +1,13 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectAttributes from 'sentry/views/settings/project/projectAttributes';
 
@@ -84,7 +90,9 @@ describe('ProjectAttributes', () => {
 
     expect(await screen.findByText('unsafe.attribute')).toBeInTheDocument();
     expect(screen.getByText(/Safe/)).toBeInTheDocument();
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('row', {name: /unsafe\.attribute/})).queryByRole('img')
+    ).not.toBeInTheDocument();
   });
 
   it('requests sorted results from the first page when a column header is clicked', async () => {
@@ -147,6 +155,76 @@ describe('ProjectAttributes', () => {
     });
 
     expect(await screen.findByText('26-26 of 60')).toBeInTheDocument();
+  });
+
+  it('requests the chosen dataset from the first page when a dataset is selected', async () => {
+    const request = MockApiClient.addMockResponse({url: attributesEndpoint, body: []});
+
+    const {router} = render(<ProjectAttributes />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {pathname, query: {cursor: '0:25:0'}},
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: /Dataset/}));
+    await userEvent.click(screen.getByRole('option', {name: 'Logs'}));
+
+    await waitFor(() => expect(router.location.query.dataset).toBe('logs'));
+    expect(router.location.query.cursor).toBeUndefined();
+    expect(request).toHaveBeenLastCalledWith(
+      attributesEndpoint,
+      expect.objectContaining({query: expect.objectContaining({dataset: 'logs'})})
+    );
+  });
+
+  it('requests the chosen type when a type is selected', async () => {
+    const request = MockApiClient.addMockResponse({url: attributesEndpoint, body: []});
+
+    const {router} = render(<ProjectAttributes />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: /Type/}));
+    await userEvent.click(screen.getByRole('option', {name: 'boolean'}));
+
+    await waitFor(() => expect(router.location.query.type).toBe('boolean'));
+    expect(screen.queryByRole('option', {name: 'array'})).not.toBeInTheDocument();
+    expect(request).toHaveBeenLastCalledWith(
+      attributesEndpoint,
+      expect.objectContaining({
+        query: expect.objectContaining({attributeType: 'boolean'}),
+      })
+    );
+  });
+
+  it('requests matching attributes from the first page when a search is submitted', async () => {
+    const request = MockApiClient.addMockResponse({url: attributesEndpoint, body: []});
+
+    const {router} = render(<ProjectAttributes />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {pathname, query: {cursor: '0:25:0'}},
+      },
+    });
+
+    await userEvent.type(
+      await screen.findByPlaceholderText('Search attribute names or descriptions'),
+      'cart{enter}'
+    );
+
+    await waitFor(() => expect(router.location.query.search).toBe('cart'));
+    expect(router.location.query.cursor).toBeUndefined();
+    expect(request).toHaveBeenLastCalledWith(
+      attributesEndpoint,
+      expect.objectContaining({query: expect.objectContaining({search: 'cart'})})
+    );
   });
 
   it('hides the page when the feature is disabled', () => {

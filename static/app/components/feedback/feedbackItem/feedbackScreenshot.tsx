@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconImage} from '@sentry/icons/image';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -7,7 +8,6 @@ import {ImageVisualization} from 'sentry/components/events/eventTagsAndScreensho
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';

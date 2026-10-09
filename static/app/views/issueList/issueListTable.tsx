@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {useResponsivePropValue} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -16,7 +16,6 @@ import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody, ISSUE_LIST_COLUMNS} from 'sentry/views/issueList/groupListBody';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
@@ -71,8 +70,7 @@ export function IssueListTable({
   pageSize,
 }: IssueListTableProps) {
   const location = useLocation();
-  const theme = useTheme();
-  const selectDisabled = useMedia(`(width < ${theme.breakpoints.sm})`);
+  const selectDisabled = useResponsivePropValue({zero: true, xl: false});
   const {columns, selectionEnabled} = useStreamGroupColumns({
     canSelect: !selectDisabled,
     displayReprocessingLayout: displayReprocessingActions,

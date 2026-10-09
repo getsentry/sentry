@@ -1,13 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
+import type {SortConfig} from 'sentry/components/replays/virtualizedGrid/headerCell';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
-
-interface SortConfig {
-  asc: boolean;
-  by: keyof ErrorFrame | string;
-  getValue: (row: ErrorFrame) => any;
-}
 
 const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
   id: row => row.data.eventId,
@@ -37,7 +32,7 @@ export function useSortErrors({items}: Opts) {
         asc: sortAsc,
         by: sortBy,
         getValue: SortStrategies[sortBy]!,
-      }) satisfies SortConfig,
+      }) satisfies SortConfig<ErrorFrame>,
     [sortAsc, sortBy]
   );
 
@@ -62,7 +57,10 @@ export function useSortErrors({items}: Opts) {
   };
 }
 
-function sortErrors(frames: ErrorFrame[], sortConfig: SortConfig): ErrorFrame[] {
+function sortErrors(
+  frames: ErrorFrame[],
+  sortConfig: SortConfig<ErrorFrame>
+): ErrorFrame[] {
   return frames.toSorted((a, b) => {
     let valueA = sortConfig.getValue(a);
     let valueB = sortConfig.getValue(b);

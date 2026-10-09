@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 import {useDisclosure} from '@react-aria/disclosure';
 import {usePress} from '@react-aria/interactions';
 import {useDisclosureState} from '@react-stately/disclosure';
+import {IconChevron} from '@sentry/icons/chevron';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type StackProps} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconChevron} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 /**
  * The header's link out, as a group. A block either names a page in Sentry and
