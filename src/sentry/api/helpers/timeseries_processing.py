@@ -100,27 +100,29 @@ def smooth_timeseries(
             value has equal weight, regardless of timestamp spacing. window_size must
             be positive and defaults to three buckets.
     """
-    if mode != SMOOTH_MODE_SMA:
-        raise ValueError(f"Unsupported smoothing mode: {mode}")
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
-    if window_size < 1:
-        raise ValueError("Window size must be positive.")
 
-    smoothed_values: list[float | None] = []
-    window_sum = 0.0
-    window_count = 0
-    for index, value in enumerate(values):
-        if index >= window_size:
-            expired_value = values[index - window_size]
-            if expired_value is not None:
-                window_sum -= expired_value
-                window_count -= 1
-        if value is None:
-            smoothed_values.append(None)
-        else:
-            window_sum += value
-            window_count += 1
-            smoothed_values.append(window_sum / window_count)
+    if mode == SMOOTH_MODE_SMA:
+        if window_size < 1:
+            raise ValueError("Window size must be positive.")
 
-    return smoothed_values
+        smoothed_values: list[float | None] = []
+        window_sum = 0.0
+        window_count = 0
+        for index, value in enumerate(values):
+            if index >= window_size:
+                expired_value = values[index - window_size]
+                if expired_value is not None:
+                    window_sum -= expired_value
+                    window_count -= 1
+            if value is None:
+                smoothed_values.append(None)
+            else:
+                window_sum += value
+                window_count += 1
+                smoothed_values.append(window_sum / window_count)
+
+        return smoothed_values
+    else:
+        raise ValueError(f"Unsupported smoothing mode: {mode}")
