@@ -119,9 +119,10 @@ export function getNodeMemory(
     return null;
   }
 
+  // The conversation endpoint sends absent attributes as empty strings; treat them as missing so they don't satisfy the nullish fallbacks in getMemoryPreview.
   const str = (field: SpanFields): string | undefined => {
     const value = getTraceNodeAttribute(field, node, event, attributes);
-    return typeof value === 'string' ? value : undefined;
+    return typeof value === 'string' && value !== '' ? value : undefined;
   };
 
   const recordCountValue = getTraceNodeAttribute(

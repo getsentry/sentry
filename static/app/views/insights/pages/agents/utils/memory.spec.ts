@@ -75,6 +75,23 @@ describe('getNodeMemory', () => {
     });
   });
 
+  it('treats empty-string attributes as not captured', () => {
+    const memory = getNodeMemory(
+      makeNode({
+        'gen_ai.operation.name': 'delete_memory',
+        'gen_ai.memory.store.id': '',
+        'gen_ai.memory.record.id': '',
+        'gen_ai.memory.query.text': '',
+        'gen_ai.memory.records': '',
+      })
+    );
+
+    expect(memory?.storeId).toBeUndefined();
+    expect(memory?.recordId).toBeUndefined();
+    expect(memory?.query).toBeUndefined();
+    expect(getMemoryPreview(memory)).toBe('all memories');
+  });
+
   it('returns null for non-memory spans', () => {
     expect(getNodeMemory(makeNode({'gen_ai.operation.name': 'chat'}))).toBeNull();
   });
