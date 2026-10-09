@@ -1,22 +1,14 @@
-import {QueryClientProvider} from '@tanstack/react-query';
-import {UserFixture} from 'sentry-fixture/user';
-
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 
 /**
- * `Avatar` resolves its image through `useQuery`, so any header carrying one
- * needs a client. The harness provides a theme but no query client.
+ * No case here carries an avatar, and none should until the harness loads the
+ * app's global stylesheet. `Avatar` sizes itself through `.avatar` in
+ * `shared-components.less`, which supplies the `position: relative` its
+ * absolutely positioned SVG needs; the harness injects only fonts and
+ * extracted emotion, so the avatar escapes its box and renders enormous. It
+ * also wants a `QueryClientProvider`, which the harness does not give either.
  */
-function Header(headerProps: EntityHeaderProps) {
-  return (
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <EntityHeader {...headerProps} />
-    </QueryClientProvider>
-  );
-}
 
 const props: EntityHeaderProps = {
   title: {label: 'Replay user', value: 'anonymous@example.com'},
@@ -42,45 +34,22 @@ describe('EntityHeader', () => {
   // The stats sit beside the title above the `lg` container breakpoint (640px)
   // and drop below the metadata under it. The header establishes its own query
   // container at full width, so the viewport drives the reflow here.
-  it.snapshot('stacked', () => <Header {...props} />, {
+  it.snapshot('stacked', () => <EntityHeader {...props} />, {
     viewport: 480,
     tags: {layout: 'stacked', area: 'core'},
   });
 
-  it.snapshot('side-by-side', () => <Header {...props} />, {
+  it.snapshot('side-by-side', () => <EntityHeader {...props} />, {
     viewport: 900,
     tags: {layout: 'side-by-side', area: 'core'},
   });
 
-  it.snapshot('loading', () => <Header {...props} isLoading />, {
+  it.snapshot('loading', () => <EntityHeader {...props} isLoading />, {
     viewport: 900,
     tags: {state: 'loading', area: 'core'},
   });
 
-  // A leading avatar is drawn at 20 inside a 24 box so it matches the discs in
-  // the people stack, which are 24 with a 2px border. Shown together, because
-  // the two being the same size is the whole point.
-  it.snapshot(
-    'avatar beside people',
-    () => (
-      <Header
-        title={{
-          ...props.title,
-          leadingGraphic: {type: 'user', user: UserFixture({id: '1', name: 'Alice'})},
-        }}
-        people={{
-          users: [
-            UserFixture({id: '2', name: 'Bob'}),
-            UserFixture({id: '3', name: 'Cara'}),
-          ],
-          label: 'Viewed by',
-        }}
-      />
-    ),
-    {viewport: 900, tags: {slots: 'avatar-people', area: 'core'}}
-  );
-
-  it.snapshot('title only', () => <Header title={props.title} />, {
+  it.snapshot('title only', () => <EntityHeader title={props.title} />, {
     viewport: 900,
     tags: {slots: 'title', area: 'core'},
   });
