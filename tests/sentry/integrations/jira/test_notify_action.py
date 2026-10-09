@@ -5,6 +5,7 @@ from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
+from sentry.notifications.types import NotificationActionContext
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -34,6 +35,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
         self.installation = self.integration.get_installation(self.organization.id)
 
+        rule = self.create_project_rule(project=self.project)
         self.jira_rule = self.get_rule(
             data={
                 "issuetype": "1",
@@ -45,7 +47,8 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
                 "jira_project": "10000",
                 "issue_type": "Bug",
                 "fixVersions": "[10000]",
-            }
+            },
+            context=NotificationActionContext.from_legacy_rule(rule),
         )
         self.jira_rule.rule = self.create_project_rule(name="test rule")
 
@@ -85,7 +88,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert len(results) == 1
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.jira_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(context=self.jira_rule.action_context, kwargs=results[0].kwargs)
         results[0].callback(event, futures=[rule_future])
         return json.loads(responses.calls[1].request.body)
 

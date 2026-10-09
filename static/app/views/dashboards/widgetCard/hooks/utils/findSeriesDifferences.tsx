@@ -6,6 +6,9 @@ import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeri
 
 // Maximum percentage difference allowed between bucket values
 const VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE = 3;
+const LENGTH_DIFFERENCE_TOLERANCE = 1;
+
+type Bucket = Series['data'][number];
 
 type SeriesDifference = {
   reason:
@@ -23,12 +26,37 @@ type SeriesDifference = {
   timeSeriesValue?: number;
 };
 
+// Bucket values may also be `NaN`, which is not considered equal in `areNumbersAlmostEqual`
+// For the purpose of this function, we consider `NaN` values to be equal, so check with `Object.is` first
+function areValuesAlmostEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) {
+    return true;
+  }
+  if (typeof a !== 'number' || typeof b !== 'number') {
+    return false;
+  }
+  return areNumbersAlmostEqual(a, b, VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE);
+}
+
 function normalizeSeries(series: WidgetSeries[]) {
   return series.map(({timeSeries: _timeSeries, ...rest}) => ({
     ...rest,
     // Skip the first and last buckets since their values are the most volatile
     data: rest.data.slice(1, -1),
   }));
+}
+
+function alignBuckets(legacy: Bucket[], timeSeries: Bucket[]): [Bucket[], Bucket[]] {
+  if (legacy.length === timeSeries.length) {
+    return [legacy, timeSeries];
+  }
+
+  const isLegacyLonger = legacy.length > timeSeries.length;
+  const [longer, shorter] = isLegacyLonger ? [legacy, timeSeries] : [timeSeries, legacy];
+  const trimmed =
+    longer[0]?.name === shorter[0]?.name ? longer.slice(0, -1) : longer.slice(1);
+
+  return isLegacyLonger ? [trimmed, timeSeries] : [legacy, trimmed];
 }
 
 // Compares the series built from `/events-stats/` and `/events-timeseries/` responses.
@@ -41,6 +69,7 @@ export function findSeriesDifferences(
   const unmatchedTimeSeries = new Map(
     timeSeries.map(series => [series.seriesName, series])
   );
+  const alignedData = new Map<string, [Bucket[], Bucket[]]>();
 
   for (const {seriesName, data} of legacySeries) {
     const matchingTimeSeries = unmatchedTimeSeries.get(seriesName);
@@ -48,8 +77,18 @@ export function findSeriesDifferences(
 
     if (!matchingTimeSeries) {
       differences.push({reason: 'unmatchedLegacySeries'});
-    } else if (matchingTimeSeries.data.length === data.length) {
-      const buckets = data.map((item, i) => [item, matchingTimeSeries.data[i]!] as const);
+    } else if (
+      Math.abs(matchingTimeSeries.data.length - data.length) > LENGTH_DIFFERENCE_TOLERANCE
+    ) {
+      differences.push({
+        reason: 'length',
+        legacyLength: data.length,
+        timeSeriesLength: matchingTimeSeries.data.length,
+      });
+    } else {
+      const [legacyData, timeSeriesData] = alignBuckets(data, matchingTimeSeries.data);
+      alignedData.set(seriesName, [legacyData, timeSeriesData]);
+      const buckets = legacyData.map((item, i) => [item, timeSeriesData[i]!] as const);
 
       const mismatchedTimestamp = buckets.find(
         ([item, matchingItem]) => item.name !== matchingItem.name
@@ -61,11 +100,7 @@ export function findSeriesDifferences(
             .slice(1, -1)
             .find(
               ([item, matchingItem]) =>
-                !areNumbersAlmostEqual(
-                  item.value,
-                  matchingItem.value,
-                  VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE
-                )
+                !areValuesAlmostEqual(item.value, matchingItem.value)
             );
 
       if (mismatchedTimestamp) {
@@ -83,12 +118,6 @@ export function findSeriesDifferences(
           timeSeriesValue: matchingItem.value,
         });
       }
-    } else {
-      differences.push({
-        reason: 'length',
-        legacyLength: data.length,
-        timeSeriesLength: matchingTimeSeries.data.length,
-      });
     }
   }
 
@@ -100,12 +129,19 @@ export function findSeriesDifferences(
   if (
     differences.length === 0 &&
     !isEqualWith(
-      normalizeSeries(legacySeries),
-      normalizeSeries(timeSeries),
-      (a, b, key) =>
-        key === 'value' && typeof a === 'number' && typeof b === 'number'
-          ? areNumbersAlmostEqual(a, b, VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE)
-          : undefined
+      normalizeSeries(
+        legacySeries.map(series => ({
+          ...series,
+          data: alignedData.get(series.seriesName)?.[0] ?? series.data,
+        }))
+      ),
+      normalizeSeries(
+        timeSeries.map(series => ({
+          ...series,
+          data: alignedData.get(series.seriesName)?.[1] ?? series.data,
+        }))
+      ),
+      (a, b, key) => (key === 'value' ? areValuesAlmostEqual(a, b) : undefined)
     )
   ) {
     differences.push({reason: 'other'});

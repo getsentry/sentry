@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -6,7 +7,6 @@ import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {RequestError} from 'sentry/utils/requestError/requestError';

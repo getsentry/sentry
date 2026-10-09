@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
 
@@ -461,15 +460,7 @@ export function InvoiceComparison() {
           <Panel>
             <PanelHeader>Summary</PanelHeader>
             <PanelBody withPadding>
-              <Grid
-                columns="repeat(3, 1fr)"
-                gap="xl"
-                css={css`
-                  @media (max-width: 900px) {
-                    grid-template-columns: repeat(2, 1fr);
-                  }
-                `}
-              >
+              <Grid columns={{zero: 'repeat(2, 1fr)', '2xl': 'repeat(3, 1fr)'}} gap="xl">
                 <Stack>
                   <Text size="sm" variant="muted">
                     Legacy invoices

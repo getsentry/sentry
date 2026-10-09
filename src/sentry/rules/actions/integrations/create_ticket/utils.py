@@ -138,16 +138,16 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
     organization = event.group.project.organization
 
     for future in futures:
-        rule_id = future.rule.id
+        context = future.context
+        origin = context.origin
+        action_id = context.action_id
         data: dict[str, Any] = future.kwargs["data"]
         provider = future.kwargs.get("provider")
         integration_id = future.kwargs.get("integration_id")
         generate_footer: Callable[[str], str] = future.kwargs["generate_footer"]
 
-        # If we invoked this handler from the notification action, we need to replace the rule_id with the legacy_rule_id, so we link notifications correctly
-        # In the Notification Action, we store the rule_id in the action_id field
-        action_id = rule_id
-        rule_id = data.get("legacy_rule_id", rule_id)
+        rule_id = origin.legacy_rule_id or origin.workflow_id
+        assert rule_id is not None
 
         integration = integration_service.get_integration(
             integration_id=integration_id,
@@ -166,7 +166,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         )
         data["title"] = installation.get_group_title(event.group, event)
 
-        workflow_id = data.get("workflow_id")
+        workflow_id = origin.workflow_id
         if workflow_id is not None:
             data["description"] = build_description_workflow_engine_ui(
                 event, workflow_id, installation, generate_footer

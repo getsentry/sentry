@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -16,7 +17,6 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -391,24 +391,30 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
-export const ChevronButton = styled(Button)<{expanded: boolean}>`
-  display: none;
+export function ChevronButton(
+  props: React.ComponentProps<typeof Button> & {expanded: boolean}
+) {
+  return (
+    <Container as="span" display="inline-flex">
+      <StyledChevronButton {...props} />
+    </Container>
+  );
+}
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: inline-flex;
-  }
-
+const StyledChevronButton = styled(Button)<{expanded: boolean}>`
   ${p =>
     p.expanded &&
     css`
-      margin-left: -17px;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-
-      &::after {
-        border-left-color: ${p.theme.tokens.border.primary};
+      @container (min-width: ${p.theme.container.xl}) {
+        margin-left: -17px;
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
+
+        &::after {
+          border-left-color: ${p.theme.tokens.border.primary};
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+        }
       }
     `}
 `;
