@@ -2210,7 +2210,10 @@ describe('Investigation detail', () => {
       await act(() => jest.advanceTimersByTimeAsync(600));
       expect(renameRequest).not.toHaveBeenCalled();
 
-      await act(() => finishDelete());
+      await act(async () => {
+        finishDelete();
+        await deleteResponse;
+      });
       await waitFor(() =>
         expect(router.location.pathname).toBe(
           '/organizations/org-slug/explore/investigations/'
