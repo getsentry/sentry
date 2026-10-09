@@ -14,7 +14,7 @@ import {
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';

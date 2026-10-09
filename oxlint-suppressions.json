@@ -212,7 +212,7 @@
       "count": 1
     }
   },
-  "static/app/components/droppedData/useDroppedDataDrawer.spec.tsx": {
+  "static/app/components/droppedData/drawer/useDroppedDataDrawer.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }

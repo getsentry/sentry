@@ -17,14 +17,13 @@ import {useTimezone} from '@sentry/scraps/datetime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
 import {isChartHovered} from 'sentry/components/charts/utils';
-import {DroppedDataTooltip} from 'sentry/components/droppedData/droppedDataTooltip';
-import type {DroppedDataProps} from 'sentry/components/droppedData/types';
-import {
-  highlightedBuckets,
-  severityColor,
-  withAlpha,
-  type DroppedDataBucket,
-} from 'sentry/components/droppedData/utils';
+import {DroppedDataTooltip} from 'sentry/components/droppedData/band/bucketTooltip';
+import {severityColor, withAlpha} from 'sentry/components/droppedData/band/severityColor';
+import {highlightedBuckets} from 'sentry/components/droppedData/buckets';
+import type {
+  DroppedDataBucket,
+  DroppedDataProps,
+} from 'sentry/components/droppedData/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 
