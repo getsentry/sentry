@@ -38,6 +38,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
@@ -456,11 +457,14 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     def test_build_group_block_with_workflow_only(self) -> None:
         rule = self.create_project_rule(project=self.project)
         workflow_id = rule.data["actions"][0]["workflow_id"]
-        rule.data["actions"][0].pop("legacy_rule_id")
+        origin = NotificationOrigin(
+            label=rule.label,
+            environment_id=rule.environment_id,
+            workflow_id=workflow_id,
+            legacy_rule_id=None,
+        )
 
-        blocks = SlackIssuesMessageBuilder(
-            self.group, rules=[create_notification_origin(rule)]
-        ).build()["blocks"]
+        blocks = SlackIssuesMessageBuilder(self.group, rules=[origin]).build()["blocks"]
 
         assert orjson.loads(blocks[0]["block_id"]) == {
             "issue": self.group.id,
