@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import type {ChatSuggestion} from 'sentry/views/seerExplorer/types';
 
 /** The empty state's suggestions before generated ones existed. */
@@ -12,7 +11,7 @@ export const LEGACY_SUGGESTIONS: ChatSuggestion[] = [
 /** Fixed suggestions shown when generation times out, fails, or returns nothing. */
 export function getFallbackSuggestions(
   route: string,
-  projects: Project[]
+  hasDbData: boolean
 ): ChatSuggestion[] {
   if (route.startsWith('/issues/:groupId/')) {
     return [
@@ -24,8 +23,6 @@ export function getFallbackSuggestions(
   return [
     {text: t("Walk me through what's on my screen and what I can focus on next.")},
     {text: t('Which of my open issues are getting worse, not better?')},
-    ...(projects.some(project => project.hasInsightsDb)
-      ? [{text: t('What are my slowest DB queries?')}]
-      : []),
+    ...(hasDbData ? [{text: t('What are my slowest DB queries?')}] : []),
   ];
 }

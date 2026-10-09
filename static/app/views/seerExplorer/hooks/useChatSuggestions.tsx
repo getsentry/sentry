@@ -2,6 +2,7 @@ import {useEffect, useMemo} from 'react';
 import {useMatches} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -16,10 +17,8 @@ import {
   LEGACY_SUGGESTIONS,
 } from 'sentry/views/seerExplorer/suggestionFallbacks';
 import type {ChatSuggestion} from 'sentry/views/seerExplorer/types';
-import {getSelectedProjectsForLLMContext} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 const SUGGESTIONS_TIMEOUT_MS = 4000;
-const MAX_PAGE_CONTEXT_LENGTH = 50_000;
 
 class SuggestionsTimeoutError extends Error {
   constructor() {
@@ -62,16 +61,16 @@ export function useChatSuggestions({
   const {projects} = useProjects();
   const capturePageContext = usePageContextCapture();
 
-  const selectedProjects = useMemo(() => {
-    const {selectionMode} = getSelectedProjectsForLLMContext(
-      selection.projects,
-      projects
-    );
-    const selectedIds = new Set(selection.projects.map(String));
-    return selectionMode === 'explicit'
-      ? projects.filter(project => selectedIds.has(project.id))
-      : projects.filter(project => project.isMember);
-  }, [selection.projects, projects]);
+  // For the fallback suggestions: do any pinned projects (or member projects, if none are pinned) send DB data?
+  const isProjectSelectionExplicit =
+    selection.projects.length > 0 && !selection.projects.includes(ALL_ACCESS_PROJECTS);
+  const hasDbData = projects.some(
+    project =>
+      project.hasInsightsDb &&
+      (isProjectSelectionExplicit
+        ? selection.projects.includes(Number(project.id))
+        : project.isMember)
+  );
 
   const query = useQuery({
     queryKey: [
@@ -96,7 +95,7 @@ export function useChatSuggestions({
           data: {
             route,
             route_params: params,
-            page_context: (pageContext ?? '').slice(0, MAX_PAGE_CONTEXT_LENGTH),
+            page_context: pageContext ?? '',
             project_ids: selection.projects,
           },
         }),
@@ -122,9 +121,9 @@ export function useChatSuggestions({
     return {
       isLoading: false,
       source: 'fallback',
-      suggestions: getFallbackSuggestions(route, selectedProjects),
+      suggestions: getFallbackSuggestions(route, hasDbData),
     };
-  }, [hasFlag, query.isPending, query.data, route, selectedProjects]);
+  }, [hasFlag, query.isPending, query.data, route, hasDbData]);
 
   useEffect(() => {
     if (!enabled || state.isLoading) {
