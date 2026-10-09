@@ -53,6 +53,7 @@ from sentry.monitors.serializers import (
     MonitorSerializer,
     MonitorSerializerResponse,
 )
+from sentry.monitors.utils import sync_cron_detector_enabled
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.types.actor import Actor
@@ -386,6 +387,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 if result:
                     monitor.update(**result)
                 updated.append(monitor)
+            if "status" in result:
+                sync_cron_detector_enabled(monitor)
             self.create_audit_entry(
                 request=request,
                 organization=organization,

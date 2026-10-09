@@ -8,6 +8,7 @@ from django.http.request import HttpRequest
 from rest_framework.request import Request
 
 from sentry import audit_log
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.middleware import is_frontend_request
@@ -438,6 +439,7 @@ def ensure_cron_detector(monitor: Monitor) -> Detector | None:
                     name=monitor.name,
                     owner_user_id=monitor.owner_user_id,
                     owner_team_id=monitor.owner_team_id,
+                    enabled=monitor.status == ObjectStatus.ACTIVE,
                     config={},
                 )
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)
@@ -477,6 +479,22 @@ def ensure_cron_detector_deletion(monitor: Monitor):
         data_source.delete()
         if detector:
             detector.delete()
+
+
+def update_monitor_status(monitor: Monitor, status: int) -> None:
+    monitor.update(status=status)
+    sync_cron_detector_enabled(monitor)
+
+
+def sync_cron_detector_enabled(monitor: Monitor) -> None:
+    """
+    The monitors UI reads `Detector.enabled`, so keep it in line with
+    `Monitor.status` whenever the status changes.
+    """
+    detector = get_detector_for_monitor(monitor)
+    enabled = monitor.status == ObjectStatus.ACTIVE
+    if detector and detector.enabled != enabled:
+        detector.update(enabled=enabled)
 
 
 def get_detector_for_monitor(monitor: Monitor) -> Detector | None:

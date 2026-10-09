@@ -83,6 +83,7 @@ from sentry.monitors.utils import (
     get_timeout_at,
     signal_first_checkin,
     signal_monitor_created,
+    update_monitor_status,
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
@@ -809,7 +810,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
+            update_monitor_status(monitor, ObjectStatus.DISABLED)
 
     if not monitor:
         metrics.incr(

@@ -51,6 +51,7 @@ from sentry.monitors.utils import (
     get_max_runtime,
     get_request_attribution,
     signal_monitor_created,
+    sync_cron_detector_enabled,
     update_issue_alert_rule,
 )
 from sentry.users.services.user.service import user_service
@@ -617,6 +618,8 @@ class MonitorValidator(CamelSnakeSerializer):
 
         if params:
             instance.update(**params)
+            if "status" in params:
+                sync_cron_detector_enabled(instance)
             create_audit_entry(
                 request=self.context["request"],
                 organization_id=instance.organization_id,
