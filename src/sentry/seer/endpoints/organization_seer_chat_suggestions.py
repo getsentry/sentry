@@ -106,12 +106,14 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
         data = dict(serializer.validated_data)
         route_params = data.pop("route_params")
         project_ids = set(data.pop("project_ids"))
-        projects = []
+
         # Only explicit selections: My/All Projects can be thousands of projects in large orgs.
+        projects = []
         if project_ids and ALL_ACCESS_PROJECT_ID not in project_ids:
             projects = self.get_projects(
                 request, organization, project_ids=set(sorted(project_ids)[:MAX_PROJECTS])
             )
+
         payload = {
             **data,
             "page_context": data["page_context"][:MAX_PAGE_CONTEXT_LENGTH],
@@ -125,7 +127,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             "can_create_alerts": any(
                 request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES
             ),
-            # The page's context node type (e.g. "dashboard"), if the user can edit its item.
+            # The page's context node type, if the user can edit its item.
             "can_edit_node_type": self._can_edit_node_type(request, organization, route_params),
         }
 
