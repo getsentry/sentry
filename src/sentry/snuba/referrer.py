@@ -684,6 +684,7 @@ class Referrer(StrEnum):
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
     ISSUES_ESCALATING_ISSUE_VELOCITY = "sentry.issues.escalating.issue_velocity"
+    ISSUES_LLM_CACHE_DETECTION = "issues.llm_cache_detection"
     ISSUES_LLM_ISSUE_DETECTION_TRANSACTION = "issues.llm_issue_detection.transaction"
     ISSUES_LLM_ISSUE_DETECTION_TRACE = "issues.llm_issue_detection.trace"
     ISSUES_LLM_ISSUE_DETECTION_SPAN_COUNT = "issues.llm_issue_detection.span_count"
