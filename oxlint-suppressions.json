@@ -3561,11 +3561,6 @@
       "count": 1
     }
   },
-  "static/app/views/settings/organizationIntegrations/integrationServerlessRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigForm.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1

@@ -1,15 +1,15 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {
   OrganizationIntegration,
@@ -80,7 +80,7 @@ export function IntegrationServerlessRow({
     setIsSubmitting(false);
   }, [api, endpoint, onUpdate, recordAction, serverlessFunction]);
 
-  const handleToggle = useCallback(async () => {
+  const handleToggle = async () => {
     const action = serverlessFunction.enabled ? 'disable' : 'enable';
     const data = {
       action,
@@ -105,86 +105,37 @@ export function IntegrationServerlessRow({
       addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
     }
     setIsSubmitting(false);
-  }, [api, endpoint, onUpdate, recordAction, serverlessFunction]);
+  };
 
   const layerStatus = useMemo(() => {
     if (!serverlessFunction.outOfDate) {
       return serverlessFunction.enabled ? t('Latest') : t('Disabled');
     }
     return (
-      <UpdateButton size="sm" variant="primary" onClick={handleUpdate}>
+      <Button size="sm" variant="primary" onClick={handleUpdate}>
         {t('Update')}
-      </UpdateButton>
+      </Button>
     );
   }, [serverlessFunction.outOfDate, serverlessFunction.enabled, handleUpdate]);
 
   return (
-    <Item>
-      <NameWrapper>
-        <Stack>
-          <Name>{serverlessFunction.name}</Name>
-          <RuntimeAndVersion>
-            <DetailWrapper>{serverlessFunction.runtime}</DetailWrapper>
-            <DetailWrapper>{versionText}</DetailWrapper>
-          </RuntimeAndVersion>
-        </Stack>
-      </NameWrapper>
-      <LayerStatusWrapper>{layerStatus}</LayerStatusWrapper>
-      <StyledSwitch
-        checked={serverlessFunction.enabled}
-        disabled={isSubmitting}
-        size="sm"
-        onChange={handleToggle}
-      />
-    </Item>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell direction="column" align="start" gap="md">
+        <Text wordBreak="break-word">{serverlessFunction.name}</Text>
+        <Text variant="muted">
+          {serverlessFunction.runtime}
+          {versionText}
+        </Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>{layerStatus}</SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Switch
+          aria-label={t('Enable %s', serverlessFunction.name)}
+          checked={serverlessFunction.enabled}
+          disabled={isSubmitting}
+          onChange={handleToggle}
+        />
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
-
-const Item = styled('div')`
-  padding: ${p => p.theme.space.xl};
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
-
-  display: grid;
-  grid-column-gap: ${p => p.theme.space.md};
-  align-items: center;
-  grid-template-columns: 2fr 1fr 0.5fr;
-  grid-template-areas: 'function-name layer-status enable-switch';
-`;
-
-const ItemWrapper = styled('span')`
-  height: 32px;
-  vertical-align: middle;
-  display: flex;
-  align-items: center;
-`;
-
-const NameWrapper = styled(ItemWrapper)`
-  grid-area: function-name;
-`;
-
-const LayerStatusWrapper = styled(ItemWrapper)`
-  grid-area: layer-status;
-`;
-
-const StyledSwitch = styled(Switch)`
-  grid-area: enable-switch;
-`;
-
-const UpdateButton = styled(Button)``;
-
-const Name = styled('span')`
-  padding-bottom: ${p => p.theme.space.md};
-`;
-
-const RuntimeAndVersion = styled('div')`
-  display: flex;
-  flex-direction: row;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const DetailWrapper = styled('div')`
-  line-height: 1.2;
-`;
