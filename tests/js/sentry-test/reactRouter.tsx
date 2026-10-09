@@ -20,10 +20,13 @@ export function TestRouterProvider({
 }: Pick<ComponentProps<typeof RouterProvider>, 'router' | 'useTransitions'>) {
   const props =
     process.env.SENTRY_REACT_ROUTER_VERSION === '8'
-      ? {}
+      ? {
+          // V8's explicit true enables optimistic updates; unset preserves startTransition alone.
+          useTransitions: useTransitions ? undefined : false,
+        }
       : ({future: {v7_startTransition: true}} satisfies Pick<
           ComponentProps<typeof RouterProviderV6>,
           'future'
         >);
-  return <RouterProvider {...props} router={router} useTransitions={useTransitions} />;
+  return <RouterProvider {...props} router={router} />;
 }
