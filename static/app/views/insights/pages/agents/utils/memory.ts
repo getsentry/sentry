@@ -119,10 +119,9 @@ export function getNodeMemory(
     return null;
   }
 
-  // The conversation endpoint sends absent attributes as empty strings; treat them as missing so they don't satisfy the nullish fallbacks in getMemoryPreview.
   const str = (field: SpanFields): string | undefined => {
     const value = getTraceNodeAttribute(field, node, event, attributes);
-    return typeof value === 'string' && value !== '' ? value : undefined;
+    return typeof value === 'string' ? value : undefined;
   };
 
   const recordCountValue = getTraceNodeAttribute(
@@ -171,6 +170,11 @@ function recordsSummary(memory: Memory): string | undefined {
   return typeof content === 'string' && content ? content : memoriesCount(memory);
 }
 
+// The conversation endpoint sends absent attributes as empty strings, which
+// would otherwise satisfy the nullish fallbacks below and blank out the preview.
+const nonEmpty = (value: string | undefined): string | undefined =>
+  value ? value : undefined;
+
 /**
  * One-line summary of a memory operation for the timeline and transcript, e.g.
  * a search query, a stored record's text, or `3 memories`.
@@ -180,6 +184,9 @@ export function getMemoryPreview(memory: Memory | undefined | null): string {
     return '';
   }
 
+  const recordId = nonEmpty(memory.recordId);
+  const storeId = nonEmpty(memory.storeId);
+
   switch (memory.operation) {
     case MemoryOperation.SEARCH:
       return memory.query ? `“${memory.query}”` : '';
@@ -187,15 +194,15 @@ export function getMemoryPreview(memory: Memory | undefined | null): string {
     case MemoryOperation.UPSERT:
       return recordsSummary(memory) ?? '';
     case MemoryOperation.UPDATE:
-      return recordsSummary(memory) ?? memory.recordId ?? memory.storeId ?? '';
+      return recordsSummary(memory) ?? recordId ?? storeId ?? '';
     case MemoryOperation.DELETE:
       // A deleted record's content is not meaningful, so show only the count.
-      return memoriesCount(memory) ?? memory.recordId ?? t('all memories');
+      return memoriesCount(memory) ?? recordId ?? t('all memories');
     case MemoryOperation.CREATE_STORE:
     case MemoryOperation.DELETE_STORE:
-      return memory.storeId ?? '';
+      return storeId ?? '';
     default:
-      return recordsSummary(memory) ?? memory.storeId ?? '';
+      return recordsSummary(memory) ?? storeId ?? '';
   }
 }
 

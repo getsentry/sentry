@@ -75,23 +75,6 @@ describe('getNodeMemory', () => {
     });
   });
 
-  it('treats empty-string attributes as not captured', () => {
-    const memory = getNodeMemory(
-      makeNode({
-        'gen_ai.operation.name': 'delete_memory',
-        'gen_ai.memory.store.id': '',
-        'gen_ai.memory.record.id': '',
-        'gen_ai.memory.query.text': '',
-        'gen_ai.memory.records': '',
-      })
-    );
-
-    expect(memory?.storeId).toBeUndefined();
-    expect(memory?.recordId).toBeUndefined();
-    expect(memory?.query).toBeUndefined();
-    expect(getMemoryPreview(memory)).toBe('all memories');
-  });
-
   it('returns null for non-memory spans', () => {
     expect(getNodeMemory(makeNode({'gen_ai.operation.name': 'chat'}))).toBeNull();
   });
@@ -191,6 +174,19 @@ describe('getMemoryPreview', () => {
   it('summarizes a store operation by its store id', () => {
     expect(
       getMemoryPreview(makeMemory({operation: 'create_memory_store', storeId: 'ms_1'}))
+    ).toBe('ms_1');
+  });
+
+  it('ignores empty-string attributes in the fallbacks', () => {
+    expect(
+      getMemoryPreview(
+        makeMemory({operation: 'delete_memory', recordId: '', storeId: ''})
+      )
+    ).toBe('all memories');
+    expect(
+      getMemoryPreview(
+        makeMemory({operation: 'update_memory', recordId: '', storeId: 'ms_1'})
+      )
     ).toBe('ms_1');
   });
 
