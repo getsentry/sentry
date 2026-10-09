@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import {Duration} from 'sentry/components/duration';
-import {IconArrow} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 

@@ -1,4 +1,4 @@
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 export enum BreadcrumbLevelType {
   FATAL = 'fatal',

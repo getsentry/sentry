@@ -9,6 +9,9 @@ import {
 } from 'react';
 import {css, keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconList} from '@sentry/icons/list';
+import {IconSearch} from '@sentry/icons/search';
+import {IconWarning} from '@sentry/icons/warning';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -28,7 +31,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {ResultTable} from 'sentry/components/resultTable';
-import {IconList, IconSearch, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';

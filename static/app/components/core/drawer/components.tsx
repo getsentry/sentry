@@ -2,6 +2,7 @@ import {createContext, Fragment, useContext, useMemo, useRef, useState} from 're
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import type {DrawerOptions} from '@sentry/scraps/drawer';
@@ -10,7 +11,6 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconClose} from 'sentry/icons/iconClose';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 import {
@@ -189,7 +189,7 @@ const Header = styled('header')<{
   flex-shrink: 0;
   gap: ${p => (p.hideBar ? p.theme.space.md : 0)};
   padding: ${p => p.theme.space.lg};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
   padding-left: ${p => p.theme.space.lg};
   padding-top: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
@@ -245,6 +245,7 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
      overshoot doesn't briefly expose the page beneath. A box-shadow is used
      (vs. a pseudo-element) because the panel's own overflow: auto would clip
      anything positioned outside its bounds. */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- Extend the drawer background beyond its scrollable bounds. */
   box-shadow:
     20px 0 0 ${p => p.theme.tokens.background.overlay},
     ${p => p.theme.shadow.high};

@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils/defined';

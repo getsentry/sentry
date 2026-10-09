@@ -12,6 +12,8 @@ import performanceViewImg from 'getsentry-images/features/perf-summary.svg';
 import ssoImg from 'getsentry-images/features/sso.svg';
 import userMiseryImg from 'getsentry-images/features/user-misery.svg';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -383,7 +385,11 @@ export class Details extends Component<Props, State> {
 
     return (
       <Fragment>
-        <MainUpsell>
+        <Grid
+          columns={{zero: '1fr', xl: 'auto 200px'}}
+          gap={{xl: '3xl'}}
+          marginBottom="xl"
+        >
           <AnimatePresence initial={false}>
             <FeatureContent
               key={highlightedFeature ? highlightedFeature.id : 'intro'}
@@ -405,7 +411,7 @@ export class Details extends Component<Props, State> {
             shouldShowPerformanceFeatures={!hasPerformance(subscription.planDetails)}
             {...orgSub}
           />
-        </MainUpsell>
+        </Grid>
         <Footer
           subscription={subscription}
           organization={organization}
@@ -416,17 +422,6 @@ export class Details extends Component<Props, State> {
     );
   }
 }
-
-const MainUpsell = styled('div')`
-  display: grid;
-  font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto 200px;
-    gap: ${p => p.theme.space['3xl']};
-  }
-`;
 
 const FeatureContent = styled(motion.div)`
   grid-column: 1;
