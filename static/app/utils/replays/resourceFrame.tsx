@@ -16,7 +16,7 @@ function isResourceFrame(frame: SpanFrame): frame is ResourceFrame {
 }
 
 export function getFrameMethod(frame: SpanFrame) {
-  return isRequestFrame(frame) ? (frame.data.method ?? 'GET') : 'GET';
+  return isRequestFrame(frame) ? (frame.data?.method ?? 'GET') : 'GET';
 }
 
 export function getFrameStatus(frame: SpanFrame) {
@@ -30,8 +30,8 @@ export function getFrameStatus(frame: SpanFrame) {
 export function getReqRespContentTypes(frame: SpanFrame) {
   if (isRequestFrame(frame)) {
     return {
-      req: frame.data.request?.headers?.['content-type'],
-      resp: frame.data.response?.headers?.['content-type'],
+      req: frame.data?.request?.headers?.['content-type'],
+      resp: frame.data?.response?.headers?.['content-type'],
     };
   }
   return {
@@ -43,13 +43,14 @@ export function getReqRespContentTypes(frame: SpanFrame) {
 export function getResponseBodySize(frame: SpanFrame) {
   if (isRequestFrame(frame)) {
     // `data.responseBodySize` is from SDK version 7.44-7.45
-    return frame.data.response?.size ?? frame.data.responseBodySize;
+    return frame.data?.response?.size ?? frame.data?.responseBodySize;
   }
   if (isResourceFrame(frame)) {
     // What about these?
     //   frame.data.decodedBodySize
     //   frame.data.encodedBodySize
-    return frame.data.size;
+    // `data` may be missing on resource spans recorded by some SDKs.
+    return frame.data?.size;
   }
   return;
 }
