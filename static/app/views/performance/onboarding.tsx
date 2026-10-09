@@ -312,12 +312,12 @@ function OnboardingPanel({
               >
                 <Container flex={{zero: 1, xl: 0.65}}>
                   <Title>{t('Tracing in Sentry')}</Title>
-                  <SubTitle>
+                  <Container marginBottom="md">
                     {tct(
                       'Use [tracingLink:tracing] to understand how requests and operations flow through your services and agents, and where they slow down or fail.',
                       {tracingLink: <ExternalLink href={TRACING_DOCS_URL} />}
                     )}
-                  </SubTitle>
+                  </Container>
                   <BulletList>
                     <li>
                       {t(
@@ -358,12 +358,12 @@ function OnboardingPanel({
                         <FeatureBadge type="experimental" />
                       </Flex>
                     </BodyTitle>
-                    <SubTitle>
+                    <Container marginBottom="md">
                       {tct(
                         'First, run this command to install the [pluginLink:Sentry plugin]:',
                         {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
                       )}
-                    </SubTitle>
+                    </Container>
                     <Container marginTop="md" marginBottom="2xl">
                       <OnboardingCodeSnippet
                         language="bash"
@@ -372,7 +372,9 @@ function OnboardingPanel({
                         {INSTALL_PLUGIN_COMMAND}
                       </OnboardingCodeSnippet>
                     </Container>
-                    <SubTitle>{t('Then paste this in your agent of choice:')}</SubTitle>
+                    <Container marginBottom="md">
+                      {t('Then paste this in your agent of choice:')}
+                    </Container>
                     <Container marginTop="md" marginBottom="2xl">
                       <OnboardingCodeSnippet
                         language="text"
@@ -388,7 +390,7 @@ function OnboardingPanel({
                     )}
                   </AiSetup>
                 )}
-                <Setup>{children}</Setup>
+                <Container padding="3xl">{children}</Container>
                 {noPerformanceSupport ? null : (
                   <OrDivider aria-hidden>{t('OR')}</OrDivider>
                 )}
@@ -670,10 +672,6 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   color: ${p => p.theme.tokens.content.success};
 `;
 
-const SubTitle = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -700,10 +698,6 @@ const AiSetup = styled('div')`
     height: 95%;
     border-right: 1px ${p => p.theme.tokens.border.primary} solid;
   }
-`;
-
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const OrDivider = styled('div')`

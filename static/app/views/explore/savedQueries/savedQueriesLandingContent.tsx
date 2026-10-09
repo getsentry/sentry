@@ -1,11 +1,11 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconSort} from '@sentry/icons/sort';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {SearchBar} from 'sentry/components/searchBar';
@@ -40,8 +40,8 @@ export function SavedQueriesLandingContent() {
   ];
   return (
     <div>
-      <FilterContainer>
-        <SearchBarContainer>
+      <Flex align="center" marginBottom="xl" gap="md">
+        <Container flex="1">
           <SearchBar
             onSearch={newQuery => {
               navigate({
@@ -57,7 +57,7 @@ export function SavedQueriesLandingContent() {
             defaultQuery={searchQuery}
             placeholder={t('Search for a query')}
           />
-        </SearchBarContainer>
+        </Container>
         <CompactSelect
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} icon={<IconSort />} size="md">
@@ -117,7 +117,7 @@ export function SavedQueriesLandingContent() {
             {t('Create Query')}
           </LinkButton>
         )}
-      </FilterContainer>
+      </Flex>
       <SavedQueriesTable
         mode="owned"
         perPage={20}
@@ -138,13 +138,3 @@ export function SavedQueriesLandingContent() {
     </div>
   );
 }
-const FilterContainer = styled('div')`
-  display: flex;
-  margin-bottom: ${p => p.theme.space.xl};
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
-const SearchBarContainer = styled('div')`
-  flex: 1;
-`;

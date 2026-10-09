@@ -7,7 +7,7 @@ import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -119,11 +119,11 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
             "Seer is Sentry's AI agent that helps you troubleshoot and fix problems with your applications, including bugs and performance issues. Seer includes:"
           )}
         </Paragraph>
-        <BulletList>
+        <Container as="ul" margin="0 0 md 0">
           <li>{t('Issue Triage')}</li>
           <li>{t('Root Cause Analysis')}</li>
           <li>{t('Solutions & Code Changes')}</li>
-        </BulletList>
+        </Container>
         {shouldShowBilling ? (
           isTouchCustomer || isSponsoredCustomer ? (
             <TouchCustomerMessage>
@@ -318,10 +318,6 @@ const MeetSeerHeader = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const BulletList = styled('ul')`
-  margin: 0 0 ${p => p.theme.space.md} 0;
 `;
 
 const Paragraph = styled('p')`

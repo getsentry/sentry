@@ -3,7 +3,7 @@ import {IconDelete} from '@sentry/icons/delete';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -86,7 +86,7 @@ export default function AccountSecurity() {
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader title={t('Security')} />
-      <TabsContainer>
+      <Container marginBottom="xl">
         <Tabs value={activeTab}>
           <TabList>
             <TabList.Item key="settings" to={routePrefix}>
@@ -97,7 +97,7 @@ export default function AccountSecurity() {
             </TabList.Item>
           </TabList>
         </Tabs>
-      </TabsContainer>
+      </Container>
 
       {!isEmpty && countEnrolled === 0 && <TwoFactorRequired />}
 
@@ -148,7 +148,7 @@ export default function AccountSecurity() {
               }
               return (
                 <AuthenticatorPanelItem key={id}>
-                  <AuthenticatorDetails>
+                  <Grid align="center" gap="sm" columns="max-content minmax(auto, 600px)">
                     <CircleIndicator
                       role="status"
                       aria-label={
@@ -165,7 +165,7 @@ export default function AccountSecurity() {
                       )}
                     </AuthenticatorTitle>
                     <AuthenticatorDescription>{description}</AuthenticatorDescription>
-                  </AuthenticatorDetails>
+                  </Grid>
                   <Grid flow="column" align="center" gap="md">
                     {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
                       <LinkButton
@@ -221,10 +221,6 @@ export default function AccountSecurity() {
   );
 }
 
-const TabsContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
-
 const AuthenticatorList = styled(PanelBody)`
   display: grid;
   grid-template-columns: 1fr max-content;
@@ -239,13 +235,6 @@ const AuthenticatorPanelItem = styled(PanelItem)`
   & > :last-child {
     justify-content: end;
   }
-`;
-
-const AuthenticatorDetails = styled('div')`
-  display: grid;
-  grid-template-columns: max-content minmax(auto, 600px);
-  gap: ${p => p.theme.space.sm};
-  align-items: center;
 `;
 
 const AuthenticatorTitle = styled('div')`

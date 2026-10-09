@@ -9,7 +9,7 @@ import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid, Container} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
@@ -180,10 +180,10 @@ export default function AccountSecurityDetails() {
 
       <TextBlock>{authenticator.description}</TextBlock>
 
-      <AuthenticatorDates>
+      <Grid gap="sm xl" columns="max-content auto">
         <AuthenticatorDate label={t('Created at')} date={authenticator.createdAt} />
         <AuthenticatorDate label={t('Last used')} date={authenticator.lastUsedAt} />
-      </AuthenticatorDates>
+      </Grid>
 
       <U2fEnrolledDetails
         isEnrolled={authenticator.isEnrolled}
@@ -194,10 +194,10 @@ export default function AccountSecurityDetails() {
       />
 
       {authenticator.isEnrolled && authenticator.phone && (
-        <PhoneWrapper>
+        <Container marginTop="3xl">
           {t('Confirmation codes are sent to the following phone number')}:
           <Phone>{authenticator.phone}</Phone>
-        </PhoneWrapper>
+        </Container>
       )}
 
       <RecoveryCodes
@@ -209,18 +209,8 @@ export default function AccountSecurityDetails() {
   );
 }
 
-const AuthenticatorDates = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.sm} ${p => p.theme.space.xl};
-  grid-template-columns: max-content auto;
-`;
-
 const DateLabel = styled('span')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const PhoneWrapper = styled('div')`
-  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const Phone = styled('span')`

@@ -55,11 +55,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
 
       <Flex wrap="wrap" gap="md">
         <Flex gap="2xs" align="center">
-          <InfoIcon>
+          <Flex justify="center" align="center" width="24px" height="24px">
             {props.appInfo.platform ? (
               <PlatformIcon platform={props.appInfo.platform} alt="" />
             ) : null}
-          </InfoIcon>
+          </Flex>
           <Text>
             {props.appInfo.platform
               ? getReadablePlatformLabel(props.appInfo.platform)
@@ -69,9 +69,9 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         {props.appInfo.app_id && (
           <Tooltip title={labels.appId}>
             <Flex gap="2xs" align="center">
-              <InfoIcon>
+              <Flex justify="center" align="center" width="24px" height="24px">
                 <IconJson />
-              </InfoIcon>
+              </Flex>
               <Text>{props.appInfo.app_id}</Text>
             </Flex>
           </Tooltip>
@@ -81,9 +81,9 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             title={props.appInfo.date_built ? t('App build time') : t('App upload time')}
           >
             <Flex gap="2xs" align="center">
-              <InfoIcon>
+              <Flex justify="center" align="center" width="24px" height="24px">
                 <IconClock />
-              </InfoIcon>
+              </Flex>
               <Text>
                 {getFormattedDate(
                   getUtcToSystem(props.appInfo.date_built || props.appInfo.date_added),
@@ -98,18 +98,18 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
           title={getReadableArtifactTypeTooltip(props.appInfo.artifact_type ?? null)}
         >
           <Flex gap="2xs" align="center">
-            <InfoIcon>
+            <Flex justify="center" align="center" width="24px" height="24px">
               <IconFile />
-            </InfoIcon>
+            </Flex>
             <Text>
               {getReadableArtifactTypeLabel(props.appInfo.artifact_type ?? null)}
             </Text>
           </Flex>
         </Tooltip>
         <Flex gap="2xs" align="center">
-          <InfoIcon>
+          <Flex justify="center" align="center" width="24px" height="24px">
             <IconLink />
-          </InfoIcon>
+          </Flex>
           <Text>
             {props.projectId ? (
               <InstallAppButton
@@ -124,9 +124,9 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         {props.appInfo.build_configuration && (
           <Tooltip title={labels.buildConfiguration}>
             <Flex gap="2xs" align="center">
-              <InfoIcon>
+              <Flex justify="center" align="center" width="24px" height="24px">
                 <IconMobile />
-              </InfoIcon>
+              </Flex>
               <InlineCodeSnippet data-render-inline hideCopyButton>
                 {props.appInfo.build_configuration}
               </InlineCodeSnippet>
@@ -137,14 +137,6 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
     </Stack>
   );
 }
-
-const InfoIcon = styled('div')`
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
 
 const InlineCodeSnippet = styled(CodeBlock)`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};

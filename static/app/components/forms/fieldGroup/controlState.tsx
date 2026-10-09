@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconWarning} from '@sentry/icons/warning';
 
+import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Spinner} from 'sentry/components/forms/spinner';
@@ -39,17 +40,17 @@ export function ControlState({
   return (
     <Fragment>
       {isSaving ? (
-        <ControlStateWrapper>
+        <Grid align="center" gap="xs" flow="column">
           <FormSpinner data-test-id="saving" />
-        </ControlStateWrapper>
+        </Grid>
       ) : isSaved ? (
-        <ControlStateWrapper>
+        <Grid align="center" gap="xs" flow="column">
           <StyledIconCheckmark variant="success" size="sm" />
-        </ControlStateWrapper>
+        </Grid>
       ) : null}
 
       {error ? (
-        <ControlStateWrapper>
+        <Grid align="center" gap="xs" flow="column">
           <Tooltip
             position="bottom"
             offset={8}
@@ -59,18 +60,11 @@ export function ControlState({
           >
             <StyledIconWarning variant="danger" size="sm" />
           </Tooltip>
-        </ControlStateWrapper>
+        </Grid>
       ) : null}
     </Fragment>
   );
 }
-
-const ControlStateWrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
 
 const StyledIconCheckmark = styled(IconCheckmark)`
   animation: ${fadeOut} 0.3s ease 2s 1 forwards;

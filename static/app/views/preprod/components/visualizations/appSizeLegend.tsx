@@ -2,7 +2,7 @@ import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
@@ -163,7 +163,7 @@ export function AppSizeLegend({
   };
 
   return (
-    <LegendContainer ref={containerRef}>
+    <Container position="relative" ref={containerRef}>
       <MeasurementContainer ref={measurementRef}>
         {sortedCategories.map((categoryType, index) => {
           const isActive =
@@ -212,7 +212,9 @@ export function AppSizeLegend({
           ) : null;
         })}
         {hiddenCategories.length > 0 && (
-          <MoreContainer
+          <Container
+            flexShrink={0}
+            position="relative"
             ref={moreButtonRef}
             onMouseEnter={handleMoreMouseEnter}
             onMouseLeave={handleMoreMouseLeave}
@@ -245,16 +247,12 @@ export function AppSizeLegend({
                 })}
               </MoreDropdown>
             )}
-          </MoreContainer>
+          </Container>
         )}
       </Flex>
-    </LegendContainer>
+    </Container>
   );
 }
-
-const LegendContainer = styled('div')`
-  position: relative;
-`;
 
 const MeasurementContainer = styled('div')`
   position: absolute;
@@ -302,11 +300,6 @@ const LegendLabel = styled('span')`
   font-size: 12px;
   color: ${p => p.theme.tokens.content.primary};
   font-weight: 400;
-`;
-
-const MoreContainer = styled('div')`
-  position: relative;
-  flex-shrink: 0;
 `;
 
 const MoreLabel = styled('span')`

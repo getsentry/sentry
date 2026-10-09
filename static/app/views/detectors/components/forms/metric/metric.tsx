@@ -5,7 +5,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
@@ -439,7 +439,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
     <Container>
       <FormSection step={step} title={t('Customize Metric')}>
         <Stack gap="xs">
-          <DatasetRow>
+          <Grid gap="xl" maxWidth="425px" columns="1fr 1fr">
             <DatasetField
               placeholder={t('Dataset')}
               flexibleControlStateSize
@@ -494,7 +494,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
                 <IntervalPicker />
               </DisabledSection>
             </Tooltip>
-          </DatasetRow>
+          </Grid>
         </Stack>
         <Tooltip
           title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
@@ -725,13 +725,6 @@ function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProp
 
 const StyledIconWarning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
-`;
-
-const DatasetRow = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-  max-width: 425px;
 `;
 
 const FilterRow = styled('div')<{disabled: boolean}>`

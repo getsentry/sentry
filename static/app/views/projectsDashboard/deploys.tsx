@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -58,7 +59,7 @@ type DeployProps = Props & {
 
 function Deploy({deploy, project}: DeployProps) {
   return (
-    <DeployRow>
+    <Grid column="1 / -1" columns="subgrid">
       <Tooltip showOnlyOnOverflow title={deploy.environment}>
         <TextOverflow>{deploy.environment}</TextOverflow>
       </Tooltip>
@@ -74,15 +75,9 @@ function Deploy({deploy, project}: DeployProps) {
       <DeployTime>
         <TimeSince date={deploy.dateFinished} unitStyle="short" />
       </DeployTime>
-    </DeployRow>
+    </Grid>
   );
 }
-
-const DeployRow = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-`;
 
 const DeployRows = styled('div')`
   display: grid;

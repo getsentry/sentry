@@ -7,6 +7,7 @@ import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -425,10 +426,9 @@ function Chart({
   );
 }
 
-export const ChartWrapper = styled('div')`
-  position: relative;
-  min-width: 0;
-`;
+export function ChartWrapper(props: ContainerProps) {
+  return <Container minWidth="0" position="relative" {...props} />;
+}
 
 export const ChartList = styled('div')`
   position: relative;

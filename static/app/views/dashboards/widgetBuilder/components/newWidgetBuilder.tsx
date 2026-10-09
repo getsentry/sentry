@@ -13,7 +13,7 @@ import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-m
 import omit from 'lodash/omit';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -187,7 +187,7 @@ export function WidgetBuilderV2({
               }
             >
               <WidgetBuilderContainer>
-                <SlideoutContainer>
+                <Container height="100%">
                   <WidgetBuilderSlideout
                     onClose={() => {
                       onClose();
@@ -205,7 +205,7 @@ export function WidgetBuilderV2({
                     onDataFetched={handleWidgetDataFetched}
                     thresholdMetaState={thresholdMetaState}
                   />
-                </SlideoutContainer>
+                </Container>
                 {(!isSmallScreen || isPreviewDraggable) && (
                   <DndContext
                     onDragEnd={handleDragEnd}
@@ -400,12 +400,12 @@ export function WidgetPreviewContainer({
           }}
         >
           {openWidgetTemplates && !hasUrlParams ? (
-            <WidgetPreviewPlaceholder>
+            <Container padding="xl" width="100%" height="100%">
               <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
               <TemplateWidgetPreviewPlaceholder>
                 <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
               </TemplateWidgetPreviewPlaceholder>
-            </WidgetPreviewPlaceholder>
+            </Container>
           ) : (
             <WidgetPreview
               dashboardFilters={dashboardFilters}
@@ -529,16 +529,6 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
   font-style: italic;
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const WidgetPreviewPlaceholder = styled('div')`
-  width: 100%;
-  height: 100%;
-  padding: ${p => p.theme.space.xl};
-`;
-
-const SlideoutContainer = styled('div')`
-  height: 100%;
 `;
 
 const FilterBarContainer = styled(motion.div)`

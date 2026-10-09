@@ -1,9 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -183,7 +182,12 @@ export function ProjectSampling() {
                   }
                 />
               )}
-              <FormActions />
+              <Grid
+                justify="end"
+                paddingBottom="3xl"
+                gap="md"
+                columns="repeat(2, max-content)"
+              />
             </Fragment>
           );
         }}
@@ -191,11 +195,3 @@ export function ProjectSampling() {
     </form.AppForm>
   );
 }
-
-const FormActions = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  gap: ${p => p.theme.space.md};
-  justify-content: flex-end;
-  padding-bottom: ${p => p.theme.space['3xl']};
-`;

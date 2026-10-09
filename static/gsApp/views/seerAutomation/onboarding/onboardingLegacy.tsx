@@ -8,7 +8,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {
@@ -368,7 +368,7 @@ function ProjectsWithoutRepos({
           <HeaderText>
             {t('%s Projects missing repositories', projectsWithoutRepos.length)}
           </HeaderText>
-          <SearchInputWrapper>
+          <Container width="300px">
             <InputGroup>
               <InputGroup.LeadingItems>
                 <IconSearch size="sm" />
@@ -384,7 +384,7 @@ function ProjectsWithoutRepos({
                 size="sm"
               />
             </InputGroup>
-          </SearchInputWrapper>
+          </Container>
         </PanelHeader>
         <PanelBody>
           {projectsWithoutRepos.map(project => (
@@ -915,8 +915,4 @@ const CustomizationList = styled('ul')`
     margin-bottom: ${p => p.theme.space.md};
     color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const SearchInputWrapper = styled('div')`
-  width: 300px;
 `;

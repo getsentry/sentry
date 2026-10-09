@@ -27,7 +27,7 @@ import {
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
 import {matchesHotkey} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 
 import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -358,7 +358,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
             <LoadingIndicator size={24} style={{margin: 0}} />
           </Flex>
         ) : (
-          <ListBoxPane>
+          <Container flex="1 1 auto" minHeight="0" overflowY="auto">
             <ListBox
               {...listBoxProps}
               ref={listBoxRef}
@@ -368,7 +368,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
               overlayIsOpen={isOpen}
               size="sm"
             />
-          </ListBoxPane>
+          </Container>
         )}
         {isLoading && anyItemsShowing ? (
           <Flex justify="center" align="center" height="32px" width="100%">
@@ -831,12 +831,6 @@ const ListBoxOverlay = styled(Overlay)`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-`;
-
-const ListBoxPane = styled('div')`
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
 `;
 
 const DescriptionOverlay = styled(Overlay)`

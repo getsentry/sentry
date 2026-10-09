@@ -181,7 +181,14 @@ function LinkedPullRequestRow({
                   {title}
                 </Text>
               )}
-              <PullRequestTitle>
+              <Flex
+                as="span"
+                align="center"
+                gap="xs"
+                width="100%"
+                minWidth="0"
+                overflow="hidden"
+              >
                 {variant === 'default' ? (
                   <Fragment>
                     <Text as="span" ellipsis variant="muted">
@@ -199,7 +206,7 @@ function LinkedPullRequestRow({
                     </Text>
                   </Fragment>
                 )}
-              </PullRequestTitle>
+              </Flex>
             </Stack>
             <Flex align="center" gap="md" wrap="wrap">
               <PullRequestStatusBadge status={pullRequest.status} />
@@ -526,13 +533,4 @@ const PullRequestRow = styled(ExternalLink)`
 
 const EmptyLinksText = styled(Text)`
   margin: 0;
-`;
-
-const PullRequestTitle = styled('span')`
-  align-items: center;
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  min-width: 0;
-  overflow: hidden;
-  width: 100%;
 `;

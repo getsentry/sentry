@@ -6,7 +6,7 @@ import color from 'color';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
@@ -111,7 +111,7 @@ function PlanDiff({
 }) {
   const changes = [...planChanges, ...productChanges, ...cycleChanges];
   return (
-    <ChangeSection data-test-id="plan-diff">
+    <Container marginBottom="xl" data-test-id="plan-diff">
       <ChangeGrid>
         {changes.map((change, index) => {
           const {key, currentValue, newValue} = change;
@@ -148,7 +148,7 @@ function PlanDiff({
           );
         })}
       </ChangeGrid>
-    </ChangeSection>
+    </Container>
   );
 }
 
@@ -162,7 +162,7 @@ function ReservedDiff({
   reservedChanges: ReservedChange[];
 }) {
   return (
-    <ChangeSection data-test-id="reserved-diff">
+    <Container marginBottom="xl" data-test-id="reserved-diff">
       <ChangeSectionTitle hasBottomMargin>{t('Reserved volume')}</ChangeSectionTitle>
       <ChangeGrid>
         {reservedChanges.map(({key, currentValue, newValue}) => {
@@ -191,7 +191,7 @@ function ReservedDiff({
           );
         })}
       </ChangeGrid>
-    </ChangeSection>
+    </Container>
   );
 }
 
@@ -209,7 +209,7 @@ function OnDemandDiff({
   return (
     <Fragment>
       {sharedOnDemandChanges.length > 0 && (
-        <ChangeSection data-test-id="shared-spend-limit-diff">
+        <Container marginBottom="xl" data-test-id="shared-spend-limit-diff">
           <ChangeGrid>
             {sharedOnDemandChanges.map((change, index) => {
               const {key, currentValue, newValue} = change;
@@ -244,10 +244,10 @@ function OnDemandDiff({
               );
             })}
           </ChangeGrid>
-        </ChangeSection>
+        </Container>
       )}
       {perCategoryOnDemandChanges.length > 0 && (
-        <ChangeSection data-test-id="per-category-spend-limit-diff">
+        <Container marginBottom="xl" data-test-id="per-category-spend-limit-diff">
           <ChangeSectionTitle hasBottomMargin>
             {t('Per-product spend limits')}
           </ChangeSectionTitle>
@@ -276,7 +276,7 @@ function OnDemandDiff({
               );
             })}
           </ChangeGrid>
-        </ChangeSection>
+        </Container>
       )}
     </Fragment>
   );
@@ -658,10 +658,6 @@ const ChangedCategory = styled('div')`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ChangeSection = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ChangeGrid = styled('div')`

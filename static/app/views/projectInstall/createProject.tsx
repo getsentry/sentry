@@ -7,7 +7,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -582,7 +582,7 @@ export function CreateProject() {
           >
             <div>
               <FormLabel>{t('Project slug')}</FormLabel>
-              <ProjectNameInputWrap>
+              <Container position="relative">
                 <StyledPlatformIcon
                   platform={formData.platform?.key ?? 'other'}
                   size={20}
@@ -601,12 +601,12 @@ export function CreateProject() {
                     updateFormData('projectName', slugified);
                   }}
                 />
-              </ProjectNameInputWrap>
+              </Container>
             </div>
             {!isOrgMemberWithNoAccess && (
               <div>
                 <FormLabel>{t('Team')}</FormLabel>
-                <TeamSelectInput>
+                <Grid align="center" gap="md" columns="1fr min-content">
                   <TeamSelector
                     allowCreate
                     name="team"
@@ -620,7 +620,7 @@ export function CreateProject() {
                       updateFormData('team', value);
                     }}
                   />
-                </TeamSelectInput>
+                </Grid>
               </div>
             )}
             <div>
@@ -678,10 +678,6 @@ const FormLabel = styled('div')`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-const ProjectNameInputWrap = styled('div')`
-  position: relative;
-`;
-
 const ProjectNameInput = styled(Input)`
   padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
 `;
@@ -691,13 +687,6 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   top: 50%;
   left: ${p => p.theme.form.md.paddingLeft}px;
   transform: translateY(-50%);
-`;
-
-const TeamSelectInput = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  grid-template-columns: 1fr min-content;
-  align-items: center;
 `;
 
 const HelpText = styled('p')`

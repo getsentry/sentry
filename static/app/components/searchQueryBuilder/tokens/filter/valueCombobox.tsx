@@ -10,7 +10,7 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {HighlightText, type SelectOptionWithKey} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DeviceName} from 'sentry/components/deviceName';
@@ -588,7 +588,10 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
   const selected = selectedValueMap.get(value) ?? false;
 
   return (
-    <TrailingWrap
+    <Grid
+      align="center"
+      gap="md"
+      flow="column"
       onPointerUp={e => e.stopPropagation()}
       onMouseUp={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
@@ -621,7 +624,7 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
           tabIndex={-1}
         />
       </CheckWrap>
-    </TrailingWrap>
+    </Grid>
   );
 }
 
@@ -1575,13 +1578,6 @@ const ValueChipRemove = styled('button')`
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   ${chipButton}
-`;
-
-const TrailingWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
 `;
 
 const ValueCount = styled('span')`

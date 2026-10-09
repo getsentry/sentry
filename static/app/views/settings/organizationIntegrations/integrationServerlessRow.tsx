@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
 import {
@@ -122,7 +122,9 @@ export function IntegrationServerlessRow({
     <Item>
       <NameWrapper>
         <Stack>
-          <Name>{serverlessFunction.name}</Name>
+          <Container as="span" paddingBottom="md">
+            {serverlessFunction.name}
+          </Container>
           <RuntimeAndVersion>
             <DetailWrapper>{serverlessFunction.runtime}</DetailWrapper>
             <DetailWrapper>{versionText}</DetailWrapper>
@@ -174,10 +176,6 @@ const StyledSwitch = styled(Switch)`
 `;
 
 const UpdateButton = styled(Button)``;
-
-const Name = styled('span')`
-  padding-bottom: ${p => p.theme.space.md};
-`;
 
 const RuntimeAndVersion = styled('div')`
   display: flex;

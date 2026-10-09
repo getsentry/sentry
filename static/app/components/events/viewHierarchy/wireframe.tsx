@@ -6,6 +6,7 @@ import {IconSubtract} from '@sentry/icons/subtract';
 import {mat3, vec2} from 'gl-matrix';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
@@ -329,7 +330,7 @@ function Wireframe({
   ]);
 
   return (
-    <Stack>
+    <Container width="100%" height="100%" position="relative">
       <InteractionContainer>
         <Controls>
           <Button size="xs" ref={setZoomIn} aria-label={t('Zoom In on wireframe')}>
@@ -348,17 +349,11 @@ function Wireframe({
         data-test-id="view-hierarchy-wireframe"
         ref={r => setCanvasRef(r)}
       />
-    </Stack>
+    </Container>
   );
 }
 
 export {Wireframe};
-
-const Stack = styled('div')`
-  position: relative;
-  height: 100%;
-  width: 100%;
-`;
 
 const InteractionContainer = styled('div')`
   position: absolute;

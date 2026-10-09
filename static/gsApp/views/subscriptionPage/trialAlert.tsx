@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -44,7 +44,7 @@ export function TrialAlert({organization, subscription}: Props) {
       radius="md"
     >
       <SubscriptionBody withPadding>
-        <TrialInfo>
+        <Grid gap="md" autoRows="auto">
           <Flex align="center" gap="md">
             <StyledHeading>{trialName}</StyledHeading>
             <TrialBadge subscription={subscription} organization={organization} />
@@ -54,7 +54,7 @@ export function TrialAlert({organization, subscription}: Props) {
               featuresName,
             })}
           </StyledSubText>
-        </TrialInfo>
+        </Grid>
 
         {subscription.canSelfServe && (
           <ButtonWrapper gap="0">
@@ -71,12 +71,6 @@ export function TrialAlert({organization, subscription}: Props) {
     </Container>
   );
 }
-
-const TrialInfo = styled('div')`
-  display: grid;
-  grid-auto-rows: auto;
-  gap: ${p => p.theme.space.md};
-`;
 
 const StyledHeading = styled('span')`
   font-weight: 400;

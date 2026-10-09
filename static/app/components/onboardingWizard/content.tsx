@@ -94,7 +94,9 @@ function TaskCard({
         {title}
         {description && <p>{description}</p>}
       </TaskCardDescription>
-      <TaskCardActions>{actions}</TaskCardActions>
+      <Grid align="start" gap="md" autoColumns="20px" flow="column">
+        {actions}
+      </Grid>
     </TaskCardWrapper>
   );
 }
@@ -625,12 +627,4 @@ const TaskCardDescription = styled('div')`
   strong {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const TaskCardActions = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 20px;
-  gap: ${p => p.theme.space.md};
-  align-items: flex-start;
 `;
