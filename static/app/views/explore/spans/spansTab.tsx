@@ -9,6 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {Override} from 'sentry/components/override';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -80,9 +81,6 @@ import {
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
-// eslint-disable-next-line boundaries/dependencies
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
-
 interface SpansTabOnboardingProps {
   datePageFilterProps: DatePageFilterProps;
   organization: Organization;
@@ -102,7 +100,11 @@ export function SpansTabOnboarding({
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
-        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
+        <Override
+          name="component:quota-exceeded-alert"
+          referrer="spans-explore"
+          traceItemDataset="spans"
+        />
         <Onboarding project={project} organization={organization} />
       </OnboardingContentSection>
     </Layout.Body>
@@ -327,7 +329,11 @@ function SpanTabContentSectionInner({
         </Flex>
       </OverChartButtonGroup>
       {defined(id) && <DroppedFieldsAlert />}
-      <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
+      <Override
+        name="component:quota-exceeded-alert"
+        referrer="spans-explore"
+        traceItemDataset="spans"
+      />
       <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>

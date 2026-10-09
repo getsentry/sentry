@@ -14,6 +14,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {makeDroppedDataQueryKeyPrefix} from 'sentry/components/droppedData/useDroppedData';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {Override} from 'sentry/components/override';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -105,9 +106,6 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
-
-// eslint-disable-next-line boundaries/dependencies
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
@@ -524,7 +522,11 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                 )}
               </Flex>
             </OverChartButtonGroup>
-            <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+            <Override
+              name="component:quota-exceeded-alert"
+              referrer="logs-explore"
+              traceItemDataset="logs"
+            />
             <LogsDownSamplingAlert
               timeseriesResult={timeseriesResult}
               tableResult={infiniteLogsQueryResult}

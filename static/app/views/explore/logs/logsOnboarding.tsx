@@ -27,6 +27,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {Override} from 'sentry/components/override';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -55,9 +56,6 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {SetupLogsButton} from 'sentry/views/explore/logs/setupLogsButton';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
-
-// eslint-disable-next-line boundaries/dependencies
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type OnboardingProps = {
   organization: Organization;
@@ -601,7 +599,11 @@ export function LogsTabOnboarding({
           </Flex>
         </ExploreFilterSection>
         <OnboardingContainer>
-          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+          <Override
+            name="component:quota-exceeded-alert"
+            referrer="logs-explore"
+            traceItemDataset="logs"
+          />
           <Onboarding project={project} organization={organization} />
         </OnboardingContainer>
       </Layout.Main>

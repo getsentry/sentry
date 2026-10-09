@@ -115,6 +115,11 @@ type OrganizationHeaderProps = {
 
 type ProductSelectionAvailabilityProps = Omit<ProductSelectionProps, 'disabledProducts'>;
 
+type QuotaExceededAlertProps = {
+  referrer: string;
+  traceItemDataset: 'logs' | 'spans';
+};
+
 type DateRangeQueryLimitFooterProps = {
   description: string;
   source: string;
@@ -208,6 +213,7 @@ type ComponentOverrides = {
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
+  'component:quota-exceeded-alert': React.ComponentType<QuotaExceededAlertProps>;
   'component:replay-init': React.ComponentType;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-settings-alert': () => React.ComponentType | null;

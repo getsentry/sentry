@@ -31,6 +31,7 @@ import {
   MetricAlertQuotaMessage,
 } from 'getsentry/components/metricAlertQuotaMessage';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerConfigReminder';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
@@ -260,6 +261,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:organization-membership-settings': () => OrganizationMembershipSettingsForm,
   'component:metric-alert-quota-message': MetricAlertQuotaMessage,
   'component:metric-alert-quota-icon': MetricAlertQuotaIcon,
+  'component:quota-exceeded-alert': QuotaExceededAlert,
 
   /**
    * Augment disable feature hooks for augmenting with upsell interfaces
