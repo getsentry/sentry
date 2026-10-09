@@ -8,7 +8,40 @@ const coreComponentFiles = [
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
-  rules: {'@sentry/scraps/prefer-primitives': 'error'},
+  rules: {
+    '@sentry/scraps/prefer-primitives': 'error',
+    // Shared code (components, utils, Scraps, ...) must not import view modules
+    // at runtime. Views pull in large parts of the app, so one incidental import
+    // from a shared module loads them for every consumer, including every Jest
+    // spec that renders it. Type-only imports are fine.
+    'layering/dependencies': [
+      'error',
+      {
+        default: 'allow',
+        message:
+          '{{from.element.type}} code must not import view modules at runtime. Move what it needs out of views/ into a shared module, or use `import type`.',
+        policies: [
+          {
+            disallow: {
+              from: {element: {types: {anyOf: ['sentry', 'scraps']}}},
+              to: {element: {type: 'sentry-views'}},
+              dependency: {kind: 'value'},
+            },
+          },
+          // Specs and stories aren't imported by other modules.
+          {
+            from: {
+              file: {categories: {anyOf: ['test', 'test-support', 'story-files']}},
+            },
+            allow: [{to: {element: {type: 'sentry-views'}}}],
+          },
+        ],
+      },
+    ],
+    // Import cycles make module evaluation order matter, e.g. a `jest.mock`
+    // factory that spreads `jest.requireActual()` can capture a half-loaded module.
+    'import/no-cycle': 'error',
+  },
   overrides: [
     {
       files: coreComponentFiles,
@@ -251,6 +284,12 @@ const config = defineConfig({
       name: 'boundaries',
       specifier: '@boundaries/eslint-plugin',
     },
+    // The same plugin under a second name, so the shared-code -> views rule can
+    // be enrolled as an incubator rule without ratcheting `boundaries/dependencies`.
+    {
+      name: 'layering',
+      specifier: './static/oxlint/layeringPlugin.ts',
+    },
     'eslint-plugin-jest-dom',
     'eslint-plugin-react-you-might-not-need-an-effect',
     'eslint-plugin-regexp',
@@ -331,6 +370,17 @@ const config = defineConfig({
       {
         type: 'sentry-fonts',
         pattern: 'static/fonts',
+      },
+      // Views and the router are part of the Sentry application, but shared code
+      // must not import views (see `layering/dependencies`), and the router is the
+      // one non-view place that legitimately loads them.
+      {
+        type: 'sentry-views',
+        pattern: 'static/app/views',
+      },
+      {
+        type: 'sentry-router',
+        pattern: 'static/app/router',
       },
       {
         type: 'sentry',
@@ -935,6 +985,8 @@ const config = defineConfig({
                 types: {
                   anyOf: [
                     'sentry',
+                    'sentry-views',
+                    'sentry-router',
                     'getsentry',
                     'gsAdmin',
                     'test',
@@ -1253,6 +1305,8 @@ const config = defineConfig({
                 types: {
                   anyOf: [
                     'sentry',
+                    'sentry-views',
+                    'sentry-router',
                     'getsentry',
                     'gsAdmin',
                     'scraps',
@@ -1575,6 +1629,7 @@ const config = defineConfig({
         'static/app/chartcuterie/config.tsx',
         'static/oxlint/eslintPluginSentry/index.ts',
         'static/oxlint/eslintPluginScraps/index.ts',
+        'static/oxlint/layeringPlugin.ts',
         'static/oxlint/oxlintCompat/*.ts',
         'tests/js/*-transform.*',
         'tests/js/test-*/*',
