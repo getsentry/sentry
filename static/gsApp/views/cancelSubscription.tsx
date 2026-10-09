@@ -6,7 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -86,14 +86,6 @@ const CANCEL_STEPS: Array<{
   },
 ];
 
-type State = {
-  canSubmit: boolean;
-  checkboxes: Record<string, boolean>;
-  showFollowup: boolean;
-  understandsMembers: boolean;
-  val: CancelReason[0] | null;
-};
-
 function CancelSubscriptionForm() {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -103,19 +95,9 @@ function CancelSubscriptionForm() {
       staleTime: 0,
     })
   );
-  const [state, setState] = useState<State>({
-    canSubmit: false,
-    showFollowup: false,
-    understandsMembers: false,
-    val: null,
-    checkboxes: {},
-  });
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {reason: '', followup: ''},
-    onSubmit: ({value}) => handleSubmit(value),
-  });
-
+  const [selectedReason, setSelectedReason] = useState<CancelReason[0] | null>(null);
+  const [checkboxes, setCheckboxes] = useState<Record<string, boolean>>({});
+  const [understandsMembers, setUnderstandsMembers] = useState(false);
   const mutation = useMutation({
     mutationFn: (data: {checkboxes: string[]; followup: string; reason: string}) =>
       fetchMutation<{details?: string}>({
@@ -143,14 +125,17 @@ function CancelSubscriptionForm() {
     },
   });
 
-  const handleSubmit = (data: {followup: string; reason: string}) => {
-    return mutation
-      .mutateAsync({
-        ...data,
-        checkboxes: Object.keys(state.checkboxes).filter(key => state.checkboxes[key]),
-      })
-      .catch(() => {});
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {reason: '', followup: ''},
+    onSubmit: ({value}) =>
+      mutation
+        .mutateAsync({
+          ...value,
+          checkboxes: Object.keys(checkboxes).filter(key => checkboxes[key]),
+        })
+        .catch(() => {}),
+  });
 
   if (isPending || !subscription) {
     return <LoadingIndicator />;
@@ -166,7 +151,7 @@ function CancelSubscriptionForm() {
     );
   }
 
-  if (subscription.usedLicenses > 1 && !state.understandsMembers) {
+  if (subscription.usedLicenses > 1 && !understandsMembers) {
     return (
       <Fragment>
         <Alert.Container>
@@ -182,19 +167,16 @@ function CancelSubscriptionForm() {
             )}
           </Alert>
         </Alert.Container>
-        <Button
-          variant="danger"
-          onClick={() =>
-            setState(currentState => ({...currentState, understandsMembers: true}))
-          }
-        >
+        <Button variant="danger" onClick={() => setUnderstandsMembers(true)}>
           {t('I understand')}
         </Button>
       </Fragment>
     );
   }
 
-  const followup = CANCEL_STEPS.find(cancel => cancel.reason[0] === state.val)?.followup;
+  const followup = CANCEL_STEPS.find(
+    cancel => cancel.reason[0] === selectedReason
+  )?.followup;
 
   return (
     <Fragment>
@@ -232,13 +214,8 @@ function CancelSubscriptionForm() {
                     onChange={val => {
                       field.handleChange(val);
                       form.setFieldValue('followup', '');
-                      setState(currentState => ({
-                        ...currentState,
-                        canSubmit: true,
-                        showFollowup: true,
-                        checkboxes: {},
-                        val,
-                      }));
+                      setCheckboxes({});
+                      setSelectedReason(val);
                     }}
                   >
                     {CANCEL_STEPS.map(cancel => (
@@ -246,20 +223,17 @@ function CancelSubscriptionForm() {
                         <Stack>
                           {cancel.reason[1]}
                           {cancel.checkboxes &&
-                            state.val === cancel.reason[0] &&
+                            selectedReason === cancel.reason[0] &&
                             cancel.checkboxes.map(([name, label]) => (
                               <Flex key={name} align="center" gap="md" padding="md 0">
                                 <Checkbox
                                   data-test-id={`checkbox-${name}`}
-                                  checked={state.checkboxes[name]}
+                                  checked={checkboxes[name]}
                                   name={name}
                                   onChange={event => {
-                                    setState(currentState => ({
-                                      ...currentState,
-                                      checkboxes: {
-                                        ...currentState.checkboxes,
-                                        [name]: event.target.checked,
-                                      },
+                                    setCheckboxes(currentCheckboxes => ({
+                                      ...currentCheckboxes,
+                                      [name]: event.target.checked,
                                     }));
                                   }}
                                 />
@@ -273,7 +247,7 @@ function CancelSubscriptionForm() {
                 </field.Layout.Stack>
               )}
             </form.AppField>
-            {state.showFollowup && (
+            {selectedReason && (
               <form.AppField name="followup">
                 {field => (
                   <field.Layout.Stack label={followup}>
@@ -286,10 +260,7 @@ function CancelSubscriptionForm() {
               </form.AppField>
             )}
 
-            <Grid display="inline-grid" flow="column" gap="md" marginTop="md">
-              <form.SubmitButton variant="danger" disabled={!state.canSubmit}>
-                {t('Cancel Subscription')}
-              </form.SubmitButton>
+            <Flex gap="md" marginTop="md">
               <Button
                 onClick={() => {
                   navigate(normalizeUrl(`/settings/${organization.slug}/billing/`));
@@ -297,7 +268,10 @@ function CancelSubscriptionForm() {
               >
                 {t('Never Mind')}
               </Button>
-            </Grid>
+              <form.SubmitButton variant="danger" disabled={!selectedReason}>
+                {t('Cancel Subscription')}
+              </form.SubmitButton>
+            </Flex>
           </form.AppForm>
         </PanelBody>
       </Panel>
