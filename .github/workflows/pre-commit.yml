@@ -59,13 +59,15 @@ jobs:
             all:
               - added|modified: '**/*'
             frontend:
-              - added|modified: 'static/**'
-              - added|modified: 'oxlint-suppressions.json'
-              - added|modified: 'oxlint.config.ts'
-              - added|modified: 'package.json'
-              - added|modified: 'pnpm-lock.yaml'
-              - added|modified: 'scripts/custom-oxlint.ts'
-              - added|modified: 'stylelint.config.js'
+              - 'static/**'
+              - 'tests/js/**'
+              - 'scripts/**'
+              - 'oxlint-suppressions.json'
+              - 'oxlint.config.ts'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'scripts/custom-oxlint.ts'
+              - 'stylelint.config.js'
 
       - uses: ./.github/actions/setup-node-pnpm
 
