@@ -1,17 +1,20 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconFix} from '@sentry/icons/fix';
+import {IconGraphBar} from '@sentry/icons/graphBar';
+import {IconLock} from '@sentry/icons/lock';
 import {useMutation} from '@tanstack/react-query';
 import missionControl from 'getsentry-images/missionControl.jpg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {IconClose, IconFix, IconLock} from 'sentry/icons';
-import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -46,7 +49,24 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
 
   return (
     <Fragment>
-      <ImageHeader />
+      <Container
+        height="200px"
+        overflow="hidden"
+        radius="md md 0 0"
+        css={theme => css`
+          margin: -${theme.space['3xl']} -${theme.space['2xl']} 0;
+
+          @container (min-width: ${theme.container['3xl']}) {
+            margin-inline: -${theme.space['3xl']};
+          }
+
+          background-image: url(${missionControl});
+          background-size: cover;
+          background-repeat: no-repeat;
+          background-position: center;
+          clip-path: polygon(100% 0%, 0% 0%, 0% 85%, 15% 75%, 80% 95%, 90% 85%, 100% 85%);
+        `}
+      />
       <DismissButton
         analyticsEventKey="data_consent_banner.dismissed"
         analyticsEventName="Data Consent Banner: Dismissed"
@@ -209,24 +229,6 @@ const LearnMore = styled(ExternalLink)`
     text-decoration: underline;
     /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     text-decoration-color: ${p => p.theme.tokens.border.accent.moderate};
-  }
-`;
-
-const ImageHeader = styled('div')`
-  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
-    0 -${p => p.theme.space['3xl']};
-  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-  background-image: url(${missionControl});
-  background-size: cover;
-  background-repeat: no-repeat;
-  overflow: hidden;
-  background-position: center;
-  height: 200px;
-  clip-path: polygon(100% 0%, 0% 0%, 0% 85%, 15% 75%, 80% 95%, 90% 85%, 100% 85%);
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['2xl']}
-      0 -${p => p.theme.space['2xl']};
   }
 `;
 

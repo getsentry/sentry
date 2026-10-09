@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {IconCopy} from '@sentry/icons/copy';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -6,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

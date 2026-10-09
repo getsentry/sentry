@@ -1,6 +1,9 @@
 import {duration} from 'moment-timezone';
 
-import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
+import type {
+  ArchivedReplayRecord,
+  HydratedReplayRecord,
+} from 'sentry/views/explore/replays/types';
 
 export function ReplayRecordFixture(
   replayRecord: Partial<HydratedReplayRecord> = {}
@@ -75,5 +78,55 @@ export function ReplayRecordFixture(
       'sdk.version': [replayRecord.sdk?.version ?? '7.1.1'],
       'user.ip': [replayRecord.user?.ip ?? '127.0.0.1'],
     },
+  };
+}
+
+/**
+ * A deleted replay. Every field the hydrated record carries is nulled out, so
+ * this is a distinct shape rather than an override of `ReplayRecordFixture`.
+ */
+export function ArchivedReplayRecordFixture(
+  replayRecord: Partial<ArchivedReplayRecord> = {}
+): ArchivedReplayRecord {
+  return {
+    activity: null,
+    browser: {name: null, version: null},
+    count_dead_clicks: null,
+    count_errors: null,
+    count_infos: null,
+    count_rage_clicks: null,
+    count_segments: null,
+    count_urls: null,
+    count_warnings: null,
+    device: {brand: null, family: null, model_id: null, name: null},
+    dist: null,
+    duration: null,
+    environment: null,
+    error_ids: [],
+    finished_at: null,
+    has_viewed: null,
+    id: '761104e184c64d439ee1014b72b4d83b',
+    info_ids: [],
+    is_archived: true,
+    os: {name: null, version: null},
+    ota_updates: {},
+    platform: null,
+    project_id: null,
+    releases: [],
+    replay_type: null,
+    sdk: {name: null, version: null},
+    started_at: null,
+    tags: {},
+    trace_ids: [],
+    urls: [],
+    user: {
+      display_name: 'Archived User',
+      email: null,
+      id: 'Archived User',
+      ip: null,
+      username: null,
+    },
+    warning_ids: [],
+    ...replayRecord,
   };
 }

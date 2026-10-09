@@ -2,6 +2,8 @@ import {Children} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 // Note: This component is also used in Explore multi-query mode
 // static/app/views/explore/multiQueryMode/queryConstructors/sortBy.tsx
 // and static/app/views/explore/multiQueryMode/queryConstructors/visualize.tsx
@@ -12,13 +14,17 @@ interface PageFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) => {
   return (
-    <StyledPageFilterBar listSize={Children.count(children)} {...props}>
+    <StyledPageFilterBar
+      listSize={Children.count(children)}
+      position="relative"
+      {...props}
+    >
       {children}
     </StyledPageFilterBar>
   );
 })``;
 
-const StyledPageFilterBar = styled('div')<{listSize: number; condensed?: boolean}>`
+const StyledPageFilterBar = styled(Flex)<{listSize: number; condensed?: boolean}>`
   ${p => pageFilterBarStyles(p)};
 `;
 
@@ -56,7 +62,7 @@ const pageFilterBarStyles = (p: {
 except in mobile */
     &:first-child {
       flex-shrink: 0;
-      @media only screen and (max-width: ${p.theme.breakpoints.sm}) {
+      @container (max-width: ${p.theme.container.xl}) {
         flex-shrink: 1;
       }
     }
@@ -75,9 +81,6 @@ except in mobile */
       width: max-content;
     `
   }
-
-  display: flex;
-  position: relative;
 
   height: ${p.theme.form.md.height};
 
