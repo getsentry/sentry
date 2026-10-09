@@ -175,7 +175,6 @@
     "./warning": "./src/iconWarning.tsx",
     "./wifi": "./src/iconWifi.tsx",
     "./window": "./src/iconWindow.tsx",
-    "./zoom": "./src/iconZoom.tsx",
     "./svgIcon": "./src/svgIcon.tsx",
     "./useIconDefaults": "./src/useIconDefaults.tsx"
   },

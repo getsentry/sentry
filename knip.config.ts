@@ -80,7 +80,7 @@ const config: KnipConfig = {
       ignoreFiles: ['static/**/*.less'],
     },
     'static/packages/icons': {
-      // Keep Knip's default coverage; test helpers are only used outside production.
+      // test helpers are only used outside production.
       project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!', '!test/**!'],
       includeEntryExports: true,
     },
