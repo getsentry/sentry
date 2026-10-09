@@ -114,6 +114,7 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "count_unique": count_unique_aggregate_definition(default_arg="group_id"),
     "first_seen": AggregateDefinition(
