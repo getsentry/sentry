@@ -21,8 +21,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixUpdate,
     SeerInvestigationError,
     SeerInvestigationErrorTemplate,
-    SeerInvestigationStatus,
-    SeerInvestigationStatusTemplate,
+    SeerInvestigationStarted,
+    SeerInvestigationStartedTemplate,
 )
 from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
@@ -717,7 +717,6 @@ class SlackInvestigationEntrypoint(
         self.install = SlackIntegration(
             model=slack_request.integration, organization_id=organization.id
         )
-        self.status_message_ts: str | None = None
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
@@ -775,30 +774,28 @@ class SlackInvestigationEntrypoint(
             except (IntegrationError, IntegrationConfigurationError) as e:
                 lifecycle.record_halt(halt_reason=e)
 
-    def _send_status_message(self) -> str | None:
+    def _send_started_message(self) -> None:
         with SlackEntrypointEventLifecycleMetric(
-            interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_STATUS,
+            interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_STARTED,
             integration_id=self.install.model.id,
             organization_id=self.organization.id,
         ).capture() as lifecycle:
             lifecycle.add_extras({"channel_id": self.channel_id, "thread_ts": self.thread_ts})
             renderable = NotificationService.render_template(
-                data=SeerInvestigationStatus(
+                data=SeerInvestigationStarted(
                     organization_id=self.organization.id, slack_user_id=self.slack_user_id
                 ),
-                template=SeerInvestigationStatusTemplate(),
+                template=SeerInvestigationStartedTemplate(),
                 provider=provider_registry.get(NotificationProviderKey.SLACK),
             )
             try:
-                response = self.install.send_threaded_message(
+                self.install.send_threaded_message(
                     channel_id=self.channel_id,
                     renderable=renderable,
                     thread_ts=self.thread_ts,
                 )
             except (IntegrationError, IntegrationConfigurationError) as e:
                 lifecycle.record_halt(halt_reason=e)
-                return None
-            return response.get("ts") if response else None
 
     def on_trigger_investigation_error(self, *, error: str) -> None:
         from sentry.integrations.slack.workspace import send_threaded_ephemeral_message
@@ -825,7 +822,7 @@ class SlackInvestigationEntrypoint(
     def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
         link = investigation.get_absolute_url()
         self._update_alert_message(link)
-        self.status_message_ts = self._send_status_message()
+        self._send_started_message()
 
     def create_investigation_cache_payload(self) -> SlackInvestigationCachePayload:
         return SlackInvestigationCachePayload(
@@ -834,7 +831,7 @@ class SlackInvestigationEntrypoint(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
             alert_message_ts=self.message_ts,
-            status_message_ts=self.status_message_ts,
+            status_message_ts=None,
             slack_user_id=self.slack_user_id,
             last_sent_state=None,
             final_sent=False,

@@ -30,8 +30,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixUpdate,
     SeerInvestigationError,
     SeerInvestigationErrorTemplate,
-    SeerInvestigationStatus,
-    SeerInvestigationStatusTemplate,
+    SeerInvestigationStarted,
+    SeerInvestigationStartedTemplate,
 )
 from sentry.notifications.platform.types import NotificationRenderedTemplate
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -436,10 +436,10 @@ class SeerAgentWriteApprovalSlackRendererTest(TestCase):
 
 
 class SeerSlackRendererInvestigationTest(TestCase):
-    def test_render_investigation_status(self) -> None:
+    def test_render_investigation_started(self) -> None:
         renderable = NotificationService.render_template(
-            data=SeerInvestigationStatus(organization_id=1, slack_user_id="U0123456789"),
-            template=SeerInvestigationStatusTemplate(),
+            data=SeerInvestigationStarted(organization_id=1, slack_user_id="U0123456789"),
+            template=SeerInvestigationStartedTemplate(),
             provider=SlackNotificationProvider,
         )
 

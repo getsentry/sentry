@@ -10,8 +10,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixUpdate,
     SeerInvestigationError,
     SeerInvestigationErrorTemplate,
-    SeerInvestigationStatus,
-    SeerInvestigationStatusTemplate,
+    SeerInvestigationStarted,
+    SeerInvestigationStartedTemplate,
     _get_next_stopping_point,
 )
 from sentry.notifications.platform.types import ParagraphSection
@@ -140,10 +140,10 @@ class SeerAgentErrorTemplateTest(TestCase):
         assert rendered.body[0].blocks[0].text == "Timeout."
 
 
-class SeerInvestigationStatusTemplateTest(TestCase):
+class SeerInvestigationStartedTemplateTest(TestCase):
     def test_render(self) -> None:
-        rendered = SeerInvestigationStatusTemplate().render(
-            SeerInvestigationStatus(organization_id=1, slack_user_id="U0123456789")
+        rendered = SeerInvestigationStartedTemplate().render(
+            SeerInvestigationStarted(organization_id=1, slack_user_id="U0123456789")
         )
 
         assert rendered.subject == "Seer investigation started"

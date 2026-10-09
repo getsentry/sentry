@@ -29,7 +29,6 @@ from . import BaseEventTest
 FEATURES = ["organizations:investigations", "organizations:investigations-slack"]
 CHANNEL_ID = "C065W1189"
 MESSAGE_TS = "1702424381.221719"
-STATUS_MESSAGE_TS = "1702424399.000100"
 
 
 def _slack_response(data: dict[str, Any]) -> SlackResponse:
@@ -57,7 +56,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         self.mock_post_message = self.enterContext(
             patch(
                 "slack_sdk.web.client.WebClient.chat_postMessage",
-                return_value=_slack_response({"ok": True, "ts": STATUS_MESSAGE_TS}),
+                return_value=_slack_response({"ok": True, "ts": "1702424399.000100"}),
             )
         )
         self.mock_post_ephemeral = self.enterContext(
@@ -259,7 +258,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             channel_id=CHANNEL_ID,
             thread_ts=MESSAGE_TS,
             alert_message_ts=MESSAGE_TS,
-            status_message_ts=STATUS_MESSAGE_TS,
+            status_message_ts=None,
             slack_user_id=self.external_id,
             last_sent_state=None,
             final_sent=False,
@@ -299,7 +298,6 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             entrypoint_key="slack", investigation_id=investigation.id
         )
         assert cache_payload is not None
-        assert cache_payload["status_message_ts"] == STATUS_MESSAGE_TS
 
     @with_feature(FEATURES)
     @patch(

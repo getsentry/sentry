@@ -233,20 +233,20 @@ class SeerAgentWriteApprovalTemplate(NotificationTemplate[SeerAgentWriteApproval
         return NotificationRenderedTemplate(subject="Seer Agent Write Approval", body=[])
 
 
-class SeerInvestigationStatus(NotificationData):
-    """Status of a Seer investigation, posted in the alert's Slack thread."""
+class SeerInvestigationStarted(NotificationData):
+    """Posted in the alert's Slack thread when someone starts a Seer investigation."""
 
     slack_user_id: str
-    source: NotificationSource = NotificationSource.SEER_INVESTIGATION_STATUS
+    source: NotificationSource = NotificationSource.SEER_INVESTIGATION_STARTED
 
 
-@template_registry.register(NotificationSource.SEER_INVESTIGATION_STATUS)
-class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStatus]):
+@template_registry.register(NotificationSource.SEER_INVESTIGATION_STARTED)
+class SeerInvestigationStartedTemplate(NotificationTemplate[SeerInvestigationStarted]):
     category = NotificationCategory.SEER
-    example_data = SeerInvestigationStatus(organization_id=1, slack_user_id="U0123456789")
+    example_data = SeerInvestigationStarted(organization_id=1, slack_user_id="U0123456789")
     hide_from_debugger = True
 
-    def render(self, data: SeerInvestigationStatus) -> NotificationRenderedTemplate:
+    def render(self, data: SeerInvestigationStarted) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject="Seer investigation started",
             body=[
