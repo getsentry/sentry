@@ -28,7 +28,7 @@ import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtuali
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
 const ROW_HEIGHT = 24;
-const WEIGHT_COLUMN_WIDTH = 150;
+const WEIGHT_COLUMN_WIDTH = 160;
 const INDENT_WIDTH = 14;
 
 const COLUMNS: TableColumnConfig[] = [
