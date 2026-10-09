@@ -7,10 +7,21 @@ import sentry
 from sentry import application_state, options
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.web.client_config import get_client_config
 
 
 class SystemOptionsTest(APITestCase):
     url = reverse("sentry-api-0-system-options")
+
+    def test_support_email_update_is_visible_in_client_config(self) -> None:
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
+
+        with override_settings(SENTRY_SYSTEM_SUPPORT_EMAIL="", SENTRY_OPTIONS={}):
+            response = self.client.put(self.url, {"system.support-email": "support@example.com"})
+
+            assert response.status_code == 200
+            assert get_client_config()["supportEmail"] == "support@example.com"
 
     def test_without_superuser(self) -> None:
         self.login_as(user=self.user, superuser=False)
