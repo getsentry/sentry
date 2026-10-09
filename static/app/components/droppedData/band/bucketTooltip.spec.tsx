@@ -2,9 +2,9 @@ import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DroppedDataTooltip} from 'sentry/components/droppedData/droppedDataTooltip';
+import {DroppedDataTooltip} from 'sentry/components/droppedData/band/bucketTooltip';
+import {groupIntoBuckets} from 'sentry/components/droppedData/buckets';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
-import {groupIntoBuckets} from 'sentry/components/droppedData/utils';
 
 const START = Date.UTC(2024, 0, 12, 15, 0);
 const END = Date.UTC(2024, 0, 12, 15, 5);

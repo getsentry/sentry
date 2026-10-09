@@ -8,14 +8,14 @@ import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {
   formatDroppedShare,
   getOutcomeColors,
   outcomeLabel,
   reasonDescription,
   reasonTitle,
-} from 'sentry/components/droppedData/utils';
+} from 'sentry/components/droppedData/outcomes';
+import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';

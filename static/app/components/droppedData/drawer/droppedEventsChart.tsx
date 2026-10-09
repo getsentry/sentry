@@ -4,8 +4,8 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {getOutcomeColors, outcomeLabel} from 'sentry/components/droppedData/outcomes';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
-import {getOutcomeColors, outcomeLabel} from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
