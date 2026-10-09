@@ -113,8 +113,8 @@ def start_service_monitoring() -> None:
             continue
 
         traces.new_trace()
-        active_propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
-        prev_sampling_context = active_propagation_context.custom_sampling_context
+        propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+        prev_sampling_context = propagation_context.custom_sampling_context
         Scope.set_custom_sampling_context({"sample_rate": 1.0})
         try:
             span = traces.start_span(
@@ -122,7 +122,8 @@ def start_service_monitoring() -> None:
                 parent_span=None,
             )
         finally:
-            active_propagation_context.custom_sampling_context = prev_sampling_context
+            propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+            propagation_context.custom_sampling_context = prev_sampling_context
         with span:
             # first, check each base service and record its health
             unhealthy_services = check_service_health(services)

@@ -136,10 +136,8 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
         try:
             traces.new_trace()
-            active_propagation_context = (
-                sentry_sdk.get_current_scope().get_active_propagation_context()
-            )
-            prev_sampling_context = active_propagation_context.custom_sampling_context
+            propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+            prev_sampling_context = propagation_context.custom_sampling_context
             Scope.set_custom_sampling_context(
                 {"sample_rate": 0.01 * settings.SENTRY_BACKEND_APM_SAMPLING}
             )
@@ -150,7 +148,10 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                     parent_span=None,
                 )
             finally:
-                active_propagation_context.custom_sampling_context = prev_sampling_context
+                propagation_context = (
+                    sentry_sdk.get_current_scope().get_active_propagation_context()
+                )
+                propagation_context.custom_sampling_context = prev_sampling_context
 
             with span:
                 task_execution(model_name, chunk, project_id)
