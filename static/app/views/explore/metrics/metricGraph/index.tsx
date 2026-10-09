@@ -228,8 +228,10 @@ function Graph({
     return title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
   }, [aggregate, metricLabel, metricName, visualizes.length, title]);
 
+  const isEmptyEquation = isVisualizeEquation(visualize) && !visualize.expression.text;
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
-  const showChart = visualize.visible && !isMetricOptionsEmpty;
+  const showEquationPrompt = isEmptyEquation && visualize.visible;
+  const showChart = visualize.visible && !isMetricOptionsEmpty && !isEmptyEquation;
   const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
@@ -262,6 +264,11 @@ function Graph({
                   ),
                 }
               )}
+            />
+          ) : showEquationPrompt ? (
+            <GenericWidgetEmptyStateWarning
+              title={t('Enter an equation to see results')}
+              message=""
             />
           ) : showChart ? (
             <ChartVisualization
