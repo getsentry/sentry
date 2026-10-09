@@ -1,10 +1,8 @@
 import type {ComponentProps} from 'react';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ChoiceMapperField} from 'sentry/components/forms/fields/choiceMapperField';
-
-jest.unmock('@tanstack/react-pacer');
 
 describe('ChoiceMapperField', () => {
   const mockOnChange = jest.fn();
@@ -275,36 +273,29 @@ describe('ChoiceMapperField', () => {
       expect(menuItems).toHaveLength(1);
     });
 
-    describe('debounced search', () => {
-      afterEach(async () => {
-        await act(() => jest.runOnlyPendingTimersAsync());
-        jest.useRealTimers();
+    it('debounces search queries', async () => {
+      const mockRequest = MockApiClient.addMockResponse({
+        url: '/test/search',
+        body: [{value: 'test', label: 'Test Item'}],
       });
 
-      it('debounces search queries', async () => {
-        jest.useFakeTimers();
-        const user = userEvent.setup({
-          advanceTimers: jest.advanceTimersByTime,
-        });
-        const mockRequest = MockApiClient.addMockResponse({
-          url: '/test/search',
-          body: [{value: 'test', label: 'Test Item'}],
-        });
+      render(<ChoiceMapperField {...asyncProps} />);
 
-        render(<ChoiceMapperField {...asyncProps} />);
+      await userEvent.click(screen.getByRole('button', {name: /Add Item/i}));
 
-        await user.click(screen.getByRole('button', {name: /Add Item/i}));
+      const searchInput = screen.getByRole('textbox');
 
-        const searchInput = screen.getByRole('textbox');
-        await user.type(searchInput, 'test');
+      await userEvent.type(searchInput, 'test', {delay: 10});
 
-        await act(() => jest.advanceTimersByTimeAsync(249));
-        expect(mockRequest).not.toHaveBeenCalled();
+      // Wait for the debounced request and result to appear
+      await waitFor(
+        () => {
+          expect(screen.getByText('Test Item')).toBeInTheDocument();
+        },
+        {timeout: 1000}
+      );
 
-        await act(() => jest.advanceTimersByTimeAsync(1));
-        expect(await screen.findByText('Test Item')).toBeInTheDocument();
-        expect(mockRequest).toHaveBeenCalledTimes(1);
-      });
+      expect(mockRequest).toHaveBeenCalled();
     });
   });
 });

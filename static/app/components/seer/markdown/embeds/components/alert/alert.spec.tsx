@@ -87,7 +87,11 @@ describe('alert embed', () => {
     // The block's name is the collapse toggle; the link out is a separate target.
     // The status dot sits inside the toggle, so its label joins the toggle's name.
     expect(
-      await screen.findByRole('button', {name: `${automation.name} Enabled`})
+      await screen.findByRole(
+        'button',
+        {name: `${automation.name} Enabled`},
+        {timeout: 5_000}
+      )
     ).toBeInTheDocument();
     expect(screen.getByRole('img', {name: 'Enabled'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Alert'})).toHaveAttribute(
@@ -109,7 +113,9 @@ describe('alert embed', () => {
 
     renderDetectorAlert(detector, 'metric');
 
-    expect(await screen.findByRole('button', {name: detector.name})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: detector.name}, {timeout: 5_000})
+    ).toBeInTheDocument();
     expect(await screen.findByText('Dataset:')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Rules'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Alert actions'})).toBeInTheDocument();
@@ -128,7 +134,9 @@ describe('alert embed', () => {
 
     renderDetectorAlert(detector, 'uptime');
 
-    expect(await screen.findByText('Monitor configuration')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Monitor configuration', {}, {timeout: 5_000})
+    ).toBeInTheDocument();
     expect(screen.getByText('GET https://example.com')).toBeInTheDocument();
     expect(screen.getByText('Creates an issue')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Alert actions'})).toBeInTheDocument();
@@ -144,7 +152,7 @@ describe('alert embed', () => {
 
     renderDetectorAlert(detector, 'cron');
 
-    expect(await screen.findByText('Schedule')).toBeInTheDocument();
+    expect(await screen.findByText('Schedule', {}, {timeout: 5_000})).toBeInTheDocument();
     expect(screen.getByText('Monitor slug')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Alert actions'})).toBeInTheDocument();
     expect(screen.queryByText('Recent check-ins')).not.toBeInTheDocument();

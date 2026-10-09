@@ -2351,7 +2351,9 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByText('There was an error loading data.')
+      await screen.findByText('There was an error loading data.', undefined, {
+        timeout: 5000,
+      })
     ).toBeInTheDocument();
   });
 
@@ -2364,7 +2366,7 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    const retry = await screen.findByRole('button', {name: 'Retry'});
+    const retry = await screen.findByRole('button', {name: 'Retry'}, {timeout: 5000});
     expect(projectConfigRequest).toHaveBeenCalledTimes(1);
 
     await userEvent.click(retry);

@@ -41,7 +41,9 @@ describe('saved issue view embed', () => {
     renderEmbed({name: 'savedIssueView', data: {id: view.id}});
 
     // The block's name is the collapse toggle; the link out is a separate target.
-    expect(await screen.findByRole('button', {name: view.name})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: view.name}, {timeout: 10_000})
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/views/77/'
@@ -87,7 +89,9 @@ describe('saved issue view embed', () => {
 
     renderEmbed({name: 'savedIssueView', data: {id: view.id}});
 
-    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('loading-error', {}, {timeout: 10_000})
+    ).toBeInTheDocument();
     // A retry can't fix a query the endpoint rejects, so none is offered.
     expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
   });

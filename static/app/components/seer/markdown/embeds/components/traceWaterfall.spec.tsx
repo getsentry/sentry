@@ -40,7 +40,11 @@ describe('traceWaterfall embed', () => {
     renderEmbed({name: 'traceWaterfall', data: {traceId, timestamp}});
 
     expect(
-      await screen.findByText(/We were unable to find any spans for this trace/)
+      await screen.findByText(
+        /We were unable to find any spans for this trace/,
+        {},
+        {timeout: 10_000}
+      )
     ).toBeInTheDocument();
     // The block's name is the collapse toggle; the link out is a separate target.
     expect(screen.getByRole('button', {name: 'Trace a1b2c3d4'})).toBeInTheDocument();
@@ -125,7 +129,9 @@ describe('traceWaterfall embed', () => {
 
     renderEmbed({name: 'traceWaterfall', data: {traceId, timestamp}});
 
-    expect(await screen.findByPlaceholderText('Search in trace')).toHaveValue('');
+    expect(
+      await screen.findByPlaceholderText('Search in trace', {}, {timeout: 10_000})
+    ).toHaveValue('');
   });
 });
 

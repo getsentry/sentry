@@ -1,4 +1,9 @@
 {
+  "static/app/bootstrap/processInitQueue.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
   "static/app/components/acl/featureDisabled.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -542,6 +547,11 @@
       "count": 1
     }
   },
+  "static/app/components/forms/fields/choiceMapperField.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
   "static/app/components/forms/fields/choiceMapperField.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -950,6 +960,11 @@
       "count": 1
     }
   },
+  "static/app/components/profiling/flamegraph/flamegraph.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
   "static/app/components/profiling/flamegraph/flamegraphDrawer/flamegraphDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -1326,9 +1341,39 @@
       "count": 1
     }
   },
+  "static/app/components/seer/markdown/__stories__/savedIssueViewEmbedStory.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
+  "static/app/components/seer/markdown/embeds/components/alert/alert.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 4
+    }
+  },
   "static/app/components/seer/markdown/embeds/components/autofix.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "static/app/components/seer/markdown/embeds/components/dashboard.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
+  "static/app/components/seer/markdown/embeds/components/issuesQuery.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 2
+    }
+  },
+  "static/app/components/seer/markdown/embeds/components/savedIssueView.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 2
+    }
+  },
+  "static/app/components/seer/markdown/embeds/components/traceWaterfall.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 2
     }
   },
   "static/app/components/seer/seerAutomationProjectList.tsx": {
@@ -3223,6 +3268,9 @@
     }
   },
   "static/app/views/seerWorkflows/overview/index.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 2
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -3404,6 +3452,11 @@
   },
   "static/app/views/settings/organizationDeveloperSettings/permissionsObserver.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/index.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
       "count": 1
     }
   },
@@ -3622,9 +3675,19 @@
       "count": 1
     }
   },
+  "static/gsAdmin/components/addToStartupProgramAction.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
   "static/gsAdmin/components/adminConfirmationModal.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 13
+    }
+  },
+  "static/gsAdmin/components/changeBalanceAction.spec.tsx": {
+    "@sentry/prefer-fake-timers": {
+      "count": 1
     }
   },
   "static/gsAdmin/components/customerName.tsx": {

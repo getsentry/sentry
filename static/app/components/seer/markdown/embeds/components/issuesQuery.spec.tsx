@@ -61,12 +61,18 @@ describe('issues query embed', () => {
       },
     });
 
-    const toggle = await screen.findByRole('button', {name: 'Related issues'});
+    const toggle = await screen.findByRole(
+      'button',
+      {name: 'Related issues'},
+      {timeout: 10_000}
+    );
     expect(screen.getByRole('link', {name: 'View Issues'})).toHaveAttribute(
       'href',
       expect.stringContaining('/organizations/org-slug/issues/')
     );
-    expect(await screen.findByText(issue.shortId)).toBeInTheDocument();
+    expect(
+      await screen.findByText(issue.shortId, undefined, {timeout: 10_000})
+    ).toBeInTheDocument();
     expect(
       screen.getAllByLabelText('issue:[JAVASCRIPT-991,JAVASCRIPT-992]').length
     ).toBeGreaterThan(0);

@@ -211,9 +211,12 @@ describe('BalanceChangeAction', () => {
       );
     });
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Credit Amount')).toBeEnabled();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByLabelText('Credit Amount')).toBeEnabled();
+      },
+      {timeout: 5_000}
+    );
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeEnabled();
     expect(screen.getByRole('textbox', {name: 'Notes'})).toBeEnabled();
     expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled();

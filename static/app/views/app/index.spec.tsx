@@ -95,9 +95,11 @@ describe('App', () => {
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
-    const yes = await screen.findByRole('radio', {
-      name: 'Yes, I would like to receive updates via email',
-    });
+    const yes = await screen.findByRole(
+      'radio',
+      {name: 'Yes, I would like to receive updates via email'},
+      {interval: 100}
+    );
     const no = screen.getByRole('radio', {
       name: "No, I'd prefer not to receive these updates",
     });
@@ -129,7 +131,9 @@ describe('App', () => {
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
     const beaconConsentText = await screen.findByText(
-      'We have made some updates to our self-hosted beacon broadcast system, and just need to get a quick answer from you.'
+      'We have made some updates to our self-hosted beacon broadcast system, and just need to get a quick answer from you.',
+      undefined,
+      {interval: 100}
     );
     expect(beaconConsentText).toBeInTheDocument();
   });

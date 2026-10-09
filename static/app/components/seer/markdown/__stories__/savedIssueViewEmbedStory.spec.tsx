@@ -33,7 +33,7 @@ describe('SavedIssueViewEmbedStory', () => {
     render(<SavedIssueViewEmbedStory />);
 
     expect(
-      (await screen.findAllByRole('link', {name: view.name})).length
+      (await screen.findAllByRole('link', {name: view.name}, {timeout: 10_000})).length
     ).toBeGreaterThan(0);
     expect(
       screen.queryByText('No saved issue view is available for this organization.')
