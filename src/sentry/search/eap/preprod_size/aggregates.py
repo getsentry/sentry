@@ -16,6 +16,7 @@ PREPROD_SIZE_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "min": AggregateDefinition(
         internal_function=Function.FUNCTION_MIN,
@@ -29,5 +30,6 @@ PREPROD_SIZE_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
 }
