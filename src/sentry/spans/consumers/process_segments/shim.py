@@ -4,6 +4,7 @@ This is only necessary for logic that is shared between the event processing pip
 and thus cannot (yet) be refactored to use the new span schema.
 """
 
+import logging
 import uuid
 from typing import Any
 from urllib.parse import parse_qsl
@@ -19,6 +20,9 @@ from sentry.spans.consumers.process_segments.types import (
 )
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
+
+logger = logging.getLogger("issue_detection.shim_event_creation")
+
 
 EMPTY_ATTRIBUTE_VALUES = frozenset({"", None})
 
@@ -134,13 +138,24 @@ def _extract_attribute_values(
     """
     Pull data from the segment span's attributes for every field in the given map.
 
-    Returns a dict of all non-null, non-empty values found, keyed by event field name.
+    Returns a dict of all non-null, non-empty values found, keyed by event field name. Also attempts
+    to reinflate known JSON values.
     """
     values_by_field_name = {}
 
     for attribute_name, field_name in attribute_to_field_map.items():
         value = attribute_value(segment_span, attribute_name)
         if value not in EMPTY_ATTRIBUTE_VALUES:
+            if attribute_name.startswith("sentry.event.serialized_"):
+                try:
+                    value = json.loads(value)
+                except Exception:
+                    logger.exception(
+                        f"Failed to parse serialized '{field_name}' attribute for shim transaction event",
+                        extra={"span_id": segment_span["span_id"]},
+                    )
+                    continue
+
             values_by_field_name[field_name] = value
 
     return values_by_field_name
