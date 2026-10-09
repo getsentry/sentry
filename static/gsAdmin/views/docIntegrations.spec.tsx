@@ -4,8 +4,10 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 
@@ -25,6 +27,43 @@ describe('Doc Integrations', () => {
     expect(
       screen.getByRole('heading', {name: 'Document Integrations'})
     ).toBeInTheDocument();
+  });
+
+  it('creates an integration through the modal footer', async () => {
+    MockApiClient.addMockResponse({url: '/doc-integrations/', method: 'GET', body: []});
+    MockApiClient.addMockResponse({
+      url: '/integration-features/',
+      method: 'GET',
+      body: [{featureId: 1, featureGate: 'integrations-alerts'}],
+    });
+    const create = MockApiClient.addMockResponse({
+      url: '/doc-integrations/',
+      method: 'POST',
+      body: DocIntegrationFixture({slug: 'example'}),
+    });
+    render(<DocIntegrations />);
+    await userEvent.click(screen.getByRole('button', {name: 'Create Doc Integration'}));
+    renderGlobalModal();
+
+    await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'Example');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Example author');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'URL'}),
+      'https://example.com'
+    );
+    await userEvent.type(screen.getByRole('textbox', {name: 'Resource Title'}), 'Docs');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Resource URL'}),
+      'https://example.com/docs'
+    );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Features'}), 'alerts');
+    await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      '/doc-integrations/',
+      expect.objectContaining({data: expect.objectContaining({name: 'Example'})})
+    );
   });
 });
 
