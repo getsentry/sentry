@@ -29,7 +29,12 @@ from sentry.notifications.platform.threading import (
     ThreadingOptions,
     ThreadingService,
 )
-from sentry.notifications.platform.tracking import NotificationTrackingContext, record_sent
+from sentry.notifications.platform.tracking import (
+    NotificationLink,
+    NotificationLinkDecorator,
+    NotificationTrackingContext,
+    record_sent,
+)
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -120,7 +125,7 @@ class NotificationService[T: NotificationData]:
             # Update the lifecycle with the notification category now that we know it
             event_lifecycle.notification_category = template.category
             try:
-                renderable = NotificationService.render_template(
+                renderable, links = NotificationService.render_template(
                     data=self.data, template=template, provider=provider
                 )
             except Exception as e:
@@ -155,7 +160,8 @@ class NotificationService[T: NotificationData]:
                         category=template.category,
                         notification_uuid=self.data.notification_uuid,
                         organization_id=self.data.organization_id,
-                    )
+                    ),
+                    links=links,
                 )
 
             # Step 5: Store threading result
@@ -180,10 +186,18 @@ class NotificationService[T: NotificationData]:
         data: T,
         template: NotificationTemplate[T],
         provider: type[NotificationProvider[RenderableT]],
-    ) -> RenderableT:
+    ) -> tuple[RenderableT, set[NotificationLink]]:
+        """
+        Returns the renderable and the kinds of tracked link it contains.
+        """
+        link_decorator = NotificationLinkDecorator(data=data, provider=provider.key)
         rendered_template = template.render(data=data)
         renderer = provider.get_renderer(data=data)
-        return renderer.render(data=data, rendered_template=rendered_template)
+        if renderer is provider.default_renderer:
+            # We aren't using a custom renderer (which decorates its own links), so we need to decorate the default renderer.
+            rendered_template = link_decorator.decorate_rendered_template(rendered_template)
+        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        return renderable, link_decorator.links
 
     @staticmethod
     def _resolve_thread_context(
@@ -378,7 +392,7 @@ def notify_target_async(
         template = template_cls()
         lifecycle_metric.notification_category = template.category
         try:
-            renderable = NotificationService.render_template(
+            renderable, links = NotificationService.render_template(
                 data=notification_data, template=template, provider=provider
             )
         except Exception as e:
@@ -411,7 +425,8 @@ def notify_target_async(
                     category=template.category,
                     notification_uuid=notification_data.notification_uuid,
                     organization_id=notification_data.organization_id,
-                )
+                ),
+                links=links,
             )
 
         # Step 6: Store threading result
