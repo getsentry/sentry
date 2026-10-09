@@ -802,6 +802,9 @@ importers:
       color:
         specifier: 5.0.2
         version: 5.0.2
+      conduit-client:
+        specifier: ^1.0.0
+        version: 1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       cronstrue:
         specifier: ^2.50.0
         version: 2.50.0
@@ -1016,9 +1019,6 @@ importers:
       '@types/reflux':
         specifier: 0.4.1
         version: 0.4.1
-      conduit-client:
-        specifier: ^1.0.0
-        version: 1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       expect-type:
         specifier: 1.4.0
         version: 1.4.0
