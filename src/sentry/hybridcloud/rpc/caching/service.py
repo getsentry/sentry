@@ -9,7 +9,13 @@ from collections.abc import Callable, Generator, Mapping
 from typing import TYPE_CHECKING, Generic, TypeVar, TypeVarTuple
 
 import pydantic
+import sentry_sdk
 
+from sentry.hybridcloud.rpc.caching.encryption import (
+    CacheEncrypter,
+    EncryptionMethod,
+    InvalidEncodingError,
+)
 from sentry.hybridcloud.rpc.resolvers import ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
 from sentry.silo.base import SiloMode
@@ -44,6 +50,21 @@ class CellCachingService(RpcService):
 _R = TypeVar("_R", bound=pydantic.BaseModel)
 _Params = TypeVarTuple("_Params")
 
+
+def _encode_for_cache(serialized: str, encrypt_contents: bool) -> str | None:
+    """
+    Mainly a convenience wrapper for encryption, if it's enabled. If encryption
+    fails, the result is returned as None, which should prevent caching.
+    """
+    if not encrypt_contents:
+        return serialized
+    try:
+        return CacheEncrypter.encrypt(serialized, EncryptionMethod.FERNET)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return None
+
+
 # Cache keys are stored in ``CacheVersionBase.keyname``, a varchar(200). Keys longer than
 # this raise a DataError when a version row is created during cache invalidation.
 MAX_CACHE_KEY_LENGTH = 200
@@ -75,6 +96,7 @@ class SiloCacheBackedCallable(Generic[*_Params, _R]):
     cb: Callable[[*_Params], _R | None]
     type_: type[_R]
     timeout: int | None
+    encrypt_contents: bool
 
     def __init__(
         self,
@@ -83,6 +105,7 @@ class SiloCacheBackedCallable(Generic[*_Params, _R]):
         cb: Callable[[*_Params], _R | None],
         t: type[_R],
         timeout: int | None = None,
+        encrypt_contents: bool = False,
     ):
         if len(base_key) > MAX_BASE_KEY_LENGTH:
             raise ValueError(
@@ -95,6 +118,7 @@ class SiloCacheBackedCallable(Generic[*_Params, _R]):
         self.cb = cb
         self.type_ = t
         self.timeout = timeout
+        self.encrypt_contents = encrypt_contents
 
     def __call__(self, *args: *_Params) -> _R | None:
         if (
@@ -134,8 +158,13 @@ class SiloCacheBackedCallable(Generic[*_Params, _R]):
         if isinstance(value, str):
             try:
                 metrics.incr("hybridcloud.caching.one.cached", tags={"base_key": self.base_key})
+                # An undecryptable value is returned as-is and fails JSON parsing below,
+                # and a value that decrypts to invalid UTF-8 raises InvalidEncodingError.
+                # Both are treated as a cache miss.
+                if self.encrypt_contents and CacheEncrypter.is_encrypted(value):
+                    value = CacheEncrypter.decrypt(value)
                 return self.type_(**json.loads(value))
-            except (pydantic.ValidationError, JSONDecodeError, TypeError):
+            except (pydantic.ValidationError, JSONDecodeError, TypeError, InvalidEncodingError):
                 version = yield from _delete_cache(key, self.silo_mode)
         else:
             version = value
@@ -143,7 +172,9 @@ class SiloCacheBackedCallable(Generic[*_Params, _R]):
         metrics.incr("hybridcloud.caching.one.rpc", tags={"base_key": self.base_key})
         r = self.cb(*args)
         if r is not None:
-            _consume_generator(_set_cache(key, r.json(), version, self.timeout))
+            cache_value = _encode_for_cache(r.json(), self.encrypt_contents)
+            if cache_value is not None:
+                _consume_generator(_set_cache(key, cache_value, version, self.timeout))
         return r
 
     def get_one(self, *args: *_Params) -> _R | None:
@@ -169,6 +200,7 @@ class SiloCacheBackedListCallable(Generic[_R]):
     cb: Callable[[int], list[_R]]
     type_: type[_R]
     timeout: int | None
+    encrypt_contents: bool
 
     def __init__(
         self,
@@ -177,12 +209,14 @@ class SiloCacheBackedListCallable(Generic[_R]):
         cb: Callable[[int], list[_R]],
         t: type[_R],
         timeout: int | None = None,
+        encrypt_contents: bool = False,
     ):
         self.base_key = base_key
         self.silo_mode = silo_mode
         self.cb = cb
         self.type_ = t
         self.timeout = timeout
+        self.encrypt_contents = encrypt_contents
 
     def __call__(self, object_id: int) -> list[_R]:
         if (
@@ -206,8 +240,20 @@ class SiloCacheBackedListCallable(Generic[_R]):
         if isinstance(value, str):
             try:
                 metrics.incr("hybridcloud.caching.list.cached", tags={"base_key": self.base_key})
+                # If encryption is enabled, and the retrieved value has the
+                # markers of an encrypted value, attempt to decrypt it.
+                #
+                # If decryption fails, this will delete the old cache entry and
+                # force a refetch.
+                if self.encrypt_contents and CacheEncrypter.is_encrypted(value):
+                    value = CacheEncrypter.decrypt(value)
                 return [self.type_(**item) for item in json.loads(value)]
-            except (pydantic.ValidationError, JSONDecodeError, TypeError) as err:
+            except (
+                pydantic.ValidationError,
+                JSONDecodeError,
+                TypeError,
+                InvalidEncodingError,
+            ) as err:
                 metrics.incr(
                     "hybridcloud.caching.list.failed_read",
                     tags={
@@ -222,8 +268,11 @@ class SiloCacheBackedListCallable(Generic[_R]):
         metrics.incr("hybridcloud.caching.list.rpc", tags={"base_key": self.base_key})
         result = self.cb(object_id)
         if result is not None:
-            cache_value = json.dumps([item.dict() for item in result])
-            _consume_generator(_set_cache(key, cache_value, version, self.timeout))
+            cache_value = _encode_for_cache(
+                json.dumps([item.dict() for item in result]), self.encrypt_contents
+            )
+            if cache_value is not None:
+                _consume_generator(_set_cache(key, cache_value, version, self.timeout))
         return result
 
     def get_results(self, object_id: int) -> list[_R]:
@@ -249,6 +298,7 @@ class SiloCacheManyBackedCallable(Generic[_R]):
     cb: Callable[[list[int]], list[_R]]
     type_: type[_R]
     timeout: int | None
+    encrypt_contents: bool
 
     def __init__(
         self,
@@ -257,12 +307,14 @@ class SiloCacheManyBackedCallable(Generic[_R]):
         cb: Callable[[list[int]], list[_R]],
         t: type[_R],
         timeout: int | None = None,
+        encrypt_contents: bool = False,
     ):
         self.base_key = base_key
         self.silo_mode = silo_mode
         self.cb = cb
         self.type_ = t
         self.timeout = timeout
+        self.encrypt_contents = encrypt_contents
 
     def __call__(self, ids: list[int]) -> list[_R]:
         if (
@@ -289,10 +341,23 @@ class SiloCacheManyBackedCallable(Generic[_R]):
             version: int | None = None
             cache_value = cache_values[cache_key]
             if isinstance(cache_value, str):
-                # Found data in cache
+                # Found data in cache.
+                #
+                # If encryption is enabled, attempts to decrypt the value if
+                # it has the encryption prefix markers.
+                #
+                # On failure, this discards the cache entry and treats this as a
+                # full cache miss.
                 try:
+                    if self.encrypt_contents and CacheEncrypter.is_encrypted(cache_value):
+                        cache_value = CacheEncrypter.decrypt(cache_value)
                     found[object_id] = self.type_(**json.loads(cache_value))
-                except (pydantic.ValidationError, JSONDecodeError, TypeError):
+                except (
+                    pydantic.ValidationError,
+                    JSONDecodeError,
+                    TypeError,
+                    InvalidEncodingError,
+                ):
                     version = _consume_generator(_delete_cache(cache_key, self.silo_mode))
             else:
                 # Data was missing in cache but we have a version for the cache key
@@ -319,14 +384,20 @@ class SiloCacheManyBackedCallable(Generic[_R]):
                 continue
             cache_key = keys[record_id]
             record_version = missing[record_id]
-            _consume_generator(_set_cache(cache_key, record.json(), record_version, self.timeout))
+            serialized = _encode_for_cache(record.json(), self.encrypt_contents)
+            if serialized is not None:
+                _consume_generator(_set_cache(cache_key, serialized, record_version, self.timeout))
             found[record_id] = record
 
         return [found[id] for id in ids if id in found]
 
 
 def back_with_silo_cache(
-    base_key: str, silo_mode: SiloMode, t: type[_R], timeout: int | None = None
+    base_key: str,
+    silo_mode: SiloMode,
+    t: type[_R],
+    timeout: int | None = None,
+    encrypt_contents: bool = False,
 ) -> Callable[[Callable[[*_Params], _R | None]], "SiloCacheBackedCallable[*_Params, _R]"]:
     """
     Decorator for adding local caching to RPC operations on a single record.
@@ -337,17 +408,27 @@ def back_with_silo_cache(
     function for generating keys to clear cache entries
     with cell_caching_service and control_caching_service.
 
+    When ``encrypt_contents`` is True, the serialized payload is encrypted with Fernet
+    and stored as ``enc:fernet:<key_id>:...``. Encrypted entries are decrypted on read.
+    Entries written before the flag was enabled are still readable, and entries that
+    cannot be decrypted are treated as a cache miss and refetched. If encryption fails,
+    the result is returned without being cached.
+
     See user_service.get_user() for an example usage.
     """
 
     def wrapper(cb: Callable[[*_Params], _R | None]) -> "SiloCacheBackedCallable[*_Params, _R]":
-        return SiloCacheBackedCallable(base_key, silo_mode, cb, t, timeout)
+        return SiloCacheBackedCallable(base_key, silo_mode, cb, t, timeout, encrypt_contents)
 
     return wrapper
 
 
 def back_with_silo_cache_many(
-    base_key: str, silo_mode: SiloMode, t: type[_R], timeout: int | None = None
+    base_key: str,
+    silo_mode: SiloMode,
+    t: type[_R],
+    timeout: int | None = None,
+    encrypt_contents: bool = False,
 ) -> Callable[[Callable[[list[int]], list[_R]]], "SiloCacheManyBackedCallable[_R]"]:
     """
     Decorator for adding local caching to RPC operations that fetch many records by id.
@@ -358,17 +439,22 @@ def back_with_silo_cache_many(
     in cache for future use.
 
     Like `back_with_silo_cache`, this decorator adds helpers to the wrapped function
-    for generating keys to clear cache.
+    for generating keys to clear cache, and accepts ``encrypt_contents`` to store each
+    record encrypted at rest.
     """
 
     def wrapper(cb: Callable[[list[int]], list[_R]]) -> "SiloCacheManyBackedCallable[_R]":
-        return SiloCacheManyBackedCallable(base_key, silo_mode, cb, t, timeout)
+        return SiloCacheManyBackedCallable(base_key, silo_mode, cb, t, timeout, encrypt_contents)
 
     return wrapper
 
 
 def back_with_silo_cache_list(
-    base_key: str, silo_mode: SiloMode, t: type[_R], timeout: int | None = None
+    base_key: str,
+    silo_mode: SiloMode,
+    t: type[_R],
+    timeout: int | None = None,
+    encrypt_contents: bool = False,
 ) -> Callable[[Callable[[int], list[_R]]], "SiloCacheBackedListCallable[_R]"]:
     """
     Decorator for adding local caching to RPC operations for list results
@@ -382,11 +468,14 @@ def back_with_silo_cache_list(
     function for generating keys to clear cache entires with
     with cell_caching_service and control_caching_service.
 
+    Like `back_with_silo_cache`, this decorator accepts ``encrypt_contents`` to store
+    the serialized list encrypted at rest.
+
     See app_service.installations_for_organization() for an example usage.
     """
 
     def wrapper(cb: Callable[[int], list[_R]]) -> "SiloCacheBackedListCallable[_R]":
-        return SiloCacheBackedListCallable(base_key, silo_mode, cb, t, timeout)
+        return SiloCacheBackedListCallable(base_key, silo_mode, cb, t, timeout, encrypt_contents)
 
     return wrapper
 
