@@ -6,7 +6,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -90,6 +90,7 @@ const CANCEL_STEPS: Array<{
 const cancellationSchema = z.object({
   reason: z.string().min(1, t('Select a reason for cancelling')),
   followup: z.string(),
+  checkboxes: z.record(z.string(), z.boolean()),
 });
 
 function CancelSubscriptionForm() {
@@ -101,8 +102,6 @@ function CancelSubscriptionForm() {
       staleTime: 0,
     })
   );
-  const [selectedReason, setSelectedReason] = useState<CancelReason[0] | null>(null);
-  const [checkboxes, setCheckboxes] = useState<Record<string, boolean>>({});
   const [understandsMembers, setUnderstandsMembers] = useState(false);
   const mutation = useMutation({
     mutationFn: (data: {checkboxes: string[]; followup: string; reason: string}) =>
@@ -131,18 +130,26 @@ function CancelSubscriptionForm() {
     },
   });
 
+  const defaultValues: z.input<typeof cancellationSchema> = {
+    reason: '',
+    followup: '',
+    checkboxes: {},
+  };
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {reason: '', followup: ''},
+    defaultValues,
     validators: {onDynamic: cancellationSchema},
     onSubmit: ({value}) =>
       mutation
         .mutateAsync({
-          ...value,
-          checkboxes: Object.keys(checkboxes).filter(key => checkboxes[key]),
+          reason: value.reason,
+          followup: value.followup,
+          checkboxes: Object.keys(value.checkboxes).filter(key => value.checkboxes[key]),
         })
         .catch(() => {}),
   });
+  const selectedReason = useStore(form.store, state => state.values.reason);
+  const checkboxes = useStore(form.store, state => state.values.checkboxes);
 
   if (isPending || !subscription) {
     return <LoadingIndicator />;
@@ -221,8 +228,7 @@ function CancelSubscriptionForm() {
                       onChange={val => {
                         field.handleChange(val);
                         form.setFieldValue('followup', '');
-                        setCheckboxes({});
-                        setSelectedReason(val);
+                        form.setFieldValue('checkboxes', {});
                       }}
                     >
                       <field.Layout.Stack required label={t('Reason')}>
@@ -248,10 +254,10 @@ function CancelSubscriptionForm() {
                                         checked={checkboxes[name]}
                                         name={name}
                                         onChange={event => {
-                                          setCheckboxes(currentCheckboxes => ({
-                                            ...currentCheckboxes,
+                                          form.setFieldValue('checkboxes', {
+                                            ...checkboxes,
                                             [name]: event.target.checked,
-                                          }));
+                                          });
                                         }}
                                       />
                                       {label}
