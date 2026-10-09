@@ -114,18 +114,28 @@ describe('ConversationViewContent', () => {
   it('loads the next page when scrolling the timeline', async () => {
     MockApiClient.clearMockResponses();
     mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
-    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {
+      cursor: 'next',
+      nextCursor: 'last',
+    });
 
     renderView({activeTab: 'timeline'});
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
     expect(nextRequest).not.toHaveBeenCalled();
 
     const scrollContainer = document.querySelector<HTMLElement>('[data-scrollable]')!;
+    expect(
+      scrollContainer.querySelector('[data-test-id="loading-indicator"]')
+    ).toBeInTheDocument();
     act(() =>
       scrollContainer.dispatchEvent(new WheelEvent('wheel', {bubbles: true, deltaY: 100}))
     );
 
     await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('second turn')).toBeInTheDocument();
+    expect(
+      scrollContainer.querySelector('[data-test-id="loading-indicator"]')
+    ).toBeInTheDocument();
   });
 
   it('opens the first span by default on the timeline', async () => {

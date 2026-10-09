@@ -2,10 +2,10 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
@@ -195,10 +195,8 @@ export function ConversationViewContent({
               />
             )}
             {(hasNextPage || isFetchingNextPage) && (
-              <Flex align="center" justify="center" padding="md">
-                <Button size="xs" busy={isFetchingNextPage} onClick={loadNextPage}>
-                  {t('Load more')}
-                </Button>
+              <Flex align="center" justify="center" minHeight="120px">
+                <LoadingIndicator size={24} />
               </Flex>
             )}
           </Fragment>
