@@ -9,20 +9,6 @@ import {getSpanLinkType} from 'sentry/views/performance/traceDetails/getSpanLink
 import type {ConnectedTraceConnection} from 'sentry/views/performance/traceDetails/traceLinksNavigation/types';
 
 /**
- * Fallback for spans without a `previous_trace` link (e.g. from older SDKs). Format:
- * `[traceId]-[spanId]-[sampledFlag]`. A malformed value disables the query or finds nothing.
- */
-function parsePreviousTraceAttribute(
-  value: string | undefined
-): TraceItemResponseLink | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  const [traceId = '', itemId = '', sampledFlag] = value.split('-');
-  return {traceId, itemId, sampled: sampledFlag === '1'};
-}
-
-/**
  * Find an adjacent trace (next or previous) by querying the spans endpoint.
  * For 'next' traces: looks for a trace linking to the current trace as its previous trace.
  * For 'previous' traces: looks for the trace in the root span's `previous_trace` link.
@@ -55,21 +41,18 @@ export function useFindAdjacentTrace({
   } = useMemo(() => {
     let _projectId: number | undefined;
     let _currentTraceId: string | undefined;
-    let _previousTraceAttribute: string | undefined;
 
     for (const a of attributes ?? []) {
       if (a.name === 'project_id' && a.type === 'int') {
         _projectId = a.value;
       } else if (a.name === 'trace' && a.type === 'str') {
         _currentTraceId = a.value;
-      } else if (a.name === 'previous_trace' && a.type === 'str') {
-        _previousTraceAttribute = a.value;
       }
     }
 
-    const previousTraceLink =
-      links?.find(link => getSpanLinkType(link) === 'previous_trace') ??
-      parsePreviousTraceAttribute(_previousTraceAttribute);
+    const previousTraceLink = links?.find(
+      link => getSpanLinkType(link) === 'previous_trace'
+    );
 
     return {
       projectId: _projectId,

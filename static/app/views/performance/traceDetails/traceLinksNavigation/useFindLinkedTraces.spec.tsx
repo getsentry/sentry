@@ -87,23 +87,4 @@ describe('useFindAdjacentTrace', () => {
 
     await waitFor(() => expect(result.current.available).toBe(true));
   });
-
-  it('falls back to the attribute when the span has no previous_trace link', async () => {
-    mockSpanLookup(ATTRIBUTE_TRACE_ID, ATTRIBUTE_SPAN_ID);
-
-    const {result} = renderHookWithProviders(useFindAdjacentTrace, {
-      organization,
-      initialProps: makePreviousTraceLookupProps([
-        makePreviousTraceLink({attributes: []}),
-      ]),
-    });
-
-    await waitFor(() => expect(result.current.available).toBe(true));
-    expect(result.current).toEqual({
-      trace: ATTRIBUTE_TRACE_ID,
-      id: ATTRIBUTE_SPAN_ID,
-      available: true,
-      isLoading: false,
-    });
-  });
 });
