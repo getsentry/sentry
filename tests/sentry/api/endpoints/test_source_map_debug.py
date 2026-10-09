@@ -3,6 +3,7 @@ from __future__ import annotations
 import zipfile
 from io import BytesIO
 from typing import Any
+from unittest import mock
 
 import orjson
 from django.core.files.base import ContentFile
@@ -1492,11 +1493,15 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert release_process_result["matching_source_map_name"] == "~/bundle.min.js.map"
 
     def create_release_artifact_bundle(
-        self, indexed_urls: list[str], dist_name: str = "", artifact_count: int = 2
+        self,
+        indexed_urls: list[str],
+        dist_name: str = "",
+        artifact_count: int = 2,
+        project_id: int | None = None,
     ) -> None:
         """
         Creates a bundle of `~/bundle.min.js` and its source map in `some-release`, indexed under
-        `indexed_urls`.
+        `indexed_urls` and linked to `project_id`, by default the test's project.
         """
         compressed = BytesIO(b"SYSB")
         with zipfile.ZipFile(compressed, "a") as zip_file:
@@ -1541,7 +1546,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
 
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
-            project_id=self.project.id,
+            project_id=project_id or self.project.id,
             artifact_bundle=artifact_bundle,
         )
 
@@ -1689,6 +1694,87 @@ class SourceMapDebugEndpointTestCase(APITestCase):
 
         with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 0}):
             assert get_release_bundle_urls(self.project, release) is None
+
+    @mock.patch("sentry.api.endpoints.source_map_debug.metrics")
+    def test_release_bundle_urls_reports_truncation(self, mock_metrics: mock.MagicMock) -> None:
+        release = self.create_release(version="some-release")
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(["~/other.min.js", "~/other.min.js.map"])
+
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 4}):
+            get_release_bundle_urls(self.project, release)
+        mock_metrics.incr.assert_called_with(
+            "source_map_debug.url_match", tags={"truncated": "false"}
+        )
+        mock_metrics.distribution.assert_called_with("source_map_debug.url_match.index_rows", 4)
+
+        # Only the newest bundle fits in the budget.
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 3}):
+            get_release_bundle_urls(self.project, release)
+        mock_metrics.incr.assert_called_with(
+            "source_map_debug.url_match", tags={"truncated": "index_rows"}
+        )
+        mock_metrics.distribution.assert_called_with("source_map_debug.url_match.index_rows", 2)
+
+        # The newest bundle alone has more files than the budget.
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 1}):
+            get_release_bundle_urls(self.project, release)
+        mock_metrics.incr.assert_called_with(
+            "source_map_debug.url_match", tags={"truncated": "index_rows"}
+        )
+        mock_metrics.distribution.assert_called_with("source_map_debug.url_match.index_rows", 1)
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    def test_release_bundle_urls_skips_other_projects_bundles(self) -> None:
+        release = self.create_release(version="some-release")
+        other_project = self.create_project(organization=self.organization)
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(
+            ["~/other.min.js", "~/other.min.js.map"], project_id=other_project.id
+        )
+
+        release_bundle_urls = get_release_bundle_urls(self.project, release)
+
+        assert release_bundle_urls is not None
+        assert set(release_bundle_urls) == {"~/bundle.min.js", "~/bundle.min.js.map"}
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    @mock.patch("sentry.api.endpoints.source_map_debug.URL_MATCH_MAX_BUNDLES", 1)
+    @mock.patch("sentry.api.endpoints.source_map_debug.metrics")
+    def test_release_bundle_urls_picks_from_release_newest_bundles(
+        self, mock_metrics: mock.MagicMock
+    ) -> None:
+        release = self.create_release(version="some-release")
+        other_project = self.create_project(organization=self.organization)
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(["~/other.min.js"], project_id=other_project.id)
+
+        # The release's newest bundle belongs to another project, so none of the project's
+        # bundles are picked.
+        assert get_release_bundle_urls(self.project, release) == {}
+        mock_metrics.incr.assert_called_once_with(
+            "source_map_debug.url_match", tags={"truncated": "max_bundles"}
+        )
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    def test_release_bundle_urls_reads_release_links_without_joins(self) -> None:
+        release = self.create_release(version="some-release")
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+
+        with CaptureQueriesContext(
+            connections[router.db_for_read(ReleaseArtifactBundle)]
+        ) as queries:
+            assert get_release_bundle_urls(self.project, release) is not None
+
+        release_queries = [
+            query["sql"]
+            for query in queries.captured_queries
+            if 'FROM "sentry_releaseartifactbundle"' in query["sql"]
+        ]
+        # Joining each of the release's links to its project link and bundle takes seconds on
+        # releases with many bundles, so the newest links are read on their own first.
+        assert len(release_queries) == 1
+        assert " JOIN " not in release_queries[0]
 
     @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
     def test_frame_release_process_artifact_bundle_url_match_by_bundle_reads_index_once(
