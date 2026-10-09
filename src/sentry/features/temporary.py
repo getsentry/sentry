@@ -557,6 +557,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     manager.add("organizations:claude-code-vault-reuse", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
+    # Run LLM prompt-cache issue detection in shadow mode
+    manager.add("organizations:llm-cache-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
     # Assisted query agent feature flags — forwarded to Seer
     # Enable cross-event queries for the Traces strategy
     manager.add("organizations:seer-assisted-query-cross-event-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
