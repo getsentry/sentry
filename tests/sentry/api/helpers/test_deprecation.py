@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 from cronsim import CronSim
 from django.http.request import HttpRequest
@@ -147,6 +148,10 @@ class TestDeprecationDecorator(APITestCase):
             with freeze_time(new_brownout_end):
                 self.assert_allowed_request("GET")
 
+    # Registration updates both dictionaries; restore their prior contents so
+    # temporary schedules cannot affect later option inventory or fallback reads.
+    @patch.dict("sentry.options.default_manager.registry")
+    @patch.dict("django.conf.settings.SENTRY_DEFAULT_OPTIONS")
     def test_custom_key(self) -> None:
         with self.settings(
             SENTRY_SELF_HOSTED=False,
