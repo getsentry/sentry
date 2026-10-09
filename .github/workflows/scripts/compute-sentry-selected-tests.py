@@ -155,6 +155,8 @@ ALWAYS_RUN_TESTS: set[str] = {
     #     to assign comparators — __relocation_scope__ changes on any model are invisible
     "tests/sentry/silo/test_base.py",
     "tests/sentry/backup/test_validate.py",
+    # Freezes option registrations, which happen at import time anywhere in src/.
+    "tests/sentry/options/test_legacy_options.py",
 }
 
 # Seer public-API matrix discovers published mutations at collection time, so

@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 
 import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
@@ -62,7 +62,7 @@ export function StaticReplayPreview({
       isFetching={isFetching}
       replay={replay}
     >
-      <PlayerContainer data-test-id="player-container">
+      <PlayerContainer>
         {replay?.hasProcessingErrors() ? (
           <ReplayProcessingError />
         ) : (

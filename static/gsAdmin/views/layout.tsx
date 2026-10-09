@@ -1,6 +1,6 @@
 import type React from 'react';
 import {useEffect, useState} from 'react';
-import {Outlet, useLocation} from 'react-router-dom';
+import {Outlet, useLocation} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -180,7 +180,11 @@ export function Layout() {
                 </ThemeToggle>
               </SidebarActions>
             </Sidebar>
-            <Stack minWidth={0} inert={sidebarOpen || undefined}>
+            <Stack
+              minWidth={0}
+              containerType="inline-size"
+              inert={sidebarOpen || undefined}
+            >
               {/* Mobile only: sticky top bar with hamburger and logo */}
               <MobileTopBar>
                 <Button

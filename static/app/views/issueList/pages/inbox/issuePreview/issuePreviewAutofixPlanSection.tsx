@@ -20,17 +20,24 @@ import {WorkingIndicator} from './workingIndicator';
 export function IssuePreviewAutofixPlanSection({
   autofix,
   defaultExpanded,
+  readOnly = false,
   section,
 }: {
   autofix: ReturnType<typeof useExplorerAutofix>;
   defaultExpanded: boolean;
   section: AutofixSection;
+  readOnly?: boolean;
 }) {
   const artifact = getAutofixArtifactFromSection(section);
   const plan = isSolutionArtifact(artifact) && artifact.data ? artifact.data : null;
 
   return (
-    <RetryableAutofixSection autofix={autofix} section={section} step="solution">
+    <RetryableAutofixSection
+      autofix={autofix}
+      readOnly={readOnly}
+      section={section}
+      step="solution"
+    >
       <IssuePreviewSection
         aria-label={t('Implementation Plan')}
         defaultExpanded={defaultExpanded}
