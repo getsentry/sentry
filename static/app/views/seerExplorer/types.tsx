@@ -270,6 +270,12 @@ export type SeerExplorerResponse = {
   sentry_run_id?: string | null;
 };
 
+export type ChatSuggestion = {
+  text: string;
+  action_type?: string | null;
+  kind?: 'question' | 'action';
+};
+
 export type RespondToUserInputOptions = {
   /** Called when the response fails to send, so callers can undo optimistic local state. */
   onError?: () => void;
