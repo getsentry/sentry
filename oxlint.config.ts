@@ -1680,6 +1680,8 @@ const config = defineConfig({
             maxSize: 2000,
           },
         ],
+        'jest/prefer-hooks-in-order': 'error',
+        'jest/prefer-hooks-on-top': 'error',
         'jest/prefer-jest-mocked': 'error',
         'jest-dom/prefer-checked': 'error',
         'jest-dom/prefer-empty': 'error',

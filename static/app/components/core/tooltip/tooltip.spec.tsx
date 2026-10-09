@@ -31,17 +31,17 @@ describe('Tooltip', () => {
     });
   }
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+    originalResizeObserver = window.ResizeObserver;
+  });
+
   afterEach(() => {
     window.ResizeObserver = originalResizeObserver;
     // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.scrollWidth;
     // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.clientWidth;
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    originalResizeObserver = window.ResizeObserver;
   });
 
   it('renders', async () => {

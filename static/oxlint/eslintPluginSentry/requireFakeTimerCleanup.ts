@@ -67,7 +67,7 @@ function contains(ancestor: ESTree.Node, node: ESTree.Node): boolean {
   return false;
 }
 
-// shortcut: only straight-line cleanup and act callbacks are proven, extend when other cleanup idioms need support.
+// shortcut: only straight-line cleanup, act, and try/finally restoration are proven, extend when other cleanup idioms need support.
 function cleanupCalls(
   node: ESTree.Node | null,
   awaited = false
@@ -78,6 +78,30 @@ function cleanupCalls(
   if (node.type === 'BlockStatement') {
     const calls: ESTree.CallExpression[] = [];
     for (const statement of node.body) {
+      if (statement.type === 'TryStatement') {
+        const restore = statement.finalizer?.body[0];
+        if (
+          statement.handler ||
+          !statement.block.body.every(body =>
+            [
+              'ExpressionStatement',
+              'VariableDeclaration',
+              'FunctionDeclaration',
+              'EmptyStatement',
+            ].includes(body.type)
+          ) ||
+          restore?.type !== 'ExpressionStatement' ||
+          restore.expression.type !== 'CallExpression' ||
+          !isJestMethod(restore.expression, 'useRealTimers')
+        ) {
+          break;
+        }
+        calls.push(
+          ...cleanupCalls(statement.block),
+          ...cleanupCalls(statement.finalizer)
+        );
+        continue;
+      }
       if (
         statement.type === 'VariableDeclaration' ||
         statement.type === 'FunctionDeclaration' ||
