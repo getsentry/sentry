@@ -11,7 +11,6 @@ describe('Demo Mode Functions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
-    jest.useFakeTimers();
   });
 
   describe('extraQueryParameter', () => {

@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Details} from 'getsentry/components/upsellModal/details';
 
@@ -148,40 +148,52 @@ describe('Upsell Modal Details', () => {
     expect(screen.getByTestId('tracing')).toHaveAttribute('aria-selected');
   });
 
-  it('cycles the list on a timer when no section is clicked', async () => {
-    jest.useFakeTimers();
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'mm2_a_100k',
-      canTrial: true,
-      isFree: false,
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('cycles the list on a timer when no section is clicked', async () => {
+      jest.useFakeTimers();
+      const sub = SubscriptionFixture({
+        organization,
+        plan: 'mm2_a_100k',
+        canTrial: true,
+        isFree: false,
+      });
 
-    render(
-      <Details
-        source="test"
-        subscription={sub}
-        organization={organization}
-        onCloseModal={jest.fn()}
-      />
-    );
+      render(
+        <Details
+          source="test"
+          subscription={sub}
+          organization={organization}
+          onCloseModal={jest.fn()}
+        />
+      );
 
-    // First timeout is waiting for it to cycle to a feature
-    act(() => jest.advanceTimersByTime(10000));
+      // First timeout is waiting for it to cycle to a feature
+      act(() => jest.advanceTimersByTime(10000));
 
-    // First feature in the displayed list.
-    const tracing = screen.getByTestId('tracing');
-    expect(tracing).toHaveAttribute('aria-selected');
+      // First feature in the displayed list.
+      const tracing = screen.getByTestId('tracing');
+      expect(tracing).toHaveAttribute('aria-selected');
 
-    // Next timeout is for it to cycle to the _next_ feature
-    act(() => jest.advanceTimersByTime(8000));
+      // Next timeout is for it to cycle to the _next_ feature
+      act(() => jest.advanceTimersByTime(8000));
 
-    // Avoid act warning after state change
-    jest.useRealTimers();
-    await act(tick);
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(0);
+      });
 
-    // Tracing should now not be highlighted.
-    expect(tracing).not.toHaveAttribute('aria-selected');
+      // Tracing should now not be highlighted.
+      expect(tracing).not.toHaveAttribute('aria-selected');
+    });
   });
 
   it('displays "Unlimited Custom Dashboards" feature name', async () => {

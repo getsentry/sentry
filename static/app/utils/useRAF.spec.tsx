@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {flushSync} from 'react-dom';
 
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useRAF} from 'sentry/utils/useRAF';
 
@@ -11,7 +11,12 @@ describe('useRAF cleanup', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('does not reschedule after synchronous self-unmount', () => {

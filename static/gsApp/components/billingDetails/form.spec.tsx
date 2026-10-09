@@ -1,7 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {BillingDetailsForm} from './form';
 
@@ -18,10 +25,6 @@ describe('BillingDetailsForm', () => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it('returns null for users without org:billing access', () => {
@@ -48,26 +51,38 @@ describe('BillingDetailsForm', () => {
     await screen.findByRole('textbox', {name: 'Billing email'});
   });
 
-  it('shows warning when Stripe hooks return null', async () => {
-    jest.useFakeTimers();
-
-    const stripeImport = await import('@stripe/react-stripe-js');
-    jest.spyOn(stripeImport, 'useStripe').mockReturnValue(null);
-    jest.spyOn(stripeImport, 'useElements').mockReturnValue(null);
-
-    render(<BillingDetailsForm {...defaultProps} />);
-
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(10000);
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('shows warning when Stripe hooks return null', async () => {
+      jest.useFakeTimers();
 
-    expect(
-      screen.getByText(
-        /To add or update your business address, you may need to disable any ad or tracker blocking extensions/
-      )
-    ).toBeInTheDocument();
+      const stripeImport = await import('@stripe/react-stripe-js');
+      jest.spyOn(stripeImport, 'useStripe').mockReturnValue(null);
+      jest.spyOn(stripeImport, 'useElements').mockReturnValue(null);
 
-    jest.restoreAllMocks();
+      render(<BillingDetailsForm {...defaultProps} />);
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(10000);
+      });
+
+      expect(
+        screen.getByText(
+          /To add or update your business address, you may need to disable any ad or tracker blocking extensions/
+        )
+      ).toBeInTheDocument();
+
+      jest.restoreAllMocks();
+    });
   });
 
   it('disables submit button during loading', async () => {

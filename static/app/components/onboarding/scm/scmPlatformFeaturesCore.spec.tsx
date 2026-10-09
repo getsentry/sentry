@@ -3,7 +3,14 @@ import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -81,7 +88,6 @@ describe('ScmPlatformFeaturesCore', () => {
   const organization = OrganizationFixture();
 
   afterEach(() => {
-    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
@@ -203,49 +209,61 @@ describe('ScmPlatformFeaturesCore', () => {
     expect(screen.getByText('Other platforms')).toBeInTheDocument();
   });
 
-  it('tracks one debounced manual platform search with its result count', async () => {
-    jest.useFakeTimers();
-    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const {unmount} = render(
-      <ScmPlatformFeaturesCore
-        {...defaultProps({
-          analyticsFlow: 'project-creation',
-          selectedPlatform: undefined,
-        })}
-      />,
-      {organization}
-    );
-
-    await user.type(screen.getByRole('textbox'), 'java ');
-
-    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
-      'growth.platformpicker_search',
-      expect.anything()
-    );
-
-    act(() => {
-      jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION);
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('tracks one debounced manual platform search with its result count', async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+      const {unmount} = render(
+        <ScmPlatformFeaturesCore
+          {...defaultProps({
+            analyticsFlow: 'project-creation',
+            selectedPlatform: undefined,
+          })}
+        />,
+        {organization}
+      );
 
-    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
+      await user.type(screen.getByRole('textbox'), 'java ');
 
-    expect(trackAnalyticsSpy).toHaveBeenCalledWith('growth.platformpicker_search', {
-      organization,
-      search: 'java ',
-      num_results: 1,
-      source: 'project-creation',
-      variant: 'scm',
+      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+        'growth.platformpicker_search',
+        expect.anything()
+      );
+
+      act(() => {
+        jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION);
+      });
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith('growth.platformpicker_search', {
+        organization,
+        search: 'java ',
+        num_results: 1,
+        source: 'project-creation',
+        variant: 'scm',
+      });
+
+      await user.type(screen.getByRole('textbox'), 'script');
+      expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
+      unmount();
+      expect(trackAnalyticsSpy).toHaveBeenCalledTimes(2);
+      expect(trackAnalyticsSpy).toHaveBeenLastCalledWith(
+        'growth.platformpicker_search',
+        expect.objectContaining({search: 'java script'})
+      );
     });
-
-    await user.type(screen.getByRole('textbox'), 'script');
-    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
-    unmount();
-    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(2);
-    expect(trackAnalyticsSpy).toHaveBeenLastCalledWith(
-      'growth.platformpicker_search',
-      expect.objectContaining({search: 'java script'})
-    );
   });
 
   it('clears the selected platform from the manual picker', async () => {

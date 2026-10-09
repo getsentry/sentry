@@ -1,6 +1,6 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {
   type Breakpoints,
@@ -55,8 +55,13 @@ describe('useBreakpoints', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    window.innerWidth = originalWidth;
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+      window.innerWidth = originalWidth;
+    }
   });
 
   it('returns the current breakpoints immediately on mount', () => {

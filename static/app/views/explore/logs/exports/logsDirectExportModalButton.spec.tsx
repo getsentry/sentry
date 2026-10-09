@@ -3,6 +3,7 @@ import {LogFixture} from 'sentry-fixture/log';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
+  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -83,57 +84,65 @@ describe('LogsDirectExportModalButton', () => {
     });
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it('keeps the estimate request stable during auto-refresh until the chart cutoff changes', async () => {
-    jest.useFakeTimers();
-    const cutoff = 1_700_000_000_000_000_000n;
-    const renderButton = (timeseriesIngestDelay: bigint) => (
-      <LogsQueryParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        source="location"
-      >
-        <LogsDirectExportModalButton
-          isLoading={false}
-          tableData={tableData}
-          timeseriesIngestDelay={timeseriesIngestDelay}
-        />
-      </LogsQueryParamsProvider>
-    );
-    const {rerender, unmount} = render(renderButton(cutoff), {
-      initialRouterConfig: {
-        ...initialRouterConfig,
-        location: {
-          ...initialRouterConfig.location,
-          query: {
-            ...initialRouterConfig.location.query,
-            [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('keeps the estimate request stable during auto-refresh until the chart cutoff changes', async () => {
+      jest.useFakeTimers();
+      const cutoff = 1_700_000_000_000_000_000n;
+      const renderButton = (timeseriesIngestDelay: bigint) => (
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          source="location"
+        >
+          <LogsDirectExportModalButton
+            isLoading={false}
+            tableData={tableData}
+            timeseriesIngestDelay={timeseriesIngestDelay}
+          />
+        </LogsQueryParamsProvider>
+      );
+      const {rerender, unmount} = render(renderButton(cutoff), {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+            },
           },
         },
-      },
-    });
-
-    for (let i = 0; i < 10; i++) {
-      await act(async () => {
-        await jest.advanceTimersByTimeAsync(20);
       });
-      rerender(renderButton(cutoff));
-    }
 
-    expect(timeseriesRequest).toHaveBeenCalledTimes(1);
+      for (let i = 0; i < 10; i++) {
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(20);
+        });
+        rerender(renderButton(cutoff));
+      }
 
-    const nextCutoff = cutoff + 1_000_000_000n;
-    rerender(renderButton(nextCutoff));
-    expect(timeseriesRequest).toHaveBeenCalledTimes(2);
-    expect(timeseriesRequest).toHaveBeenLastCalledWith(
-      `/organizations/${organization.slug}/events-timeseries/`,
-      expect.objectContaining({
-        query: expect.objectContaining({query: `timestamp_precise:<=${nextCutoff}`}),
-      })
-    );
-    unmount();
+      expect(timeseriesRequest).toHaveBeenCalledTimes(1);
+
+      const nextCutoff = cutoff + 1_000_000_000n;
+      rerender(renderButton(nextCutoff));
+      expect(timeseriesRequest).toHaveBeenCalledTimes(2);
+      expect(timeseriesRequest).toHaveBeenLastCalledWith(
+        `/organizations/${organization.slug}/events-timeseries/`,
+        expect.objectContaining({
+          query: expect.objectContaining({query: `timestamp_precise:<=${nextCutoff}`}),
+        })
+      );
+      unmount();
+    });
   });
 
   it('asks the server export for the highest accuracy without flex-time windows', async () => {

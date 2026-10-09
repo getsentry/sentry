@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {
   DELAY_TIME_MS,
@@ -51,8 +51,16 @@ describe('useRouteActivatedHook', () => {
     SubscriptionStore.set(organization.slug, subscription);
   });
 
-  afterEach(() => {
-    jest.mocked(rawTrackAnalyticsEvent).mockClear();
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+      jest.mocked(rawTrackAnalyticsEvent).mockClear();
+    }
   });
 
   it('calls rawTrackAnalyticsEvent after one seconds if org is set', () => {
