@@ -55,16 +55,14 @@ export function SortableReleasesSelect({
   );
 }
 
-// TURBOHACK: The regular `PageFilterBar` forces its last child (which is
-// usually the date range selector) to have a minimum width of 4rem. In _this_
-// case the last child is a release sort selector, which does not need a minimum
-// width at all. This is a short-term turbohack because what we want is to move
-// the sort selector _into_ the release selector, at which point this will
-// become moot.
+// PageFilterBar reserves space for a date filter in its last slot. Keep the
+// release sort button at its natural width instead.
 const StyledPageFilterBar = styled(PageFilterBar)`
   & > * {
     &:last-child {
       min-width: 0;
+      flex-grow: 0;
+      flex-shrink: 0;
     }
   }
 `;
