@@ -1,9 +1,11 @@
-import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
 import {PlatformIcon} from 'platformicons';
 
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {
@@ -16,6 +18,11 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'event', width: 'minmax(0, 1fr)'},
+  {key: 'profile', width: 'min-content'},
+];
 
 export function TraceProfiles({tree}: {tree: TraceTree}) {
   const {projects} = useProjects();
@@ -45,12 +52,16 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
   };
 
   return (
-    <ProfilesTable>
-      <ProfilesTableRow>
-        <ProfilesTableTitle>{t('Profiled Events')}</ProfilesTableTitle>
-        <ProfilesTableTitle>{t('Profile')}</ProfilesTableTitle>
-      </ProfilesTableRow>
-
+    <SimpleTable
+      aria-label={t('Profiled Events')}
+      columns={COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Profiled Events')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Profile')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       {profiles.map((node, index) => {
         const profileId = node.profileId;
         const profilerId = node.profilerId;
@@ -79,23 +90,25 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
 
         const profileOrProfilerId = profilerId || profileId;
 
-        const event = (
-          <Fragment>
-            {node.projectSlug && (
-              <PlatformIcon platform={projectLookup[node.projectSlug] ?? 'default'} />
-            )}
-            <span>{node.op ?? '<unknown>'}</span> —{' '}
-            <span className="TraceDescription" title={node.description}>
-              {node.description
-                ? ellipsize(node.description, 100)
-                : (node.id ?? 'unknown')}
-            </span>
-          </Fragment>
-        );
         return (
-          <ProfilesTableRow key={index}>
-            <div>{event}</div>
-            <div>
+          <SimpleTable.Row key={index}>
+            <SimpleTable.RowCell gap="xs">
+              {node.projectSlug && (
+                <PlatformIcon
+                  platform={projectLookup[node.projectSlug] ?? 'default'}
+                  size={16}
+                />
+              )}
+              <Text ellipsis>
+                {node.op ?? '<unknown>'} —{' '}
+                <span title={node.description}>
+                  {node.description
+                    ? ellipsize(node.description, 100)
+                    : (node.id ?? 'unknown')}
+                </span>
+              </Text>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
               <Link
                 to={link}
                 onClick={() =>
@@ -104,11 +117,11 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
               >
                 {profileOrProfilerId!.substring(0, 8)}
               </Link>
-            </div>
-          </ProfilesTableRow>
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
         );
       })}
-    </ProfilesTable>
+    </SimpleTable>
   );
 }
 
@@ -119,58 +132,3 @@ function getProfileRouteQueryFromNode(node: BaseNode) {
     tid: typeof threadId === 'string' ? threadId : undefined,
   };
 }
-
-const ProfilesTable = styled('div')`
-  display: grid !important;
-  grid-template-columns: 1fr min-content;
-  grid-template-rows: auto;
-  width: 100%;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-
-  > div {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  }
-
-  img {
-    width: 16px;
-    height: 16px;
-    margin-right: ${p => p.theme.space.xs};
-  }
-`;
-
-const ProfilesTableRow = styled('div')`
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  width: 100%;
-  padding: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-
-  & > div {
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-
-  &:first-child {
-    background-color: ${p => p.theme.tokens.background.primary};
-    border-top-left-radius: ${p => p.theme.radius.md};
-    border-top-right-radius: ${p => p.theme.radius.md};
-  }
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-const ProfilesTableTitle = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding: 0 ${p => p.theme.space.xs};
-`;
