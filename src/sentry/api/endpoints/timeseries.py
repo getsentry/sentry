@@ -47,8 +47,6 @@ class Annotation(TypedDict):
     start: float
     end: float
     eventCount: float
-    # Only present for datasets with a paired byte category (logs today).
-    byteSize: NotRequired[float]
 
 
 class StatsMeta(TypedDict):

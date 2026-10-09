@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -11,7 +12,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BooleanField as NewBooleanField} from 'sentry/components/forms/fields/booleanField';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -255,7 +255,15 @@ export function AllocationForm({
           </Tooltip>
         </Flex>
       </Header>
-      <OffsetBody>
+      <Container
+        css={theme => css`
+          margin: -${theme.space['2xl']};
+
+          @container (min-width: ${theme.container['3xl']}) {
+            margin-inline: -${theme.space['3xl']};
+          }
+        `}
+      >
         <Container padding="xl">
           <form>
             <HalvedGrid padding="md lg">
@@ -349,7 +357,7 @@ export function AllocationForm({
             </HalvedGrid>
           </form>
         </Container>
-      </OffsetBody>
+      </Container>
       <Container marginTop="xl">
         <SimpleTable
           header={
@@ -538,14 +546,6 @@ const FancyInput = styled('input')`
 const Toggle = styled(NewBooleanField)`
   margin: 0;
   padding: 0;
-`;
-
-const OffsetBody = styled(PanelBody)`
-  margin: -${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${p => p.theme.space['2xl']};
-  }
 `;
 
 const Select = styled(SelectField)`

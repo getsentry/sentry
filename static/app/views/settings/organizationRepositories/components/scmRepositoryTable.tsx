@@ -34,6 +34,7 @@ import {
 } from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
+import type {AvatarProject} from 'sentry/types/project';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import type {
@@ -505,14 +506,22 @@ function RepoMappings({
   slugs,
   mappingsLoading,
   action,
+  onProjectClick,
 }: {
   mappingsLoading: boolean | undefined;
   slugs: string[];
   action?: React.ReactNode;
+  onProjectClick?: (project: AvatarProject) => void;
 }) {
   return (
     <Flex align="center" gap="2xs">
-      {slugs.length > 0 && <ProjectList projectSlugs={slugs} maxVisibleProjects={3} />}
+      {slugs.length > 0 && (
+        <ProjectList
+          projectSlugs={slugs}
+          maxVisibleProjects={3}
+          onProjectClick={onProjectClick}
+        />
+      )}
       {mappingsLoading && slugs.length === 0 && (
         <Placeholder width="60px" height="16px" />
       )}
@@ -618,7 +627,7 @@ function VirtualizedRepoList({
                 align="center"
                 justify="between"
                 gap="sm"
-                padding={nested ? 'xs xl xs 0' : 'xs lg'}
+                padding={nested ? 'md xl md 0' : 'md lg'}
                 style={{transform: `translateY(${virtualItem.start}px)`}}
               >
                 <Flex align="center" gap="sm" minWidth="0">
@@ -645,6 +654,11 @@ function VirtualizedRepoList({
                     slugs={mappedProjectSlugsByRepoId[repo.id] ?? []}
                     mappingsLoading={mappingsLoading}
                     action={installation.repoActions?.(repo)}
+                    onProjectClick={
+                      installation.onMappedProjectClick
+                        ? project => installation.onMappedProjectClick!(repo, project)
+                        : undefined
+                    }
                   />
                 )}
               </RepoRow>

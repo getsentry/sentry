@@ -426,15 +426,3 @@ export function slot<T extends readonly Slot[]>(names: T): SlotModule<T[number]>
 
   return Slot;
 }
-
-export function withSlots<
-  TComponent extends React.ComponentType<any>,
-  TSlot extends Slot,
->(
-  Component: TComponent,
-  slotModule: SlotModule<TSlot>
-): TComponent & {Slot: SlotModule<TSlot>} {
-  const WithSlots = Component as TComponent & {Slot: SlotModule<TSlot>};
-  WithSlots.Slot = slotModule;
-  return WithSlots;
-}

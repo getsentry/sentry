@@ -7,6 +7,8 @@ import {
   getFieldDefinition,
   type GetFieldDefinitionType,
 } from 'sentry/utils/fields';
+import {getAttributeVisibility} from 'sentry/utils/fields/getAttributeVisibility';
+import {useUser} from 'sentry/utils/useUser';
 
 export interface AttributeDetailsTooltipProps {
   /**
@@ -48,6 +50,7 @@ export function AttributeDetailsTooltip({
   isScrubbed,
   name,
 }: AttributeDetailsTooltipProps) {
+  const user = useUser();
   const fieldDefinition =
     getFieldDefinition(attributeKey, fieldDefinitionType) ??
     (name === undefined ? null : getFieldDefinition(name, fieldDefinitionType));
@@ -60,6 +63,10 @@ export function AttributeDetailsTooltip({
         <AttributeDetails
           description={fieldDefinition?.desc ?? DEFAULT_TAG_DESCRIPTION}
           isAddedBySentry={Boolean(fieldDefinition)}
+          isInternal={
+            user.isStaff &&
+            getAttributeVisibility(attributeKey, attributeName) === 'internal'
+          }
           isScrubbed={isScrubbed}
           name={attributeName}
           valueType={

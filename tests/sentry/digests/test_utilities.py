@@ -125,12 +125,27 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         rule = self.create_project_rule(project=project, environment_id=development.id)
         workflow_id = int(rule.data["actions"][0]["workflow_id"])
         workflow = Workflow.objects.get(id=workflow_id)
-        workflow.update(environment_id=production.id)
+        workflow.update(name="Renamed workflow", environment_id=production.id)
 
         rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
 
-        assert rendered_rule.id == rule.id
+        assert rendered_rule.legacy_rule_id == rule.id
+        assert rendered_rule.workflow_id == workflow_id
+        assert rendered_rule.label == "Renamed workflow"
         assert rendered_rule.environment_id == production.id
+
+    def test_get_rules_from_workflows_uses_unset_workflow_environment(self) -> None:
+        project = self.create_project(fire_project_created=True)
+        environment = self.create_environment(project=project)
+        rule = self.create_project_rule(project=project, environment_id=environment.id)
+        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        Workflow.objects.filter(id=workflow_id).update(environment_id=None)
+
+        rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
+
+        assert rendered_rule.legacy_rule_id == rule.id
+        assert rendered_rule.workflow_id == workflow_id
+        assert rendered_rule.environment_id is None
 
     def test_get_rules_from_workflows_uses_workflow_environment_for_synthetic_rule(self) -> None:
         project = self.create_project(fire_project_created=True)
@@ -141,13 +156,14 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         rendered_rule = get_rules_from_workflows(project, {workflow.id})[workflow.id]
 
-        assert rendered_rule.id == workflow.id
+        assert rendered_rule.legacy_rule_id is None
+        assert rendered_rule.workflow_id == workflow.id
         assert rendered_rule.environment_id == environment.id
 
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]) -> None:
     for rule, groups in digest.items():
-        assert rule.id in expected_rule_ids
+        assert rule.legacy_rule_id in expected_rule_ids
 
 
 def assert_get_personalized_digests(
@@ -321,11 +337,13 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
         records = _get_records(self.project, (rule,), self.team1_events[0])
 
-        digest = build_digest(self.project, sort_records(records))[0]
+        with patch("sentry.digests.notifications.Rule.objects.in_bulk") as rule_in_bulk:
+            digest = build_digest(self.project, sort_records(records))[0]
 
         [digest_rule] = digest.keys()
-        assert digest_rule.data["actions"][0]["legacy_rule_id"] == rule.id
-        assert digest_rule.data["actions"][0]["workflow_id"] == workflow_id
+        rule_in_bulk.assert_not_called()
+        assert digest_rule.legacy_rule_id == rule.id
+        assert digest_rule.workflow_id == workflow_id
 
     def test_legacy_rule_id_records_without_workflow(self) -> None:
         rule = self.rule_with_legacy_rule_id
@@ -335,9 +353,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         with patch("sentry.digests.notifications.logger") as mock_logger:
             digest = build_digest(self.project, sort_records(records))[0]
 
-        [digest_rule] = digest.keys()
-        assert digest_rule.data["actions"][0]["legacy_rule_id"] == rule.id
-        assert "workflow_id" not in digest_rule.data["actions"][0]
+        assert digest == {}
         mock_logger.error.assert_called_once_with(
             "digests.build_digest.rule_without_workflow",
             extra={"rule_id": rule.id, "project_id": self.project.id},

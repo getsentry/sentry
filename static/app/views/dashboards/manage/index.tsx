@@ -15,11 +15,11 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
@@ -414,23 +414,26 @@ function ManageDashboards() {
           ) : (
             <Stack flex={1}>
               <NoProjectMessage organization={organization}>
-                <Layout.Title>
-                  {pageTitle}
-                  <PageHeadingQuestionTooltip
-                    docsUrl="https://docs.sentry.io/product/dashboards/"
-                    title={
-                      isOnlyPrebuilt
-                        ? t(
-                            'Dashboards built by Sentry to help monitor your application out of the box.'
-                          )
-                        : isOnlyCustom
-                          ? t('Dashboards created by you and your team.')
-                          : t(
-                              "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                <TopBar.Slot
+                  name="breadcrumbs"
+                  title={{
+                    type: 'page-title',
+                    label: pageTitle,
+                    labelTooltip: (
+                      <DocumentationHint docsUrl="https://docs.sentry.io/product/dashboards/">
+                        {isOnlyPrebuilt
+                          ? t(
+                              'Dashboards built by Sentry to help monitor your application out of the box.'
                             )
-                    }
-                  />
-                </Layout.Title>
+                          : isOnlyCustom
+                            ? t('Dashboards created by you and your team.')
+                            : t(
+                                "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                              )}
+                      </DocumentationHint>
+                    ),
+                  }}
+                />
                 <TopBar.Slot name="actions">
                   <Feature features="dashboards-import">
                     <Button

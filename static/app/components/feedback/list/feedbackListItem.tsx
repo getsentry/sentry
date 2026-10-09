@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
-import {Checkbox} from '@sentry/scraps/checkbox';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -12,13 +11,14 @@ import {IssueTrackingSignals} from 'sentry/components/feedback/list/issueTrackin
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
+import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {IconChat, IconFatal, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {feedbackHasLinkedError} from 'sentry/utils/feedback/hasLinkedError';
 import {type FeedbackIssueListItem} from 'sentry/utils/feedback/types';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -36,8 +36,6 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
 }
 
 export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
-  const {isSelected, toggleSelected} = useListItemCheckboxContext();
-
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -75,12 +73,9 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
             e.stopPropagation();
           }}
         >
-          <Checkbox
-            disabled={isSelected(feedbackItem.id) === 'all-selected'}
-            checked={isSelected(feedbackItem.id) !== false}
-            onChange={() => {
-              toggleSelected(feedbackItem.id);
-            }}
+          <ListItemSelectCheckbox
+            htmlPrefix="feedback-list-select"
+            value={feedbackItem.id}
           />
         </Row>
 
@@ -93,11 +88,9 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
         <StyledTimeSince date={feedbackItem.firstSeen} />
 
         {feedbackItem.hasSeen ? null : (
-          <DotRow area="unread">
-            <Tooltip title={t('Unread')} skipWrapper>
-              <UnreadIndicator />
-            </Tooltip>
-          </DotRow>
+          <Row area="unread" justify="center">
+            <UnreadIndicator />
+          </Row>
         )}
 
         <PreviewRow align="start" justify="start" area="message">
@@ -206,19 +199,6 @@ const PreviewRow = styled(Row)`
   align-items: flex-start;
   font-size: ${p => p.theme.font.size.sm};
   padding-bottom: ${p => p.theme.space.sm};
-`;
-
-const DotRow = styled(Row)`
-  height: 1.1em;
-  align-items: flex-start;
-  justify-content: center;
-`;
-
-const UnreadIndicator = styled('div')`
-  width: 8px;
-  height: 8px;
-  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-  border-radius: 50%;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`

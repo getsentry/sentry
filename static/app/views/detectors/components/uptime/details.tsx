@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -130,33 +129,28 @@ export default function UptimeAlertDetails() {
   return (
     <Stack flex={1}>
       <SentryDocumentTitle title={`${detector.name} — Alerts`} />
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Monitors'),
-              to: makeMonitorBasePathname(organization.slug),
-            },
-            {
-              type: 'link',
-              label: getDetectorTypeLabel(detector.type),
-              to: makeMonitorTypePathname(organization.slug, detector.type),
-            },
-          ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: detector.name,
-            leadingGraphic: (
-              <ProjectBadge disableLink hideName project={project} avatarSize={16} />
-            ),
-          }}
-        />
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: detector.name,
+          leadingGraphic: (
+            <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+          ),
+        }}
+        items={[
+          {
+            type: 'link',
+            label: t('Monitors'),
+            to: makeMonitorBasePathname(organization.slug),
+          },
+          {
+            type: 'link',
+            label: getDetectorTypeLabel(detector.type),
+            to: makeMonitorTypePathname(organization.slug, detector.type),
+          },
+        ]}
+      />
       <TopBar.Slot name="actions">
         <StatusToggleButton
           uptimeDetector={detector}
