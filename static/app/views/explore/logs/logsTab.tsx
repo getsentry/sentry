@@ -32,6 +32,7 @@ import {HOUR} from 'sentry/utils/formatters';
 import {makeEventsTimeSeriesQueryKeyPrefix} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
@@ -105,8 +106,6 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
-
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
@@ -523,7 +522,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                 )}
               </Flex>
             </OverChartButtonGroup>
-            <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+            <ExploreQuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             <LogsDownSamplingAlert
               timeseriesResult={timeseriesResult}
               tableResult={infiniteLogsQueryResult}

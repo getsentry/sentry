@@ -49,14 +49,13 @@ import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
 import {
   ExploreBodySearch,
   ExploreFilterSection,
 } from 'sentry/views/explore/components/styles';
 import {SetupLogsButton} from 'sentry/views/explore/logs/setupLogsButton';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
-
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type OnboardingProps = {
   organization: Organization;
@@ -600,7 +599,7 @@ export function LogsTabOnboarding({
           </Flex>
         </ExploreFilterSection>
         <OnboardingContainer>
-          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+          <ExploreQuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
           <Onboarding project={project} organization={organization} />
         </OnboardingContainer>
       </Layout.Main>
