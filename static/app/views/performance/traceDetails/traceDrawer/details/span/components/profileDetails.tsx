@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {
   SpanProfileDetails,
   useSpanProfileDetails,
-  type SpanProfileDetailsContext,
+  type SpanProfileDetailsMetadata,
   type SpanProfileDetailsProps,
 } from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {t} from 'sentry/locale';
@@ -13,14 +13,14 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 export function ProfileDetails({
   organization,
-  context,
+  metadata,
   span,
 }: {
-  context: SpanProfileDetailsContext;
+  metadata: SpanProfileDetailsMetadata;
   organization: Organization;
   span: Readonly<SpanProfileDetailsProps['span']>;
 }) {
-  const {profile, frames} = useSpanProfileDetails(organization, context, span);
+  const {profile, frames} = useSpanProfileDetails(organization, metadata, span);
 
   if (!defined(profile) || frames.length === 0) {
     return null;
@@ -33,7 +33,7 @@ export function ProfileDetails({
       disableCollapsePersistence
     >
       <EmbededContentWrapper>
-        <SpanProfileDetails context={context} span={span} />
+        <SpanProfileDetails metadata={metadata} span={span} />
       </EmbededContentWrapper>
     </FoldSection>
   );

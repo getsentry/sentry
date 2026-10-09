@@ -1,12 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {makeSentryContinuousProfile} from 'sentry/utils/profiling/profile/testUtils';
 import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 import {
-  type SpanProfileDetailsContext,
+  type SpanProfileDetailsMetadata,
   useSpanProfileDetails,
 } from './spanProfileDetails';
 
@@ -26,7 +26,7 @@ function Wrapper({children}: React.PropsWithChildren) {
 
 describe('useSpanProfileDetails', () => {
   it('prefers the profile timestamp over the fallback origin', () => {
-    const context: SpanProfileDetailsContext = {
+    const metadata: SpanProfileDetailsMetadata = {
       endTimestamp: 3,
       profileId: undefined,
       profilerId: 'profiler-id',
@@ -53,16 +53,17 @@ describe('useSpanProfileDetails', () => {
         ],
       },
     });
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () =>
-        useSpanProfileDetails(organization, context, {
+        useSpanProfileDetails(organization, metadata, {
           start_timestamp: 2,
           end_timestamp: 3,
           span_id: 'span-id',
           thread_id: '0',
         }),
       {
-        wrapper: ({children}) => (
+        organization,
+        additionalWrapper: ({children}) => (
           <ProfileGroupProvider input={input} traceID="profiler-id" type="flamechart">
             {children}
           </ProfileGroupProvider>
@@ -79,7 +80,7 @@ describe('useSpanProfileDetails', () => {
   it.each([undefined, 'transaction-span-id'])(
     'keeps event and span IDs separate in continuous profile links (span ID: %s)',
     transactionSpanId => {
-      const context: SpanProfileDetailsContext = {
+      const metadata: SpanProfileDetailsMetadata = {
         endTimestamp: 2,
         profileId: undefined,
         profilerId: 'profiler-id',
@@ -91,15 +92,15 @@ describe('useSpanProfileDetails', () => {
         transactionSpanId,
       };
 
-      const {result} = renderHook(
+      const {result} = renderHookWithProviders(
         () =>
-          useSpanProfileDetails(organization, context, {
+          useSpanProfileDetails(organization, metadata, {
             end_timestamp: 2,
             span_id: 'span-id',
             start_timestamp: 1,
             thread_id: '0',
           }),
-        {wrapper: Wrapper}
+        {organization, additionalWrapper: Wrapper}
       );
 
       expect(result.current.profileTarget).toEqual(

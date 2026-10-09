@@ -8,7 +8,7 @@ import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {
   useSpanProfileDetails,
-  type SpanProfileDetailsContext,
+  type SpanProfileDetailsMetadata,
 } from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -283,7 +283,7 @@ function EAPSpanNodeDetailsContent({
     };
   }, [node, threadId]);
 
-  const profileContext = useMemo<SpanProfileDetailsContext>(() => {
+  const profileMetadata = useMemo<SpanProfileDetailsMetadata>(() => {
     const platform = attributesMap.platform;
     const sdkName = attributesMap['sdk.name'];
     const sdkVersion = attributesMap['sdk.version'];
@@ -318,7 +318,7 @@ function EAPSpanNodeDetailsContent({
     };
   }, [attributesMap, eventTransaction, node, project?.platform, traceId]);
 
-  const {profile, frames} = useSpanProfileDetails(organization, profileContext, span);
+  const {profile, frames} = useSpanProfileDetails(organization, profileMetadata, span);
   const logsQueryResult = useLogsPageDataQueryResult();
   const hasProfileDetails = defined(profile) && frames.length > 0;
   const hasLogDetails = (logsQueryResult?.data?.length ?? 0) > 0;
@@ -460,7 +460,7 @@ function EAPSpanNodeDetailsContent({
         {organization.features.includes('profiling') ? (
           <ProfileDetails
             organization={organization}
-            context={profileContext}
+            metadata={profileMetadata}
             span={span}
           />
         ) : null}

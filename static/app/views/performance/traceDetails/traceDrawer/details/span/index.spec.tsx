@@ -32,6 +32,20 @@ const createMockExtra = (
 describe('SpanNodeDetails', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+
+    const organization = OrganizationFixture();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/logs/`,
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      body: [],
+    });
   });
 
   it.each([
@@ -66,24 +80,6 @@ describe('SpanNodeDetails', () => {
           attributes: [],
           meta: {},
         },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events/`,
-        method: 'GET',
-        body: {data: []},
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/logs/`,
-        method: 'GET',
-        body: {data: []},
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/dashboards/`,
-        method: 'GET',
-        body: [],
       });
 
       render(
@@ -201,18 +197,6 @@ describe('SpanNodeDetails', () => {
           },
         },
       });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events/`,
-        body: {data: []},
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/logs/`,
-        body: {data: []},
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/dashboards/`,
-        body: [],
-      });
       const sourceLinkRequest = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
         body: {config: null, sourceUrl: null, integrations: []},
@@ -318,18 +302,6 @@ describe('SpanNodeDetails', () => {
         },
       },
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {data: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/logs/`,
-      body: {data: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/`,
-      body: [],
-    });
 
     render(
       <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
@@ -417,21 +389,6 @@ describe('SpanNodeDetails', () => {
         },
         transaction: {active_thread_id: 1},
       }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {data: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/logs/`,
-      method: 'GET',
-      body: {data: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/`,
-      method: 'GET',
-      body: [],
     });
 
     render(
