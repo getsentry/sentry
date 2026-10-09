@@ -15,6 +15,7 @@ import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
@@ -26,7 +27,6 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {IconSearch} from 'sentry/icons';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -350,9 +350,14 @@ export function Control<Value extends SelectKey>({
   });
 
   const overflowBoundaryId = useBoundaryContext();
-  const overflowBoundary = overflowBoundaryId
-    ? document.getElementById(overflowBoundaryId)
-    : null;
+  const getOverflowBoundary = useCallback(
+    () =>
+      (overflowBoundaryId ? document.getElementById(overflowBoundaryId) : null) ??
+      document.querySelector('main') ??
+      document.getElementById('main') ??
+      undefined,
+    [overflowBoundaryId]
+  );
 
   // Manage overlay position
   const {
@@ -373,15 +378,8 @@ export function Control<Value extends SelectKey>({
     onInteractOutside,
     shouldCloseOnInteractOutside,
     shouldCloseOnBlur,
-    preventOverflowOptions: {
-      ...preventOverflowOptions,
-      boundary:
-        preventOverflowOptions?.boundary ??
-        overflowBoundary ??
-        document.querySelector('main') ??
-        document.getElementById('main') ??
-        undefined,
-    },
+    preventOverflowOptions,
+    getOverflowBoundary,
     flipOptions,
     strategy,
     onOpenChange: open => {

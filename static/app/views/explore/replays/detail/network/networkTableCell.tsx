@@ -1,4 +1,4 @@
-import type {ComponentProps, CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -29,7 +29,6 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   rowIndex: number;
   startTimestampMs: number;
   style: CSSProperties;
-  ref?: React.Ref<HTMLDivElement>;
 }
 
 export function NetworkTableCell({
@@ -43,7 +42,6 @@ export function NetworkTableCell({
   rowIndex,
   startTimestampMs,
   style,
-  ref,
 }: Props) {
   // Rows include the sortable header, the dataIndex does not
   const dataIndex = rowIndex - 1;
@@ -65,9 +63,8 @@ export function NetworkTableCell({
     onClick: () => onClickCell({dataIndex, rowIndex}),
     onMouseEnter: () => onMouseEnter(frame),
     onMouseLeave: () => onMouseLeave(frame),
-    ref,
     style,
-  } as ComponentProps<typeof Cell>;
+  };
 
   const renderFns = [
     () => (

@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import type {Placement} from '@popperjs/core';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {
   CompactSelect,
@@ -10,7 +11,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
