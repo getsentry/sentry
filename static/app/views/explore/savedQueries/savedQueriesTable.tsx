@@ -210,8 +210,7 @@ export function SavedQueriesTable({
           const isPrebuilt = isExplore && Boolean(query.isPrebuilt);
           const allowRegexOperators =
             isExplore &&
-            getSavedQueryTraceItemDataset(query.dataset) === TraceItemDataset.LOGS &&
-            organization.features.includes('ourlogs-regex-searches');
+            getSavedQueryTraceItemDataset(query.dataset) === TraceItemDataset.LOGS;
 
           return (
             <SavedEntityTable.Row

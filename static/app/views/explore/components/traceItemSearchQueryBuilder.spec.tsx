@@ -425,28 +425,19 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.placeholder).toBe('Search for logs, users, tags, and more');
   });
 
-  it('allows regex operators for logs when the feature is enabled', () => {
-    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
-      organization: OrganizationFixture({features: ['ourlogs-regex-searches']}),
-    });
-
-    expect(result.current.allowRegexOperators).toBe(true);
-  });
-
-  it('does not allow regex operators for logs when the feature is disabled', () => {
+  it('allows regex operators for logs', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
       organization,
     });
 
-    expect(result.current.allowRegexOperators).toBe(false);
+    expect(result.current.allowRegexOperators).toBe(true);
   });
 
-  it('does not allow regex operators for spans when the feature is enabled', () => {
+  it('does not allow regex operators for spans', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {...defaultInitialProps, itemType: TraceItemDataset.SPANS},
-      organization: OrganizationFixture({features: ['ourlogs-regex-searches']}),
+      organization,
     });
 
     expect(result.current.allowRegexOperators).toBe(false);
