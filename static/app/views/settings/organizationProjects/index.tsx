@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {debounce, parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -40,6 +40,8 @@ function OrganizationProjects() {
   });
   // nuqs only debounces the URL write, the state updates on every keystroke
   const [debouncedQuery] = useDebouncedValue(query, {wait: DEFAULT_DEBOUNCE_DURATION});
+  // Search clears the cursor right away, hold the fetch until the query settles
+  const isTyping = query !== debouncedQuery;
 
   const {
     data: projectListResponse,
@@ -61,6 +63,8 @@ function OrganizationProjects() {
       }
     ),
     select: selectJsonWithHeaders,
+    enabled: !isTyping,
+    placeholderData: keepPreviousData,
   });
 
   const projectList = projectListResponse?.json;
