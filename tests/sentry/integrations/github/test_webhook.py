@@ -80,8 +80,8 @@ def test_empty_secret_rejects_matching_signature(method: str, header: str) -> No
         data=body,
         content_type="application/json",
         HTTP_X_GITHUB_EVENT="push",
-        **{header: f"{method}={signature}"},
     )
+    request.META[header] = f"{method}={signature}"
     endpoint = GitHubIntegrationsWebhookEndpoint()
     endpoint.setup(request)
 
