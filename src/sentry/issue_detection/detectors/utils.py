@@ -175,6 +175,11 @@ def safer_urlparse(url: str) -> ParseResult:
     valid IP. In cases where that happens, this temporarily strips the brackets for parsing, then
     restores them in the final result.
 
+    (Note: Only `netloc` is restored with the original bracketed hostname; derived properties like
+    `hostname` would require a `ParseResult` subclass to fix, and without it still handle the
+    brackets badly. All hostname comparisons should therefore be done using `netloc`, not
+    `hostname`.)
+
     Reraises parsing errors caused by other invalid URL patterns.
     """
     try:
