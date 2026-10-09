@@ -1761,7 +1761,7 @@ describe('AutofixOverview', () => {
     const fileToggle = await screen.findByRole('button', {
       name: /src\/sentry\/mystery\.py/,
     });
-    const fileRow = fileToggle.closest<HTMLElement>('[data-disclosure]')!;
+    const fileRow = fileToggle.closest<HTMLElement>('[data-test-id="changed-file-row"]')!;
 
     expect(within(fileRow).getByText('+4')).toBeInTheDocument();
     expect(within(fileRow).queryByTestId('tag-background')).not.toBeInTheDocument();
