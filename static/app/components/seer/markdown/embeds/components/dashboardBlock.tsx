@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {IconDashboard} from '@sentry/icons/dashboard';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,7 +16,6 @@ import {
   useLocalWidgetLegendSelectionState,
 } from 'sentry/components/seer/markdown/embeds/localWidgetLegendSelectionState';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconDashboard} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {dashboardDetailsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';

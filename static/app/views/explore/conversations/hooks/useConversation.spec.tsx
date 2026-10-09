@@ -23,6 +23,8 @@ const BASE_SPAN = {
 
 const STATS: ConversationStats = {
   endTimestamp: 1_000_500,
+  errors: 0,
+  errorToolNames: [],
   generationDuration: 500,
   inputTokens: 70,
   llmCalls: 1,
@@ -130,7 +132,7 @@ describe('useConversation', () => {
 
   it('stops loading after reaching the pagination cap', async () => {
     const url = `/organizations/${organization.slug}/agents/conversations/conv-123/`;
-    const requests = Array.from({length: 10}, (_, index) =>
+    const requests = Array.from({length: 100}, (_, index) =>
       MockApiClient.addMockResponse({
         url,
         match: [
@@ -154,12 +156,12 @@ describe('useConversation', () => {
 
     await waitFor(() => {
       expect(requests.map(request => request.mock.calls.length)).toEqual(
-        Array.from({length: 10}, () => 1)
+        Array.from({length: 100}, () => 1)
       );
     });
 
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.nodes).toHaveLength(10);
+    expect(result.current.nodes).toHaveLength(100);
   });
 
   it('maps gen_ai.input.messages to node attributes', async () => {
@@ -181,9 +183,6 @@ describe('useConversation', () => {
           trace: 'trace-1',
           'gen_ai.operation.type': 'ai_client',
           'gen_ai.input.messages': inputMessages,
-          'gen_ai.request.messages': JSON.stringify([
-            {role: 'user', content: 'Fallback message'},
-          ]),
         },
       ]),
     });
@@ -245,49 +244,6 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_OUTPUT_MESSAGES]).toBe(outputMessages);
   });
 
-  it('preserves span.op for an embeddings span without changing its op type', async () => {
-    // gen_ai.operation.type is a closed enum with no "embeddings" bucket, so an
-    // embeddings call reports "ai_client". We keep that op type (so the timeline
-    // renders it unchanged) and preserve span.op, which the transcript uses to
-    // recognize the embedding.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/conv-embedding/`,
-      body: envelope([
-        {
-          'gen_ai.conversation.id': 'conv-embedding',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'embeddings Google Embedding',
-          'span.op': 'gen_ai.embeddings',
-          'span.status': 'ok',
-          span_id: 'span-embedding',
-          trace: 'trace-embedding',
-          'gen_ai.operation.type': 'ai_client',
-          'gen_ai.response.model': 'text-embedding-005',
-        },
-      ]),
-    });
-
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-embedding'}),
-      {organization}
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.nodes).toHaveLength(1);
-    const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
-    expect(attrs?.[SpanFields.SPAN_OP]).toBe('gen_ai.embeddings');
-    expect(attrs?.[SpanFields.GEN_AI_OPERATION_TYPE]).toBe('ai_client');
-  });
-
   it('maps gen_ai.embeddings.input to node attributes', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-embedding-input/`,
@@ -324,6 +280,55 @@ describe('useConversation', () => {
     const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
       .additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_EMBEDDINGS_INPUT]).toBe('search query text');
+  });
+
+  it('maps gen_ai.memory.* to node attributes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/conv-memory/`,
+      body: envelope([
+        {
+          'gen_ai.conversation.id': 'conv-memory',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1000.5,
+          'precise.start_ts': 1000,
+          project: 'test-project',
+          'project.id': 1,
+          'span.name': 'search_memory',
+          'span.op': 'gen_ai.search_memory',
+          'span.status': 'ok',
+          span_id: 'span-memory',
+          trace: 'trace-memory',
+          'gen_ai.operation.type': 'memory',
+          'gen_ai.operation.name': 'search_memory',
+          'gen_ai.memory.store.id': 'user-prefs',
+          'gen_ai.memory.query.text': 'dietary preferences',
+          'gen_ai.memory.record.id': 'mem_123',
+          'gen_ai.memory.record.count': 3,
+          'gen_ai.memory.records': '[{"content":"User prefers dark mode"}]',
+        },
+      ]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-memory'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes).toHaveLength(1);
+    const node = result.current.nodes[0];
+    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+      .additional_attributes;
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_STORE_ID]).toBe('user-prefs');
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_QUERY_TEXT]).toBe('dietary preferences');
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORD_ID]).toBe('mem_123');
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORD_COUNT]).toBe(3);
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORDS]).toBe(
+      '[{"content":"User prefers dark mode"}]'
+    );
   });
 
   it('maps gen_ai.operation.name to node attributes', async () => {
@@ -364,47 +369,6 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_OPERATION_NAME]).toBe('evaluate');
   });
 
-  it('maps gen_ai.request.messages to node attributes', async () => {
-    const requestMessages = JSON.stringify([
-      {role: 'user', content: 'Hello from request'},
-    ]);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/conv-456/`,
-      body: envelope([
-        {
-          'gen_ai.conversation.id': 'conv-456',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'gen_ai.generate',
-          'span.status': 'ok',
-          span_id: 'span-2',
-          trace: 'trace-2',
-          'gen_ai.operation.type': 'ai_client',
-          'gen_ai.request.messages': requestMessages,
-        },
-      ]),
-    });
-
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-456'}),
-      {organization}
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.nodes).toHaveLength(1);
-    const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
-    expect(attrs?.[SpanFields.GEN_AI_REQUEST_MESSAGES]).toBe(requestMessages);
-  });
-
   it('uses empty string for missing optional fields', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-789/`,
@@ -421,7 +385,7 @@ describe('useConversation', () => {
           span_id: 'span-3',
           trace: 'trace-3',
           'gen_ai.operation.type': 'ai_client',
-          // No input or request messages provided
+          // No input messages provided
         },
       ]),
     });
@@ -441,7 +405,6 @@ describe('useConversation', () => {
       .additional_attributes;
     // Should default to empty string for missing fields
     expect(attrs?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe('');
-    expect(attrs?.[SpanFields.GEN_AI_REQUEST_MESSAGES]).toBe('');
   });
 
   it('uses conversation timestamps when provided', async () => {

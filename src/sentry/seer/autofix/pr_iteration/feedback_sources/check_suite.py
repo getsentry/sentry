@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Any, Literal
 
 from pydantic import Field, PrivateAttr, root_validator
+from sentry_sdk import traces
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.pr_iteration.check_suites import (
@@ -23,8 +24,8 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     FeedbackSourceBase,
     TriggerDecision,
 )
+from sentry.seer.autofix.pr_iteration.iterations import get_iterations
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,6 @@ class MissingCheckSuiteAutofixRun(Exception):
 
 def _processed_check_suite_attempts(run_state: SeerRunState) -> set[tuple[int, str] | int]:
     """Attempt keys already turned into feedback on this run (for consume dedupe)."""
-    from sentry.seer.autofix.autofix_agent import get_iterations
     from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import _blocks_feedback
 
     keys: set[tuple[int, str] | int] = set()
@@ -163,7 +163,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             )
             return LivePullRequestHead("unexpected_error")
 
-    @trace
+    @traces.trace
     def should_consume(self, run_state: SeerRunState) -> Decision:
         head_sha, repo_name, matched = check_suite_head_match(self.event, run_state)
         attempt_key = self.check_suite_attempt_key()
@@ -199,7 +199,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             return Decision(ok=False, reason="live_head_mismatch")
         return Decision(ok=True, reason="head_matches")
 
-    @trace
+    @traces.trace
     def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
         try:
             autofix_run = self.autofix_run

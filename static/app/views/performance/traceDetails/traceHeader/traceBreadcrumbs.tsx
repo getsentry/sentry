@@ -1,10 +1,9 @@
-import {Fragment} from 'react';
-
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCopyId, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -101,58 +100,53 @@ export function TraceBreadcrumbs({
   });
 
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList items={parentItems} />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: formatVersion(traceSlug),
-            leadingGraphic: project ? (
-              <ProjectBadge
-                hideName
-                disableLink
-                project={project}
-                avatarSize={16}
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              />
-            ) : (
-              <Placeholder width="16px" height="16px" />
-            ),
-            pagination,
-            trailingActions: exploreTarget
-              ? {
-                  type: 'menu',
-                  triggerLabel: t('Trace Actions'),
-                  triggerIcon: <IconEllipsis />,
-                  items: [
-                    {
-                      key: 'copy-trace-id',
-                      label: COPY_ID_LABEL,
-                      leadingItems: <IconCopyId variant="muted" />,
-                      onAction: () => copy(traceSlug),
-                    },
-                    {
-                      key: 'open-in-explore',
-                      label: t('Open in Explore'),
-                      leadingItems: <IconOpen variant="muted" />,
-                      to: exploreTarget.to,
-                      onAction: exploreTarget.onClick,
-                    },
-                  ],
-                }
-              : {
-                  type: 'copy',
-                  text: traceSlug,
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: formatVersion(traceSlug),
+        leadingGraphic: project ? (
+          <ProjectBadge
+            hideName
+            disableLink
+            project={project}
+            avatarSize={16}
+            avatarProps={{hasTooltip: true, tooltip: project.slug}}
+          />
+        ) : (
+          <Placeholder width="16px" height="16px" />
+        ),
+        pagination,
+        trailingActions: exploreTarget
+          ? {
+              type: 'menu',
+              triggerLabel: t('Trace Actions'),
+              triggerIcon: <IconEllipsis />,
+              items: [
+                {
+                  key: 'copy-trace-id',
                   label: COPY_ID_LABEL,
-                  tooltip: COPY_ID_LABEL,
-                  icon: <IconCopyId variant="muted" />,
+                  leadingItems: <IconCopyId variant="muted" />,
+                  onAction: () => copy(traceSlug),
                 },
-          }}
-        />
-      </TopBar.Slot>
-    </Fragment>
+                {
+                  key: 'open-in-explore',
+                  label: t('Open in Explore'),
+                  leadingItems: <IconOpen variant="muted" />,
+                  to: exploreTarget.to,
+                  onAction: exploreTarget.onClick,
+                },
+              ],
+            }
+          : {
+              type: 'copy',
+              text: traceSlug,
+              label: COPY_ID_LABEL,
+              tooltip: COPY_ID_LABEL,
+              icon: <IconCopyId variant="muted" />,
+            },
+      }}
+      items={parentItems}
+    />
   );
 }

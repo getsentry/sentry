@@ -1,215 +1,136 @@
-import {useQueryClient} from '@tanstack/react-query';
-import type {LocationDescriptor} from 'history';
+import type {ReactNode} from 'react';
+import {IconCopy} from '@sentry/icons/copy';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {
-  GroupStatus,
-  ProgressState,
-  type Group,
-  type GroupStatusResolution,
-} from 'sentry/types/group';
+import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {GroupActions} from 'sentry/views/issueDetails/actions/index';
+import {issueAndEventToMarkdown} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
-  GroupActions,
-  GroupResolutionActions,
-} from 'sentry/views/issueDetails/actions/index';
-import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {IssuePreviewSeerActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeerActions';
+  PullRequestButtons,
+  useIssuePreviewPullRequests,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewPullRequests';
+import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
 
-function shouldShowFixAppliedActions(group: Group, project: Project) {
-  return (
-    group.derivedData?.progress === ProgressState.FIX_APPLIED &&
-    getConfigForIssueType(group, project).actions.resolve.enabled
-  );
+interface CopyAsMarkdownButtonProps {
+  disabled: boolean;
+  group: Group;
+  autofixData?: ExplorerAutofixState | null;
+  autofixFormatted?: string | null;
 }
 
 interface IssuePreviewActionsProps {
-  group: Group;
-  onContinueInSeer: () => void;
-  onRetryCodeChanges: () => void;
-  project: Project;
-  disabled?: boolean;
-}
-
-export function OpenIssueButton({
-  group,
-  to,
-  size = 'xs',
-}: {
-  group: Group;
-  to: LocationDescriptor;
-  size?: 'xs' | 'sm';
-}) {
-  return (
-    <LinkButton
-      to={to}
-      size={size}
-      analyticsEventKey="issue_inbox.open_issue_clicked"
-      analyticsEventName="Issue Inbox: Open Issue Clicked"
-      analyticsParams={{
-        group_id: group.id,
-        progress: group.derivedData?.progress,
-        source: 'button',
-      }}
-    >
-      {t('Open Issue')}
-    </LinkButton>
-  );
-}
-
-function IssueResolutionActions({
-  disabled,
-  group,
-  project,
-  variant = 'primary',
-}: {
   disabled: boolean;
   group: Group;
   project: Project;
-  variant?: 'primary' | 'secondary';
-}) {
-  const api = useApi({persistInFlight: true});
-  const organization = useOrganization();
-  const location = useLocation();
-  const queryClient = useQueryClient();
-  async function handleUpdate(data: GroupStatusResolution) {
-    const {alert_date, alert_rule_id, alert_type} = location.query;
-    trackAnalytics('issue_inbox.resolve_clicked', {
-      organization,
-      action_type: data.status,
-      action_substatus: data.substatus ?? undefined,
-      action_status_details: Object.keys(data.statusDetails || {})[0],
-      alert_date:
-        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
-      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-      ...getAnalyticsDataForGroup(group),
-      ...getAnalyicsDataForProject(project),
-      org_streamline_only: organization.streamlineOnly ?? undefined,
-    });
-
-    try {
-      await bulkUpdate(api, {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-        data,
-      });
-      clearIndicators();
-      addSuccessMessage(
-        data.status === GroupStatus.UNRESOLVED
-          ? t('Issue marked unresolved')
-          : t('Issue resolved')
-      );
-      IssueListCacheStore.reset();
-      const issueListUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-        path: {organizationIdOrSlug: organization.slug},
-      });
-      const issueCountUrl = getApiUrl(
-        '/organizations/$organizationIdOrSlug/issues-count/',
-        {path: {organizationIdOrSlug: organization.slug}}
-      );
-      const issueUrl = getApiUrl(
-        '/organizations/$organizationIdOrSlug/issues/$issueId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            issueId: group.id,
-          },
-        }
-      );
-      const issueActivitiesUrl = getApiUrl(
-        '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            issueId: group.id,
-          },
-        }
-      );
-      void queryClient.invalidateQueries({
-        predicate: query => {
-          const url = safeParseQueryKey(query.queryKey)?.url;
-
-          return (
-            url === issueListUrl ||
-            url === issueCountUrl ||
-            url === issueUrl ||
-            url === issueActivitiesUrl
-          );
-        },
-      });
-    } catch {
-      // GroupStore already shows the error
-    }
-  }
-
-  return (
-    <GroupResolutionActions
-      disabled={disabled}
-      event={null}
-      group={group}
-      onUpdate={handleUpdate}
-      project={project}
-      variant={variant}
-    />
-  );
+  autofixData?: ExplorerAutofixState | null;
+  autofixFormatted?: string | null;
 }
 
-export function IssuePreviewActions({
-  disabled = false,
+function CopyAsMarkdownButton({
   group,
-  onContinueInSeer,
-  onRetryCodeChanges,
-  project,
-}: IssuePreviewActionsProps) {
-  const {state} = useIssuePreviewSeer();
-  const shouldShowSeerActions = state === 'start' || state === 'summary';
+  disabled,
+  autofixData,
+  autofixFormatted,
+}: CopyAsMarkdownButtonProps) {
+  const organization = useOrganization();
+  const {copy} = useCopyToClipboard();
+  const {data: event, isPending} = useGroupEvent({
+    groupId: group.id,
+    eventId: 'recommended',
+    options: {enabled: !disabled},
+  });
 
-  if (shouldShowFixAppliedActions(group, project)) {
-    return <IssueResolutionActions disabled={disabled} group={group} project={project} />;
-  }
-
-  if (state === 'loading') {
-    return <Placeholder width="120px" height="32px" />;
-  }
-
-  if (!shouldShowSeerActions) {
-    return (
-      <GroupActions group={group} project={project} disabled={disabled} event={null} />
+  function handleCopy() {
+    const threads =
+      event?.entries.find(entry => entry.type === EntryType.THREADS)?.data.values ?? [];
+    void copy(
+      issueAndEventToMarkdown({
+        group,
+        event,
+        organization,
+        autofixData,
+        autofixFormatted,
+        activeThreadId: findBestThread(threads)?.id,
+      }),
+      {successMessage: t('Copied issue to clipboard as Markdown')}
     );
   }
 
   return (
-    <Flex align="center" gap="sm" wrap="wrap">
-      <IssuePreviewSeerActions
-        disabled={disabled}
+    <Button
+      size="sm"
+      variant="primary"
+      icon={<IconCopy />}
+      disabled={disabled || isPending}
+      busy={!disabled && isPending}
+      onClick={handleCopy}
+      analyticsEventKey="issue_details.copy_issue_details_as_markdown"
+      analyticsEventName="Issue Details: Copy Issue Details as Markdown"
+      analyticsParams={{
+        groupId: group.id,
+        eventId: event?.id,
+        hasAutofix: Boolean(autofixData),
+      }}
+    >
+      {t('Copy as Markdown')}
+    </Button>
+  );
+}
+
+export function IssuePreviewActions({
+  disabled,
+  group,
+  project,
+  autofixData,
+  autofixFormatted,
+}: IssuePreviewActionsProps) {
+  const {pullRequests, isPending} = useIssuePreviewPullRequests(group);
+  const invalidateInboxQueries = useInvalidateInboxQueries(group.id);
+  let primaryAction: ReactNode;
+  if (isPending) {
+    primaryAction = <Placeholder width="120px" height="32px" />;
+  } else if (pullRequests.length > 0) {
+    primaryAction = (
+      <PullRequestButtons disabled={disabled} group={group} pullRequests={pullRequests} />
+    );
+  } else {
+    primaryAction = (
+      <CopyAsMarkdownButton
         group={group}
-        onContinueInSeer={onContinueInSeer}
-        onRetryCodeChanges={onRetryCodeChanges}
-      />
-      <IssueResolutionActions
         disabled={disabled}
+        autofixData={autofixData}
+        autofixFormatted={autofixFormatted}
+      />
+    );
+  }
+
+  return (
+    <Flex
+      role="group"
+      aria-label={t('Issue actions')}
+      align="center"
+      gap="sm"
+      wrap="wrap"
+    >
+      {primaryAction}
+      <GroupActions
         group={group}
         project={project}
-        variant="secondary"
+        disabled={disabled}
+        event={null}
+        onUpdateSuccess={invalidateInboxQueries}
+        resolveVariant="secondary"
       />
     </Flex>
   );

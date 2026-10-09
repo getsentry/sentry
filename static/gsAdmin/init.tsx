@@ -1,5 +1,6 @@
 import {createRoot} from 'react-dom/client';
-import {createBrowserRouter, RouterProvider} from 'react-router-dom';
+import {createBrowserRouter} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
@@ -9,7 +10,6 @@ import {setApiNavigate} from 'sentry/api';
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
 import {initializeSdk} from 'sentry/bootstrap/initializeSdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
 import {createReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -21,8 +21,6 @@ export function init(config: Config) {
 
   // Initialize the config store after the SDK, so we can log errors to Sentry during config initialization if needed
   commonInitialization(config);
-
-  ConfigStore.set('getsentry.sendgridApiKey', window.__sendGridApiKey);
 }
 
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);

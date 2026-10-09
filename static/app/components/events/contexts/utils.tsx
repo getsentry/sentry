@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {SvgIcon} from '@sentry/icons/svgIcon';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
 
@@ -42,7 +43,6 @@ import {
   PLATFORM_CONTEXT_KEYS,
 } from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
-import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
@@ -213,35 +213,6 @@ export function getContextKeys({
   return Object.keys(data).filter(
     ctxKey => ctxKey !== 'type' && !hiddenKeySet.has(ctxKey)
   );
-}
-
-/**
- * Registry field names for context keys the SDKs spell differently. A key only
- * belongs here when its field definition describes the same value: `trace.span_id`
- * is absent because `trace.span` documents the root span, not the event's own span.
- */
-const CONTEXT_ATTRIBUTE_KEYS: Record<string, string> = {
-  'trace.parent_span_id': 'trace.parent_span',
-  'trace.trace_id': 'trace',
-  'user.ip_address': 'user.ip',
-};
-
-/**
- * The key a context row's field definition is registered under. Built from the
- * context's type rather than its alias, since an alias can be renamed by the SDK
- * or the user (`client_os` for an `os` context) while the type stays canonical.
- */
-export function getContextAttributeKey({
-  alias,
-  contextKey,
-  type,
-}: {
-  alias: string;
-  contextKey: string;
-  type?: string;
-}): string {
-  const attributeKey = `${getContextType({alias, type})}.${contextKey}`;
-  return CONTEXT_ATTRIBUTE_KEYS[attributeKey] ?? attributeKey;
 }
 
 export function getContextTitle({

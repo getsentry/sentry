@@ -20,6 +20,10 @@ class InsightsStarredSegmentTest(APITestCase, SnubaTestCase):
             "sentry-api-0-insights-starred-segments",
             kwargs={"organization_id_or_slug": self.org.slug},
         )
+        self.service_spans_url = reverse(
+            "sentry-api-0-organization-starred-service-spans",
+            kwargs={"organization_id_or_slug": self.org.slug},
+        )
 
     def test_post_and_delete(self) -> None:
         with self.feature(self.feature_name):
@@ -118,4 +122,54 @@ class InsightsStarredSegmentTest(APITestCase, SnubaTestCase):
             assert response.status_code == 403
             assert InsightsStarredSegment.objects.filter(
                 project_id=other_project.id,
+            ).exists()
+
+    def test_legacy_route_delete_ignores_query_params(self) -> None:
+        with self.feature(self.feature_name):
+            response = self.client.delete(
+                f"{self.url}?segment_name=my_segment&project_id={self.project_ids[0]}"
+            )
+            assert response.status_code == 400
+
+    def test_service_spans_route_delete_ignores_body(self) -> None:
+        with self.feature(self.feature_name):
+            response = self.client.delete(
+                self.service_spans_url,
+                data={"service_span": "my_service_span", "project_id": self.project_ids[0]},
+            )
+            assert response.status_code == 400
+
+    def test_delete_without_params(self) -> None:
+        with self.feature(self.feature_name):
+            response = self.client.delete(self.url)
+            assert response.status_code == 400
+
+    def test_service_spans_route_post_and_delete(self) -> None:
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.service_spans_url,
+                data={"service_span": "my_service_span", "project_id": self.project_ids[0]},
+            )
+            assert response.status_code == 200, response.content
+            assert InsightsStarredSegment.objects.filter(
+                segment_name="my_service_span",
+            ).exists()
+
+            response = self.client.delete(
+                f"{self.service_spans_url}?service_span=my_service_span&project_id={self.project_ids[0]}"
+            )
+            assert response.status_code == 200, response.content
+            assert not InsightsStarredSegment.objects.filter(
+                segment_name="my_service_span",
+            ).exists()
+
+    def test_service_spans_route_accepts_segment_name(self) -> None:
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.service_spans_url,
+                data={"segment_name": "my_service_span", "project_id": self.project_ids[0]},
+            )
+            assert response.status_code == 200, response.content
+            assert InsightsStarredSegment.objects.filter(
+                segment_name="my_service_span",
             ).exists()

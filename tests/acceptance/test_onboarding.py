@@ -332,8 +332,8 @@ class OnboardingTest(AcceptanceTestCase):
         self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
 
-        # Click the header "Skip setup" button
-        self.browser.click(xpath='//a[contains(., "Skip setup")]')
+        self.browser.click(xpath='//button[contains(., "Skip setup")]')
+        self.browser.click('[role="dialog"] button[aria-label="I got stuck"]')
 
         # Navigation leaves the onboarding step and carries the step-specific referrer
         self.browser.wait_until_not('[data-test-id="onboarding-step-scm-platform-features"]')
@@ -426,7 +426,7 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "GitHub")]')
 
             # Step 1: OAuth Login — the modal shows "Authorize GitHub".
-            self.browser.wait_until(xpath='//button[contains(., "Authorize GitHub")]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Authorize GitHub")]')
             self.browser.click(xpath='//button[contains(., "Authorize GitHub")]')
 
             # The OAuth popup was intercepted. Extract the state parameter from
@@ -723,7 +723,9 @@ class OnboardingTest(AcceptanceTestCase):
         project2 = Project.objects.get(organization=self.org, slug="javascript-react", status=0)
         assert project2.id != project1.id
 
-        self.browser.click(xpath='//a[contains(., "Skip setup")]')
+        self.browser.click(xpath='//button[contains(., "Skip setup")]')
+        self.browser.click('[role="dialog"] button[aria-label="I got stuck"]')
+        self.browser.wait_until_not('[data-test-id="onboarding-step-setup-docs"]')
         self.browser.get(f"/organizations/{self.org.slug}/projects/")
         self.browser.wait_until("[data-test-id='javascript-react']")
         assert_existing_projects_status(
@@ -756,7 +758,9 @@ class OnboardingTest(AcceptanceTestCase):
         assert project2.platform == "javascript-react"
 
         self.browser.back()
-        self.browser.click(xpath='//a[contains(., "Skip setup")]')
+        self.browser.click(xpath='//button[contains(., "Skip setup")]')
+        self.browser.click('[role="dialog"] button[aria-label="I got stuck"]')
+        self.browser.wait_until_not('[data-test-id="onboarding-step-scm-platform-features"]')
         self.browser.get(f"/organizations/{self.org.slug}/projects/")
         self.browser.wait_until(xpath='//*[text()="Remain Calm"]')
         assert_existing_projects_status(

@@ -1,10 +1,12 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {
   formatDroppedShare,
   getOutcomeColors,
@@ -13,10 +15,8 @@ import {
   reasonTitle,
 } from 'sentry/components/droppedData/utils';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 interface ReasonRow {
   category: string;
@@ -44,7 +44,7 @@ interface ReasonAggregate {
 }
 
 /**
- * Group dropped annotations into one section per outcome, each with a row per
+ * Group dropped events into one section per outcome, each with a row per
  * reason. Shares are computed against total events (accepted + dropped); a
  * reason's `droppedBuckets` counts the distinct time buckets it appears in.
  *
@@ -52,19 +52,19 @@ interface ReasonAggregate {
  * `end` is in the future — without the clamp a reason dropping right now would
  * render as last seen in the future.
  */
-export function annotationsToCategorySections(
-  droppedAnnotations: Annotation[],
-  acceptedAnnotations: Annotation[],
+export function droppedEventsToCategorySections(
+  droppedEvents: DroppedEventsBucket[],
+  acceptedEvents: DroppedEventsBucket[],
   now: number = Date.now()
 ): CategorySection[] {
   const reasonsByOutcome = new Map<string, Map<string, ReasonAggregate>>();
   const eventsByOutcome = new Map<string, number>();
   let totalDroppedEvents = 0;
 
-  for (const annotation of droppedAnnotations) {
-    const {outcome, reason, category, eventCount, start, end} = annotation;
-    totalDroppedEvents += eventCount;
-    eventsByOutcome.set(outcome, (eventsByOutcome.get(outcome) ?? 0) + eventCount);
+  for (const event of droppedEvents) {
+    const {outcome, reason, category, count, start, end} = event;
+    totalDroppedEvents += count;
+    eventsByOutcome.set(outcome, (eventsByOutcome.get(outcome) ?? 0) + count);
 
     const reasons = reasonsByOutcome.get(outcome) ?? new Map<string, ReasonAggregate>();
     const aggregate = reasons.get(reason) ?? {
@@ -73,17 +73,14 @@ export function annotationsToCategorySections(
       buckets: new Set<number>(),
       lastSeen: 0,
     };
-    aggregate.events += eventCount;
+    aggregate.events += count;
     aggregate.buckets.add(start);
     aggregate.lastSeen = Math.max(aggregate.lastSeen, end);
     reasons.set(reason, aggregate);
     reasonsByOutcome.set(outcome, reasons);
   }
 
-  const totalAcceptedEvents = acceptedAnnotations.reduce(
-    (sum, annotation) => sum + annotation.eventCount,
-    0
-  );
+  const totalAcceptedEvents = acceptedEvents.reduce((sum, event) => sum + event.count, 0);
   const totalEvents = totalAcceptedEvents + totalDroppedEvents;
   const share = (events: number) => (totalEvents === 0 ? 0 : events / totalEvents);
 
@@ -284,18 +281,18 @@ function CategorySectionRow({
 }
 
 interface DroppedDataCategoryListProps {
-  acceptedAnnotations: Annotation[];
-  droppedAnnotations: Annotation[];
+  acceptedEvents: DroppedEventsBucket[];
+  droppedEvents: DroppedEventsBucket[];
 }
 
 export function DroppedDataCategoryList({
-  droppedAnnotations,
-  acceptedAnnotations,
+  droppedEvents,
+  acceptedEvents,
 }: DroppedDataCategoryListProps) {
   const theme = useTheme();
-  const sections = annotationsToCategorySections(droppedAnnotations, acceptedAnnotations);
+  const sections = droppedEventsToCategorySections(droppedEvents, acceptedEvents);
   const totalBuckets = new Set(
-    [...droppedAnnotations, ...acceptedAnnotations].map(a => a.start)
+    [...droppedEvents, ...acceptedEvents].map(event => event.start)
   ).size;
   const colors = getOutcomeColors(sections.map(section => section.label).sort(), theme);
 

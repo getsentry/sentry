@@ -7,8 +7,10 @@ const productionEntryPoints = [
   'static/app/index.tsx',
   // scraps has all index.tsx file as separate entry points
   'static/app/components/core/*/index.tsx',
-  // defined in rspack.config.ts pipelines
+  // defined in rsbuild.config.ts pipelines
   'static/app/utils/setupStatics.tsx',
+  // Source-scoped Rspack/Jest aliases use this runtime entry; TS uses types.d.ts.
+  'static/app/utils/reactRouterV6/index.ts',
   'static/app/serviceWorker/worker/worker.ts',
   // scripts are entry points
   'scripts/*.ts',
@@ -18,8 +20,6 @@ const productionEntryPoints = [
   // TODO: Remove when wired into Seer Explorer
   'static/app/components/core/chat/thinkingBlock.tsx',
   'static/app/components/core/chat/toolCall.tsx',
-  // todo we currently keep all icons
-  'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when the autofixRef embed consumes it (#122099)
@@ -46,8 +46,6 @@ const storyBookEntryPoints = [
 ];
 
 const config: KnipConfig = {
-  // Scraps has its own TypeScript configuration and test suite.
-  ignoreWorkspaces: ['static/packages/scraps'],
   workspaces: {
     '.': {
       entry: [
@@ -72,17 +70,26 @@ const config: KnipConfig = {
         '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
-        'core-js',
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
-        // Loaded dynamically from the import/resolver setting in oxlint.config.ts.
-        'eslint-import-resolver-typescript',
         'zrender', // used in echarts
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.
       ignoreFiles: ['static/**/*.less'],
+    },
+    'static/packages/icons': {
+      // test helpers are only used outside production.
+      project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!', '!test/**!'],
+      includeEntryExports: true,
+    },
+    'static/packages/scraps': {
+      project: [
+        '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!',
+        // Test helpers and package verification scripts are not production code.
+        '!{test,scripts}/**!',
+      ],
     },
     'static/oxlint/eslintPluginSentry': {
       // RuleTester resolves these cross-file fixtures by filename.

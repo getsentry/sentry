@@ -1,6 +1,9 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSort} from '@sentry/icons/sort';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
@@ -19,7 +22,6 @@ import {
   BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import {IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';

@@ -16,6 +16,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
@@ -40,6 +41,22 @@ def test_parent_fetch_groups_span_ids_by_trace() -> None:
         '(trace:"trace-a" span_id:["parent-1", "parent-2"]) OR (trace:"trace-b" span_id:"parent-3")'
     )
     assert run_query.call_args.kwargs["limit"] == 3
+    assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_conversation_probe_fetches_only_span_id() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+
+    with patch.object(
+        Spans, "run_table_query", return_value={"data": [{"span_id": "span-id"}]}
+    ) as run_query:
+        exists = endpoint._conversation_exists(MagicMock(), "conversation-id")
+
+    assert exists is True
+    assert run_query.call_args.kwargs["selected_columns"] == ["span_id"]
+    assert run_query.call_args.kwargs["orderby"] == []
+    assert run_query.call_args.kwargs["offset"] == 0
+    assert run_query.call_args.kwargs["limit"] == 1
     assert run_query.call_args.kwargs["config"].auto_fields is False
 
 
@@ -415,6 +432,43 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         )
         assert response.data["spans"] == []
 
+    def test_memory_span_attributes(self) -> None:
+        now = before_now(days=20).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        records = [{"content": "User prefers dark mode", "score": 0.95}]
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.search_memory",
+            operation_name="search_memory",
+            operation_type="memory",
+            memory_store_id="user-prefs",
+            memory_query_text="dietary preferences",
+            memory_record_id="mem_123",
+            memory_record_count=3,
+            memory_records=records,
+            trace_id=uuid4().hex,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 1
+
+        span = response.data["spans"][0]
+        assert span["gen_ai.operation.name"] == "search_memory"
+        assert span["gen_ai.memory.store.id"] == "user-prefs"
+        assert span["gen_ai.memory.query.text"] == "dietary preferences"
+        assert span["gen_ai.memory.record.id"] == "mem_123"
+        assert span["gen_ai.memory.record.count"] == 3
+        assert json.loads(span["gen_ai.memory.records"]) == records
+
     def test_single_trace_conversation(self) -> None:
         now = before_now(days=20).replace(microsecond=0)
         trace_id = uuid4().hex
@@ -668,8 +722,10 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert "is_transaction" in span
         assert span["gen_ai.operation.name"] == "chat"
         assert span["gen_ai.operation.type"] == "ai_client"
-        assert span["gen_ai.request.messages"] is not None
-        assert span["gen_ai.response.text"] == "Hi there!"
+        assert span["gen_ai.input.messages"] is not None
+        assert span["gen_ai.output.messages"] == "Hi there!"
+        assert "gen_ai.request.messages" not in span
+        assert "gen_ai.response.text" not in span
         assert span["gen_ai.usage.total_tokens"] == 150
         assert span["gen_ai.cost.total_tokens"] == 0.0025
         assert span["user.id"] == "user-123"
@@ -822,7 +878,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
         assert span["gen_ai.tool.call.result"] == "found 3 rows"
-        assert span["gen_ai.tool.output"] == "tool output payload"
+        assert "gen_ai.tool.output" not in span
 
     def test_returns_embeddings_attributes(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -1022,10 +1078,15 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 1
         expected_stats = {
+            "cacheReadTokens": 30,
+            "cacheWriteTokens": 15,
             "endTimestamp": int(now.timestamp() * 1000),
+            "errors": 1,
+            "errorToolNames": ["database"],
             "inputTokens": 190,
             "llmCalls": 2,
             "outputTokens": 110,
+            "reasoningTokens": 12,
             "startTimestamp": int((now - timedelta(seconds=2)).timestamp() * 1000),
             "toolCalls": 1,
             "toolErrors": 1,
@@ -1133,7 +1194,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.chat",
             operation_type="ai_client",
-            status="error",
             trace_id=trace_id,
         )
         span_id = span["span_id"]
@@ -1148,6 +1208,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
+        assert response.data["stats"]["errors"] == 0
         assert len(response.data["spans"]) == 1
 
         span_data = response.data["spans"][0]

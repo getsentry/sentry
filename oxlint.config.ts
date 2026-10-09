@@ -1,4 +1,21 @@
-import {defineConfig} from 'oxlint';
+import {defineConfig, type OxlintConfig} from 'oxlint';
+
+const coreComponentFiles = [
+  'static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}',
+  'static/packages/scraps/src/**/*.{ts,tsx}',
+];
+
+// incubator rules disallow new violations from being introduced
+// but suppress pre-existing violations on `master`
+export const incubator = defineConfig({
+  rules: {'@sentry/scraps/prefer-primitives': 'error'},
+  overrides: [
+    {
+      files: coreComponentFiles,
+      rules: {'@sentry/scraps/prefer-primitives': 'off'},
+    },
+  ],
+});
 
 const IS_PRECOMMIT =
   process.env.SENTRY_PRECOMMIT !== undefined &&
@@ -189,10 +206,6 @@ const storyFilesPolicy = {
 };
 
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
-const coreComponentFiles = [
-  'static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}',
-  'static/packages/scraps/src/**/*.{ts,tsx}',
-];
 
 /**
  * Import linting uses two complementary approaches:
@@ -223,7 +236,7 @@ const config = defineConfig({
     },
     {
       name: 'import-js',
-      specifier: 'eslint-plugin-import',
+      specifier: 'eslint-plugin-import-x',
     },
     {
       name: 'react-js',
@@ -268,13 +281,21 @@ const config = defineConfig({
       defaultVersion: '19.2',
     },
     'import/resolver': {
-      typescript: {},
+      typescript: {project: './tsconfig.lint.json'},
+    },
+    'import-x/resolver': {
+      typescript: {project: './tsconfig.lint.json'},
     },
     // Analyze both static and dynamic imports for boundary checks.
     // https://www.jsboundaries.dev/docs/setup/settings/#boundariesdependency-nodes
     'boundaries/dependency-nodes': ['import', 'dynamic-import'],
     // Order matters because several element roots are nested inside static/app.
     'boundaries/elements': [
+      {
+        type: 'icons',
+        pattern: 'static/packages/icons/src',
+        partialMatch: false,
+      },
       // Keep core stories inside Scraps; story-files still classifies them as stories.
       {
         type: 'scraps',
@@ -292,7 +313,11 @@ const config = defineConfig({
       },
       {
         type: 'test',
-        pattern: ['tests/js', 'static/packages/scraps/test'],
+        pattern: [
+          'tests/js',
+          'static/packages/scraps/test',
+          'static/packages/icons/test',
+        ],
       },
       // Sentry application and assets.
       {
@@ -548,6 +573,7 @@ const config = defineConfig({
     '@sentry/no-digits-in-tn': 'error',
     '@sentry/no-dynamic-translations': 'error',
     '@sentry/no-flag-comments': 'error',
+    '@sentry/no-legacy-router-imports': 'error',
     '@sentry/no-query-data-type-parameters': 'error',
     '@sentry/no-raw-css-in-styled': 'error',
     '@sentry/no-redundant-default-argument': 'error',
@@ -747,6 +773,7 @@ const config = defineConfig({
           'analyze-styled\\.ts$',
           'type-coverage\\.ts$',
           'type-coverage-diff\\.ts$',
+          '^custom-oxlint\\.ts$',
           'AiSetupDataConsent\\.tsx$',
           'CredentialRow\\.tsx$',
           'DevKitSettings\\.tsx$',
@@ -1210,6 +1237,43 @@ const config = defineConfig({
             message:
               'Scraps components must use the tracking context instead of importing from sentry/utils/analytics',
           },
+          // Icons are independent of Scraps and the application. Apply this
+          // after the general Scraps allowances so they cannot reopen imports.
+          {
+            from: {element: {type: 'icons'}},
+            disallow: {to: {element: {type: '*'}}},
+          },
+          {
+            from: {element: {type: 'icons'}},
+            allow: [{to: {element: {type: 'icons'}}}],
+          },
+          {
+            from: {
+              element: {
+                types: {
+                  anyOf: [
+                    'sentry',
+                    'getsentry',
+                    'gsAdmin',
+                    'scraps',
+                    'test',
+                    'story-book',
+                    'debug-tools',
+                  ],
+                },
+              },
+            },
+            allow: [
+              {
+                to: {
+                  element: {
+                    type: 'icons',
+                    fileInternalPath: ['icon*.tsx', 'svgIcon.tsx', 'useIconDefaults.tsx'],
+                  },
+                },
+              },
+            ],
+          },
           // Apply story access after Scraps policies so core stories stay
           // accessible to Storybook, but production code cannot import them.
           {
@@ -1425,7 +1489,7 @@ const config = defineConfig({
         },
       },
     ],
-    // https://github.com/import-js/eslint-plugin-import/tree/main/docs/rules
+    // https://github.com/un-ts/eslint-plugin-import-x/tree/master/docs/rules
     'import-js/no-extraneous-dependencies': [
       'error',
       {
@@ -1462,6 +1526,22 @@ const config = defineConfig({
     'unicorn-js/prefer-simple-condition-first': 'off',
   },
   overrides: [
+    {
+      files: [
+        'tests/js/jestReactRouterResolver.cjs',
+        'tests/js/jestReactRouterResolver.spec.ts',
+      ],
+      env: {node: true},
+      rules: {'import/no-nodejs-modules': 'off'},
+    },
+    {
+      files: [
+        'static/app/utils/reactRouterV6/index.ts',
+        'static/app/utils/reactRouterV6/dom.ts',
+        'static/app/utils/reactRouterV6/types.d.ts',
+      ],
+      rules: {'@sentry/no-legacy-router-imports': 'off'},
+    },
     {
       files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
       rules: {
@@ -1695,7 +1775,10 @@ const config = defineConfig({
       },
     },
     {
-      files: ['static/packages/scraps/*.config.mjs'],
+      files: [
+        'static/packages/scraps/*.config.mjs',
+        'static/packages/icons/*.config.mjs',
+      ],
       rules: {'boundaries/no-unknown-files': 'off'},
     },
     {
@@ -1715,7 +1798,7 @@ const config = defineConfig({
       // Re-enable these rules when Scraps has its own stricter lint config.
       rules: {
         'boundaries/no-unknown-files': 'off',
-        'eslint/no-shadow': 'off',
+        'no-shadow': 'off',
       },
     },
     {
@@ -1831,6 +1914,8 @@ const config = defineConfig({
       files: [
         'static/packages/scraps/src/**/*.spec.tsx',
         'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
+        'static/packages/icons/src/**/*.spec.tsx',
+        'static/packages/icons/test/**/*.{ts,tsx,mjs}',
       ],
       rules: {
         'import/no-relative-parent-imports': 'off',
@@ -1842,7 +1927,7 @@ const config = defineConfig({
               ...restrictedImportPatterns,
               {
                 group: ['sentry/*', 'sentry-test/*', 'sentry-fixture/*'],
-                message: 'Scraps tests must be independent of the Sentry application.',
+                message: 'Package tests must be independent of the Sentry application.',
               },
             ],
             paths: restrictedImportPaths.filter(
@@ -1932,8 +2017,49 @@ const config = defineConfig({
       },
       excludeFiles: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
     },
+    ...incubator.overrides,
   ],
 });
 
-export const oxlintIgnorePatterns = config.ignorePatterns ?? [];
-export default config;
+const enrolledRules = new Set(
+  [incubator, ...incubator.overrides].flatMap(({rules}) =>
+    Object.entries(rules ?? {})
+      .filter(([, options]) => {
+        const severity = Array.isArray(options) ? options[0] : options;
+        return severity !== 'off' && severity !== 0;
+      })
+      .map(([rule]) => rule)
+  )
+);
+function setIncubatorSeverity(rules: OxlintConfig['rules']) {
+  const configured = {...rules};
+  const severity = process.env.SENTRY_OXLINT_ENFORCE === 'true' ? 'error' : 'warn';
+  for (const [rule, options] of Object.entries(configured)) {
+    const current = Array.isArray(options) ? options[0] : options;
+    if (!enrolledRules.has(rule) || current === 'off' || current === 0) {
+      continue;
+    }
+    const next = typeof current === 'number' ? (severity === 'error' ? 2 : 1) : severity;
+    if (Array.isArray(options)) {
+      const updated = structuredClone(options);
+      updated[0] = next;
+      configured[rule] = updated;
+    } else {
+      configured[rule] = next;
+    }
+  }
+  return configured;
+}
+export default defineConfig({
+  ...config,
+  rules: setIncubatorSeverity({
+    ...Object.fromEntries(
+      Object.entries(config.rules).filter(([rule]) => !enrolledRules.has(rule))
+    ),
+    ...incubator.rules,
+  }),
+  overrides: config.overrides.map(override => ({
+    ...override,
+    rules: setIncubatorSeverity(override.rules),
+  })),
+});

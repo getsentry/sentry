@@ -19,7 +19,6 @@ from sentry.integrations.repository.notification_action import (
     NewNotificationActionNotificationMessage,
 )
 from sentry.integrations.services.integration import RpcIntegration
-from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -29,9 +28,10 @@ from sentry.integrations.slack.utils.nudge import should_send_nudge_block
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
-from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
+from sentry.notifications.types import TEST_NOTIFICATION_ID, NotificationOrigin, RuleFuture
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -66,18 +66,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "notes": {"type": "string", "placeholder": "e.g., @jane, @on-call-team"},
         }
 
-    def _should_send_nudge(self, channel_id: str | None) -> bool:
-        return bool(
-            channel_id
-            and should_send_nudge_block(
-                channel_id=channel_id, organization=self.project.organization
-            )
-        )
-
     def _build_notification_blocks(
         self,
         event: GroupEvent,
-        rules: Sequence[Rule],
+        rules: Sequence[NotificationOrigin],
         tags: set,
         integration: RpcIntegration,
         notification_uuid: str | None = None,
@@ -179,7 +171,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         send_nudge: bool = False,
     ) -> None:
         """Common logic for sending Slack notifications."""
-        rules = [f.rule for f in futures]
+        rules = [future.context.origin for future in futures]
         blocks, json_blocks = self._build_notification_blocks(
             event, rules, tags, integration, notification_uuid, send_nudge=send_nudge
         )
@@ -189,6 +181,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         client = SlackSdkClient(integration_id=integration.id)
         text = str(blocks.get("text"))
+        record_legacy_render(NotificationProviderKey.SLACK, {"blocks": json_blocks, "text": text})
         message_ts: str | None = None
         # Wrap the Slack API call with lifecycle tracking
         with MessagingInteractionEvent(
@@ -237,11 +230,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         notification_uuid: str | None = None,
     ) -> None:
         """Send a notification action notification to Slack."""
-        rules = [f.rule for f in futures]
-        rule = rules[0] if rules else None
-        rule_to_use = self.rule if self.rule else rule
-        # In the NOA, we will store the action id in the rule id field
-        action_id = rule_to_use.id if rule_to_use else None
+        contexts = [future.context for future in futures]
+        future_context = contexts[0] if contexts else None
+        context = self.context or future_context
+        action_id = context.action_id if context else None
 
         if not action_id:
             # We are logging because this should never happen, all actions should have an uuid
@@ -251,7 +243,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
             return
 
-        if str(action_id) == "-1":
+        if context and context.origin.legacy_rule_id == TEST_NOTIFICATION_ID:
             self._send_notification(
                 event=event,
                 futures=futures,
@@ -259,7 +251,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 integration=integration,
                 channel=channel,
             )
-            self.record_notification_sent(event, channel, rule, notification_uuid)
+            self.record_notification_sent(event, channel, future_context, notification_uuid)
             return
 
         try:
@@ -318,9 +310,11 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             save_notification_method=NotificationActionThreadUtils._save_notification_action_message,
             thread_ts=thread_ts,
             # Only real issue alerts should send nudges
-            send_nudge=self._should_send_nudge(channel),
+            send_nudge=should_send_nudge_block(
+                organization=self.project.organization, notification_uuid=notification_uuid
+            ),
         )
-        self.record_notification_sent(event, channel, rule, notification_uuid)
+        self.record_notification_sent(event, channel, future_context, notification_uuid)
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
@@ -385,6 +379,3 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
-
-    def get_form_instance(self) -> SlackNotifyServiceForm:
-        return SlackNotifyServiceForm(self.data, integrations=self.get_integrations())

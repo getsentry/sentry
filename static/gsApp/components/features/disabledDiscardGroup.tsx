@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {IconBusiness, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

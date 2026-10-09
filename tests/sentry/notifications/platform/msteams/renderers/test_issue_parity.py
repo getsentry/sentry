@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.integrations.msteams.card_builder.block import AdaptiveCard
+from sentry.integrations.msteams.card_builder.block import (
+    AdaptiveCard,
+    TextSize,
+    TextWeight,
+    create_text_block,
+)
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import GroupStatus
@@ -61,6 +66,7 @@ class IssueCardLegacyParityTest(TestCase):
 
     def platform_card(self) -> AdaptiveCard:
         data = IssueNotificationData(
+            organization_id=1,
             group_id=self.issue_group.id,
             event_id=self.event.event_id,
             notification_uuid="",
@@ -91,6 +97,21 @@ class IssueCardLegacyParityTest(TestCase):
     def test_parity_for_assigned_issue(self) -> None:
         GroupAssignee.objects.assign(self.issue_group, self.user)
         self.assert_parity()
+
+    def test_parity_when_issue_metadata_moved_past_the_event(self) -> None:
+        self.event = self.store_event(
+            data={"exception": {"values": [{"type": "ValueError", "value": "triggering event"}]}},
+            project_id=self.project.id,
+        )
+        assert self.event.group is not None
+        self.issue_group = self.event.group
+        self.issue_group.data["metadata"]["value"] = "later event"
+        self.issue_group.save()
+
+        self.assert_parity()
+        assert self.legacy_card()["body"][1] == create_text_block(
+            "triggering event", size=TextSize.MEDIUM, weight=TextWeight.BOLDER
+        )
 
     def test_parity_for_issue_with_teams(self) -> None:
         self.create_team(organization=self.organization, slug="micro-team")

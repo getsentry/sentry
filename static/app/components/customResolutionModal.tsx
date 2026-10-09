@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
@@ -13,7 +14,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Project} from 'sentry/types/project';

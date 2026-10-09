@@ -1,6 +1,5 @@
+import {SvgIcon, type SVGIconProps} from '@sentry/icons/svgIcon';
 import {PlatformIcon, platforms} from 'platformicons';
-
-import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 
 const LOGO_MAPPING: Readonly<Record<string, string>> = {
   'android-phone': 'android-phone',

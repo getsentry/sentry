@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {IconClose} from '@sentry/icons/close';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -7,7 +8,6 @@ import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
