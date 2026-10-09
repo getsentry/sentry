@@ -1443,7 +1443,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         clear_organization_info()
         secret = self.get_secret()
 
-        if secret is None:
+        if not secret:
             logger.warning("github.webhook.missing-secret", extra=self.get_logging_data())
             metrics.incr(
                 "github.webhook.hmac_failure",
