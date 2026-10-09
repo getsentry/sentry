@@ -1174,6 +1174,7 @@ def process_checkin(item: CheckinItem) -> None:
             parent_span=None,
         )
     finally:
+        propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
         propagation_context.custom_sampling_context = prev_sampling_context
     with span:
         try:
@@ -1257,6 +1258,7 @@ def process_batch(
             parent_span=None,
         )
     finally:
+        propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
         propagation_context.custom_sampling_context = prev_sampling_context
     with span:
         futures = [
