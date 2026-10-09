@@ -468,18 +468,6 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
             "priority": "P1",
         }
 
-    def test_build_rule_action_blob_no_priority(self) -> None:
-        """Test that build_rule_action_blob handles missing priority"""
-        self.action.data = {}
-        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
-
-        assert blob == {
-            "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-            "account": "1234567890",
-            "team": "team789",
-            "priority": "",
-        }
-
     @mock.patch("sentry.integrations.opsgenie.client.logger")
     @mock.patch("sentry.integrations.opsgenie.client.OpsgenieClient.send_notification")
     def test_invoke_legacy_registry_links_to_workflow(

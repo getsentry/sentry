@@ -1,6 +1,6 @@
 import {createContext, useContext} from 'react';
 
-import type {FieldErrors} from './scrapsForm';
+import type {FieldErrors} from '@sentry/scraps/form/scrapsForm';
 
 export type MappedFormError<TFormData> =
   | {fieldErrors: FieldErrors<TFormData>}

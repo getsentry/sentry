@@ -9,7 +9,7 @@ import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
-import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 
 import {renderDom} from './renderDom';
 import {renderOnDomReady} from './renderOnDomReady';

@@ -21,7 +21,7 @@ class OpsgenieIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
     def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         blob = OnCallDataBlob(**action.data)
-        return {"priority": blob.priority}
+        return {"priority": blob.priority or OPSGENIE_DEFAULT_PRIORITY}
 
     @classmethod
     def render_label(

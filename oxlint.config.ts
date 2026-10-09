@@ -18,7 +18,10 @@ export const incubator = defineConfig({
     },
     {
       files: testFiles,
-      rules: {'@sentry/prefer-fake-timers': 'error'},
+      rules: {
+        '@sentry/prefer-fake-timers': 'error',
+        '@sentry/require-fake-timer-cleanup': 'error',
+      },
     },
   ],
 });
