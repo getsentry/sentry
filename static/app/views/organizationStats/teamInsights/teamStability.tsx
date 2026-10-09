@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -11,7 +12,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';

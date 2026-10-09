@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Any, Literal
 
 from pydantic import Field, PrivateAttr, root_validator
+from sentry_sdk import traces
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.pr_iteration.check_suites import (
@@ -25,7 +26,6 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
 )
 from sentry.seer.autofix.pr_iteration.iterations import get_iterations
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +163,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             )
             return LivePullRequestHead("unexpected_error")
 
-    @trace
+    @traces.trace
     def should_consume(self, run_state: SeerRunState) -> Decision:
         head_sha, repo_name, matched = check_suite_head_match(self.event, run_state)
         attempt_key = self.check_suite_attempt_key()
@@ -199,7 +199,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             return Decision(ok=False, reason="live_head_mismatch")
         return Decision(ok=True, reason="head_matches")
 
-    @trace
+    @traces.trace
     def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
         try:
             autofix_run = self.autofix_run

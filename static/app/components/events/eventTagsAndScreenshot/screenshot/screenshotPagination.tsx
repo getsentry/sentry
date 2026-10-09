@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {

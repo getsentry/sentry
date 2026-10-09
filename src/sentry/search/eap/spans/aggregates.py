@@ -138,6 +138,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="integer",
         arguments=[ValueArgumentDefinition(argument_types={"string"})],
         aggregate_resolver=resolve_count_op,
+        valid_arithmetic=True,
     ),
     "count_scores": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -156,6 +157,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
         aggregate_resolver=resolve_count_scores,
+        valid_arithmetic=True,
     ),
     "count_starts": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -169,6 +171,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
         aggregate_resolver=resolve_count_starts,
+        valid_arithmetic=True,
     ),
     "http_response_count": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -180,6 +183,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
         aggregate_resolver=resolve_http_response_count,
+        valid_arithmetic=True,
     ),
     "bounded_sample": ConditionalAggregateDefinition(
         # Bounded sample will return True if the sample is between the lower bound (2nd parameter) and if provided, greater the upper bound (3rd parameter).
@@ -214,6 +218,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "avg": AggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
@@ -232,6 +237,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "avg_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
@@ -251,6 +257,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
         extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        valid_arithmetic=True,
     ),
     "count": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -272,6 +279,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
         attribute_resolver=count_argument_resolver_optimized(SPANS_ALWAYS_PRESENT_ATTRIBUTES),
+        valid_arithmetic=True,
     ),
     "count_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -292,6 +300,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
         extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        valid_arithmetic=True,
     ),
     "p50": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
@@ -310,6 +319,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "p50_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
@@ -328,6 +338,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
         extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        valid_arithmetic=True,
     ),
     "p75": AggregateDefinition(
         internal_function=Function.FUNCTION_P75,
@@ -346,6 +357,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "p90": AggregateDefinition(
         internal_function=Function.FUNCTION_P90,
@@ -364,6 +376,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "p95": AggregateDefinition(
         internal_function=Function.FUNCTION_P95,
@@ -382,6 +395,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "p99": AggregateDefinition(
         internal_function=Function.FUNCTION_P99,
@@ -400,6 +414,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "p100": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
@@ -418,6 +433,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "max": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
@@ -439,6 +455,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "min": AggregateDefinition(
         internal_function=Function.FUNCTION_MIN,
@@ -460,6 +477,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "any": AggregateDefinition(
         internal_function=Function.FUNCTION_ANY,
@@ -755,6 +773,7 @@ def if_combinator(definition: AggregateDefinition) -> AggregateDefinition:
             ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
             *definition.arguments,
         ],
+        valid_arithmetic=definition.valid_arithmetic,
     )
 
 

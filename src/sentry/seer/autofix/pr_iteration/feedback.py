@@ -131,15 +131,20 @@ def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
     return all(feedback.source.is_automated for feedback in blocks_feedback(iteration_blocks))
 
 
-def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:
+# Total PR iterations after which automated feedback stops triggering iterations.
+MAX_TOTAL_ITERATIONS = 25
+
+
+def total_iteration_cap_reached(run_state: SeerRunState) -> bool:
+    """Whether the run has hit ``MAX_TOTAL_ITERATIONS`` iterations."""
+    return len(get_iterations(run_state)) >= MAX_TOTAL_ITERATIONS
+
+
+def automated_streak_cap_reached(run_state: SeerRunState) -> bool:
     """Whether the last N PR iterations were *all* automated (bots + CI).
 
-    Shared streak cap for the automated feedback loops (check suites, bot
-    re-reviews). ``N`` is ``autofix.pr-iteration.max-iterations``. Human feedback
-    (a review, a comment, or UI) mixed into any of the last N iterations breaks
-    the streak, so a person can always keep iterating past the cap. Once the
-    streak is unbroken for N iterations we stop triggering further automated ones
-    — they'd loop forever without human input.
+    ``N`` is ``autofix.pr-iteration.max-iterations``. Human feedback in any of
+    the last N iterations breaks the streak.
     """
     cap = options.get("autofix.pr-iteration.max-iterations")
     if cap <= 0:
@@ -150,6 +155,11 @@ def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:
         return False
 
     return all(iteration_is_automated(iteration.blocks) for iteration in last_iterations)
+
+
+def iteration_cap_reached(run_state: SeerRunState) -> bool:
+    """Whether automated feedback should stop triggering iterations: either cap was hit."""
+    return total_iteration_cap_reached(run_state) or automated_streak_cap_reached(run_state)
 
 
 def automated_iteration_allowed(run_state: SeerRunState) -> Decision:
@@ -164,7 +174,7 @@ def automated_iteration_allowed(run_state: SeerRunState) -> Decision:
     if group_id is not None and not pr_iteration_enabled_for_group(group_id):
         return Decision(ok=False, reason="project_disabled")
 
-    if automated_iteration_cap_reached(run_state):
+    if iteration_cap_reached(run_state):
         return Decision(ok=False, reason="hard_cap_reached")
 
     return Decision(ok=True, reason="run_allows")

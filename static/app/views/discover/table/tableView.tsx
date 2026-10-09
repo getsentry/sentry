@@ -1,16 +1,20 @@
+import {Fragment} from 'react';
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStack} from '@sentry/icons/stack';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {COL_WIDTH_MINIMUM} from '@sentry/scraps/table';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {COL_WIDTH_MINIMUM, GridEditable} from 'sentry/components/tables/gridEditable';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {Truncate} from 'sentry/components/truncate';
-import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -120,14 +124,14 @@ export function TableView(props: TableViewProps) {
 
     if (isHeader) {
       if (hasAggregates) {
-        return [
-          <PrependHeader key="header-icon">
-            <IconStack size="sm" />
-          </PrependHeader>,
-        ];
+        return [<IconStack key="header-icon" size="sm" variant="muted" />];
       }
       if (!hasIdField) {
-        return [<PrependHeader key="header-event-id">{t('event id')}</PrependHeader>];
+        return [
+          <Text key="header-event-id" variant="muted">
+            {t('Event ID')}
+          </Text>,
+        ];
       }
       return [];
     }
@@ -505,39 +509,18 @@ export function TableView(props: TableViewProps) {
     navigate(normalizeUrl(resultsViewUrlTarget));
   }
 
-  function renderHeaderButtons() {
-    const {
-      organization,
-      title,
-      eventView,
-      isLoading,
-      error,
-      tableData,
-      location,
-      onChangeShowTags,
-      showTags,
-      queryDataset,
-    } = props;
-
-    return (
-      <TableActions
-        title={title}
-        isLoading={isLoading}
-        error={error}
-        organization={organization}
-        eventView={eventView}
-        onEdit={handleEditColumns}
-        tableData={tableData}
-        location={location}
-        onChangeShowTags={onChangeShowTags}
-        showTags={showTags}
-        queryDataset={queryDataset}
-      />
-    );
-  }
-
-  const {error, eventView, isLoading, location, organization, queryDataset, tableData} =
-    props;
+  const {
+    error,
+    eventView,
+    isLoading,
+    location,
+    onChangeShowTags,
+    organization,
+    queryDataset,
+    showTags,
+    tableData,
+    title,
+  } = props;
 
   const prependColumnWidths = eventView.hasAggregateField()
     ? ['40px']
@@ -559,20 +542,40 @@ export function TableView(props: TableViewProps) {
   });
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      error={error}
-      data={tableData ? tableData.data : []}
-      columnOrder={columnOrder}
-      title={t('Results')}
-      grid={{
-        ...getGrid(tableData?.meta),
-        renderHeadCell: _renderGridHeaderCell as any,
-        renderPrependColumns: _renderPrependColumns as any,
-        prependColumnWidths,
-      }}
-      headerButtons={renderHeaderButtons}
-    />
+    <Fragment>
+      <Flex justify="between" align="center" marginBottom="md">
+        <Heading as="h4" size="md" variant="muted">
+          {t('Results')}
+        </Heading>
+        <Grid flow="column" gap="md" justifyItems="end">
+          <TableActions
+            title={title}
+            isLoading={isLoading}
+            error={error}
+            organization={organization}
+            eventView={eventView}
+            onEdit={handleEditColumns}
+            tableData={tableData}
+            location={location}
+            onChangeShowTags={onChangeShowTags}
+            showTags={showTags}
+            queryDataset={queryDataset}
+          />
+        </Grid>
+      </Flex>
+      <DataGrid
+        isLoading={isLoading}
+        error={error}
+        data={tableData ? tableData.data : []}
+        columnOrder={columnOrder}
+        grid={{
+          ...getGrid(tableData?.meta),
+          renderHeadCell: _renderGridHeaderCell as any,
+          renderPrependColumns: _renderPrependColumns as any,
+          prependColumnWidths,
+        }}
+      />
+    </Fragment>
   );
 }
 
@@ -662,10 +665,6 @@ function getProjectEventRedirectTarget(
     query: {...location.query, referrer: 'discover-events-table'},
   };
 }
-
-const PrependHeader = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
 
 const StyledTooltip = styled(Tooltip)`
   display: initial;

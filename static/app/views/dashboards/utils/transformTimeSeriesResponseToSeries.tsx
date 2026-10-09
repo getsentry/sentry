@@ -11,6 +11,8 @@ import type {
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
 
+const OTHER_SERIES_NAME = 'Other';
+
 export type WidgetSeries = Series & {
   timeSeries?: TimeSeries;
 };
@@ -26,11 +28,17 @@ export function transformTimeSeriesResponseToSeries(
   widgetQuery: WidgetQuery
 ): WidgetSeries[] {
   const hasMultipleYAxes = new Set(data.timeSeries.map(({yAxis}) => yAxis)).size > 1;
+  const isGroupedQuery = widgetQuery.columns.length > 0;
 
   return data.timeSeries
     .toSorted((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0))
     .map(timeSeries => ({
-      seriesName: getLegacySeriesName(timeSeries, widgetQuery.name, hasMultipleYAxes),
+      seriesName: getLegacySeriesName(
+        timeSeries,
+        widgetQuery.name,
+        hasMultipleYAxes,
+        isGroupedQuery
+      ),
       data: timeSeries.values.map(item => ({
         name: item.timestamp,
         value: item.value ?? 0,
@@ -45,17 +53,19 @@ export function transformTimeSeriesResponseToSeries(
 function getLegacySeriesName(
   timeSeries: TimeSeries,
   alias: string | undefined,
-  hasMultipleYAxes: boolean
+  hasMultipleYAxes: boolean,
+  isGroupedQuery: boolean
 ): string {
   const {yAxis} = timeSeries;
-  const isGrouped = timeSeries.meta.isOther || (timeSeries.groupBy?.length ?? 0) > 0;
+  const hasGroupBy = timeSeries.meta.isOther || (timeSeries.groupBy?.length ?? 0) > 0;
+  const isGrouped = hasGroupBy || (isGroupedQuery && hasMultipleYAxes);
 
   if (!isGrouped) {
     return alias ? `${alias}${SERIES_NAME_PART_DELIMITER}${yAxis}` : yAxis;
   }
 
   const groupName = timeSeries.meta.isOther
-    ? 'Other'
+    ? OTHER_SERIES_NAME
     : getLegacyGroupName(timeSeries.groupBy ?? []);
 
   if (!hasMultipleYAxes) {
@@ -70,7 +80,7 @@ function getLegacySeriesName(
  * Mirrors how group by values are joined in `/events-stats/` result keys
  */
 function getLegacyGroupName(groupBy: TimeSeriesGroupBy[]): string {
-  return groupBy
+  const groupName = groupBy
     .map(({value}) => {
       if (value === null) {
         return 'None';
@@ -84,6 +94,12 @@ function getLegacyGroupName(groupBy: TimeSeriesGroupBy[]): string {
       return String(value);
     })
     .join(',');
+
+  // A real group by value of "Other" would collide with the "Other" bucket, so
+  // `/events-stats/` appends the first group by field to the key
+  return groupName === OTHER_SERIES_NAME && groupBy[0]
+    ? `${groupName} (${groupBy[0].key})`
+    : groupName;
 }
 
 /** @public */

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.db.models import F
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers, status
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
@@ -21,7 +22,6 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
@@ -137,15 +137,13 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
             else query_params["data_source"]
         )
 
-        try:
+        with handle_query_errors():
             replay_counts = get_replay_counts(
                 snuba_params,
                 query_params["query"],
                 data_source,
                 return_ids=query_params["returnIds"],
             )
-        except (InvalidSearchQuery, ValueError) as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return self.respond(replay_counts)
 

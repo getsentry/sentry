@@ -1,4 +1,6 @@
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconStar} from '@sentry/icons/star';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
@@ -11,6 +13,7 @@ import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -23,14 +26,8 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconStar} from 'sentry/icons';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -300,7 +297,7 @@ export function InvestigationsPage() {
                   />
                 </Grid>
                 <TableWrapper>
-                  <GridEditable
+                  <DataGrid
                     data={investigations}
                     columnOrder={COLUMNS}
                     grid={{

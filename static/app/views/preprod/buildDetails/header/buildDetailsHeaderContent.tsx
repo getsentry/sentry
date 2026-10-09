@@ -1,4 +1,10 @@
 import {Fragment} from 'react';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconTelescope} from '@sentry/icons/telescope';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -15,14 +21,6 @@ import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {
-  IconDelete,
-  IconDownload,
-  IconEllipsis,
-  IconRefresh,
-  IconSettings,
-  IconTelescope,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';

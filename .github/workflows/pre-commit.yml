@@ -42,6 +42,8 @@ jobs:
           client-id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private-key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Get changed files
         id: changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -56,6 +58,16 @@ jobs:
           filters: |
             all:
               - added|modified: '**/*'
+            frontend:
+              - 'static/**'
+              - 'tests/js/**'
+              - 'scripts/**'
+              - 'oxlint-suppressions.json'
+              - 'oxlint.config.ts'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'scripts/custom-oxlint.ts'
+              - 'stylelint.config.js'
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -79,15 +91,20 @@ jobs:
           .venv/bin/prek prepare-hooks
 
       - name: Run prek on PR commits
+        id: prek
         env:
           ALL_FILES: ${{ steps.changes.outputs.all_files }}
         run: |
           jq '.[]' --raw-output <<< "$ALL_FILES" |
             xargs .venv/bin/prek run -q --files
 
+      - name: Prune suppression budgets
+        if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'
+        run: pnpm run lint:js --prune
+
       - name: Apply any pre-commit fixed files
-        # note: this runs "always" or else it's skipped when prek fails
-        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && !github.event.pull_request.draft && always()
+        # Run after prek failures, but skip canceled runs that may have incomplete fixes.
+        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && !github.event.pull_request.draft && !cancelled()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}

@@ -1,5 +1,6 @@
+import {IconCheckmark} from '@sentry/icons/checkmark';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconCheckmark} from 'sentry/icons';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
 type Props = {

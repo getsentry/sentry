@@ -1,9 +1,9 @@
 import {AgenticSetup} from 'sentry/components/onboarding/agenticProgress/agenticSetup';
 import type {AgentSetupCopySource} from 'sentry/components/onboarding/agenticProgress/agentSetupCard';
 import type {AgenticProgressRun} from 'sentry/components/onboarding/agenticProgress/types';
+import {ManualSetupCard} from 'sentry/components/onboarding/manualSetupCard';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ManualSetupCard} from 'sentry/views/onboarding/components/manualSetupCard';
 
 interface WelcomeAgentSetupProps {
   hasInitFailed: boolean;
