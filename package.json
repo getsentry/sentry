@@ -11,6 +11,7 @@
   "scripts": {
     "postinstall": "rm -f node_modules/.bin/sentry",
     "typecheck": "tsc --build tsconfig.json static/app/serviceWorker/worker/tsconfig.json --builders 2",
+    "figma": "pnpm dlx @figma/code-connect@1.4.8 connect",
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
     "test": "node scripts/test.js --watch",
@@ -233,7 +234,6 @@
     "@boundaries/eslint-plugin": "7.2.0",
     "@e18e/eslint-plugin": "0.8.0",
     "@emotion/server": "^11.11.0",
-    "@figma/code-connect": "^1.4.8",
     "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@jest/types": "30.5.1",
