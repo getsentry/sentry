@@ -1,3 +1,5 @@
+import {IconSubtract} from '@sentry/icons/subtract';
+
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -6,7 +8,6 @@ import {Confirm} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
@@ -24,18 +25,18 @@ export function OrganizationFeatureFlagsProviderRow({
 
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell columnKey="provider">
+      <SimpleTable.RowCell>
         <div>{secret.provider}</div>
         <Text variant="secondary" aria-label={t('Secret preview')}>
           {secret.secret}
         </Text>
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell columnKey="created" gap="xs">
+      <SimpleTable.RowCell gap="xs">
         <TimeSince date={secret.createdAt} />
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell columnKey="createdBy">
+      <SimpleTable.RowCell>
         {isUserPending ? (
           <LoadingIndicator mini />
         ) : (
@@ -43,7 +44,7 @@ export function OrganizationFeatureFlagsProviderRow({
         )}
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell columnKey="actions" justify="end">
+      <SimpleTable.RowCell justify="end">
         <Tooltip
           title={t(
             'You must be an organization owner, manager or admin to remove a secret.'

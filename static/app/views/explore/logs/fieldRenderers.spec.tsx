@@ -14,7 +14,10 @@ import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/const
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
-import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
+import {
+  LogAttributesRendererMap,
+  SpanIDRenderer,
+} from 'sentry/views/explore/logs/fieldRenderers';
 import {OurLogKnownFieldKey, type LogRowItem} from 'sentry/views/explore/logs/types';
 
 const TimestampRenderer = LogAttributesRendererMap[OurLogKnownFieldKey.TIMESTAMP];
@@ -263,6 +266,67 @@ describe('Logs Field Renderers', () => {
         })
       );
       expect(query).not.toHaveProperty('statsPeriod');
+    });
+  });
+
+  describe('SpanIDRenderer', () => {
+    const logTimestamp = '2024-01-15T14:30:45.123Z';
+    const traceId = 'a'.repeat(32);
+    const spanId = 'b'.repeat(16);
+
+    const renderSpanLink = (attributes: Record<string, string>) => {
+      const props = makeRendererProps(logTimestamp, attributes);
+      return SpanIDRenderer!({
+        ...props,
+        item: {
+          fieldKey: OurLogKnownFieldKey.SPAN_ID,
+          value: spanId,
+          metaFieldType: 'string',
+          unit: null,
+        } as LogRowItem,
+        basicRendered: <span>{spanId}</span>,
+      });
+    };
+
+    it('links to the waterfall with the span node open', () => {
+      render(
+        <Fragment>
+          {renderSpanLink({
+            [OurLogKnownFieldKey.TRACE_ID]: traceId,
+            [OurLogKnownFieldKey.TIMESTAMP]: logTimestamp,
+          })}
+        </Fragment>
+      );
+
+      const href = screen.getByRole('link', {name: spanId}).getAttribute('href')!;
+      const [pathname, search] = href.split('?');
+
+      expect(pathname).toBe(
+        `/organizations/${organization.slug}/explore/logs/trace/${traceId}/`
+      );
+      expect(qs.parse(search!)).toEqual({
+        node: `span-${spanId}`,
+        source: 'logs',
+        tab: 'waterfall',
+        timestamp: '1705329045.123',
+      });
+    });
+
+    it('falls back to plain text when the log has no trace', () => {
+      render(<Fragment>{renderSpanLink({})}</Fragment>);
+
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+      expect(screen.getByText(spanId)).toBeInTheDocument();
+    });
+
+    it('cannot open the span node without a timestamp attribute', () => {
+      render(
+        <Fragment>{renderSpanLink({[OurLogKnownFieldKey.TRACE_ID]: traceId})}</Fragment>
+      );
+
+      const href = screen.getByRole('link', {name: spanId}).getAttribute('href')!;
+
+      expect(qs.parse(href.split('?')[1]!)).not.toHaveProperty('node');
     });
   });
 });

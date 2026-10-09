@@ -4,6 +4,14 @@ import type {PlatformKey} from 'sentry/types/platform';
 const PYTHON_STRING_REGEX = /^['"](.*)['"]$/;
 const NUMERIC_STRING_REGEX = /^-?\d+(\.\d+)?$/;
 
+type FrameStructuredDataConfig = Omit<
+  StructedEventDataConfig,
+  'renderBoolean' | 'renderNull'
+> & {
+  renderBoolean?: (value: unknown) => string;
+  renderNull?: (value: unknown) => string;
+};
+
 const renderPythonBoolean = (value: unknown) => {
   if (typeof value === 'string') {
     return value;
@@ -28,7 +36,7 @@ export const getStructuredDataConfig = ({
   platform,
 }: {
   platform?: PlatformKey;
-}): StructedEventDataConfig => {
+}): FrameStructuredDataConfig => {
   switch (platform) {
     case 'python':
       return {

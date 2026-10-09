@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
+import {IconSearch} from '@sentry/icons/search';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
@@ -12,11 +13,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -166,20 +166,14 @@ export function AutomationListTable({
                 <span>{t('Name')}</span>
               </Flex>
             </HeaderCell>
-            <HeaderCell columnKey="last-triggered" sort={sort} sortKey="lastTriggered">
+            <HeaderCell sort={sort} sortKey="lastTriggered">
               {t('Last Triggered')}
             </HeaderCell>
-            <HeaderCell columnKey="action" sort={sort} sortKey="actions">
+            <HeaderCell sort={sort} sortKey="actions">
               {t('Actions')}
             </HeaderCell>
-            <HeaderCell columnKey="projects" sort={sort}>
-              {t('Projects')}
-            </HeaderCell>
-            <HeaderCell
-              columnKey="connected-monitors"
-              sort={sort}
-              sortKey="connectedDetectors"
-            >
+            <HeaderCell sort={sort}>{t('Projects')}</HeaderCell>
+            <HeaderCell sort={sort} sortKey="connectedDetectors">
               {t('Monitors')}
             </HeaderCell>
           </SimpleTable.HeaderRow>

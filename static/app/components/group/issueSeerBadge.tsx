@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -7,11 +8,12 @@ import {
   getAutofixRunExists,
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 
 interface IssueSeerBadgeProps {
   group: Group;
@@ -19,15 +21,12 @@ interface IssueSeerBadgeProps {
 
 export function IssueSeerBadge({group}: IssueSeerBadgeProps) {
   const organization = useOrganization();
-  const issuesPath = `/organizations/${organization.slug}/issues/`;
   const location = useLocation();
 
   const autofixRunExists = getAutofixRunExists(group);
   const seerFixable = isIssueQuickFixable(group);
   const showSeer =
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures &&
-    (autofixRunExists || seerFixable);
+    areAiFeaturesAllowed(organization) && (autofixRunExists || seerFixable);
 
   let seerTitle = null;
   if (autofixRunExists && seerFixable) {
@@ -45,10 +44,7 @@ export function IssueSeerBadge({group}: IssueSeerBadgeProps) {
   return (
     <Tooltip title={seerTitle} skipWrapper>
       <SeerLink
-        to={{
-          pathname: `${issuesPath}${group.id}/`,
-          query: {...location.query, seerDrawer: true},
-        }}
+        to={makeSeerLocation({organization, groupId: group.id, query: location.query})}
       >
         <IconSeer size="xs" />
         {seerFixable && <span>{t('Quick Fix')}</span>}

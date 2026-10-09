@@ -1,4 +1,11 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {IconBot} from '@sentry/icons/bot';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconUser} from '@sentry/icons/user';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
@@ -21,15 +28,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconBot,
-  IconCheckmark,
-  IconChevron,
-  IconClose,
-  IconFilter,
-  IconUser,
-  IconWarning,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -280,7 +278,10 @@ function SeerWorkflows() {
     <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
       <Stack gap="lg" padding="xl">
         <Stack gap="2xs">
-          <TopBar.Slot name="title">{t('Sentry Workflows')}</TopBar.Slot>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{type: 'page-title', label: t('Sentry Workflows')}}
+          />
           <Flex justify="between" align="center" gap="md" wrap="wrap">
             <Text as="p" variant="muted">
               {t('Historical runs of Sentry workflows for this organization.')}
@@ -288,8 +289,11 @@ function SeerWorkflows() {
             {runActions.length > 0 && (
               <DropdownMenu
                 size="sm"
-                triggerLabel={t('Run…')}
-                triggerProps={{busy: isStartingWorkflowRun}}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} busy={isStartingWorkflowRun}>
+                    {t('Run…')}
+                  </OverlayTrigger.Button>
+                )}
                 isDisabled={isStartingWorkflowRun}
                 items={runActions.map(({strategy, label}) => ({
                   key: strategy,

@@ -19,7 +19,6 @@ import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/compo
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-import {AuthenticatorHeader} from './components/authenticatorHeader';
 import {SmsEnrollForm} from './components/smsEnrollForm';
 import {TotpEnrollForm} from './components/totpEnrollForm';
 import {U2fEnrollForm} from './components/u2fEnrollForm';
@@ -84,14 +83,13 @@ export default function AccountSecurityEnroll() {
     return null;
   }
 
-  const isActive = authenticator.isEnrolled || authenticator.status === 'rotation';
   const hasEnrollmentForm = Boolean(authenticator.form?.length);
   const authenticatorId = authenticator.authId;
 
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
-        title={<AuthenticatorHeader name={authenticator.name} isActive={isActive} />}
+        title={authenticator.name}
         action={
           authenticator.isEnrolled &&
           authenticatorId &&

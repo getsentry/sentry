@@ -1,12 +1,14 @@
 import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
+import {IconNext} from '@sentry/icons/next';
+import {IconPrevious} from '@sentry/icons/previous';
 import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -19,7 +21,6 @@ import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseBu
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
 import {TimeAndScrubberGrid} from 'sentry/components/replays/timeAndScrubberGrid';
-import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -88,6 +89,7 @@ export function ReplayPreviewPlayer({
     ) {
       markAsViewed({projectSlug: replayRecord.project_id, replayId: replayRecord.id});
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [isFetching, isPlaying, markAsViewed, organization, replayRecord]);
 
   return (
@@ -99,7 +101,13 @@ export function ReplayPreviewPlayer({
           )}
         </StyledAlert>
       )}
-      <Flex justify="between" align="center" marginBottom="md" position="relative">
+      <Grid
+        columns="minmax(0, 1fr) auto"
+        align="center"
+        gap="md"
+        marginBottom="md"
+        position="relative"
+      >
         <ReplaySessionColumn.Component
           to={{
             pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
@@ -110,7 +118,7 @@ export function ReplayPreviewPlayer({
           columnIndex={0}
           showDropdownFilters={false}
         />
-        <ContainedLinkButton
+        <LinkButton
           size="sm"
           to={{
             pathname: makeReplaysPathname({
@@ -128,8 +136,8 @@ export function ReplayPreviewPlayer({
           {...fullReplayButtonProps}
         >
           {t('See Full Replay')}
-        </ContainedLinkButton>
-      </Flex>
+        </LinkButton>
+      </Grid>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
         {/* oxlint-disable-next-line react/refs */}
         <TooltipContext value={{container: fullscreenRef.current}}>
@@ -240,10 +248,4 @@ const ContextContainer = styled('div')`
 
 const StyledAlert = styled(Alert)`
   margin: ${p => p.theme.space.md} 0;
-`;
-
-const ContainedLinkButton = styled(LinkButton)`
-  position: absolute;
-  right: 0;
-  top: 3px;
 `;

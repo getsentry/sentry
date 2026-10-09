@@ -28,9 +28,3 @@ class IssueAlertRegistryHandler(LegacyRegistryHandler):
                 extra={"action_id": invocation.action.id},
             )
             raise
-        except Exception:
-            logger.exception(
-                "Error invoking issue alert handler",
-                extra={"action_id": invocation.action.id},
-            )
-            raise

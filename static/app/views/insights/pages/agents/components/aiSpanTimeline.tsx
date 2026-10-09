@@ -30,7 +30,15 @@ import {
   getTimelineColorByOpType,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getEvaluationPreview,
+  getNodeEvaluation,
+} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
+import {
+  getMemoryPreview,
+  getNodeMemory,
+} from 'sentry/views/insights/pages/agents/utils/memory';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -316,6 +324,31 @@ function getSpanPresentation(
   const description = rawDesc.startsWith('gen_ai.') ? rawDesc.slice(7) : rawDesc;
 
   const color = getSpanColor(node, colorByOpType);
+
+  const evaluation = getNodeEvaluation(node);
+  if (evaluation) {
+    return {
+      color,
+      isTool: false,
+      title:
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+        op,
+      secondary: getEvaluationPreview(evaluation),
+    };
+  }
+
+  // Memory operations report their own `gen_ai.operation.type`, so they fall
+  // through the op-type switch below; recognize them by operation name here.
+  const memory = getNodeMemory(node);
+  if (memory) {
+    return {
+      color,
+      isTool: false,
+      title: memory.operation ?? op,
+      secondary: getMemoryPreview(memory),
+    };
+  }
 
   switch (genAiOpType) {
     case GenAiOperationType.AGENT: {

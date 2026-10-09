@@ -1,6 +1,12 @@
 import {useContext, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconContract} from '@sentry/icons/contract';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconFix} from '@sentry/icons/fix';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconSearch} from '@sentry/icons/search';
 import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,14 +20,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
-import {
-  IconClose,
-  IconContract,
-  IconExpand,
-  IconFix,
-  IconLightning,
-  IconSearch,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
@@ -123,6 +121,58 @@ function FullscreenModalContent({
           insightsAvailable={insightsAvailable}
         />
       </Container>
+    </Stack>
+  );
+}
+
+function InsightRow({insight, index}: {index: number; insight: string | FlaggedInsight}) {
+  const key = typeof insight === 'string' ? insight : insight.key;
+  const savings = typeof insight === 'string' ? 0 : insight.savings;
+  const theme = useTheme();
+
+  return (
+    <Flex
+      justify="between"
+      align="start"
+      padding="xs"
+      radius="xs"
+      gap="xl"
+      style={{
+        backgroundColor:
+          index % 2 === 0 ? theme.tokens.background.secondary : 'transparent',
+      }}
+    >
+      <Text size="sm">{getInsightConfig(key).name}</Text>
+      {savings > 0 ? (
+        <Text size="sm" variant="muted" style={{whiteSpace: 'nowrap'}}>
+          -{formatBytesBase10(savings)}
+        </Text>
+      ) : null}
+    </Flex>
+  );
+}
+
+function InsightsSection({insights}: {insights: Array<string | FlaggedInsight>}) {
+  if (insights.length === 0) {
+    return null;
+  }
+
+  return (
+    <Stack gap="sm">
+      <Separator orientation="horizontal" padding="0" />
+      <Flex gap="xs" align="center" padding="0 xs">
+        <IconFix size="xs" />
+        <Text size="sm">{t('Insights')}</Text>
+      </Flex>
+      <Stack gap="2xs">
+        {insights.map((insight, index) => (
+          <InsightRow
+            key={typeof insight === 'string' ? insight : insight.key}
+            insight={insight}
+            index={index}
+          />
+        ))}
+      </Stack>
     </Stack>
   );
 }
@@ -366,63 +416,6 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     },
     seriesIndex: 0,
   };
-
-  function InsightRow({
-    insight,
-    index,
-  }: {
-    index: number;
-    insight: string | FlaggedInsight;
-  }) {
-    const key = typeof insight === 'string' ? insight : insight.key;
-    const savings = typeof insight === 'string' ? 0 : insight.savings;
-
-    return (
-      <Flex
-        justify="between"
-        align="start"
-        padding="xs"
-        radius="xs"
-        gap="xl"
-        style={{
-          backgroundColor:
-            index % 2 === 0 ? theme.tokens.background.secondary : 'transparent',
-        }}
-      >
-        <Text size="sm">{getInsightConfig(key).name}</Text>
-        {savings > 0 ? (
-          <Text size="sm" variant="muted" style={{whiteSpace: 'nowrap'}}>
-            -{formatBytesBase10(savings)}
-          </Text>
-        ) : null}
-      </Flex>
-    );
-  }
-
-  function InsightsSection({insights}: {insights: Array<string | FlaggedInsight>}) {
-    if (insights.length === 0) {
-      return null;
-    }
-
-    return (
-      <Stack gap="sm">
-        <Separator orientation="horizontal" padding="0" />
-        <Flex gap="xs" align="center" padding="0 xs">
-          <IconFix size="xs" />
-          <Text size="sm">{t('Insights')}</Text>
-        </Flex>
-        <Stack gap="2xs">
-          {insights.map((insight, index) => (
-            <InsightRow
-              key={typeof insight === 'string' ? insight : insight.key}
-              insight={insight}
-              index={index}
-            />
-          ))}
-        </Stack>
-      </Stack>
-    );
-  }
 
   const tooltip: TooltipOption = {
     trigger: 'item',

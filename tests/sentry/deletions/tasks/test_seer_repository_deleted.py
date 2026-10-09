@@ -1,11 +1,15 @@
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
+from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.deletions.tasks.seer import notify_seer_repository_deleted
 from sentry.seer.code_review.utils import SeerEndpoint
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
 class NotifySeerRepositoryDeletedTest(TestCase):
@@ -16,9 +20,10 @@ class NotifySeerRepositoryDeletedTest(TestCase):
         self.provider = "integrations:github"
         self.repository_name = "acme/widget"
 
-    @patch("sentry.seer.code_review.utils.make_seer_request")
-    def test_notifies_seer_via_signed_endpoint(self, mock_make_seer_request: Any) -> None:
-        mock_make_seer_request.return_value = b"{}"
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.code_review.utils.seer_code_review_connection_pool.urlopen")
+    def test_notifies_seer_via_signed_endpoint(self, mock_urlopen: Any) -> None:
+        mock_urlopen.return_value = HTTPResponse(b"", status=200)
 
         notify_seer_repository_deleted(
             self.organization_id,
@@ -27,16 +32,23 @@ class NotifySeerRepositoryDeletedTest(TestCase):
             self.repository_name,
         )
 
-        mock_make_seer_request.assert_called_once()
-        kwargs = mock_make_seer_request.call_args.kwargs
-        assert kwargs["path"] == SeerEndpoint.REPOSITORY_OFFBOARD.value
-        assert kwargs["payload"] == {
+        mock_urlopen.assert_called_once()
+        request = mock_urlopen.call_args
+        assert request.args[1].endswith(SeerEndpoint.REPOSITORY_OFFBOARD.value)
+        assert orjson.loads(request.kwargs["body"]) == {
             "organization_id": self.organization_id,
             "repository_id": self.repository_id,
             "provider": self.provider,
             "repository_name": self.repository_name,
         }
-        assert kwargs["viewer_context"]["organization_id"] == self.organization_id
+        viewer_context = decode_viewer_context(
+            request.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization_id,
+            actor_type=ActorType.SYSTEM,
+        )
 
     @patch("sentry.seer.code_review.utils.make_seer_request")
     def test_propagates_seer_errors(self, mock_make_seer_request: Any) -> None:

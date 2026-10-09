@@ -31,4 +31,10 @@ def build_template(
         footer.append(PlainTextBlock(text=FOOTER_DELIMITER))
         footer.append(PlainTextBlock(text=f"Run ID: {data.activity_data.get('run_id')}"))
 
-    return NotificationRenderedTemplate(subject=subject, body=body, footer=footer)
+    return NotificationRenderedTemplate(
+        subject=subject,
+        body=body,
+        footer=footer,
+        email_headers=data.email_headers,
+        email_subject_prefix=data.email_subject_prefix,
+    )

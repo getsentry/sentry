@@ -1,5 +1,4 @@
 import logging
-from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -20,6 +19,9 @@ from sentry.notifications.types import (
     FallthroughChoiceType,
     NotificationSettingEnum,
 )
+from sentry.notifications.types import (
+    RuleFuture as RuleFuture,
+)
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.notifications.utils.rules import split_rules_by_rule_workflow_id
 from sentry.plugins.base.structs import Notification
@@ -29,9 +31,6 @@ from sentry.types.actor import Actor, ActorType
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-# TODO(mgaeta): This CANNOT be moved because of the way we inject mail adapters in plugins.
-RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
 class MailAdapter:
@@ -65,8 +64,8 @@ class MailAdapter:
         }
         log_event = "dispatched"
         for future in futures:
-            rules.append(future.rule)
-            extra["rule_id"] = future.rule.id
+            rules.append(future.context.origin)
+            extra["rule_id"] = future.context.action_id
             if not future.kwargs:
                 continue
             raise NotImplementedError(
@@ -85,7 +84,7 @@ class MailAdapter:
 
             digest_key = unsplit_key(project, target_type, target_identifier, fallthrough_choice)
             extra["digest_key"] = digest_key
-            rules_and_workflows = split_rules_by_rule_workflow_id(rules)
+            rules_and_workflows = split_rules_by_rule_workflow_id(rules, prefer="workflow_id")
             rules_by_identifier_key = {
                 IdentifierKey.RULE: rules_and_workflows.rules,
                 IdentifierKey.WORKFLOW: rules_and_workflows.workflow_rules,

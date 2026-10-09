@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -65,7 +66,11 @@ export default function DynamicSamplingSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <SettingsPageHeader
-        title={t('Dynamic Sampling')}
+        title={{
+          type: 'page-title',
+          label: t('Dynamic Sampling'),
+          trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+        }}
         action={
           <LinkButton
             external

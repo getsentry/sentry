@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -16,9 +17,6 @@ jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
 
 describe('useSpansSeriesQuery', () => {
   const organization = OrganizationFixture();
-  const organizationWithConditionalAggregates = OrganizationFixture({
-    features: ['explore-conditional-aggregates'],
-  });
   const pageFilters = PageFiltersFixture();
 
   beforeEach(() => {
@@ -86,6 +84,37 @@ describe('useSpansSeriesQuery', () => {
         })
       );
     });
+  });
+
+  it('excludes the Other series for grouped widgets with multiple aggregates', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: [],
+          aggregates: ['count()', 'avg(span.duration)'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+
+    renderHookWithProviders(() =>
+      useSpansSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({query: expect.objectContaining({excludeOther: '1'})})
+      )
+    );
   });
 
   it('applies dashboard filters correctly', async () => {
@@ -298,7 +327,7 @@ describe('useSpansSeriesQuery', () => {
     const {result} = renderHookWithProviders(() =>
       useSpansSeriesQuery({
         widget,
-        organization: organizationWithConditionalAggregates,
+        organization,
         pageFilters,
         enabled: true,
       })
@@ -348,7 +377,7 @@ describe('useSpansSeriesQuery', () => {
     const {result} = renderHookWithProviders(() =>
       useSpansSeriesQuery({
         widget,
-        organization: organizationWithConditionalAggregates,
+        organization,
         pageFilters,
         enabled: true,
       })
@@ -365,15 +394,23 @@ describe('useSpansSeriesQuery', () => {
     expect(result.current.timeseriesResults!.every(Boolean)).toBe(true);
   });
 
-  it('does not skip invalid _if series requests when the feature is disabled', async () => {
+  it('keeps rawData referentially stable across rerenders when skipping queries', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       widgetType: WidgetType.SPANS,
       queries: [
         {
-          name: 'test',
+          name: 'invalid',
           fields: ['avg_if(``,span.duration)'],
           aggregates: ['avg_if(``,span.duration)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+        {
+          name: 'valid',
+          fields: ['avg(span.duration)'],
+          aggregates: ['avg(span.duration)'],
           columns: [],
           conditions: '',
           orderby: '',
@@ -381,36 +418,28 @@ describe('useSpansSeriesQuery', () => {
       ],
     });
 
-    const mockRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
-      },
+      body: {data: [[1, [{count: 100}]]]},
     });
 
-    renderHookWithProviders(() =>
-      useSpansSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
-    );
-
-    await waitFor(() => {
-      expect(mockRequest).toHaveBeenCalled();
+    const initialProps = {
+      widget,
+      organization,
+      pageFilters,
+      enabled: true,
+    };
+    const {result, rerender} = renderHookWithProviders(useSpansSeriesQuery, {
+      initialProps,
     });
-    expect(mockRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          yAxis: ['avg_if(``,span.duration)'],
-        }),
-      })
-    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const {rawData} = result.current;
+    expect(rawData).toHaveLength(1);
+
+    rerender({...initialProps, widget: {...widget}});
+
+    expect(result.current.rawData).toBe(rawData);
   });
 
   it('filters invalid _if aggregates out of a mixed series request', async () => {
@@ -442,7 +471,7 @@ describe('useSpansSeriesQuery', () => {
     renderHookWithProviders(() =>
       useSpansSeriesQuery({
         widget,
-        organization: organizationWithConditionalAggregates,
+        organization,
         pageFilters,
         enabled: true,
       })
@@ -495,7 +524,7 @@ describe('useSpansSeriesQuery', () => {
     const {result} = renderHookWithProviders(() =>
       useSpansSeriesQuery({
         widget,
-        organization: organizationWithConditionalAggregates,
+        organization,
         pageFilters,
         enabled: true,
       })
@@ -546,7 +575,7 @@ describe('useSpansSeriesQuery', () => {
     renderHookWithProviders(() =>
       useSpansSeriesQuery({
         widget,
-        organization: organizationWithConditionalAggregates,
+        organization,
         pageFilters,
         enabled: true,
       })
@@ -565,13 +594,54 @@ describe('useSpansSeriesQuery', () => {
       })
     );
   });
+
+  it('makes a request to the events-timeseries endpoint when enabled', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useSpansSeriesQuery({
+        widget,
+        organization: OrganizationFixture({
+          features: ['dashboards-widgets-use-events-timeseries'],
+        }),
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({yAxis: ['count()'], dataset: 'spans'}),
+      })
+    );
+    expect(result.current.timeseriesResults?.map(({seriesName}) => seriesName)).toEqual([
+      'count()',
+    ]);
+  });
 });
 
 describe('useSpansTableQuery', () => {
   const organization = OrganizationFixture();
-  const organizationWithConditionalAggregates = OrganizationFixture({
-    features: ['explore-conditional-aggregates'],
-  });
   const pageFilters = PageFiltersFixture();
 
   beforeEach(() => {
@@ -1036,7 +1106,7 @@ describe('useSpansTableQuery', () => {
     const {result} = renderHookWithProviders(() =>
       useSpansTableQuery({
         widget,
-        organization: organizationWithConditionalAggregates,
+        organization,
         pageFilters,
         enabled: true,
       })
@@ -1047,41 +1117,6 @@ describe('useSpansTableQuery', () => {
     });
     expect(result.current.loading).toBe(false);
     expect(mockRequest).not.toHaveBeenCalled();
-  });
-
-  it('does not skip invalid _if table requests when the feature is disabled', async () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.SPANS,
-      queries: [
-        {
-          name: 'test',
-          fields: ['avg_if(``,span.duration)'],
-          aggregates: ['avg_if(``,span.duration)'],
-          columns: [],
-          conditions: '',
-          orderby: '',
-        },
-      ],
-    });
-
-    const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {data: [{'avg_if(``,span.duration)': 1}]},
-    });
-
-    renderHookWithProviders(() =>
-      useSpansTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
-    );
-
-    await waitFor(() => {
-      expect(mockRequest).toHaveBeenCalled();
-    });
   });
 
   it('filters invalid _if aggregates out of a mixed table request', async () => {
@@ -1110,7 +1145,7 @@ describe('useSpansTableQuery', () => {
     renderHookWithProviders(() =>
       useSpansTableQuery({
         widget,
-        organization: organizationWithConditionalAggregates,
+        organization,
         pageFilters,
         enabled: true,
       })
@@ -1172,7 +1207,7 @@ describe('useSpansTableQuery', () => {
     const {result} = renderHookWithProviders(() =>
       useSpansTableQuery({
         widget,
-        organization: organizationWithConditionalAggregates,
+        organization,
         pageFilters,
         enabled: true,
       })

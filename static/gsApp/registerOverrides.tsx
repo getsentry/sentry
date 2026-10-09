@@ -22,6 +22,7 @@ import {DisabledRateLimits} from 'getsentry/components/features/disabledRateLimi
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
 import {PerformanceNewProjectPrompt} from 'getsentry/components/features/performanceNewProjectPrompt';
 import {ProjectPerformanceScoreCard} from 'getsentry/components/features/projectPerformanceScoreCard';
+import {FeedbackInit} from 'getsentry/components/feedbackInit';
 import {InviteMembersButtonCustomization} from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
@@ -35,7 +36,6 @@ import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerC
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import {ReplayInit} from 'getsentry/components/replayInit';
-import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import {
   shouldExcludeOrg,
   SuperuserWarning,
@@ -71,7 +71,6 @@ import {useMetricDetectorLimit} from 'getsentry/overrides/useMetricDetectorLimit
 import {useReplayForCriticalFlow} from 'getsentry/overrides/useReplayForCriticalFlow';
 import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
-import {trackMetric} from 'getsentry/utils/trackMetric';
 import SeerAutomationTrial from 'getsentry/views/seerAutomation/trial';
 
 import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
@@ -130,7 +129,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    */
   'analytics:raw-track-event': rawTrackAnalyticsEvent,
   'analytics:init-user': analyticsInitUser,
-  'metrics:event': trackMetric,
 
   /**
    * Sidebar augmentation
@@ -164,6 +162,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    * like `/onboarding/*` are covered too.
    */
   'component:replay-init': ReplayInit,
+  'component:feedback-init': FeedbackInit,
 
   /**
    * Augment the header with the getsentry banners. This includes banners
@@ -235,7 +234,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
   'component:scm-github-multi-org-install': () => ScmGithubMultiOrgInstall,
-  'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
   'component:product-selection-availability': () => ProductSelectionAvailability,

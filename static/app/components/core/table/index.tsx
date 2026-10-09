@@ -3,7 +3,6 @@ export {
   COL_WIDTH_UNDEFINED,
   Table,
   type TableColumnConfig,
-  useIsColumnHidden,
   useTableElement,
 } from './table';
 
@@ -14,7 +13,5 @@ export {
   emptyCellStyle,
   fullWidthCellStyle,
   statusCellStyle,
-  TABLE_HEAD_ROW_HEIGHT,
-  TableResizer,
   TableStatusCell,
 } from './styles';

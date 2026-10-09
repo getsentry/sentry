@@ -1,7 +1,8 @@
+import {IconWarning} from '@sentry/icons/warning';
+
 import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   isLeafOp,
@@ -319,7 +320,7 @@ export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
 
   return (
     <Container marginTop="xs">
-      <Tooltip title={message} forceVisible overlayStyle={{zIndex: 1}}>
+      <Tooltip title={message} forceVisible>
         <IconWarning variant="danger" size="sm" />
       </Tooltip>
     </Container>

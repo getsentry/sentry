@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
@@ -6,14 +7,23 @@ import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
 
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
-
 import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
 import type {DO_NOT_USE_ButtonProps as ButtonProps, ButtonSize} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
+
+function preventKeyboardSubmit(
+  e: React.KeyboardEvent,
+  consumer?: React.KeyboardEventHandler
+) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  consumer?.(e);
+}
 
 export type {ButtonProps};
 
@@ -36,6 +46,11 @@ export function Button({
   const {hasChildren, accessibleLabel} = useButtonFunctionality(buttonProps);
   const {handleClick} = useClickTracking(buttonProps, 'button');
 
+  // When a tooltip is present, use aria-disabled instead of native disabled
+  // so the button stays focusable and the tooltip can open on keyboard focus.
+  const hasTooltip = !!tooltipProps?.title;
+  const useAriaDisabled = disabled && hasTooltip;
+
   return (
     <Tooltip
       skipWrapper
@@ -45,15 +60,19 @@ export function Button({
     >
       <StyledButton
         aria-label={accessibleLabel}
-        aria-disabled={disabled}
         aria-busy={busy}
-        disabled={disabled}
+        disabled={useAriaDisabled ? undefined : disabled}
         size={size}
         type={type}
         busy={busy}
         {...props}
+        {...(disabled !== undefined && {'aria-disabled': disabled})}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
+        {...(useAriaDisabled && {
+          onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) =>
+            preventKeyboardSubmit(e, props.onKeyDown),
+        })}
         role="button"
       >
         <Flex

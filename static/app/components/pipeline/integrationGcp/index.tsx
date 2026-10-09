@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -7,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {GcpVerificationResults} from 'sentry/components/gcpVerificationResults';
@@ -17,7 +19,6 @@ import type {
 } from 'sentry/components/pipeline/types';
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -53,6 +54,13 @@ function GcpSaGenerationStep({
         {t(
           'Sentry has generated a service account for your organization. Grant it access to your GCP projects using the steps below, then click Continue to enter your connection details.'
         )}
+      </Text>
+      <Text>
+        {tct('Refer to the [link:documentation] for more setup guidance.', {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/integrations/debugging/gcp-seer/" />
+          ),
+        })}
       </Text>
       <Stack gap="sm">
         <Text bold>{t('Sentry Service Account')}</Text>

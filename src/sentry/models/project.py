@@ -13,6 +13,7 @@ from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
+from sentry_sdk import traces
 
 from bitfield import TypedClassBitField
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
@@ -48,7 +49,6 @@ from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -126,12 +126,15 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-cloudflare-pages",
     "node-cloudflare-workers",
     "node-connect",
+    "node-eve",
     "node-express",
     "node-fastify",
+    "node-flue",
     "node-gcpfunctions",
     "node-hapi",
     "node-hono",
     "node-koa",
+    "node-mastra",
     "node-nestjs",
     "php",
     "php-laravel",
@@ -381,11 +384,16 @@ class Project(Model):
         from sentry.models.counter import Counter
 
         with (
-            start_span(op="project.next_short_id", name="project.next_short_id") as span,
+            traces.start_span(
+                name="project.next_short_id",
+                attributes={
+                    "sentry.op": "project.next_short_id",
+                    "project_id": self.id,
+                    "project_slug": self.slug,
+                },
+            ),
             metrics.timer("project.next_short_id"),
         ):
-            set_span_data(span, "project_id", self.id)
-            set_span_data(span, "project_slug", self.slug)
             return Counter.increment(self, delta)
 
     def _save_project(self, *args, **kwargs):
@@ -887,6 +895,7 @@ class Project(Model):
         Returns True if the settings have successfully been copied over
         Returns False otherwise
         """
+        from sentry.ingest import legacy_filter_lists
         from sentry.models.environment import EnvironmentProject
         from sentry.models.options.project_option import ProjectOption
         from sentry.models.projectownership import ProjectOwnership
@@ -916,7 +925,10 @@ class Project(Model):
 
                 options = ProjectOption.objects.get_all_values(project=project)
                 for key, value in options.items():
-                    self.update_option(key, value)
+                    if key in legacy_filter_lists.OPTION_KEYS:
+                        legacy_filter_lists.set_list(self, key.removeprefix("sentry:"), value)
+                    else:
+                        self.update_option(key, value)
 
         except IntegrityError as e:
             logging.exception(

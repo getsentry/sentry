@@ -71,7 +71,7 @@ describe('ProfileEventsTable', () => {
       }
     );
 
-    expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-error')).toBeInTheDocument();
   });
 
   it('renders asc sort links on the header', () => {

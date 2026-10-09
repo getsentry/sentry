@@ -7,6 +7,20 @@
 export type ProjectCreationVariant = 'scm' | 'legacy';
 
 export type ProjectCreationEventParameters = {
+  'project_creation.agent_setup_command_copied': {
+    source: 'install_command' | 'prompt';
+    variant: ProjectCreationVariant;
+    run_id?: string;
+  };
+  'project_creation.agent_setup_manual_clicked': {
+    variant: ProjectCreationVariant;
+    run_id?: string;
+  };
+  'project_creation.agent_setup_snippet_selected': {
+    source: 'install_command' | 'prompt';
+    variant: ProjectCreationVariant;
+    run_id?: string;
+  };
   'project_creation.alert_threshold_edited': {
     field: 'threshold' | 'metric' | 'interval';
     variant?: ProjectCreationVariant;
@@ -159,6 +173,12 @@ export const projectCreationEventMap: Record<
   keyof ProjectCreationEventParameters,
   string
 > = {
+  'project_creation.agent_setup_command_copied':
+    'Project Creation: Agent Setup Command Copied',
+  'project_creation.agent_setup_manual_clicked':
+    'Project Creation: Agent Setup Manual Clicked',
+  'project_creation.agent_setup_snippet_selected':
+    'Project Creation: Agent Setup Snippet Selected',
   'project_creation.select_framework_modal_close_button_clicked':
     'Project Creation: Framework Modal Close Button Clicked',
   'project_creation.select_framework_modal_configure_sdk_button_clicked':

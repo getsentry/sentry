@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -9,7 +11,6 @@ import {Link} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -18,7 +19,6 @@ import {withApi} from 'sentry/utils/withApi';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {getWidgetDiscoverUrl} from 'sentry/views/dashboards/utils';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
   dashboardFilters: DashboardFilters | undefined;
@@ -66,11 +66,7 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
                     widget_type: widget.displayType,
                   });
                 }}
-                aria-label={
-                  getDiscoverDeprecation(organization)
-                    ? t('Open in Explore')
-                    : t('Open in Discover')
-                }
+                aria-label={t('Open in Explore')}
               />
             </Link>
           </Flex>
@@ -87,13 +83,9 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
       </Header>
       <Body>
         <p>
-          {getDiscoverDeprecation(organization)
-            ? t(
-                'Multiple queries were used to create this widget visualization. Which query would you like to view in Explore?'
-              )
-            : t(
-                'Multiple queries were used to create this widget visualization. Which query would you like to view in Discover?'
-              )}
+          {t(
+            'Multiple queries were used to create this widget visualization. Which query would you like to view in Explore?'
+          )}
         </p>
         {renderQueries()}
       </Body>

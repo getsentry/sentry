@@ -646,7 +646,7 @@ If the legacy `JsonForm` being migrated was already indexed by SettingsSearch (i
 
 ## Handling Nullable Initial Values
 
-Legacy select fields often started with an empty/undefined value and required a selection. In the new system, use `.nullable().refine()` in the schema, type `defaultValues` with `z.input<typeof schema>`, and call `schema.parse(value)` in `onSubmit`.
+Legacy select fields often started with an empty/undefined value and required a selection. When the field is always required, use `.nullable().refine()` in the schema, type `defaultValues` with `z.input<typeof schema>`, and call `schema.parse(value)` in `onSubmit`.
 
 **Old:**
 
@@ -687,6 +687,36 @@ const form = useScrapsForm({
 
 This pattern is necessary whenever a required field has no meaningful initial value. The `z.input` / `z.output` distinction ensures the form accepts `null` as default while the mutation receives the validated, non-null type.
 
+## Conditionally Required Fields
+
+When migrating a legacy field that is required only while another value makes it visible, keep its form-level schema permissive and validate it on the rendered `AppField`. **Do not use form-level `.superRefine()` for this conditional requirement:** form-level validation still runs when the field is hidden, so a required-field error can block submission even though the user cannot see or fix that field.
+
+```tsx
+const schema = z.object({
+  plan: z.enum(['standard', 'enterprise']),
+  billingEmail: z.string(),
+});
+
+<form.Subscribe selector={state => state.values.plan === 'enterprise'}>
+  {showBilling =>
+    showBilling ? (
+      <form.AppField
+        name="billingEmail"
+        validators={{onDynamic: z.string().trim().email('Enter a valid billing email')}}
+      >
+        {field => (
+          <field.Layout.Stack label="Billing Email" required>
+            <field.Input value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Stack>
+        )}
+      </form.AppField>
+    ) : null
+  }
+</form.Subscribe>;
+```
+
+For a nullable number field, use `z.number().nullable()` in the form schema and a field validator such as `z.number().positive('Amount must be greater than zero').nullable().refine(value => value !== null, 'Amount is required')`. The field validator rejects the `null` emitted when the visible input is empty.
+
 ## Intentionally Not Migrated
 
 | Feature     | Usage   | Reason                                                                                |
@@ -699,6 +729,7 @@ This pattern is necessary whenever a required field has no meaningful initial va
 - [ ] No generics on `useMutation` — type the `mutationFn` payload and use `fetchMutation<T>` for the return type
 - [ ] When using `useScrapsForm` with a Save button: mutation runs in `onSubmit`, triggered by `<form.SubmitButton>` (no form that's never submitted)
 - [ ] Convert field config objects to JSX AppField components
+- [ ] Validate conditionally required fields on the rendered `AppField`, with a permissive form schema
 - [ ] Replace `help` → `hintText` on layouts
 - [ ] Replace `showHelpInTooltip` → `variant="compact"`
 - [ ] Replace `disabledReason` → `disabled="reason string"`

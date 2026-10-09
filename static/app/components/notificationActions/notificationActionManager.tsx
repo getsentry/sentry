@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NotificationActionItem} from 'sentry/components/notificationActions/notificationActionItem';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   AvailableNotificationAction,
@@ -47,7 +47,7 @@ export function NotificationActionManager({
     useState<Array<Partial<NotificationAction>>>(actions);
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect, react/no-deriving-state-in-effects
     setNotificationActions(actions);
   }, [actions]);
 
@@ -205,6 +205,7 @@ export function NotificationActionManager({
       });
     });
     return dropdownMenuItems;
+    // oxlint-disable-next-line react/memo-dependencies
   }, [actionsMap, availableServices, notificationActions]);
 
   let toolTipText: undefined | string;

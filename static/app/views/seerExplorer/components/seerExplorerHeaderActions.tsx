@@ -1,4 +1,11 @@
 import type {ReactNode} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconLink} from '@sentry/icons/link';
+import {IconPanel} from '@sentry/icons/panel';
+import {IconWindow} from '@sentry/icons/window';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -6,15 +13,6 @@ import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {
-  IconCheckmark,
-  IconClock,
-  IconCopy,
-  IconEllipsis,
-  IconLink,
-  IconPanel,
-  IconWindow,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   SeerExplorerRunId,
@@ -201,16 +199,15 @@ export function SeerExplorerHeaderActions({
           size="xs"
           position="bottom-end"
           menuTitle={t('Dock position')}
-          triggerProps={{
-            tooltipProps: {
-              title: t('Dock position'),
-            },
-            'aria-label': t('Dock position'),
-            icon: <IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />,
-            showChevron: false,
-            variant: 'transparent',
-            size: 'xs',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              tooltipProps={{title: t('Dock position')}}
+              aria-label={t('Dock position')}
+              icon={<IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />}
+              variant="transparent"
+            />
+          )}
         />
       )}
       <ChatHistorySelect
@@ -319,13 +316,16 @@ export function SeerExplorerHeaderActionsMenu({
         items={items}
         size="xs"
         position="bottom-end"
-        triggerProps={{
-          'aria-label': t('More actions'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          variant: 'transparent',
-          size: 'xs',
-        }}
+        // Let submenus extend beyond the Seer panel's overflow boundary.
+        strategy="fixed"
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('More actions')}
+            icon={<IconEllipsis />}
+            variant="transparent"
+          />
+        )}
       />
       {/* Chat history keeps its own searchable dropdown here rather than
           collapsing into the overflow menu — the DropdownMenu has no search,

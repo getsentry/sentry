@@ -3,6 +3,7 @@ import {Fragment, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
@@ -17,7 +18,6 @@ import {
   type TourStep,
 } from 'sentry/components/tours/tourContext';
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -78,7 +78,7 @@ export function TourContextProvider<T extends TourEnumType>({
   onStepChange,
   requireAllStepsRegistered,
 }: TourContextProviderProps<T>) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const {mutate} = useMutateAssistant();
   const options = useMemo(
     () => ({
@@ -243,7 +243,7 @@ export function TourElementContent<T extends TourEnumType>({
   actions,
   margin,
 }: TourElementContentProps<T>) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const {
     currentStepId,
     orderedStepIds,

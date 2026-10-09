@@ -19,17 +19,15 @@ import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {decodeColumnOrder, getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {DomainView, DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -383,23 +381,11 @@ class _TransactionsList extends Component<Props> {
             <GuideAnchor target="release_transactions_open_in_discover">
               <DiscoverButton
                 onClick={handleOpenInDiscoverClick}
-                to={
-                  getDiscoverDeprecation(organization)
-                    ? getExploreTarget(this.generateDiscoverEventView(), organization)
-                    : this.generateDiscoverEventView().getResultsViewUrlTarget(
-                        organization,
-                        false,
-                        hasDatasetSelector(organization)
-                          ? SavedQueryDatasets.TRANSACTIONS
-                          : undefined
-                      )
-                }
+                to={getExploreTarget(this.generateDiscoverEventView(), organization)}
                 size="xs"
                 data-test-id="discover-open"
               >
-                {getDiscoverDeprecation(organization)
-                  ? t('Open in Explore')
-                  : t('Open in Discover')}
+                {t('Open in Explore')}
               </DiscoverButton>
             </GuideAnchor>
           ))}
