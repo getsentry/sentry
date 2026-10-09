@@ -292,7 +292,7 @@ describe('searchSyntax/parser', () => {
   });
 
   it('applies disallowLogicalOperators (OR)', () => {
-    const result = parseSearch('foo:bar OR AND', {
+    const result = parseSearch('foo:bar OR baz:qux AND bar:baz', {
       disallowedLogicalOperators: new Set([BooleanOperator.OR]),
       invalidMessages: {
         [InvalidReason.LOGICAL_OR_NOT_ALLOWED]: 'Custom message',
@@ -303,11 +303,11 @@ describe('searchSyntax/parser', () => {
     if (result === null) {
       throw new Error('Parsed result as null');
     }
-    expect(result).toHaveLength(7);
+    expect(result).toHaveLength(11);
 
     const foo = result[1] as TokenResult<Token.FILTER>;
     const or = result[3] as TokenResult<Token.LOGIC_BOOLEAN>;
-    const and = result[5] as TokenResult<Token.LOGIC_BOOLEAN>;
+    const and = result[7] as TokenResult<Token.LOGIC_BOOLEAN>;
 
     expect(foo.invalid).toBeNull();
     expect(or.invalid).toEqual({
@@ -318,7 +318,7 @@ describe('searchSyntax/parser', () => {
   });
 
   it('applies disallowLogicalOperators (AND)', () => {
-    const result = parseSearch('foo:bar OR AND', {
+    const result = parseSearch('foo:bar OR baz:qux AND bar:baz', {
       disallowedLogicalOperators: new Set([BooleanOperator.AND]),
       invalidMessages: {
         [InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'Custom message',
@@ -329,17 +329,81 @@ describe('searchSyntax/parser', () => {
     if (result === null) {
       throw new Error('Parsed result as null');
     }
-    expect(result).toHaveLength(7);
+    expect(result).toHaveLength(11);
 
     const foo = result[1] as TokenResult<Token.FILTER>;
     const or = result[3] as TokenResult<Token.LOGIC_BOOLEAN>;
-    const and = result[5] as TokenResult<Token.LOGIC_BOOLEAN>;
+    const and = result[7] as TokenResult<Token.LOGIC_BOOLEAN>;
 
     expect(foo.invalid).toBeNull();
     expect(or.invalid).toBeNull();
     expect(and.invalid).toEqual({
       type: InvalidReason.LOGICAL_AND_NOT_ALLOWED,
       reason: 'Custom message',
+    });
+  });
+
+  describe('logical operators missing a condition', () => {
+    const missingCondition = {
+      type: InvalidReason.LOGICAL_OPERATOR_MISSING_CONDITION,
+      reason: 'Add a condition on both sides of this operator',
+    };
+
+    const getBooleans = (query: string, config?: Partial<SearchConfig>) =>
+      (parseSearch(query, config) ?? []).filter(
+        (token): token is TokenResult<Token.LOGIC_BOOLEAN> =>
+          token.type === Token.LOGIC_BOOLEAN
+      );
+
+    it.each([
+      'browser:Chrome OR',
+      'browser:Chrome AND ',
+      'OR browser:Chrome',
+      'OR',
+      'foo OR',
+    ])('marks the operator in %s as invalid', query => {
+      expect(getBooleans(query).map(token => token.invalid)).toEqual([missingCondition]);
+    });
+
+    it('marks both adjacent operators as invalid', () => {
+      expect(getBooleans('a:b OR AND c:d').map(token => token.invalid)).toEqual([
+        missingCondition,
+        missingCondition,
+      ]);
+    });
+
+    it('does not mark operators with a condition on both sides', () => {
+      expect(
+        getBooleans('a:b OR c:d AND (e:f OR g:h) OR free text', {
+          flattenParenGroups: true,
+        }).map(token => token.invalid)
+      ).toEqual([null, null, null, null]);
+    });
+
+    it('marks operators at the edge of a paren group', () => {
+      const result = parseSearch('a:b OR (c:d OR)') ?? [];
+      const outerOr = result.find(token => token.type === Token.LOGIC_BOOLEAN);
+      const group = result.find(token => token.type === Token.LOGIC_GROUP);
+      const innerOr = group?.inner.find(token => token.type === Token.LOGIC_BOOLEAN);
+
+      expect(outerOr?.invalid).toBeNull();
+      expect(innerOr?.invalid).toEqual(missingCondition);
+    });
+
+    it('marks operators at the edge of flattened parens', () => {
+      expect(
+        getBooleans('(OR a:b) AND (c:d OR)', {flattenParenGroups: true}).map(
+          token => token.invalid
+        )
+      ).toEqual([missingCondition, null, missingCondition]);
+    });
+
+    it('keeps the disallowed operator reason when both apply', () => {
+      expect(
+        getBooleans('a:b OR', {
+          disallowedLogicalOperators: new Set([BooleanOperator.OR]),
+        })[0]!.invalid?.type
+      ).toBe(InvalidReason.LOGICAL_OR_NOT_ALLOWED);
     });
   });
 
