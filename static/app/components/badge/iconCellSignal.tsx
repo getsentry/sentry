@@ -1,6 +1,5 @@
 import {useTheme} from '@emotion/react';
-
-import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
+import {SvgIcon, type SVGIconProps} from '@sentry/icons/svgIcon';
 
 interface Props extends SVGIconProps {
   bars?: 0 | 1 | 2 | 3;

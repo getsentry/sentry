@@ -8,6 +8,9 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconUser} from '@sentry/icons/user';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
@@ -15,7 +18,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {

@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconList} from '@sentry/icons/list';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -12,7 +13,6 @@ import {LogAttributesView} from 'sentry/components/seer/markdown/embeds/componen
 import {LogAttributeView} from 'sentry/components/seer/markdown/embeds/components/log/logAttributeView';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';

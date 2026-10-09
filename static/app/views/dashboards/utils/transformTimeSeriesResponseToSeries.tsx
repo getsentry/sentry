@@ -57,8 +57,8 @@ function getLegacySeriesName(
   isGroupedQuery: boolean
 ): string {
   const {yAxis} = timeSeries;
-  const isGrouped =
-    isGroupedQuery || timeSeries.meta.isOther || (timeSeries.groupBy?.length ?? 0) > 0;
+  const hasGroupBy = timeSeries.meta.isOther || (timeSeries.groupBy?.length ?? 0) > 0;
+  const isGrouped = hasGroupBy || (isGroupedQuery && hasMultipleYAxes);
 
   if (!isGrouped) {
     return alias ? `${alias}${SERIES_NAME_PART_DELIMITER}${yAxis}` : yAxis;
