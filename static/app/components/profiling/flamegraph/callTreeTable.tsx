@@ -417,6 +417,7 @@ const WeightBar = styled('div')`
   position: absolute;
   inset: 0;
   background-color: ${p => p.theme.colors.yellow100};
+  border-bottom: 1px solid ${p => p.theme.colors.yellow200};
   transform-origin: center right;
   pointer-events: none;
 `;
