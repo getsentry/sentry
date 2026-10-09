@@ -214,6 +214,24 @@ class OptionsStoreTest(TestCase):
     def test_not_in_store(self) -> None:
         assert self.store.get_last_update_channel(self.key) is None
 
+    def test_restored_historical_automator_state_preserves_metadata(self) -> None:
+        key = application_state._key("sentry:install-id")
+        self.store.set_store(key, "historical-install-id", UpdateChannel.APPLICATION)
+        Option.objects.filter(key=key.name).update(last_updated_by="automator")
+        row = Option.objects.get(key=key.name)
+        original_updated = row.last_updated
+
+        assert self.store.get_store(key) == "historical-install-id"
+        assert self.store.get_cache(key) == "historical-install-id"
+        assert self.store.get_last_update_channel(key) == UpdateChannel.AUTOMATOR
+        with pytest.raises(ValueError, match="automator update channel is retired"):
+            self.store.set(key, "changed", UpdateChannel.AUTOMATOR)
+
+        row.refresh_from_db()
+        assert row.value == "historical-install-id"
+        assert row.last_updated_by == "automator"
+        assert row.last_updated == original_updated
+
     def test_simple_without_cache(self) -> None:
         store = OptionsStore(cache=None)
         key = self.make_key(key_name="foo")
