@@ -302,7 +302,6 @@ export function AggregateFlamegraphTreeTable({
         header={
           <Fragment>
             <SimpleTable.HeaderCell
-              align="right"
               handleSortClick={onSortBySampleCount}
               sort={sort === 'sample count' ? direction : undefined}
             >
@@ -314,7 +313,6 @@ export function AggregateFlamegraphTreeTable({
               />
             </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell
-              align="right"
               handleSortClick={onSortByDuration}
               sort={sort === 'duration' ? direction : undefined}
             >

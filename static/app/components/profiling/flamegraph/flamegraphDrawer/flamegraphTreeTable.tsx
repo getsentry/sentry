@@ -167,7 +167,6 @@ export function FlamegraphTreeTable({
         header={
           <Fragment>
             <SimpleTable.HeaderCell
-              align="right"
               handleSortClick={() => onSortChange('self weight')}
               sort={sort === 'self weight' ? direction : undefined}
             >
@@ -181,7 +180,6 @@ export function FlamegraphTreeTable({
               />
             </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell
-              align="right"
               handleSortClick={() => onSortChange('total weight')}
               sort={sort === 'total weight' ? direction : undefined}
             >
