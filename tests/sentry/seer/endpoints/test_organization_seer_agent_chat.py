@@ -573,7 +573,11 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     def test_get_run_allowed_with_dashboards_ai_generate_flag(
         self, mock_client_class: MagicMock
     ) -> None:
-        """GET with run_id should succeed for orgs with Seer access even without seer-explorer."""
+        """GET of a dashboard generation run succeeds without seer-explorer."""
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        self.create_seer_agent_run(run=run, source="dashboard_generate")
         mock_state = SeerRunState(
             run_id=123,
             blocks=[],
@@ -585,19 +589,36 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client_class.return_value = mock_client
 
         with self.feature({"organizations:seer-explorer": False}):
-            response = self.client.get(f"{self.url}123/")
+            response = self.client.get(f"{self.url}{run.seer_run_state_id}/")
 
         assert response.status_code == 200
         assert response.data["session"]["run_id"] == 123
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_explorer_run_denied_without_seer_explorer_flag(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        """A saved explorer run is not readable just because the org has Seer."""
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        self.create_seer_agent_run(run=run, source="")
+
+        with self.feature({"organizations:seer-explorer": False}):
+            response = self.client.get(f"{self.url}{run.seer_run_state_id}/")
+
+        assert response.status_code == 403
+        mock_client_class.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_continue_run_allowed_with_dashboards_ai_generate_flag(
         self, mock_client_class: MagicMock
     ) -> None:
-        """POST with run_id should succeed for orgs with Seer access even without seer-explorer."""
+        """POST continues a dashboard generation run without seer-explorer."""
         run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=789, user_id=self.user.id
         )
+        self.create_seer_agent_run(run=run, source="dashboard_generate")
         mock_client = MagicMock()
         mock_client.continue_run.return_value = 789
         mock_client_class.return_value = mock_client
@@ -608,6 +629,117 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"run_id": 789, "sentry_run_id": str(run.uuid)}
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_continue_explorer_run_denied_without_seer_explorer_flag(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
+        self.create_seer_agent_run(run=run, source="")
+
+        with self.feature({"organizations:seer-explorer": False}):
+            response = self.client.post(
+                f"{self.url}{run.seer_run_state_id}/",
+                {"query": "Follow up question"},
+                format="json",
+            )
+
+        assert response.status_code == 403
+        mock_client_class.assert_not_called()
+
+    def _close_open_membership(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_denied_after_open_membership_disabled(self, mock_client_class: MagicMock) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        self.create_seer_agent_run(run=run, source="")
+        self._close_open_membership()
+
+        response = self.client.get(f"{self.url}{run.seer_run_state_id}/")
+
+        assert response.status_code == 403
+        assert "open team membership" in response.data["detail"]
+        mock_client_class.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_continue_denied_after_open_membership_disabled(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
+        self.create_seer_agent_run(run=run, source="")
+        self._close_open_membership()
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/",
+            {"query": "what is inside the private project"},
+            format="json",
+        )
+
+        assert response.status_code == 403
+        assert "open team membership" in response.data["detail"]
+        mock_client_class.assert_not_called()
+
+    def test_new_run_denied_after_open_membership_disabled(self) -> None:
+        self._close_open_membership()
+
+        response = self.client.post(self.url, {"query": "Start a new conversation"}, format="json")
+
+        assert response.status_code == 403
+        assert "open team membership" in response.data["detail"]
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_dashboard_run_still_readable_after_open_membership_disabled(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=456, user_id=self.user.id
+        )
+        self.create_seer_agent_run(run=run, source="dashboard_generate")
+        self._close_open_membership()
+        mock_state = SeerRunState(
+            run_id=456,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = mock_state
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}{run.seer_run_state_id}/")
+
+        assert response.status_code == 200
+        assert response.data["session"]["run_id"] == 456
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_dashboard_run_still_continuable_after_open_membership_disabled(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=456, user_id=self.user.id
+        )
+        self.create_seer_agent_run(run=run, source="dashboard_generate")
+        self._close_open_membership()
+        mock_client = MagicMock()
+        mock_client.continue_run.return_value = 456
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/",
+            {"query": "Add an error rate widget"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"run_id": 456, "sentry_run_id": str(run.uuid)}
 
     def test_new_run_denied_without_seer_explorer_flag(self) -> None:
         """POST without run_id should be denied for orgs without seer-explorer, even with Seer access."""
