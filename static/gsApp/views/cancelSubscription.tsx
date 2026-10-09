@@ -9,8 +9,8 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -116,7 +116,7 @@ function CancelSubscriptionForm() {
       SubscriptionStore.loadData(organization.slug);
       const msg = resp.details || t('Successfully cancelled subscription');
 
-      addSuccessMessage(msg);
+      toast.success(msg);
       navigate({
         pathname: normalizeUrl(`/settings/${organization.slug}/billing/`),
       });
@@ -124,7 +124,7 @@ function CancelSubscriptionForm() {
     onError: error => {
       const detail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
-      addErrorMessage(
+      toast.error(
         typeof detail === 'string' ? detail : t('Failed to cancel subscription')
       );
     },
