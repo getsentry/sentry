@@ -667,7 +667,7 @@ function buildRoutes(): RouteObject[] {
       },
       path: 'seer/',
       name: t('Seer'),
-      // eslint-disable-next-line boundaries/dependencies, import/no-relative-parent-imports -- TODO: move to getsentry routes
+      // eslint-disable-next-line boundaries/dependencies, import/no-relative-parent-imports, import-js/no-relative-packages -- TODO: move to getsentry routes
       component: make(() => import('../../gsApp/views/seerAutomation/projectDetails')),
     },
     {

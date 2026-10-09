@@ -286,6 +286,10 @@ const config = defineConfig({
     'import-x/resolver': {
       typescript: {project: './tsconfig.lint.json'},
     },
+    // Shared test helpers and assets use source aliases, not package dependencies.
+    // Keep workspace package imports subject to dependency checks.
+    'import-x/internal-regex':
+      '^(?:sentry-(?:fixture|test|images|locale|logos|fonts)|getsentry-(?:test|images))(?:/|$)',
     // Analyze both static and dynamic imports for boundary checks.
     // https://www.jsboundaries.dev/docs/setup/settings/#boundariesdependency-nodes
     'boundaries/dependency-nodes': ['import', 'dynamic-import'],
@@ -1490,6 +1494,7 @@ const config = defineConfig({
       },
     ],
     // https://github.com/un-ts/eslint-plugin-import-x/tree/master/docs/rules
+    'import-js/no-relative-packages': 'error',
     'import-js/no-extraneous-dependencies': [
       'error',
       {
