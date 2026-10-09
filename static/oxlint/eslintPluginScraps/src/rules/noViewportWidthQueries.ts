@@ -1,8 +1,6 @@
 import {defineRule, type ESTree} from '@oxlint/plugins';
 
-const WIDTH_QUERY =
-  /@(?:media|container)[^{;]+\b(?:min-width|max-width|width)\s*(?::|[<>]=?)/g;
-const WIDTH_FEATURE = /\b(?:min-width|max-width|width)\s*(?::|[<>]=?)/;
+const STYLE_QUERY = /@(?:media|container)\b/;
 
 function isModalCss(node: ESTree.Node): boolean {
   for (let parent = node.parent; parent; parent = parent.parent) {
@@ -25,12 +23,12 @@ export const noViewportWidthQueries = defineRule({
   meta: {
     type: 'problem',
     docs: {
-      description: 'Prefer responsive primitives for width-dependent component layout',
+      description: 'Prevent new media and container queries in components',
     },
     schema: [],
     messages: {
       forbidden:
-        'Use responsive primitive props for width-dependent layout. Reserve handwritten container queries for CSS that props cannot express.',
+        'Avoid new media and container queries. Prefer primitives; viewport-driven modal and drawer styles are exempt.',
     },
   },
   create(context) {
@@ -91,10 +89,9 @@ export const noViewportWidthQueries = defineRule({
           return;
         }
         for (const quasi of node.quasi.quasis) {
-          if (WIDTH_QUERY.test(quasi.value.raw)) {
+          if (STYLE_QUERY.test(quasi.value.raw)) {
             context.report({node: quasi, messageId: 'forbidden'});
           }
-          WIDTH_QUERY.lastIndex = 0;
         }
       },
       CallExpression(node) {
@@ -105,19 +102,7 @@ export const noViewportWidthQueries = defineRule({
         ) {
           return;
         }
-        const query = node.arguments[0];
-        if (
-          query?.type === 'Literal' &&
-          typeof query.value === 'string' &&
-          WIDTH_FEATURE.test(query.value)
-        ) {
-          context.report({node, messageId: 'forbidden'});
-        } else if (
-          query?.type === 'TemplateLiteral' &&
-          query.quasis.some(quasi => WIDTH_FEATURE.test(quasi.value.raw))
-        ) {
-          context.report({node, messageId: 'forbidden'});
-        }
+        context.report({node, messageId: 'forbidden'});
       },
       Property(node) {
         if (isModalCss(node)) {
@@ -130,12 +115,7 @@ export const noViewportWidthQueries = defineRule({
             : key.type === 'Identifier'
               ? key.name
               : undefined;
-        if (
-          keyName &&
-          /@(?:media|container)[^{;]+\b(?:min-width|max-width|width)\s*(?::|[<>]=?)/.test(
-            keyName
-          )
-        ) {
+        if (keyName && STYLE_QUERY.test(keyName)) {
           context.report({node: key, messageId: 'forbidden'});
           return;
         }

@@ -9,10 +9,6 @@ ruleTester.run('no-viewport-width-queries', noViewportWidthQueries, {
   valid: [
     {
       filename,
-      code: "import styled from '@emotion/styled'; const Box = styled.div`@media (prefers-reduced-motion: reduce) { color: red; }`;",
-    },
-    {
-      filename,
       code: "import {css} from '@emotion/react'; const modalCss = css`@media (min-width: 800px) { width: 80%; }`;",
     },
     {
@@ -29,14 +25,25 @@ ruleTester.run('no-viewport-width-queries', noViewportWidthQueries, {
     },
     {
       filename,
-      code: "import {useMedia} from 'sentry/utils/useMedia'; useMedia('(hover: hover)');",
-    },
-    {
-      filename,
       code: "const search = {'app.vitals.start.screen:sm': true};",
     },
   ],
   invalid: [
+    {
+      filename,
+      code: "import {useMedia} from 'sentry/utils/useMedia'; useMedia('(hover: hover)');",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import styled from '@emotion/styled'; const Box = styled.div`@media (prefers-reduced-motion: reduce) { color: red; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "const style = {'@media (prefers-reduced-motion: reduce)': {color: 'red'}};",
+      errors: [{messageId: 'forbidden'}],
+    },
     {
       filename,
       code: "import styled from '@emotion/styled'; const Box = styled.div`@container (max-width: 768px) { color: red; }`;",
