@@ -395,7 +395,7 @@ export function ChevronButton(
   props: React.ComponentProps<typeof Button> & {expanded: boolean}
 ) {
   return (
-    <Container as="span" display={{zero: 'none', '3xl': 'inline-flex'}}>
+    <Container as="span" display={{zero: 'none', xl: 'inline-flex'}}>
       <StyledChevronButton {...props} />
     </Container>
   );
