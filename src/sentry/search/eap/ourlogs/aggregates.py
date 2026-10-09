@@ -214,6 +214,7 @@ def if_combinator(definition: AggregateDefinition) -> AggregateDefinition:
             ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
             *definition.arguments,
         ],
+        valid_arithmetic=definition.valid_arithmetic,
     )
 
 
