@@ -64,6 +64,22 @@ function scrollToTop(top: number, containers: MaybeContainers) {
   });
 }
 
+// Rows in a table scroll container start below its border and header, not at its top.
+function getRowIndexAtClientY(
+  container: HTMLElement,
+  clientY: number,
+  scrollTop: number,
+  rowHeight: number
+) {
+  const rowsTop =
+    container instanceof HTMLTableElement
+      ? container.clientTop + (container.tHead?.offsetHeight ?? 0)
+      : 0;
+  return Math.floor(
+    (scrollTop + clientY - container.getBoundingClientRect().top - rowsTop) / rowHeight
+  );
+}
+
 function addListenerToContainer(
   container: MaybeContainers,
   type: string,
@@ -385,9 +401,11 @@ export function useVirtualizedTree<T extends TreeLike>(
         return;
       }
 
-      const rect = (evt.target as HTMLDivElement).getBoundingClientRect();
-      const index = Math.floor(
-        (latestStateRef.current.scrollTop + evt.clientY - rect.top) / props.rowHeight
+      const index = getRowIndexAtClientY(
+        evt.target as HTMLElement,
+        evt.clientY,
+        latestStateRef.current.scrollTop,
+        props.rowHeight
       );
 
       // If a node exists at the index, select it
@@ -412,9 +430,11 @@ export function useVirtualizedTree<T extends TreeLike>(
         return;
       }
 
-      const rect = (evt.target as HTMLDivElement).getBoundingClientRect();
-      const index = Math.floor(
-        (latestStateRef.current.scrollTop + evt.clientY - rect.top) / props.rowHeight
+      const index = getRowIndexAtClientY(
+        evt.target as HTMLElement,
+        evt.clientY,
+        latestStateRef.current.scrollTop,
+        props.rowHeight
       );
 
       const element = latestItemsRef.current.find(item => item.key === index);

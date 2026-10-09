@@ -100,7 +100,8 @@ export function useCallTreeTable(props: UseCallTreeTableProps) {
     scrollContainer,
   });
 
-  const {dispatch, handleRowKeyDown, items, selectedNodeIndex} = virtualizedTree;
+  const {dispatch, handleRowKeyDown, handleRowMouseEnter, items, selectedNodeIndex} =
+    virtualizedTree;
 
   // Rows use a roving tabindex. Without a rendered selected row, the first rendered
   // row takes the tab stop so keyboard users can still reach the tree.
@@ -120,6 +121,7 @@ export function useCallTreeTable(props: UseCallTreeTableProps) {
       }
     },
     onKeyDown: handleRowKeyDown,
+    onMouseEnter: handleRowMouseEnter(row.key),
     ref: (element: HTMLTableRowElement | null) => {
       row.ref = element;
     },
@@ -186,6 +188,7 @@ interface CallTreeTableRowProps {
   onContextMenu: (event: React.MouseEvent) => void;
   onFocus: (event: React.FocusEvent<HTMLTableRowElement>) => void;
   onKeyDown: (event: React.KeyboardEvent) => void;
+  onMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
   ref: (element: HTMLTableRowElement | null) => void;
   tabIndex: number;
 }
@@ -402,6 +405,10 @@ const StickyWeightsTable = styled(SimpleTable)`
 const TreeRow = styled(SimpleTable.Row)`
   height: ${ROW_HEIGHT}px;
   background: ${p => p.theme.tokens.background.primary};
+
+  &[data-hovered='true']:not([aria-selected='true']) {
+    background: ${p => p.theme.tokens.background.tertiary};
+  }
 
   &[aria-selected='true'] {
     background: ${p => p.theme.tokens.background.accent.vibrant};
