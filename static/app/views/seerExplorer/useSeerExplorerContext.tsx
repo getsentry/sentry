@@ -34,6 +34,7 @@ import {
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {SeerExplorerErrorBoundary} from 'sentry/views/seerExplorer/components/seerExplorerErrorBoundary';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -44,7 +45,6 @@ import type {
 } from 'sentry/views/seerExplorer/types';
 import {
   getSeerExplorerAnalyticsBrowserSize,
-  useIsSeerExplorerSidebarEnabled,
   usePageReferrer,
   useRemoveSeerExplorerRunIdParam,
   useSeerExplorerDeepLink,

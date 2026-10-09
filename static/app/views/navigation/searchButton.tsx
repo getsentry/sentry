@@ -11,8 +11,8 @@ import {
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 export function SearchButton(props: Pick<ButtonProps, 'className'>) {
   const organization = useOrganization({allowNull: true});

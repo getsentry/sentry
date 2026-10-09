@@ -20,12 +20,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {resolveLink, subjectFromToolLink} from 'sentry/views/seerExplorer/links';
 import type {
@@ -849,36 +847,6 @@ export function getExplorerFeedbackOptions(
         : {conversations_url: getConversationsUrlForExternalUse('sentry', runId)}),
     },
   };
-}
-
-/**
- * Checks if Seer Explorer is enabled for the organization.
- * Requires the rollout flag and:
- * - AI features allowed for the organization (see areAiFeaturesAllowed)
- * - Organization has not disabled open membership
- */
-export function isSeerExplorerEnabled(organization: Organization | null): boolean {
-  if (!organization) {
-    return false;
-  }
-
-  return (
-    organization.openMembership &&
-    areAiFeaturesAllowed(organization) &&
-    organization.features.includes('seer-explorer')
-  );
-}
-
-/**
- * Whether Seer Explorer should render as a persistent, resizable split-panel
- * sidebar instead of an overlay drawer.
- */
-export function useIsSeerExplorerSidebarEnabled(): boolean {
-  const organization = useOrganization({allowNull: true});
-  return (
-    isSeerExplorerEnabled(organization) &&
-    !!organization?.features.includes('seer-explorer-persistent-sidebar')
-  );
 }
 
 /**

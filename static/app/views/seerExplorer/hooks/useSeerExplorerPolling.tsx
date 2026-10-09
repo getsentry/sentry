@@ -4,16 +4,14 @@ import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import type {PollingState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {
   SeerExplorerResponse,
   SeerExplorerRunId,
   Block,
 } from 'sentry/views/seerExplorer/types';
-import {
-  isSeerExplorerEnabled,
-  makeSeerExplorerQueryKey,
-} from 'sentry/views/seerExplorer/utils';
+import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
 const ERROR_POLL_INTERVAL = 2500; // Poll every 2500ms on 5xx errors

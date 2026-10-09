@@ -53,8 +53,8 @@ import type {
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {VisualizationWidget} from './visualizationWidget';
 import {

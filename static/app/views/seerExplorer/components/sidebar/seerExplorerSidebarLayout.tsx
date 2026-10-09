@@ -9,12 +9,12 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
   getSeerExplorerAnalyticsBrowserSize,
   roundSeerExplorerAnalyticsPixels,
   SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
-  useIsSeerExplorerSidebarEnabled,
   useSeerExplorerSidebarOrientation,
 } from 'sentry/views/seerExplorer/utils';
 

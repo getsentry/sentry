@@ -17,12 +17,10 @@ import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {useTopBarActionDisplay} from 'sentry/views/navigation/useTopBarActionDisplay';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {
-  getExplorerFeedbackOptions,
-  isSeerExplorerEnabled,
-} from 'sentry/views/seerExplorer/utils';
+import {getExplorerFeedbackOptions} from 'sentry/views/seerExplorer/utils';
 
 import {
   NAVIGATION_MOBILE_CONTENT_HEIGHT,

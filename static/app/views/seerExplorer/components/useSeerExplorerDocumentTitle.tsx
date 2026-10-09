@@ -2,8 +2,8 @@ import {useEffect} from 'react';
 
 import {useDocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 const PREFIX_ID = 'seer-explorer-unread';
 

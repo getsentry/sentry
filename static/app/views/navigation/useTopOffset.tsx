@@ -10,7 +10,7 @@ import {
   PRIMARY_HEADER_HEIGHT,
   SUPERUSER_MARQUEE_HEIGHT,
 } from 'sentry/views/navigation/constants';
-import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/utils';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/isSeerExplorerEnabled';
 
 export function useTopOffset() {
   const theme = useTheme();
