@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import * as Sentry from '@sentry/react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
@@ -15,7 +16,6 @@ import {
 } from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -36,14 +36,16 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {emptyValue, EMPTY_VALUE_LABEL} from 'sentry/utils/discover/emptyFieldValues';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
-import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
+import {
+  FilterSelectorTrigger,
+  FilterSelectorTriggerButton,
+} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
   buildNoValueFilterQuery,
   deriveFilterState,
@@ -67,6 +69,7 @@ type FilterSelectorProps = {
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
   disableRemoveFilter?: boolean;
+  showDatasetLabel?: boolean;
 };
 
 export function FilterSelector({
@@ -75,6 +78,7 @@ export function FilterSelector({
   onRemoveFilter,
   onUpdateFilter,
   disableRemoveFilter,
+  showDatasetLabel,
 }: FilterSelectorProps) {
   const {selection} = usePageFilters();
 
@@ -473,7 +477,11 @@ export function FilterSelector({
           </Flex>
         )}
         trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps}>
+          <FilterSelectorTriggerButton
+            {...triggerProps}
+            globalFilter={globalFilter}
+            showDatasetLabel={showDatasetLabel}
+          >
             <FilterSelectorTrigger
               activeFilterValues={stripUnsupportedNoValue(
                 activeFilterValues,
@@ -483,7 +491,7 @@ export function FilterSelector({
               operator={stagedOperator}
               options={translatedOptions}
             />
-          </OverlayTrigger.Button>
+          </FilterSelectorTriggerButton>
         )}
       />
     );
@@ -578,7 +586,11 @@ export function FilterSelector({
         </Flex>
       )}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps}>
+        <FilterSelectorTriggerButton
+          {...triggerProps}
+          globalFilter={globalFilter}
+          showDatasetLabel={showDatasetLabel}
+        >
           <FilterSelectorTrigger
             activeFilterValues={stripUnsupportedNoValue(
               activeFilterValues,
@@ -588,7 +600,7 @@ export function FilterSelector({
             operator={stagedOperator}
             options={translatedOptions}
           />
-        </OverlayTrigger.Button>
+        </FilterSelectorTriggerButton>
       )}
     />
   );

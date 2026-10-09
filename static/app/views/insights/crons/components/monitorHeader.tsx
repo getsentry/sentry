@@ -32,15 +32,16 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
     <Layout.Header>
       <Layout.HeaderContent>
         <Breadcrumbs crumbs={crumbs} />
-        <Layout.Title>
-          <IdBadge
-            project={monitor.project}
-            avatarSize={28}
-            hideName
-            avatarProps={{hasTooltip: true, tooltip: monitor.project.slug}}
-          />
-          {monitor.name}
-        </Layout.Title>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: monitor.name,
+            leadingGraphic: (
+              <IdBadge project={monitor.project} avatarSize={16} hideName />
+            ),
+          }}
+        />
       </Layout.HeaderContent>
       <TopBar.Slot name="actions">
         <MonitorHeaderActions orgSlug={orgSlug} monitor={monitor} onUpdate={onUpdate} />

@@ -181,7 +181,9 @@ TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
 }
 
 
-def serialize_search_type(search_type: SearchType) -> str:
+def serialize_search_type(
+    search_type: SearchType,
+) -> Literal["string", "number", "boolean", "array"]:
     proto_type = TYPE_MAP.get(search_type)
     if proto_type == STRING:
         return "string"

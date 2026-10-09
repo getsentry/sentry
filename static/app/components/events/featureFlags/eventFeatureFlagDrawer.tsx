@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
+import {IconSearch} from '@sentry/icons/search';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {InputGroup} from '@sentry/scraps/input';
@@ -25,10 +25,10 @@ import {
 } from 'sentry/components/events/featureFlags/utils';
 import {useFocusControl} from 'sentry/components/events/useFocusControl';
 import {
-  KeyValueTableCard,
+  KeyValueColumns,
+  KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -116,40 +116,14 @@ export function EventFeatureFlagDrawer({
         {actions}
       </EventNavigator>
       <EventDrawerBody>
-        <CardContainer>
-          <KeyValueTableCard expandLeft contentItems={searchResults} />
-        </CardContainer>
+        <KeyValueColumns columnCount={1} maxKeyWidth="70%">
+          {() => [
+            searchResults.map((rowProps, index) => (
+              <KeyValueTableDataRow key={index} {...rowProps} />
+            )),
+          ]}
+        </KeyValueColumns>
       </EventDrawerBody>
     </EventDrawerContainer>
   );
 }
-
-export const CardContainer = styled('div')`
-  /* Only the card panels, so dropdown overlays inside rows keep their border. */
-  > div {
-    border: none;
-    border-radius: 0;
-
-    &:only-child {
-      border-radius: ${p => p.theme.space.xs};
-    }
-  }
-
-  > * {
-    padding-left: 0px;
-
-    &:first-child {
-      margin-left: -${p => p.theme.space.md};
-    }
-    :not(:last-child) {
-      border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-      padding-right: ${p => p.theme.space.xl};
-    }
-    :not(:first-child) {
-      border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-      padding-left: ${p => p.theme.space.xl};
-      padding-right: 0;
-      margin-left: -1px;
-    }
-  }
-`;

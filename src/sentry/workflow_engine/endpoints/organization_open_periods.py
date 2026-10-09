@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -19,15 +21,34 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidParams
 from sentry.models.group import Group
-from sentry.models.groupopenperiod import get_open_periods_for_group
+from sentry.models.groupopenperiod import (
+    GroupOpenPeriod,
+    get_open_periods_for_group,
+    get_open_periods_for_groups,
+    should_create_open_periods,
+)
 from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
     GroupOpenPeriodSerializer,
 )
+from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
+
+
+def detector_opens_new_issue_per_activation(detector: Detector) -> bool:
+    detector_settings = detector.group_type.detector_settings
+
+    if detector_settings is None or detector_settings.handler is None:
+        return False
+
+    return (
+        issubclass(detector_settings.handler, StatefulDetectorHandler)
+        and detector_settings.handler.activation_creates_new_issue
+    )
 
 
 @cell_silo_endpoint
@@ -65,6 +86,37 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
         return detector_group.group if detector_group else None
 
+    def get_open_periods_for_detector(
+        self,
+        detector: Detector,
+        query_start: datetime | None,
+        query_end: datetime | None,
+    ) -> BaseQuerySet[GroupOpenPeriod]:
+        if not detector_opens_new_issue_per_activation(detector):
+            latest_group = self.get_group_from_detector(detector)
+
+            if latest_group is None:
+                return GroupOpenPeriod.objects.none()
+
+            return get_open_periods_for_group(
+                group=latest_group,
+                query_start=query_start,
+                query_end=query_end,
+            )
+
+        if not should_create_open_periods(detector.group_type.type_id):
+            return GroupOpenPeriod.objects.none()
+
+        detector_group_ids = DetectorGroup.objects.filter(detector=detector).values_list(
+            "group_id", flat=True
+        )
+
+        return get_open_periods_for_groups(
+            group_ids=detector_group_ids,
+            query_start=query_start,
+            query_end=query_end,
+        )
+
     def get_group_from_group_id(self, group_id: str, organization: Organization) -> Group:
         validated_group_id = to_valid_int_id("groupId", group_id)
         try:
@@ -77,26 +129,32 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
         return group
 
-    def _get_target_group(
+    def _get_open_periods(
         self,
         request: Request,
         organization: Organization,
         detector_id: str | None,
         group_id: str | None,
-    ) -> Group | None:
+        query_start: datetime | None,
+        query_end: datetime | None,
+    ) -> BaseQuerySet[GroupOpenPeriod]:
         if detector_id:
             detector = self.get_detector_from_detector_id(detector_id, organization)
             if not request.access.has_project_access(detector.linked_project):
                 raise ValidationError({"detectorId": "Detector not found"})
-            return self.get_group_from_detector(detector)
+            return self.get_open_periods_for_detector(detector, query_start, query_end)
 
         if group_id:
             group = self.get_group_from_group_id(group_id, organization)
             if not request.access.has_project_access(group.project):
                 raise ValidationError({"groupId": "Group not found"})
-            return group
+            return get_open_periods_for_group(
+                group=group,
+                query_start=query_start,
+                query_end=query_end,
+            )
 
-        return None
+        return GroupOpenPeriod.objects.none()
 
     @extend_schema(
         operation_id="Fetch Group Open Periods",
@@ -112,7 +170,7 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
                 location="query",
                 required=False,
                 type=str,
-                description="ID of the detector which is associated with the issue group.",
+                description="ID of the detector. Returns open periods from every issue the detector has opened if it opens a new issue per activation, otherwise from its most recent issue.",
             ),
             OpenApiParameter(
                 name="groupId",
@@ -139,7 +197,7 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Return a list of open periods for a group, identified by either detector_id or group_id.
+        Return a list of open periods, newest first, for either a detector or a group.
         """
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)
@@ -157,18 +215,11 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if detector_id_param and group_id_param:
             raise ValidationError({"detail": "Must provide only one of detectorId or groupId"})
 
-        target_group = self._get_target_group(
+        open_periods = self._get_open_periods(
             request=request,
             organization=organization,
             detector_id=detector_id_param,
             group_id=group_id_param,
-        )
-
-        if not target_group:
-            return self.paginate(request=request, queryset=[])
-
-        open_periods = get_open_periods_for_group(
-            group=target_group,
             query_start=start,
             query_end=end,
         )

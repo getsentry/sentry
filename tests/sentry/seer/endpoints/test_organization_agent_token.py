@@ -1228,6 +1228,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "project": [self.project.id],
                 "statsPeriod": "1h",
             }
+        if endpoint.endpoint_name == "OrganizationEventsDroppedEndpoint":
+            return {
+                "dataset": "spans",
+                "project": [self.project.id],
+                "statsPeriod": "1h",
+                "interval": "1h",
+            }
         if endpoint.endpoint_name == "OrganizationPreprodLatestBaseSnapshotEndpoint":
             self._resource("preprod_snapshot")
             return {"app_id": "com.example.permission-matrix-resource"}
@@ -1264,6 +1271,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             if endpoint.endpoint_name == "OrganizationStatsEndpointV2":
                 params["category"] = "error"
             return params
+        if (
+            endpoint.endpoint_name == "OrganizationStarredServiceSpansEndpoint"
+            and isinstance(endpoint, PublicMutationEndpoint)
+            and endpoint.method == "DELETE"
+        ):
+            return {"service_span": "permission-matrix-span", "project_id": self.project.id}
         if endpoint.endpoint_name == "OrganizationTraceItemAttributesEndpoint":
             return {"dataset": "spans", "project": [self.project.id]}
         if endpoint.endpoint_name == "OrganizationTraceItemStatsEndpoint":
@@ -1321,6 +1334,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             "OrganizationGroupSearchViewsEndpoint": "organizations:issue-views",
             "OrganizationProfilingChunksEndpoint": "organizations:continuous-profiling",
             "OrganizationProfilingFlamegraphEndpoint": "organizations:profiling",
+            "OrganizationStarredServiceSpansEndpoint": "organizations:insights-modules-use-eap",
             "OrganizationTraceItemAttributesEndpoint": "organizations:visibility-explore-view",
             "OrganizationTraceItemMetricsEndpoint": "organizations:visibility-explore-view",
             "ProjectProfilingProfileEndpoint": "organizations:profiling",
@@ -1607,6 +1621,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "timeFilters": {"period": "14d"},
             },
             ("OrganizationReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
+            ("OrganizationStarredServiceSpansEndpoint", "POST"): {
+                "service_span": "permission-matrix-span",
+                "project_id": self.project.id,
+            },
             ("ProjectReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
             ("ProjectReleaseFilesEndpoint", "POST"): {
                 "name": "https://example.com/permission-matrix.js"

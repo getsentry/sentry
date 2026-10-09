@@ -1,18 +1,15 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {IconSearch} from '@sentry/icons/search';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {
-  CardContainer,
-  EventFeatureFlagDrawer,
-} from 'sentry/components/events/featureFlags/eventFeatureFlagDrawer';
+import {EventFeatureFlagDrawer} from 'sentry/components/events/featureFlags/eventFeatureFlagDrawer';
 import {FeatureFlagSettingsButton} from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
 import {FeatureFlagSort} from 'sentry/components/events/featureFlags/featureFlagSort';
 import {FlagActionDropdown} from 'sentry/components/events/featureFlags/flagActionDropdown';
@@ -26,10 +23,9 @@ import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/u
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
 import {
-  KeyValueTableCard,
-  KeyValueTableSubject,
+  KeyValueColumns,
+  KeyValueTableDataRow,
 } from 'sentry/components/tables/keyValueTable';
-import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import {IssueCategory, type Group} from 'sentry/types/group';
@@ -37,7 +33,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -65,8 +60,6 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const [orderBy, setOrderBy] = useState(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useContainerColumnCount(containerRef);
 
   const eventView = useIssueDetailsEventView({group});
   const {data: rawFlagData} = useQuery(
@@ -142,43 +135,26 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
         item: {
           key: f.flag,
           subject: f.flag,
-          subjectNode: (
-            <Container alignSelf="center">
-              <KeyValueTableSubject>{f.flag}</KeyValueTableSubject>
-            </Container>
-          ),
           value: (
-            <RevealOnHover>
-              {revealProps => (
-                <Grid
-                  {...revealProps}
-                  columns="minmax(0, 1fr) auto"
-                  align="center"
-                  gap="md"
-                  justifyItems="start"
-                  width="100%"
-                >
-                  <Flex align="center" gap="sm" wrap="wrap">
-                    <Text as="span" monospace wrap="nowrap">
-                      {f.result.toString()}
-                    </Text>
-                    {suspectFlagNames.has(f.flag) && (
-                      <Text as="div" size="sm" variant="secondary" wrap="nowrap">
-                        {t('Suspect')}
-                      </Text>
-                    )}
-                  </Flex>
-                  <Container column="2" justifySelf="end">
-                    <FlagActionDropdown
-                      flag={f.flag}
-                      result={f.result.toString()}
-                      generateAction={generateAction}
-                    />
-                  </Container>
-                </Grid>
+            <Flex align="center" gap="sm" wrap="wrap">
+              <Text as="span" monospace wrap="nowrap">
+                {f.result.toString()}
+              </Text>
+              {suspectFlagNames.has(f.flag) && (
+                <Text as="div" size="sm" variant="secondary" wrap="nowrap">
+                  {t('Suspect')}
+                </Text>
               )}
-            </RevealOnHover>
+            </Flex>
           ),
+          actionButton: (
+            <FlagActionDropdown
+              flag={f.flag}
+              result={f.result.toString()}
+              generateAction={generateAction}
+            />
+          ),
+          actionButtonAlwaysVisible: true,
         },
         isSuspectFlag: suspectFlagNames.has(f.flag),
       };
@@ -295,18 +271,20 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       sectionKey={SectionKey.FEATURE_FLAGS}
       title={t('Feature Flags')}
       actions={actions}
-      ref={containerRef}
     >
       {hasFlags ? (
-        <Grid align="start" columns={`repeat(${columnCount}, 1fr)`}>
-          {props => (
-            <CardContainer {...props}>
-              {splitIntoColumns(truncatedItems, columnCount).map((column, index) => (
-                <KeyValueTableCard key={index} expandLeft contentItems={column} />
-              ))}
-            </CardContainer>
-          )}
-        </Grid>
+        <Container marginBottom="xl">
+          <KeyValueColumns maxKeyWidth="70%">
+            {columnCount =>
+              splitIntoColumns(
+                truncatedItems.map((rowProps, index) => (
+                  <KeyValueTableDataRow key={index} {...rowProps} />
+                )),
+                columnCount
+              )
+            }
+          </KeyValueColumns>
+        </Container>
       ) : (
         <Container width="100%" border="primary" radius="md">
           <EmptyStateWarning small>
