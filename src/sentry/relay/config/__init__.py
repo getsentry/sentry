@@ -849,7 +849,11 @@ def _get_project_config(
     with traces.start_span(
         name="get_exposed_features", attributes={"sentry.op": "get_exposed_features"}
     ):
-        if exposed_features := get_exposed_features(project):
+        exposed_features = list(get_exposed_features(project))
+        if project.get_option("sentry:relay_automatic_json_expansion"):
+            # This is a project option encoded as a feature, not an actual project flag.
+            exposed_features.append("projects:relay-automatic-json-expansion")
+        if exposed_features:
             config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number
