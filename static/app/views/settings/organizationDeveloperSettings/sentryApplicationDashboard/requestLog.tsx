@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 import memoize from 'lodash/memoize';
 
@@ -18,7 +19,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppSchemaIssueLink} from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';

@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/play';
 
 import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 
@@ -8,7 +9,6 @@ import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/consta
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -62,7 +62,7 @@ export function StaticReplayPreview({
       isFetching={isFetching}
       replay={replay}
     >
-      <PlayerContainer data-test-id="player-container">
+      <PlayerContainer>
         {replay?.hasProcessingErrors() ? (
           <ReplayProcessingError />
         ) : (

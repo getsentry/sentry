@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {IconBusiness} from '@sentry/icons/business';
 
-import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
