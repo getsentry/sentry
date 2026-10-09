@@ -4,7 +4,6 @@ from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueCo
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.investigations import build_investigation_block
 from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING, SlackBody
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.organization import Organization
@@ -28,7 +27,6 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         chart_url: str | None = None,
         notification_uuid: str | None = None,
         notes: str | None = None,
-        open_period_id: int | None = None,
     ) -> None:
         """
         Builds an incident attachment when a metric alert fires or is resolved.
@@ -46,7 +44,6 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self.chart_url = chart_url
         self.notification_uuid = notification_uuid
         self.notes = notes
-        self.open_period_id = open_period_id
 
     def build(self) -> SlackBody:
         data = incident_attachment_info(
@@ -67,12 +64,6 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
 
         if self.chart_url:
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
-
-        investigation_block = build_investigation_block(
-            self.organization, self.metric_issue_context, self.open_period_id
-        )
-        if investigation_block:
-            blocks.append(investigation_block)
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
         fallback_text = f"<{data['title_link']}|*{escape_slack_text(data['title'])}*>"

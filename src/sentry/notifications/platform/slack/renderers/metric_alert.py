@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import orjson
+
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -28,8 +30,13 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.integrations.metric_alerts import get_status_text
         from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
         from sentry.integrations.slack.message_builder.incidents import get_started_at
-        from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
+        from sentry.integrations.slack.message_builder.types import (
+            INCIDENT_COLOR_MAPPING,
+            SlackAction,
+        )
         from sentry.integrations.slack.utils.escape import escape_slack_text
+        from sentry.notifications.utils.actions import MessageAction
 
         status = get_status_text(IncidentStatus(data.new_status))
 
@@ -43,6 +50,23 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
             blocks.append(
                 BlockSlackMessageBuilder.get_image_block(data.chart_url, alt="Metric Alert Chart")
             )
+
+        if data.show_investigation_button and data.project_id is not None:
+            button = BlockSlackMessageBuilder.get_button_action(
+                MessageAction(
+                    name="investigate_with_seer",
+                    label="Investigate with Seer",
+                    value=orjson.dumps(
+                        {"groupId": data.group_id, "openPeriodId": data.open_period_context.id}
+                    ).decode(),
+                    action_id=encode_action_id(
+                        action=SlackAction.SEER_INVESTIGATION_START,
+                        organization_id=data.organization_id,
+                        project_id=data.project_id,
+                    ),
+                )
+            )
+            blocks.append({"type": "actions", "elements": [button]})
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))
         fallback_text = f"<{data.title_link}|*{escape_slack_text(data.title)}*>"
