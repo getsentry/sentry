@@ -1,6 +1,8 @@
 from typing import Any, cast
+from unittest import mock
 
 import pytest
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.shim import (
@@ -428,6 +430,58 @@ class TestBuildShimEventData:
 
         # Invalid request body was dropped, but the rest of the request data made it through
         assert event["request"] == {"url": "/dogpark", "method": "GET"}
+
+    def test_reinflates_serialized_extra_and_breadcrumbs(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_EXTRA: {
+                    "value": '{"num_dogs": 2, "co_best_dogs": ["maisey", "charlie"]}',
+                    "type": "string",
+                },
+                ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_BREADCRUMBS: {
+                    "value": '{"values": [{"type": "default", "message": "dogs are great!"}]}',
+                    "type": "string",
+                },
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["extra"] == {"num_dogs": 2, "co_best_dogs": ["maisey", "charlie"]}
+        assert event["breadcrumbs"] == {
+            "values": [{"type": "default", "message": "dogs are great!"}]
+        }
+
+    def test_handles_malformed_serialized_values(self) -> None:
+        # Unlike a request body, which legitimately isn't always JSON, these are written by Relay
+        # and should always parse - so failing to is worth reporting rather than skipping quietly.
+        segment_span = build_segment_span(
+            attributes={
+                # Not valid JSON
+                "sentry.event.serialized_extra": {"value": "adopt don't shop", "type": "string"},
+                # This should parse just fine
+                "sentry.event.serialized_breadcrumbs": {
+                    "value": '{"values": [{"type": "default", "message": "dogs are great!"}]}',
+                    "type": "string",
+                },
+            }
+        )
+
+        with mock.patch(
+            "sentry.spans.consumers.process_segments.shim.logger.exception"
+        ) as mock_logger_exception:
+            event = build_shim_event_data(segment_span, [segment_span])
+
+            # The unparseable `extra` value was skipped, but the `breadcrumbs` value still came
+            # through
+            assert "extra" not in event
+            assert event["breadcrumbs"] == {
+                "values": [{"type": "default", "message": "dogs are great!"}]
+            }
+            mock_logger_exception.assert_called_with(
+                "Failed to parse serialized 'extra' attribute for shim transaction event",
+                extra={"span_id": segment_span["span_id"]},
+            )
 
     def test_adds_top_level_fields_to_spans(self) -> None:
         # In the transaction event protocol these lived at the top level of each span rather than
