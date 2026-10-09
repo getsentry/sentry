@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import type {PlatformIcon} from 'platformicons';
 
 import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
@@ -8,7 +9,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 /**
  * The variants a metadata item can take. Narrower than `ContentVariant`, so

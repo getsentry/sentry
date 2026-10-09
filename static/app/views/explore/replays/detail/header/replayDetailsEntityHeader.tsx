@@ -1,4 +1,5 @@
 import {useMatches} from 'react-router';
+import {IconCalendar} from '@sentry/icons/calendar';
 import {PlatformIcon} from 'platformicons';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -9,7 +10,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {t} from 'sentry/locale';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';

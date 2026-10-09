@@ -1,6 +1,10 @@
 import type {ReactNode} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCode} from '@sentry/icons/code';
+import {IconDownload} from '@sentry/icons/download';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,7 +12,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {PercentChange} from 'sentry/components/percentChange';
-import {IconCode, IconDownload, IconLightning, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';

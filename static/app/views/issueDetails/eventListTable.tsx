@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
 import {defined} from 'sentry/utils/defined';
@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 interface EventListTableProps {
   /**
-   * Should contain a <GridEditable /> to apply the issue details styles
+   * Should contain a <DataGrid /> to apply the issue details styles
    */
   children: React.ReactNode;
   pagination?: {
@@ -173,7 +173,7 @@ const StyledGridEditable = styled('div')`
   td:nth-child(n + 3) a {
     color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     text-decoration-color: ${p => p.theme.tokens.border.primary};
   }
 `;

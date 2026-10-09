@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
 import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
+import {IconProfiling} from '@sentry/icons/profiling';
 import type {Location, LocationDescriptor} from 'history';
 import groupBy from 'lodash/groupBy';
 
@@ -11,8 +12,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
-import {IconProfiling} from 'sentry/icons';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -456,7 +456,7 @@ export function EventsTable({
                             totalEventsCount,
                           })
                         : null}
-                      <GridEditable
+                      <DataGrid
                         isLoading={
                           isTotalEventsLoading ||
                           isDiscoverQueryLoading ||

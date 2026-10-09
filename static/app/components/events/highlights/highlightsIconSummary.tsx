@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAttachment} from '@sentry/icons/attachment';
+import {IconReleases} from '@sentry/icons/releases';
+import {IconWindow} from '@sentry/icons/window';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -23,7 +26,6 @@ import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/uti
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
-import {IconAttachment, IconReleases, IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventTag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

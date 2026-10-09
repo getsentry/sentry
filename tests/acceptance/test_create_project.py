@@ -194,7 +194,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
 
             self.browser.wait_until(xpath='//button[contains(., "GitHub")]')
             self.browser.click(xpath='//button[contains(., "GitHub")]')
-            self.browser.wait_until(xpath='//button[contains(., "Authorize GitHub")]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Authorize GitHub")]')
             self.browser.click(xpath='//button[contains(., "Authorize GitHub")]')
 
             oauth_url = self.browser.driver.execute_script("return window.__testOpenUrl")

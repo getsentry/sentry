@@ -26,7 +26,9 @@ class NotifyEventAction(EventAction):
         logger.info(
             "notify_event.legacy_plugin_action_noop",
             extra={
-                "rule_id": self.rule.id if self.rule else None,
+                "action_id": self.context.action_id if self.context else None,
+                "legacy_rule_id": self.context.origin.legacy_rule_id if self.context else None,
+                "workflow_id": self.context.origin.workflow_id if self.context else None,
                 "event_id": event.event_id,
                 "action": self.id,
             },

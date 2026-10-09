@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -23,7 +25,6 @@ import {
   type SendMessageOptions,
 } from 'sentry/components/seer/autofixChatContext';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
-import {IconClose, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';

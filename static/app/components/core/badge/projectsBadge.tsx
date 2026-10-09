@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
+import {IconAllProjects} from '@sentry/icons/allProjects';
+import {IconMyProjects} from '@sentry/icons/myProjects';
 import {PlatformIcon} from 'platformicons';
 
 import {Container, Stack} from '@sentry/scraps/layout';
-
-import {IconAllProjects, IconMyProjects} from 'sentry/icons';
 
 type ProjectsBadgeSize = 'md' | 'lg';
 
