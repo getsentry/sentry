@@ -7,6 +7,7 @@ from urllib3.exceptions import ReadTimeoutError
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.signed_seer_api import (
+    MissingViewerContextError,
     SeerViewerContext,
     _resolve_viewer_context,
     make_delete_grouping_records_by_project_request,
@@ -34,13 +35,12 @@ def run_test_case(
     mock.port = None
     mock.scheme = "http"
     mock.urlopen.return_value = HTTPResponse(status=200)
-    with override_settings(SEER_API_SHARED_SECRET=shared_secret):
-        make_signed_seer_api_request(
-            mock,
-            path=path,
-            body=REQUEST_BODY,
-            **kwargs,
-        )
+    context = ViewerContext(organization_id=1, user_id=1, actor_type=ActorType.USER)
+    with (
+        override_settings(SEER_API_SHARED_SECRET=shared_secret),
+        viewer_context_scope(context),
+    ):
+        make_signed_seer_api_request(mock, path=path, body=REQUEST_BODY, **kwargs)
 
     return mock.urlopen
 
@@ -48,15 +48,16 @@ def run_test_case(
 @pytest.mark.django_db
 def test_simple() -> None:
     mock_url_open = run_test_case()
-    mock_url_open.assert_called_once_with(
-        "POST",
-        PATH,
-        body=REQUEST_BODY,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
-        },
+    mock_url_open.assert_called_once()
+    assert mock_url_open.call_args.args == ("POST", PATH)
+    assert mock_url_open.call_args.kwargs["body"] == REQUEST_BODY
+    headers = mock_url_open.call_args.kwargs["headers"]
+    assert headers["content-type"] == "application/json;charset=utf-8"
+    assert (
+        headers["Authorization"]
+        == "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07"
     )
+    assert headers["X-Viewer-Context"]
 
 
 @pytest.mark.django_db
@@ -68,51 +69,44 @@ def test_preserves_query_string() -> None:
 @pytest.mark.django_db
 def test_uses_given_timeout() -> None:
     mock_url_open = run_test_case(timeout=5)
-    mock_url_open.assert_called_once_with(
-        "POST",
-        PATH,
-        body=REQUEST_BODY,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
-        },
-        timeout=5,
-    )
+    mock_url_open.assert_called_once()
+    assert mock_url_open.call_args.kwargs["timeout"] == 5
 
 
 @pytest.mark.django_db
 def test_uses_given_retries() -> None:
     mock_url_open = run_test_case(retries=5)
-    mock_url_open.assert_called_once_with(
-        "POST",
-        PATH,
-        body=REQUEST_BODY,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            "Authorization": "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07",
-        },
-        retries=5,
-    )
+    mock_url_open.assert_called_once()
+    assert mock_url_open.call_args.kwargs["retries"] == 5
 
 
 @pytest.mark.django_db
-def test_uses_shared_secret_missing_secret() -> None:
-    mock_url_open = run_test_case(shared_secret="")
+def test_missing_secret_does_not_send_request() -> None:
+    pool = Mock(host="localhost", port=None, scheme="http")
+    context = ViewerContext(organization_id=1, user_id=1, actor_type=ActorType.USER)
 
-    mock_url_open.assert_called_once_with(
-        "POST",
-        PATH,
-        body=REQUEST_BODY,
-        headers={"content-type": "application/json;charset=utf-8"},
-    )
+    with (
+        override_settings(SEER_API_SHARED_SECRET=""),
+        viewer_context_scope(context),
+        pytest.raises(ValueError, match="No signing key available"),
+    ):
+        make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
+
+    pool.urlopen.assert_not_called()
 
 
-@pytest.mark.django_db
-@patch("sentry.seer.signed_seer_api.metrics")
-def test_missing_secret_emits_unsigned_request_metric(mock_metrics: MagicMock) -> None:
-    run_test_case(shared_secret="")
+@patch("sentry.seer.signed_seer_api.encode_viewer_context", side_effect=RuntimeError("boom"))
+def test_viewer_context_encoding_failure_does_not_send_request(
+    mock_encode_viewer_context: MagicMock,
+) -> None:
+    pool = Mock(host="localhost", port=None, scheme="http")
+    context = ViewerContext(organization_id=1, user_id=1, actor_type=ActorType.USER)
 
-    mock_metrics.incr.assert_any_call("seer.unsigned_request", sample_rate=1.0)
+    with viewer_context_scope(context), pytest.raises(RuntimeError, match="boom"):
+        make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
+
+    mock_encode_viewer_context.assert_called_once_with(context)
+    pool.urlopen.assert_not_called()
 
 
 @pytest.mark.django_db
@@ -137,7 +131,7 @@ def test_times_request(mock_metrics_timer: MagicMock, path: str, endpoint: str) 
 @pytest.mark.django_db
 @patch("sentry.seer.signed_seer_api._resolve_viewer_context")
 def test_resolves_viewer_context_with_endpoint(mock_resolve: MagicMock) -> None:
-    mock_resolve.return_value = None
+    mock_resolve.return_value = ViewerContext(user_id=1, actor_type=ActorType.USER)
 
     run_test_case(path=f"{DYNAMIC_PATH}?plan_tier=business")
 
@@ -147,7 +141,7 @@ def test_resolves_viewer_context_with_endpoint(mock_resolve: MagicMock) -> None:
 @pytest.mark.django_db
 @patch("sentry.seer.signed_seer_api._resolve_viewer_context")
 def test_resolves_viewer_context_with_metrics_endpoint(mock_resolve: MagicMock) -> None:
-    mock_resolve.return_value = None
+    mock_resolve.return_value = ViewerContext(user_id=1, actor_type=ActorType.USER)
 
     run_test_case(
         path=f"{DYNAMIC_PATH}?plan_tier=business",
@@ -158,6 +152,7 @@ def test_resolves_viewer_context_with_metrics_endpoint(mock_resolve: MagicMock) 
 
 
 @patch("sentry.seer.signed_seer_api.metrics.timer")
+@pytest.mark.django_db
 def test_times_request_with_metrics_endpoint(mock_metrics_timer: MagicMock) -> None:
     run_test_case(
         path=f"{PATH}/12345?dogs=great",
@@ -175,13 +170,16 @@ def test_times_request_with_metrics_endpoint(mock_metrics_timer: MagicMock) -> N
     [(200, "2xx"), (404, "4xx"), (503, "5xx")],
 )
 @patch("sentry.utils.metrics.timing")
+@override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
 def test_times_request_with_status_class(
     mock_timing: MagicMock, status: int, expected_status_class: str
 ) -> None:
     pool = Mock(host="localhost", port=None, scheme="http")
     pool.urlopen.return_value = HTTPResponse(status=status)
 
-    response = make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
+    context = ViewerContext(user_id=1, actor_type=ActorType.USER)
+    with viewer_context_scope(context):
+        response = make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
 
     assert response.status == status
     tags = mock_timing.call_args.args[3]
@@ -190,16 +188,32 @@ def test_times_request_with_status_class(
 
 
 @patch("sentry.utils.metrics.timing")
+@override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
 def test_times_failed_request_with_error_status_class(mock_timing: MagicMock) -> None:
     pool = Mock(host="localhost", port=None, scheme="http")
     pool.urlopen.side_effect = ReadTimeoutError(HTTPConnectionPool("localhost"), PATH, "timed out")
 
-    with pytest.raises(ReadTimeoutError):
+    context = ViewerContext(user_id=1, actor_type=ActorType.USER)
+    with viewer_context_scope(context), pytest.raises(ReadTimeoutError):
         make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
 
     tags = mock_timing.call_args.args[3]
     assert tags["status_class"] == "error"
     assert tags["result"] == "failure"
+
+
+def test_missing_viewer_context_does_not_send_request() -> None:
+    pool = Mock(host="localhost", port=None, scheme="http")
+
+    with pytest.raises(MissingViewerContextError):
+        make_signed_seer_api_request(
+            pool,
+            path=PATH,
+            body=REQUEST_BODY,
+            viewer_context=SeerViewerContext(organization_id=99, user_id=5),
+        )
+
+    pool.urlopen.assert_not_called()
 
 
 @patch("sentry.seer.signed_seer_api.make_signed_seer_api_request")
@@ -217,7 +231,8 @@ def test_delete_grouping_records_uses_generic_metrics_endpoint(
 
 class TestResolveViewerContext:
     def test_both_none(self) -> None:
-        assert _resolve_viewer_context(None) is None
+        with pytest.raises(MissingViewerContextError):
+            _resolve_viewer_context(None)
 
     def test_contextvar_only(self) -> None:
         ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
@@ -231,15 +246,14 @@ class TestResolveViewerContext:
 
     @patch("sentry.seer.signed_seer_api.metrics")
     @patch("sentry.seer.signed_seer_api.logger")
-    def test_explicit_only_warns_contextvar_missing(
+    def test_explicit_only_raises_and_reports_contextvar_missing(
         self, mock_logger: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        result = _resolve_viewer_context(
-            SeerViewerContext(organization_id=99, user_id=5), endpoint="/v1/automation/summarize"
-        )
-        assert result is not None
-        assert result.organization_id == 99
-        assert result.user_id == 5
+        with pytest.raises(MissingViewerContextError):
+            _resolve_viewer_context(
+                SeerViewerContext(organization_id=99, user_id=5),
+                endpoint="/v1/automation/summarize",
+            )
 
         mock_logger.warning.assert_called_once_with(
             "seer.viewer_context_not_set",
@@ -259,7 +273,8 @@ class TestResolveViewerContext:
     def test_explicit_only_without_endpoint(
         self, mock_logger: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        _resolve_viewer_context(SeerViewerContext(organization_id=99))
+        with pytest.raises(MissingViewerContextError):
+            _resolve_viewer_context(SeerViewerContext(organization_id=99))
 
         assert mock_logger.warning.call_args[1]["extra"]["endpoint"] is None
         mock_metrics.incr.assert_called_once_with(

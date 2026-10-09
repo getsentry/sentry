@@ -1,10 +1,24 @@
+from collections.abc import Generator
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from urllib3.response import HTTPResponse
 
 from sentry.seer.breakpoints import detect_breakpoints
 from sentry.utils import json
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+
+
+@pytest.fixture(autouse=True)
+def _viewer_context() -> Generator[None]:
+    with (
+        override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"),
+        viewer_context_scope(
+            ViewerContext(organization_id=1, user_id=1, actor_type=ActorType.USER)
+        ),
+    ):
+        yield
 
 
 @pytest.mark.django_db
