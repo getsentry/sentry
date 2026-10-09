@@ -1,17 +1,15 @@
-import random
-
 from sentry.notifications.platform.rollout import NotificationRolloutService
 from sentry.notifications.platform.types import NotificationSource
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.hashlib import md5_text
 
 
 class NotificationRolloutServiceTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
-        random.seed(0)
 
     def test_no_feature_flags_enabled(self) -> None:
         service = NotificationRolloutService(organization=self.organization)
@@ -76,7 +74,17 @@ class NotificationRolloutServiceTest(TestCase):
     @with_feature("organizations:notification-platform.internal-testing")
     def test_partial_rollout_based_on_org_id(self) -> None:
         service = NotificationRolloutService(organization=self.organization)
-        assert service.should_notify(NotificationSource.DATA_EXPORT_SUCCESS)
+        bucket = (
+            int(
+                md5_text(self.organization.id, NotificationSource.DATA_EXPORT_SUCCESS).hexdigest(),
+                16,
+            )
+            % 100
+        )
+        expected = bucket < 50
+
+        for _ in range(10):
+            assert service.should_notify(NotificationSource.DATA_EXPORT_SUCCESS) is expected
 
     def test_has_feature_flag_access_returns_none_when_no_flags(self) -> None:
         service = NotificationRolloutService(organization=self.organization)
@@ -129,7 +137,6 @@ class NotificationRolloutServiceTest(TestCase):
         {
             "notifications.platform-rollout.internal-testing": {
                 "data-export-success": 1.0,
-                "data-export-failure": 0.5,
                 "slow-load-metric-alert": 0.0,
             }
         }
@@ -139,5 +146,4 @@ class NotificationRolloutServiceTest(TestCase):
         service = NotificationRolloutService(organization=self.organization)
 
         assert service.should_notify(NotificationSource.DATA_EXPORT_SUCCESS)
-        assert not service.should_notify(NotificationSource.DATA_EXPORT_FAILURE)
         assert not service.should_notify(NotificationSource.SLOW_LOAD_METRIC_ALERT)

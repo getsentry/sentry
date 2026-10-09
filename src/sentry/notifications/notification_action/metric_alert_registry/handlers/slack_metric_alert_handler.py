@@ -1,10 +1,6 @@
 import logging
 
-import sentry_sdk
-
-from sentry import features
-from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
+from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -20,87 +16,9 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
 )
 from sentry.notifications.notification_action.registry import metric_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
-from sentry.notifications.notification_action.utils import metric_alert_notification_data_factory
-from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.target import IntegrationNotificationTarget
-from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
-from sentry.notifications.platform.threading import ThreadingOptions, ThreadKey
-from sentry.notifications.platform.types import (
-    NotificationProviderKey,
-    NotificationSource,
-    NotificationTargetResourceType,
-)
-from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
-    DetectorSerializerResponse,
-)
 from sentry.workflow_engine.models import Action, Detector
 
 logger = logging.getLogger(__name__)
-
-
-def _send_via_notification_platform(
-    notification_context: NotificationContext,
-    alert_context: AlertContext,
-    metric_issue_context: MetricIssueContext,
-    open_period_context: OpenPeriodContext,
-    notification_uuid: str,
-    organization: Organization,
-    detector_serialized_response: DetectorSerializerResponse,
-) -> None:
-    if notification_context.integration_id is None:
-        raise ValueError("Integration ID is None")
-
-    if notification_context.target_identifier is None:
-        raise ValueError("Slack channel is None")
-
-    chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", organization):
-        try:
-            chart_url = build_metric_alert_chart(
-                organization=organization,
-                snuba_query=metric_issue_context.snuba_query,
-                alert_context=alert_context,
-                open_period_context=open_period_context,
-                subscription=metric_issue_context.subscription,
-                detector_serialized_response=detector_serialized_response,
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
-    data = metric_alert_notification_data_factory(
-        action_type=Action.Type.SLACK,
-        notification_context=notification_context,
-        alert_context=alert_context,
-        metric_issue_context=metric_issue_context,
-        open_period_context=open_period_context,
-        organization=organization,
-        notification_uuid=notification_uuid,
-        chart_url=chart_url,
-    )
-
-    target = IntegrationNotificationTarget(
-        provider_key=NotificationProviderKey.SLACK,
-        resource_type=NotificationTargetResourceType.CHANNEL,
-        resource_id=notification_context.target_identifier,
-        integration_id=notification_context.integration_id,
-        organization_id=organization.id,
-    )
-
-    threading_options = ThreadingOptions(
-        thread_key=ThreadKey(
-            key_type=NotificationSource.METRIC_ALERT,
-            key_data={
-                "action_id": notification_context.id,
-                "group_id": metric_issue_context.id,
-                "open_period_start": open_period_context.date_started.isoformat(),
-            },
-        ),
-        reply_broadcast=(metric_issue_context.new_status == IncidentStatus.CRITICAL),
-    )
-
-    NotificationService[MetricAlertNotificationData](data=data).notify_sync(
-        targets=[target], threading_options=threading_options
-    )
 
 
 @metric_alert_handler_registry.register(Action.Type.SLACK)
@@ -127,26 +45,15 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
 
         detector_serialized_response = get_detector_serializer(detector)
 
-        if NotificationService.has_access(organization, NotificationSource.METRIC_ALERT):
-            _send_via_notification_platform(
-                notification_context=notification_context,
-                alert_context=alert_context,
-                metric_issue_context=metric_issue_context,
-                open_period_context=open_period_context,
-                notification_uuid=notification_uuid,
-                organization=organization,
-                detector_serialized_response=detector_serialized_response,
-            )
-        else:
-            send_incident_alert_notification(
-                notification_context=notification_context,
-                alert_context=alert_context,
-                metric_issue_context=metric_issue_context,
-                open_period_context=open_period_context,
-                organization=organization,
-                notification_uuid=notification_uuid,
-                detector_serialized_response=detector_serialized_response,
-            )
+        send_incident_alert_notification(
+            notification_context=notification_context,
+            alert_context=alert_context,
+            metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
+            organization=organization,
+            notification_uuid=notification_uuid,
+            detector_serialized_response=detector_serialized_response,
+        )
 
 
 @metric_alert_handler_registry.register(Action.Type.SLACK_STAGING)
