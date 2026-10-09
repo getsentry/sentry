@@ -15,6 +15,7 @@ from slack_sdk.models.blocks import (
 )
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.slack.renderers.seer import AUTOFIX_CONFIG, SeerSlackRenderer
 from sentry.notifications.platform.slack.renderers.seer_agent_write_approval import (
@@ -27,6 +28,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixCodeChange,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
+    SeerInvestigationStatus,
+    SeerInvestigationStatusTemplate,
 )
 from sentry.notifications.platform.types import NotificationRenderedTemplate
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -428,3 +431,18 @@ class SeerAgentWriteApprovalSlackRendererTest(TestCase):
         assert [reject_button.text.text, approve_button.text.text] == ["Reject", "Approve"]
         assert reject_button.value == "link_clicked"
         assert approve_button.value == "link_clicked"
+
+
+class SeerSlackRendererInvestigationTest(TestCase):
+    def test_render_investigation_status(self) -> None:
+        renderable = NotificationService.render_template(
+            data=SeerInvestigationStatus(organization_id=1, slack_user_id="U0123456789"),
+            template=SeerInvestigationStatusTemplate(),
+            provider=SlackNotificationProvider,
+        )
+
+        text = "<@U0123456789> started a Seer investigation for this alert."
+        assert renderable["text"] == text
+        (block,) = renderable["blocks"]
+        assert isinstance(block, MarkdownBlock)
+        assert block.text == text

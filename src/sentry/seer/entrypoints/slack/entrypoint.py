@@ -12,6 +12,8 @@ from sentry.investigations.models import Investigation, InvestigationOrchestrati
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notifications.platform.registry import provider_registry
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
@@ -19,7 +21,10 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixError,
     SeerAutofixUpdate,
+    SeerInvestigationStatus,
+    SeerInvestigationStatusTemplate,
 )
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import PendingUserInput
@@ -777,14 +782,17 @@ class SlackInvestigationEntrypoint(
             organization_id=self.organization.id,
         ).capture() as lifecycle:
             lifecycle.add_extras({"channel_id": self.channel_id, "thread_ts": self.thread_ts})
-            text = f"<@{self.slack_user_id}> started a Seer investigation for this alert."
+            renderable = NotificationService.render_template(
+                data=SeerInvestigationStatus(
+                    organization_id=self.organization.id, slack_user_id=self.slack_user_id
+                ),
+                template=SeerInvestigationStatusTemplate(),
+                provider=provider_registry.get(NotificationProviderKey.SLACK),
+            )
             try:
                 response = self.install.send_threaded_message(
                     channel_id=self.channel_id,
-                    renderable=SlackRenderable(
-                        blocks=[MarkdownBlock(text=text)],
-                        text=text,
-                    ),
+                    renderable=renderable,
                     thread_ts=self.thread_ts,
                 )
             except (IntegrationError, IntegrationConfigurationError) as e:

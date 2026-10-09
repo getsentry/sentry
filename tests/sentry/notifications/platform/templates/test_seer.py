@@ -8,6 +8,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerInvestigationStatus,
+    SeerInvestigationStatusTemplate,
     _get_next_stopping_point,
 )
 from sentry.notifications.platform.types import ParagraphSection
@@ -134,3 +136,14 @@ class SeerAgentErrorTemplateTest(TestCase):
 
         assert rendered.subject == "Agent failed"
         assert rendered.body[0].blocks[0].text == "Timeout."
+
+
+class SeerInvestigationStatusTemplateTest(TestCase):
+    def test_render(self) -> None:
+        rendered = SeerInvestigationStatusTemplate().render(
+            SeerInvestigationStatus(organization_id=1, slack_user_id="U0123456789")
+        )
+
+        assert rendered.subject == "Seer investigation started"
+        assert isinstance(rendered.body[0], ParagraphSection)
+        assert rendered.body[0].blocks[0].text == "Seer started an investigation for this alert."
