@@ -3,15 +3,19 @@ from __future__ import annotations
 from django.db import router, transaction
 from django.db.models import Exists, OuterRef, Q
 from django.db.models.functions import Coalesce
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
+from sentry.apidocs import constants
+from sentry.apidocs.parameters import GlobalParams, InvestigationParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
     organization_project_ids,
@@ -21,7 +25,9 @@ from sentry.investigations.endpoints.base import (
 )
 from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
+    InvestigationDetailsSerializerResponse,
     InvestigationSerializer,
+    InvestigationSerializerResponse,
 )
 from sentry.investigations.endpoints.validators import InvestigationCreateValidator
 from sentry.investigations.models import (
@@ -43,9 +49,35 @@ from sentry.models.organization import Organization
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndpoint):
+    owner = ApiOwner.ML_AI
     publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
 
+    @extend_schema(
+        operation_id="List an Organization's Investigations",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            InvestigationParams.STATUS,
+            InvestigationParams.QUERY,
+            InvestigationParams.CURSOR,
+            InvestigationParams.PER_PAGE,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListanOrganizationsInvestigationsResponse", list[InvestigationSerializerResponse]
+            ),
+            400: constants.RESPONSE_BAD_REQUEST,
+            401: constants.RESPONSE_UNAUTHORIZED,
+            403: constants.RESPONSE_FORBIDDEN,
+            404: constants.RESPONSE_NOT_FOUND,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        List the latest revision of each investigation lineage, newest updated first. Returns a
+        paginated array of summaries; follow the Link header for more results. Requires the
+        organizations:investigations feature and open organization membership.
+        """
         requested_status = request.GET.get("status", InvestigationStatus.ACTIVE)
         if requested_status not in InvestigationStatus.values:
             return Response(
@@ -81,7 +113,41 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             ),
         )
 
+    @extend_schema(
+        operation_id="Create an Investigation",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=InvestigationCreateValidator,
+        responses={
+            200: inline_sentry_response_serializer(
+                "InvestigationDetailsResponse", InvestigationDetailsSerializerResponse
+            ),
+            201: inline_sentry_response_serializer(
+                "InvestigationDetailsResponse", InvestigationDetailsSerializerResponse
+            ),
+            400: constants.RESPONSE_BAD_REQUEST,
+            401: constants.RESPONSE_UNAUTHORIZED,
+            403: constants.RESPONSE_FORBIDDEN,
+            404: constants.RESPONSE_NOT_FOUND,
+        },
+        examples=[
+            OpenApiExample(
+                "Example request",
+                value={"title": "Checkout latency", "projectIds": [1]},
+                request_only=True,
+            )
+        ],
+    )
     def post(self, request: Request, organization: Organization) -> Response:
+        """
+        Create a blank notebook with title, or supply source to start an agentic investigation.
+        For template-based creation, supply templateKey, templateVersion, and source, with
+        optional parameters; projectIds and filters are controlled by the template.
+        A manual source without a non-blank prompt waits for input. Metric sources resolve their
+        context server-side and may reuse an existing active investigation (200); new
+        investigations return 201. Returns notebook details, blocks, parameters, and
+        orchestration summary. Requires an authenticated user. Requires the
+        organizations:investigations feature and open organization membership.
+        """
         require_authenticated_user(request)
         validator = InvestigationCreateValidator(data=request.data)
         if not validator.is_valid():

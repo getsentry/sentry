@@ -473,7 +473,6 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
     def test_all_tsdb_models_have_an_entry_in_model_query_settings(self) -> None:
         # Ensure that the models we expect to be using Snuba are using Snuba
-        # does not include the internal TSDB model
-        models = [model for model in list(TSDBModel) if 0 < model.value < 700]
+        models = [model for model in list(TSDBModel) if model.value < 700]
         for model in models:
             assert model in SnubaTSDB.model_query_settings

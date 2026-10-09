@@ -1,7 +1,7 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -12,27 +12,22 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {
-  LinkedPullRequests,
-  useLinkedPullRequests,
-} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
-import {IssueDetailsContextProvider, SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
 import {
   GroupDataContextProvider,
   useGroupData,
@@ -43,6 +38,7 @@ import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts'
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
@@ -52,14 +48,19 @@ import {
   IssuePreviewHeaderActions,
   OpenIssueButton,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
-import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
-  IssuePreviewSeerContent,
   IssuePreviewSeerProvider,
   useIssuePreviewSeer,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
+import {IssuePreviewStackTrace} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewStackTrace';
+import {
+  IssuePreviewSummary,
+  type IssueSummary,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
+
+import {IssuePreviewTimeline} from './issuePreviewTimeline';
 
 interface IssuePreviewProps {
   groupId: string;
@@ -177,6 +178,25 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
+  const {data: event, isLoading: isEventLoading} = useGroupEvent({
+    groupId: group.id,
+    eventId: 'recommended',
+    options: {enabled: !disableActions},
+  });
+  const {data: summary, isLoading: isSummaryLoading} = useQuery({
+    ...apiOptions.as<IssueSummary>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/summarize/',
+      {
+        path:
+          previewSeer.aiConfig.hasSummary && !disableActions
+            ? {organizationIdOrSlug: organization.slug, issueId: group.id}
+            : skipToken,
+        method: 'POST',
+        staleTime: 30_000,
+      }
+    ),
+    retry: false,
+  });
   const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
 
   const issueDetailsUrl = normalizeUrl(
@@ -260,6 +280,7 @@ function IssuePreviewContent() {
       >
         <IssuePreviewHeaderActions
           group={group}
+          summary={summary}
           project={project}
           disabled={disableActions}
           onContinueInSeer={() => openSeer()}
@@ -275,65 +296,39 @@ function IssuePreviewContent() {
           />
         </Flex>
       </Flex>
-      {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
-      {previewSeer.state === 'loading' || linkedPullRequests.isPending ? (
+      {/* Load the body together to avoid layout shifts. */}
+      {previewSeer.state === 'loading' ||
+      linkedPullRequests.isPending ||
+      isEventLoading ||
+      isSummaryLoading ? (
         <LoadingIndicator />
       ) : (
-        <Dividers>
-          {linkedPullRequests.data?.pullRequests.length ? (
-            <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
-              <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
-              <IssuePreviewSection.Content>
-                <LinkedPullRequests
-                  collapseBeforeLatestRegression
+        <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
+          {summary && <IssuePreviewSummary summary={summary} />}
+          {event && (
+            <Container key={event.id}>
+              <ErrorBoundary mini>
+                <IssuePreviewStackTrace
+                  event={event}
                   group={group}
-                  showEmptyState={false}
+                  projectSlug={project.slug}
                 />
-              </IssuePreviewSection.Content>
-            </IssuePreviewSection>
-          ) : null}
-          <IssuePreviewSeerContent
-            key={group.id}
-            group={group}
-            project={project}
-            previewSeer={previewSeer}
-          />
-          <Container>
-            <ErrorBoundary mini>
-              <FoldSection
-                title={
-                  <Heading as="h3" size="md">
-                    {t('Activity')}
-                  </Heading>
-                }
-                sectionKey={SectionKey.ACTIVITY}
-              >
-                <ActivitySection
-                  group={group}
-                  minHeight={40}
-                  variant="standalone"
-                  placeholder={t('Add a comment. Tag users with @, or teams with #')}
-                />
-              </FoldSection>
-            </ErrorBoundary>
+              </ErrorBoundary>
+            </Container>
+          )}
+          <Container borderTop="muted" paddingTop="xl">
+            <IssuePreviewTimeline
+              key={group.id}
+              group={group}
+              project={project}
+              pullRequests={linkedPullRequests.data?.pullRequests ?? []}
+            />
           </Container>
-        </Dividers>
+        </Stack>
       )}
     </IssueDetailsContextProvider>
   );
 }
-
-const Dividers = styled('div')`
-  padding: ${p => p.theme.space.md} 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-
-  & > * + * {
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-    padding-top: ${p => p.theme.space.md};
-  }
-`;
 
 const TitleLink = styled(Link)`
   display: inline-flex;

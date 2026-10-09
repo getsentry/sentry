@@ -5,9 +5,11 @@ import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metri
 import {
   createConditions,
   getBackendDataset,
+} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {percentThresholdDeltaToAbsolute} from 'sentry/views/detectors/utils/percentThreshold';
 

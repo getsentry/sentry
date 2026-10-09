@@ -1159,6 +1159,7 @@ describe('MultiQueryModeContent', () => {
           },
         ],
         range: '14d',
+        statsPeriod: '14d',
         projects: [],
         environment: [],
       },
@@ -1210,6 +1211,7 @@ describe('MultiQueryModeContent', () => {
         },
       ],
       range: '7d',
+      statsPeriod: '7d',
       projects: [Number(project.id)],
       environment: [],
     };

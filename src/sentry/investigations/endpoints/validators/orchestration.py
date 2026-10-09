@@ -4,6 +4,7 @@ from typing import Any
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_field
 from rest_framework import serializers
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
@@ -47,13 +48,35 @@ def _validate_time_range(value: Any) -> dict[str, str]:
     return value
 
 
+class InvestigationTimeRangeSchema(StrictContractSerializer):
+    start = serializers.DateTimeField(help_text="Inclusive start, with timezone.")
+    end = serializers.DateTimeField(help_text="Exclusive end, with timezone; must follow start.")
+
+
+@extend_schema_field(InvestigationTimeRangeSchema)
+class InvestigationTimeRangeField(serializers.JSONField):
+    pass
+
+
 class ManualSourceSchema(StrictContractSerializer):
     """Free-form investigation context supplied by the requesting user."""
 
-    type = serializers.ChoiceField(choices=["manual"])
-    prompt = serializers.CharField(required=False, allow_blank=True, max_length=20_000)
-    timeRange = serializers.JSONField(required=False)
-    seed = serializers.DictField(required=False)
+    type = serializers.ChoiceField(
+        choices=["manual"], help_text="Discriminator identifying this source or command variant."
+    )
+    prompt = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=20_000,
+        help_text="Investigation question. A manual source without a non-blank prompt waits for input.",
+    )
+    timeRange = InvestigationTimeRangeField(
+        required=False,
+        help_text="Optional timezone-aware ISO-8601 start and end timestamps; end must be after start.",
+    )
+    seed = serializers.DictField(
+        required=False, help_text="Optional context object forwarded to the investigation agent."
+    )
 
     def validate_timeRange(self, value: Any) -> dict[str, str]:
         return _validate_time_range(value)
@@ -62,19 +85,39 @@ class ManualSourceSchema(StrictContractSerializer):
 class MetricOpenPeriodRefSchema(StrictContractSerializer):
     """The server-resolved identity of the breached metric being investigated."""
 
-    groupId = serializers.IntegerField(min_value=1)
-    openPeriodId = serializers.IntegerField(min_value=1)
+    groupId = serializers.IntegerField(
+        min_value=1, help_text="ID of the metric issue in this organization."
+    )
+    openPeriodId = serializers.IntegerField(
+        min_value=1, help_text="ID of the breached metric open period belonging to the issue."
+    )
 
 
 class MetricOpenPeriodSourceSchema(StrictContractSerializer):
-    type = serializers.ChoiceField(choices=["metric_open_period"])
-    ref = MetricOpenPeriodRefSchema()
+    type = serializers.ChoiceField(
+        choices=["metric_open_period"],
+        help_text="Discriminator identifying this source or command variant.",
+    )
+    ref = MetricOpenPeriodRefSchema(
+        help_text="Reference resolved by the server to the breached metric context."
+    )
 
 
 SOURCE_SCHEMAS: dict[str, type[StrictContractSerializer]] = {
     "manual": ManualSourceSchema,
     "metric_open_period": MetricOpenPeriodSourceSchema,
 }
+
+
+@extend_schema_field(
+    PolymorphicProxySerializer(
+        component_name="InvestigationSource",
+        serializers=list(SOURCE_SCHEMAS.values()),
+        resource_type_field_name=None,
+    )
+)
+class InvestigationSourceField(serializers.JSONField):
+    pass
 
 
 def validate_agentic_source(source: Any) -> dict[str, Any]:
@@ -97,9 +140,19 @@ def validate_agentic_source(source: Any) -> dict[str, Any]:
 
 
 class ProvideInputCommandValidator(StrictContractSerializer):
-    type = serializers.ChoiceField(choices=["provide_input"])
-    prompt = serializers.CharField(required=False, max_length=20_000)
-    timeRange = serializers.JSONField(required=False)
+    type = serializers.ChoiceField(
+        choices=["provide_input"],
+        help_text="Discriminator identifying this source or command variant.",
+    )
+    prompt = serializers.CharField(
+        required=False,
+        max_length=20_000,
+        help_text="Investigation question. Supply prompt or timeRange, or both.",
+    )
+    timeRange = InvestigationTimeRangeField(
+        required=False,
+        help_text="Optional timezone-aware ISO-8601 start and end timestamps; end must be after start.",
+    )
 
     def validate_timeRange(self, value: Any) -> dict[str, str]:
         return _validate_time_range(value)
@@ -111,24 +164,53 @@ class ProvideInputCommandValidator(StrictContractSerializer):
 
 
 class AddHypothesisCommandValidator(StrictContractSerializer):
-    type = serializers.ChoiceField(choices=["add_hypothesis"])
-    statement = serializers.CharField(max_length=300)
-    rationale = serializers.CharField(required=False, allow_null=True, max_length=1_000)
+    type = serializers.ChoiceField(
+        choices=["add_hypothesis"],
+        help_text="Discriminator identifying this source or command variant.",
+    )
+    statement = serializers.CharField(
+        max_length=300, help_text="Hypothesis to investigate, up to 300 characters."
+    )
+    rationale = serializers.CharField(
+        required=False,
+        allow_null=True,
+        max_length=1_000,
+        help_text="Optional rationale for the hypothesis, up to 1,000 characters.",
+    )
 
 
 class SetHypothesisDispositionCommandValidator(StrictContractSerializer):
-    type = serializers.ChoiceField(choices=["set_hypothesis_disposition"])
-    hypothesisId = serializers.CharField(max_length=128)
+    type = serializers.ChoiceField(
+        choices=["set_hypothesis_disposition"],
+        help_text="Discriminator identifying this source or command variant.",
+    )
+    hypothesisId = serializers.CharField(
+        max_length=128, help_text="ID of the hypothesis from the latest projection."
+    )
     disposition = serializers.ChoiceField(
-        choices=["accepted", "rejected"], required=False, allow_null=True
+        choices=["accepted", "rejected"],
+        required=False,
+        allow_null=True,
+        help_text="Accept or reject a hypothesis; omit or pass null to clear the disposition.",
     )
 
 
 class SteerCommandValidator(StrictContractSerializer):
-    type = serializers.ChoiceField(choices=["steer"])
-    target = serializers.ChoiceField(choices=["workflow", "hypothesis", "report", "block"])
-    targetId = serializers.CharField(required=False, allow_null=True, max_length=128)
-    instruction = serializers.CharField(max_length=4_000)
+    type = serializers.ChoiceField(
+        choices=["steer"], help_text="Discriminator identifying this source or command variant."
+    )
+    target = serializers.ChoiceField(
+        choices=["workflow", "hypothesis", "report", "block"], help_text="Scope of the command."
+    )
+    targetId = serializers.CharField(
+        required=False,
+        allow_null=True,
+        max_length=128,
+        help_text="Required for hypothesis targets and block steering; use the ID from the latest projection or block.",
+    )
+    instruction = serializers.CharField(
+        max_length=4_000, help_text="Guidance for the selected target, up to 4,000 characters."
+    )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if attrs["target"] in {"hypothesis", "block"} and not attrs.get("targetId"):
@@ -137,9 +219,18 @@ class SteerCommandValidator(StrictContractSerializer):
 
 
 class RetryCommandValidator(StrictContractSerializer):
-    type = serializers.ChoiceField(choices=["retry"])
-    target = serializers.ChoiceField(choices=["run", "hypothesis", "report"])
-    targetId = serializers.CharField(required=False, allow_null=True, max_length=128)
+    type = serializers.ChoiceField(
+        choices=["retry"], help_text="Discriminator identifying this source or command variant."
+    )
+    target = serializers.ChoiceField(
+        choices=["run", "hypothesis", "report"], help_text="Scope of the command."
+    )
+    targetId = serializers.CharField(
+        required=False,
+        allow_null=True,
+        max_length=128,
+        help_text="Required when target is hypothesis; use its ID from the latest projection.",
+    )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if attrs["target"] == "hypothesis" and not attrs.get("targetId"):
@@ -148,8 +239,15 @@ class RetryCommandValidator(StrictContractSerializer):
 
 
 class CancelCommandValidator(StrictContractSerializer):
-    type = serializers.ChoiceField(choices=["cancel"])
-    reason = serializers.CharField(required=False, allow_null=True, max_length=1_000)
+    type = serializers.ChoiceField(
+        choices=["cancel"], help_text="Discriminator identifying this source or command variant."
+    )
+    reason = serializers.CharField(
+        required=False,
+        allow_null=True,
+        max_length=1_000,
+        help_text="Optional reason for cancelling the workflow, up to 1,000 characters.",
+    )
 
 
 COMMAND_VALIDATORS: dict[str, type[StrictContractSerializer]] = {
@@ -162,10 +260,28 @@ COMMAND_VALIDATORS: dict[str, type[StrictContractSerializer]] = {
 }
 
 
+@extend_schema_field(
+    PolymorphicProxySerializer(
+        component_name="InvestigationCommand",
+        serializers=list(COMMAND_VALIDATORS.values()),
+        resource_type_field_name=None,
+    )
+)
+class InvestigationCommandField(serializers.JSONField):
+    pass
+
+
 class InvestigationOrchestrationCommandValidator(StrictCamelSnakeValidator):
-    request_id = serializers.UUIDField()
-    expected_workflow_version = serializers.IntegerField(min_value=1)
-    command = serializers.JSONField()
+    request_id = serializers.UUIDField(
+        help_text="Client-generated UUID for retry-safe submission. Reuse the same ID only for the same request."
+    )
+    expected_workflow_version = serializers.IntegerField(
+        min_value=1,
+        help_text="Workflow version from the latest orchestration projection, independent of the notebook version. A stale version returns 409.",
+    )
+    command = InvestigationCommandField(
+        help_text="Workflow command selected by type. Submission acknowledges acceptance; poll orchestration for completion."
+    )
 
     def validate_command(self, value: Any) -> dict[str, Any]:
         if not isinstance(value, dict):

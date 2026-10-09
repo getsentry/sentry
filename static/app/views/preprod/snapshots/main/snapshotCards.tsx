@@ -15,12 +15,12 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import type {ContentVariant} from '@sentry/scraps/theme';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {
   SnapshotDiffPair,
@@ -465,7 +465,12 @@ const StatusBadge = memo(function StatusBadgeImpl({
       label =
         diffPercent === null || diffPercent === undefined
           ? t('Changed')
-          : t('Changed - %s', formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 3));
+          : t(
+              'Changed - %s',
+              formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 3, {
+                minimumValue: 0.00001,
+              })
+            );
       break;
     case DiffStatus.ADDED:
       label = t('Added');

@@ -1,12 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme, css} from '@emotion/react';
@@ -22,20 +14,19 @@ import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type {FormSize} from 'sentry/utils/theme';
-import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-import {useOverlay} from 'sentry/utils/useOverlay';
-import {usePrevious} from 'sentry/utils/usePrevious';
 
+import {ControlContext} from './controlContext';
 import type {SingleListProps} from './list';
 import type {
   SearchConfig,
-  SearchMatchResult,
   SelectKey,
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
@@ -55,43 +46,6 @@ function nextFrameCallback(cb: () => void) {
     }, 1);
   }
 }
-
-interface ControlContextValue {
-  overlayIsOpen: boolean;
-  /**
-   * Search string to determine whether an option should be rendered in the select list.
-   */
-  search: string;
-  /**
-   * Whether the select has a search input field.
-   */
-  searchable: boolean;
-  disabled?: boolean;
-  /**
-   * Whether the matched substring of each option's label should be highlighted
-   * as the user types.
-   */
-  highlightSearch?: boolean;
-  /**
-   * The control's overlay state. Useful for opening/closing the menu from inside the
-   * selector.
-   */
-  overlayState?: OverlayTriggerState;
-  /**
-   * Custom function to determine whether an option matches the search query.
-   */
-  searchMatcher?: (
-    option: SelectOptionWithKey<SelectKey>,
-    search: string
-  ) => SearchMatchResult;
-  size?: FormSize;
-}
-
-export const ControlContext = createContext<ControlContextValue>({
-  overlayIsOpen: false,
-  search: '',
-  searchable: false,
-});
 
 export interface ControlProps
   extends
@@ -158,7 +112,7 @@ export interface ControlProps
   menuHeight?: number | string;
   /**
    * Minimum width for the menu overlay. When unset, the overlay's min-width matches
-   * the trigger's width (popper default). When set, this value is used instead —
+   * the trigger's width (overlay default). When set, this value is used instead —
    * useful when the trigger is intentionally narrow but the options need more room.
    */
   menuMinWidth?: number | string;
@@ -363,7 +317,6 @@ export function Control<Value extends SelectKey>({
   const {
     isOpen: overlayIsOpen,
     state: overlayState,
-    update: updateOverlay,
     triggerRef,
     triggerProps: overlayTriggerProps,
     overlayRef,
@@ -388,8 +341,6 @@ export function Control<Value extends SelectKey>({
 
       nextFrameCallback(() => {
         if (open) {
-          // Force a overlay update, as sometimes the overlay is misaligned when opened
-          updateOverlay?.();
           // A child control may have taken focus before this frame.
           if (!pendingAutoFocus.current) {
             return;
@@ -440,23 +391,6 @@ export function Control<Value extends SelectKey>({
     },
   });
 
-  // Recalculate overlay position when its main content changes
-  const prevMenuBody = usePrevious(menuBody);
-  const prevHideOptions = usePrevious(hideOptions);
-  useEffect(() => {
-    if (
-      // Don't update when the content inside `menuBody` changes. We should only update
-      // when `menuBody` itself appears/disappears.
-      ((!prevMenuBody && !menuBody) || (!!prevMenuBody && !!menuBody)) &&
-      prevHideOptions === hideOptions
-    ) {
-      return;
-    }
-
-    updateOverlay?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuBody, hideOptions]);
-
   const wasRefAvailable = useRef(false);
   useEffect(() => {
     // Trigger ref is set by a setState in useOverlay, so we need to wait for it to be available
@@ -478,10 +412,7 @@ export function Control<Value extends SelectKey>({
   const [menuFullWidth, setMenuFullWidth] = useState<number>();
   // When search box is focused, read the menu's width and lock it at that value to
   // prevent visual jumps during search
-  const onSearchFocus = useCallback(
-    () => setMenuFullWidth(overlayRef.current?.offsetWidth),
-    [overlayRef]
-  );
+  const onSearchFocus = () => setMenuFullWidth(overlayRef.current?.offsetWidth);
   // When search box is blurred, release the lock the menu's width
   const onSearchBlur = useCallback(
     () => !search && setMenuFullWidth(undefined),

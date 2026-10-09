@@ -24,6 +24,10 @@ SCM_MESSAGING_TREATMENT = {
     "organizations:onboarding-scm-messaging-experiment": True,
 }
 
+# The SCM flow is switching its default name from the platform to the repo
+# ("getsentry/sentry" -> "sentry"); accept both until the frontend change ships.
+REPO_PROJECT_NAME = "sentry"
+
 
 def workflow_action_types(workflow: Workflow) -> list[str]:
     return sorted(
@@ -484,8 +488,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "python-django"
-            assert project.name == "python-django"
-            assert project.slug == "python-django"
+            assert project.name in ("python-django", REPO_PROJECT_NAME)
+            assert project.slug == project.name
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
@@ -545,8 +549,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "javascript-react"
-            assert project.name == "javascript-react"
-            assert project.slug == "javascript-react"
+            assert project.name in ("javascript-react", REPO_PROJECT_NAME)
+            assert project.slug == project.name
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
@@ -695,8 +699,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             project = Project.objects.get(organization=self.org)
             assert project.platform == "python-django"
-            assert project.name == "python-django"
-            assert project.slug == "python-django"
+            assert project.name in ("python-django", REPO_PROJECT_NAME)
+            assert project.slug == project.name
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )

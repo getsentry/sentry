@@ -14,6 +14,7 @@ import {
   type DataUnit,
 } from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
+import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -22,6 +23,7 @@ import {
   dashboardFiltersToString,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -49,7 +51,8 @@ export type OnDataFetchedProps = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
+  // TODO: Narrow to WidgetTimeSeries[] once every widget query hook returns it
+  timeseriesResults?: Array<Series | WidgetTimeSeries>;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
@@ -61,13 +64,15 @@ export type GenericWidgetQueriesResult = {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   heatmapResults?: HeatMapSeries;
+  ingestion?: IngestionMeta;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
-  timeseriesResults?: Series[];
+  // TODO: Narrow to WidgetTimeSeries[] once every widget query hook returns it
+  timeseriesResults?: Array<Series | WidgetTimeSeries>;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalCount?: string;
@@ -93,7 +98,6 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   ) => void | {totalIssuesCount?: string};
   cursor?: string;
   dashboardFilters?: DashboardFilters;
-  disabled?: boolean;
   limit?: number;
   loading?: boolean;
   onDataFetchStart?: () => void;
@@ -166,7 +170,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     afterFetchTableData,
     cursor,
     dashboardFilters,
-    disabled,
     limit,
     loading: propsLoading,
     onDataFetchStart,
@@ -187,10 +190,10 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   const isHeatmap = widget.displayType === DisplayType.HEATMAP;
   const isTimeSeriesData = usesTimeSeriesData(widget.displayType);
 
-  const enableSeriesHook = isTimeSeriesData && !disabled && !propsLoading;
+  const enableSeriesHook = isTimeSeriesData && !propsLoading;
   // Heat maps aren't time-series but fetch via the heat map hook, not the table
   // hook — so exclude them here to avoid firing a redundant table query.
-  const enableTableHook = !isTimeSeriesData && !isHeatmap && !disabled && !propsLoading;
+  const enableTableHook = !isTimeSeriesData && !isHeatmap && !propsLoading;
   const needsBreakdownTable = isTimeSeriesData && widget.legendType === 'breakdown';
 
   const tableWidget = useMemo(
@@ -209,7 +212,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     dashboardFilters,
     skipDashboardFilterParens,
     samplingMode,
-    enabled: isTimeSeriesData && !disabled && !propsLoading,
+    enabled: isTimeSeriesData && !propsLoading,
     limit,
     cursor,
     widgetInterval,
@@ -236,7 +239,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    enabled: isHeatmap && !disabled && !propsLoading,
+    enabled: isHeatmap && !propsLoading,
     widgetInterval,
     yBuckets,
   });
