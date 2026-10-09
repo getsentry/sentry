@@ -2,139 +2,32 @@ import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  droppedEventsToCategorySections,
-  DroppedDataCategoryList,
-} from 'sentry/components/droppedData/drawer/categoryList';
+import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
+import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
+import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 
-describe('droppedEventsToCategorySections', () => {
-  it('returns no sections for no dropped events', () => {
-    expect(droppedEventsToCategorySections([], [])).toEqual([]);
-  });
+function OutcomeList({
+  droppedEvents,
+  acceptedEvents,
+  onInvestigate,
+}: {
+  acceptedEvents: DroppedEventsBucket[];
+  droppedEvents: DroppedEventsBucket[];
+  onInvestigate?: () => void;
+}) {
+  return (
+    <DroppedDataOutcomeList
+      sections={droppedEventsToOutcomeSections(droppedEvents, acceptedEvents)}
+      colors={{}}
+      onInvestigate={onInvestigate}
+    />
+  );
+}
 
-  it('groups by outcome then reason, labeling the outcome', () => {
-    const sections = droppedEventsToCategorySections(
-      [
-        DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 5}),
-        DroppedEventFixture({
-          outcome: 'invalid',
-          reason: 'timestamp',
-          start: 0,
-          count: 3,
-        }),
-        DroppedEventFixture({
-          outcome: 'filtered',
-          reason: 'web-crawlers',
-          start: 0,
-          count: 1,
-        }),
-      ],
-      []
-    );
-
-    expect(sections.map(s => s.label)).toEqual([
-      'Invalid or malformed',
-      'Inbound filter',
-    ]);
-    expect(sections[0]!.events).toBe(8);
-    expect(sections[0]!.reasons.map(r => r.reason)).toEqual(['cors', 'timestamp']);
-  });
-
-  it('counts distinct buckets a reason appears in', () => {
-    const sections = droppedEventsToCategorySections(
-      [
-        DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 2}),
-        DroppedEventFixture({
-          outcome: 'invalid',
-          reason: 'cors',
-          start: 60_000,
-          count: 4,
-        }),
-        DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 1}),
-      ],
-      []
-    );
-
-    const cors = sections[0]!.reasons[0]!;
-    expect(cors.droppedBuckets).toBe(2);
-    expect(cors.events).toBe(7);
-  });
-
-  it('computes share against total events (accepted + dropped)', () => {
-    const sections = droppedEventsToCategorySections(
-      [DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 25})],
-      [
-        DroppedEventFixture({
-          outcome: 'accepted',
-          reason: 'accepted',
-          start: 0,
-          count: 75,
-        }),
-      ]
-    );
-
-    expect(sections[0]!.shareRatio).toBe(0.25);
-    expect(sections[0]!.reasons[0]!.shareRatio).toBe(0.25);
-  });
-
-  it('guards divide-by-zero when there are no events', () => {
-    const sections = droppedEventsToCategorySections(
-      [DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 0})],
-      []
-    );
-
-    expect(sections[0]!.shareRatio).toBe(0);
-    expect(sections[0]!.reasons[0]!.shareRatio).toBe(0);
-  });
-
-  it('tracks the latest bucket end as lastSeen', () => {
-    const sections = droppedEventsToCategorySections(
-      [
-        DroppedEventFixture({
-          outcome: 'invalid',
-          reason: 'cors',
-          start: 0,
-          end: 60_000,
-          count: 1,
-        }),
-        DroppedEventFixture({
-          outcome: 'invalid',
-          reason: 'cors',
-          start: 120_000,
-          end: 180_000,
-          count: 1,
-        }),
-      ],
-      []
-    );
-
-    expect(sections[0]!.reasons[0]!.lastSeen).toBe(180_000);
-  });
-
-  it('clamps lastSeen to now for an in-progress bucket ending in the future', () => {
-    const now = 100_000;
-    const sections = droppedEventsToCategorySections(
-      [
-        DroppedEventFixture({
-          outcome: 'invalid',
-          reason: 'cors',
-          start: 60_000,
-          end: 120_000,
-          count: 1,
-        }),
-      ],
-      [],
-      now
-    );
-
-    expect(sections[0]!.reasons[0]!.lastSeen).toBe(now);
-  });
-});
-
-describe('DroppedDataCategoryList', () => {
+describe('DroppedDataOutcomeList', () => {
   it('renders the outcome label and the human reason title', () => {
     render(
-      <DroppedDataCategoryList
+      <OutcomeList
         droppedEvents={[
           DroppedEventFixture({
             outcome: 'client_discard',
@@ -156,13 +49,53 @@ describe('DroppedDataCategoryList', () => {
       />
     );
 
-    expect(screen.getByText('Client discard')).toBeInTheDocument();
+    expect(screen.getByText('Client Discard')).toBeInTheDocument();
     expect(screen.getByText('Dropped by sample rate')).toBeInTheDocument();
+  });
+
+  it('renders dropped totals and shares for the outcome and each reason', () => {
+    render(
+      <OutcomeList
+        droppedEvents={[
+          DroppedEventFixture({
+            outcome: 'client_discard',
+            reason: 'sample_rate',
+            start: 0,
+            end: 60_000,
+            count: 3000,
+          }),
+          DroppedEventFixture({
+            outcome: 'client_discard',
+            reason: 'before_send',
+            start: 60_000,
+            end: 120_000,
+            count: 1000,
+          }),
+        ]}
+        acceptedEvents={[
+          DroppedEventFixture({
+            outcome: 'accepted',
+            reason: 'accepted',
+            start: 0,
+            end: 60_000,
+            count: 6000,
+          }),
+        ]}
+      />
+    );
+
+    expect(screen.getByText('4,000')).toBeInTheDocument();
+    expect(screen.getByText('40%')).toBeInTheDocument();
+    expect(screen.getByText('3,000')).toBeInTheDocument();
+    expect(screen.getByText('30%')).toBeInTheDocument();
+    expect(screen.getByText('1,000')).toBeInTheDocument();
+    expect(screen.getByText('10%')).toBeInTheDocument();
+    expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
   });
 
   it('renders the short description under the reason title', () => {
     render(
-      <DroppedDataCategoryList
+      <OutcomeList
         droppedEvents={[
           DroppedEventFixture({
             outcome: 'filtered',
@@ -183,7 +116,7 @@ describe('DroppedDataCategoryList', () => {
 
   it('fills the data type into the description from the event category', () => {
     render(
-      <DroppedDataCategoryList
+      <OutcomeList
         droppedEvents={[
           DroppedEventFixture({
             category: 'log_item',
@@ -205,7 +138,7 @@ describe('DroppedDataCategoryList', () => {
 
   it('collapses and expands a section when the header is clicked', async () => {
     render(
-      <DroppedDataCategoryList
+      <OutcomeList
         droppedEvents={[
           DroppedEventFixture({
             outcome: 'invalid',
@@ -221,16 +154,46 @@ describe('DroppedDataCategoryList', () => {
 
     expect(screen.getByText('Malformed JSON payload')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Invalid or malformed'));
+    await userEvent.click(screen.getByText('Invalid or Malformed'));
     expect(screen.queryByText('Malformed JSON payload')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Invalid or malformed'));
+    await userEvent.click(screen.getByText('Invalid or Malformed'));
     expect(screen.getByText('Malformed JSON payload')).toBeInTheDocument();
+  });
+
+  it('toggles a section from the keyboard via its chevron button', async () => {
+    render(
+      <OutcomeList
+        droppedEvents={[
+          DroppedEventFixture({
+            outcome: 'invalid',
+            reason: 'invalid_json',
+            start: 0,
+            end: 60_000,
+            count: 10,
+          }),
+        ]}
+        acceptedEvents={[]}
+      />
+    );
+
+    const toggle = screen.getByRole('button', {name: 'Toggle Invalid or Malformed'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('table')).toHaveAttribute(
+      'id',
+      toggle.getAttribute('aria-controls')
+    );
+
+    act(() => toggle.focus());
+    await userEvent.keyboard('{Enter}');
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('reveals the fix options under a reason row via its chevron', async () => {
     render(
-      <DroppedDataCategoryList
+      <OutcomeList
         droppedEvents={[
           DroppedEventFixture({
             category: 'span',
@@ -265,7 +228,7 @@ describe('DroppedDataCategoryList', () => {
   it('opens the fix-this menu with investigate, settings, and docs entries', async () => {
     const onInvestigate = jest.fn();
     render(
-      <DroppedDataCategoryList
+      <OutcomeList
         droppedEvents={[
           DroppedEventFixture({
             category: 'span',
@@ -302,7 +265,7 @@ describe('DroppedDataCategoryList', () => {
 
   it('hides investigate when there is no Seer hand-off', async () => {
     render(
-      <DroppedDataCategoryList
+      <OutcomeList
         droppedEvents={[
           DroppedEventFixture({
             category: 'span',
