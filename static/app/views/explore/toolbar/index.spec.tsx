@@ -394,6 +394,107 @@ describe('ExploreToolbar', () => {
     expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
   });
 
+  it('only offers group bys present on spans matching the search query', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          attributeType: 'string',
+          key: 'http.method',
+          name: 'http.method',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      match: [MockApiClient.matchQuery({query: 'span.op:db'})],
+      body: [
+        {
+          attributeType: 'string',
+          key: 'db.system',
+          name: 'db.system',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+    });
+
+    render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {query: 'span.op:db'},
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '—'}));
+
+    expect(
+      await within(section).findByRole('option', {name: 'db.system'})
+    ).toBeInTheDocument();
+    expect(
+      within(section).queryByRole('option', {name: 'http.method'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers all group bys when the search query is invalid', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {
+          attributeType: 'string',
+          key: 'http.method',
+          name: 'http.method',
+          attributeSource: {source_type: 'custom'},
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      match: [MockApiClient.matchQuery({query: 'span.op:'})],
+      statusCode: 400,
+      body: {detail: 'Invalid query'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: 'Invalid query', fields: [], valid: false},
+        valid: false,
+      },
+    });
+
+    render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {query: 'span.op:'},
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '—'}));
+
+    expect(
+      await within(section).findByRole('option', {name: 'http.method'})
+    ).toBeInTheDocument();
+  });
+
   it('uses validated field type for the selected group by', async () => {
     render(<ExploreToolbar />, {
       additionalWrapper: Wrapper,
