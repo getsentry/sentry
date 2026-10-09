@@ -33,6 +33,8 @@ from sentry.spans.consumers.process_segments.message import (
     EVIDENCE_SPAN_DATA_KEYS,
     MAX_EVIDENCE_LIST_ITEMS,
     MAX_EVIDENCE_VALUE_LENGTH,
+    MAX_OCCURRENCE_BREADCRUMBS_BYTES,
+    MAX_OCCURRENCE_EXTRA_BYTES,
     MAX_OCCURRENCE_TAGS_BYTES,
     MAX_SPAN_DATA_VALUE_LENGTH,
     MAX_SPAN_DESCRIPTION_LENGTH,
@@ -653,17 +655,29 @@ def test_truncate_value_for_occurrence_recurses_and_leaves_scalars_alone() -> No
 def test_trim_oversize_event_data() -> None:
     event_data = {
         "tags": [[f"dog_{i}", "very good"] for i in range(3000)],
+        "extra": {f"dog_{i}": "great" for i in range(3000)},
+        "breadcrumbs": {
+            "values": [{"type": "default", "message": "adopt don't shop"} for _ in range(500)]
+        },
     }
 
     original_tag_bytes = get_json_bytes(event_data["tags"])
+    original_extra_bytes = get_json_bytes(event_data["extra"])
+    original_breadcrumb_bytes = get_json_bytes(event_data["breadcrumbs"])
 
     _trim_event_data_for_occurrence(event_data)
 
     trimmed_tag_bytes = get_json_bytes(event_data["tags"])
+    trimmed_extra_bytes = get_json_bytes(event_data["extra"])
+    trimmed_breadcrumb_bytes = get_json_bytes(event_data["breadcrumbs"])
 
     assert original_tag_bytes > MAX_OCCURRENCE_TAGS_BYTES
+    assert original_extra_bytes > MAX_OCCURRENCE_EXTRA_BYTES
+    assert original_breadcrumb_bytes > MAX_OCCURRENCE_BREADCRUMBS_BYTES
 
     assert trimmed_tag_bytes <= MAX_OCCURRENCE_TAGS_BYTES
+    assert trimmed_extra_bytes <= MAX_OCCURRENCE_EXTRA_BYTES
+    assert trimmed_breadcrumb_bytes <= MAX_OCCURRENCE_BREADCRUMBS_BYTES
 
 
 def test_trim_event_data_caps_tag_values_by_character_count() -> None:
