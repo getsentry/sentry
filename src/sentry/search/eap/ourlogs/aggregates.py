@@ -1,7 +1,9 @@
+from dataclasses import dataclass, field
 from typing import Callable
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
 
+from sentry.search.eap import constants
 from sentry.search.eap.aggregate_utils import apply_combinators, count_processor, if_query_validator
 from sentry.search.eap.columns import (
     AggregateDefinition,
@@ -13,10 +15,13 @@ from sentry.search.eap.columns import (
 from sentry.search.eap.common_aggregates import count_unique_aggregate_definition
 
 
+@dataclass(kw_only=True)
 class NumericDefinition(AggregateDefinition):
-    default_search_type = "number"
-    arguments = [NumericArgumentDefinition()]
-    valid_arithmetic = True
+    default_search_type: constants.SearchType = "number"
+    arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition] = field(
+        default_factory=lambda: [NumericArgumentDefinition()]
+    )
+    valid_arithmetic: bool = True
 
 
 LOGS_ALWAYS_PRESENT_ATTRIBUTES = [

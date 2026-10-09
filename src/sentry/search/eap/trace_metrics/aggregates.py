@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Callable
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
@@ -40,13 +41,16 @@ TRACE_METRIC_DEFAULT_ARGUMENTS = [
 ]
 
 
-class PercentileDefinition(AggregateDefinition):
-    default_search_type = "number"
-    arguments = [
-        NumericArgumentDefinition(),
-        *TRACE_METRIC_DEFAULT_ARGUMENTS,
-    ]
-    valid_arithmetic = True
+@dataclass(kw_only=True)
+class PercentileDefinition(TraceMetricAggregateDefinition):
+    default_search_type: constants.SearchType = "number"
+    arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition] = field(
+        default_factory=lambda: [
+            NumericArgumentDefinition(),
+            *TRACE_METRIC_DEFAULT_ARGUMENTS,
+        ]
+    )
+    valid_arithmetic: bool = True
 
 
 TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
@@ -128,14 +132,8 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
     "max": PercentileDefinition(
         internal_function=Function.FUNCTION_MAX,
     ),
-    "min": TraceMetricAggregateDefinition(
+    "min": PercentileDefinition(
         internal_function=Function.FUNCTION_MIN,
-        default_search_type="number",
-        arguments=[
-            NumericArgumentDefinition(),
-            *TRACE_METRIC_DEFAULT_ARGUMENTS,
-        ],
-        valid_arithmetic=True,
     ),
 }
 

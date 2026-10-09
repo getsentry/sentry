@@ -199,18 +199,21 @@ class AttributeArgumentDefinition(BaseArgumentDefinition):
     field_allowlist: set[str] | None = None
 
 
+@dataclass
 class NumericArgumentDefinition(AttributeArgumentDefinition):
     """Helper so we don't have to define types everywhere"""
 
-    attribute_types = {
-        "duration",
-        "number",
-        "percentage",
-        "integer",
-        "currency",
-        *constants.SIZE_TYPE,
-        *constants.DURATION_TYPE,
-    }
+    attribute_types: set[constants.SearchType] | None = field(
+        default_factory=lambda: {
+            "duration",
+            "number",
+            "percentage",
+            "integer",
+            "currency",
+            *constants.SIZE_TYPE,
+            *constants.DURATION_TYPE,
+        }
+    )
 
 
 @dataclass

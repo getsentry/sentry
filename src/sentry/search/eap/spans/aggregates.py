@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Callable, Literal, cast
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -133,14 +134,17 @@ def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, Trace
     return (attribute, filter)
 
 
+@dataclass(kw_only=True)
 class PercentileDefinition(AggregateDefinition):
-    default_search_type = "duration"
-    arguments = [
-        NumericArgumentDefinition(
-            default_arg="span.duration",
-        )
-    ]
-    valid_arithmetic = True
+    default_search_type: constants.SearchType = "duration"
+    arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition] = field(
+        default_factory=lambda: [
+            NumericArgumentDefinition(
+                default_arg="span.duration",
+            )
+        ]
+    )
+    valid_arithmetic: bool = True
 
 
 SPAN_AGGREGATE_DEFINITIONS = {
