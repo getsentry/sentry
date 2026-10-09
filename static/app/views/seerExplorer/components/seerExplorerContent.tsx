@@ -335,7 +335,7 @@ export function SeerExplorerContent({
           source: suggestions.source,
           position,
           kind: suggestion.kind,
-          action_type: suggestion.action_type,
+          action_type: suggestion.action_type ?? undefined,
         });
       }
       sendMessage(suggestion.text);

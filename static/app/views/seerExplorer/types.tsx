@@ -272,7 +272,7 @@ export type SeerExplorerResponse = {
 
 export type ChatSuggestion = {
   text: string;
-  action_type?: string;
+  action_type?: string | null;
   kind?: 'question' | 'action';
 };
 

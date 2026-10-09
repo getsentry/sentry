@@ -61,7 +61,7 @@ export function useChatSuggestions({
   const {projects} = useProjects();
   const capturePageContext = usePageContextCapture();
 
-  // For the fallback suggestions: do any pinned projects (or member projects, if none are pinned) send DB data?
+  // For the fallback suggestions: do any selected projects (or member projects, if none are selected) send DB data?
   const isProjectSelectionExplicit =
     selection.projects.length > 0 && !selection.projects.includes(ALL_ACCESS_PROJECTS);
   const hasDbData = projects.some(
