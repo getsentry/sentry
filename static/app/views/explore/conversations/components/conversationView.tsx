@@ -98,24 +98,10 @@ export function ConversationViewContent({
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [activeTab]);
 
-  const displayedNode = useMemo(() => {
-    if (selectedNode) {
-      return selectedNode;
-    }
-    if (hasUnresolvedSelection) {
-      return;
-    }
-    if (isTimeline && !timelineDefaultDismissed) {
-      return defaultTimelineNode;
-    }
-    return;
-  }, [
-    selectedNode,
-    hasUnresolvedSelection,
-    isTimeline,
-    timelineDefaultDismissed,
-    defaultTimelineNode,
-  ]);
+  const showTimelineDefault =
+    isTimeline && !timelineDefaultDismissed && !hasUnresolvedSelection;
+  const displayedNode =
+    selectedNode ?? (showTimelineDefault ? defaultTimelineNode : undefined);
 
   // Each tab keeps its own scroll position in the shared content container; a
   // selected span is scrolled into view instead when switching tabs. This keys
