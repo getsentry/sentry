@@ -368,14 +368,14 @@ class AlertRuleNotification(ProjectNotification):
 
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
-        log_params = self.get_log_params(recipient)
+        origin = self.rules[0] if self.rules else None
         try:
             analytics.record(
                 AlertSentEvent(
                     organization_id=self.organization.id,
                     project_id=self.project.id,
                     provider=provider.name,
-                    alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+                    alert_id=origin.link_id if origin else "",
                     alert_type="issue_alert",
                     external_id=str(recipient.id),
                     notification_uuid=self.notification_uuid,
