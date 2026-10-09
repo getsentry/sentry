@@ -46,6 +46,7 @@ OPTION_KEYS = frozenset(
         "sentry:feedback_user_report_notifications",
         "sentry:feedback_ai_spam_detection",
         "sentry:enable_auto_release_creation",
+        "sentry:semver",
         "sentry:toolbar_allowed_origins",
         "sentry:relay_automatic_json_expansion",
         "sentry:token",

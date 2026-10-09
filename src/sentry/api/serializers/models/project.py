@@ -1012,6 +1012,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     scrubIPAddresses: bool
     scrapeJavaScript: bool
     enableAutoReleaseCreation: bool
+    semver: bool
     highlightTags: list[str]
     highlightContext: dict[str, Any]
     highlightPreset: HighlightPreset
@@ -1141,6 +1142,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "enableAutoReleaseCreation": bool(
                 attrs["options"].get("sentry:enable_auto_release_creation", True)
             ),
+            "semver": bool(attrs["options"].get("sentry:semver", False)),
             "highlightTags": attrs["options"].get(
                 "sentry:highlight_tags",
                 attrs["highlight_preset"].get("tags", []),

@@ -1500,6 +1500,43 @@ class FollowsSemverVersioningSchemeTestCase(TestCase):
         for i in range(10):
             self.create_release(version=f"fake_package-ahmed@1.1.{i}", project=self.proj_1)
 
+    def test_pinned_semver_ignores_recent_non_semver_releases(self) -> None:
+        self.proj_1.update_option("sentry:semver", True)
+        for i in range(3):
+            self.create_release(version=f"build-{i}", project=self.proj_1)
+
+        with self.feature("organizations:project-semver-ordering"):
+            assert follows_semver_versioning_scheme(
+                org_id=self.org.id,
+                project_id=self.proj_1.id,
+                release_version="app@0.3.0",
+            )
+
+    def test_pinned_semver_toggle_overrides_cached_detection(self) -> None:
+        for i in range(3):
+            self.create_release(version=f"build-{i}", project=self.proj_1)
+
+        with self.feature("organizations:project-semver-ordering"):
+            assert not follows_semver_versioning_scheme(self.org.id, self.proj_1.id)
+            self.proj_1.update_option("sentry:semver", True)
+            assert follows_semver_versioning_scheme(self.org.id, self.proj_1.id)
+            self.proj_1.update_option("sentry:semver", False)
+            assert not follows_semver_versioning_scheme(self.org.id, self.proj_1.id)
+
+    def test_pinned_semver_does_not_make_non_semver_versions_comparable(self) -> None:
+        self.proj_1.update_option("sentry:semver", True)
+        with self.feature("organizations:project-semver-ordering"):
+            assert not follows_semver_versioning_scheme(self.org.id, self.proj_1.id, "build-123")
+            assert not follows_semver_versioning_scheme(self.org.id, self.proj_1.id, "0.3.0")
+
+    def test_pinned_semver_requires_feature(self) -> None:
+        self.proj_1.update_option("sentry:semver", True)
+        for i in range(3):
+            self.create_release(version=f"build-{i}", project=self.proj_1)
+
+        with self.feature({"organizations:project-semver-ordering": False}):
+            assert not follows_semver_versioning_scheme(self.org.id, self.proj_1.id)
+
     def test_follows_semver_with_all_releases_semver_and_semver_release_version(self) -> None:
         """
         Test that ensures that when the last 10 releases and the release version passed in as an arg
