@@ -42,14 +42,13 @@ from sentry.notifications.utils import (
     has_integrations,
 )
 from sentry.notifications.utils.links import (
-    create_link_to_workflow,
     get_group_settings_link,
     get_integration_link,
     get_issue_replay_link,
     get_rules,
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
+from sentry.notifications.utils.rules import get_workflow_url
 from sentry.plugins.base.structs import Notification
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.actor import Actor
@@ -290,21 +289,15 @@ class AlertRuleNotification(ProjectNotification):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
-        from sentry.integrations.messaging.message_builder import build_rule_url
-
         title_str = "Alert triggered"
 
         if self.rules:
-            key, value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
-
-            match key:
-                case "workflow_id":
-                    rule_url = absolute_uri(create_link_to_workflow(self.organization.slug, value))
-                case "legacy_rule_id":
-                    rule_url = build_rule_url(self.rules[0], self.group, self.project)
-
+            text = self.rules[0].label
+            workflow_url = get_workflow_url(self.rules[0], self.organization.slug)
             title_str += (
-                f" {self.format_url(text=self.rules[0].label, url=rule_url, provider=provider)}"
+                f" {self.format_url(text=text, url=workflow_url, provider=provider)}"
+                if workflow_url
+                else f" {text}"
             )
 
             if len(self.rules) > 1:
