@@ -4,19 +4,14 @@ import {
   useContext,
   useEffect,
   useRef,
-  useState,
   type ReactNode,
   type RefObject,
 } from 'react';
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
-import type {LocationDescriptor} from 'history';
-import queryString from 'query-string';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
@@ -27,15 +22,12 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
-import {resolveLink, subjectFromToolLink} from 'sentry/views/seerExplorer/links';
 import type {
   Artifact,
   Block,
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
-  ToolCall,
   ToolLink,
-  ToolResult,
 } from 'sentry/views/seerExplorer/types';
 
 /**
@@ -458,55 +450,6 @@ export function getToolsStringFromBlock(block: Block): string[] {
   return tools;
 }
 
-export function getValidToolLinks(
-  tool_links: Array<ToolLink | null>,
-  tool_results: Array<ToolResult | null>,
-  tool_calls: ToolCall[],
-  organization: Organization,
-  projects?: Array<{id: string; slug: string}>
-) {
-  // Get valid tool links sorted by their corresponding tool call indices
-  // Also create a mapping from tool call index to sorted link index
-  const mappedLinks = tool_links
-    .map((link, idx) => {
-      if (!link) {
-        return null;
-      }
-
-      // Don't show links for tools that returned errors, but do show for empty results
-      if (link.params?.is_error === true) {
-        return null;
-      }
-
-      // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
-      const toolCallId = tool_results[idx]?.tool_call_id;
-      const toolCallIndex = toolCallId
-        ? tool_calls.findIndex(call => call.id === toolCallId)
-        : -1;
-      const canBuildUrl =
-        resolveLink(subjectFromToolLink(link), {organization, projects})?.url !==
-        undefined;
-
-      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
-        return {link, toolCallIndex};
-      }
-      return null;
-    })
-    .filter(item => item !== null)
-    .sort((a, b) => a.toolCallIndex - b.toolCallIndex);
-
-  // Create mapping from tool call index to sorted link index
-  const toolCallToLinkMap = new Map<number, number>();
-  mappedLinks.forEach((item, sortedIndex) => {
-    toolCallToLinkMap.set(item.toolCallIndex, sortedIndex);
-  });
-
-  return {
-    sortedToolLinks: mappedLinks.map(item => item.link),
-    toolCallToLinkIndexMap: toolCallToLinkMap,
-  };
-}
-
 /**
  * Returns a callback to get the route string (normalized path) of the current page for analytics, e.g. /issues/:groupId/.
  * This callback is stable to avoid triggering analytics and re-renders when the location changes.
@@ -525,136 +468,6 @@ export function usePageReferrer(): {getPageReferrer: () => string} {
   const getPageReferrer = useCallback(() => routeStringRef.current, []);
 
   return {getPageReferrer};
-}
-
-export function useCopySessionDataToClipboard({
-  blocks,
-  status,
-  organization,
-  projects,
-  enabled,
-}: {
-  blocks: Block[] | undefined;
-  enabled: boolean;
-  organization: Organization | null;
-  status: string | undefined;
-  projects?: Array<{id: string; slug: string}>;
-}) {
-  const [isError, setIsError] = useState(false);
-
-  const copySessionToClipboard = useCallback(async () => {
-    if (!enabled || !organization) {
-      return;
-    }
-    setIsError(false);
-    try {
-      const text = blocks
-        ? formatSessionData(blocks, organization, projects)
-        : `No data available. Status: ${status ?? 'unknown'}`;
-      await navigator.clipboard.writeText(text);
-      addSuccessMessage('Copied conversation to clipboard');
-    } catch (err) {
-      setIsError(true);
-      addErrorMessage('Failed to copy conversation to clipboard');
-    }
-
-    trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});
-  }, [enabled, blocks, status, organization, projects]);
-
-  return {copySessionToClipboard, isError};
-}
-
-function formatSessionData(
-  blocks: Block[],
-  organization: Organization,
-  projects?: Array<{id: string; slug: string}>
-): string {
-  const formatBlock = (block: Block): string => {
-    const {message, timestamp, tool_links, tool_results} = block;
-
-    const {content: messageContent, role, tool_calls, thinking_content} = message;
-
-    const {sortedToolLinks, toolCallToLinkIndexMap} = getValidToolLinks(
-      tool_links || [],
-      tool_results || [],
-      tool_calls || [],
-      organization,
-      projects
-    );
-
-    const toolCallsWithLinks: Array<{
-      metadata: Record<string, any> | null;
-      tool_call: ToolCall;
-      url: string | null;
-    }> = (tool_calls || []).map((tool_call, idx) => {
-      // Build URL if a valid tool link exists for this call.
-      const validLinkIdx = toolCallToLinkIndexMap.get(idx);
-      const validLink =
-        validLinkIdx === undefined ? null : (sortedToolLinks[validLinkIdx] ?? null);
-      const location = validLink
-        ? (resolveLink(subjectFromToolLink(validLink), {organization, projects})?.url ??
-          null)
-        : null;
-      const url = location ? locationToUrl(location) : null;
-
-      // Get metadata from raw tool_links array.
-      const metadata = tool_links?.[idx]?.params || null;
-
-      return {metadata, tool_call, url};
-    });
-
-    const lines: string[] = [];
-    lines.push(`# ${role.toUpperCase()} ${timestamp}`);
-    if (messageContent) {
-      lines.push(messageContent);
-    }
-    if (thinking_content) {
-      lines.push('', '## THINKING CONTENT', thinking_content);
-    }
-
-    if (toolCallsWithLinks.length > 0) {
-      lines.push('', '## TOOL CALLS');
-      toolCallsWithLinks.forEach((item, idx) => {
-        const isError = !!item.metadata?.is_error;
-        const emptyResults = !!item.metadata?.empty_results;
-        const status = isError ? 'ERRORED' : emptyResults ? 'EMPTY RESULTS' : 'SUCCESS';
-
-        lines.push(
-          `${item.tool_call.function} (${status})${item.tool_call.id ? ` (${item.tool_call.id})` : ''}:`,
-          `args: ${item.tool_call.args}`
-        );
-        if (item.url) {
-          lines.push(`URL: ${item.url}`);
-        }
-
-        if (idx < toolCallsWithLinks.length - 1) {
-          lines.push('');
-        }
-      });
-    }
-    lines.push('');
-    return lines.join('\n');
-  };
-
-  return blocks
-    .map(block => formatBlock(block))
-    .join('\n--------------------------------------------------\n\n');
-}
-
-function locationToUrl(location: LocationDescriptor): string | null {
-  if (typeof location === 'string') {
-    const hasOrigin = /^https?:\/\//.test(location);
-    return hasOrigin ? location : `${window.location.origin}${location}`;
-  }
-
-  const {pathname = '', hash, query} = location;
-  const base = `${window.location.origin}${pathname}`;
-
-  const queryPart = query ? `?${queryString.stringify(query)}` : '';
-
-  const hashPart = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
-
-  return `${base}${queryPart}${hashPart}`;
 }
 
 const RUN_ID_QUERY_PARAM = 'explorerRunId';
