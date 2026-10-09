@@ -6,9 +6,11 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+from datetime import datetime
 from enum import IntEnum, StrEnum
 from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, TypedDict
 
+import orjson
 from pydantic import BaseModel
 
 SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
@@ -218,6 +220,10 @@ class GroupAction(BaseModel, abc.ABC):
     def get_user_visible_types(cls) -> frozenset[GroupActionType]:
         return frozenset(cls._user_visible_types)
 
+    def json_dict(self) -> dict[str, Any]:
+        """The action as JSON-safe data for storage; unlike dict(), datetimes become ISO 8601."""
+        return orjson.loads(self.json())
+
 
 class ViewAction(GroupAction):
     @classmethod
@@ -229,9 +235,10 @@ class FirstSeenAction(GroupAction):
     """The group was created. Published exactly once per group, keyed by first_seen_idempotency_key()."""
 
     user_visible = True
-    # ISO 8601 Group.first_seen. Differs from the entry's date_added, which is when
-    # the outbox drained (or the backfill ran).
-    first_seen: str
+    # When this group was first seen; may be more accurate than the entry's date_added.
+    # Due to merges, a group can be first seen multiple times; consumers should usually
+    # ignore all but the first.
+    first_seen: datetime
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -239,7 +246,8 @@ class FirstSeenAction(GroupAction):
 
 
 def first_seen_idempotency_key(group_id: int) -> str:
-    # Shared by the live publish path and any backfill so they dedupe against each other.
+    # Temporary convention so the backfill can't duplicate live entries. Once the backfill
+    # is finished, we can stop using this.
     return f"first_seen:{group_id}"
 
 
