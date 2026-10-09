@@ -352,7 +352,7 @@ function orderDepthFirst(
   return ordered;
 }
 
-const MAX_AUTO_FETCH_PAGES = 100;
+const MAX_PAGES = 100;
 
 export function useConversation(
   conversation: UseConversationsOptions
@@ -419,7 +419,7 @@ export function useConversation(
 
   const autoFetchAll = conversation.autoFetchAll ?? true;
   const canAutoFetchNextPage = Boolean(
-    hasNextPage && !isFetchNextPageError && pageCount < MAX_AUTO_FETCH_PAGES
+    hasNextPage && !isFetchNextPageError && pageCount < MAX_PAGES
   );
   const nextAutoFetchPage = autoFetchAll && canAutoFetchNextPage ? pageCount : null;
 
@@ -480,11 +480,7 @@ export function useConversation(
     canAutoFetchNextPage,
     hasNextPage: Boolean(hasNextPage),
     isFetchingNextPage,
-    isLoading:
-      isLoading ||
-      (autoFetchAll &&
-        !isFetchNextPageError &&
-        (isFetchingNextPage || nextAutoFetchPage !== null)),
+    isLoading: isLoading || nextAutoFetchPage !== null,
     loadNextPage,
     error: isLoadingError || (autoFetchAll && isFetchNextPageError),
     title,

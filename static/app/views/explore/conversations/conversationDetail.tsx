@@ -67,10 +67,8 @@ function ConversationDetailPage() {
     if (!isCopyingTranscript || isLoading) {
       return;
     }
-    if (error) {
+    if (error || hasNextPage) {
       addErrorMessage(t('Failed to load the complete transcript'));
-    } else if (hasNextPage) {
-      addErrorMessage(t('Transcript is too large to copy'));
     } else {
       void copyToClipboard(messagesToMarkdown(messages));
     }
@@ -113,11 +111,7 @@ function ConversationDetailPage() {
     trackAnalytics('conversations.detail.copy-conversation', {
       organization,
     });
-    if (hasNextPage) {
-      setIsCopyingTranscript(true);
-    } else {
-      void copyToClipboard(messagesToMarkdown(messages));
-    }
+    setIsCopyingTranscript(true);
   }
 
   return (

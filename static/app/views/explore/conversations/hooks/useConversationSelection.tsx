@@ -32,7 +32,7 @@ export function useConversationSelection({
     [onSelectSpan]
   );
 
-  const hasFocusedToolNode = useFocusedToolSpan({
+  useFocusedToolSpan({
     nodes,
     focusedTool: focusedTool ?? null,
     isLoading,
@@ -54,5 +54,5 @@ export function useConversationSelection({
     [nodes, selectedSpanId]
   );
 
-  return {selectedNode, hasFocusedToolNode, handleSelectNode};
+  return {selectedNode, handleSelectNode};
 }

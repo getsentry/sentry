@@ -130,104 +130,38 @@ describe('useConversation', () => {
     expect(result.current.title).toBeNull();
   });
 
-  it('only fetches the next page when requested', async () => {
+  it('stops loading after reaching the pagination cap', async () => {
     const url = `/organizations/${organization.slug}/agents/conversations/conv-123/`;
-    MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: undefined})],
-      body: envelope([{...BASE_SPAN, span_id: 'span-1'}]),
-      headers: {
-        Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
-      },
-    });
-    const nextRequest = MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: 'next'})],
-      body: envelope([{...BASE_SPAN, span_id: 'span-2'}]),
-    });
-
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-123', autoFetchAll: false}),
-      {organization}
+    const requests = Array.from({length: 100}, (_, index) =>
+      MockApiClient.addMockResponse({
+        url,
+        match: [
+          MockApiClient.matchQuery({
+            cursor: index === 0 ? undefined : `${index}`,
+          }),
+        ],
+        body: envelope([{...BASE_SPAN, span_id: `span-${index}`}]),
+        headers: {
+          Link: `<${url}?cursor=${
+            index + 1
+          }>; rel="next"; results="true"; cursor="${index + 1}"`,
+        },
+      })
     );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.nodes).toHaveLength(1);
-    expect(nextRequest).not.toHaveBeenCalled();
-
-    act(() => result.current.loadNextPage());
-
-    await waitFor(() => expect(result.current.nodes).toHaveLength(2));
-    expect(nextRequest).toHaveBeenCalledTimes(1);
-  });
-
-  it('fetches every page by default for callers without pagination controls', async () => {
-    const url = `/organizations/${organization.slug}/agents/conversations/conv-123/`;
-    MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: undefined})],
-      body: envelope([{...BASE_SPAN, span_id: 'span-1'}]),
-      headers: {
-        Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
-      },
-    });
-    const nextRequest = MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: 'next'})],
-      body: envelope([{...BASE_SPAN, span_id: 'span-2'}]),
-      headers: {
-        Link: `<${url}?cursor=last>; rel="next"; results="true"; cursor="last"`,
-      },
-    });
-    const lastRequest = MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: 'last'})],
-      body: envelope([{...BASE_SPAN, span_id: 'span-3'}]),
-    });
 
     const {result} = renderHookWithProviders(
       () => useConversation({conversationId: 'conv-123'}),
       {organization}
     );
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.nodes).toHaveLength(3);
-    expect(nextRequest).toHaveBeenCalledTimes(1);
-    expect(lastRequest).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps loaded spans when the next page fails', async () => {
-    const url = `/organizations/${organization.slug}/agents/conversations/conv-123/`;
-    MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: undefined})],
-      body: envelope([BASE_SPAN]),
-      headers: {
-        Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
-      },
-    });
-    const nextRequest = MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: 'next'})],
-      statusCode: 500,
+    await waitFor(() => {
+      expect(requests.map(request => request.mock.calls.length)).toEqual(
+        Array.from({length: 100}, () => 1)
+      );
     });
 
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-123', autoFetchAll: false}),
-      {organization}
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    act(() => result.current.loadNextPage());
-
-    await waitFor(() => expect(nextRequest).toHaveBeenCalledTimes(1));
-    await act(async () => {});
-
-    expect(result.current.error).toBe(false);
-    expect(result.current.nodes).toHaveLength(1);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.nodes).toHaveLength(100);
   });
 
   it('maps gen_ai.input.messages to node attributes', async () => {

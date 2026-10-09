@@ -23,7 +23,7 @@ describe('useFocusedToolSpan', () => {
       createToolNode({id: 'span-b', toolName: 'second-tool'}),
     ];
 
-    const {result, rerender} = renderHook(
+    const {rerender} = renderHook(
       ({focusedTool}) =>
         useFocusedToolSpan({
           nodes,
@@ -36,13 +36,11 @@ describe('useFocusedToolSpan', () => {
       }
     );
 
-    expect(result.current).toBe(true);
     expect(onSpanFound).toHaveBeenNthCalledWith(1, 'span-a');
     expect(onSpanFound).toHaveBeenCalledTimes(1);
 
     // Matches how the drawer clears focusedTool after selecting the span.
     rerender({focusedTool: null});
-    expect(result.current).toBe(false);
     expect(onSpanFound).toHaveBeenCalledTimes(1);
 
     // Clicking another tool tag should focus that new tool span.

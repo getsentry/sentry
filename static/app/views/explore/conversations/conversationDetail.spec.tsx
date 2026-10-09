@@ -75,16 +75,24 @@ const DEFAULT_STATS: ConversationStats = {
 function mockApis(
   title: string | null = null,
   spans: Array<Record<string, unknown>> = CONVERSATION_BODY,
-  statOverrides: Partial<ConversationStats> = {}
+  statOverrides: Partial<ConversationStats> = {},
+  {cursor, nextCursor}: {cursor?: string; nextCursor?: string} = {}
 ) {
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+  const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+  const request = MockApiClient.addMockResponse({
+    url,
+    match: [MockApiClient.matchQuery({cursor})],
     body: {
       conversationId: CONVERSATION_ID,
       title,
       spans,
       stats: {...DEFAULT_STATS, ...statOverrides},
     },
+    headers: nextCursor
+      ? {
+          Link: `<${url}?cursor=${nextCursor}>; rel="next"; results="true"; cursor="${nextCursor}"`,
+        }
+      : undefined,
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
@@ -94,6 +102,7 @@ function mockApis(
     url: '/organizations/org-slug/projects/',
     body: [],
   });
+  return request;
 }
 
 function renderPage(features: string[] = [], query?: Record<string, string>) {
@@ -166,38 +175,8 @@ describe('ConversationDetailPage span default selection', () => {
 
   it('loads every page before copying the transcript', async () => {
     MockApiClient.clearMockResponses();
-    const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
-    MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: undefined})],
-      body: {
-        conversationId: CONVERSATION_ID,
-        title: null,
-        spans: [CONVERSATION_BODY[0]],
-        stats: DEFAULT_STATS,
-      },
-      headers: {
-        Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
-      },
-    });
-    const nextRequest = MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: 'next'})],
-      body: {
-        conversationId: CONVERSATION_ID,
-        title: null,
-        spans: [CONVERSATION_BODY[1]],
-        stats: DEFAULT_STATS,
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    mockApis(null, [CONVERSATION_BODY[0]!], {}, {nextCursor: 'next'});
+    const nextRequest = mockApis(null, [CONVERSATION_BODY[1]!], {}, {cursor: 'next'});
 
     renderPage();
 

@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type UIEvent,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState, type UIEvent} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
@@ -14,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
@@ -80,7 +71,7 @@ export function ConversationViewContent({
     {history: 'replace'}
   );
 
-  const {selectedNode, hasFocusedToolNode, handleSelectNode} = useConversationSelection({
+  const {selectedNode, handleSelectNode} = useConversationSelection({
     nodes,
     selectedSpanId,
     onSelectSpan,
@@ -120,29 +111,20 @@ export function ConversationViewContent({
     activeTab,
     selectedNodeId: selectedNode?.id ?? null,
   });
-  const prefetchedConversationId = useRef<string | null>(null);
 
-  const handleScroll = useCallback(
-    (event: UIEvent<HTMLDivElement>) => {
-      if (!hasNextPage || isFetchingNextPage) {
-        return;
-      }
-
-      const container = event.currentTarget;
-      const shouldPrefetch =
-        prefetchedConversationId.current !== conversation.conversationId;
-      const isNearEnd =
-        container.scrollHeight - container.scrollTop - container.clientHeight < 200;
-      if (shouldPrefetch || isNearEnd) {
-        prefetchedConversationId.current = conversation.conversationId;
-        loadNextPage();
-      }
-    },
-    [conversation.conversationId, hasNextPage, isFetchingNextPage, loadNextPage]
-  );
+  function handleScroll(event: UIEvent<HTMLDivElement>) {
+    const container = event.currentTarget;
+    if (
+      hasNextPage &&
+      !isFetchingNextPage &&
+      container.scrollHeight - container.scrollTop - container.clientHeight < 200
+    ) {
+      loadNextPage();
+    }
+  }
 
   const needsMoreSelectionData = Boolean(
-    (selectedSpanId && !selectedNode) || (focusedTool && !hasFocusedToolNode)
+    (selectedSpanId && !selectedNode) || focusedTool
   );
 
   useEffect(() => {
@@ -178,12 +160,11 @@ export function ConversationViewContent({
   }, [error, isEmptyConversation]);
 
   const isTranscript = !isTimeline;
-  const isResolvingSelectedSpan = Boolean(
+  const isDetailLoading = Boolean(
     selectedSpanId &&
     !displayedNode &&
     (isLoading || canAutoFetchNextPage || isFetchingNextPage)
   );
-  const isDetailLoading = isLoading || isResolvingSelectedSpan;
 
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
@@ -219,20 +200,10 @@ export function ConversationViewContent({
               />
             )}
             {(hasNextPage || isFetchingNextPage) && (
-              <Flex
-                align="center"
-                justify="center"
-                padding="md"
-                role={isFetchingNextPage ? 'status' : undefined}
-                aria-label={isFetchingNextPage ? t('Loading more spans') : undefined}
-              >
-                {isFetchingNextPage ? (
-                  <LoadingIndicator size={24} />
-                ) : (
-                  <Button size="xs" onClick={loadNextPage}>
-                    {t('Load more')}
-                  </Button>
-                )}
+              <Flex align="center" justify="center" padding="md">
+                <Button size="xs" busy={isFetchingNextPage} onClick={loadNextPage}>
+                  {t('Load more')}
+                </Button>
               </Flex>
             )}
           </Fragment>
@@ -241,7 +212,7 @@ export function ConversationViewContent({
           // Show the detail pane once a span is resolved: a deep link or manual
           // selection (either tab), or the timeline's default span. While
           // loading, only the deep-linked skeleton is known.
-          (isDetailLoading ? Boolean(selectedSpanId) : Boolean(displayedNode)) ? (
+          isDetailLoading || displayedNode ? (
             <ConversationSpanDetail
               isLoading={isDetailLoading}
               scrollResetKey={activeTab}

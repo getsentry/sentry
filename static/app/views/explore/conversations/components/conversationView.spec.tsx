@@ -45,10 +45,20 @@ const CONVERSATION_BODY = [
   }),
 ];
 
-function mockConversation() {
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
-    body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+function mockConversation(
+  spans = CONVERSATION_BODY,
+  {cursor, nextCursor}: {cursor?: string; nextCursor?: string} = {}
+) {
+  const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+  const request = MockApiClient.addMockResponse({
+    url,
+    match: [MockApiClient.matchQuery({cursor})],
+    body: {conversationId: CONVERSATION_ID, title: null, spans},
+    headers: nextCursor
+      ? {
+          Link: `<${url}?cursor=${nextCursor}>; rel="next"; results="true"; cursor="${nextCursor}"`,
+        }
+      : undefined,
   });
   // The detail pane fetches full attributes per span; keep it empty.
   MockApiClient.addMockResponse({
@@ -59,6 +69,7 @@ function mockConversation() {
     url: '/organizations/org-slug/projects/',
     body: [],
   });
+  return request;
 }
 
 function renderView(
@@ -100,120 +111,26 @@ describe('ConversationViewContent', () => {
     expect(detailPane()).not.toBeInTheDocument();
   });
 
-  it('prefetches one page on first scroll and later pages near the end', async () => {
+  it('loads the next page near the end', async () => {
     MockApiClient.clearMockResponses();
-    const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
-    let resolveInitialPage!: () => void;
-    const initialPageDelay = new Promise<void>(resolve => {
-      resolveInitialPage = resolve;
-    });
-    MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: undefined})],
-      asyncDelay: initialPageDelay,
-      body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
-      headers: {
-        Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
-      },
-    });
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
 
-    let resolveNextPage!: () => void;
-    const nextPageDelay = new Promise<void>(resolve => {
-      resolveNextPage = resolve;
-    });
-    const nextRequest = MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: 'next'})],
-      asyncDelay: nextPageDelay,
-      body: {
-        conversationId: CONVERSATION_ID,
-        title: null,
-        spans: [
-          spanFixture({
-            span_id: 'span-c',
-            'span.name': 'third turn',
-            'precise.start_ts': 3000,
-            'precise.finish_ts': 3000.5,
-            'gen_ai.input.messages': JSON.stringify([{role: 'user', content: 'Third?'}]),
-            'gen_ai.output.messages': JSON.stringify([
-              {role: 'assistant', content: 'Third answer'},
-            ]),
-          }),
-        ],
-      },
-      headers: {
-        Link: `<${url}?cursor=last>; rel="next"; results="true"; cursor="last"`,
-      },
-    });
-    const lastRequest = MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: 'last'})],
-      body: {
-        conversationId: CONVERSATION_ID,
-        title: null,
-        spans: [
-          spanFixture({
-            span_id: 'span-d',
-            'span.name': 'fourth turn',
-            'precise.start_ts': 4000,
-            'precise.finish_ts': 4000.5,
-            'gen_ai.input.messages': JSON.stringify([{role: 'user', content: 'Fourth?'}]),
-            'gen_ai.output.messages': JSON.stringify([
-              {role: 'assistant', content: 'Fourth answer'},
-            ]),
-          }),
-        ],
-      },
-    });
-
-    renderView({activeTab: 'transcript'});
+    renderView();
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Load more'})).toBeInTheDocument();
+    expect(nextRequest).not.toHaveBeenCalled();
 
     const scrollContainer = document.querySelector<HTMLElement>('[data-scrollable]')!;
     Object.defineProperties(scrollContainer, {
-      scrollHeight: {configurable: true, value: 1000},
-      clientHeight: {configurable: true, value: 100},
-      scrollTop: {configurable: true, value: 100},
+      scrollHeight: {value: 1000},
+      clientHeight: {value: 100},
+      scrollTop: {value: 850},
     });
-
-    // A scroll during the first request must not consume the one-page prefetch.
-    act(() => scrollContainer.dispatchEvent(new Event('scroll')));
-    expect(nextRequest).not.toHaveBeenCalled();
-
-    await act(async () => {
-      resolveInitialPage();
-      await initialPageDelay;
-    });
-    expect(await screen.findByText('First answer')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Load more'})).toBeInTheDocument();
-
     act(() => scrollContainer.dispatchEvent(new Event('scroll')));
 
-    expect(
-      await screen.findByRole('status', {name: 'Loading more spans'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Second answer')).toBeInTheDocument();
     expect(nextRequest).toHaveBeenCalledTimes(1);
-    expect(lastRequest).not.toHaveBeenCalled();
-
-    await act(async () => {
-      resolveNextPage();
-      await nextPageDelay;
-    });
-    expect(await screen.findByText('Third answer')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('status', {name: 'Loading more spans'})
-    ).not.toBeInTheDocument();
-
-    act(() => scrollContainer.dispatchEvent(new Event('scroll')));
-    expect(lastRequest).not.toHaveBeenCalled();
-
-    Object.defineProperty(scrollContainer, 'scrollTop', {
-      configurable: true,
-      value: 850,
-    });
-    act(() => scrollContainer.dispatchEvent(new Event('scroll')));
-
-    expect(await screen.findByText('Fourth answer')).toBeInTheDocument();
-    expect(lastRequest).toHaveBeenCalledTimes(1);
   });
 
   it('opens the first span by default on the timeline', async () => {
@@ -241,42 +158,12 @@ describe('ConversationViewContent', () => {
 
   it('loads later pages to resolve a deep-linked span', async () => {
     MockApiClient.clearMockResponses();
-    const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
-    MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: undefined})],
-      body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
-      headers: {
-        Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
-      },
-    });
-    const nextRequest = MockApiClient.addMockResponse({
-      url,
-      match: [MockApiClient.matchQuery({cursor: 'next'})],
-      body: {
-        conversationId: CONVERSATION_ID,
-        title: null,
-        spans: [
-          spanFixture({
-            span_id: 'span-c',
-            'span.name': 'third turn',
-            'precise.start_ts': 3000,
-            'precise.finish_ts': 3000.5,
-            'gen_ai.output.messages': JSON.stringify([
-              {role: 'assistant', content: 'Third answer'},
-            ]),
-          }),
-        ],
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/',
-      body: [],
-    });
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
 
-    renderView({activeTab: 'transcript', selectedSpanId: 'span-c'});
+    renderView({activeTab: 'transcript', selectedSpanId: 'span-b'});
 
-    expect(await screen.findByText('ID: span-c')).toBeInTheDocument();
+    expect(await screen.findByText('ID: span-b')).toBeInTheDocument();
     expect(nextRequest).toHaveBeenCalledTimes(1);
   });
 
