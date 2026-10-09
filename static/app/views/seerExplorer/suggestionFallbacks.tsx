@@ -23,6 +23,8 @@ export function getFallbackSuggestions(
   return [
     {text: t("Walk me through what's on my screen and what I can focus on next.")},
     {text: t('Which of my open issues are getting worse, not better?')},
-    ...(hasDbData ? [{text: t('What are my slowest DB queries?')}] : []),
+    hasDbData
+      ? {text: t('What are my slowest DB queries?')}
+      : {text: t('What else should I set up to get more out of Sentry?')},
   ];
 }
