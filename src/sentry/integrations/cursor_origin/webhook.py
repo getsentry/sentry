@@ -10,12 +10,12 @@ from typing import Any
 import orjson
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
@@ -204,7 +204,7 @@ class CursorOriginWebhookEndpoint(Endpoint):
         except orjson.JSONDecodeError:
             return HttpResponse(status=400)
 
-        if envelope.get("appId") != options.get("cursor-origin-app.id"):
+        if envelope.get("appId") != settings.SENTRY_CURSOR_ORIGIN_APP_ID:
             logger.warning(
                 "cursor_origin.webhook.another_app",
                 extra={"delivery_id": request.headers.get(DELIVERY_ID_HEADER)},

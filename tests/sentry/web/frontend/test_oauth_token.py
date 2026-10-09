@@ -467,7 +467,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid"],
         )
-        with self.options({"codecov.signing_secret": "signing_secret"}):
+        with self.settings(SENTRY_CODECOV_SIGNING_SECRET="signing_secret"):
             resp = self.client.post(
                 self.path,
                 {
@@ -500,7 +500,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
         )
-        with self.options({"codecov.signing_secret": "signing_secret"}):
+        with self.settings(SENTRY_CODECOV_SIGNING_SECRET="signing_secret"):
             resp = self.client.post(
                 self.path,
                 {
@@ -524,6 +524,27 @@ class OAuthTokenCodeTest(TestCase):
             assert data["user"]["id"] == str(token.user_id)
 
             assert data["id_token"].count(".") == 2
+
+    def test_valid_params_id_token_without_signing_secret(self) -> None:
+        self.login_as(self.user)
+        open_id_grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            scope_list=["openid"],
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": open_id_grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+        assert "id_token" not in json.loads(resp.content)
 
 
 @control_silo_test

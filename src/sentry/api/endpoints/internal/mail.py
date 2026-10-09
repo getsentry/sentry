@@ -44,7 +44,7 @@ class InternalMailEndpoint(Endpoint):
         )
         try:
             send_mail(
-                "{} Test Email".format(options.get("mail.subject-prefix")),
+                f"{settings.EMAIL_SUBJECT_PREFIX} Test Email",
                 body,
                 options.get("mail.from"),
                 [request.user.email],

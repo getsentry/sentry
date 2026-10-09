@@ -64,8 +64,9 @@ class GetJwtTest(TestCase):
         assert JWT_EXPIRY_SECONDS < 300
 
     def test_reads_options_when_not_passed(self) -> None:
-        with self.options(
-            {"cursor-origin-app.id": APP_ID, "cursor-origin-app.private-key": self.pem}
+        with (
+            self.options({"cursor-origin-app.id": APP_ID}),
+            self.settings(SENTRY_CURSOR_ORIGIN_APP_PRIVATE_KEY=self.pem),
         ):
             token = get_jwt()
 

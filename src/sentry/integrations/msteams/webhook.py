@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import orjson
 import sentry_sdk
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
@@ -160,7 +161,7 @@ def verify_signature(request) -> bool:
         decoded = jwt.decode(
             token,
             key,
-            audience=options.get("msteams.client-id"),
+            audience=settings.SENTRY_MSTEAMS_CLIENT_ID,
             algorithms=algorithms,
         )
     except Exception as err:
