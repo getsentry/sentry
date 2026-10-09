@@ -4,12 +4,12 @@ import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {InfoText} from '@sentry/scraps/info';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {DateTime} from 'sentry/components/dateTime';
@@ -31,10 +31,10 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 const COLUMNS: TableColumnConfig[] = [
-  {key: 'provider', width: 'min-content', visible: {xs: true}},
-  {key: 'flag', width: 'minmax(0, 1fr)', visible: {lg: true}},
-  {key: 'action', width: 'minmax(min-content, auto)'},
-  {key: 'date', width: 'minmax(min-content, auto)'},
+  {key: 'provider', width: 'min-content'},
+  {key: 'flag', width: 'minmax(min-content, 0.7fr)'},
+  {key: 'action', width: 'min-content'},
+  {key: 'date', width: 'minmax(min-content, 0.5fr)'},
   {key: 'actions', width: 'min-content'},
 ];
 
@@ -163,9 +163,9 @@ function FlagDetailsRow({flagValue}: {flagValue: RawFlag}) {
         <SimpleTable.Row {...props}>
           <SimpleTable.RowCell>{flagValue.provider}</SimpleTable.RowCell>
           <SimpleTable.RowCell>
-            <InfoText title={flagValue.flag} mode="overflowOnly">
-              <code>{flagValue.flag}</code>
-            </InfoText>
+            <Text monospace wordBreak="break-word">
+              {textProps => <code {...textProps}>{flagValue.flag}</code>}
+            </Text>
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
             {getFlagActionLabel(flagValue.action)}
@@ -185,9 +185,8 @@ function FlagDetailsRow({flagValue}: {flagValue: RawFlag}) {
 function GroupFirstSeenRow({group}: {group: Group}) {
   return (
     <SimpleTable.Row>
+      <SimpleTable.RowCell column="span 2">{t('Issue First Seen')}</SimpleTable.RowCell>
       <SimpleTable.RowCell />
-      <SimpleTable.RowCell />
-      <SimpleTable.RowCell>{t('Issue First Seen')}</SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <DateTime date={group.firstSeen} year timeZone />
       </SimpleTable.RowCell>

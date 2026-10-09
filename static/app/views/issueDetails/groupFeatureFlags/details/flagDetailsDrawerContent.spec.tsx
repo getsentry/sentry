@@ -149,9 +149,9 @@ describe('FlagDetailsDrawerContent', () => {
     expect(rows).toHaveLength(4);
     expect(newerRow).toHaveTextContent('newer-provider');
     expect(olderRow).toHaveTextContent('older-provider');
-    expect(firstSeenCells).toHaveLength(5);
-    expect(firstSeenCells[2]).toHaveTextContent('Issue First Seen');
-    expect(firstSeenCells[3]).toHaveTextContent('Feb 1, 2021');
+    expect(firstSeenCells).toHaveLength(4);
+    expect(firstSeenCells[0]).toHaveTextContent('Issue First Seen');
+    expect(firstSeenCells[2]).toHaveTextContent('Feb 1, 2021');
   });
 
   it('hides pagination while the audit logs are loading', async () => {
@@ -272,50 +272,8 @@ describe('FlagDetailsDrawerContent', () => {
     );
   });
 
-  it('hides the Provider and Flag Name columns when the container is narrow', async () => {
+  it('shows every column when the container is narrow', async () => {
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(400);
-
-    const group = GroupFixture();
-    render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <Container containerType="inline-size">
-          <FlagDetailsDrawerContent group={group} />
-        </Container>
-      </GroupDataContextProvider>
-    );
-
-    const table = await screen.findByRole('table', {name: 'Feature flag audit logs'});
-    const rules = getEmotionRules(table).join('');
-
-    expect(rules).toContain("nth-child(1 of [role='cell'], [role='columnheader'])");
-    expect(rules).toContain("nth-child(2 of [role='cell'], [role='columnheader'])");
-    expect(rules).not.toContain("nth-child(3 of [role='cell'], [role='columnheader'])");
-    expect(rules).not.toContain("nth-child(4 of [role='cell'], [role='columnheader'])");
-  });
-
-  it('hides only the Flag Name column when the container is medium', async () => {
-    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(500);
-
-    const group = GroupFixture();
-    render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <Container containerType="inline-size">
-          <FlagDetailsDrawerContent group={group} />
-        </Container>
-      </GroupDataContextProvider>
-    );
-
-    const table = await screen.findByRole('table', {name: 'Feature flag audit logs'});
-    const rules = getEmotionRules(table).join('');
-
-    expect(rules).toContain("nth-child(2 of [role='cell'], [role='columnheader'])");
-    expect(rules).not.toContain("nth-child(1 of [role='cell'], [role='columnheader'])");
-    expect(rules).not.toContain("nth-child(3 of [role='cell'], [role='columnheader'])");
-    expect(rules).not.toContain("nth-child(4 of [role='cell'], [role='columnheader'])");
-  });
-
-  it('shows the Flag Name column when the container is wide', async () => {
-    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(800);
 
     const group = GroupFixture();
     render(
