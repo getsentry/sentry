@@ -28,7 +28,6 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
-    NotificationOrigin,
     NotificationSettingEnum,
 )
 from sentry.notifications.utils import (
@@ -99,12 +98,7 @@ class AlertRuleNotification(ProjectNotification):
         self.target_type = target_type
         self.target_identifier = target_identifier
         self.fallthrough_choice = fallthrough_choice
-        self.rules = [
-            rule
-            if isinstance(rule, NotificationOrigin)
-            else NotificationOrigin.from_legacy_rule(rule)
-            for rule in notification.rules
-        ]
+        self.rules = notification.rules
 
         if group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL or group.issue_type.type_id in (
             PerformanceP95EndpointRegressionGroupType.type_id,
