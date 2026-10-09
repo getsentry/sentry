@@ -348,6 +348,8 @@ class OAuthAuthorizeView(BaseView):
                     )
 
         permissions = []
+        read_permissions = []
+        write_permissions = []
         if scopes:
             pending_scopes = set(scopes)
             matched_sets = set()
@@ -357,6 +359,14 @@ class OAuthAuthorizeView(BaseView):
                         pending_scopes.remove(scope)
                     elif scope in pending_scopes:
                         permissions.append(description)
+                        if scope in settings.SENTRY_READONLY_SCOPES or scope in {
+                            "openid",
+                            "profile",
+                            "email",
+                        }:
+                            read_permissions.append(description)
+                        else:
+                            write_permissions.append(description)
                         matched_sets.add(scope_set)
                         pending_scopes.remove(scope)
 
@@ -384,6 +394,8 @@ class OAuthAuthorizeView(BaseView):
             "application": application,
             "scopes": scopes,
             "permissions": permissions,
+            "read_permissions": read_permissions,
+            "write_permissions": write_permissions,
             "organization_options": organization_options,
             "tx_id": tx_id,
         }

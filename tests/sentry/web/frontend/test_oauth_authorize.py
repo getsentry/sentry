@@ -323,6 +323,32 @@ class OAuthAuthorizeCodeTest(TestCase):
             "Access to CI workflows including source map uploads, release creation, and code mappings.",
         ]
 
+    def test_groups_read_and_write_permissions(self) -> None:
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read project:write"
+        )
+
+        assert resp.status_code == 200
+        assert resp.context["read_permissions"] == ["Read access to organization details."]
+        assert resp.context["write_permissions"] == ["Read and write access to projects."]
+        assert b"Read access" in resp.content
+        assert b"Write access" in resp.content
+        assert b"Review write access before approving." in resp.content
+
+    def test_read_only_permissions_do_not_show_write_warning(self) -> None:
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read"
+        )
+
+        assert resp.status_code == 200
+        assert b"Read access" in resp.content
+        assert b"Write access" not in resp.content
+        assert b"Review write access before approving." not in resp.content
+
     @override_options({"auth.v2.enabled": True})
     def test_unauthenticated_redirects_through_react_login(self) -> None:
         full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
