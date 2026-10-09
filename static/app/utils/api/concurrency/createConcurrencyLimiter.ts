@@ -1,4 +1,4 @@
-import {AsyncQueuer} from '@tanstack/react-pacer';
+import {AsyncQueuer, asyncQueuerOptions} from '@tanstack/react-pacer';
 
 interface LimitedRequest {
   reject: (reason: unknown) => void;
@@ -40,7 +40,14 @@ export function createConcurrencyLimiter({
         reject(error);
       }
     },
-    {concurrency, key, started: true}
+    asyncQueuerOptions<LimitedRequest>({
+      concurrency,
+      key,
+      started: true,
+      // TanStack Query already retries failed queries, so Pacer must not retry
+      // them too.
+      asyncRetryerOptions: {maxAttempts: 1},
+    })
   );
 
   return function limit<T>(run: () => Promise<T>, signal?: AbortSignal): Promise<T> {
