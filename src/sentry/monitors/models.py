@@ -637,7 +637,11 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor,
             environment_id=environment.id,
-            defaults={"status": MonitorStatus.ACTIVE, "is_muted": is_monitor_muted(monitor)},
+            # Callable so the muted count only runs when the environment is created
+            defaults={
+                "status": MonitorStatus.ACTIVE,
+                "is_muted": lambda: is_monitor_muted(monitor),
+            },
         )
 
         # recompute per-project monitor check-in rate limit quota
