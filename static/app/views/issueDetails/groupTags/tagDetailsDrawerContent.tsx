@@ -106,6 +106,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
         <SimpleTable
           aria-label={t('Tag values')}
           columns={COLUMNS}
+          density="compressed"
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>{t('Value')}</SimpleTable.HeaderCell>
