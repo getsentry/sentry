@@ -253,6 +253,9 @@ importers:
       '@sentry/core':
         specifier: 11.0.0
         version: 11.0.0
+      '@sentry/icons':
+        specifier: workspace:*
+        version: link:static/packages/icons
       '@sentry/node':
         specifier: 11.0.0
         version: 11.0.0

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -136,7 +137,7 @@ function InvoiceDetails() {
           </PanelBody>
         ) : (
           <PanelBody withPadding>
-            <SenderContainer>
+            <Grid columns={{zero: 'auto', xl: 'auto auto'}} gap="xl" paddingLeft="md">
               <div>
                 <SenderName>
                   <IconSentry size="lg" /> {invoice.sender.name}
@@ -165,7 +166,7 @@ function InvoiceDetails() {
                   reloadInvoice={invoiceRefetch}
                 />
               )}
-            </SenderContainer>
+            </Grid>
             <hr />
             <InvoiceDetailsContents invoice={invoice} billingDetails={billingDetails} />
             <FinePrint>
@@ -218,7 +219,7 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
   const taxNumberName = `${getTaxFieldInfo(countryCode).label}:`;
 
   return (
-    <AttributeGroup>
+    <Grid columns={{zero: 'auto', xl: '1fr 1fr'}} gap="xl">
       <Attributes>
         <dt>{t('Account:')}</dt>
         <dd>
@@ -251,7 +252,7 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
           <DateTime date={invoice.dateCreated} dateOnly year />
         </dd>
       </Attributes>
-    </AttributeGroup>
+    </Grid>
   );
 }
 
@@ -334,32 +335,6 @@ const SenderName = styled('h3')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-`;
-
-const SenderContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: ${p => p.theme.space.xl};
-
-  padding-left: ${p => p.theme.space.md};
-
-  /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-    grid-template-rows: auto auto;
-  }
-`;
-
-const AttributeGroup = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-
-  /* Use a vertical layout on smaller viewports */
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-    grid-template-rows: auto auto;
-  }
 `;
 
 const Attributes = styled('dl')`

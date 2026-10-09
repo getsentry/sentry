@@ -281,10 +281,10 @@ const config = defineConfig({
       defaultVersion: '19.2',
     },
     'import/resolver': {
-      typescript: {},
+      typescript: {project: './tsconfig.lint.json'},
     },
     'import-x/resolver': {
-      typescript: {},
+      typescript: {project: './tsconfig.lint.json'},
     },
     // Analyze both static and dynamic imports for boundary checks.
     // https://www.jsboundaries.dev/docs/setup/settings/#boundariesdependency-nodes

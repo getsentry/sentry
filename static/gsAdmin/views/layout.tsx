@@ -183,7 +183,11 @@ export function Layout() {
                 </ThemeToggle>
               </SidebarActions>
             </Sidebar>
-            <Stack minWidth={0} inert={sidebarOpen || undefined}>
+            <Stack
+              minWidth={0}
+              containerType="inline-size"
+              inert={sidebarOpen || undefined}
+            >
               {/* Mobile only: sticky top bar with hamburger and logo */}
               <MobileTopBar>
                 <Button

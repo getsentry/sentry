@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import {IconLightning} from '@sentry/icons/lightning';
 import {IconQuestion} from '@sentry/icons/question';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
@@ -48,12 +49,14 @@ function renderHovercardBody() {
 
 function PerformanceUnitDecoration() {
   return (
-    <PerformanceUnits>
-      <PerformanceTag>
+    <Grid flow="column" justify="between" align="center">
+      <Flex gap="xs">
         <IconLightning size="sm" />
-        {t('Sentry Performance')}
-      </PerformanceTag>
-    </PerformanceUnits>
+        <Text as="span" size="sm" variant="accent" uppercase bold>
+          {t('Sentry Performance')}
+        </Text>
+      </Flex>
+    </Grid>
   );
 }
 
@@ -137,34 +140,34 @@ export function VolumeSliders({
 
           return (
             <DataVolumeItem key={category} data-test-id={`${category}-volume-item`}>
-              <CategoryContainer>
+              <Grid columns={{zero: '1fr', xl: '1fr 3fr'}} gap="2xl">
                 <Stack>
                   {showPerformanceUnits && <PerformanceUnitDecoration />}
-                  <Title htmlFor={sliderId}>
-                    <div>{getPlanCategoryName({plan: activePlan, category})}</div>
-                  </Title>
+                  <Flex as="label" htmlFor={sliderId} gap="xs" align="center">
+                    <Text as="span" size="md" bold>
+                      {getPlanCategoryName({plan: activePlan, category})}
+                    </Text>
+                  </Flex>
                   {eventBucket.price !== 0 && (
-                    <Description>
-                      <div>
-                        {tct('[unitPrice]/[category]', {
-                          category:
-                            category ===
-                            DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
-                              ? 'GB'
-                              : getSingularCategoryName({
-                                  plan: activePlan,
-                                  category,
-                                  capitalize: false,
-                                }),
-                          unitPrice,
-                        })}
-                      </div>
-                    </Description>
+                    <Text as="div" size="sm" variant="muted">
+                      {tct('[unitPrice]/[category]', {
+                        category:
+                          category ===
+                          DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
+                            ? 'GB'
+                            : getSingularCategoryName({
+                                plan: activePlan,
+                                category,
+                                capitalize: false,
+                              }),
+                        unitPrice,
+                      })}
+                    </Text>
                   )}
                 </Stack>
                 <div>
-                  <SpaceBetweenGrid>
-                    <VolumeAmount>
+                  <Grid columns="repeat(2, auto)" justify="between">
+                    <Text as="div" bold>
                       {formatReservedWithUnits(
                         currentSliderValues[category] ?? null,
                         category,
@@ -172,16 +175,18 @@ export function VolumeSliders({
                           isAbbreviated: !isByteCategory(category),
                         }
                       )}
-                    </VolumeAmount>
+                    </Text>
                     <div>
-                      <Price isIncluded={isIncluded}>
+                      <Text as="span" size="lg" bold={!isIncluded}>
                         {isIncluded ? t('Included') : price}
-                      </Price>
+                      </Text>
                       {!isIncluded && (
-                        <BillingInterval>/{billingInterval}</BillingInterval>
+                        <Text as="span" size="md">
+                          /{billingInterval}
+                        </Text>
                       )}
                     </div>
-                  </SpaceBetweenGrid>
+                  </Grid>
                   <RangeSlider
                     showLabel={false}
                     name={category}
@@ -205,20 +210,20 @@ export function VolumeSliders({
                         : undefined
                     }
                   />
-                  <MinMax>
-                    <div>
+                  <Grid columns="repeat(2, auto)" justify="between">
+                    <Text as="div" size="sm">
                       {tct('[min] included', {
                         min: formatReservedWithUnits(min, category),
                       })}
-                    </div>
-                    <div>
+                    </Text>
+                    <Text as="div" size="sm">
                       {formatReservedWithUnits(max, category, {
                         isAbbreviated: !isByteCategory(category),
                       })}
-                    </div>
-                  </MinMax>
+                    </Text>
+                  </Grid>
                 </div>
-              </CategoryContainer>
+              </Grid>
             </DataVolumeItem>
           );
         })}
@@ -242,37 +247,6 @@ const DataVolumeItem = styled(PanelItem)`
   margin: 0;
   padding-left: 0;
   padding-right: 0;
-`;
-
-const Title = styled('label')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  align-items: center;
-  margin-bottom: 0px;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.md};
-`;
-
-const SpaceBetweenGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  justify-content: space-between;
-`;
-
-const Description = styled(SpaceBetweenGrid)`
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const MinMax = styled(Description)`
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const BaseRow = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  justify-content: space-between;
-  align-items: center;
 `;
 
 const StyledHovercard = styled(Hovercard)`
@@ -302,40 +276,5 @@ const IconContainer = styled('span')`
     &:hover {
       opacity: 1;
     }
-  }
-`;
-
-const PerformanceUnits = styled(BaseRow)`
-  text-transform: uppercase;
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: 600;
-`;
-
-const PerformanceTag = styled(BaseRow)`
-  gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.tokens.content.accent};
-`;
-
-const VolumeAmount = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const Price = styled('span')<{isIncluded: boolean}>`
-  font-size: ${p => p.theme.font.size.lg};
-  font-weight: ${p =>
-    p.isIncluded ? p.theme.font.weight.sans.regular : p.theme.font.weight.sans.medium};
-`;
-
-const BillingInterval = styled('span')`
-  font-size: ${p => p.theme.font.size.md};
-`;
-
-const CategoryContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 3fr;
-  gap: ${p => p.theme.space['2xl']};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr;
   }
 `;

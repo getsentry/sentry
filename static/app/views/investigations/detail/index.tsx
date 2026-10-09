@@ -421,7 +421,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Flex>
           </Stack>
         </Container>
-        <Layout.Body padding={{'screen:sm': '0 lg lg', 'screen:md': '0 xl lg'}}>
+        <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
           <Layout.Main width="full">
             <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
               {/*

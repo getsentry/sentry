@@ -6,6 +6,7 @@ import dataConsentImage from 'sentry-images/spot/add-integration-provider.svg';
 import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {t} from 'sentry/locale';
@@ -89,13 +90,31 @@ function DataConsentBanner({
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}
       />
-      <StarContainer>
+      <Container
+        display={{zero: 'none', '5xl': 'block'}}
+        position="absolute"
+        top="0"
+        right="0"
+        bottom="0"
+        width="600px"
+        overflow="hidden"
+        radius="0 md md 0"
+      >
         <LeftStars src={bannerStars} />
-      </StarContainer>
-      <IllustrationContainer>
+      </Container>
+      <Container
+        display={{zero: 'none', '4xl': 'block'}}
+        position="absolute"
+        top="0"
+        right="0"
+        bottom="0"
+        width="600px"
+        overflow="hidden"
+        radius="0 md md 0"
+      >
         <RightStars src={bannerStars} />
         <Sentaur src={dataConsentImage} />
-      </IllustrationContainer>
+      </Container>
     </DataConsentBannerWrapper>
   );
 }
@@ -121,36 +140,6 @@ const DataConsentBannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${p => p.theme.space.md};
   font-weight: 600;
-`;
-
-const StarContainer = styled('div')`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    display: block;
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    top: 0;
-    width: 600px;
-    overflow: hidden;
-    border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
-  }
-`;
-
-const IllustrationContainer = styled('div')`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: block;
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    top: 0;
-    width: 600px;
-    overflow: hidden;
-    border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
-  }
 `;
 
 const Sentaur = styled('img')`
