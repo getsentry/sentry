@@ -15,8 +15,11 @@ _markdown_strip_re = re.compile(r"\[([^]]+)\]\([^)]+\)", re.I)
 _fix_keywords = r"(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved)"
 _fix_keyword_re = re.compile(rf"\b{_fix_keywords}\b", re.I)
 
+# The keyword and its ID list share a line: `[ \t]` rather than `\s`, since `\s` also
+# matches newlines, which lets the match run on into the rest of the message where
+# _short_id_re can pick up short IDs that were never referenced as fixed.
 _fixes_re = re.compile(
-    rf"\b{_fix_keywords}:?\s+([A-Za-z0-9_\-\s\,]+)\b",
+    rf"\b{_fix_keywords}:?[ \t]+([A-Za-z0-9_\-\,\t ]+)\b",
     re.I,
 )
 _short_id_re = re.compile(r"\b([A-Z0-9_-]+-[A-Z0-9]+)\b", re.I)
