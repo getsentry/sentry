@@ -5,8 +5,12 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from django.test import RequestFactory
 from django.urls import reverse
+from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 
+from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from sentry.api.endpoints.timeseries import IncompleteReason
 from sentry.constants import DataCategory
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
@@ -15,6 +19,111 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("", {}),
+        ("transformationsExtra=ignored&query=anything", {}),
+        ("transformations[0]=fill(locf)", {0: ["fill(locf)"]}),
+        (
+            "yAxis=count()&yAxis=count()&transformations%5B1%5D=fill%28locf%29"
+            "&transformations%5B1%5D=smooth%28sma%29&transformations%5B0%5D=fill%28zero%29",
+            {1: ["fill(locf)", "smooth(sma)"], 0: ["fill(zero)"]},
+        ),
+        (
+            "yAxis=count()&yAxis=avg(span.duration)&yAxis=p90(span.duration)"
+            "&transformations[2]=smooth(sma)",
+            {2: ["smooth(sma)"]},
+        ),
+        (
+            "transformations[0]=fill(locf)&transformations[0]=fill(locf)",
+            {0: ["fill(locf)", "fill(locf)"]},
+        ),
+        ("transformations[0]=", {0: [""]}),
+        (
+            "transformations[0]=[fill(locf), smooth(sma)]",
+            {0: ["[fill(locf), smooth(sma)]"]},
+        ),
+    ],
+)
+def test_decode_transformations(query: str, expected: dict[int, list[str]]) -> None:
+    request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
+
+    assert OrganizationEventsTimeseriesEndpoint().get_transformations(request) == expected
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "transformations",
+        "transformations[]",
+        "transformations[-1]",
+        "transformations[abc]",
+        "transformations[01]",
+        "transformations[0][]",
+        "transformations[0]extra",
+        "transformations[0",
+        "transformations[٠]",
+        pytest.param(f"transformations[{'9' * 5000}]", id="oversized-index"),
+    ],
+)
+def test_decode_transformations_invalid_key(key: str) -> None:
+    request = Request(RequestFactory().get("/events-timeseries/", {key: "fill(locf)"}))
+
+    with pytest.raises(ParseError, match="Invalid transformations index"):
+        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "transformations[1]=fill(locf)",
+        "yAxis=count()&yAxis=avg(span.duration)&transformations[2]=fill(locf)",
+        "transformations[1000000000]=fill(locf)",
+    ],
+)
+def test_decode_transformations_index_out_of_range(query: str) -> None:
+    request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
+
+    with pytest.raises(ParseError, match="transformations index must match a yAxis position"):
+        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+
+
+class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-events-timeseries"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.org = self.create_organization(owner=self.user)
+
+    def test_invalid_transformations_with_no_projects(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            }
+        ):
+            response = self.get_error_response(
+                self.org.slug, **{"transformations[-1]": ["fill(locf)"]}, status_code=400
+            )
+
+        assert response.data == {"detail": "Invalid transformations index"}
+
+    def test_transformations_ignored_when_feature_disabled(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": False,
+            }
+        ):
+            response = self.get_success_response(
+                self.org.slug, **{"transformations[-1]": ["fill(locf)"]}
+            )
+
+        assert response.data == {"timeSeries": []}
 
 
 class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
@@ -109,6 +218,11 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "end": self.end,
                 "interval": "1h",
                 "project": [self.project.id, self.project2.id],
+                "transformations[0]": ["fill(locf)", "smooth(sma)"],
+            },
+            features={
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
             },
         )
         assert response.status_code == 200, response.content
