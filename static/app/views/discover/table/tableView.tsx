@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStack} from '@sentry/icons/stack';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 
@@ -14,7 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {Truncate} from 'sentry/components/truncate';
-import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

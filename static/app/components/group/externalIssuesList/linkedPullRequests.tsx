@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconBot} from '@sentry/icons/bot';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Avatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -12,7 +14,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconBot, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupActivityType,

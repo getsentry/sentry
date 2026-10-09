@@ -3,6 +3,7 @@ import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';
@@ -15,7 +16,6 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';

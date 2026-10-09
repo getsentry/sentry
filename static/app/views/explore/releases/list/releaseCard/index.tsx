@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import type {Location} from 'history';
 import partition from 'lodash/partition';
 import moment from 'moment-timezone';
@@ -19,7 +20,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

@@ -217,7 +217,7 @@ from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
 )
-from sentry.insights.endpoints.starred_segments import InsightsStarredSegmentsEndpoint
+from sentry.insights.endpoints.starred_segments import OrganizationStarredServiceSpansEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
 from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
@@ -360,6 +360,7 @@ from sentry.issues.endpoints import (
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
     GroupTombstoneEndpoint,
+    OrganizationCodeMappingRepoPrefixesEndpoint,
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
@@ -371,6 +372,7 @@ from sentry.issues.endpoints import (
     OrganizationIssuesCountEndpoint,
     OrganizationIssuesWithSupergroupsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
+    ProjectCodeMappingStackPrefixesEndpoint,
     ProjectEventDetailsEndpoint,
     ProjectEventsEndpoint,
     ProjectGroupIndexEndpoint,
@@ -1458,6 +1460,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-derive-code-mappings",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/code-mapping-prefixes/repo/$",
+        OrganizationCodeMappingRepoPrefixesEndpoint.as_view(),
+        name="sentry-api-0-organization-code-mapping-repo-prefixes",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/code-mappings/(?P<config_id>[^/]+)/$",
         OrganizationCodeMappingDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-code-mapping-details",
@@ -1530,13 +1537,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         ProjectTransactionThresholdOverrideEndpoint.as_view(),
         name="sentry-api-0-organization-project-transaction-threshold-override",
     ),
-    # Insights
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/insights/starred-segments/$",
-        InsightsStarredSegmentsEndpoint.as_view(),
-        name="sentry-api-0-insights-starred-segments",
-    ),
     # Explore
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/starred-service-spans/$",
+        OrganizationStarredServiceSpansEndpoint.as_view(),
+        name="sentry-api-0-organization-starred-service-spans",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/$",
         ExploreSavedQueriesEndpoint.as_view(),
@@ -3354,6 +3360,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-link/$",
         ProjectStacktraceLinkEndpoint.as_view(),
         name="sentry-api-0-project-stacktrace-link",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/code-mapping-prefixes/stack/$",
+        ProjectCodeMappingStackPrefixesEndpoint.as_view(),
+        name="sentry-api-0-project-code-mapping-stack-prefixes",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-source-context/$",

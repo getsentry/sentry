@@ -12,6 +12,7 @@ import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
@@ -162,11 +163,15 @@ function Graph({
       : createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
+  const [interval] = useChartInterval();
   const {droppedEvents, acceptedEvents} = useDroppedData({
     dataset: DiscoverDatasets.TRACEMETRICS,
+    interval,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.TRACEMETRICS);
+  const openDroppedDataDrawer = useDroppedDataDrawer({
+    dataset: DiscoverDatasets.TRACEMETRICS,
+  });
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
