@@ -863,18 +863,20 @@ describe('AutofixOverview', () => {
     });
 
     it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
-      mockOverview({
+      const {issueStatsRequest} = mockOverview({
         base: {autofix_root_cause: [rootCauseRun]},
         issueStatsStatusCode: 500,
       });
 
       renderPage();
 
-      await waitFor(() =>
-        expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0)
-      );
+      await waitFor(() => expect(issueStatsRequest).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText('TypeError in checkout cart')).not.toBeInTheDocument();
       await act(() => jest.advanceTimersByTimeAsync(1000));
       expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+      expect(screen.getByText('1.2K events')).toBeInTheDocument();
+      expect(screen.getByText('5 users')).toBeInTheDocument();
+      expect(issueStatsRequest).toHaveBeenCalledTimes(2);
     });
   });
 

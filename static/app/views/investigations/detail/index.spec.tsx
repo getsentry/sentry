@@ -775,6 +775,7 @@ describe('Investigation detail', () => {
         body: {status: 'running', preview: null},
       });
 
+      const startedAt = Date.now();
       renderView();
       expect(
         await screen.findByDisplayValue('Untitled investigation')
@@ -800,6 +801,8 @@ describe('Investigation detail', () => {
           'Mobile API Monitor False Alert'
         )
       );
+      // Completion must refresh metadata before the independent 2s detail poll.
+      expect(Date.now() - startedAt).toBeLessThan(2000);
       expect(screen.getByText('Comparison logic triggered breach')).toBeInTheDocument();
     });
   });
@@ -2066,7 +2069,7 @@ describe('Investigation detail', () => {
       let requestCount = 0;
       MockApiClient.addMockResponse({
         url: titleGenerationUrl,
-        body: {status: 'completed', preview: null},
+        body: {status: 'running', preview: null},
       });
       MockApiClient.addMockResponse({
         url: detailUrl,
@@ -2089,11 +2092,12 @@ describe('Investigation detail', () => {
         await screen.findByDisplayValue('Untitled Investigation')
       ).toBeInTheDocument();
 
+      expect(requestCount).toBe(1);
       await act(() => jest.advanceTimersByTimeAsync(2000));
       expect(
         screen.getByDisplayValue('Generated latency investigation')
       ).toBeInTheDocument();
-      expect(requestCount).toBeGreaterThan(1);
+      expect(requestCount).toBe(2);
     });
   });
 
@@ -2171,9 +2175,14 @@ describe('Investigation detail', () => {
         url: detailUrl,
         body: investigationWithQueryResult(),
       });
+      let finishDelete!: () => void;
+      const deleteResponse = new Promise<void>(resolve => {
+        finishDelete = resolve;
+      });
       const deleteRequest = MockApiClient.addMockResponse({
         url: detailUrl,
         method: 'DELETE',
+        asyncDelay: deleteResponse,
       });
       const renameRequest = MockApiClient.addMockResponse({
         url: detailUrl,
@@ -2198,8 +2207,14 @@ describe('Investigation detail', () => {
           expect.objectContaining({data: {investigationVersion: 1}})
         )
       );
-      expect(router.location.pathname).toBe(
-        '/organizations/org-slug/explore/investigations/'
+      await act(() => jest.advanceTimersByTimeAsync(600));
+      expect(renameRequest).not.toHaveBeenCalled();
+
+      await act(() => finishDelete());
+      await waitFor(() =>
+        expect(router.location.pathname).toBe(
+          '/organizations/org-slug/explore/investigations/'
+        )
       );
       await act(() => jest.advanceTimersByTimeAsync(600));
       expect(renameRequest).not.toHaveBeenCalled();

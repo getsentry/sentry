@@ -462,7 +462,9 @@ describe('MetricToolbar', () => {
       await waitFor(() => expect(delayedValidateMock).toHaveBeenCalled());
       expect(currentGroupBys).toEqual(['invalid.attribute']);
 
-      await act(() => jest.advanceTimersByTimeAsync(1000));
+      await act(() => jest.advanceTimersByTimeAsync(999));
+      expect(currentGroupBys).toEqual(['invalid.attribute']);
+      await act(() => jest.advanceTimersByTimeAsync(1));
       await waitFor(() => expect(currentGroupBys).toEqual([]));
     });
   });
