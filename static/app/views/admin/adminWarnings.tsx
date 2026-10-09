@@ -4,6 +4,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 type Data = {
   groups: Array<[groupName: string, grouppedWarnings: string[]]>;
@@ -11,6 +12,15 @@ type Data = {
 };
 
 function AdminWarnings() {
+  return (
+    <Fragment>
+      <BreadcrumbTitle title={t('Warnings')} />
+      <AdminWarningsContent />
+    </Fragment>
+  );
+}
+
+function AdminWarningsContent() {
   const {data, isPending, isError} = useApiQuery<Data>(
     [getApiUrl('/internal/warnings/')],
     {

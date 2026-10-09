@@ -4,8 +4,8 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sentry import eventstore
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.notifications.platform.msteams.provider import MSTeamsRenderable
@@ -22,6 +22,7 @@ from sentry.notifications.platform.types import (
 from sentry.notifications.types import NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.actor import Actor
+from sentry.workflow_engine.tasks.utils import fetch_event
 
 if TYPE_CHECKING:
     from sentry.integrations.msteams.card_builder.block import (
@@ -52,16 +53,16 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         except Group.DoesNotExist:
             raise NotificationRenderError(f"Group {data.group_id} not found")
 
-        event = None
+        event: GroupEvent | None = None
         if data.event_id:
             try:
-                event = eventstore.backend.get_event_by_id(
-                    project_id=group.project.id,
-                    event_id=data.event_id,
-                    group_id=data.group_id,
-                )
-                if isinstance(event, Event):
-                    event = event.for_group(group)
+                fetched = fetch_event(data.event_id, group.project_id)
+                if fetched is not None:
+                    event = fetched.for_group(group)
+                    if data.occurrence_id:
+                        event.occurrence = IssueOccurrence.fetch(
+                            data.occurrence_id, group.project_id
+                        )
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
@@ -202,7 +203,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                 "actionType": action_type,
                 "groupId": data.group_id,
                 "eventId": data.event_id,
-                "rules": [data.rule.id],
+                "rules": [rule.legacy_rule_id for rule in rules if rule.legacy_rule_id is not None],
                 "workflows": get_workflow_ids(rules),
             }
         }

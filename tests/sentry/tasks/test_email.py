@@ -8,6 +8,25 @@ pytestmark = [requires_snuba]
 
 
 class ProcessInboundEmailTest(TestCase):
+    def test_invalid_text(self) -> None:
+        group = self.create_group()
+
+        for payload in ("", " \t\n", "hello\x00world"):
+            process_inbound_email(mailfrom=self.user.email, group_id=group.id, payload=payload)
+
+        assert not Activity.objects.filter(group=group, type=ActivityType.NOTE.value).exists()
+
+    def test_duplicate_delivery(self) -> None:
+        group = self.create_group()
+
+        process_inbound_email(
+            mailfrom=self.user.email, group_id=group.id, payload=" \thello world!\n"
+        )
+        process_inbound_email(mailfrom=self.user.email, group_id=group.id, payload="hello world!")
+
+        activity = Activity.objects.get(group=group, type=ActivityType.NOTE.value)
+        assert activity.data == {"text": "hello world!"}
+
     def test_simple(self) -> None:
         group = self.create_group()
 

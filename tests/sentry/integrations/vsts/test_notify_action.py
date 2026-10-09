@@ -8,6 +8,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models.grouplink import GroupLink
+from sentry.notifications.types import NotificationActionContext
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -48,6 +49,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     def test_create_issue(self) -> None:
         self.mock_categories("ac7c05bb-7f8e-4880-85a6-e08f37fd4a10")
         event = self.get_event()
+        rule = self.create_project_rule(project=self.project)
         azuredevops_rule = self.get_rule(
             data={
                 "title": "Hello",
@@ -55,9 +57,9 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                 "project": "0987654321",
                 "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
                 "integration": self.integration.model.id,
-            }
+            },
+            context=NotificationActionContext.from_legacy_rule(rule),
         )
-        azuredevops_rule.rule = self.create_project_rule(project=self.project)
         responses.reset()
         responses.add(
             responses.PATCH,
@@ -71,7 +73,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         assert len(results) == 1
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=azuredevops_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(context=azuredevops_rule.action_context, kwargs=results[0].kwargs)
         results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].response.text)
 

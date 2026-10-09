@@ -20,25 +20,23 @@ import {Flex} from '@sentry/scraps/layout';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
-import {
-  IconAdd,
-  IconArrow,
-  IconChevron,
-  IconClock,
-  IconClose,
-  IconCopy,
-  IconCopyId,
-  IconDelete,
-  IconDocs,
-  IconDownload,
-  IconEdit,
-  IconEllipsis,
-  IconLightning,
-  IconLink,
-  IconOpen,
-  IconStar,
-  IconZoom,
-} from 'sentry/icons';
+import {IconAdd} from '@sentry/icons/add';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClock} from '@sentry/icons/clock';
+import {IconClose} from '@sentry/icons/close';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconLink} from '@sentry/icons/link';
+import {IconOpen} from '@sentry/icons/open';
+import {IconStar} from '@sentry/icons/star';
+import {IconSubtract} from '@sentry/icons/subtract';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/button').then(
@@ -172,8 +170,8 @@ The following table defines standardized call to action copy and icon pairings f
 | <IconDownload />                           | `download`  | Download                               | Download data as a file                                   |
 |                                            |             | Connect                                | Create link between two objects                           |
 |                                            |             | Disconnect                             | Break link between two objects                            |
-| <IconZoom isZoomIn />                      | `zoom`      | Zoom In                                | Applies to charts and zooms to fit                        |
-| <IconZoom />                               | `zoom`      | Zoom Out                               | Applies to charts and zooms out (i.e. 200%)               |
+| <IconAdd />                                | `add`       | Zoom In                                | Applies to charts and zooms to fit                        |
+| <IconSubtract />                           | `subtract`  | Zoom Out                               | Applies to charts and zooms out (i.e. 200%)               |
 | <IconStar />                               | `star`      | Favorite                               | Hoisting item to primary view                             |
 
 ## Disabled Buttons
