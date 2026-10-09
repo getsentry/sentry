@@ -11,6 +11,7 @@ from rest_framework import serializers
 from sentry_sdk import traces
 
 from sentry import features, options
+from sentry.api.fields.transformations import TransformationsField, validate_transformation_indexes
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.apidocs.omissions import sentry_schema_serializer
@@ -272,6 +273,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     on_demand_extraction_disabled = serializers.BooleanField(required=False)
 
     selected_aggregate = serializers.IntegerField(required=False, allow_null=True)
+    transformations = TransformationsField(required=False)
     linked_dashboards = LinkedDashboardSerializer(many=True, required=False, allow_null=True)
 
     required_for_create = {"fields", "conditions"}
@@ -658,6 +660,27 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             )
 
         if data.get("queries"):
+            existing_queries = {
+                query.id: query
+                for query in DashboardWidgetQuery.objects.filter(
+                    widget_id=data.get("id"),
+                    widget__dashboard__organization=organization,
+                    id__in=[query["id"] for query in data["queries"] if "id" in query],
+                )
+            }
+            for index, query in enumerate(data["queries"]):
+                existing_query = existing_queries.get(query.get("id"))
+                transformations = query.get(
+                    "transformations", existing_query.transformations if existing_query else None
+                )
+                aggregates = query.get(
+                    "aggregates", existing_query.aggregates if existing_query else None
+                )
+                try:
+                    validate_transformation_indexes(transformations or {}, len(aggregates or []))
+                except serializers.ValidationError as error:
+                    raise serializers.ValidationError({"queries": [{}] * index + [error.detail]})
+
             if data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
                 self._validate_tracemetrics_constraints(data)
 
@@ -1262,6 +1285,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     order=i,
                     is_hidden=query.get("is_hidden", False),
                     selected_aggregate=query.get("selected_aggregate"),
+                    transformations=query.get("transformations"),
                 )
             )
 
@@ -1528,6 +1552,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     orderby=query_data.get("orderby", ""),
                     order=next_order + i,
                     selected_aggregate=query_data.get("selected_aggregate"),
+                    transformations=query_data.get("transformations"),
                 )
                 new_queries.append(new_query)
                 all_query_array.append({"query_obj": new_query, "query_data": query_data})
@@ -1559,6 +1584,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         query.field_aliases = data.get("field_aliases", query.field_aliases)
         query.is_hidden = data.get("is_hidden", query.is_hidden)
         query.selected_aggregate = data.get("selected_aggregate", query.selected_aggregate)
+        query.transformations = data.get("transformations", query.transformations)
 
         query.order = order
         query.save()

@@ -1,6 +1,8 @@
+import pytest
 from django.urls import reverse
-from rest_framework.exceptions import ErrorDetail
+from rest_framework.exceptions import ErrorDetail, ValidationError
 
+from sentry.api.fields.transformations import TransformationsField
 from sentry.explore import utils
 from sentry.explore.endpoints.explore_saved_queries import (
     PREBUILT_SAVED_QUERIES,
@@ -859,6 +861,184 @@ class ExploreSavedQueriesTest(APITestCase):
         ]
         assert data["projects"] == self.project_ids
         assert data["dataset"] == "spans"
+
+    def test_save_visualize_transformations(self) -> None:
+        self.assert_save_transformations("visualize")
+
+    def test_save_aggregate_field_transformations(self) -> None:
+        self.assert_save_transformations("aggregateField")
+
+    def assert_save_transformations(self, visualization_key: str) -> None:
+        with self.feature(
+            {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Transformed query",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "mode": "aggregate",
+                            visualization_key: [
+                                {
+                                    "yAxes": ["count(span.duration)", "count(span.duration)"],
+                                    "transformations": {
+                                        "1": ["fill(locf)", "smooth(sma)", "fill(locf)", ""],
+                                        "0": [" future(function) "],
+                                    },
+                                },
+                                {"yAxes": ["avg(span.duration)"], "transformations": {"0": []}},
+                            ],
+                        }
+                    ],
+                },
+            )
+
+        assert response.status_code == 201, response.data
+        saved = ExploreSavedQuery.objects.get(id=response.data["id"], organization=self.org)
+        assert saved.query["query"][0][visualization_key] == [
+            {
+                "yAxes": ["count(span.duration)", "count(span.duration)"],
+                "transformations": {
+                    "1": ["fill(locf)", "smooth(sma)", "fill(locf)", ""],
+                    "0": [" future(function) "],
+                },
+            },
+            {"yAxes": ["avg(span.duration)"], "transformations": {"0": []}},
+        ]
+        detail_url = reverse(
+            "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, saved.id]
+        )
+        with self.feature(self.features):
+            retrieved = self.client.get(detail_url)
+        assert retrieved.status_code == 200, retrieved.data
+        assert retrieved.data["query"][0][visualization_key][0]["transformations"] == {
+            "1": ["fill(locf)", "smooth(sma)", "fill(locf)", ""],
+            "0": [" future(function) "],
+        }
+        with self.feature(
+            {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+        ):
+            updated = self.client.put(
+                detail_url,
+                {
+                    "name": "Updated transformations",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "mode": "aggregate",
+                            visualization_key: [
+                                {
+                                    "yAxes": ["count(span.duration)"],
+                                    "transformations": {"0": ["fill(zero)"]},
+                                }
+                            ],
+                        }
+                    ],
+                },
+            )
+        assert updated.status_code == 200, updated.data
+        saved.refresh_from_db()
+        assert saved.query["query"][0][visualization_key] == [
+            {"yAxes": ["count(span.duration)"], "transformations": {"0": ["fill(zero)"]}}
+        ]
+        with self.feature(
+            {**self.features, "organizations:explore-interpolation-and-smoothing": False}
+        ):
+            rejected = self.client.put(
+                detail_url,
+                {
+                    "name": "Disabled transformations",
+                    "projects": self.project_ids,
+                    "query": updated.data["query"],
+                },
+            )
+            assert rejected.status_code == 400, rejected.data
+            assert rejected.data == {
+                "query": {
+                    visualization_key: {
+                        "transformations": [
+                            "Transformations are not enabled for this organization."
+                        ]
+                    }
+                }
+            }
+            cleared = self.client.put(
+                detail_url,
+                {
+                    "name": "Cleared transformations",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "mode": "aggregate",
+                            visualization_key: [
+                                {"yAxes": ["count(span.duration)"], "transformations": {}}
+                            ],
+                        }
+                    ],
+                },
+            )
+        assert cleared.status_code == 200, cleared.data
+        saved.refresh_from_db()
+        assert saved.query["query"][0][visualization_key] == [
+            {"yAxes": ["count(span.duration)"], "transformations": {}}
+        ]
+
+    def test_save_invalid_transformations(self) -> None:
+        with self.feature(
+            {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Invalid transformations",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "mode": "aggregate",
+                            "aggregateField": [
+                                {
+                                    "yAxes": ["count(span.duration)"],
+                                    "transformations": {"1": ["fill(locf)"]},
+                                }
+                            ],
+                        }
+                    ],
+                },
+            )
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "query": {
+                "aggregateField": {
+                    "transformations": ["transformations index must match a yAxis position"]
+                }
+            }
+        }
+
+    def test_group_by_rejects_transformations(self) -> None:
+        with self.feature(
+            {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Invalid group by",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "mode": "aggregate",
+                            "aggregateField": [
+                                {"groupBy": "project", "transformations": {"0": []}}
+                            ],
+                        }
+                    ],
+                },
+            )
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "query": {"aggregateField": {"transformations": ["Transformations require yAxes."]}}
+        }
 
     def test_post_all_projects(self) -> None:
         with self.feature(self.features):
@@ -1898,3 +2078,25 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 201, response.content
         data = response.data
         assert data["query"][0].get("metric") is None
+
+
+@pytest.mark.parametrize(
+    "transformations",
+    [
+        {"01": ["fill(locf)"]},
+        {"-1": ["fill(locf)"]},
+        {"+1": ["fill(locf)"]},
+        {"1.0": ["fill(locf)"]},
+        {"٠": ["fill(locf)"]},
+        pytest.param({"9" * 5000: []}, id="oversized-index"),
+        {"0": "fill(locf)"},
+        {"0": [1]},
+        {"0": [None]},
+        {"0": [True]},
+        [],
+        None,
+    ],
+)
+def test_invalid_transformation_shape(transformations) -> None:
+    with pytest.raises(ValidationError):
+        TransformationsField().run_validation(transformations)

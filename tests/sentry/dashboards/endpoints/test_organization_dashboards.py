@@ -1120,6 +1120,127 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
+    def test_transformations_round_trip(self) -> None:
+        query_data = {
+            "fields": ["count()", "count()"],
+            "aggregates": ["count()", "count()"],
+            "columns": [],
+            "conditions": "",
+            "transformations": {"1": ["fill(locf)", "smooth(sma)", "fill(locf)", ""]},
+        }
+        with self.feature("organizations:explore-interpolation-and-smoothing"):
+            response = self.client.post(
+                self.url,
+                {
+                    "title": "Transformed dashboard",
+                    "widgets": [
+                        {
+                            "title": "Transformed widget",
+                            "displayType": "line",
+                            "widgetType": "error-events",
+                            "queries": [query_data],
+                        }
+                    ],
+                },
+            )
+        assert response.status_code == 201, response.data
+        dashboard_id = response.data["id"]
+        widget = response.data["widgets"][0]
+        query = widget["queries"][0]
+        saved = DashboardWidgetQuery.objects.get(id=query["id"])
+        assert saved.transformations == {"1": ["fill(locf)", "smooth(sma)", "fill(locf)", ""]}
+        detail_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            args=[self.organization.slug, dashboard_id],
+        )
+        retrieved = self.client.get(detail_url)
+        assert retrieved.status_code == 200, retrieved.data
+        assert retrieved.data["widgets"][0]["queries"][0]["transformations"] == {
+            "1": ["fill(locf)", "smooth(sma)", "fill(locf)", ""]
+        }
+
+        widget_data = {"id": widget["id"], "queries": [{"id": query["id"], "name": "Renamed"}]}
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            updated = self.client.put(detail_url, {"widgets": [widget_data]})
+        assert updated.status_code == 200, updated.data
+        assert updated.data["widgets"][0]["queries"][0]["transformations"] == {
+            "1": ["fill(locf)", "smooth(sma)", "fill(locf)", ""]
+        }
+
+        with self.feature("organizations:explore-interpolation-and-smoothing"):
+            invalid = self.client.put(
+                detail_url,
+                {
+                    "widgets": [
+                        {
+                            "id": widget["id"],
+                            "queries": [{"id": query["id"], "aggregates": ["count()"]}],
+                        }
+                    ]
+                },
+            )
+            assert invalid.status_code == 400, invalid.data
+            assert "transformations" in invalid.data["widgets"][0]["queries"][0]
+            replacement = self.client.put(
+                detail_url,
+                {
+                    "widgets": [
+                        {
+                            "id": widget["id"],
+                            "queries": [
+                                {"id": query["id"], "transformations": {"0": ["fill(zero)"]}},
+                                query_data,
+                            ],
+                        }
+                    ]
+                },
+            )
+        assert replacement.status_code == 200, replacement.data
+        assert [q["transformations"] for q in replacement.data["widgets"][0]["queries"]] == [
+            {"0": ["fill(zero)"]},
+            {"1": ["fill(locf)", "smooth(sma)", "fill(locf)", ""]},
+        ]
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            cleared = self.client.put(
+                detail_url,
+                {
+                    "widgets": [
+                        {
+                            "id": widget["id"],
+                            "queries": [{"id": query["id"], "transformations": {}}],
+                        }
+                    ]
+                },
+            )
+        assert cleared.status_code == 200, cleared.data
+        saved.refresh_from_db()
+        assert saved.transformations == {}
+
+    def test_transformations_require_feature(self) -> None:
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            response = self.client.post(
+                self.url,
+                {
+                    "title": "Transformed dashboard",
+                    "widgets": [
+                        {
+                            "title": "Transformed widget",
+                            "displayType": "line",
+                            "queries": [
+                                {
+                                    "fields": ["count()"],
+                                    "aggregates": ["count()"],
+                                    "conditions": "",
+                                    "transformations": {"0": ["fill(locf)"]},
+                                }
+                            ],
+                        }
+                    ],
+                },
+            )
+        assert response.status_code == 400, response.data
+        assert "transformations" in response.data["widgets"][0]["queries"][0]
+
     def test_post_derives_widget_min_height(self) -> None:
         data = {
             "title": "Dashboard with derived minimum heights",
