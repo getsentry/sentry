@@ -169,6 +169,8 @@ class WorkflowEvaluation(
 
 
 class WorkflowEvaluationBatch(Protocol):
+    project_id: int | None
+
     @property
     def evaluation_phase(self) -> EvaluationPhase: ...
 
