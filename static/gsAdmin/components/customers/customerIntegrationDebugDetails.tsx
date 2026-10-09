@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,7 +9,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ResultGrid} from 'sentry/components/resultGrid';
-import {IconChevron} from 'sentry/icons';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 

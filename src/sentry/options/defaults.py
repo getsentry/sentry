@@ -284,12 +284,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
-    "auth.v2.enabled",
-    type=Bool,
-    default=True,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -1123,6 +1117,16 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When none of an event's debug IDs were uploaded, the source map debugger checks whether the
+# project has uploaded any file with a debug ID. With this set, it only checks the project's
+# newest bundles, up to this many, instead of reading the organization's debug-ID rows until one
+# is in a bundle of the project. 0 keeps the unbounded check. Capped at 10,000.
+register(
+    "sourcemaps.source-map-debug.debug-id-check-max-bundles",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
@@ -1131,10 +1135,95 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Upper bound on the number of `ArtifactBundleIndex` rows a single URL lookup in the
+# artifact-lookup endpoint scans. Releases that have more indexed files than this scan
+# their active bundles (uploaded or renewed recently) first, then the others, newest
+# first, until the budget is spent. 0 disables the limit and scans every bundle.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.max-index-rows",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Days added to `system.debug-files-renewal-age-threshold-days` to decide which bundles
+# count as active for the URL lookup. A bundle in use is renewed once it is older than the
+# threshold, so the margin must cover the time between lookups of a bundle in use.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.active-margin-days",
+    type=Int,
+    default=7,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of active, and of idle, bundles the URL lookup reads at most when
+# `sourcemaps.artifact-bundles.url-lookup.max-index-rows` is set. Lookups of releases with more
+# bundles than this are cut short even when the row budget isn't spent, which the
+# `artifact_bundle_url_lookup.candidates` metric tags as `truncated:candidates`. Capped at 10,000.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Fraction of the URL lookups cut short by the row budget or the bundle cap that are logged,
+# with the organization, project and release, to tell which releases lose files.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate",
+    type=Float,
+    default=0.01,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Number of debug-ID rows the artifact-lookup endpoint reads for a debug ID, before it checks
+# which of their bundles belong to the project, instead of joining the bundle, project and
+# debug-ID tables in one query. Debug IDs with more rows than this, such as those of files that
+# many uploads share, still use that query. 0 always uses it. Capped at 10,000.
+register(
+    "sourcemaps.artifact-bundles.debug-id-lookup.max-rows",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
 # debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
 register(
     "sourcemaps.artifact-bundles.index-skip-debug-id-names",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Decide whether a release is fully indexed from its newest bundles only, instead of
+# counting every bundle in the release on each artifact-lookup request.
+register(
+    "sourcemaps.artifact-bundles.bounded-indexing-state",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Seconds to cache the bundle count per release used by the upload task to decide whether
+# to index and backfill. 0 disables the cache.
+register(
+    "sourcemaps.artifact-bundles.indexing-state-cache-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Keep `date_added` up to date on `ArtifactBundle` only. Re-uploading or renewing a bundle then
+# no longer rewrites its debug-ID, release, project and URL index rows, whose `date_added`
+# nothing reads.
+register(
+    "sourcemaps.artifact-bundles.date-only-on-bundle",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When a bundle is uploaded again, update its debug-ID rows by bundle alone instead of by bundle
+# and organization, so that Postgres doesn't also read the organization's slice of that table's
+# organization index. Has no effect with `sourcemaps.artifact-bundles.date-only-on-bundle`,
+# which skips the update.
+register(
+    "sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1691,6 +1780,21 @@ register(
     type=Any,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "store.enable-inline-payloads",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Suppresses working-cache keys only for events entering in the inline cohort.
+# Keyless events remain inline after rollout changes; keyed events keep writing.
+# Unprocessed backups and cleanup remain in Redis.
+register(
+    "store.disable-processing-store",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "post_process.get-autoassign-owners",
@@ -4281,7 +4385,7 @@ register(
 
 
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
-# human feedback resets the streak. See ``automated_iteration_cap_reached``.
+# human feedback resets the streak. See ``automated_streak_cap_reached``.
 register(
     "autofix.pr-iteration.max-iterations",
     type=Int,
@@ -4514,6 +4618,18 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of `ArtifactBundleIndex` rows the source map debugger reads at most to match the frames
+# of an event to the files of its release by URL. When set, it reads once per request the URLs of
+# the release's newest bundles, as many bundles as fit in this many rows and always the newest
+# one, up to this many rows, instead of looking up each URL in the `(url, artifact_bundle_id)`
+# index. Files only found in older bundles, or beyond the rows read, are then reported as not
+# found. 0 keeps the index lookups.
+register(
+    "sourcemaps.source-map-debug.url-match-max-index-rows",
+    default=0,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Killswitch for token-level remapping of compound Dart exception types.

@@ -7,8 +7,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
-import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 import {SettingsCommandPaletteActions} from 'sentry/views/settings/settingsCommandPaletteActions';
+
+import {SettingsBreadcrumbsProvider} from './settingsBreadcrumb/settingsBreadcrumbsProvider';
 
 function scrollDisable(newLocation: Location, prevLocation: Location) {
   return newLocation.pathname === prevLocation.pathname;
@@ -20,12 +21,12 @@ export function SettingsWrapper() {
 
   return (
     <AnalyticsArea name="settings">
-      <StyledFlex flex="1" background="primary">
-        <BreadcrumbProvider>
+      <SettingsBreadcrumbsProvider>
+        <StyledFlex flex="1" background="primary">
           <SettingsCommandPaletteActions />
           <Outlet />
-        </BreadcrumbProvider>
-      </StyledFlex>
+        </StyledFlex>
+      </SettingsBreadcrumbsProvider>
     </AnalyticsArea>
   );
 }

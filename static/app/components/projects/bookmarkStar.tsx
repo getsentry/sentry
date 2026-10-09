@@ -1,11 +1,11 @@
 import {useState} from 'react';
+import {IconStar} from '@sentry/icons/star';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {update} from 'sentry/actionCreators/projects';
-import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

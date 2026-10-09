@@ -466,7 +466,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         assert orjson.loads(blocks[0]["block_id"]) == {
             "issue": self.group.id,
-            "rule": workflow_id,
             "workflow": workflow_id,
         }
 

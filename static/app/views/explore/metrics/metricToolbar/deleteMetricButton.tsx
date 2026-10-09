@@ -1,6 +1,7 @@
+import {IconDelete} from '@sentry/icons/delete';
+
 import {Button} from '@sentry/scraps/button';
 
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useRemoveMetric} from 'sentry/views/explore/metrics/metricsQueryParams';
 

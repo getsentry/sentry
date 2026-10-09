@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
 import omit from 'lodash/omit';
-
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCopyId, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -112,43 +112,40 @@ export function ProfileHeader({
 
   return (
     <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList items={items} />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: getShortEventId(profileId),
-            labelTooltip: profileId,
-            leadingGraphic: projectGraphic,
-            trailingActions: {
-              type: 'menu',
-              triggerLabel: t('Profile Actions'),
-              triggerIcon: <IconEllipsis />,
-              items: [
-                {
-                  key: 'copy-profile-id',
-                  label: copyIdLabel,
-                  leadingItems: <IconCopyId variant="muted" />,
-                  onAction: () => copy(profileId),
-                },
-                ...(transactionTarget
-                  ? [
-                      {
-                        key: 'open-trace',
-                        label: t('Open Trace'),
-                        leadingItems: <IconOpen variant="muted" />,
-                        to: transactionTarget,
-                        onAction: handleGoToTransaction,
-                      },
-                    ]
-                  : []),
-              ],
-            },
-          }}
-        />
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: getShortEventId(profileId),
+          labelTooltip: profileId,
+          leadingGraphic: projectGraphic,
+          trailingActions: {
+            type: 'menu',
+            triggerLabel: t('Profile Actions'),
+            triggerIcon: <IconEllipsis />,
+            items: [
+              {
+                key: 'copy-profile-id',
+                label: copyIdLabel,
+                leadingItems: <IconCopyId variant="muted" />,
+                onAction: () => copy(profileId),
+              },
+              ...(transactionTarget
+                ? [
+                    {
+                      key: 'open-trace',
+                      label: t('Open Trace'),
+                      leadingItems: <IconOpen variant="muted" />,
+                      to: transactionTarget,
+                      onAction: handleGoToTransaction,
+                    },
+                  ]
+                : []),
+            ],
+          },
+        }}
+        items={items}
+      />
       <TopBar.Slot name="feedback">
         <FeedbackButton
           aria-label={t('Give Feedback')}

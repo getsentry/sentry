@@ -1,3 +1,5 @@
+import {IconSubtract} from '@sentry/icons/subtract';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -6,7 +8,6 @@ import {Confirm} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {MessageType, type TempestCredentials} from './types';

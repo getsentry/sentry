@@ -1,3 +1,4 @@
+import {IconDelete} from '@sentry/icons/delete';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -20,7 +21,6 @@ import {FieldGroup as LegacyFieldGroup} from 'sentry/components/forms/fieldGroup
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -29,6 +29,7 @@ import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -90,6 +91,7 @@ export default function TeamSettings() {
 
   return (
     <FormSearch route="/settings/:orgId/teams/:teamId/settings/">
+      <BreadcrumbTitle title={t('Settings')} />
       <SentryDocumentTitle title={t('Team Settings')} orgSlug={organization.slug} />
 
       <ProjectPermissionAlert access={['team:write']} team={team} />

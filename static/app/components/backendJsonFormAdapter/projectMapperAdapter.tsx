@@ -1,4 +1,10 @@
 import {useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconGeneric} from '@sentry/icons/generic';
+import {IconOpen} from '@sentry/icons/open';
+import {IconVercel} from '@sentry/icons/vercel';
 import * as Sentry from '@sentry/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
@@ -9,14 +15,6 @@ import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {IdBadge} from 'sentry/components/idBadge';
-import {
-  IconAdd,
-  IconArrow,
-  IconDelete,
-  IconGeneric,
-  IconOpen,
-  IconVercel,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
