@@ -14,8 +14,7 @@ from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import NotificationOrigin
-from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.notifications.utils.rules import get_key_from_rule_data, get_rule_or_workflow_id
+from sentry.notifications.utils.rules import get_workflow_url
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
@@ -251,15 +250,6 @@ def build_attachment_replay_link(
     return None
 
 
-def build_rule_url(rule: Rule | NotificationOrigin, group: Group, project: Project) -> str:
-    org_slug = group.organization.slug
-    project_slug = project.slug
-    rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
-    rule_url = f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule_id}/details/"
-
-    return absolute_uri(rule_url)
-
-
 def build_footer(
     group: Group,
     project: Project,
@@ -268,17 +258,12 @@ def build_footer(
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
-        key, value = get_rule_or_workflow_id(rules[0], prefer="workflow_id")
-        match key:
-            case "workflow_id":
-                rule_url = absolute_uri(create_link_to_workflow(group.organization.slug, value))
-            case "legacy_rule_id":
-                rule_url = build_rule_url(rules[0], group, project)
-
         # If this notification is triggered via the "Send Test Notification"
-        # button then the label is not defined, but the url works.
+        # button then the label is not defined.
         text = rules[0].label if rules[0].label else "Test Alert"
-        footer += f" via {url_format.format(text=text, url=rule_url)}"
+        workflow_url = get_workflow_url(rules[0], group.organization.slug)
+        linked_text = url_format.format(text=text, url=workflow_url) if workflow_url else text
+        footer += f" via {linked_text}"
 
         if len(rules) > 1:
             footer += f" (+{len(rules) - 1} other)"
