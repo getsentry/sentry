@@ -282,6 +282,51 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_EMBEDDINGS_INPUT]).toBe('search query text');
   });
 
+  it('maps gen_ai.memory.* to node attributes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/conv-memory/`,
+      body: envelope([
+        {
+          'gen_ai.conversation.id': 'conv-memory',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1000.5,
+          'precise.start_ts': 1000,
+          project: 'test-project',
+          'project.id': 1,
+          'span.name': 'search_memory',
+          'span.op': 'gen_ai.search_memory',
+          'span.status': 'ok',
+          span_id: 'span-memory',
+          trace: 'trace-memory',
+          'gen_ai.operation.type': 'memory',
+          'gen_ai.operation.name': 'search_memory',
+          'gen_ai.memory.store.id': 'user-prefs',
+          'gen_ai.memory.query.text': 'dietary preferences',
+          'gen_ai.memory.record.id': 'mem_123',
+          'gen_ai.memory.record.count': 3,
+        },
+      ]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-memory'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes).toHaveLength(1);
+    const node = result.current.nodes[0];
+    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+      .additional_attributes;
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_STORE_ID]).toBe('user-prefs');
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_QUERY_TEXT]).toBe('dietary preferences');
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORD_ID]).toBe('mem_123');
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORD_COUNT]).toBe(3);
+  });
+
   it('maps gen_ai.operation.name to node attributes', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-evaluation/`,

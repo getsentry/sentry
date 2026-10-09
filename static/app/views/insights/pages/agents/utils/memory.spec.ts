@@ -1,14 +1,29 @@
 import {
   formatMemoryScore,
+  getMemoryPreview,
   getMemoryResultText,
   getNodeMemory,
   isMemoryNode,
   isMemoryOperation,
+  type Memory,
 } from 'sentry/views/insights/pages/agents/utils/memory';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 function makeNode(attributes: Record<string, string | number>): AITraceSpanNode {
   return {errors: new Set(), attributes} as unknown as AITraceSpanNode;
+}
+
+function makeMemory(overrides: Partial<Memory>): Memory {
+  return {
+    operation: undefined,
+    query: undefined,
+    rawRecords: undefined,
+    recordCount: undefined,
+    recordId: undefined,
+    records: null,
+    storeId: undefined,
+    ...overrides,
+  };
 }
 
 describe('isMemoryOperation', () => {
@@ -96,6 +111,74 @@ describe('getNodeMemory', () => {
     );
 
     expect(memory?.records).toBeNull();
+  });
+});
+
+describe('getMemoryPreview', () => {
+  it('shows only the query for a search', () => {
+    expect(
+      getMemoryPreview(
+        makeMemory({
+          operation: 'search_memory',
+          query: 'dietary preferences',
+          recordCount: 3,
+        })
+      )
+    ).toBe('“dietary preferences”');
+    expect(getMemoryPreview(makeMemory({operation: 'search_memory'}))).toBe('');
+  });
+
+  it('shows a single record’s content when captured', () => {
+    expect(
+      getMemoryPreview(
+        makeMemory({
+          operation: 'create_memory',
+          recordCount: 1,
+          records: [{content: 'User prefers dark mode'}],
+        })
+      )
+    ).toBe('User prefers dark mode');
+  });
+
+  it('falls back to the record count as memories', () => {
+    expect(
+      getMemoryPreview(makeMemory({operation: 'create_memory', recordCount: 3}))
+    ).toBe('3 memories');
+    expect(
+      getMemoryPreview(makeMemory({operation: 'update_memory', recordCount: 1}))
+    ).toBe('1 memory');
+  });
+
+  it('summarizes a delete by count, record id, or store-wide fallback', () => {
+    expect(
+      getMemoryPreview(makeMemory({operation: 'delete_memory', recordCount: 2}))
+    ).toBe('2 memories');
+    // A single deleted record shows the count, not its content.
+    expect(
+      getMemoryPreview(
+        makeMemory({
+          operation: 'delete_memory',
+          recordCount: 1,
+          records: [{content: 'User prefers dark mode'}],
+        })
+      )
+    ).toBe('1 memory');
+    expect(
+      getMemoryPreview(makeMemory({operation: 'delete_memory', recordId: 'mem_1'}))
+    ).toBe('mem_1');
+    expect(getMemoryPreview(makeMemory({operation: 'delete_memory'}))).toBe(
+      'all memories'
+    );
+  });
+
+  it('summarizes a store operation by its store id', () => {
+    expect(
+      getMemoryPreview(makeMemory({operation: 'create_memory_store', storeId: 'ms_1'}))
+    ).toBe('ms_1');
+  });
+
+  it('is empty for no memory', () => {
+    expect(getMemoryPreview(null)).toBe('');
   });
 });
 
