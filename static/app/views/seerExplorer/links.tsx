@@ -432,32 +432,11 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_cron_monitor_details',
-    // Classic cron monitors. The workflow-engine `detectors` route is a different surface and is
-    // claimed above; these still need project + slug for the alerts UI.
     prefix: /\/monitors\/\{monitor_id_or_slug\}/,
-    resolve: ({params, title}, {organization, projects}) => {
-      const monitor = asUrlSegment(params.monitor_id_or_slug);
-      if (!monitor) {
-        return null;
-      }
-
-      const project = resolveProject(params.project_id_or_slug, projects);
-      if (!project) {
-        // Org-level monitor fetch has no project in path params. The cron detail page needs one,
-        // and guessing wrong lands on a 404 — leave the row unlinked.
-        return null;
-      }
-
-      return {
-        label: title ?? t('View monitor'),
-        url: {
-          pathname: makeAlertsPathname({
-            organization,
-            path: `/rules/crons/${project.slug}/${encodeURIComponent(monitor)}/details/`,
-          }),
-        },
-      };
-    },
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View monitors'),
+      url: {pathname: makeMonitorBasePathname(organization.slug)},
+    }),
   },
   {
     id: 'get_issue_alert_rule',
