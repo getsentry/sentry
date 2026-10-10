@@ -221,3 +221,18 @@ def get_allowed_org_roles(
             return ()
 
     return member.get_allowed_org_roles_to_invite()
+
+
+def get_invite_context_from_request(request: Request) -> dict[str, str | None]:
+    """
+    Helper to extract email from an invite token in a session or request parameters.
+    Used by registration forms to pre-fill the email address.
+    """
+    token = request.GET.get("token") or request.session.get("invite_token")
+    if not token:
+        return {"email": None}
+
+    from sentry.models.organizationmember import OrganizationMember
+
+    member = OrganizationMember.objects.filter(token=token).first()
+    return {"email": member.email if member else None}
