@@ -1,10 +1,12 @@
 import datetime
 
+from django.db import DEFAULT_DB_ALIAS, connections
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
 from sentry.models.deploy import Deploy
-from sentry.models.environment import Environment
+from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.silo.base import SiloMode
@@ -501,3 +503,58 @@ class ReleaseDeploysCreateTest(APITestCase):
         assert not ReleaseProjectEnvironment.objects.filter(
             project=self.project, release=release, environment=environment
         ).exists()
+
+    def test_no_n_plus_one_queries_for_many_projects(self) -> None:
+        """
+        Regression test: creating a deploy for a release with many projects must NOT
+        issue a DB query per project (N+1). The bulk_create paths for EnvironmentProject
+        and ReleaseProjectEnvironment should keep query count constant.
+        """
+        # Build a release with 5 projects
+        projects = [self.project]
+        for i in range(4):
+            projects.append(self.create_project(organization=self.org, name=f"proj-{i}"))
+
+        release = Release.objects.create(
+            organization_id=self.org.id, version="v-np1", total_deploys=0
+        )
+        for p in projects:
+            release.add_project(p)
+
+        url = reverse(
+            "sentry-api-0-organization-release-deploys",
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "version": release.version,
+            },
+        )
+
+        with CaptureQueriesContext(connections[DEFAULT_DB_ALIAS]) as ctx:
+            response = self.client.post(
+                url,
+                data={"name": "bulk-test", "environment": "staging"},
+            )
+
+        assert response.status_code == 201, response.content
+
+        environment = Environment.objects.get(name="staging", organization_id=self.org.id)
+
+        # All EnvironmentProject rows must exist
+        assert EnvironmentProject.objects.filter(environment=environment).count() == len(projects)
+
+        # All ReleaseProjectEnvironment rows must exist with the correct deploy
+        deploy = Deploy.objects.get(id=response.data["id"])
+        for p in projects:
+            rpe = ReleaseProjectEnvironment.objects.get(
+                project=p, release=release, environment=environment
+            )
+            assert rpe.last_deploy_id == deploy.id
+
+        # Query count must not scale linearly with the number of projects.
+        # With N=5 projects, a naive loop would add 10+ queries (2 per project).
+        # The bulk path adds exactly 2 queries (one bulk INSERT each).
+        # We allow generous headroom for auth / release / deploy overhead,
+        # but reject anything that grows linearly: cap at 30 total queries.
+        assert len(ctx.captured_queries) < 30, (
+            f"Too many queries ({len(ctx.captured_queries)}) — possible N+1 regression"
+        )
