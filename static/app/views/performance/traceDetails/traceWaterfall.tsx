@@ -65,7 +65,6 @@ import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
 import {
   TracePinnedAttributeContext,
-  TRACE_ATTRIBUTE_PINNING_FEATURE,
   useTracePinnedAttribute,
 } from './tracePinnedAttribute';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
@@ -631,10 +630,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const pinnedAttribute = useTracePinnedAttribute({
     isLoading: onLoadScrollStatus === 'pending',
-    enabled:
-      props.source === 'performance' &&
-      !disableUrlSync &&
-      organization.features.includes(TRACE_ATTRIBUTE_PINNING_FEATURE),
+    enabled: props.source === 'performance' && !disableUrlSync,
     traceSlug: props.traceSlug,
     tree: props.tree,
     manager: viewManager,
