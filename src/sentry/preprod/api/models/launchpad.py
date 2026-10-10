@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 
@@ -10,7 +10,6 @@ from sentry.preprod.models import PreprodArtifactSizeMetrics
 
 
 class PutSizeFailed(BaseModel):
-    model_config = ConfigDict()
     state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED] = (
         PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED
     )
@@ -19,14 +18,12 @@ class PutSizeFailed(BaseModel):
 
 
 class PutSizeProcessing(BaseModel):
-    model_config = ConfigDict()
     state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING] = (
         PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
     )
 
 
 class PutSizePending(BaseModel):
-    model_config = ConfigDict()
     state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING] = (
         PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
     )
