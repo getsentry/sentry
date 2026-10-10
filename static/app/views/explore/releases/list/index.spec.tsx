@@ -557,6 +557,35 @@ describe('ReleasesList', () => {
     expect(screen.queryByText(/hidden projects/)).not.toBeInTheDocument();
   });
 
+  it('shows health rows past the first five projects when expanded', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [
+        {
+          ...ReleaseFixture({version: '2.0.0'}),
+          projects: Array.from({length: 7}, (_, index) => ({
+            id: index + 1,
+            name: `Test${index + 1}`,
+            slug: `test${index + 1}`,
+          })),
+        },
+      ],
+    });
+    PageFiltersStore.updateProjects([-1], null);
+    render(<ReleasesList />, {organization});
+
+    expect(await screen.findAllByRole('button', {name: 'View'})).toHaveLength(5);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 More'}));
+
+    expect(screen.getAllByRole('button', {name: 'View'})).toHaveLength(7);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+
+    expect(screen.getAllByRole('button', {name: 'View'})).toHaveLength(5);
+    expect(screen.getByRole('button', {name: 'Show 2 More'})).toBeInTheDocument();
+  });
+
   it('renders mobile builds when the mobile-builds tab is selected', async () => {
     const mobileProject = ProjectFixture({
       id: '12',

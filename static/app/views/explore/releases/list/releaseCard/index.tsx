@@ -2,22 +2,21 @@ import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
 import type {Location} from 'history';
 import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, type GridProps, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {COL_WIDTH_MINIMUM, Table, type TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Collapsible} from 'sentry/components/collapsible';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
@@ -26,6 +25,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {useUser} from 'sentry/utils/useUser';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useFinalizeRelease} from 'sentry/views/explore/releases/components/useFinalizeRelease';
 import type {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/explore/releases/list/releasesRequest';
@@ -225,63 +225,51 @@ export function ReleaseCard({
         </ReleaseInfoSubheader>
       </Stack>
 
-      <Grid borderTop={{zero: 'primary', '3xl': 'none'}} flexGrow={1}>
-        {/* projects is the table */}
-        <ReleaseProjectsHeader lightText>
-          <Grid
-            align="center"
-            columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
-            gap="0 md"
-            width="100%"
-          >
-            <ReleaseProjectColumn>{t('Project Slug')}</ReleaseProjectColumn>
-            {showReleaseAdoptionStages && (
-              <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
-            )}
-            <AdoptionColumn>
-              <span>{t('Adoption')}</span>
-              <ReleaseCardStatsPeriod location={location} />
-            </AdoptionColumn>
-            <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
-            <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
-            <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-          </Grid>
-        </ReleaseProjectsHeader>
-
-        <Container position="relative">
+      <Container borderTop={{zero: 'primary', '3xl': 'none'}} flexGrow={1}>
+        <ProjectsTable
+          aria-label={t('Projects in release %s', formatVersion(version))}
+          columns={getProjectColumns(showReleaseAdoptionStages)}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Project Slug')}</SimpleTable.HeaderCell>
+              {showReleaseAdoptionStages && (
+                <SimpleTable.HeaderCell>{t('Adoption Stage')}</SimpleTable.HeaderCell>
+              )}
+              <AdoptionHeaderCell scope="col" aria-label={t('Adoption')}>
+                {t('Adoption')}
+                <ReleaseCardStatsPeriod location={location} />
+              </AdoptionHeaderCell>
+              <SimpleTable.HeaderCell align="right">
+                {t('Crash Free Rate')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell align="right">
+                {t('Crashes')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell align="right">
+                {t('New Issues')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell aria-label={t('View release')} />
+            </SimpleTable.HeaderRow>
+          }
+        >
           <Collapsible
             expandButton={({onExpand, numberOfHiddenItems}) => (
-              <Flex
-                align="center"
-                bottom="0"
-                justify="center"
-                position="absolute"
-                radius={{zero: '0 0 md md', '3xl': '0 0 md 0'}}
-                width="100%"
-                css={cssTheme => css`
-                  background-image: linear-gradient(
-                    180deg,
-                    ${color(cssTheme.tokens.background.primary).alpha(0).string()} 0,
-                    ${cssTheme.tokens.background.primary}
-                  );
-                  background-repeat: repeat-x;
-                  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The border extends the fade's background fill. */
-                  border-bottom: ${cssTheme.space.md} solid
-                    ${cssTheme.tokens.background.primary};
-                  border-top: ${cssTheme.space.md} solid transparent;
-                `}
-              >
-                <Button variant="primary" size="xs" onClick={onExpand}>
-                  {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
-                </Button>
-              </Flex>
+              <SimpleTable.FullWidthRow>
+                <Flex justify="center" padding="md">
+                  <Button variant="primary" size="xs" onClick={onExpand}>
+                    {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
+                  </Button>
+                </Flex>
+              </SimpleTable.FullWidthRow>
             )}
             collapseButton={({onCollapse}) => (
-              <Flex justify="center" align="center" height="41px">
-                <Button variant="primary" size="xs" onClick={onCollapse}>
-                  {t('Collapse')}
-                </Button>
-              </Flex>
+              <SimpleTable.FullWidthRow>
+                <Flex justify="center" padding="md">
+                  <Button variant="primary" size="xs" onClick={onCollapse}>
+                    {t('Collapse')}
+                  </Button>
+                </Flex>
+              </SimpleTable.FullWidthRow>
             )}
           >
             {projectsToShow.map((project, index) => {
@@ -304,38 +292,26 @@ export function ReleaseCard({
               );
             })}
           </Collapsible>
-        </Container>
 
-        {projectsToHide.length > 0 && (
-          <Flex
-            align="center"
-            background="secondary"
-            borderTop="primary"
-            height="24px"
-            overflow="hidden"
-            padding="0 xl"
-            css={cssTheme => css`
-              border-bottom-right-radius: ${cssTheme.radius.md};
-
-              @container (max-width: ${cssTheme.container['3xl']}) {
-                border-bottom-left-radius: ${cssTheme.radius.md};
-              }
-            `}
-          >
-            <Text size="sm" variant="muted">
-              <Tooltip title={getHiddenProjectsTooltip()}>
-                <TextOverflow>
-                  {projectsToHide.length === 1
-                    ? tct('[number:1] hidden project', {number: <strong />})
-                    : tct('[number] hidden projects', {
-                        number: <strong>{projectsToHide.length}</strong>,
-                      })}
-                </TextOverflow>
-              </Tooltip>
-            </Text>
-          </Flex>
-        )}
-      </Grid>
+          {projectsToHide.length > 0 && (
+            <SimpleTable.FullWidthRow>
+              <Container padding="md xl">
+                <Text size="sm" variant="muted">
+                  <Tooltip title={getHiddenProjectsTooltip()}>
+                    <TextOverflow>
+                      {projectsToHide.length === 1
+                        ? tct('[number:1] hidden project', {number: <strong />})
+                        : tct('[number] hidden projects', {
+                            number: <strong>{projectsToHide.length}</strong>,
+                          })}
+                    </TextOverflow>
+                  </Tooltip>
+                </Text>
+              </Container>
+            </SimpleTable.FullWidthRow>
+          )}
+        </ProjectsTable>
+      </Container>
     </ResponsivePanel>
   );
 }
@@ -406,100 +382,26 @@ const ReleaseInfoHeader = styled('div')`
   align-items: center;
 `;
 
-const ReleaseProjectsHeader = styled(PanelHeader)`
-  border-top-left-radius: 0;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  font-size: ${p => p.theme.font.size.sm};
+const ProjectsTable = styled(SimpleTable)`
+  border: 0;
 `;
 
-export function getReleaseProjectColumns(
-  showReleaseAdoptionStages: boolean
-): NonNullable<GridProps['columns']> {
-  const adoptionStagesSize = showReleaseAdoptionStages ? '0.7fr' : '';
-
-  return {
-    zero: '1fr 1.4fr 0.6fr 0.7fr',
-    xl: '1fr 1fr 1fr 0.5fr 0.5fr 0.5fr',
-    '5xl': `1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`,
-  };
-}
-
-export const ReleaseProjectColumn = styled('div')`
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 20px;
+const AdoptionHeaderCell = styled(Table.HeadCell)`
+  padding: 0 ${p => p.theme.space.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
-export function NewIssuesColumn({children}: {children: React.ReactNode}) {
-  return (
-    <Text align={{zero: 'left', xl: 'right'}} tabular>
-      {containerProps => (
-        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
-      )}
-    </Text>
-  );
-}
-
-const StyledAdoptionColumn = styled(ReleaseProjectColumn)`
-  font-variant-numeric: tabular-nums;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    overflow: visible;
-  }
-
-  & > * {
-    flex: 1;
-  }
-`;
-
-export function AdoptionColumn({children}: {children: React.ReactNode}) {
-  return (
-    <Container display={{zero: 'none', xl: 'flex'}}>
-      {containerProps => (
-        <StyledAdoptionColumn {...containerProps}>{children}</StyledAdoptionColumn>
-      )}
-    </Container>
-  );
-}
-
-const StyledAdoptionStageColumn = styled(ReleaseProjectColumn)`
-  font-variant-numeric: tabular-nums;
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    overflow: visible;
-  }
-`;
-
-export function AdoptionStageColumn({children}: {children: React.ReactNode}) {
-  return (
-    <Container display={{zero: 'none', '5xl': 'flex'}}>
-      {containerProps => (
-        <StyledAdoptionStageColumn {...containerProps}>
-          {children}
-        </StyledAdoptionStageColumn>
-      )}
-    </Container>
-  );
-}
-
-export function CrashFreeRateColumn({children}: {children: React.ReactNode}) {
-  return (
-    <Text align={{zero: 'left', xl: 'center', '5xl': 'right'}} tabular>
-      {containerProps => (
-        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
-      )}
-    </Text>
-  );
-}
-
-export function DisplaySmallCol({children}: {children: React.ReactNode}) {
-  return (
-    <Text align="right" display={{zero: 'none', xl: 'block'}} tabular>
-      {containerProps => (
-        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
-      )}
-    </Text>
-  );
+function getProjectColumns(showReleaseAdoptionStages: boolean): TableColumnConfig[] {
+  return [
+    {key: 'project', width: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`},
+    ...(showReleaseAdoptionStages
+      ? [{key: 'adoptionStage', visible: {'5xl': true}}]
+      : []),
+    {key: 'adoption', visible: {xl: true}, width: '1fr'},
+    {key: 'crashFreeRate'},
+    {key: 'crashes', visible: {xl: true}},
+    {key: 'newIssues'},
+    {key: 'view'},
+  ];
 }
