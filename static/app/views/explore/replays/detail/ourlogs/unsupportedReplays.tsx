@@ -1,13 +1,15 @@
-/**
- * SDKs that do not yet support logs in replay
- */
-const UNSUPPORTED_REPLAY_LOGS_SDK_NAMES = ['sentry.cocoa'] as const;
+import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
-type UnsupportedSDKName = (typeof UNSUPPORTED_REPLAY_LOGS_SDK_NAMES)[number];
-
-export function isLogsUnsupportedBySDK(sdkName: string | null | undefined): boolean {
+export function isLogsUnsupportedBySDK(
+  sdkName: string | null | undefined,
+  sdkVersion?: string | null
+): boolean {
   if (!sdkName) {
     return true;
   }
-  return UNSUPPORTED_REPLAY_LOGS_SDK_NAMES.includes(sdkName as UnsupportedSDKName);
+  if (sdkName === 'sentry.cocoa') {
+    // Cocoa attaches replay IDs to logs starting with 9.0.0-alpha.0.
+    return !sdkVersion || semverCompare(sdkVersion, '9.0.0-alpha.0') < 0;
+  }
+  return false;
 }
