@@ -294,6 +294,31 @@ def test_projection_preserves_nested_fields_and_adaptive_checks() -> None:
     ]
 
 
+def test_projection_preserves_causal_assessment_separately_from_supported_claim() -> None:
+    assessment = {
+        "status": "partial",
+        "mechanism": "Connection acquisition timed out.",
+        "trigger": None,
+        "evidenceIds": ["event-1"],
+        "gaps": ["The cause of pool exhaustion remains unknown."],
+    }
+    payload = projection(
+        hypotheses=[
+            hypothesis_with(
+                agentVerdict={
+                    "verdict": "supported",
+                    "confidence": 0.9,
+                    "rationale": "The event records a connection timeout.",
+                    "causalAssessment": assessment,
+                }
+            )
+        ]
+    )
+    result = validated(OrchestrationProjectionSerializer, payload)
+    assert result["hypotheses"][0]["agentVerdict"]["verdict"] == "supported"
+    assert result["hypotheses"][0]["agentVerdict"]["causalAssessment"] == assessment
+
+
 def test_projection_is_bounded_by_its_serialized_size() -> None:
     # An undeclared field is passed through untouched, so nothing but the size
     # guard bounds it.

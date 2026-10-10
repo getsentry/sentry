@@ -20,6 +20,7 @@ MAX_POINTS_PER_SERIES = 200
 MAX_ARTIFACT_BYTES = 1024 * 1024
 MAX_MARKDOWN_CHARS = 100_000
 MAX_PROJECTION_BYTES = 512 * 1024
+MAX_AGENTIC_SOURCE_BYTES = 200_000
 
 
 def json_byte_size(value: Any) -> int:
@@ -473,6 +474,18 @@ class EvidenceSerializer(ProjectScopedSerializer):
         return value
 
 
+class CausalAssessmentSerializer(RelaxedContractSerializer):
+    status = serializers.ChoiceField(choices=["identified", "partial", "unresolved"])
+    mechanism = OptionalStrictCharField(5_000)
+    trigger = OptionalStrictCharField(5_000)
+    evidenceIds = serializers.ListField(
+        child=StrictCharField(max_length=1_000), required=False, max_length=200
+    )
+    gaps = serializers.ListField(
+        child=StrictCharField(max_length=1_000), required=False, max_length=200
+    )
+
+
 class AgentVerdictSerializer(RelaxedContractSerializer):
     verdict = serializers.ChoiceField(choices=["supported", "refuted", "inconclusive"])
     confidence = StrictFloatField(min_value=0, max_value=1)
@@ -487,6 +500,7 @@ class AgentVerdictSerializer(RelaxedContractSerializer):
         child=StrictCharField(max_length=1_000), required=False, max_length=200
     )
     decidedAt = OptionalStrictCharField(64)
+    causalAssessment = CausalAssessmentSerializer(required=False, allow_null=True)
 
 
 class VerificationStepSerializer(RelaxedContractSerializer):

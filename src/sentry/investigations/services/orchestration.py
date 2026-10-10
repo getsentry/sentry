@@ -12,6 +12,7 @@ from django.db.models import Max
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
+from sentry.investigations.contracts import MAX_AGENTIC_SOURCE_BYTES, json_byte_size
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlockExecution,
@@ -37,6 +38,7 @@ from sentry.investigations.services.investigations import (
     update_investigation,
 )
 from sentry.models.organization import Organization
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +150,12 @@ def _create_agentic_investigation(
 ) -> tuple[Investigation, InvestigationOrchestrationRun]:
     """Create the notebook and its parent control-plane aggregate atomically."""
 
+    if json_byte_size(orchestration_source) > MAX_AGENTIC_SOURCE_BYTES:
+        raise InvestigationValidationError(
+            {
+                "detail": "Resolved investigation context is too large; supply fewer supporting objects."
+            }
+        )
     with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = Investigation.objects.create(
             organization=organization,
@@ -453,9 +461,12 @@ def _manual_orchestration_source(source: dict[str, Any]) -> dict[str, Any]:
         "projectScope": {"type": "investigation"},
         "seed": deepcopy(source.get("seed", {})),
     }
-    for key in ("prompt", "timeRange"):
+    for key in ("prompt", "timeRange", "primaryObject", "supportingObjects"):
         if key in source:
             normalized[key] = deepcopy(source[key])
+    for key in ("primaryObject", "supportingObjects"):
+        if key in source:
+            normalized["seed"][key] = deepcopy(source[key])
     return normalized
 
 
@@ -503,6 +514,9 @@ def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, A
     end = window["end"]
     return {
         "type": "breached_metric",
+        "primaryObject": {key: deepcopy(source[key]) for key in ("type", "ref", "snapshot")},
+        "supportingObjects": deepcopy(source.get("supportingObjects", [])),
+        **({"prompt": source["prompt"]} if "prompt" in source else {}),
         "metricIssueId": snapshot["groupId"],
         "openPeriodId": snapshot["openPeriodId"],
         "detectorId": monitor["id"],
@@ -521,12 +535,37 @@ def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, A
         "seed": {
             "groupTitle": snapshot["groupTitle"],
             "sentrySource": deepcopy(source),
+            "supportingObjects": deepcopy(source.get("supportingObjects", [])),
         },
     }
 
 
 def agentic_breached_metric_lineage_key(source: dict[str, Any]) -> str:
     return investigation_lineage_key("agentic_breached_metric", source)
+
+
+def _validate_existing_context(
+    investigation: Investigation,
+    supporting_objects: list[dict[str, Any]] | None,
+    prompt: str | None,
+) -> None:
+    if supporting_objects is not None:
+        requested_refs = {
+            json.dumps({"type": item["type"], "ref": item["ref"]}, sort_keys=True)
+            for item in supporting_objects
+        }
+        existing_refs = {
+            json.dumps({"type": item["type"], "ref": item["ref"]}, sort_keys=True)
+            for item in investigation.source.get("supportingObjects", [])
+        }
+        if requested_refs != existing_refs:
+            raise InvestigationConflictError(
+                "An active investigation already exists with different supporting objects."
+            )
+    if prompt is not None and (prompt or None) != investigation.source.get("prompt"):
+        raise InvestigationConflictError(
+            "An active investigation already exists with different user direction."
+        )
 
 
 def create_agentic_breached_metric_investigation(
@@ -537,8 +576,14 @@ def create_agentic_breached_metric_investigation(
     resolved_source: BreachedMetricSource,
     project_ids: list[int],
     filters: dict[str, Any],
+    supporting_objects: list[dict[str, Any]] | None = None,
+    prompt: str | None = None,
 ) -> tuple[Investigation, bool]:
-    normalized_source = resolved_source.source
+    normalized_source = deepcopy(resolved_source.source)
+    if supporting_objects:
+        normalized_source["supportingObjects"] = deepcopy(supporting_objects)
+    if prompt:
+        normalized_source["prompt"] = prompt
     lineage_key = agentic_breached_metric_lineage_key(normalized_source)
     # Uniqueness on active lineage and revision arbitrates concurrent launches.
     for attempt in range(3):
@@ -552,6 +597,7 @@ def create_agentic_breached_metric_investigation(
             .first()
         )
         if active is not None:
+            _validate_existing_context(active, supporting_objects, prompt)
             return active, False
         latest_revision = Investigation.objects.filter(
             organization=organization,
@@ -581,6 +627,7 @@ def create_agentic_breached_metric_investigation(
                     status=InvestigationStatus.ACTIVE,
                 ).first()
                 if active is not None:
+                    _validate_existing_context(active, supporting_objects, prompt)
                     return active, False
                 raise
     raise AssertionError("unreachable")

@@ -234,6 +234,8 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         investigation = Investigation.objects.get(id=launched.data["id"])
         assert investigation.source_type == InvestigationSourceType.METRIC_OPEN_PERIOD
         run = InvestigationOrchestrationRun.objects.get(investigation=investigation)
+        assert run.source["primaryObject"] == investigation.source
+        assert run.source["supportingObjects"] == []
         assert run.source["type"] == "breached_metric"
         assert run.source["projectIds"] == [self.project.id]
         assert run.source["monitor"] == investigation.source["snapshot"]["monitor"]
@@ -266,6 +268,73 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert duplicate.status_code == 200, duplicate.data
         assert duplicate.data["id"] == launched.data["id"]
         schedule_auto_run.assert_called_once()
+
+    def test_metric_primary_object_resolves_supporting_objects_and_preserves_direction(
+        self,
+    ) -> None:
+        group, open_period = self.create_metric_open_period()
+        supporting_project = self.create_project(organization=self.organization)
+        supporting_issue = self.create_group(project=supporting_project)
+        response = self.client.post(
+            self.collection_url,
+            {
+                "primaryObject": {
+                    "type": "metric_open_period",
+                    "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+                },
+                "supportingObjects": [{"type": "issue", "ref": {"groupId": supporting_issue.id}}],
+                "prompt": "Explain what changed in the checkout service.",
+            },
+            format="json",
+        )
+        assert response.status_code == 201, response.data
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        assert run.source["type"] == "breached_metric"
+        assert run.source["primaryObject"]["ref"] == {
+            "groupId": str(group.id),
+            "openPeriodId": str(open_period.id),
+        }
+        assert run.source["primaryObject"]["snapshot"]["monitor"] == run.source["monitor"]
+        assert run.source["supportingObjects"][0]["ref"] == {"groupId": str(supporting_issue.id)}
+        assert run.source["seed"]["supportingObjects"] == run.source["supportingObjects"]
+        assert run.source["prompt"] == "Explain what changed in the checkout service."
+        assert sorted(response.data["projectIds"]) == sorted(
+            [self.project.id, supporting_project.id]
+        )
+        assert run.source["projectIds"] == [self.project.id]
+
+    def test_metric_relaunch_rejects_changed_evidence_or_direction(self) -> None:
+        group, open_period = self.create_metric_open_period()
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+        initial = self.client.post(self.collection_url, {"source": source}, format="json")
+        assert initial.status_code == 201, initial.data
+        supporting_issue = self.create_group(project=self.project)
+        changed_evidence = self.client.post(
+            self.collection_url,
+            {
+                "primaryObject": source,
+                "supportingObjects": [{"type": "issue", "ref": {"groupId": supporting_issue.id}}],
+            },
+            format="json",
+        )
+        assert changed_evidence.status_code == 409, changed_evidence.data
+        changed_direction = self.client.post(
+            self.collection_url,
+            {"source": source, "prompt": "Focus on the database cause."},
+            format="json",
+        )
+        assert changed_direction.status_code == 409, changed_direction.data
+        duplicate = self.client.post(
+            self.collection_url, {"primaryObject": source, "supportingObjects": []}, format="json"
+        )
+        assert duplicate.status_code == 200, duplicate.data
+        assert duplicate.data["id"] == initial.data["id"]
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=initial.data["id"])
+        assert run.source["supportingObjects"] == []
+        assert "prompt" not in run.source
 
     @mock.patch(
         "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"

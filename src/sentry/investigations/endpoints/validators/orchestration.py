@@ -7,11 +7,10 @@ from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
-from sentry.investigations.contracts import StrictContractSerializer
+from sentry.investigations.contracts import MAX_AGENTIC_SOURCE_BYTES, StrictContractSerializer
 from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.utils import json
 
-MAX_AGENTIC_SOURCE_BYTES = 200_000
 ORCHESTRATION_EVENT_TYPES = (
     "state_snapshot",
     "workflow_updated",
@@ -62,13 +61,53 @@ class ManualSourceSchema(StrictContractSerializer):
 class MetricOpenPeriodRefSchema(StrictContractSerializer):
     """The server-resolved identity of the breached metric being investigated."""
 
-    groupId = serializers.IntegerField(min_value=1)
-    openPeriodId = serializers.IntegerField(min_value=1)
+    groupId = serializers.IntegerField(min_value=1, max_value=I64_MAX)
+    openPeriodId = serializers.IntegerField(min_value=1, max_value=I64_MAX)
 
 
 class MetricOpenPeriodSourceSchema(StrictContractSerializer):
     type = serializers.ChoiceField(choices=["metric_open_period"])
     ref = MetricOpenPeriodRefSchema()
+
+
+class IssueRefSchema(StrictContractSerializer):
+    groupId = serializers.IntegerField(min_value=1, max_value=I64_MAX)
+
+
+class IssueObjectSchema(StrictContractSerializer):
+    type = serializers.ChoiceField(choices=["issue"])
+    ref = IssueRefSchema()
+
+
+class EventRefSchema(StrictContractSerializer):
+    projectId = serializers.IntegerField(min_value=1, max_value=I64_MAX)
+    eventId = serializers.RegexField(r"^[0-9a-fA-F]{32}$", max_length=32)
+
+
+class EventObjectSchema(StrictContractSerializer):
+    type = serializers.ChoiceField(choices=["event"])
+    ref = EventRefSchema()
+
+
+OBJECT_SCHEMAS: dict[str, type[StrictContractSerializer]] = {
+    "metric_open_period": MetricOpenPeriodSourceSchema,
+    "issue": IssueObjectSchema,
+    "event": EventObjectSchema,
+}
+
+
+def validate_object_reference(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise serializers.ValidationError("Must be an object reference.")
+    object_type = value.get("type")
+    schema = OBJECT_SCHEMAS.get(object_type) if isinstance(object_type, str) else None
+    if schema is None:
+        raise serializers.ValidationError(
+            "Object type must be metric_open_period, issue, or event."
+        )
+    validator = schema(data=value)
+    validator.is_valid(raise_exception=True)
+    return dict(validator.validated_data)
 
 
 SOURCE_SCHEMAS: dict[str, type[StrictContractSerializer]] = {

@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
 from urllib3.response import HTTPResponse
 
+from sentry.investigations.contracts import json_byte_size
 from sentry.investigations.models import (
     Investigation,
     InvestigationOrchestrationRun,
@@ -117,6 +118,146 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert run.projection["pendingInput"] is None
         assert run.projection["broadScan"]["status"] == "queued"
 
+    def test_primary_issue_resolves_supporting_event_and_project_scope(self) -> None:
+        group = self.create_group(project=self.project, message="Checkout timeout")
+        support_project = self.create_project(organization=self.organization)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Database connection timeout",
+                "platform": "python",
+                "environment": "production",
+                "exception": {
+                    "values": [{"type": "TimeoutError", "value": "connection acquisition"}]
+                },
+            },
+            project_id=support_project.id,
+        )
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "primaryObject": {"type": "issue", "ref": {"groupId": str(group.id)}},
+                "supportingObjects": [
+                    {
+                        "type": "event",
+                        "ref": {"projectId": str(support_project.id), "eventId": event.event_id},
+                    }
+                ],
+            },
+            format="json",
+        )
+        assert response.status_code == 201, response.data
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        primary = run.source["primaryObject"]
+        supporting = run.source["supportingObjects"][0]
+        assert primary["ref"] == {"groupId": str(group.id)}
+        assert primary["snapshot"]["title"] == group.title
+        assert primary["snapshot"]["projectId"] == str(self.project.id)
+        assert supporting["snapshot"]["environment"] == "production"
+        assert supporting["snapshot"]["exception"]["values"][0]["type"] == "TimeoutError"
+        assert supporting["ref"] == {
+            "projectId": str(support_project.id),
+            "eventId": event.event_id,
+        }
+        assert run.source["seed"]["primaryObject"] == primary
+        assert run.source["seed"]["supportingObjects"] == [supporting]
+        assert sorted(response.data["projectIds"]) == sorted([self.project.id, support_project.id])
+        assert run.phase == "broad_scan"
+        assert run.projection["pendingInput"] is None
+        assert run.source["prompt"]
+
+    def test_primary_event_preserves_user_direction_and_time_range(self) -> None:
+        event = self.store_event(data={"event_id": "b" * 32}, project_id=self.project.id)
+        time_range = {"start": "2025-01-01T00:00:00Z", "end": "2025-01-01T01:00:00Z"}
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "primaryObject": {
+                    "type": "event",
+                    "ref": {"projectId": self.project.id, "eventId": event.event_id.upper()},
+                },
+                "prompt": "Identify the affected inputs.",
+                "timeRange": time_range,
+            },
+            format="json",
+        )
+        assert response.status_code == 201, response.data
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        assert run.source["primaryObject"]["ref"]["eventId"] == event.event_id
+        assert run.source["timeRange"] == time_range
+        assert run.source["prompt"] == "Identify the affected inputs."
+        assert run.source["supportingObjects"] == []
+
+    def test_inaccessible_supporting_issue_rejects_creation_atomically(self) -> None:
+        primary = self.create_group(project=self.project)
+        other_group = self.create_group(
+            project=self.create_project(organization=self.create_organization())
+        )
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "primaryObject": {"type": "issue", "ref": {"groupId": primary.id}},
+                "supportingObjects": [{"type": "issue", "ref": {"groupId": other_group.id}}],
+            },
+            format="json",
+        )
+        assert response.status_code == 404, response.data
+        assert not Investigation.objects.filter(organization=self.organization).exists()
+        assert not InvestigationOrchestrationRun.objects.exists()
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_resolved_objects_are_size_checked_before_creation(self, dispatch: mock.Mock) -> None:
+        event = self.store_event(data={"event_id": "c" * 32}, project_id=self.project.id)
+        primary = {
+            "type": "event",
+            "ref": {"projectId": self.project.id, "eventId": event.event_id},
+        }
+        with self.captureOnCommitCallbacks(execute=True):
+            initial = self.client.post(
+                self.collection_url, {"primaryObject": primary}, format="json"
+            )
+        assert initial.status_code == 201, initial.data
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=initial.data["id"])
+        limit = json_byte_size(run.source) + 1
+        dispatch.reset_mock()
+        issue = self.create_group(project=self.project)
+        with mock.patch(
+            "sentry.investigations.services.orchestration.MAX_AGENTIC_SOURCE_BYTES", limit
+        ):
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(
+                    self.collection_url,
+                    {
+                        "primaryObject": primary,
+                        "supportingObjects": [{"type": "issue", "ref": {"groupId": issue.id}}],
+                    },
+                    format="json",
+                )
+        assert response.status_code == 400, response.data
+        assert "too large" in response.data["detail"]
+        assert Investigation.objects.filter(organization=self.organization).count() == 1
+        assert InvestigationOrchestrationRun.objects.count() == 1
+        dispatch.assert_not_called()
+
+    @mock.patch("sentry.investigations.services.objects.eventstore.get_event_by_id")
+    def test_inaccessible_event_project_is_rejected_before_event_lookup(
+        self, get_event: mock.Mock
+    ) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "primaryObject": {
+                    "type": "event",
+                    "ref": {"projectId": other_project.id, "eventId": "a" * 32},
+                }
+            },
+            format="json",
+        )
+        assert response.status_code == 404, response.data
+        assert not Investigation.objects.filter(organization=self.organization).exists()
+        get_event.assert_not_called()
+
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
     def test_agentic_creation_schedules_automatic_execution(self, dispatch: mock.Mock) -> None:
         with self.captureOnCommitCallbacks(execute=True):
@@ -158,12 +299,12 @@ class OrganizationInvestigationIndexTest(APITestCase):
                 )
             )
 
+        group = self.create_group(project=self.project)
         dispatch.side_effect = capture_dispatch
         on_commit.side_effect = lambda callback, **kwargs: callback()
-
         response = self.client.post(
             self.collection_url,
-            data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+            data={"primaryObject": {"type": "issue", "ref": {"groupId": group.id}}},
             format="json",
         )
 
@@ -196,6 +337,9 @@ class OrganizationInvestigationIndexTest(APITestCase):
             user_id=self.user.id,
             actor_type=ActorType.USER,
         )
+        request_payload = orjson.loads(mock_urlopen.call_args.kwargs["body"])
+        assert request_payload["source"]["primaryObject"] == run.source["primaryObject"]
+        assert request_payload["source"]["seed"]["primaryObject"] == run.source["primaryObject"]
         synchronize_projection.assert_called_once()
         dispatch_commands.assert_called_once_with(run.id)
 

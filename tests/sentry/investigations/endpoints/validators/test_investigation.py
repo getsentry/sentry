@@ -188,6 +188,54 @@ class TestInvestigationCreateValidator:
         assert not validator.is_valid()
         assert "source" in validator.errors
 
+    @pytest.mark.parametrize(
+        "primary",
+        [
+            {"type": "trace", "ref": {"traceId": "a" * 32}},
+            {"type": "issue", "ref": {"groupId": 0}},
+            {"type": "issue", "ref": {"groupId": I64_MAX + 1}},
+            {"type": "event", "ref": {"projectId": 1, "eventId": "not-an-event-id"}},
+            {"type": "issue", "ref": {"groupId": 1}, "snapshot": {"title": "untrusted"}},
+        ],
+    )
+    def test_rejects_invalid_primary_object_references(self, primary: dict[str, Any]) -> None:
+        validator = InvestigationCreateValidator(data={"primaryObject": primary})
+        assert not validator.is_valid()
+        assert "primaryObject" in validator.errors
+
+    def test_rejects_ambiguous_source_and_primary(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={
+                "source": {"type": "manual"},
+                "primaryObject": {"type": "issue", "ref": {"groupId": 1}},
+            }
+        )
+        assert not validator.is_valid()
+        assert "primaryObject" in validator.errors
+
+    def test_limits_supporting_references(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={
+                "primaryObject": {"type": "issue", "ref": {"groupId": 1}},
+                "supportingObjects": [{"type": "issue", "ref": {"groupId": 2}}] * 11,
+            }
+        )
+        assert not validator.is_valid()
+        assert "supportingObjects" in validator.errors
+
+    def test_rejects_metric_window_override(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={
+                "primaryObject": {
+                    "type": "metric_open_period",
+                    "ref": {"groupId": 1, "openPeriodId": 2},
+                },
+                "timeRange": {"start": "2025-01-01T00:00:00Z", "end": "2025-01-01T01:00:00Z"},
+            }
+        )
+        assert not validator.is_valid()
+        assert "timeRange" in validator.errors
+
     def test_rejects_duplicate_project_ids(self) -> None:
         validator = InvestigationCreateValidator(data={"title": "T", "projectIds": [1, 1]})
 

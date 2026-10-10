@@ -36,6 +36,7 @@ from sentry.investigations.services import (
     resolve_investigation_source,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
+from sentry.investigations.services.objects import resolve_investigation_object
 from sentry.investigations.telemetry import record_investigation_started
 from sentry.models.organization import Organization
 
@@ -89,9 +90,47 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         values = validator.validated_data
         project_ids = organization_project_ids(organization)
         try:
+            object_project_ids: set[int] = set()
+            supporting_objects = []
+            if "primary_object" in values or "supporting_objects" in values:
+                project_ids = {
+                    project.id
+                    for project in self.get_projects(
+                        request, organization, include_all_accessible=True, project_ids={-1}
+                    )
+                }
+                for reference in values.get("supporting_objects", []):
+                    resolved = resolve_investigation_object(
+                        organization=organization,
+                        reference=reference,
+                        accessible_project_ids=project_ids,
+                    )
+                    supporting_objects.append(resolved.value)
+                    object_project_ids.add(resolved.project_id)
+                primary = values.get("primary_object")
+                if primary is not None:
+                    if primary["type"] == "metric_open_period":
+                        values["source"] = primary
+                    else:
+                        resolved = resolve_investigation_object(
+                            organization=organization,
+                            reference=primary,
+                            accessible_project_ids=project_ids,
+                        )
+                        object_project_ids.add(resolved.project_id)
+                        values["source"] = {
+                            "type": "manual",
+                            "primaryObject": resolved.value,
+                            "prompt": values.get("prompt")
+                            or "Investigate the primary Sentry object and identify its underlying cause using the supplied evidence.",
+                        }
+                        if "time_range" in values:
+                            values["source"]["timeRange"] = values["time_range"]
             if "source" in values and "template_key" not in values:
                 source = values["source"]
-                requested_project_ids = values.get("project_ids", [])
+                requested_project_ids = sorted(
+                    set(values.get("project_ids", [])) | object_project_ids
+                )
                 if source["type"] == "metric_open_period":
                     resolved_source = resolve_investigation_source(
                         organization=organization,
@@ -113,6 +152,10 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                         resolved_source=resolved_source,
                         project_ids=requested_project_ids,
                         filters=values.get("filters", {}),
+                        supporting_objects=(
+                            supporting_objects if "supporting_objects" in values else None
+                        ),
+                        prompt=values.get("prompt"),
                     )
                 else:
                     if not set(requested_project_ids).issubset(project_ids):
@@ -120,6 +163,8 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                             {"detail": "One or more projects are inaccessible."},
                             status=status.HTTP_400_BAD_REQUEST,
                         )
+                    if "supporting_objects" in values or "primary_object" in values:
+                        source = {**source, "supportingObjects": supporting_objects}
                     created = True
                     investigation, _ = create_agentic_manual_investigation(
                         organization=organization,
