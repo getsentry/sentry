@@ -1,11 +1,19 @@
-import {useLayoutEffect, useMemo, useRef, useState} from 'react';
-import type {PopperProps} from 'react-popper';
-import {usePopper} from 'react-popper';
-import type {Boundary, Modifier} from '@popperjs/core';
-import {detectOverflow} from '@popperjs/core';
-import type {ArrowModifier} from '@popperjs/core/lib/modifiers/arrow';
-import type {FlipModifier} from '@popperjs/core/lib/modifiers/flip';
-import type {PreventOverflowModifier} from '@popperjs/core/lib/modifiers/preventOverflow';
+import {useMemo, useRef, useState} from 'react';
+import type {
+  Boundary,
+  DetectOverflowOptions,
+  FlipOptions,
+  Middleware,
+  Padding,
+  ShiftOptions,
+  Strategy,
+} from '@floating-ui/react-dom';
+import {
+  autoUpdate,
+  detectOverflow,
+  offset as offsetMiddleware,
+  useFloating,
+} from '@floating-ui/react-dom';
 import {useButton as useButtonAria} from '@react-aria/button';
 import type {AriaOverlayProps, OverlayTriggerProps} from '@react-aria/overlays';
 import {
@@ -16,74 +24,62 @@ import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-stately/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
 
+import type {OverlayPlacement} from 'sentry/utils/overlayPositioning';
+import {
+  arrowOverlay,
+  placementMiddleware,
+  shiftOverlay,
+} from 'sentry/utils/overlayPositioning';
+
 /**
- * PopperJS modifier to change the popper element's width/height to prevent
+ * Floating UI middleware to change the overlay's width/height to prevent
  * overflowing. Based on
  * https://github.com/atomiks/popper.js/blob/master/src/modifiers/maxSize.js
  */
-const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options']>> = {
-  name: 'maxSize',
-  phase: 'main',
-  requiresIfExists: ['offset', 'preventOverflow', 'flip'],
-  enabled: false, // will be enabled when overlay is open
-  fn({state, name, options}) {
-    const overflow = detectOverflow(state, options);
-    const {x, y} = state.modifiersData.preventOverflow ?? {x: 0, y: 0};
-    const {width, height} = state.rects.popper;
-    const [basePlacement] = state.placement.split('-');
+function maxSize(options: DetectOverflowOptions): Middleware {
+  return {
+    name: 'maxSize',
+    options,
+    async fn(state) {
+      // Measure from where the overlay was before `shift` moved it
+      const {x, y} = state.middlewareData.shift ?? {x: 0, y: 0};
+      const overflow = await detectOverflow(
+        {...state, x: state.x - x, y: state.y - y},
+        options
+      );
+      const {width, height} = state.rects.floating;
+      const [basePlacement] = state.placement.split('-');
 
-    const widthSide = basePlacement === 'left' ? 'left' : 'right';
-    const heightSide = basePlacement === 'top' ? 'top' : 'bottom';
+      const widthSide = basePlacement === 'left' ? 'left' : 'right';
+      const heightSide = basePlacement === 'top' ? 'top' : 'bottom';
 
-    const flippedWidthSide = basePlacement === 'left' ? 'right' : 'left';
-    const flippedHeightSide = basePlacement === 'top' ? 'bottom' : 'top';
+      const flippedWidthSide = basePlacement === 'left' ? 'right' : 'left';
+      const flippedHeightSide = basePlacement === 'top' ? 'bottom' : 'top';
 
-    const maxHeight = ['left', 'right'].includes(basePlacement!)
-      ? // If the main axis is horizontal, then maxHeight = the boundary's height
-        height - overflow.top - overflow.bottom
-      : // Otherwise, set max height unless there is enough space on the other side to
-        // flip the popper to
-        Math.max(height - overflow[heightSide] - y, -overflow[flippedHeightSide]);
+      const maxHeight = ['left', 'right'].includes(basePlacement!)
+        ? // If the main axis is horizontal, then maxHeight = the boundary's height
+          height - overflow.top - overflow.bottom
+        : // Otherwise, set max height unless there is enough space on the other side to
+          // flip the overlay to
+          Math.max(height - overflow[heightSide] - y, -overflow[flippedHeightSide]);
 
-    // If there is enough space on the other side, then allow the popper to flip
-    // without constraining its size
-    const maxWidth = ['top', 'bottom'].includes(basePlacement!)
-      ? // If the main axis is vertical, then maxWidth = the boundary's width
-        width - overflow.left - overflow.right
-      : // Otherwise, set max width unless there is enough space on the other side to
-        // flip the popper to
-        Math.max(width - overflow[widthSide] - x, -overflow[flippedWidthSide]);
+      // If there is enough space on the other side, then allow the overlay to flip
+      // without constraining its size
+      const maxWidth = ['top', 'bottom'].includes(basePlacement!)
+        ? // If the main axis is vertical, then maxWidth = the boundary's width
+          width - overflow.left - overflow.right
+        : // Otherwise, set max width unless there is enough space on the other side to
+          // flip the overlay to
+          Math.max(width - overflow[widthSide] - x, -overflow[flippedWidthSide]);
 
-    state.modifiersData[name] = {
-      width: maxWidth,
-      height: maxHeight,
-    };
-  },
-};
+      return {data: {width: maxWidth, height: maxHeight}};
+    },
+  };
+}
 
-const applyMaxSize: Modifier<'applyMaxSize', Record<string, unknown>> = {
-  name: 'applyMaxSize',
-  phase: 'beforeWrite',
-  requires: ['maxSize'],
-  enabled: false, // will be enabled when overlay is open
-  fn({state}) {
-    if (!state.modifiersData.maxSize) {
-      return;
-    }
-    const {width, height} = state.modifiersData.maxSize;
-    state.styles.popper!.maxHeight = height;
-    state.styles.popper!.maxWidth = width;
-  },
-};
-
-const applyMinWidth: Modifier<'applyMinWidth', Record<string, unknown>> = {
-  name: 'applyMinWidth',
-  phase: 'beforeWrite',
-  enabled: false, // will be enabled when overlay is open
-  fn({state}) {
-    const {reference} = state.rects;
-    state.styles.popper!.minWidth = `${reference.width}px`;
-  },
+const referenceWidth: Middleware = {
+  name: 'referenceWidth',
+  fn: ({rects}) => ({data: {width: rects.reference.width}}),
 };
 
 export interface UseOverlayProps
@@ -92,14 +88,14 @@ export interface UseOverlayProps
     Partial<OverlayTriggerProps>,
     Partial<OverlayTriggerStateProps> {
   /**
-   * Options to pass to the `arrow` modifier.
+   * Options to pass to the `arrow` middleware.
    */
-  arrowOptions?: ArrowModifier['options'];
+  arrowOptions?: {padding?: Padding};
   disableTrigger?: boolean;
   /**
-   * Options to pass to the `flip` modifier.
+   * Options to pass to the `flip` middleware.
    */
-  flipOptions?: FlipModifier['options'];
+  flipOptions?: FlipOptions;
   /**
    * Fallback for `preventOverflowOptions.boundary`, called when the overlay opens
    * (and again if the function changes). Use it for boundaries that need a DOM
@@ -120,21 +116,22 @@ export interface UseOverlayProps
   /**
    * Position for the overlay.
    */
-  position?: PopperProps<any>['placement'];
+  position?: OverlayPlacement;
   /**
-   * Options to pass to the `preventOverflow` modifier.
+   * Options to pass to the `shift` middleware, which keeps the overlay inside
+   * its boundary.
    */
-  preventOverflowOptions?: PreventOverflowModifier['options'];
+  preventOverflowOptions?: ShiftOptions;
   /**
    * By default, the overlay's min-width will match the trigger's width.
    * If this is not desired, set to `false`.
    */
   shouldApplyMinWidth?: boolean;
   /**
-   * Strategy for the overlay. See https://popper.js.org/docs/v2/constructors/#strategy
-   * for details.
+   * Strategy for the overlay. See
+   * https://floating-ui.com/docs/computePosition#strategy for details.
    */
-  strategy?: PopperProps<any>['strategy'];
+  strategy?: Strategy;
 }
 
 export function useOverlay({
@@ -158,22 +155,12 @@ export function useOverlay({
   disableTrigger,
   strategy = 'absolute',
 }: UseOverlayProps = {}) {
-  // Callback refs for react-popper
+  // Callback refs for Floating UI
+  // TODO: Use ref callbacks instead of holding the trigger and overlay elements in state
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
-  const [arrowElement, setArrowElement] = useState<HTMLDivElement | null>(null);
 
-  // Initialize open state
-  const openState = useOverlayTriggerState({
-    isOpen,
-    defaultOpen,
-    onOpenChange: open => {
-      if (open) {
-        popperUpdate?.();
-      }
-      onOpenChange?.(open);
-    },
-  });
+  const openState = useOverlayTriggerState({isOpen, defaultOpen, onOpenChange});
 
   // Ref objects for react-aria (useOverlayTrigger & useOverlay)
   const triggerRef = useMemo(() => ({current: triggerElement}), [triggerElement]);
@@ -186,103 +173,79 @@ export function useOverlay({
     [openState.isOpen, hasBoundary, getOverflowBoundary]
   );
 
-  const modifiers = useMemo(
-    () => [
-      {
-        name: 'hide',
-        enabled: false,
-      },
-      {
-        name: 'computeStyles',
-        options: {
-          // Using the `transform` attribute causes our borders to get blurry
-          // in chrome. See [0]. This just causes it to use `top` / `left`
-          // positions, which should be fine.
-          //
-          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
-          gpuAcceleration: false,
-        },
-      },
-      {
-        name: 'arrow',
-        options: {
-          element: arrowElement,
+  const {placement: initialPlacement, middleware} = useMemo(() => {
+    const placement = placementMiddleware(position, {
+      // Only flip on main axis
+      flipAlignment: false,
+      ...flipOptions,
+    });
+    const overflowOptions = {
+      padding: 16,
+      ...preventOverflowOptions,
+      ...(fallbackBoundary && {boundary: fallbackBoundary}),
+    };
+
+    return {
+      placement: placement.placement,
+      middleware: [
+        offsetMiddleware(
+          Array.isArray(offset) ? {crossAxis: offset[0], mainAxis: offset[1]} : offset
+        ),
+        placement.middleware,
+        shiftOverlay(overflowOptions),
+        arrowOverlay({
           // Set padding to avoid the arrow reaching the side of the tooltip
           // and overflowing out of the rounded border
           padding: 4,
           ...arrowOptions,
-        },
-      },
-      {
-        name: 'flip',
-        options: {
-          // Only flip on main axis
-          flipVariations: false,
-          ...flipOptions,
-        },
-      },
-      {
-        name: 'offset',
-        options: {
-          offset: Array.isArray(offset) ? offset : [0, offset],
-        },
-      },
-      {
-        name: 'preventOverflow',
-        enabled: true,
-        options: {
-          padding: 16,
-          ...preventOverflowOptions,
-          ...(fallbackBoundary && {boundary: fallbackBoundary}),
-        },
-      },
-      {
-        ...maxSize,
-        enabled: openState.isOpen,
-        options: {
-          padding: 16,
-          ...preventOverflowOptions,
-          ...(fallbackBoundary && {boundary: fallbackBoundary}),
-        },
-      },
-      {
-        ...applyMinWidth,
-        enabled: openState.isOpen && shouldApplyMinWidth,
-      },
-      {
-        ...applyMaxSize,
-        enabled: openState.isOpen,
-      },
-    ],
-    [
-      arrowElement,
-      arrowOptions,
-      flipOptions,
-      offset,
-      preventOverflowOptions,
-      fallbackBoundary,
-      openState.isOpen,
-      shouldApplyMinWidth,
-    ]
-  );
-  const {
-    styles: popperStyles,
-    state: popperState,
-    update: popperUpdate,
-  } = usePopper(triggerElement, overlayElement, {
-    modifiers,
-    placement: position,
+        }),
+        maxSize(overflowOptions),
+        ...(shouldApplyMinWidth ? [referenceWidth] : []),
+      ],
+    };
+  }, [
+    arrowOptions,
+    flipOptions,
+    offset,
+    position,
+    preventOverflowOptions,
+    fallbackBoundary,
+    shouldApplyMinWidth,
+  ]);
+
+  const {floatingStyles, middlewareData, placement, update} = useFloating({
+    elements: {reference: triggerElement, floating: overlayElement},
+    middleware,
+    placement: initialPlacement,
     strategy,
+    // Using the `transform` attribute causes our borders to get blurry
+    // in chrome. See [0]. This just causes it to use `top` / `left`
+    // positions, which should be fine.
+    //
+    // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+    transform: false,
+    // Overlays can stay mounted while closed. Follow the trigger, and the size
+    // of the overlay's content, only while open.
+    whileElementsMounted: openState.isOpen ? autoUpdate : undefined,
   });
 
-  useLayoutEffect(() => {
-    // Controlled overlays, such as submenus, can open without calling
-    // useOverlayTriggerState's onOpenChange callback. Update after the overlay
-    // has been mounted so Popper accounts for its measured size on first open.
-    if (openState.isOpen) {
-      popperUpdate?.();
-    }
-  }, [openState.isOpen, popperUpdate]);
+  const overlayStyle = useMemo<React.CSSProperties>(() => {
+    const {maxSize: maxSizeData, referenceWidth: referenceWidthData} = middlewareData;
+    return {
+      ...floatingStyles,
+      ...(referenceWidthData && {minWidth: `${referenceWidthData.width}px`}),
+      ...(maxSizeData && {maxHeight: maxSizeData.height, maxWidth: maxSizeData.width}),
+    };
+  }, [floatingStyles, middlewareData]);
+
+  const arrowStyle = useMemo<React.CSSProperties>(() => {
+    const {x, y} = middlewareData.arrow ?? {};
+    return {
+      position: 'absolute',
+      ...(x !== undefined && {left: `${x}px`}),
+      ...(y !== undefined && {top: `${y}px`}),
+    };
+  }, [middlewareData.arrow]);
 
   // Get props for trigger button
   const {triggerProps, overlayProps: overlayTriggerAriaProps} = useOverlayTriggerAria(
@@ -356,7 +319,7 @@ export function useOverlay({
   return {
     isOpen: openState.isOpen,
     state: openState,
-    update: popperUpdate,
+    update,
     triggerRef,
     triggerProps: {
       ref: setTriggerElement,
@@ -365,13 +328,12 @@ export function useOverlay({
     overlayRef,
     overlayProps: {
       ref: setOverlayElement,
-      style: popperStyles.popper,
+      style: overlayStyle,
       ...mergeProps(overlayTriggerAriaProps, overlayAriaProps),
     },
     arrowProps: {
-      ref: setArrowElement,
-      style: popperStyles.arrow,
-      placement: popperState?.placement,
+      style: arrowStyle,
+      placement,
     },
   };
 }

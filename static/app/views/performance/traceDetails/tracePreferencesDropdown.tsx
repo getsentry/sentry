@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import type {Placement} from '@popperjs/core';
+import type {Placement} from '@floating-ui/react-dom';
 import {IconSettings} from '@sentry/icons/settings';
 
 import {
@@ -33,8 +33,8 @@ interface TracePreferencesDropdownProps {
   onMissingInstrumentationChange: () => void;
   rootEventResults: TraceRootEventQueryResults;
   /**
-   * Placements Popper may fall back to when the default `bottom-start` would overflow the
-   * menu's clipping container. `useOverlay` sets `flipVariations: false`, so without this the
+   * Placements Floating UI may fall back to when the default `bottom-start` would overflow the
+   * menu's clipping container. `useOverlay` sets `flipAlignment: false`, so without this the
    * menu never re-aligns on its own. Pass a stable reference.
    */
   fallbackPlacements?: Placement[];

@@ -11,59 +11,41 @@ import {
   useRef,
   useState,
 } from 'react';
-import type {PopperProps} from 'react-popper';
-import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
+import {
+  autoUpdate,
+  offset as offsetMiddleware,
+  useFloating,
+} from '@floating-ui/react-dom';
 import {mergeProps} from '@react-aria/utils';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 
 import {NODE_ENV} from 'sentry/constants/env';
+import type {OverlayPlacement} from 'sentry/utils/overlayPositioning';
+import {
+  arrowOverlay,
+  placementMiddleware,
+  shiftOverlay,
+} from 'sentry/utils/overlayPositioning';
 import type {Theme} from 'sentry/utils/theme';
 
 import {useStableMergeRef} from './useStableMergeRef';
 
-function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
-  return [
-    {
-      name: 'hide',
-      enabled: false,
-    },
-    {
-      name: 'computeStyles',
-      options: {
-        // Using the `transform` attribute causes our borders to get blurry
-        // in chrome. See [0]. This just causes it to use `top` / `left`
-        // positions, which should be fine.
-        //
-        // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
-        gpuAcceleration: false,
-      },
-    },
-    {
-      name: 'arrow',
-      options: {
-        element: arrowElement,
-        // Set padding to avoid the arrow reaching the side of the tooltip
-        // and overflowing out of the rounded border
-        padding: 4,
-      },
-    },
-    {
-      name: 'offset',
-      options: {
-        offset: [0, offset],
-      },
-    },
-    {
-      name: 'preventOverflow',
-      enabled: true,
-      options: {
-        padding: 12,
-        altAxis: true,
-      },
-    },
-  ];
+function makeDefaultMiddleware(offset: number, position: OverlayPlacement) {
+  const placement = placementMiddleware(position);
+
+  return {
+    placement: placement.placement,
+    middleware: [
+      offsetMiddleware(offset),
+      placement.middleware,
+      shiftOverlay({padding: 12, crossAxis: true}),
+      // Set padding to avoid the arrow reaching the side of the tooltip
+      // and overflowing out of the rounded border
+      arrowOverlay({padding: 4}),
+    ],
+  };
 }
 
 /**
@@ -208,7 +190,7 @@ interface UseHoverOverlayProps {
   /**
    * Position for the overlay.
    */
-  position?: PopperProps<any>['placement'];
+  position?: OverlayPlacement;
 
   /**
    * Only display the overlay only if the content overflows
@@ -395,11 +377,12 @@ function useHoverOverlay({
     }
   }, [isOpen]);
 
+  // TODO: Use ref callbacks instead of holding the trigger element in state
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const isOverflowingRef = useRef(false);
+  // TODO: Use a ref callback instead of holding the overlay element in state
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
-  const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
 
   const onOverflowChangeRef = useRef(onOverflowChange);
   useLayoutEffect(() => {
@@ -450,14 +433,22 @@ function useHoverOverlay({
 
   const mergeTriggerRef = useStableMergeRef(setTriggerElementRef);
 
-  const modifiers = useMemo(
-    () => makeDefaultPopperModifiers(arrowElement, offset),
-    [arrowElement, offset]
+  const {placement: initialPlacement, middleware} = useMemo(
+    () => makeDefaultMiddleware(offset, position),
+    [offset, position]
   );
 
-  const {styles, state, update} = usePopper(triggerElement, overlayElement, {
-    modifiers,
-    placement: position,
+  const {floatingStyles, middlewareData, placement, update} = useFloating({
+    elements: {reference: triggerElement, floating: overlayElement},
+    middleware,
+    placement: initialPlacement,
+    // Using the `transform` attribute causes our borders to get blurry
+    // in chrome. See [0]. This just causes it to use `top` / `left`
+    // positions, which should be fine.
+    //
+    // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+    transform: false,
+    whileElementsMounted: autoUpdate,
   });
 
   const openTimerRef = useRef<number | undefined>(undefined);
@@ -652,25 +643,29 @@ function useHoverOverlay({
     return {
       id: describeById,
       ref: setOverlayElement,
-      style: styles.popper,
+      style: floatingStyles,
       onMouseEnter: handleMouseEnter,
       onMouseLeave: handleMouseLeave,
     };
   }, [
     describeById,
     setOverlayElement,
-    styles.popper,
+    floatingStyles,
     handleMouseEnter,
     handleMouseLeave,
   ]);
 
+  const arrowData = middlewareData.arrow;
   const arrowProps = useMemo(() => {
     return {
-      ref: setArrowElement,
-      style: styles.arrow,
-      placement: state?.placement,
+      style: {
+        position: 'absolute',
+        ...(arrowData?.x !== undefined && {left: `${arrowData.x}px`}),
+        ...(arrowData?.y !== undefined && {top: `${arrowData.y}px`}),
+      } satisfies React.CSSProperties,
+      placement,
     };
-  }, [setArrowElement, styles.arrow, state?.placement]);
+  }, [arrowData, placement]);
 
   return {
     wrapTrigger,
@@ -681,8 +676,8 @@ function useHoverOverlay({
     snapClosed,
     overlayProps,
     arrowProps,
-    placement: state?.placement,
-    arrowData: state?.modifiersData?.arrow,
+    placement,
+    arrowData,
     update,
     reset,
   };

@@ -1,8 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useEffectEvent,
-  useLayoutEffect,
   useMemo,
   useRef,
   type FocusEvent,
@@ -10,8 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import {createPortal} from 'react-dom';
-import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
+import {autoUpdate, offset, useFloating} from '@floating-ui/react-dom';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {type AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
@@ -51,6 +49,7 @@ import {
 } from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+import {flipOverlay, shiftOverlay} from 'sentry/utils/overlayPositioning';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
@@ -159,18 +158,11 @@ export type CustomComboboxMenu<T> = (
   props: CustomComboboxMenuProps<T>
 ) => React.ReactNode;
 
-const DESCRIPTION_POPPER_OPTIONS = {
-  placement: 'top-start' as const,
-  strategy: 'fixed' as const,
-  modifiers: [
-    {
-      name: 'offset',
-      options: {
-        offset: [-12, 8],
-      },
-    },
-  ],
-};
+const DESCRIPTION_MIDDLEWARE = [
+  offset({crossAxis: -12, mainAxis: 8}),
+  flipOverlay(),
+  shiftOverlay(),
+];
 
 const MENU_OFFSET: [number, number] = [-12, 12];
 const MENU_FLIP_OPTIONS = {
@@ -239,58 +231,6 @@ function useHiddenItems({
     hiddenOptions,
     disabledKeys,
   };
-}
-
-// The menu size can change from things like loading states, long options,
-// or custom menus like a date picker. This hook ensures that the overlay
-// is updated in response to these changes.
-function useUpdateOverlayPositionOnContentChange({
-  contentRef,
-  updateOverlayPosition,
-  isOpen,
-}: {
-  contentRef: React.RefObject<HTMLDivElement | null>;
-  isOpen: boolean;
-  updateOverlayPosition: (() => void) | null;
-}) {
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const updatePosition = useEffectEvent(() => updateOverlayPosition?.());
-
-  useLayoutEffect(() => {
-    resizeObserverRef.current = new ResizeObserver(() => {
-      // Firefox can invoke ResizeObserver callbacks during rendering, when
-      // calling an Effect Event is not allowed.
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        updatePosition();
-      });
-    });
-
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!contentRef.current || !resizeObserverRef.current || !isOpen) {
-      return () => {};
-    }
-
-    resizeObserverRef.current?.observe(contentRef.current);
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-    };
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
 function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
@@ -435,7 +375,6 @@ export function SearchQueryBuilderCombobox<
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const descriptionRef = useRef<HTMLDivElement>(null);
   const askSeerButtonRef = useRef<HTMLButtonElement>(null);
   const preventOverflowOptions = useMemo(() => ({boundary: document.body}), []);
 
@@ -585,11 +524,7 @@ export function SearchQueryBuilderCombobox<
     onOpenChange?.(isOpen);
   }, [onOpenChange, isOpen]);
 
-  const {
-    overlayProps,
-    triggerProps,
-    update: updateOverlayPosition,
-  } = useOverlay({
+  const {overlayProps, triggerProps} = useOverlay({
     type: 'listbox',
     isOpen,
     position: 'bottom-start',
@@ -621,13 +556,19 @@ export function SearchQueryBuilderCombobox<
     flipOptions: MENU_FLIP_OPTIONS,
   });
 
-  const descriptionPopper = usePopper(
-    // oxlint-disable-next-line react/refs
-    inputRef.current,
-    // oxlint-disable-next-line react/refs
-    descriptionRef.current,
-    DESCRIPTION_POPPER_OPTIONS
-  );
+  const {
+    refs: {
+      floating: descriptionRef,
+      setFloating: setDescriptionElement,
+      setReference: setDescriptionReference,
+    },
+    floatingStyles: descriptionStyles,
+  } = useFloating<HTMLInputElement>({
+    placement: 'top-start',
+    strategy: 'fixed',
+    middleware: DESCRIPTION_MIDDLEWARE,
+    whileElementsMounted: autoUpdate,
+  });
 
   const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(
     e => {
@@ -642,12 +583,6 @@ export function SearchQueryBuilderCombobox<
     },
     [inputProps, menuPresentation, state, onClick]
   );
-
-  useUpdateOverlayPositionOnContentChange({
-    contentRef: popoverRef,
-    updateOverlayPosition,
-    isOpen,
-  });
 
   // useCombobox will hide outside elements with aria-hidden="true" when it is open [1].
   // Because we switch elements when a custom menu is displayed, we need to manually
@@ -668,7 +603,7 @@ export function SearchQueryBuilderCombobox<
 
     return () => {};
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [inputRef, popoverRef, isOpen, customMenu, keepVisibleRef]);
+  }, [inputRef, popoverRef, descriptionRef, isOpen, customMenu, keepVisibleRef]);
 
   const autosizeInput = useAutosizeInput({value: inputValue});
 
@@ -681,7 +616,8 @@ export function SearchQueryBuilderCombobox<
         ref,
         inputRef,
         autosizeInput,
-        triggerProps.ref as React.Ref<HTMLInputElement>
+        triggerProps.ref as React.Ref<HTMLInputElement>,
+        setDescriptionReference
       )}
       type="text"
       placeholder={placeholder}
@@ -735,9 +671,8 @@ export function SearchQueryBuilderCombobox<
       )}
       {description ? (
         <StyledPositionWrapper
-          {...descriptionPopper.attributes.popper}
-          ref={descriptionRef}
-          style={descriptionPopper.styles.popper}
+          ref={setDescriptionElement}
+          style={descriptionStyles}
           visible
           role="tooltip"
         >
