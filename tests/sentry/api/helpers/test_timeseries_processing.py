@@ -7,7 +7,9 @@ from sentry.api.helpers.timeseries_processing import (
     FILL_MODE_LINEAR,
     FILL_MODE_LOCF,
     FILL_MODE_ZERO,
+    SMOOTH_MODE_SMA,
     fill_timeseries,
+    smooth_timeseries,
 )
 
 
@@ -153,3 +155,67 @@ def test_fill_timeseries_rejects_mismatched_lengths(
 def test_fill_timeseries_rejects_unsupported_modes(mode: Any) -> None:
     with pytest.raises(ValueError, match="Unsupported fill mode"):
         fill_timeseries([0.0, 1.0], [10.0, None], mode=mode)
+
+
+@pytest.mark.parametrize(
+    "values, window_size, expected",
+    [
+        pytest.param([], 3, [], id="empty"),
+        pytest.param([None, None], 3, [None, None], id="all-missing"),
+        pytest.param([1.0, 2.0, 3.0, 4.0, 5.0], 3, [1.0, 1.5, 2.0, 3.0, 4.0], id="trailing-window"),
+        pytest.param((1.0, 2.0, 3.0), 5, [1.0, 1.5, 2.0], id="window-larger-than-series"),
+        pytest.param([1.0, None, 3.0], 1, [1.0, None, 3.0], id="window-one"),
+        pytest.param([-2.0, 0.0, 2.0, 4.0], 2, [-2.0, -1.0, 1.0, 3.0], id="zero-and-negative"),
+        pytest.param(
+            [None, 2.0, None, 8.0, 10.0, None],
+            3,
+            [None, 2.0, None, 5.0, 9.0, None],
+            id="gaps-preserved",
+        ),
+        pytest.param(
+            [2.0, None, None, None, 8.0],
+            3,
+            [2.0, None, None, None, 8.0],
+            id="empty-window-after-long-gap",
+        ),
+    ],
+)
+def test_smooth_timeseries_sma(
+    values: Sequence[float | None], window_size: int, expected: list[float | None]
+) -> None:
+    timestamps = [float(index) for index in range(len(values))]
+    original_values = tuple(values)
+    original_timestamps = tuple(timestamps)
+
+    result = smooth_timeseries(timestamps, values, mode=SMOOTH_MODE_SMA, window_size=window_size)
+
+    assert result == expected
+    assert result is not values
+    assert tuple(values) == original_values
+    assert tuple(timestamps) == original_timestamps
+
+
+def test_smooth_timeseries_sma_default_window_and_equal_weighting() -> None:
+    result = smooth_timeseries([0.0, 1.0, 10.0, 20.0], [2.0, 4.0, 6.0, 8.0], mode=SMOOTH_MODE_SMA)
+
+    assert result == [2.0, 3.0, 4.0, 6.0]
+
+
+@pytest.mark.parametrize("window_size", [0, -1])
+def test_smooth_timeseries_rejects_nonpositive_window(window_size: int) -> None:
+    with pytest.raises(ValueError, match="Window size must be positive"):
+        smooth_timeseries([0.0], [1.0], mode=SMOOTH_MODE_SMA, window_size=window_size)
+
+
+@pytest.mark.parametrize("timestamps, values", [([0.0], []), ([], [1.0])])
+def test_smooth_timeseries_rejects_mismatched_lengths(
+    timestamps: list[float], values: list[float | None]
+) -> None:
+    with pytest.raises(ValueError, match="Timestamps and values must have the same length"):
+        smooth_timeseries(timestamps, values, mode=SMOOTH_MODE_SMA)
+
+
+@pytest.mark.parametrize("mode", ["ema", ""])
+def test_smooth_timeseries_rejects_unsupported_modes(mode: Any) -> None:
+    with pytest.raises(ValueError, match="Unsupported smoothing mode"):
+        smooth_timeseries([0.0], [1.0], mode=mode)
