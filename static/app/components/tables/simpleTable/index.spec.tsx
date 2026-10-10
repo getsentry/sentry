@@ -1,6 +1,8 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
+import {Button} from '@sentry/scraps/button';
+
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 describe('SimpleTable component', () => {
@@ -135,6 +137,30 @@ describe('SimpleTable component', () => {
     expect(header).not.toHaveAttribute('align');
     expect(getEmotionRules(content).join('')).toContain('justify-content: center');
   });
+
+  it.each(['remaining', 'full-width'] as const)(
+    'does not clip bulk actions in a %s header cell',
+    variant => {
+      render(
+        <SimpleTable
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell variant={variant} divider={false}>
+                <Button size="xs">Bulk action</Button>
+              </SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        />
+      );
+
+      const header = screen.getByRole('columnheader');
+      const action = screen.getByRole('button', {name: 'Bulk action'});
+
+      // The action renders straight into the header cell, skipping the label
+      // wrappers whose `overflow: hidden` would clip menus opened from it.
+      expect(action.parentElement).toBe(header);
+    }
+  );
 
   it('renders a single spanning cell when given a full width row', () => {
     render(
