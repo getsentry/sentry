@@ -10,8 +10,10 @@ import {Text, type TextProps, type TextPropsWithRenderFunction} from './index';
 
 /** The `display` value of the always-applied base declaration (no at-rule). */
 function getBaseDisplay(element: HTMLElement): string | undefined {
-  const base = getEmotionRules(element).find(rule => rule.trimStart().startsWith('.'));
-  return base?.match(/display:\s*([\w-]+)/)?.[1];
+  return getEmotionRules(element)
+    .filter(rule => rule.trimStart().startsWith('.'))
+    .map(rule => rule.match(/display:\s*([\w-]+)/)?.[1])
+    .find(Boolean);
 }
 
 describe('Text', () => {
@@ -228,12 +230,15 @@ describe('Text', () => {
       expectTypeOf(props.children).toEqualTypeOf<React.ReactNode>();
     });
 
-    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+    it('render prop signature limits children to (props: {className, style}) => React.ReactNode | undefined', () => {
       const props: TextPropsWithRenderFunction = {
         children: () => {},
       };
       expectTypeOf(props.children).toEqualTypeOf<
-        (props: {className: string}) => React.ReactNode | undefined
+        (props: {
+          className: string;
+          style?: React.CSSProperties;
+        }) => React.ReactNode | undefined
       >();
     });
   });

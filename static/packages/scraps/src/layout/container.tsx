@@ -1,6 +1,5 @@
 import React, {useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
@@ -10,22 +9,23 @@ import type {
   SpaceSize,
   SurfaceVariant,
 } from '@sentry/scraps/theme';
+import {radius, space} from '@sentry/scraps/theme/constants.linaria';
+import {background, border} from '@sentry/scraps/theme/tokens.linaria';
 
+import type {LayoutProperty} from './generatedStyles';
 import {
-  ContainerQueryProvider,
-  getBorder,
-  getMargin,
-  getRadius,
-  getSpacing,
-  rc,
-  type Responsive,
-  type Shorthand,
-} from './styles';
+  addLayoutProp,
+  createLayoutStyle,
+  finishLayoutStyle,
+  type LayoutPropOptions,
+  type LayoutStyle,
+} from './linariaLayout';
+import {ContainerQueryProvider, type Responsive, type Shorthand} from './styles';
 
 type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable @sentry/sort-interface-keys */
-interface ContainerLayoutProps {
+export interface ContainerLayoutProps {
   background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
   display?: Responsive<CSS['display']>;
 
@@ -176,7 +176,10 @@ export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'>
   ContainerLayoutProps,
   'containerType'
 > & {
-  children: (props: {className: string}) => React.ReactNode | undefined;
+  children: (props: {
+    className: string;
+    style?: React.CSSProperties;
+  }) => React.ReactNode | undefined;
   as?: never;
   /**
    * Declaring a query container is not supported with the render-prop form: the
@@ -201,7 +204,7 @@ export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'>
     >
   >;
 
-const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
+export const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',
   'area',
   'as',
@@ -254,134 +257,295 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'whiteSpace',
 ]);
 
-export const Container = styled(
-  <T extends ContainerElement = 'div'>(
-    props: (ContainerProps<T> | ContainerPropsWithRenderFunction<T>) & {
-      className?: string;
-    }
-  ) => {
-    // Hooks must run unconditionally, before the render-prop early return.
-    const containerRef = useRef<HTMLElement>(null);
-    const {as, containerType, ref, ...rest} = props;
+const OMIT_CONTAINER_PROPS: ReadonlySet<string> = omitContainerProps;
 
-    // A query container needs its size observed in JS so descendants can resolve
-    // container-mode responsive props (e.g. Stack orientation). We only attach a
-    // ref + observer when this element is actually a container, keeping the
-    // common (non-container) path free of any ResizeObserver overhead.
-    const isContainer = !!containerType && containerType !== 'normal';
+function resolveSpace(size: SpaceSize): string {
+  return space[size] ?? space['0'];
+}
 
-    const containerRefs = useMemo(
-      () => (isContainer ? mergeRefs(ref as React.Ref<any>, containerRef) : ref),
-      [isContainer, ref]
-    );
+/** `"md lg"` → `"8px 12px"`, like `getSpacing` but without the Emotion theme. */
+export function resolveSpacing(spacing: Shorthand<SpaceSize, 4>): string {
+  return spacing.length < 3
+    ? resolveSpace(spacing as SpaceSize)
+    : spacing
+        .split(' ')
+        .map(size => resolveSpace(size as SpaceSize))
+        .join(' ');
+}
 
-    if (typeof props.children === 'function') {
-      // When using render prop, only pass className to the child function
-      return props.children({className: props.className ?? ''});
-    }
+function resolveMarginSize(size: Margin): string {
+  return size === 'auto' || size === '0' ? size : resolveSpace(size);
+}
 
-    const Component = as ?? 'div';
+function resolveMargin(margin: Shorthand<Margin, 4>): string {
+  return margin.length < 3
+    ? resolveMarginSize(margin as Margin)
+    : margin
+        .split(' ')
+        .map(size => resolveMarginSize(size as Margin))
+        .join(' ');
+}
 
-    const node = <Component {...(rest as any)} ref={containerRefs} />;
+function resolveRadius(value: Shorthand<RadiusSize, 4>): string {
+  return value
+    .split(' ')
+    .map(size => radius[size as RadiusSize])
+    .join(' ');
+}
 
-    if (isContainer) {
-      return (
-        <ContainerQueryProvider elementRef={containerRef}>{node}</ContainerQueryProvider>
-      );
-    }
-
-    return node;
-  },
-  {
-    shouldForwardProp: prop => {
-      // containerType must reach the inner component to wire up the query
-      // container; it is stripped there so it never lands on the DOM.
-      if (prop === 'containerType') {
-        return true;
-      }
-      if (omitContainerProps.has(prop as keyof ContainerLayoutProps | 'as')) {
-        return false;
-      }
-      return isPropValid(prop);
-    },
+function borderColor(key: Exclude<BorderVariant, 'none'>): string {
+  switch (key) {
+    case 'primary':
+      return border.primary;
+    case 'muted':
+    case 'secondary':
+      return border.secondary;
+    default:
+      return border[`${key}Vibrant`];
   }
-)<ContainerProps<any> | ContainerPropsWithRenderFunction<any>>`
-  ${p => rc('container-type', p.containerType, p.theme)};
+}
 
-  ${p => rc('display', p.display, p.theme)};
-  ${p => rc('position', p.position, p.theme)};
+type BorderSide = 'border' | 'borderTop' | 'borderBottom' | 'borderLeft' | 'borderRight';
 
-  ${p => rc('inset', p.inset, p.theme)};
-  ${p => rc('top', p.top, p.theme)};
-  ${p => rc('bottom', p.bottom, p.theme)};
-  ${p => rc('left', p.left, p.theme)};
-  ${p => rc('right', p.right, p.theme)};
+/**
+ * Keep the border longhands from the StyleX comparison: one static class
+ * per variant for plain values, and
+ * per-breakpoint variables for responsive ones.
+ */
+function addBorder(
+  acc: LayoutStyle,
+  side: BorderSide,
+  value: Responsive<BorderVariant> | undefined
+): void {
+  if (value === undefined) {
+    return;
+  }
+  if (typeof value === 'string') {
+    if (acc.inline) {
+      acc.style = {
+        ...acc.style,
+        [`${side}Width`]: value === 'none' ? '0' : '1px',
+        [`${side}Style`]: value === 'none' ? 'none' : 'solid',
+        ...(value === 'none' ? {} : {[`${side}Color`]: borderColor(value)}),
+      };
+    }
+    addLayoutProp(acc, `${side}Width`, value, {fixed: side, noInline: true});
+    return;
+  }
+  addLayoutProp(acc, `${side}Width`, value, {resolve: v => (v === 'none' ? '0' : '1px')});
+  addLayoutProp(acc, `${side}Style`, value, {
+    resolve: v => (v === 'none' ? 'none' : 'solid'),
+  });
+  addLayoutProp(acc, `${side}Color`, value, {
+    resolve: v => (v === 'none' ? undefined : borderColor(v)),
+  });
+}
 
-  ${p => rc('overflow', p.overflow, p.theme)};
-  ${p => rc('overflow-x', p.overflowX, p.theme)};
-  ${p => rc('overflow-y', p.overflowY, p.theme)};
+export function resolveBackground(value: SurfaceVariant | 'overlay'): string {
+  return background[value];
+}
 
-  ${p => rc('overscroll-behavior', p.overscrollBehavior, p.theme)};
+type PropHandler = (acc: LayoutStyle, value: unknown) => void;
 
-  ${p => rc('pointer-events', p.pointerEvents, p.theme)};
+function layoutProp<T>(
+  property: LayoutProperty,
+  options?: LayoutPropOptions<T>
+): PropHandler {
+  return (acc, value) => addLayoutProp(acc, property, value as Responsive<T>, options);
+}
 
-  ${p => rc('cursor', p.cursor, p.theme)};
-  ${p => rc('contain', p.contain, p.theme)};
+function borderProp(side: BorderSide): PropHandler {
+  return (acc, value) => addBorder(acc, side, value as Responsive<BorderVariant>);
+}
 
-  ${p => rc('padding', p.padding, p.theme, getSpacing)};
-  ${p => rc('padding-top', p.paddingTop, p.theme, getSpacing)};
-  ${p => rc('padding-bottom', p.paddingBottom, p.theme, getSpacing)};
-  ${p => rc('padding-left', p.paddingLeft, p.theme, getSpacing)};
-  ${p => rc('padding-right', p.paddingRight, p.theme, getSpacing)};
+/**
+ * One handler per `Container` prop (except `display`), built once so a render
+ * only visits the props that were passed.
+ */
+const CONTAINER_PROP_HANDLERS: Record<string, PropHandler | undefined> = {
+  containerType: layoutProp('containerType', {fixed: 'containerType'}),
+  position: layoutProp('position', {fixed: 'position'}),
 
-  ${p => rc('margin', p.margin, p.theme, getMargin)};
-  ${p => rc('margin-top', p.marginTop, p.theme, getMargin)};
-  ${p => rc('margin-bottom', p.marginBottom, p.theme, getMargin)};
-  ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
-  ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
+  inset: layoutProp('inset', {fixed: 'inset'}),
+  top: layoutProp('top', {fixed: 'top'}),
+  bottom: layoutProp('bottom', {fixed: 'bottom'}),
+  left: layoutProp('left', {fixed: 'left'}),
+  right: layoutProp('right', {fixed: 'right'}),
 
-  ${p =>
-    rc('background', p.background, p.theme, v =>
-      v ? p.theme.tokens.background[v] : undefined
-    )};
+  overflow: layoutProp('overflow', {fixed: 'overflow'}),
+  overflowX: layoutProp('overflowX', {fixed: 'overflowX'}),
+  overflowY: layoutProp('overflowY', {fixed: 'overflowY'}),
+  overscrollBehavior: layoutProp('overscrollBehavior'),
+  pointerEvents: layoutProp('pointerEvents', {fixed: 'pointerEvents'}),
+  cursor: layoutProp('cursor', {fixed: 'cursor'}),
+  contain: layoutProp('contain'),
 
-  ${p => rc('border-radius', p.radius, p.theme, getRadius)};
+  padding: layoutProp('padding', {fixed: 'padding', resolve: resolveSpacing}),
+  paddingTop: layoutProp('paddingTop', {fixed: 'paddingTop', resolve: resolveSpace}),
+  paddingBottom: layoutProp('paddingBottom', {
+    fixed: 'paddingBottom',
+    resolve: resolveSpace,
+  }),
+  paddingLeft: layoutProp('paddingLeft', {fixed: 'paddingLeft', resolve: resolveSpace}),
+  paddingRight: layoutProp('paddingRight', {
+    fixed: 'paddingRight',
+    resolve: resolveSpace,
+  }),
 
-  ${p => rc('width', p.width, p.theme)};
-  ${p => rc('min-width', p.minWidth, p.theme)};
-  ${p => rc('max-width', p.maxWidth, p.theme)};
+  margin: layoutProp('margin', {fixed: 'margin', resolve: resolveMargin}),
+  marginTop: layoutProp('marginTop', {fixed: 'marginTop', resolve: resolveMarginSize}),
+  marginBottom: layoutProp('marginBottom', {
+    fixed: 'marginBottom',
+    resolve: resolveMarginSize,
+  }),
+  marginLeft: layoutProp('marginLeft', {fixed: 'marginLeft', resolve: resolveMarginSize}),
+  marginRight: layoutProp('marginRight', {
+    fixed: 'marginRight',
+    resolve: resolveMarginSize,
+  }),
 
-  ${p => rc('height', p.height, p.theme)};
-  ${p => rc('min-height', p.minHeight, p.theme)};
-  ${p => rc('max-height', p.maxHeight, p.theme)};
+  background: layoutProp('backgroundColor', {
+    fixed: 'background',
+    resolve: resolveBackground,
+  }),
+  radius: layoutProp('borderRadius', {fixed: 'radius', resolve: resolveRadius}),
 
-  ${p => rc('grid-area', p.area, p.theme)};
-  ${p => rc('grid-row', p.row, p.theme)};
-  ${p => rc('grid-column', p.column, p.theme)};
+  width: layoutProp('width', {fixed: 'width'}),
+  minWidth: layoutProp('minWidth', {fixed: 'minWidth'}),
+  maxWidth: layoutProp('maxWidth', {fixed: 'maxWidth'}),
+  height: layoutProp('height', {fixed: 'height'}),
+  minHeight: layoutProp('minHeight', {fixed: 'minHeight'}),
+  maxHeight: layoutProp('maxHeight', {fixed: 'maxHeight'}),
 
-  ${p => rc('order', p.order, p.theme)};
-  ${p => rc('flex', p.flex, p.theme)};
-  ${p => rc('flex-grow', p.flexGrow, p.theme)};
-  ${p => rc('flex-shrink', p.flexShrink, p.theme)};
-  ${p => rc('flex-basis', p.flexBasis, p.theme)};
+  area: layoutProp('gridArea'),
+  row: layoutProp('gridRow'),
+  column: layoutProp('gridColumn'),
 
-  ${p => rc('align-self', p.alignSelf, p.theme)};
-  ${p => rc('justify-self', p.justifySelf, p.theme)};
+  order: layoutProp('order'),
+  flex: layoutProp('flex', {fixed: 'flex'}),
+  flexGrow: layoutProp('flexGrow', {fixed: 'flexGrow'}),
+  flexShrink: layoutProp('flexShrink', {fixed: 'flexShrink'}),
+  flexBasis: layoutProp('flexBasis'),
+  alignSelf: layoutProp('alignSelf', {fixed: 'alignSelf'}),
+  justifySelf: layoutProp('justifySelf', {fixed: 'justifySelf'}),
 
-  ${p => rc('border', p.border, p.theme, getBorder)};
-  ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
-  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
-  ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
-  ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+  border: borderProp('border'),
+  borderTop: borderProp('borderTop'),
+  borderBottom: borderProp('borderBottom'),
+  borderLeft: borderProp('borderLeft'),
+  borderRight: borderProp('borderRight'),
 
-  ${p => rc('visibility', p.visibility, p.theme)};
-  ${p => rc('white-space', p.whiteSpace, p.theme)};
+  visibility: layoutProp('visibility', {fixed: 'visibility'}),
+  whiteSpace: layoutProp('whiteSpace', {fixed: 'whiteSpace'}),
+};
 
-  /**
-   * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
-   * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
-   * https://github.com/styled-components/styled-components/issues/1803
-   */
-` as unknown as <T extends ContainerElement = 'div'>(
+const DISPLAY_OPTIONS = {fixed: 'display'};
+
+/**
+ * Adds the styles of every `Container` prop that was passed. `display` is
+ * passed separately so `Flex` and `Grid` can default it without copying props.
+ */
+export function addContainerStyles(
+  acc: LayoutStyle,
+  p: ContainerLayoutProps,
+  display: ContainerLayoutProps['display'] = p.display
+): void {
+  addLayoutProp(acc, 'display', display, DISPLAY_OPTIONS);
+  for (const key in p) {
+    const handler = CONTAINER_PROP_HANDLERS[key];
+    if (handler !== undefined) {
+      handler(acc, (p as Record<string, unknown>)[key]);
+    }
+  }
+}
+
+/**
+ * Renders the element of a layout primitive with its computed styles. Props in
+ * `omitProps` and anything that is not a valid DOM attribute are dropped,
+ * matching the `shouldForwardProp` the Emotion version used.
+ */
+interface LayoutElementProps {
+  as?: React.ElementType;
+  children?: unknown;
+  className?: string;
+  containerType?: string;
+  ref?: React.Ref<any>;
+  style?: React.CSSProperties;
+}
+
+export function useLayoutElement(
+  props: LayoutElementProps,
+  acc: LayoutStyle,
+  omitProps: ReadonlySet<string>,
+  defaultElement: React.ElementType = 'div'
+): React.ReactNode {
+  // Hooks must run unconditionally, before the render-prop early return.
+  const containerRef = useRef<HTMLElement>(null);
+  const {as, containerType, ref, className, style, children} = props;
+
+  // A query container needs its size observed in JS so descendants can resolve
+  // container-mode responsive props (e.g. Stack orientation). We only attach a
+  // ref + observer when this element is actually a container, keeping the
+  // common (non-container) path free of any ResizeObserver overhead.
+  const isContainer = !!containerType && containerType !== 'normal';
+
+  const containerRefs = useMemo(
+    // Passes the ref objects along; nothing reads `.current` during render.
+    // oxlint-disable-next-line react/refs
+    () => (isContainer ? mergeRefs(ref, containerRef) : ref),
+    [isContainer, ref]
+  );
+
+  const merged = finishLayoutStyle(acc, className, style);
+
+  if (typeof children === 'function') {
+    // When using render prop, only pass the styling to the child function
+    return (children as (styleProps: typeof merged) => React.ReactNode)(merged);
+  }
+
+  const domProps: Record<string, unknown> = {};
+  for (const key in props) {
+    if (
+      key === 'as' ||
+      key === 'className' ||
+      key === 'containerType' ||
+      key === 'ref' ||
+      key === 'style' ||
+      omitProps.has(key) ||
+      !isPropValid(key)
+    ) {
+      continue;
+    }
+    domProps[key] = (props as Record<string, unknown>)[key];
+  }
+
+  const Component = as ?? defaultElement;
+  const node = (
+    <Component
+      {...domProps}
+      className={merged.className}
+      style={merged.style}
+      ref={containerRefs}
+    />
+  );
+
+  if (isContainer) {
+    return (
+      <ContainerQueryProvider elementRef={containerRef}>{node}</ContainerQueryProvider>
+    );
+  }
+
+  return node;
+}
+
+function ContainerComponent<T extends ContainerElement = 'div'>(
+  props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
+) {
+  const acc = createLayoutStyle(typeof props.children === 'function');
+  addContainerStyles(acc, props);
+  return useLayoutElement(props, acc, OMIT_CONTAINER_PROPS);
+}
+
+export const Container = ContainerComponent as <T extends ContainerElement = 'div'>(
   props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
 ) => React.ReactElement;

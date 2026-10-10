@@ -1,10 +1,16 @@
-import isPropValid from '@emotion/is-prop-valid';
-import styled from '@emotion/styled';
-
-import {rc, type Responsive} from '@sentry/scraps/layout';
+import {useLayoutElement} from '@sentry/scraps/layout/container';
+import {addStyles, createLayoutStyle} from '@sentry/scraps/layout/linariaLayout';
+import type {Responsive} from '@sentry/scraps/layout/styles';
 import type {HeadingSize} from '@sentry/scraps/theme';
 
-import {getFontSize, getLineHeight, getTextDecoration} from './styles';
+import {
+  addCommonTextStyles,
+  addDensity,
+  addFontSize,
+  getFontWeightStyle,
+  inheritStyles,
+  TEXT_STYLE_PROPS,
+} from './linariaStyles';
 import {type BaseTextProps} from './text';
 
 type BaseHeadingProps = Omit<BaseTextProps, 'bold' | 'uppercase'>;
@@ -39,7 +45,10 @@ export type HeadingProps = BaseHeadingProps & {
 
 export type HeadingPropsWithRenderFunction = BaseHeadingProps &
   ExclusiveHeadingEllipsisProps & {
-    children: (props: {className: string}) => React.ReactNode | undefined;
+    children: (props: {
+      className: string;
+      style?: React.CSSProperties;
+    }) => React.ReactNode | undefined;
     as?: never;
     ref?: never;
     size?: Responsive<HeadingSize>;
@@ -58,77 +67,36 @@ export type HeadingPropsWithRenderFunction = BaseHeadingProps &
     >
   >;
 
-export const Heading = styled(
-  (props: (HeadingProps | HeadingPropsWithRenderFunction) & {className?: string}) => {
-    if (typeof props.children === 'function') {
-      // When using render prop, only pass className to the child function
-      return props.children({className: props.className ?? ''});
-    }
-    const {children, as, ...rest} = props as HeadingProps;
-    const HeadingComponent = as;
+function HeadingComponent(props: HeadingProps | HeadingPropsWithRenderFunction) {
+  const acc = createLayoutStyle(typeof props.children === 'function');
+  const inherit = props.variant === 'inherit';
 
-    return <HeadingComponent {...rest}>{children}</HeadingComponent>;
-  },
-  {
-    shouldForwardProp: p => isPropValid(p),
+  if (inherit && props.size === undefined) {
+    addStyles(acc, inheritStyles.fontSize);
+  } else {
+    addFontSize(
+      acc,
+      props.size ?? (props.as ? getDefaultHeadingFontSize(props.as) : undefined)
+    );
   }
-)`
-  ${p =>
-    p.variant === 'inherit' && p.size === undefined
-      ? 'font-size: inherit'
-      : rc(
-          'font-size',
-          p.size ?? (p.as ? getDefaultHeadingFontSize(p.as) : undefined),
-          p.theme,
-          v => {
-            return getFontSize(v, p.theme);
-          }
-        )};
-  ${p =>
-    p.variant === 'inherit' && p.density === undefined
-      ? 'line-height: inherit'
-      : rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
-  ${p => rc('text-align', p.align, p.theme)};
+  if (inherit && props.density === undefined) {
+    addStyles(acc, inheritStyles.lineHeight);
+  } else {
+    addDensity(acc, props.density);
+  }
+  addCommonTextStyles(acc, props, {fullWidthEllipsis: false});
+  addStyles(
+    acc,
+    inherit ? inheritStyles.fontWeight : getFontWeightStyle(props.monospace, 'medium')
+  );
 
-  font-style: ${p => (p.italic ? 'italic' : undefined)};
+  // `as` is required on the element form; the render-prop form never renders one.
+  return useLayoutElement(props, acc, TEXT_STYLE_PROPS, 'h1');
+}
 
-  text-decoration: ${p => getTextDecoration(p)};
-
-  color: ${p =>
-    p.variant === 'inherit'
-      ? undefined
-      : p.theme.tokens.content[
-          p.variant === 'muted' ? 'secondary' : (p.variant ?? 'primary')
-        ]};
-
-  overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
-  text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
-  white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
-  text-wrap: ${p => p.textWrap ?? undefined};
-  word-break: ${p => p.wordBreak ?? undefined};
-
-  font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
-  font-weight: ${p =>
-    p.variant === 'inherit'
-      ? 'inherit'
-      : p.theme.font.weight[p.monospace ? 'mono' : 'sans'].medium};
-  font-variant-numeric: ${p =>
-    [
-      p.tabular ? 'tabular-nums' : undefined,
-      p.fraction ? 'diagonal-fractions' : undefined,
-    ]
-      .filter(Boolean)
-      .join(' ')};
-
-  text-box-edge: text text;
-  text-box-trim: trim-both;
-
-  /**
-   * Reset any margin or padding that might be set by the global CSS styles.
-   */
-  margin: 0;
-  padding: 0;
-`;
+export const Heading = HeadingComponent as (
+  props: HeadingProps | HeadingPropsWithRenderFunction
+) => React.ReactElement;
 
 function getDefaultHeadingFontSize(as: HeadingProps['as']): HeadingSize {
   switch (as) {

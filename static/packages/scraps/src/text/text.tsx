@@ -1,11 +1,20 @@
-import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
-
-import {rc, type Responsive} from '@sentry/scraps/layout';
+import {useLayoutElement} from '@sentry/scraps/layout/container';
+import {
+  addLayoutProp,
+  addStyles,
+  createLayoutStyle,
+  type LayoutStyle,
+} from '@sentry/scraps/layout/linariaLayout';
+import type {Responsive} from '@sentry/scraps/layout/styles';
 import type {ContentVariant, TextSize, Theme} from '@sentry/scraps/theme';
 
-import {getFontSize, getLineHeight, getTextDecoration} from './styles';
+import {
+  addCommonTextStyles,
+  addDensity,
+  addFontSize,
+  getFontWeightStyle,
+  TEXT_STYLE_PROPS,
+} from './linariaStyles';
 
 export interface BaseTextProps {
   /**
@@ -168,7 +177,6 @@ type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time' | 'legend';
 type DisplayValue = 'inline' | 'block' | 'inline-block' | 'none';
 
 type TextStyleProps = BaseTextProps & {
-  theme: Theme;
   as?: TextPrimitive;
   display?: Responsive<DisplayValue>;
   size?: Responsive<TextSize>;
@@ -192,84 +200,16 @@ function getNativeDisplay(as: TextPrimitive | undefined): DisplayValue {
   return as === 'p' || as === 'div' || as === 'legend' ? 'block' : 'inline';
 }
 
-/**
- * When no explicit `display` prop is set, the derived default is applied.
- * For a responsive prop we seed the base (`zero`) slot when the consumer left it unset
- * (with the derived default, or the element's native display when there is none)
- * so unspecified small breakpoints keep the sensible default instead of inheriting the value of
- * the smallest specified breakpoint (which `rc` would otherwise make the base).
- */
-function resolveDisplay(p: TextStyleProps): string | undefined {
-  const fallback = getDefaultDisplay(p);
-
-  if (p.display === undefined) {
-    return fallback ? `display: ${fallback};` : undefined;
-  }
-
-  if (typeof p.display === 'string') {
-    return `display: ${p.display};`;
-  }
-
-  const value =
-    p.display.zero === undefined
-      ? {zero: fallback ?? getNativeDisplay(p.as), ...p.display}
-      : p.display;
-
-  return rc('display', value, p.theme);
-}
-
-export const getTextStyles = (p: TextStyleProps) => css`
-  ${rc('font-size', p.size, p.theme, v => getFontSize(v, p.theme))};
-  ${rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
-  ${resolveDisplay(p)};
-  ${rc('text-align', p.align, p.theme)};
-
-  font-style: ${p.italic ? 'italic' : undefined};
-  text-decoration: ${getTextDecoration(p)};
-  cursor: ${p.cursor ?? undefined};
-
-  color: ${
-    p.variant === 'inherit'
-      ? undefined
-      : p.theme.tokens.content[
-          p.variant === 'muted' ? 'secondary' : (p.variant ?? 'primary')
-        ]
-  };
-
-  overflow: ${p.ellipsis ? 'hidden' : undefined};
-  text-overflow: ${p.ellipsis ? 'ellipsis' : undefined};
-  white-space: ${p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined};
-  text-wrap: ${p.textWrap ?? undefined};
-  word-break: ${p.wordBreak ?? undefined};
-  width: ${p.ellipsis ? '100%' : undefined};
-
-  font-family: ${p.theme.font.family[p.monospace ? 'mono' : 'sans']};
-  font-weight: ${
-    p.bold === true
-      ? p.theme.font.weight[p.monospace ? 'mono' : 'sans'].medium
-      : p.bold === false
-        ? p.theme.font.weight[p.monospace ? 'mono' : 'sans'].regular
-        : undefined
-  };
-  font-variant-numeric: ${[
-    p.tabular ? 'tabular-nums' : undefined,
-    p.fraction ? 'diagonal-fractions' : undefined,
-  ]
-    .filter(Boolean)
-    .join(' ')};
-  text-transform: ${p.uppercase ? 'uppercase' : undefined};
-
-  text-box-edge: text text;
-  text-box-trim: trim-both;
-`;
-
 export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;
 
 export type TextPropsWithRenderFunction<T extends TextPrimitive = 'span'> =
   BaseTextProps &
     ExclusiveTextEllipsisProps & {
-      children: (props: {className: string}) => React.ReactNode | undefined;
+      children: (props: {
+        className: string;
+        style?: React.CSSProperties;
+      }) => React.ReactNode | undefined;
       as?: never;
       color?: never;
       dateTime?: never;
@@ -291,35 +231,48 @@ export type TextPropsWithRenderFunction<T extends TextPrimitive = 'span'> =
       >
     >;
 
-export const Text = styled(
-  <T extends TextPrimitive = 'span'>(
-    props: (TextProps<T> | TextPropsWithRenderFunction<T>) & {className?: string}
-  ) => {
-    if (typeof props.children === 'function') {
-      // When using render prop, only pass className to the child function
-      return props.children({className: props.className ?? ''});
-    }
-    const {children, ...rest} = props as TextProps<T>;
-    const Component = props.as || 'span';
-    return <Component {...(rest as any)}>{children}</Component>;
-  },
-  {
-    shouldForwardProp: p => isPropValid(p),
+const OMIT_TEXT_PROPS = TEXT_STYLE_PROPS;
+
+/**
+ * When no explicit `display` prop is set, the derived default is applied.
+ */
+function addTextDisplay(
+  acc: LayoutStyle,
+  p: Pick<TextStyleProps, 'align' | 'as' | 'display' | 'ellipsis'>
+): void {
+  const fallback = getDefaultDisplay(p);
+
+  if (p.display === undefined || typeof p.display === 'string') {
+    addLayoutProp(acc, 'display', p.display ?? fallback, {fixed: 'display'});
+    return;
   }
-)`
-  ${getTextStyles}
 
-  /**
-   * Reset any margin or padding that might be set by the global CSS styles.
-   */
-  margin: 0;
-  padding: 0;
+  // For a responsive prop, seed the base (`zero`) slot when the consumer left it
+  // unset (with the derived default, or the element's native display) so
+  // unspecified small breakpoints keep a sensible default instead of the value
+  // of the smallest specified breakpoint.
+  const value =
+    p.display.zero === undefined
+      ? {zero: fallback ?? getNativeDisplay(p.as), ...p.display}
+      : p.display;
+  addLayoutProp(acc, 'display', value, {fixed: 'display'});
+}
 
-  /**
-   * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
-   * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
-   * https://github.com/styled-components/styled-components/issues/1803
-   */
-` as unknown as <T extends TextPrimitive = 'span'>(
+function TextComponent<T extends TextPrimitive = 'span'>(
+  props: TextProps<T> | TextPropsWithRenderFunction<T>
+) {
+  const p = props as unknown as TextStyleProps;
+  const acc = createLayoutStyle(typeof props.children === 'function');
+  addFontSize(acc, p.size);
+  addDensity(acc, p.density);
+  addTextDisplay(acc, p);
+  addCommonTextStyles(acc, p, {fullWidthEllipsis: true});
+  if (p.bold !== undefined) {
+    addStyles(acc, getFontWeightStyle(p.monospace, p.bold ? 'medium' : 'regular'));
+  }
+  return useLayoutElement(props, acc, OMIT_TEXT_PROPS, 'span');
+}
+
+export const Text = TextComponent as <T extends TextPrimitive = 'span'>(
   props: TextProps<T> | TextPropsWithRenderFunction<T>
 ) => React.ReactElement;

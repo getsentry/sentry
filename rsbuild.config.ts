@@ -24,6 +24,7 @@ import {
   createHostCheckUpgrade,
 } from './build-utils/dev-server-host-check.ts';
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
+import {LINARIA_ROOTS} from './build-utils/linaria.ts';
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
 import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
 import packageJson from './package.json' with {type: 'json'};
@@ -319,6 +320,17 @@ const appConfig: Configuration = {
      */
     rules: [
       {
+        test: /\.[jt]sx?$/,
+        include: LINARIA_ROOTS,
+        enforce: 'pre',
+        loader: path.resolve(import.meta.dirname, 'build-utils/linaria-loader.ts'),
+      },
+      {
+        test: /linaria\.css$/,
+        enforce: 'pre',
+        loader: path.resolve(import.meta.dirname, 'build-utils/linaria-css-loader.ts'),
+      },
+      {
         // Only first-party imports use V8 paths. Leave dependencies and the
         // compatibility implementation on the original V6 package resolution.
         include: [staticPrefix, path.join(import.meta.dirname, 'tests/js')],
@@ -383,7 +395,19 @@ const appConfig: Configuration = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        oneOf: [
+          {
+            test: /linaria\.css$/,
+            // Production loads extracted styles as CSS assets. Development
+            // keeps style-loader for hot updates.
+            use: [
+              IS_PRODUCTION ? rspack.CssExtractRspackPlugin.loader : 'style-loader',
+              'css-loader',
+            ],
+            sideEffects: true,
+          },
+          {use: ['style-loader', 'css-loader']},
+        ],
       },
       {
         test: /\.less$/,

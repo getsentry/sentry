@@ -1,5 +1,4 @@
 import {createContext, useContext, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Separator, type SeparatorProps} from '@sentry/scraps/separator';
 
@@ -15,29 +14,23 @@ export type StackProps<T extends ContainerElement = 'div'> = FlexProps<T>;
 export type StackPropsWithRenderFunction<T extends ContainerElement = 'div'> =
   FlexPropsWithRenderFunction<T>;
 
-const StackComponent = styled(
-  <T extends ContainerElement = 'div'>({
-    direction = 'column',
-    ...props
-  }: StackProps<T>) => {
-    const directionContext = useMemo<StackDirectionContextValue>(
-      () => ({direction}),
-      [direction]
-    );
+function StackComponentImpl<T extends ContainerElement = 'div'>({
+  direction = 'column',
+  ...props
+}: StackProps<T> | StackPropsWithRenderFunction<T>) {
+  const directionContext = useMemo<StackDirectionContextValue>(
+    () => ({direction}),
+    [direction]
+  );
 
-    return (
-      <StackDirectionContext.Provider value={directionContext}>
-        <Flex {...props} direction={direction} />
-      </StackDirectionContext.Provider>
-    );
-  }
-)<StackProps<any> | StackPropsWithRenderFunction<any>>`
-  /**
-   * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
-   * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
-   * https://github.com/styled-components/styled-components/issues/1803
-   */
-` as unknown as <T extends ContainerElement = 'div'>(
+  return (
+    <StackDirectionContext.Provider value={directionContext}>
+      <Flex {...(props as FlexProps<T>)} direction={direction} />
+    </StackDirectionContext.Provider>
+  );
+}
+
+const StackComponent = StackComponentImpl as <T extends ContainerElement = 'div'>(
   props: StackProps<T> | StackPropsWithRenderFunction<T>
 ) => React.ReactElement;
 
@@ -66,7 +59,7 @@ const StackDirectionContext = createContext<StackDirectionContextValue>({
 
 type StackSeparatorProps = Omit<SeparatorProps, 'orientation'>;
 
-const StackSeparator = styled((props: StackSeparatorProps) => {
+function StackSeparator(props: StackSeparatorProps) {
   const {direction} = useContext(StackDirectionContext);
   const responsiveDirection = useResponsivePropValue(direction);
   const orientation = getOrientationFromDirection(responsiveDirection);
@@ -80,7 +73,7 @@ const StackSeparator = styled((props: StackSeparatorProps) => {
       border={props.border ?? 'primary'}
     />
   );
-})<StackSeparatorProps>``;
+}
 
 export const Stack = Object.assign(StackComponent, {
   Separator: StackSeparator,

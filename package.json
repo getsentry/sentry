@@ -50,7 +50,8 @@
     "https-proxy": "caddy run --config - <<< '{\"apps\":{\"http\":{\"servers\":{\"srv0\":{\"listen\":[\":8003\"],\"routes\":[{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"localhost:8000\"}]}]}],\"tls_connection_policies\":[{\"certificate_selection\":{\"any_tag\":[\"cert0\"]}}]}}},\"tls\":{\"certificates\":{\"load_files\":[{\"certificate\":\"./config/localhost.pem\",\"key\":\"./config/localhost-key.pem\",\"tags\":[\"cert0\"]}]}}}}'",
     "snapshots": "jest --config jest.config.snapshots.ts",
     "knip": "knip",
-    "knip:prod": "pnpm run knip --production --exclude dependencies"
+    "knip:prod": "pnpm run knip --production --exclude dependencies",
+    "gen:linaria-theme": "esbuild scripts/genLinariaTheme.ts --bundle --platform=node --format=esm --packages=external --outfile=.artifacts/genLinariaTheme.mjs && node .artifacts/genLinariaTheme.mjs"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^1.5.3",
@@ -65,6 +66,7 @@
     "@emotion/styled": "^11.14.0",
     "@intercom/messenger-js-sdk": "^0.0.18",
     "@jest/test-result": "30.5.1",
+    "@linaria/core": "8.2.0",
     "@mdx-js/loader": "3.1.1",
     "@popperjs/core": "^2.11.5",
     "@r4ai/remark-callout": "^0.6.2",
@@ -250,6 +252,8 @@
     "@types/d3-zoom": "^3.0.8",
     "@types/gettext-parser": "8.0.0",
     "@types/node": "24.13.2",
+    "@wyw-in-js/transform": "2.5.1",
+    "@wyw-in-js/webpack-loader": "2.5.1",
     "eslint": "10.8.0",
     "eslint-import-resolver-typescript": "4.4.5",
     "eslint-plugin-import": "2.32.0",

@@ -57,6 +57,7 @@
   "dependencies": {
     "@emotion/is-prop-valid": "1.4.0",
     "@emotion/styled": "11.14.0",
+    "@linaria/core": "8.2.0",
     "@react-aria/utils": "3.34.1",
     "@types/react": "^19.0.0"
   },

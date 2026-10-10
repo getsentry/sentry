@@ -1,7 +1,11 @@
-import {Fragment, lazy, useRef} from 'react';
+import {Fragment, lazy, useLayoutEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
+
+// The generated dark theme class is internal to scraps' Linaria setup.
+// eslint-disable-next-line boundaries/dependencies
+import {linariaDarkTheme} from '@sentry/scraps/theme/darkTheme';
 
 import {printConsoleBanner} from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
@@ -9,6 +13,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {GlobalStyles} from 'sentry/styles/global';
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import 'sentry/linaria.css';
 
 const SentryComponentInspector =
   NODE_ENV === 'development'
@@ -32,6 +37,10 @@ const cache = createCache({key: 'app', stylisPlugins: []});
 // Compat disables :nth-child warning
 cache.compat = true;
 
+// Light values are CSS variable fallbacks. The dark class overrides them on
+// the document element so portals use the same theme.
+const darkThemeClassNames = linariaDarkTheme.split(' ');
+
 /**
  * Wraps children with emotions ThemeProvider reactively set a theme.
  *
@@ -41,6 +50,14 @@ export function ThemeAndStyleProvider({children}: Props) {
   const config = useLegacyStore(ConfigStore);
 
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
+
+  useLayoutEffect(() => {
+    if (config.theme !== 'dark') {
+      return;
+    }
+    document.documentElement.classList.add(...darkThemeClassNames);
+    return () => document.documentElement.classList.remove(...darkThemeClassNames);
+  }, [config.theme]);
 
   const didPrintBanner = useRef(false);
   // oxlint-disable-next-line react/refs

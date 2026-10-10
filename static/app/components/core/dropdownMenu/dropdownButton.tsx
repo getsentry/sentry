@@ -1,5 +1,4 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {css, cx} from '@linaria/core';
 import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -25,6 +24,32 @@ export type DropdownButtonProps = DistributedOmit<
   showChevron?: boolean;
 };
 
+const styles = {
+  button: css`
+    max-width: 100%;
+  `,
+  prefixed: css`
+    font-weight: 400;
+  `,
+  flat: css`
+    box-shadow: none;
+  `,
+  label: css`
+    font-weight: 500;
+    padding-right: 6px;
+    &::after {
+      content: ':';
+    }
+  `,
+  chevron: css`
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    padding-left: 4px;
+    flex-shrink: 0;
+  `,
+};
+
 export function DropdownButton({
   children,
   prefix,
@@ -33,69 +58,34 @@ export function DropdownButton({
   showChevron = true,
   disabled = false,
   ref,
+  className,
+  style,
   ...props
 }: DropdownButtonProps) {
+  const sx = {className: cx(styles.button, (isOpen || disabled) && styles.flat)};
+
   return (
-    <StyledButton
+    <Button
       aria-haspopup="true"
       aria-expanded={isOpen}
-      hasPrefix={!!prefix}
       disabled={disabled}
-      isOpen={isOpen}
       size={size}
       ref={ref}
       {...props}
+      className={cx(sx.className, !!prefix && styles.prefixed, className)}
+      style={style}
     >
-      {prefix && <LabelText>{prefix}</LabelText>}
+      {prefix && <span {...{className: cx(styles.label)}}>{prefix}</span>}
       {children}
       {showChevron && (
-        <ChevronWrap>
+        <div {...{className: cx(styles.chevron)}}>
           <IconChevron
             variant={(props.variant ?? 'secondary') === 'secondary' ? 'muted' : undefined}
             direction={isOpen ? 'up' : 'down'}
             size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />
-        </ChevronWrap>
+        </div>
       )}
-    </StyledButton>
+    </Button>
   );
 }
-
-const ChevronWrap = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  padding-left: ${p => p.theme.space.xs};
-  flex-shrink: 0;
-`;
-
-interface StyledButtonProps extends Required<
-  Pick<DropdownButtonProps, 'isOpen' | 'disabled'>
-> {
-  hasPrefix?: boolean;
-}
-
-const StyledButton = styled(Button)<StyledButtonProps>`
-  position: relative;
-  max-width: 100%;
-
-  ${p =>
-    (p.isOpen || p.disabled) &&
-    css`
-      box-shadow: none;
-    `}
-  ${p =>
-    p.hasPrefix &&
-    css`
-      font-weight: ${p.theme.font.weight.sans.regular};
-    `}
-`;
-
-const LabelText = styled('span')`
-  &:after {
-    content: ':';
-  }
-
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding-right: ${p => p.theme.space.sm};
-`;
