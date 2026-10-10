@@ -305,6 +305,42 @@ describe('groupDetails', () => {
     }
   );
 
+  it('redirects legacy seerDrawer links to the autofix tab', async () => {
+    jest
+      .spyOn(GroupDetailsLayoutModule, 'GroupDetailsLayout')
+      .mockImplementation(MockComponent);
+    const organization = {
+      ...defaultInit.organization,
+      hideAiFeatures: false,
+      features: [...defaultInit.organization.features, 'autofix-page'],
+    };
+    const {router} = createWrapper(
+      {
+        ...initialRouterConfig,
+        location: LocationFixture({
+          ...initialRouterConfig.location,
+          query: {
+            project: group.project.id,
+            seerDrawer: 'true',
+            seerDrawerAction: 'retry_code_changes',
+          },
+        }),
+      },
+      organization
+    );
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/issues/${group.id}/autofix/`
+      );
+    });
+    expect(router.location.query).toEqual({
+      project: group.project.id,
+      seerDrawerAction: 'retry_code_changes',
+    });
+    expect(router.historyAction).toBe('REPLACE');
+  });
+
   it('renders', async () => {
     act(() => ProjectsStore.reset());
     createWrapper();
