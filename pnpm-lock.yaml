@@ -206,21 +206,6 @@ importers:
 
   .:
     dependencies:
-      '@amplitude/analytics-browser':
-        specifier: ^1.5.3
-        version: 1.13.7
-      '@dnd-kit/core':
-        specifier: ^6.1.0
-        version: 6.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@dnd-kit/modifiers':
-        specifier: 7.0.0
-        version: 7.0.0(@dnd-kit/core@6.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      '@dnd-kit/sortable':
-        specifier: ^8.0.0
-        version: 8.0.0(@dnd-kit/core@6.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      '@dnd-kit/utilities':
-        specifier: ^3.2.2
-        version: 3.2.2(react@19.3.0)
       '@emotion/cache':
         specifier: ^11.14.0
         version: 11.14.0
@@ -233,12 +218,6 @@ importers:
       '@emotion/react':
         specifier: ^11.14.0
         version: 11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
-      '@emotion/styled':
-        specifier: ^11.14.0
-        version: 11.14.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
-      '@intercom/messenger-js-sdk':
-        specifier: ^0.0.18
-        version: 0.0.18
       '@jest/test-result':
         specifier: 30.5.1
         version: 30.5.1
@@ -251,105 +230,6 @@ importers:
       '@r4ai/remark-callout':
         specifier: ^0.6.2
         version: 0.6.2
-      '@react-aria/button':
-        specifier: 3.15.1
-        version: 3.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/combobox':
-        specifier: 3.16.1
-        version: 3.16.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/disclosure':
-        specifier: 3.2.1
-        version: 3.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/focus':
-        specifier: 3.22.1
-        version: 3.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/gridlist':
-        specifier: 3.15.1
-        version: 3.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/i18n':
-        specifier: 3.13.1
-        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/interactions':
-        specifier: 3.28.1
-        version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/listbox':
-        specifier: 3.16.1
-        version: 3.16.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/live-announcer':
-        specifier: 3.5.1
-        version: 3.5.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/menu':
-        specifier: 3.22.1
-        version: 3.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/numberfield':
-        specifier: 3.13.1
-        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/overlays':
-        specifier: 3.32.1
-        version: 3.32.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/radio':
-        specifier: 3.13.1
-        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/selection':
-        specifier: 3.28.1
-        version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/separator':
-        specifier: 3.5.1
-        version: 3.5.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/slider':
-        specifier: 3.9.1
-        version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/tabs':
-        specifier: 3.12.1
-        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/textfield':
-        specifier: 3.19.1
-        version: 3.19.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/utils':
-        specifier: 3.34.1
-        version: 3.34.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/visually-hidden':
-        specifier: 3.9.1
-        version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/collections':
-        specifier: 3.13.1
-        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/combobox':
-        specifier: 3.14.1
-        version: 3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/disclosure':
-        specifier: 3.1.1
-        version: 3.1.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/form':
-        specifier: 3.3.1
-        version: 3.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/list':
-        specifier: 3.14.1
-        version: 3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/numberfield':
-        specifier: 3.12.1
-        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/overlays':
-        specifier: 3.7.1
-        version: 3.7.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/radio':
-        specifier: 3.12.1
-        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/slider':
-        specifier: 3.8.1
-        version: 3.8.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/tabs':
-        specifier: 3.9.1
-        version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/tree':
-        specifier: 3.10.1
-        version: 3.10.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-types/shared':
-        specifier: 3.36.0
-        version: 3.36.0(react@19.3.0)
-      '@remix-run/router':
-        specifier: 1.23.4
-        version: 1.23.4
       '@rsbuild/core':
         specifier: ^2.2.12
         version: 2.2.12(core-js@3.45.0)
@@ -368,42 +248,21 @@ importers:
       '@sentry-internal/global-search':
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@sentry/browser':
-        specifier: 11.0.0
-        version: 11.0.0
       '@sentry/conventions':
         specifier: ^0.26.0
         version: 0.26.0
       '@sentry/core':
         specifier: 11.0.0
         version: 11.0.0
-      '@sentry/icons':
-        specifier: workspace:*
-        version: link:static/packages/icons
       '@sentry/node':
         specifier: 11.0.0
         version: 11.0.0
       '@sentry/react':
         specifier: 11.0.0
         version: 11.0.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
-      '@sentry/release-parser':
-        specifier: ^1.3.1
-        version: 1.3.1
-      '@sentry/rrweb':
-        specifier: 2.44.0
-        version: 2.44.0
-      '@sentry/rrweb-player':
-        specifier: 2.44.0
-        version: 2.44.0
-      '@sentry/rrweb-snapshot':
-        specifier: 2.44.0
-        version: 2.44.0
       '@sentry/sqlish':
         specifier: 1.0.1
         version: 1.0.1(react@19.3.0)
-      '@sentry/status-page-list':
-        specifier: ^0.6.1
-        version: 0.6.1
       '@sentry/webpack-plugin':
         specifier: 5.4.1
         version: 5.4.1(encoding@0.1.13)(supports-color@8.1.1)
@@ -416,183 +275,60 @@ importers:
       '@swc/plugin-emotion':
         specifier: 19.0.0
         version: 19.0.0
-      '@tanstack/query-async-storage-persister':
-        specifier: 5.101.4
-        version: 5.101.4
-      '@tanstack/react-devtools':
-        specifier: 0.9.9
-        version: 0.9.9(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(csstype@3.2.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.16)
-      '@tanstack/react-form':
-        specifier: 1.28.6
-        version: 1.28.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@tanstack/react-form-devtools':
-        specifier: 0.2.20
-        version: 0.2.20(@types/react@19.3.0)(csstype@3.2.3)(react@19.3.0)(solid-js@1.9.16)
       '@tanstack/react-pacer':
         specifier: ^0.22.1
         version: 0.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@tanstack/react-pacer-devtools':
-        specifier: 0.7.1
-        version: 0.7.1(@tanstack/pacer@0.21.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.16)
       '@tanstack/react-query':
         specifier: 5.101.4
         version: 5.101.4(react@19.3.0)
-      '@tanstack/react-query-devtools':
-        specifier: 5.101.4
-        version: 5.101.4(@tanstack/react-query@5.101.4(react@19.3.0))(react@19.3.0)
-      '@tanstack/react-query-persist-client':
-        specifier: 5.101.4
-        version: 5.101.4(@tanstack/react-query@5.101.4(react@19.3.0))(react@19.3.0)
-      '@tanstack/react-virtual':
-        specifier: 3.14.6
-        version: 3.14.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@types/gtag.js':
         specifier: ^0.0.12
         version: 0.0.12
       '@types/history':
         specifier: ^3.2.5
         version: 3.2.5
-      '@types/invariant':
-        specifier: ^2.2.35
-        version: 2.2.37
       '@types/jest':
         specifier: 30.0.0
         version: 30.0.0
-      '@types/js-beautify':
-        specifier: ^1.14.3
-        version: 1.14.3
-      '@types/js-cookie':
-        specifier: 3.0.6
-        version: 3.0.6
       '@types/lodash':
         specifier: ^4.17.24
         version: 4.17.24
-      '@types/papaparse':
-        specifier: ^5.3.5
-        version: 5.3.5
-      '@types/prismjs':
-        specifier: ^1.26.0
-        version: 1.26.0
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
-      '@types/react-date-range':
-        specifier: ^1.4.4
-        version: 1.4.4
       '@types/react-dom':
         specifier: 19.3.0
         version: 19.3.0(@types/react@19.3.0)
-      '@types/react-grid-layout':
-        specifier: ^1.3.6
-        version: 1.3.6
-      '@types/react-lazyload':
-        specifier: 3.2.3
-        version: 3.2.3
-      '@types/react-select':
-        specifier: 4.0.18
-        version: 4.0.18
-      '@types/reflux':
-        specifier: 0.4.1
-        version: 0.4.1
       '@types/trusted-types':
         specifier: ^2.0.7
         version: 2.0.7
-      ansi-sequence-parser:
-        specifier: ^1.1.3
-        version: 1.1.3
-      base64-arraybuffer:
-        specifier: ^1.0.1
-        version: 1.0.2
-      cbor2:
-        specifier: ^1.12.0
-        version: 1.12.0
-      classnames:
-        specifier: 2.3.1
-        version: 2.3.1
-      color:
-        specifier: 5.0.2
-        version: 5.0.2
       compression-webpack-plugin:
         specifier: 12.0.0
         version: 12.0.0
-      conduit-client:
-        specifier: ^1.0.0
-        version: 1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       core-js:
         specifier: 3.45.0
         version: 3.45.0
-      cronstrue:
-        specifier: ^2.50.0
-        version: 2.50.0
       css-loader:
         specifier: 7.1.4
         version: 7.1.4(@rspack/core@2.2.8(@swc/helpers@0.5.23))
-      d3-selection:
-        specifier: ^3.0.0
-        version: 3.0.0
-      d3-zoom:
-        specifier: ^3.0.0
-        version: 3.0.0
-      diff:
-        specifier: 8.0.3
-        version: 8.0.3
-      dompurify:
-        specifier: 3.4.16
-        version: 3.4.16
-      downsample:
-        specifier: 1.4.0
-        version: 1.4.0
-      echarts:
-        specifier: 6.1.0
-        version: 6.1.0
       echarts-for-react:
         specifier: 3.0.6
         version: 3.0.6(echarts@6.1.0)(react@19.3.0)
       esbuild:
         specifier: 0.28.1
         version: 0.28.1
-      focus-trap:
-        specifier: 8.2.2
-        version: 8.2.2
       framer-motion:
         specifier: 12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      fuse.js:
-        specifier: ^7.5.0
-        version: 7.5.0
       gettext-parser:
         specifier: 9.1.1
         version: 9.1.1
-      gl-matrix:
-        specifier: 3.4.4
-        version: 3.4.4
       html-webpack-plugin:
         specifier: 5.6.3
         version: 5.6.3(@rspack/core@2.2.8(@swc/helpers@0.5.23))
-      idb-keyval:
-        specifier: 6.2.2
-        version: 6.2.2
-      input-otp:
-        specifier: ^1.5.0
-        version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      invariant:
-        specifier: ^2.2.4
-        version: 2.2.4
-      jed:
-        specifier: ^1.1.0
-        version: 1.1.1
       jest-fetch-mock:
         specifier: 4.2.0
         version: 4.2.0(encoding@0.1.13)
-      js-beautify:
-        specifier: ^2.0.3
-        version: 2.0.3
-      js-cookie:
-        specifier: 3.0.7
-        version: 3.0.7
-      jsonrepair:
-        specifier: ^3.14.0
-        version: 3.14.0
       less:
         specifier: 4.9.1
         version: 4.9.1(supports-color@8.1.1)
@@ -602,18 +338,6 @@ importers:
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
-      marked:
-        specifier: 18.0.2
-        version: 18.0.2
-      marked-highlight:
-        specifier: 2.2.4
-        version: 2.2.4(marked@18.0.2)
-      mobx:
-        specifier: 6.13.7
-        version: 6.13.7
-      mobx-react-lite:
-        specifier: 4.1.0
-        version: 4.1.0(mobx@6.13.7)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       mockdate:
         specifier: 3.0.5
         version: 3.0.5
@@ -623,45 +347,18 @@ importers:
       nuqs:
         specifier: 2.10.2
         version: 2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0)
-      papaparse:
-        specifier: ^5.3.2
-        version: 5.3.2
       peggy:
         specifier: 5.0.6
         version: 5.0.6
-      platformicons:
-        specifier: ^9.8.0
-        version: 9.8.0(react@19.3.0)
-      prismjs:
-        specifier: ^1.30.0
-        version: 1.30.0
-      qrcode.react:
-        specifier: ^3.1.0
-        version: 3.1.0(react@19.3.0)
       query-string:
         specifier: 7.0.1
         version: 7.0.1
-      re2js:
-        specifier: ^2.8.6
-        version: 2.8.6
       react:
         specifier: 19.3.0
         version: 19.3.0
-      react-date-range:
-        specifier: ^1.4.0
-        version: 1.4.0(date-fns@2.17.0)(react@19.3.0)
-      react-docgen-typescript:
-        specifier: 2.4.0
-        version: 2.4.0(@typescript/typescript6@6.0.2)
       react-dom:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
-      react-grid-layout:
-        specifier: 1.5.3
-        version: 1.5.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react-lazyload:
-        specifier: ^3.2.1
-        version: 3.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-popper:
         specifier: ^2.3.0
         version: 2.3.0(@popperjs/core@2.11.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -671,12 +368,6 @@ importers:
       react-router-dom:
         specifier: 6.30.6
         version: 6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react-select:
-        specifier: 4.3.1
-        version: 4.3.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
-      react-textarea-autosize:
-        specifier: 8.5.7
-        version: 8.5.7(@types/react@19.3.0)(react@19.3.0)
       reflux:
         specifier: 0.4.1
         version: 0.4.1(react@19.3.0)
@@ -692,15 +383,6 @@ importers:
       remark-mdx-frontmatter:
         specifier: ^6.0.0
         version: 6.0.0
-      screenfull:
-        specifier: ^6.0.2
-        version: 6.0.2
-      sonner:
-        specifier: 2.0.8
-        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      sprintf-js:
-        specifier: 1.0.3
-        version: 1.0.3
       style-loader:
         specifier: 4.0.0
         version: 4.0.0
@@ -713,21 +395,12 @@ importers:
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
-      type-fest:
-        specifier: ^5.8.0
-        version: 5.8.0
       yaml:
         specifier: 2.9.0
         version: 2.9.0
-      zod:
-        specifier: 4.3.5
-        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
       zrender:
         specifier: 6.1.0
         version: 6.1.0(patch_hash=183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193)
-      zxcvbn:
-        specifier: ^4.4.2
-        version: 4.4.2
     devDependencies:
       '@boundaries/eslint-plugin':
         specifier: 7.2.0
@@ -738,9 +411,6 @@ importers:
       '@emotion/server':
         specifier: ^11.11.0
         version: 11.11.0(@emotion/css@11.13.5(supports-color@8.1.1))
-      '@figma/code-connect':
-        specifier: ^1.4.8
-        version: 1.4.8(supports-color@8.1.1)
       '@jest/environment':
         specifier: 30.5.1
         version: 30.5.1
@@ -756,9 +426,6 @@ importers:
       '@sentry/jest-environment':
         specifier: 8.1.0
         version: 8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0)))(@sentry/node@11.0.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@30.1.1(@noble/hashes@1.8.0))
-      '@sentry/rrweb-types':
-        specifier: 2.44.0
-        version: 2.44.0
       '@swc-contrib/mut-cjs-exports':
         specifier: 19.0.0
         version: 19.0.0(@swc/core@1.16.13(@swc/helpers@0.5.23))(@swc/jest@0.2.39(@swc/core@1.16.13(@swc/helpers@0.5.23)))
@@ -783,12 +450,6 @@ importers:
       '@testing-library/user-event':
         specifier: 14.6.7
         version: 14.6.7(@testing-library/dom@10.4.1)
-      '@types/d3-selection':
-        specifier: ^3.0.11
-        version: 3.0.11
-      '@types/d3-zoom':
-        specifier: ^3.0.8
-        version: 3.0.8
       '@types/gettext-parser':
         specifier: 8.0.0
         version: 8.0.0
@@ -822,9 +483,6 @@ importers:
       eslint-plugin-unicorn:
         specifier: 74.0.0
         version: 74.0.0(eslint@10.8.0(jiti@2.7.0)(supports-color@8.1.1))
-      expect-type:
-        specifier: 1.4.0
-        version: 1.4.0
       jest:
         specifier: 30.5.1
         version: 30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2))
@@ -923,6 +581,633 @@ importers:
       '@types/json-diff':
         specifier: ^0.7.0
         version: 0.7.0
+
+  static/app:
+    dependencies:
+      '@dnd-kit/core':
+        specifier: ^6.1.0
+        version: 6.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@dnd-kit/modifiers':
+        specifier: 7.0.0
+        version: 7.0.0(@dnd-kit/core@6.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+      '@dnd-kit/sortable':
+        specifier: ^8.0.0
+        version: 8.0.0(@dnd-kit/core@6.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+      '@dnd-kit/utilities':
+        specifier: ^3.2.2
+        version: 3.2.2(react@19.3.0)
+      '@emotion/cache':
+        specifier: ^11.14.0
+        version: 11.14.0
+      '@emotion/is-prop-valid':
+        specifier: ^1.4.0
+        version: 1.4.0
+      '@emotion/react':
+        specifier: ^11.14.0
+        version: 11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      '@emotion/styled':
+        specifier: ^11.14.0
+        version: 11.14.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      '@intercom/messenger-js-sdk':
+        specifier: ^0.0.18
+        version: 0.0.18
+      '@popperjs/core':
+        specifier: ^2.11.5
+        version: 2.11.5
+      '@r4ai/remark-callout':
+        specifier: ^0.6.2
+        version: 0.6.2
+      '@react-aria/button':
+        specifier: 3.15.1
+        version: 3.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/combobox':
+        specifier: 3.16.1
+        version: 3.16.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/disclosure':
+        specifier: 3.2.1
+        version: 3.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/focus':
+        specifier: 3.22.1
+        version: 3.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/gridlist':
+        specifier: 3.15.1
+        version: 3.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/i18n':
+        specifier: 3.13.1
+        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/interactions':
+        specifier: 3.28.1
+        version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/listbox':
+        specifier: 3.16.1
+        version: 3.16.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/menu':
+        specifier: 3.22.1
+        version: 3.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/numberfield':
+        specifier: 3.13.1
+        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/overlays':
+        specifier: 3.32.1
+        version: 3.32.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/radio':
+        specifier: 3.13.1
+        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/selection':
+        specifier: 3.28.1
+        version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/separator':
+        specifier: 3.5.1
+        version: 3.5.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/slider':
+        specifier: 3.9.1
+        version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/tabs':
+        specifier: 3.12.1
+        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/textfield':
+        specifier: 3.19.1
+        version: 3.19.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/utils':
+        specifier: 3.34.1
+        version: 3.34.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/visually-hidden':
+        specifier: 3.9.1
+        version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/collections':
+        specifier: 3.13.1
+        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/combobox':
+        specifier: 3.14.1
+        version: 3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/disclosure':
+        specifier: 3.1.1
+        version: 3.1.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/form':
+        specifier: 3.3.1
+        version: 3.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/list':
+        specifier: 3.14.1
+        version: 3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/numberfield':
+        specifier: 3.12.1
+        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/overlays':
+        specifier: 3.7.1
+        version: 3.7.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/radio':
+        specifier: 3.12.1
+        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/slider':
+        specifier: 3.8.1
+        version: 3.8.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/tabs':
+        specifier: 3.9.1
+        version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/tree':
+        specifier: 3.10.1
+        version: 3.10.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-types/shared':
+        specifier: 3.36.0
+        version: 3.36.0(react@19.3.0)
+      '@remix-run/router':
+        specifier: 1.23.4
+        version: 1.23.4
+      '@rspack/core':
+        specifier: 2.2.8
+        version: 2.2.8(@swc/helpers@0.5.23)
+      '@sentry-internal/global-search':
+        specifier: ^1.0.0
+        version: 1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@sentry-internal/gs-app':
+        specifier: workspace:*
+        version: link:../gsApp
+      '@sentry/browser':
+        specifier: 11.0.0
+        version: 11.0.0
+      '@sentry/conventions':
+        specifier: ^0.26.0
+        version: 0.26.0
+      '@sentry/core':
+        specifier: 11.0.0
+        version: 11.0.0
+      '@sentry/icons':
+        specifier: workspace:*
+        version: link:../packages/icons
+      '@sentry/react':
+        specifier: 11.0.0
+        version: 11.0.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+      '@sentry/release-parser':
+        specifier: ^1.3.1
+        version: 1.3.1
+      '@sentry/rrweb':
+        specifier: 2.44.0
+        version: 2.44.0
+      '@sentry/rrweb-player':
+        specifier: 2.44.0
+        version: 2.44.0
+      '@sentry/rrweb-snapshot':
+        specifier: 2.44.0
+        version: 2.44.0
+      '@sentry/scraps':
+        specifier: workspace:*
+        version: link:../packages/scraps
+      '@sentry/sqlish':
+        specifier: 1.0.1
+        version: 1.0.1(react@19.3.0)
+      '@sentry/status-page-list':
+        specifier: ^0.6.1
+        version: 0.6.1
+      '@tanstack/query-async-storage-persister':
+        specifier: 5.101.4
+        version: 5.101.4
+      '@tanstack/react-devtools':
+        specifier: 0.9.9
+        version: 0.9.9(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(csstype@3.2.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.16)
+      '@tanstack/react-form':
+        specifier: 1.28.6
+        version: 1.28.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-form-devtools':
+        specifier: 0.2.20
+        version: 0.2.20(@types/react@19.3.0)(csstype@3.2.3)(react@19.3.0)(solid-js@1.9.16)
+      '@tanstack/react-pacer':
+        specifier: ^0.22.1
+        version: 0.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-pacer-devtools':
+        specifier: 0.7.1
+        version: 0.7.1(@tanstack/pacer@0.21.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.16)
+      '@tanstack/react-query':
+        specifier: 5.101.4
+        version: 5.101.4(react@19.3.0)
+      '@tanstack/react-query-devtools':
+        specifier: 5.101.4
+        version: 5.101.4(@tanstack/react-query@5.101.4(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-query-persist-client':
+        specifier: 5.101.4
+        version: 5.101.4(@tanstack/react-query@5.101.4(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-virtual':
+        specifier: 3.14.6
+        version: 3.14.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      ansi-sequence-parser:
+        specifier: ^1.1.3
+        version: 1.1.3
+      base64-arraybuffer:
+        specifier: ^1.0.1
+        version: 1.0.2
+      cbor2:
+        specifier: ^1.12.0
+        version: 1.12.0
+      classnames:
+        specifier: 2.3.1
+        version: 2.3.1
+      color:
+        specifier: 5.0.2
+        version: 5.0.2
+      conduit-client:
+        specifier: ^1.0.0
+        version: 1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      cronstrue:
+        specifier: ^2.50.0
+        version: 2.50.0
+      d3-selection:
+        specifier: ^3.0.0
+        version: 3.0.0
+      d3-zoom:
+        specifier: ^3.0.0
+        version: 3.0.0
+      diff:
+        specifier: 8.0.3
+        version: 8.0.3
+      dompurify:
+        specifier: 3.4.16
+        version: 3.4.16
+      downsample:
+        specifier: 1.4.0
+        version: 1.4.0
+      echarts:
+        specifier: 6.1.0
+        version: 6.1.0
+      echarts-for-react:
+        specifier: 3.0.6
+        version: 3.0.6(echarts@6.1.0)(react@19.3.0)
+      focus-trap:
+        specifier: 8.2.2
+        version: 8.2.2
+      framer-motion:
+        specifier: 12.38.0
+        version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      fuse.js:
+        specifier: ^7.5.0
+        version: 7.5.0
+      gl-matrix:
+        specifier: 3.4.4
+        version: 3.4.4
+      idb-keyval:
+        specifier: 6.2.2
+        version: 6.2.2
+      input-otp:
+        specifier: ^1.5.0
+        version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      invariant:
+        specifier: ^2.2.4
+        version: 2.2.4
+      jed:
+        specifier: ^1.1.0
+        version: 1.1.1
+      js-beautify:
+        specifier: ^2.0.3
+        version: 2.0.3
+      js-cookie:
+        specifier: 3.0.7
+        version: 3.0.7
+      jsonrepair:
+        specifier: ^3.14.0
+        version: 3.14.0
+      lodash:
+        specifier: ^4.18.1
+        version: 4.18.1
+      marked:
+        specifier: 18.0.2
+        version: 18.0.2
+      marked-highlight:
+        specifier: 2.2.4
+        version: 2.2.4(marked@18.0.2)
+      mobx:
+        specifier: 6.13.7
+        version: 6.13.7
+      mobx-react-lite:
+        specifier: 4.1.0
+        version: 4.1.0(mobx@6.13.7)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      moment-timezone:
+        specifier: 0.6.2
+        version: 0.6.2
+      nuqs:
+        specifier: 2.10.2
+        version: 2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+      papaparse:
+        specifier: ^5.3.2
+        version: 5.3.2
+      peggy:
+        specifier: 5.0.6
+        version: 5.0.6
+      platformicons:
+        specifier: ^9.8.0
+        version: 9.8.0(react@19.3.0)
+      prismjs:
+        specifier: ^1.30.0
+        version: 1.30.0
+      qrcode.react:
+        specifier: ^3.1.0
+        version: 3.1.0(react@19.3.0)
+      query-string:
+        specifier: 7.0.1
+        version: 7.0.1
+      re2js:
+        specifier: ^2.8.6
+        version: 2.8.6
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-date-range:
+        specifier: ^1.4.0
+        version: 1.4.0(date-fns@2.17.0)(react@19.3.0)
+      react-docgen-typescript:
+        specifier: 2.4.0
+        version: 2.4.0(@typescript/typescript6@6.0.2)
+      react-dom:
+        specifier: 19.3.0
+        version: 19.3.0(react@19.3.0)
+      react-grid-layout:
+        specifier: 1.5.3
+        version: 1.5.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react-lazyload:
+        specifier: ^3.2.1
+        version: 3.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react-popper:
+        specifier: ^2.3.0
+        version: 2.3.0(@popperjs/core@2.11.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react-router:
+        specifier: 6.30.6
+        version: 6.30.6(react@19.3.0)
+      react-router-dom:
+        specifier: 6.30.6
+        version: 6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react-select:
+        specifier: 4.3.1
+        version: 4.3.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
+      react-textarea-autosize:
+        specifier: 8.5.7
+        version: 8.5.7(@types/react@19.3.0)(react@19.3.0)
+      reflux:
+        specifier: 0.4.1
+        version: 0.4.1(react@19.3.0)
+      screenfull:
+        specifier: ^6.0.2
+        version: 6.0.2
+      sonner:
+        specifier: 2.0.8
+        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      sprintf-js:
+        specifier: 1.0.3
+        version: 1.0.3
+      type-fest:
+        specifier: ^5.8.0
+        version: 5.8.0
+      zod:
+        specifier: 4.3.5
+        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
+      zxcvbn:
+        specifier: ^4.4.2
+        version: 4.4.2
+    devDependencies:
+      '@figma/code-connect':
+        specifier: ^1.4.8
+        version: 1.4.8(supports-color@8.1.1)
+      '@react-aria/live-announcer':
+        specifier: 3.5.1
+        version: 3.5.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@sentry/rrweb-types':
+        specifier: 2.44.0
+        version: 2.44.0
+      '@testing-library/react':
+        specifier: 16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/d3-selection':
+        specifier: ^3.0.11
+        version: 3.0.11
+      '@types/d3-zoom':
+        specifier: ^3.0.8
+        version: 3.0.8
+      '@types/history':
+        specifier: ^3.2.5
+        version: 3.2.5
+      '@types/invariant':
+        specifier: ^2.2.35
+        version: 2.2.37
+      '@types/js-beautify':
+        specifier: ^1.14.3
+        version: 1.14.3
+      '@types/js-cookie':
+        specifier: 3.0.6
+        version: 3.0.6
+      '@types/lodash':
+        specifier: ^4.17.24
+        version: 4.17.24
+      '@types/papaparse':
+        specifier: ^5.3.5
+        version: 5.3.5
+      '@types/prismjs':
+        specifier: ^1.26.0
+        version: 1.26.0
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-date-range':
+        specifier: ^1.4.4
+        version: 1.4.4
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@types/react-grid-layout':
+        specifier: ^1.3.6
+        version: 1.3.6
+      '@types/react-lazyload':
+        specifier: 3.2.3
+        version: 3.2.3
+      '@types/react-select':
+        specifier: 4.0.18
+        version: 4.0.18
+      '@types/reflux':
+        specifier: 0.4.1
+        version: 0.4.1
+      expect-type:
+        specifier: 1.4.0
+        version: 1.4.0
+      jest-fetch-mock:
+        specifier: 4.2.0
+        version: 4.2.0(encoding@0.1.13)
+      mockdate:
+        specifier: 3.0.5
+        version: 3.0.5
+      sentry:
+        specifier: workspace:*
+        version: link:../..
+      typescript:
+        specifier: npm:@typescript/typescript6@6.0.2
+        version: '@typescript/typescript6@6.0.2'
+
+  static/gsAdmin:
+    dependencies:
+      '@emotion/react':
+        specifier: ^11.14.0
+        version: 11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      '@emotion/styled':
+        specifier: ^11.14.0
+        version: 11.14.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      '@sentry-internal/app':
+        specifier: workspace:*
+        version: link:../app
+      '@sentry-internal/gs-app':
+        specifier: workspace:*
+        version: link:../gsApp
+      '@sentry/icons':
+        specifier: workspace:*
+        version: link:../packages/icons
+      '@sentry/react':
+        specifier: 11.0.0
+        version: 11.0.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+      '@sentry/scraps':
+        specifier: workspace:*
+        version: link:../packages/scraps
+      '@tanstack/react-pacer':
+        specifier: ^0.22.1
+        version: 0.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-query':
+        specifier: 5.101.4
+        version: 5.101.4(react@19.3.0)
+      classnames:
+        specifier: 2.3.1
+        version: 2.3.1
+      lodash:
+        specifier: ^4.18.1
+        version: 4.18.1
+      moment-timezone:
+        specifier: 0.6.2
+        version: 0.6.2
+      nuqs:
+        specifier: 2.10.2
+        version: 2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+      papaparse:
+        specifier: ^5.3.2
+        version: 5.3.2
+      platformicons:
+        specifier: ^9.8.0
+        version: 9.8.0(react@19.3.0)
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-dom:
+        specifier: 19.3.0
+        version: 19.3.0(react@19.3.0)
+      react-router:
+        specifier: 6.30.6
+        version: 6.30.6(react@19.3.0)
+      zod:
+        specifier: 4.3.5
+        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
+    devDependencies:
+      '@testing-library/jest-dom':
+        specifier: 7.0.1
+        version: 7.0.1(@testing-library/dom@10.4.1)
+      '@types/lodash':
+        specifier: ^4.17.24
+        version: 4.17.24
+      '@types/papaparse':
+        specifier: ^5.3.5
+        version: 5.3.5
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      sentry:
+        specifier: workspace:*
+        version: link:../..
+
+  static/gsApp:
+    dependencies:
+      '@amplitude/analytics-browser':
+        specifier: ^1.5.3
+        version: 1.13.7
+      '@emotion/react':
+        specifier: ^11.14.0
+        version: 11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      '@emotion/styled':
+        specifier: ^11.14.0
+        version: 11.14.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      '@react-aria/utils':
+        specifier: 3.34.1
+        version: 3.34.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@sentry-internal/app':
+        specifier: workspace:*
+        version: link:../app
+      '@sentry/core':
+        specifier: 11.0.0
+        version: 11.0.0
+      '@sentry/icons':
+        specifier: workspace:*
+        version: link:../packages/icons
+      '@sentry/react':
+        specifier: 11.0.0
+        version: 11.0.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+      '@sentry/scraps':
+        specifier: workspace:*
+        version: link:../packages/scraps
+      '@stripe/react-stripe-js':
+        specifier: ^3.9.2
+        version: 3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@stripe/stripe-js':
+        specifier: ^5.10.0
+        version: 5.10.0
+      '@tanstack/react-query':
+        specifier: 5.101.4
+        version: 5.101.4(react@19.3.0)
+      color:
+        specifier: 5.0.2
+        version: 5.0.2
+      dompurify:
+        specifier: 3.4.16
+        version: 3.4.16
+      echarts:
+        specifier: 6.1.0
+        version: 6.1.0
+      framer-motion:
+        specifier: 12.38.0
+        version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      js-cookie:
+        specifier: 3.0.7
+        version: 3.0.7
+      lodash:
+        specifier: ^4.18.1
+        version: 4.18.1
+      moment-timezone:
+        specifier: 0.6.2
+        version: 0.6.2
+      query-string:
+        specifier: 7.0.1
+        version: 7.0.1
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
+      react-router:
+        specifier: 6.30.6
+        version: 6.30.6(react@19.3.0)
+      reflux:
+        specifier: 0.4.1
+        version: 0.4.1(react@19.3.0)
+      zod:
+        specifier: 4.3.5
+        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
+    devDependencies:
+      '@types/history':
+        specifier: ^3.2.5
+        version: 3.2.5
+      '@types/js-cookie':
+        specifier: 3.0.6
+        version: 3.0.6
+      '@types/lodash':
+        specifier: ^4.17.24
+        version: 4.17.24
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/reflux':
+        specifier: 0.4.1
+        version: 0.4.1
+      sentry:
+        specifier: workspace:*
+        version: link:../..
 
   static/oxlint/eslintPluginScraps:
     dependencies:

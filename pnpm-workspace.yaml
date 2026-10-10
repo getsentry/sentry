@@ -1,5 +1,8 @@
 packages:
   - api-docs
+  - static/app
+  - static/gsApp
+  - static/gsAdmin
   - static/packages/icons
   - static/packages/scraps
   - static/oxlint/eslintPluginScraps
