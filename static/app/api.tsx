@@ -636,9 +636,22 @@ export class Client {
 
           completeHandler(responseMeta, statusText);
         },
-        () => {
-          // Ignore failed fetch calls or errors in the fetch request itself (e.g. cancelled requests)
-          // Not related to errors in responses
+        (error: Error) => {
+          if (error?.name === 'AbortError') {
+            return;
+          }
+
+          const responseMeta: ResponseMeta = {
+            status: 0,
+            statusText: 'error',
+            responseJSON: undefined,
+            responseText: '',
+            getResponseHeader: () => null,
+          };
+
+          recordRequestMetric('error', 0);
+          errorHandler(responseMeta, 'error', error?.message ?? String(error));
+          completeHandler(responseMeta, 'error');
         }
       )
       .catch((error: Error) => {
@@ -702,10 +715,9 @@ export class Client {
         },
       });
 
-      // `request` runs neither callback when the fetch itself rejects (a blocked
-      // request, a network failure), which would leave this promise pending
-      // forever. A cancelled request rejects the same way, but it was abandoned
-      // on purpose, so it stays unsettled rather than surfacing as an error.
+      // Guard against a rejected fetch not reaching either callback. Cancelled
+      // requests were abandoned on purpose, so they stay unsettled rather than
+      // surfacing as an error.
       request.requestPromise.catch(() => {
         if (request.alive) {
           reject(new RequestError(options.method, path, preservedError));

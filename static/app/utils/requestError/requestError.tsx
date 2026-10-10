@@ -67,7 +67,12 @@ export class RequestError extends Error {
         return;
       }
 
-      this.setNameFromStatus(resp.status);
+      // Keep fetch failures as RequestError so the SDK's no-response filter applies.
+      if (resp.status === 0 && resp.statusText === 'error') {
+        this.name = 'RequestError';
+      } else {
+        this.setNameFromStatus(resp.status);
+      }
 
       this.message = `${this.message} ${
         typeof resp.status === 'number' ? resp.status : 'n/a'
