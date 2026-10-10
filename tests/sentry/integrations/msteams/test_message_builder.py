@@ -253,6 +253,9 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert _is_column_set_block(body[0])
         assert _is_text_block(body[0]["columns"][1]["items"][0])
         assert "Personal Installation of Sentry" in body[0]["columns"][1]["items"][0]["text"]
+        assert _is_text_block(body[1])
+        assert "cannot be used as a destination for alert rules" in body[1]["text"]
+        assert "add Sentry to a team" in body[1]["text"]
 
         assert _is_open_url_action(personal_installation_card["actions"][0])
         url = personal_installation_card["actions"][0]["url"]
