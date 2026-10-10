@@ -44,7 +44,7 @@ function getFontFaceCSS(): string {
   `;
 }
 
-export function renderToHTML(
+function renderToHTML(
   element: ReactElement,
   rootDisplay: 'inline-block' | 'block' = 'inline-block',
   theme?: 'light' | 'dark'
