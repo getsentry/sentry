@@ -1,37 +1,50 @@
-import {usePopper} from 'react-popper';
+import {autoUpdate, useFloating} from '@floating-ui/react-dom';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useOverlay} from 'sentry/utils/useOverlay';
 
-jest.mock('react-popper', () => ({
-  usePopper: jest.fn(),
+jest.mock('@floating-ui/react-dom', () => ({
+  ...jest.requireActual('@floating-ui/react-dom'),
+  useFloating: jest.fn(),
 }));
 
-const mockUsePopper = jest.mocked(usePopper);
-const mockPopperUpdate = jest.fn();
+const mockUseFloating = jest.mocked(useFloating);
 
 describe('useOverlay', () => {
   beforeEach(() => {
-    mockPopperUpdate.mockReset();
-    mockUsePopper.mockReturnValue({
-      attributes: {},
-      forceUpdate: null,
-      state: null,
-      styles: {arrow: {}, popper: {}},
-      update: mockPopperUpdate,
+    mockUseFloating.mockReturnValue({
+      x: 0,
+      y: 0,
+      placement: 'top',
+      strategy: 'absolute',
+      middlewareData: {},
+      isPositioned: false,
+      update: jest.fn(),
+      refs: {
+        reference: {current: null},
+        floating: {current: null},
+        setReference: jest.fn(),
+        setFloating: jest.fn(),
+      },
+      elements: {reference: null, floating: null},
+      floatingStyles: {},
     });
   });
 
-  it('updates Popper when a controlled overlay opens', () => {
+  it('follows the trigger once a controlled overlay opens', () => {
     const {rerender} = renderHook(({isOpen}) => useOverlay({isOpen}), {
       initialProps: {isOpen: false},
     });
 
-    expect(mockPopperUpdate).not.toHaveBeenCalled();
+    expect(mockUseFloating).toHaveBeenLastCalledWith(
+      expect.objectContaining({whileElementsMounted: undefined})
+    );
 
     rerender({isOpen: true});
 
-    expect(mockPopperUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUseFloating).toHaveBeenLastCalledWith(
+      expect.objectContaining({whileElementsMounted: autoUpdate})
+    );
   });
 });

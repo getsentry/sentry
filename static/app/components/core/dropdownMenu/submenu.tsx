@@ -48,7 +48,7 @@ export function DropdownSubmenu({
     offset: -4,
     preventOverflowOptions: {
       boundary: document.body,
-      altAxis: true,
+      crossAxis: true,
     },
   });
   const {menuTriggerProps, menuProps} = useMenuTrigger(

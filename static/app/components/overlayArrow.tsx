@@ -1,9 +1,9 @@
-import type {PopperProps} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Placement} from '@floating-ui/react-dom';
 
 export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
-  placement?: PopperProps<any>['placement'];
+  placement?: Placement;
   ref?: React.Ref<HTMLDivElement>;
   size?: number;
   strokeWidth?: number;
@@ -19,7 +19,14 @@ export function OverlayArrow({placement, ref, size = 16, ...props}: OverlayArrow
   const topOffset = placement?.startsWith('top') ? 3 : 1;
 
   return (
-    <OverlayArrowWrap dimensions={size} ref={ref} placement={placement} {...props}>
+    // `data-overlay-arrow` lets overlay positioning find the arrow
+    <OverlayArrowWrap
+      data-overlay-arrow
+      dimensions={size}
+      ref={ref}
+      placement={placement}
+      {...props}
+    >
       <svg
         viewBox={`0 0 ${size} ${size * sizeRatio}`}
         fill="none"
@@ -51,7 +58,7 @@ export function OverlayArrow({placement, ref, size = 16, ...props}: OverlayArrow
 
 const OverlayArrowWrap = styled('div')<{
   dimensions: number;
-  placement?: PopperProps<any>['placement'];
+  placement?: Placement;
 }>`
   width: ${p => p.dimensions}px;
   height: ${p =>

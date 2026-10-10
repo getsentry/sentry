@@ -132,7 +132,7 @@ function DropdownMenu({
   shouldApplyMinWidth,
   maxMenuHeight,
   minMenuWidth,
-  // This prop is from popperJS and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
+  // This prop is from Floating UI and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
   strategy,
   ...props
 }: DropdownMenuProps) {
@@ -168,7 +168,7 @@ function DropdownMenu({
     triggerRef
   );
   // We manually handle focus in the dropdown menu, so we don't want the default autofocus behavior
-  // Avoids the menu from focusing before popper has placed it in the correct position
+  // Avoids the menu from focusing before Floating UI has placed it in the correct position
   const resolvedMenuProps = {...menuProps, autoFocus: false as const};
 
   const {buttonProps} = useButton(

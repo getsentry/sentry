@@ -397,7 +397,6 @@ export function MetricSelector({
   function handleOverlayOpenChange(open: boolean) {
     if (open) {
       nextFrameCallback(() => {
-        updateOverlay?.();
         if (scrollElementRef.current) {
           scrollElementRef.current.scrollTop = 0;
         }
@@ -475,7 +474,6 @@ export function MetricSelector({
     overlayProps,
     arrowProps: overlayArrowProps,
     triggerRef,
-    update: updateOverlay,
   } = useOverlay({
     type: 'listbox',
     position: 'bottom-start',

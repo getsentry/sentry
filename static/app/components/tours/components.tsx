@@ -22,7 +22,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 
@@ -398,19 +397,12 @@ export function TourGuide({
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
-  const {triggerProps, overlayProps, arrowProps, update} = useOverlay({
+  const {triggerProps, overlayProps, arrowProps} = useOverlay({
     shouldApplyMinWidth: false,
     isOpen,
     position,
     offset,
   });
-
-  // Update the overlay positioning when the content changes
-  useEffectAfterFirstRender(() => {
-    if (isOpen && update && defined(title) && defined(description)) {
-      update();
-    }
-  }, [isOpen, update, title, description]);
 
   return (
     <Fragment>
