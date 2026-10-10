@@ -1,4 +1,4 @@
-import {useLayoutElement} from '@sentry/scraps/layout/container';
+import {LayoutElement} from '@sentry/scraps/layout/container';
 import {
   addLayoutProp,
   addStyles,
@@ -270,7 +270,14 @@ function TextComponent<T extends TextPrimitive = 'span'>(
   if (p.bold !== undefined) {
     addStyles(acc, getFontWeightStyle(p.monospace, p.bold ? 'medium' : 'regular'));
   }
-  return useLayoutElement(props, acc, OMIT_TEXT_PROPS, 'span');
+  return (
+    <LayoutElement
+      elementProps={props}
+      layoutStyle={acc}
+      omitProps={OMIT_TEXT_PROPS}
+      defaultElement="span"
+    />
+  );
 }
 
 export const Text = TextComponent as <T extends TextPrimitive = 'span'>(

@@ -5,7 +5,7 @@ import {
   addContainerStyles,
   omitContainerProps,
   resolveSpacing,
-  useLayoutElement,
+  LayoutElement,
   type ContainerElement,
   type ContainerProps,
   type ContainerPropsWithRenderFunction,
@@ -97,7 +97,9 @@ function FlexComponent<T extends ContainerElement = 'div'>(
   addLayoutProp(acc, 'flexWrap', props.wrap, WRAP_OPTIONS);
   addLayoutProp(acc, 'justifyContent', props.justify, JUSTIFY_OPTIONS);
   addLayoutProp(acc, 'alignItems', props.align, ALIGN_OPTIONS);
-  return useLayoutElement(props, acc, OMIT_FLEX_PROPS);
+  return (
+    <LayoutElement elementProps={props} layoutStyle={acc} omitProps={OMIT_FLEX_PROPS} />
+  );
 }
 
 export const Flex = FlexComponent as <T extends ContainerElement = 'div'>(

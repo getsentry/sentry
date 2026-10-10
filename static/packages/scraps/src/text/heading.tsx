@@ -1,4 +1,4 @@
-import {useLayoutElement} from '@sentry/scraps/layout/container';
+import {LayoutElement} from '@sentry/scraps/layout/container';
 import {addStyles, createLayoutStyle} from '@sentry/scraps/layout/linariaLayout';
 import type {Responsive} from '@sentry/scraps/layout/styles';
 import type {HeadingSize} from '@sentry/scraps/theme';
@@ -91,7 +91,14 @@ function HeadingComponent(props: HeadingProps | HeadingPropsWithRenderFunction) 
   );
 
   // `as` is required on the element form; the render-prop form never renders one.
-  return useLayoutElement(props, acc, TEXT_STYLE_PROPS, 'h1');
+  return (
+    <LayoutElement
+      elementProps={props}
+      layoutStyle={acc}
+      omitProps={TEXT_STYLE_PROPS}
+      defaultElement="h1"
+    />
+  );
 }
 
 export const Heading = HeadingComponent as (

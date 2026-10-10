@@ -5,7 +5,7 @@ import {
   addContainerStyles,
   omitContainerProps,
   resolveSpacing,
-  useLayoutElement,
+  LayoutElement,
   type ContainerElement,
   type ContainerProps,
   type ContainerPropsWithRenderFunction,
@@ -140,7 +140,9 @@ function GridComponent<T extends ContainerElement = 'div'>(
   addLayoutProp(acc, 'alignContent', props.alignContent, ALIGN_CONTENT_OPTIONS);
   addLayoutProp(acc, 'alignItems', props.align, ALIGN_OPTIONS);
   addLayoutProp(acc, 'justifyItems', props.justifyItems, JUSTIFY_ITEMS_OPTIONS);
-  return useLayoutElement(props, acc, OMIT_GRID_PROPS);
+  return (
+    <LayoutElement elementProps={props} layoutStyle={acc} omitProps={OMIT_GRID_PROPS} />
+  );
 }
 
 export const Grid = GridComponent as <T extends ContainerElement = 'div'>(

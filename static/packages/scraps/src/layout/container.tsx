@@ -459,12 +459,7 @@ export function addContainerStyles(
   }
 }
 
-/**
- * Renders the element of a layout primitive with its computed styles. Props in
- * `omitProps` and anything that is not a valid DOM attribute are dropped,
- * matching the `shouldForwardProp` the Emotion version used.
- */
-interface LayoutElementProps {
+interface LayoutElementAttributes {
   as?: React.ElementType;
   children?: unknown;
   className?: string;
@@ -473,12 +468,24 @@ interface LayoutElementProps {
   style?: React.CSSProperties;
 }
 
-export function useLayoutElement(
-  props: LayoutElementProps,
-  acc: LayoutStyle,
-  omitProps: ReadonlySet<string>,
-  defaultElement: React.ElementType = 'div'
-): React.ReactNode {
+interface LayoutElementProps {
+  elementProps: LayoutElementAttributes;
+  layoutStyle: LayoutStyle;
+  omitProps: ReadonlySet<string>;
+  defaultElement?: React.ElementType;
+}
+
+/**
+ * Renders the element of a layout primitive with its computed styles. Props in
+ * `omitProps` and anything that is not a valid DOM attribute are dropped,
+ * matching the `shouldForwardProp` the Emotion version used.
+ */
+export function LayoutElement({
+  elementProps: props,
+  layoutStyle,
+  omitProps,
+  defaultElement = 'div',
+}: LayoutElementProps): React.ReactNode {
   // Hooks must run unconditionally, before the render-prop early return.
   const containerRef = useRef<HTMLElement>(null);
   const {as, containerType, ref, className, style, children} = props;
@@ -496,7 +503,7 @@ export function useLayoutElement(
     [isContainer, ref]
   );
 
-  const merged = finishLayoutStyle(acc, className, style);
+  const merged = finishLayoutStyle(layoutStyle, className, style);
 
   if (typeof children === 'function') {
     // When using render prop, only pass the styling to the child function
@@ -543,7 +550,13 @@ function ContainerComponent<T extends ContainerElement = 'div'>(
 ) {
   const acc = createLayoutStyle(typeof props.children === 'function');
   addContainerStyles(acc, props);
-  return useLayoutElement(props, acc, OMIT_CONTAINER_PROPS);
+  return (
+    <LayoutElement
+      elementProps={props}
+      layoutStyle={acc}
+      omitProps={OMIT_CONTAINER_PROPS}
+    />
+  );
 }
 
 export const Container = ContainerComponent as <T extends ContainerElement = 'div'>(

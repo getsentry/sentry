@@ -2,7 +2,7 @@ import {
   addContainerStyles,
   omitContainerProps,
   resolveBackground,
-  useLayoutElement,
+  LayoutElement,
   type ContainerElement,
   type ContainerProps,
 } from '@sentry/scraps/layout/container';
@@ -114,7 +114,13 @@ function SurfaceComponent<T extends ContainerElement = 'div'>(
     resolve: value => shadow[value],
   });
 
-  return useLayoutElement(props, acc, OMIT_SURFACE_PROPS);
+  return (
+    <LayoutElement
+      elementProps={props}
+      layoutStyle={acc}
+      omitProps={OMIT_SURFACE_PROPS}
+    />
+  );
 }
 
 export const Surface = SurfaceComponent as <T extends ContainerElement = 'div'>(
