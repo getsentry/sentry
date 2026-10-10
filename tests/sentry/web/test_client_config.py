@@ -437,3 +437,17 @@ def test_client_config_no_preload_data_if_accept_invitation_view() -> None:
     client_config = get_client_config(request)
 
     assert client_config["shouldPreloadData"] is False
+
+
+@no_silo_test
+@django_db_all
+@pytest.mark.parametrize("path", ["/auth/login/", "/auth/login/test-org/"])
+def test_client_config_no_preload_data_on_login_views(path: str) -> None:
+    request, user = make_user_request_from_org()
+    request.user = user
+    request.path = path
+    request.resolver_match = get_resolver().resolve(path)
+
+    client_config = get_client_config(request)
+
+    assert client_config["shouldPreloadData"] is False
