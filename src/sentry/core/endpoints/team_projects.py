@@ -289,7 +289,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         if team.organization.flags.disable_member_project_creation and not (
-            request.access.has_scope("org:write")
+            "org:write" in request.access.scopes
             or request.access.has_team_scope(team, "team:admin")
             or _has_team_admin_membership(request, team)
         ):
