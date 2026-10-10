@@ -1,10 +1,12 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router';
+import {css} from '@linaria/core';
 import {IconSettings} from '@sentry/icons/settings';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -73,11 +75,11 @@ export function AppSizeInsights({
       </Flex>
       <Stack
         gap="2xs"
-        css={theme => ({
-          '& > :nth-child(odd)': {
-            backgroundColor: theme.tokens.background.secondary,
-          },
-        })}
+        customCss={css`
+          & > :nth-child(odd) {
+            background-color: ${linariaTheme.tokens.background.secondary};
+          }
+        `}
       >
         {topInsights.map(insight => (
           <Flex

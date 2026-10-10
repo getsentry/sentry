@@ -1,5 +1,6 @@
 import React, {useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {cx, type LinariaClassName} from '@linaria/core';
 import {mergeRefs} from '@react-aria/utils';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
@@ -27,6 +28,10 @@ type Margin = SpaceSize | 'auto' | '0';
 /* eslint-disable @sentry/sort-interface-keys */
 export interface ContainerLayoutProps {
   background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
   display?: Responsive<CSS['display']>;
 
   padding?: Responsive<Shorthand<SpaceSize, 4>>;
@@ -181,6 +186,7 @@ export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'>
     style?: React.CSSProperties;
   }) => React.ReactNode | undefined;
   as?: never;
+  className?: string;
   /**
    * Declaring a query container is not supported with the render-prop form: the
    * styled component must own the DOM node to observe it for JS resolution,
@@ -198,7 +204,7 @@ export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'>
           React.HTMLAttributes<HTMLElementTagNameMap[T]>,
           HTMLElementTagNameMap[T]
         >,
-        'children'
+        'children' | 'className'
       >,
       never
     >
@@ -464,6 +470,8 @@ interface LayoutElementAttributes {
   children?: unknown;
   className?: string;
   containerType?: string;
+  css?: never;
+  customCss?: LinariaClassName;
   ref?: React.Ref<any>;
   style?: React.CSSProperties;
 }
@@ -503,7 +511,7 @@ export function LayoutElement({
     [isContainer, ref]
   );
 
-  const merged = finishLayoutStyle(layoutStyle, className, style);
+  const merged = finishLayoutStyle(layoutStyle, cx(props.customCss, className), style);
 
   if (typeof children === 'function') {
     // When using render prop, only pass the styling to the child function
@@ -515,6 +523,7 @@ export function LayoutElement({
     if (
       key === 'as' ||
       key === 'className' ||
+      key === 'customCss' ||
       key === 'containerType' ||
       key === 'ref' ||
       key === 'style' ||

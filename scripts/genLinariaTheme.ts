@@ -79,6 +79,46 @@ const varGroups: Array<[name: string, light: Tree, dark: Tree, doc: string]> = [
 ];
 
 const variable = (group: string, key: string) => `--ln-${group}-${key}`;
+
+/** Preserve the public theme paths while referring to the generated CSS variables. */
+function cssVariables(tree: Tree, group: string, prefix: string[] = []): Tree {
+  return Object.fromEntries(
+    Object.entries(tree)
+      .filter(([, value]) => !Array.isArray(value) && typeof value !== 'function')
+      .map(([key, value]) => {
+        const segments = [...prefix, key];
+        return [
+          key,
+          value && typeof value === 'object'
+            ? cssVariables(value as Tree, group, segments)
+            : `var(${variable(group, camelJoin(segments))}, ${value})`,
+        ];
+      })
+  );
+}
+
+const cssTheme = {
+  space: lightTheme.space,
+  radius: lightTheme.radius,
+  border: lightTheme.border,
+  size: lightTheme.size,
+  font: lightTheme.font,
+  zIndex: lightTheme.zIndex,
+  breakpoints: lightTheme.breakpoints,
+  container: lightTheme.container,
+  tokens: Object.fromEntries(
+    Object.entries(lightTheme.tokens).map(([group, values]) => [
+      group,
+      cssVariables(values as unknown as Tree, group),
+    ])
+  ),
+  colors: cssVariables(lightTheme.colors, 'colors'),
+  shadow: cssVariables(lightTheme.shadow as unknown as Tree, 'shadow'),
+};
+const cssThemeFile = `${HEADER}
+/** Static theme values and CSS variable references for build-time styles. */
+export const theme = ${JSON.stringify(cssTheme, null, 2)} as const;
+`;
 const tokensFile = `${HEADER}
 ${varGroups.map(([name, light]) => `export const ${name} = ${objectLiteral(Object.fromEntries(Object.entries(flatten(light)).map(([key, value]) => [key, `var(${variable(name, key)}, ${value})`])))} as const;`).join('\n\n')}
 `;
@@ -541,6 +581,7 @@ const layoutFile =
   ';\n' +
   'export type LayoutProperty = keyof typeof baseStyles;\n';
 const outputs: Array<[string, string]> = [
+  [path.join(SCRAPS, 'theme/linaria.ts'), cssThemeFile],
   [path.join(SCRAPS, 'theme/tokens.linaria.ts'), tokensFile],
   [path.join(SCRAPS, 'theme/darkTheme.tsx'), darkFile],
   [path.join(SCRAPS, 'theme/constants.linaria.ts'), constantsFile],

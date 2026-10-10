@@ -1,8 +1,9 @@
 import type {ReactNode} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@linaria/core';
 
 import {MessageRow, UserMessage} from '@sentry/scraps/chat';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {theme} from '@sentry/scraps/theme';
 
 /**
  * Presentational message bubbles shared across AI chat surfaces. Each wraps the
@@ -61,26 +62,18 @@ export function AssistantMessageBlock({
   isSelected,
   onClick,
 }: AssistantMessageBlockProps) {
-  const theme = useTheme();
-
   const bubbleCss = css`
     overflow-wrap: anywhere;
     background: ${theme.tokens.background.transparent.accent.muted};
-    ${
-      onClick &&
-      css`
-        cursor: pointer;
-        &:hover {
-          opacity: 0.85;
-        }
-      `
+    &[role='button'] {
+      cursor: pointer;
+      &:hover {
+        opacity: 0.85;
+      }
     }
-    ${
-      isSelected &&
-      css`
-        outline: 2px solid ${theme.tokens.focus.default};
-        outline-offset: -2px;
-      `
+    &[data-selected='true'] {
+      outline: 2px solid ${theme.tokens.focus.default};
+      outline-offset: -2px;
     }
   `;
 
@@ -93,7 +86,7 @@ export function AssistantMessageBlock({
           minWidth={0}
           padding="md"
           radius="xs"
-          css={bubbleCss}
+          customCss={bubbleCss}
           data-selected={isSelected}
           onClick={onClick}
           role={onClick ? 'button' : undefined}

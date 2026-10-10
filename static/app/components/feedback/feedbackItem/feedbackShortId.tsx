@@ -1,6 +1,6 @@
 import type {CSSProperties} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {IconChevron} from '@sentry/icons/chevron';
 import queryString from 'query-string';
 
@@ -60,7 +60,13 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
   const {copy} = useCopyToClipboard();
 
   return (
-    <Flex gap="md" align="center" className={className} style={style} css={hideDropdown}>
+    <Flex
+      gap="md"
+      align="center"
+      customCss={hideDropdown}
+      className={className}
+      style={style}
+    >
       <Flex gap="sm" align="center">
         {feedbackItem.project ? (
           <ProjectBadge

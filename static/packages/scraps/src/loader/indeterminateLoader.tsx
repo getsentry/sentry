@@ -1,8 +1,12 @@
 import {useRef, useState} from 'react';
-import {css, cx} from '@linaria/core';
+import {css, cx, type LinariaClassName} from '@linaria/core';
 import {useResizeObserver} from '@react-aria/utils';
 
 interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
   variant?: 'vibrant' | 'monochrome';
 }
 
@@ -134,6 +138,7 @@ function useAnimationTiming() {
 
 export function IndeterminateLoader({
   variant = 'vibrant',
+  customCss,
   className,
   style,
   ...props
@@ -154,7 +159,7 @@ export function IndeterminateLoader({
       role="progressbar"
       aria-label="Loading"
       {...props}
-      className={cx(sx.className, className)}
+      className={cx(sx.className, customCss, className)}
       style={style}
     >
       <span {...{className: cx(styles.colorMask)}}>

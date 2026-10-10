@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -282,16 +281,7 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
       details={
         <Fragment>
           {project && (
-            <StyledProjectBadge
-              css={css`
-                && img {
-                  box-shadow: none;
-                }
-              `}
-              project={project}
-              avatarSize={16}
-              disableLink
-            />
+            <StyledProjectBadge project={project} avatarSize={16} disableLink />
           )}
           <ErrorBoundary customComponent={null}>
             <Details detector={detector} />
@@ -304,6 +294,9 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
 
 const StyledProjectBadge = styled(ProjectBadge)`
   color: ${p => p.theme.tokens.content.secondary};
+  && img {
+    box-shadow: none;
+  }
 `;
 
 const Separator = styled('span')`

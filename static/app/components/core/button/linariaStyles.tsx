@@ -1,5 +1,5 @@
 import isPropValid from '@emotion/is-prop-valid';
-import {css, cx} from '@linaria/core';
+import {css, cx, type LinariaClassName} from '@linaria/core';
 
 import type {ButtonSize, ButtonVariant} from './types';
 
@@ -343,7 +343,11 @@ function isBorderless(variant: ButtonVariant) {
   return variant === 'transparent' || variant === 'link';
 }
 
-export function getButtonClassName(s: ButtonStyleState, className?: string) {
+export function getButtonClassName(
+  s: ButtonStyleState,
+  className?: string,
+  customCss?: LinariaClassName
+) {
   const borderless = isBorderless(s.variant);
   return cx(
     buttonStyles.base,
@@ -358,6 +362,7 @@ export function getButtonClassName(s: ButtonStyleState, className?: string) {
     s.pressed && buttonStyles.pressed,
     s.disabled && buttonStyles.disabled,
     s.busy && buttonStyles.busy,
+    customCss,
     className
   );
 }

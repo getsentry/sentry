@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {IconCircle} from '@sentry/icons/circle';
 import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
 import {IconGithub} from '@sentry/icons/github';
@@ -669,7 +670,7 @@ function CommentBody({
   const body = (
     <Text
       variant={muted ? 'muted' : undefined}
-      css={css`
+      className={css`
         overflow-wrap: anywhere;
       `}
     >

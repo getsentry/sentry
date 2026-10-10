@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {css} from '@linaria/core';
 import {IconClock} from '@sentry/icons/clock';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
@@ -228,7 +228,7 @@ export function FiltersBar({
       padding="lg xl xl"
     >
       <Flex
-        css={css`
+        customCss={css`
           & button[aria-haspopup] {
             height: 100%;
             width: 100%;

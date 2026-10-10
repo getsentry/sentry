@@ -27,13 +27,19 @@ interface OverlaySurfaceProps<T extends ContainerElement = 'div'> extends Omit<
   elevation?: 'low' | 'medium' | 'high';
 }
 
-interface FlatSurfacePropsWithRenderFunction {
+interface FlatSurfacePropsWithRenderFunction extends Pick<
+  ContainerProps,
+  'customCss' | 'css' | 'className'
+> {
   children: (props: {className: string; style?: React.CSSProperties}) => React.ReactNode;
   elevation?: never;
   variant?: SurfaceVariant;
 }
 
-interface OverlaySurfacePropsWithRenderFunction {
+interface OverlaySurfacePropsWithRenderFunction extends Pick<
+  ContainerProps,
+  'customCss' | 'css' | 'className'
+> {
   children: (props: {className: string; style?: React.CSSProperties}) => React.ReactNode;
   variant: 'overlay';
   elevation?: 'low' | 'medium' | 'high';

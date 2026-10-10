@@ -1,6 +1,6 @@
 import {useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -362,7 +362,7 @@ export function LaunchpadAdminPage() {
                   variant="secondary"
                   type="submit"
                   disabled={!fetchInfoArtifactId.trim() || !locality}
-                  css={css`
+                  customCss={css`
                     width: fit-content;
                   `}
                 >
@@ -393,7 +393,7 @@ export function LaunchpadAdminPage() {
                   variant="danger"
                   type="submit"
                   disabled={!deleteArtifactId.trim() || !locality}
-                  css={css`
+                  customCss={css`
                     width: fit-content;
                   `}
                 >
@@ -425,7 +425,7 @@ export function LaunchpadAdminPage() {
                   variant="primary"
                   type="submit"
                   disabled={!rerunArtifactId.trim() || !locality}
-                  css={css`
+                  customCss={css`
                     width: fit-content;
                   `}
                 >
@@ -456,7 +456,7 @@ export function LaunchpadAdminPage() {
                   variant="danger"
                   type="submit"
                   disabled={!batchDeleteArtifactIds.trim() || !locality}
-                  css={css`
+                  customCss={css`
                     width: fit-content;
                   `}
                 >
@@ -487,7 +487,7 @@ export function LaunchpadAdminPage() {
                   variant="secondary"
                   type="submit"
                   disabled={!downloadArtifactId.trim() || !locality}
-                  css={css`
+                  customCss={css`
                     width: fit-content;
                   `}
                 >

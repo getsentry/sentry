@@ -1,8 +1,10 @@
 import {useEffect} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -240,11 +242,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           <Flex
             direction={{zero: 'column', md: 'row'}}
             gap={{zero: 'sm', md: 'lg'}}
-            css={cssTheme => css`
+            customCss={css`
               & > * {
-                background: ${cssTheme.tokens.background.primary};
-                border-radius: ${cssTheme.radius.md};
-                border: 1px solid ${cssTheme.tokens.border.primary};
+                background: ${linariaTheme.tokens.background.primary};
+                border-radius: ${linariaTheme.radius.md};
+                border: 1px solid ${linariaTheme.tokens.border.primary};
               }
             `}
           >

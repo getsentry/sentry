@@ -1,6 +1,6 @@
 import {type Ref, type ReactNode, useCallback, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -36,7 +36,7 @@ export function ResizableWindow({children, className, ref}: ResizableWindowProps
       <Handle data-edge="corner" onPointerDown={e => handlePointerDown(e, 'corner')} />
       {/* -2 offsets the parent's top border so children align flush */}
       <Container
-        css={allowOpenOverlayOverflowCss}
+        customCss={allowOpenOverlayOverflowCss}
         height="inherit"
         flex="1"
         overflow="hidden"

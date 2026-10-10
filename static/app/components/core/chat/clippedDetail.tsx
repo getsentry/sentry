@@ -1,7 +1,8 @@
 import {type ReactNode, useCallback, useState} from 'react';
-import {css} from '@emotion/react';
+import {css} from '@linaria/core';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 
@@ -51,11 +52,11 @@ export function ClippedDetail({children}: {children: ReactNode}) {
               justify="center"
               paddingTop="3xl"
               pointerEvents="none"
-              css={theme => css`
+              customCss={css`
                 background: linear-gradient(
                   to bottom,
                   transparent,
-                  ${theme.tokens.background.secondary}
+                  ${linariaTheme.tokens.background.secondary}
                 );
               `}
             >

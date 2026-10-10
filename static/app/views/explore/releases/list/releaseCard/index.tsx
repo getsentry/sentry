@@ -1,9 +1,8 @@
 import {useMemo} from 'react';
-import {css} from '@emotion/react';
+import {css as emotionCss} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {IconCheckmark} from '@sentry/icons/checkmark';
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
 import type {Location} from 'history';
 import partition from 'lodash/partition';
 import moment from 'moment-timezone';
@@ -13,6 +12,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, type GridProps, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Collapsible} from 'sentry/components/collapsible';
@@ -258,17 +258,22 @@ export function ReleaseCard({
                 position="absolute"
                 radius={{zero: '0 0 md md', '3xl': '0 0 md 0'}}
                 width="100%"
-                css={cssTheme => css`
+                customCss={css`
                   background-image: linear-gradient(
                     180deg,
-                    ${color(cssTheme.tokens.background.primary).alpha(0).string()} 0,
-                    ${cssTheme.tokens.background.primary}
+                    color-mix(
+                        in srgb,
+                        ${linariaTheme.tokens.background.primary} 0%,
+                        transparent
+                      )
+                      0,
+                    ${linariaTheme.tokens.background.primary}
                   );
                   background-repeat: repeat-x;
                   /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The border extends the fade's background fill. */
-                  border-bottom: ${cssTheme.space.md} solid
-                    ${cssTheme.tokens.background.primary};
-                  border-top: ${cssTheme.space.md} solid transparent;
+                  border-bottom: ${linariaTheme.space.md} solid
+                    ${linariaTheme.tokens.background.primary};
+                  border-top: ${linariaTheme.space.md} solid transparent;
                 `}
               >
                 <Button variant="primary" size="xs" onClick={onExpand}>
@@ -314,11 +319,11 @@ export function ReleaseCard({
             height="24px"
             overflow="hidden"
             padding="0 xl"
-            css={cssTheme => css`
-              border-bottom-right-radius: ${cssTheme.radius.md};
+            customCss={css`
+              border-bottom-right-radius: ${linariaTheme.radius.md};
 
-              @container (max-width: ${cssTheme.container['3xl']}) {
-                border-bottom-left-radius: ${cssTheme.radius.md};
+              @container (max-width: ${linariaTheme.container['3xl']}) {
+                border-bottom-left-radius: ${linariaTheme.radius.md};
               }
             `}
           >
@@ -358,7 +363,7 @@ function ResponsivePanel({
         <Panel
           {...props}
           {...containerProps}
-          css={css`
+          css={emotionCss`
             opacity: ${reloading ? 0.5 : 1};
             pointer-events: ${reloading ? 'none' : 'auto'};
           `}

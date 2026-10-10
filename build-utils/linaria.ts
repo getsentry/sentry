@@ -4,41 +4,49 @@ import path from 'node:path';
 
 import {transform, TransformCacheCollection} from '@wyw-in-js/transform';
 
+import {theme} from '../static/packages/scraps/src/theme/linaria.ts';
+
 export const LINARIA_ROOTS = [
   'static/packages/scraps/src',
-  'static/app/components/core/button',
-  'static/app/components/core/dropdownMenu',
-  'static/app/components/core/link',
+  'static/app/components/core',
+  'static/app',
+  'static/gsApp',
+  'static/gsAdmin',
 ].map(directory => path.resolve(import.meta.dirname, '..', directory));
 
-export const LINARIA_OPTIONS = {configFile: false as const};
+export const LINARIA_OPTIONS = {
+  configFile: false as const,
+  // These generated values are static. Inline tags must not evaluate the
+  // surrounding React component or its runtime-only imports to resolve them.
+  staticBindings: {'@sentry/scraps/theme': {theme}},
+  eval: {strategy: 'static' as const},
+};
 const cache = new TransformCacheCollection();
 
 export function needsLinariaTransform(source: string): boolean {
-  return /from ['"]@linaria\/core['"]/.test(source) && /css\s*`/.test(source);
+  return /from ['"]@linaria\/core['"]/.test(source) && /\b\w+\s*`/.test(source);
 }
 
 /**
  * Match the StyleX spike's single stylesheet. Stable file order keeps styles
- * independent of lazy chunks and leaves Emotion wrappers later in the cascade.
+ * independent of lazy chunks. Core styles come first, then custom app classes.
+ * Emotion wrappers follow the extracted stylesheet in the cascade.
  */
 export async function collectLinariaCss(roots = LINARIA_ROOTS): Promise<string> {
-  const files = (
-    await Promise.all(
-      roots.map(async directory =>
-        (await fs.readdir(directory, {recursive: true, withFileTypes: true}))
-          .filter(
-            entry =>
-              entry.isFile() &&
-              /\.tsx?$/.test(entry.name) &&
-              !/\.(spec|d)\.tsx?$/.test(entry.name)
-          )
-          .map(entry => path.join(entry.parentPath, entry.name))
-      )
+  const filesByRoot = await Promise.all(
+    roots.map(async directory =>
+      (await fs.readdir(directory, {recursive: true, withFileTypes: true}))
+        .filter(
+          entry =>
+            entry.isFile() &&
+            /\.tsx?$/.test(entry.name) &&
+            !/\.(spec|d)\.tsx?$/.test(entry.name)
+        )
+        .map(entry => path.join(entry.parentPath, entry.name))
+        .sort()
     )
-  )
-    .flat()
-    .sort();
+  );
+  const files = [...new Set(filesByRoot.flat())];
   const styles = [];
   for (const file of files) {
     const source = await fs.readFile(file, 'utf8');
@@ -60,6 +68,27 @@ export function transformLinaria(source: string, filename: string) {
       },
     },
     source,
-    async (request, importer) => createRequire(importer).resolve(request)
+    resolveLinariaImport
   );
+}
+
+async function resolveLinariaImport(request: string, importer: string) {
+  try {
+    return createRequire(importer).resolve(request);
+  } catch (error) {
+    // Node does not resolve extensionless TypeScript imports.
+    if (request.startsWith('.')) {
+      const base = path.resolve(path.dirname(importer), request);
+      for (const suffix of ['.ts', '.tsx', '/index.ts', '/index.tsx']) {
+        const filename = `${base}${suffix}`;
+        try {
+          await fs.access(filename);
+          return filename;
+        } catch {
+          // Try the next TypeScript extension.
+        }
+      }
+    }
+    throw error;
+  }
 }

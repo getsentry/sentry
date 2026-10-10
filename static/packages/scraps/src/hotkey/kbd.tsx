@@ -1,5 +1,5 @@
 import {css as emotionCss} from '@emotion/react';
-import {css, cx} from '@linaria/core';
+import {css, cx, type LinariaClassName} from '@linaria/core';
 
 import type {Theme} from '@sentry/scraps/theme';
 
@@ -74,15 +74,21 @@ const styles = {
 
 interface KbdProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
   variant?: 'embossed' | 'debossed';
 }
 
-export function Kbd({variant, className, style, ...props}: KbdProps) {
+export function Kbd({variant, customCss, className, style, ...props}: KbdProps) {
   const sx = {
     className: cx(
       styles.root,
       variant === 'debossed' ? styles.debossed : styles.embossed
     ),
   };
-  return <kbd {...props} className={cx(sx.className, className)} style={style} />;
+  return (
+    <kbd {...props} className={cx(sx.className, customCss, className)} style={style} />
+  );
 }

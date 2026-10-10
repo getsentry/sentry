@@ -1,8 +1,10 @@
 import type {ReactNode} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
+import {css} from '@linaria/core';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -38,11 +40,12 @@ export function TranscriptSpanRow({
   // Widen past the content so the outline clears the icon/duration, then pull
   // back with a negative margin to keep them message-aligned (no scraps prop
   // for negative margins or hover).
+
   const rowCss = css`
-    width: calc(100% + ${theme.space.sm} * 2);
-    margin: 0 -${theme.space.sm};
+    width: calc(100% + ${linariaTheme.space.sm} * 2);
+    margin: 0 -${linariaTheme.space.sm};
     &:hover {
-      background: ${theme.tokens.interactive.transparent.neutral.background.hover};
+      background: ${linariaTheme.tokens.interactive.transparent.neutral.background.hover};
     }
   `;
 
@@ -55,7 +58,7 @@ export function TranscriptSpanRow({
       radius="sm"
       padding="sm sm"
       cursor="pointer"
-      css={rowCss}
+      customCss={rowCss}
       data-selected={isSelected}
       style={
         isSelected

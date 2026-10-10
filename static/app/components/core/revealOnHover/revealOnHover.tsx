@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
-import type {ContainerElement} from '@sentry/scraps/layout/container';
 
 interface RevealOnHoverRenderProps {
   className: string;
@@ -49,9 +48,9 @@ const revealStyles = (p: {theme: import('@emotion/react').Theme}) => `
   }
 `;
 
-function RevealOnHoverFlex<T extends ContainerElement>(props: FlexProps<T>) {
-  return <Flex css={theme => revealStyles({theme})} {...props} />;
-}
+const RevealOnHoverFlex = styled(Flex)`
+  ${revealStyles}
+`;
 
 const RevealOnHoverStyles = styled(
   (props: {

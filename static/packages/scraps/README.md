@@ -39,8 +39,8 @@ The `prepack` hook builds JavaScript and declarations with
 package manifest, README, and license ship.
 
 The `exports` field in [package.json](./package.json) defines the published API.
-Only the root, theme, tokens, and component barrels are public. Individual
-module paths remain private.
+The root, theme, tokens, component barrels, and stylesheet are
+public. Individual module paths remain private.
 Add an entry only when its runtime and type dependencies belong to the package
 or are declared dependencies. App stories cover more components than this API;
 for example, the hotkey story uses both `Hotkey` and `Kbd`, but only `Kbd` is
@@ -65,6 +65,35 @@ import '@sentry/scraps/styles.css';
 
 JavaScript exports do not import CSS, so Node can load them for server rendering.
 The package does not include application providers, application-wide resets, or fonts.
+
+## Custom styles
+
+The Linaria components accept a `customCss` prop typed as `LinariaClassName`. Use
+Linaria’s `css` tag to create it. Components merge it with `className` internally.
+Emotion objects, theme callbacks, and plain strings produce a type error.
+Emotion `styled(Component)` wrappers remain supported.
+
+Use the static theme for Linaria templates:
+
+```tsx
+import {css} from '@linaria/core';
+import {Flex} from '@sentry/scraps/layout';
+import {theme} from '@sentry/scraps/theme';
+
+<Flex
+  customCss={css`
+    color: ${theme.tokens.content.primary};
+  `}
+/>;
+```
+
+The theme preserves typed token paths. Colors and shadows refer to CSS variables
+that change with the active theme. Spacing and query thresholds use static values.
+Run `pnpm gen:linaria-theme` after changing the source theme tokens.
+
+The `css` prop is prohibited on Linaria core components. The app keeps Emotion’s
+standard JSX runtime, which passes `customCss` through to the components.
+No custom JSX runtime or class-name prefix is required.
 
 ## Prepare a release
 

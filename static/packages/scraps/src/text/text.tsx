@@ -1,3 +1,5 @@
+import type {LinariaClassName} from '@linaria/core';
+
 import {LayoutElement} from '@sentry/scraps/layout/container';
 import {
   addLayoutProp,
@@ -23,12 +25,15 @@ export interface BaseTextProps {
    */
   align?: Responsive<'left' | 'center' | 'right' | 'justify'>;
   bold?: boolean;
-
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
   /**
    * Determines the cursor style when hovering over the text.
    * @default 'default'
    */
   cursor?: 'default' | 'pointer' | 'text' | 'move' | 'not-allowed' | 'wait' | 'help';
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
 
   /**
    * Density determines the line height of the text.
@@ -211,6 +216,7 @@ export type TextPropsWithRenderFunction<T extends TextPrimitive = 'span'> =
         style?: React.CSSProperties;
       }) => React.ReactNode | undefined;
       as?: never;
+      className?: string;
       color?: never;
       dateTime?: never;
       htmlFor?: never;
@@ -225,7 +231,7 @@ export type TextPropsWithRenderFunction<T extends TextPrimitive = 'span'> =
             React.HTMLAttributes<HTMLElementTagNameMap[T]>,
             HTMLElementTagNameMap[T]
           >,
-          'children'
+          'children' | 'className'
         >,
         never
       >

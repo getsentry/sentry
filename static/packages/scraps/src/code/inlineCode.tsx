@@ -1,5 +1,5 @@
 import {css as emotionCss} from '@emotion/react';
-import {css, cx} from '@linaria/core';
+import {css, cx, type LinariaClassName} from '@linaria/core';
 
 import type {Theme} from '@sentry/scraps/theme';
 
@@ -68,11 +68,23 @@ const styles = {
 };
 
 interface InlineCodeProps extends React.HTMLProps<HTMLElementTagNameMap['code']> {
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
   variant?: 'neutral' | 'accent';
 }
-export function InlineCode({variant, className, style, ...props}: InlineCodeProps) {
+export function InlineCode({
+  variant,
+  customCss,
+  className,
+  style,
+  ...props
+}: InlineCodeProps) {
   const sx = {
     className: cx(styles.root, variant === 'neutral' ? styles.neutral : styles.accent),
   };
-  return <code {...props} className={cx(sx.className, className)} style={style} />;
+  return (
+    <code {...props} className={cx(sx.className, customCss, className)} style={style} />
+  );
 }

@@ -1,12 +1,13 @@
 import type {ReactNode} from 'react';
 import {createContext, Fragment, useContext} from 'react';
-import {css} from '@emotion/react';
+import {css} from '@linaria/core';
 import * as Sentry from '@sentry/react';
 
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {type SeerEmbedScope, SeerEmbedScopeContext} from './embeds/renderTracking';
 import {STRUCTURED_SEER_EMBED_SCHEMAS} from './embeds/schemas';
@@ -102,9 +103,9 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
       }
       return (
         <Container
-          css={theme => css`
+          customCss={css`
             &:last-child {
-              margin-bottom: ${theme.space['2xl']};
+              margin-bottom: ${linariaTheme.space['2xl']};
             }
           `}
         >

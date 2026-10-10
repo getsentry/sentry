@@ -50,6 +50,7 @@ export type HeadingPropsWithRenderFunction = BaseHeadingProps &
       style?: React.CSSProperties;
     }) => React.ReactNode | undefined;
     as?: never;
+    className?: string;
     ref?: never;
     size?: Responsive<HeadingSize>;
   } & Partial<
@@ -61,7 +62,7 @@ export type HeadingPropsWithRenderFunction = BaseHeadingProps &
           React.HTMLAttributes<HTMLHeadingElement>,
           HTMLHeadingElement
         >,
-        'children'
+        'children' | 'className'
       >,
       never
     >

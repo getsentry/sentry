@@ -59,7 +59,6 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
         style={standalone ? undefined : {marginBottom: '-1lh'}}
       >
         <Flex
-          css={allowOpenOverlayOverflowCss}
           data-test-id="storybook-demo"
           width="100%"
           align="center"
@@ -76,6 +75,7 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
           overflow="auto"
           maxHeight="512px"
           {...props}
+          customCss={allowOpenOverlayOverflowCss}
         />
       </Container>
     );
@@ -115,7 +115,6 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
           <Flex align="center" justify="center" flex="1" minHeight="0" padding="xl">
             <ResizableWindow ref={containerRef}>
               <Flex
-                css={allowOpenOverlayOverflowCss}
                 flex="1"
                 data-test-id="storybook-demo"
                 width="100%"
@@ -126,6 +125,7 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
                 radius="0"
                 overflow="auto"
                 {...props}
+                customCss={allowOpenOverlayOverflowCss}
               />
             </ResizableWindow>
           </Flex>

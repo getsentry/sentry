@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@linaria/core';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -24,7 +25,6 @@ function RecoveryOptionsModal({
   Header,
   Footer,
 }: Props) {
-  const theme = useTheme();
   const {
     isPending,
     isError,
@@ -109,8 +109,8 @@ function RecoveryOptionsModal({
             variant="primary"
             onClick={closeModal}
             to={`/settings/account/security/mfa/${sms.id}/enroll/`}
-            css={css`
-              margin-left: ${theme.space.md};
+            className={css`
+              margin-left: ${linariaTheme.space.md};
             `}
             autoFocus
           >

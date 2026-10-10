@@ -1,10 +1,11 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -32,7 +33,7 @@ export function IssueDetailsEventNavigation({
   const organization = useOrganization();
   const location = useLocation();
   const params = useParams<{eventId?: string}>();
-  const theme = useTheme();
+
   const defaultIssueEvent = useDefaultIssueEvent();
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
 
@@ -98,8 +99,8 @@ export function IssueDetailsEventNavigation({
   const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
   const grayText = css`
-    color: ${theme.tokens.content.secondary};
-    font-weight: ${theme.font.weight.sans.regular};
+    color: ${linariaTheme.tokens.content.secondary};
+    font-weight: ${linariaTheme.font.weight.sans.regular};
   `;
 
   return (
@@ -119,7 +120,7 @@ export function IssueDetailsEventNavigation({
             query: {...location.query, referrer: 'previous-event'},
           }}
           preventScrollReset
-          css={grayText}
+          customCss={grayText}
           onMouseEnter={handleHoverPagination(
             'previous',
             defined(event?.previousEventID)
@@ -143,7 +144,7 @@ export function IssueDetailsEventNavigation({
             query: {...location.query, referrer: 'next-event'},
           }}
           preventScrollReset
-          css={grayText}
+          customCss={grayText}
           onMouseEnter={handleHoverPagination('next', defined(event?.nextEventID))}
           onClick={() => {
             // Assume they will continue to paginate

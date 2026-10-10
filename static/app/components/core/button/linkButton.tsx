@@ -117,7 +117,11 @@ function LinkButtonElement({
       props[key] = (allProps as Record<string, any>)[key];
     }
   }
-  props.className = getButtonClassName(styleState, allProps.className);
+  props.className = getButtonClassName(
+    styleState,
+    allProps.className,
+    allProps.customCss
+  );
   const {handleClick} = useClickTracking(props as LinkButtonProps, 'link');
 
   if ('to' in props && props.to) {

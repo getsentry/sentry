@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {css} from '@emotion/react';
+import {css as emotionCss} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
@@ -10,6 +11,7 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
@@ -370,11 +372,12 @@ export function FrameworkSuggestionModal({
         as="header"
         position="relative"
         height="30px"
-        css={theme => css`
-          margin: -${theme.space['3xl']} -${theme.space.xl} 0 -${theme.space['2xl']};
+        customCss={css`
+          margin: -${linariaTheme.space['3xl']} -${linariaTheme.space.xl}
+            0 -${linariaTheme.space['2xl']};
 
-          @container (min-width: ${theme.container['3xl']}) {
-            margin-inline: -${theme.space['3xl']};
+          @container (min-width: ${linariaTheme.container['3xl']}) {
+            margin-inline: -${linariaTheme.space['3xl']};
           }
         `}
       >
@@ -586,7 +589,7 @@ const RadioBox = styled(Radio)`
 
 // Style the modals document and section elements as flex containers
 // to allow the list of frameworks to dynamically grow and shrink with the dialog / screen height
-export const modalCss = css`
+export const modalCss = emotionCss`
   [role='document'] {
     display: flex;
     flex-direction: column;

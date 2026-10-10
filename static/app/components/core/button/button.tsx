@@ -66,7 +66,7 @@ export function Button({
     size,
     hasChildren
   );
-  const className = getButtonClassName(styleState, props.className);
+  const className = getButtonClassName(styleState, props.className, props.customCss);
   const contentClassName = getButtonContentClassName(styleState, {hideWhenBusy: true});
 
   return (

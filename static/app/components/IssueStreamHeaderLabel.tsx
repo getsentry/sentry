@@ -1,6 +1,7 @@
-import {css, useTheme} from '@emotion/react';
+import {css, cx} from '@linaria/core';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
+import {theme} from '@sentry/scraps/theme';
 
 type Props = ContainerProps & {
   align?: 'left' | 'right';
@@ -8,8 +9,6 @@ type Props = ContainerProps & {
 };
 
 export function IssueStreamHeaderLabel({align, hideDivider, ...props}: Props) {
-  const theme = useTheme();
-
   return (
     <Container
       {...props}
@@ -18,14 +17,18 @@ export function IssueStreamHeaderLabel({align, hideDivider, ...props}: Props) {
       marginRight="xl"
       whiteSpace="nowrap"
       paddingRight={align === 'right' ? 'xl' : undefined}
-      css={css`
-        font-size: 13px;
-        font-weight: ${theme.font.weight.sans.medium};
-        color: ${theme.tokens.content.secondary};
-        text-align: ${align === 'right' ? 'right' : 'left'};
-
-        ${
-          !hideDivider &&
+      customCss={cx(
+        css`
+          font-size: 13px;
+          font-weight: ${theme.font.weight.sans.medium};
+          color: ${theme.tokens.content.secondary};
+          text-align: left;
+        `,
+        align === 'right' &&
+          css`
+            text-align: right;
+          `,
+        !hideDivider &&
           css`
             &::before {
               content: '';
@@ -34,12 +37,10 @@ export function IssueStreamHeaderLabel({align, hideDivider, ...props}: Props) {
               left: -${theme.space.xl};
               width: 1px;
               height: 100%;
-
               background-color: ${theme.colors.gray200};
             }
           `
-        }
-      `}
+      )}
     />
   );
 }

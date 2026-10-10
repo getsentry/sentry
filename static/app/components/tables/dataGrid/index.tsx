@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {css, type Theme} from '@emotion/react';
+import {css as emotionCss, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
@@ -181,14 +181,13 @@ export function DataGrid<
         />
 
         {prependColumns?.map((item, i) => (
-          <SimpleTable.RowCell
+          <PrependBodyCell
             {...bodyCellLayout}
-            css={bodyCellStaticStyle}
             data-test-id="grid-body-cell"
             key={`prepend-${i}`}
           >
             {item}
-          </SimpleTable.RowCell>
+          </PrependBodyCell>
         ))}
         {props.columnOrder.map((col, i) => (
           <SimpleTable.RowCell
@@ -236,11 +235,11 @@ const bodyCellLayout = {
   justify: 'center',
 } as const;
 
-const clickableRowStyle = css`
+const clickableRowStyle = emotionCss`
   cursor: pointer;
 `;
 
-const tableStyle = (theme: Theme) => css`
+const tableStyle = (theme: Theme) => emotionCss`
   margin-bottom: ${theme.space.xl};
 `;
 
@@ -259,10 +258,14 @@ const HeadCellStatic = styled('th')`
   }
 `;
 
-const bodyCellStaticStyle = (theme: Theme) => css`
+const bodyCellStaticStyle = (theme: Theme) => emotionCss`
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
   &:nth-child(2) {
     padding: ${theme.space.md} 0 ${theme.space.md} ${theme.space['2xl']};
   }
+`;
+
+const PrependBodyCell = styled(SimpleTable.RowCell)`
+  ${p => bodyCellStaticStyle(p.theme)}
 `;

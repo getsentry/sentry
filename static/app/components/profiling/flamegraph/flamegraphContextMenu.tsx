@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
-import {css} from '@emotion/react';
+import {css as emotionCss} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconGithub} from '@sentry/icons/github';
@@ -660,7 +661,7 @@ function ProfileIdsSubMenu(props: {
         createPortal(
           <ProfilingContextMenu
             style={popper.styles.popper}
-            css={css`
+            css={emotionCss`
               max-height: 250px;
             `}
           >
@@ -698,7 +699,7 @@ function ProfileIdsSubMenu(props: {
                         });
                       }}
                       to={to}
-                      css={css`
+                      customCss={css`
                         color: unset;
                       `}
                     >

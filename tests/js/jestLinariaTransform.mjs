@@ -12,10 +12,10 @@ const linariaTransformer = {
     return {
       ...transformer,
       getCacheKey(source, filename, config) {
-        return `linaria-8.2.0-wyw-2.5.1-${transformer.getCacheKey(source, filename, config)}`;
+        return `linaria-8.2.0-wyw-2.5.1-linaria-custom-css-prop-${transformer.getCacheKey(source, filename, config)}`;
       },
       process(source, filename, config) {
-        if (/from ['"]@linaria\/core['"]/.test(source) && /css\s*`/.test(source)) {
+        if (/from ['"]@linaria\/core['"]/.test(source) && /\b\w+\s*`/.test(source)) {
           const result = JSON.parse(
             execFileSync(
               process.execPath,

@@ -1,6 +1,6 @@
 import {type LinkProps as ReactRouterLinkProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, cx} from '@linaria/core';
+import {css, cx, type LinariaClassName} from '@linaria/core';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonVariant} from '@sentry/scraps/button/types';
@@ -31,6 +31,10 @@ export interface LinkProps
    * customer-domains (single-tenant).
    */
   to: LocationDescriptor;
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
   /**
    * Indicator if the link should be disabled
    */
@@ -60,15 +64,22 @@ const styles = {
   `,
 };
 
-function getLinkClassName(disabled: boolean | undefined, className: string | undefined) {
-  return cx(styles.link, disabled && styles.disabled, className);
+function getLinkClassName(
+  disabled: boolean | undefined,
+  className: string | undefined,
+  customCss?: LinariaClassName
+) {
+  return cx(styles.link, disabled && styles.disabled, customCss, className);
 }
 
 function Anchor({
+  customCss,
   disabled,
   className,
   ...props
 }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  css?: never;
+  customCss?: LinariaClassName;
   disabled?: LinkProps['disabled'];
   ref?: React.Ref<HTMLAnchorElement>;
 }) {
@@ -78,7 +89,7 @@ function Anchor({
       domProps[key] = (props as Record<string, unknown>)[key];
     }
   }
-  return <a {...domProps} className={getLinkClassName(disabled, className)} />;
+  return <a {...domProps} className={getLinkClassName(disabled, className, customCss)} />;
 }
 
 type LinkPropsWithButtonBehavior = LinkProps & {
@@ -86,7 +97,7 @@ type LinkPropsWithButtonBehavior = LinkProps & {
   variant?: ButtonVariant;
 };
 
-function LinkBase(props: LinkPropsWithButtonBehavior) {
+function LinkBase({customCss, ...props}: LinkPropsWithButtonBehavior) {
   const {Component, behavior} = useLinkBehavior(props);
   // LinkButton reuses this component for router links and passes these
   // button-only props through at runtime. They are consumed by tracking and
@@ -99,7 +110,12 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
     // [object Object]" when "to" prop is a LocationDescriptor object. Have to create a
     // new object here, as we can't delete the "to" prop as it is a required prop.
     const {to: _to, ...restProps} = props;
-    return <Anchor {...(restProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)} />;
+    return (
+      <Anchor
+        {...(restProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+        customCss={customCss}
+      />
+    );
   }
 
   const {
@@ -114,7 +130,7 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
   return (
     <Component
       {...linkProps}
-      className={getLinkClassName(false, linkProps.className)}
+      className={getLinkClassName(false, linkProps.className, customCss)}
       onClick={handleClick}
     />
   );
@@ -125,6 +141,10 @@ export function Link(props: LinkProps) {
 }
 
 interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
   disabled?: LinkProps['disabled'];
   openInNewTab?: boolean;
 }

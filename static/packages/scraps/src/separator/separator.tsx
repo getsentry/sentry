@@ -1,5 +1,5 @@
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@linaria/core';
+import {css, cx} from '@linaria/core';
 
 import {resolveSpacing, type ContainerProps} from '@sentry/scraps/layout/container';
 import {
@@ -11,7 +11,10 @@ import {
 import {type Shorthand, useResponsivePropValue} from '@sentry/scraps/layout/styles';
 import type {BorderVariant, SpaceSize} from '@sentry/scraps/theme';
 
-export type SeparatorProps = Pick<ContainerProps, 'border' | 'margin' | 'padding'> & {
+export type SeparatorProps = Pick<
+  ContainerProps,
+  'border' | 'customCss' | 'css' | 'margin' | 'padding'
+> & {
   orientation: 'horizontal' | 'vertical';
   children?: never;
 } & Omit<React.HTMLAttributes<HTMLHRElement>, 'aria-orientation'>;
@@ -146,6 +149,7 @@ function SeparatorElement({
   border: borderVariant,
   margin,
   padding,
+  customCss,
   className,
   style,
   ...props
@@ -167,7 +171,7 @@ function SeparatorElement({
     fixed: 'margin',
     resolve: resolveMargin,
   });
-  const merged = finishLayoutStyle(acc, className, style);
+  const merged = finishLayoutStyle(acc, cx(customCss, className), style);
 
   // Drop the props an Emotion `styled` would not have forwarded, such as those
   // of a `styled(Separator)` wrapper.

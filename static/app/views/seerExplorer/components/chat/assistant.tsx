@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css} from '@linaria/core';
 
 import {AssistantActions, AssistantMessage, MessageRow} from '@sentry/scraps/chat';
 
@@ -136,7 +136,7 @@ function BlockActionBar({
         onCopy={() => {
           trackAnalytics('seer.explorer.block_copied', {organization});
         }}
-        css={css`
+        customCss={css`
           ${BLOCK_WRAPPER_SELECTOR}:hover &,
           ${BLOCK_WRAPPER_SELECTOR}:focus-within & {
             visibility: visible;

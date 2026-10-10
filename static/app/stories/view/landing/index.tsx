@@ -1,7 +1,8 @@
 import type {PropsWithChildren} from 'react';
 import {Fragment} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {IconOpen} from '@sentry/icons/open';
 import type {LocationDescriptor} from 'history';
 
@@ -13,6 +14,7 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
@@ -242,7 +244,7 @@ function Card(props: CardProps) {
       padding="xl"
       border="secondary"
       radius="md"
-      css={cardLinkCss}
+      customCss={cardLinkCss}
     >
       {stackProps => (
         <Link {...stackProps} to={props.to}>
@@ -264,17 +266,17 @@ function Card(props: CardProps) {
   );
 }
 
-const cardLinkCss = (theme: Theme) => css`
-  color: ${theme.tokens.content.primary};
+const cardLinkCss = css`
+  color: ${linariaTheme.tokens.content.primary};
   aspect-ratio: 2/1;
   transition: all 80ms ease-out;
   transition-property: background-color, color, border-color;
 
   &:hover,
   &:focus {
-    background: ${theme.tokens.background.secondary};
-    color: ${theme.tokens.content.accent};
-    border-color: ${theme.tokens.border.primary};
+    background: ${linariaTheme.tokens.background.secondary};
+    color: ${linariaTheme.tokens.content.accent};
+    border-color: ${linariaTheme.tokens.border.primary};
   }
 `;
 
