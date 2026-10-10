@@ -4,7 +4,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -57,6 +57,41 @@ describe('spansWidgetQueries', () => {
     );
 
     expect(await screen.findByText('low:partial')).toBeInTheDocument();
+  });
+
+  it('reports the confidence through onDataFetched', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [[1, [{count: 1}]]],
+        meta: {
+          dataScanned: 'partial',
+          accuracy: {confidence: [{timestamp: 1, value: 'low'}]},
+        },
+      },
+    });
+    const onDataFetched = jest.fn();
+
+    render(
+      <SpansWidgetQueries
+        widget={widget}
+        dashboardFilters={{}}
+        onDataFetched={onDataFetched}
+      >
+        {() => <div />}
+      </SpansWidgetQueries>,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(onDataFetched).toHaveBeenCalledWith(
+        expect.objectContaining({
+          confidence: 'low',
+          dataScanned: 'partial',
+          timeseriesResults: expect.any(Array),
+        })
+      )
+    );
   });
 
   it.isKnownFlake('calculates the confidence for a multi series', async () => {

@@ -77,7 +77,6 @@ interface VisualizationWidgetProps {
     timeseriesResults?: Series[];
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     timeseriesResultsUnits?: Record<string, DataUnit>;
-    totalIssuesCount?: string;
   }) => void;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;

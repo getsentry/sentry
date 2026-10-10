@@ -58,7 +58,6 @@ type Props = {
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    totalIssuesCount?: string;
   }) => void;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;

@@ -1,4 +1,3 @@
-import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -38,10 +37,6 @@ export function IssueWidgetQueries({
 }: Props) {
   const config = IssuesConfig;
 
-  const afterFetchTableData = (_rawResult: Group[], response?: ResponseMeta) => {
-    return {totalIssuesCount: response?.getResponseHeader('X-Hits') ?? undefined};
-  };
-
   const {loading, ...rest} = useGenericWidgetQueries<IssuesSeriesResponse, Group[]>({
     config,
     widget,
@@ -51,7 +46,6 @@ export function IssueWidgetQueries({
     onDataFetched,
     onDataFetchStart,
     selection,
-    afterFetchTableData,
     skipDashboardFilterParens: true, // Issue widgets do not support parens in search
     widgetInterval,
   });

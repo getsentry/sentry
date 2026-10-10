@@ -130,7 +130,6 @@ type Data = {
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
-  totalIssuesCount?: string;
 };
 
 function WidgetCard(props: Props) {
