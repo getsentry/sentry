@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from sentry.models.rule import Rule
 from sentry.notifications.platform.registry import template_registry
@@ -21,7 +21,8 @@ class SerializableRuleProxy(BaseModel):
     A pydantic-serializable representation of a rule for notification render code.
     """
 
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     id: int
     label: str
