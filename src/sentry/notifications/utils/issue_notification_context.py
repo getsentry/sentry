@@ -1,3 +1,4 @@
+from dataclasses import fields
 from functools import cached_property
 
 from sentry.incidents.grouptype import MetricIssueEvidenceData
@@ -56,7 +57,12 @@ class IssueNotificationContext:
         if event.data is None or not event.data:
             raise ValueError("Activity data is required for alert context")
 
-        evidence_data_dict = dict(event.data)
+        # Activity payloads can include non-metric fields (e.g. ticketing
+        # provider metadata on manual resolves). Only pass known evidence keys.
+        evidence_fields = {f.name for f in fields(MetricIssueEvidenceData)}
+        evidence_data_dict = {
+            key: value for key, value in dict(event.data).items() if key in evidence_fields
+        }
         priority = DetectorPriorityLevel.OK
         evidence_data = MetricIssueEvidenceData(**evidence_data_dict)
 
