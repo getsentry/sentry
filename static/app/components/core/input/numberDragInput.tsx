@@ -1,12 +1,12 @@
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {InputGroup, type InputProps} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconArrow} from 'sentry/icons';
 import {clamp} from 'sentry/utils/profiling/colors/clamp';
 
 // @TODO(jonasbadalic): Not sure this needs to be its own component,

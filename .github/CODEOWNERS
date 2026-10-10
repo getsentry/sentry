@@ -54,6 +54,7 @@
 # then beats a frame in a shared component. GitHub review routing only depends on order
 # when patterns overlap, and the one overlap here is intended: more specific settings
 # sub-paths declared by other teams further down now take precedence.
+/static/packages/scraps/                              @getsentry/design-engineering
 /static/app/utils/theme/                              @getsentry/design-engineering
 /static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/components/core/                          @getsentry/design-engineering
@@ -188,7 +189,7 @@ vercel.json                                              @getsentry/owners-js-bu
 /.github/file-filters.yml                                @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 oxlint.config.ts                                         @getsentry/owners-js-build
-oxlint-suppressions.json                                 @getsentry/owners-js-build
+oxlint-suppressions.json                                 @getsentry/design-engineering
 /scripts/custom-oxlint.ts                                @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
@@ -198,10 +199,10 @@ tsconfig.*                                               @getsentry/owners-js-bu
 package.json                                             @getsentry/owners-js-deps
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
-## Design
-/static/fonts/                                           @getsentry/design
-/static/images/                                          @getsentry/design
-/src/sentry/static/                                      @getsentry/design
+## Product Design
+/static/fonts/                                           @getsentry/product-design
+/static/images/                                          @getsentry/product-design
+/src/sentry/static/                                      @getsentry/product-design
 
 # Owners by product feature
 #
@@ -356,9 +357,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/ingestion_delay/                                       @getsentry/data-browsing
 /src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
 
+/src/sentry/api/helpers/timeseries_processing.py                     @getsentry/app-backend @getsentry/data-browsing
+/tests/sentry/api/helpers/test_timeseries_processing.py              @getsentry/app-backend @getsentry/data-browsing
 
-/src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
-/tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/data-browsing
+
 /src/sentry/api/endpoints/organization_explore_formulas.py                          @getsentry/data-browsing
 /tests/sentry/api/endpoints/test_organization_explore_formulas.py                   @getsentry/data-browsing
 
@@ -721,7 +723,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/auto_source_code_config.py                @getsentry/agent-interfaces-sentry-backend
 /src/sentry/tasks/check_new_issue_threshold_met.py          @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_resolutions.py              @getsentry/issue-detection-backend
-/src/sentry/tasks/clear_expired_rulesnoozes.py              @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issue-detection-backend
 /src/sentry/tasks/codeowners/                               @getsentry/agent-interfaces-sentry-backend
 /src/sentry/tasks/commits.py                                @getsentry/agent-interfaces-sentry-backend
@@ -766,7 +767,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_console_platform_cleanup.py        @getsentry/gdx
 /tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issue-detection-backend
-/tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_snoozes.py           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_code_owners.py                     @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/tasks/test_commit_context.py                  @getsentry/agent-interfaces-sentry-backend
@@ -863,7 +863,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of preprod
 
 ## Frontend Platform (keep last as we want highest specificity; shared code that appears in stack traces lives in the block near the top)
-/static/packages/scraps/                              @getsentry/design-engineering
 /static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering

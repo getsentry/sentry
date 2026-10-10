@@ -38,7 +38,6 @@ export function ExploreEquationArithmeticBuilder({
     getFieldDefinition,
     getFilterTagValues,
     getSuggestedKey,
-    hasConditionalAggregates,
   } = useExploreEquationBuilderConfig({
     traceItemType,
     numberTags,
@@ -53,7 +52,6 @@ export function ExploreEquationArithmeticBuilder({
       functionArguments={functionArguments}
       getFieldDefinition={getFieldDefinition}
       getFilterTagValues={getFilterTagValues}
-      hasConditionalAggregates={hasConditionalAggregates}
       expression={expression}
       setExpression={setExpression}
       getSuggestedKey={getSuggestedKey}

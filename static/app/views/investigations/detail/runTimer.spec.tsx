@@ -27,12 +27,12 @@ describe('InvestigationRunTimer', () => {
     );
     expect(
       screen.getByRole('timer', {name: 'Investigation active time'})
-    ).toHaveTextContent('34.5 s');
+    ).toHaveTextContent('34.5s');
     act(() => jest.advanceTimersByTime(700));
-    expect(screen.getByRole('timer')).toHaveTextContent('35.2 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('35.2s');
     jest.setSystemTime(new Date('2020-01-01T00:00:00Z'));
     act(() => jest.advanceTimersByTime(300));
-    expect(screen.getByRole('timer')).toHaveTextContent('35.5 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('35.5s');
   });
 
   it('reanchors to fresh API data and preserves the duration after remounting', () => {
@@ -45,12 +45,12 @@ describe('InvestigationRunTimer', () => {
       serverTime: '2025-01-01T00:05:12Z',
     });
     rerender(<InvestigationRunTimer orchestration={refreshed} />);
-    expect(screen.getByRole('timer')).toHaveTextContent('36.5 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('36.5s');
     unmount();
     render(<InvestigationRunTimer orchestration={refreshed} />);
-    expect(screen.getByRole('timer')).toHaveTextContent('36.5 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('36.5s');
     act(() => jest.advanceTimersByTime(500));
-    expect(screen.getByRole('timer')).toHaveTextContent('37.0 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('37.0s');
   });
 
   it('freezes throughout input waits and resumes without counting the wait', () => {
@@ -67,7 +67,7 @@ describe('InvestigationRunTimer', () => {
     });
     rerender(<InvestigationRunTimer orchestration={paused} />);
     act(() => jest.advanceTimersByTime(60_000));
-    expect(screen.getByRole('timer')).toHaveTextContent('35.5 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('35.5s');
     rerender(
       <InvestigationRunTimer
         orchestration={InvestigationOrchestrationFixture({
@@ -78,9 +78,9 @@ describe('InvestigationRunTimer', () => {
         })}
       />
     );
-    expect(screen.getByRole('timer')).toHaveTextContent('35.5 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('35.5s');
     act(() => jest.advanceTimersByTime(500));
-    expect(screen.getByRole('timer')).toHaveTextContent('36.0 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('36.0s');
   });
 
   it.each(['completed', 'failed', 'cancelled'] as const)(

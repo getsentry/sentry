@@ -1,11 +1,11 @@
-import type {Location} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 import * as Papa from 'papaparse';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
@@ -14,27 +14,18 @@ import type {Project} from 'sentry/types/project';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
-import type {
-  Aggregation,
-  Column,
-  ColumnType,
-  ColumnValueType,
-  Field,
-} from 'sentry/utils/discover/fields';
+import type {EventData, EventView} from 'sentry/utils/discover/eventView';
+import type {Aggregation, Column, ColumnType, Field} from 'sentry/utils/discover/fields';
 import {
-  aggregateFunctionOutputType,
   AGGREGATIONS,
   explodeFieldString,
   getAggregateAlias,
   getColumnsAndAggregates,
-  getEquation,
   isAggregateEquation,
   isAggregateFieldOrEquation,
-  isEquation,
   isMeasurement,
-  isSpanOperationBreakdownField,
   measurementType,
   PROFILING_FIELDS,
   TRACING_FIELDS,
@@ -42,7 +33,13 @@ import {
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertWizardRuleTemplates,
+  DEFAULT_WIZARD_TEMPLATE,
+} from 'sentry/views/alerts/wizard/options';
 import {
   DEFAULT_WIDGET_NAME,
   DisplayType,
@@ -54,8 +51,9 @@ import {
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getAllViews} from 'sentry/views/discover/results/data';
 import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
-import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
+import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 /**
@@ -77,66 +75,6 @@ function resolveDisplayType(
   return widgetTypeUsesDisplayTypeDirectly(widgetType)
     ? (eventViewDisplay as DisplayType)
     : displayModeToDisplayType(eventViewDisplay as DisplayModes);
-}
-
-const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
-  key: '',
-  name: '',
-
-  type: 'never',
-  isSortable: false,
-
-  column: Object.freeze({kind: 'field', field: ''}),
-  width: COL_WIDTH_UNDEFINED,
-};
-
-export function decodeColumnOrder(
-  fields: readonly Field[],
-  meta?: MetaType
-): Array<TableColumn<string>> {
-  return fields.map((f: Field) => {
-    const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
-
-    const col = explodeFieldString(f.field, f.alias);
-    if (isEquation(f.field)) {
-      column.key = f.field;
-      column.name = getEquation(f.field);
-      column.type = 'number';
-    } else {
-      column.key = f.field;
-      column.name = f.field;
-    }
-    column.width = f.width || COL_WIDTH_UNDEFINED;
-
-    if (col.kind === 'function') {
-      // Aggregations can have a strict outputType or they can inherit from their field.
-      // Otherwise use the FIELDS data to infer types.
-      const outputType = aggregateFunctionOutputType(col.function[0], col.function[1]);
-      if (outputType !== null) {
-        column.type = outputType;
-      }
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      const aggregate = AGGREGATIONS[col.function[0]];
-      column.isSortable = aggregate?.isSortable;
-    } else if (col.kind === 'field') {
-      if (getFieldDefinition(col.field) !== null) {
-        column.type = getFieldDefinition(col.field)?.valueType as ColumnValueType;
-      } else if (isMeasurement(col.field)) {
-        column.type = measurementType(col.field);
-      } else if (isSpanOperationBreakdownField(col.field)) {
-        column.type = 'duration';
-      }
-    }
-
-    // If provided meta with field type, prioritize that over guessing
-    if (meta?.fields?.[column.key]) {
-      column.type = meta.fields[column.key];
-    }
-
-    column.column = col;
-
-    return column;
-  });
 }
 
 export function generateTitle({
@@ -901,3 +839,51 @@ export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
   [SavedQueryDatasets.ERRORS]: WidgetType.ERRORS,
   [SavedQueryDatasets.TRANSACTIONS]: WidgetType.TRANSACTIONS,
 };
+
+/**
+ * Builds the metric monitor creation URL for a Discover event view.
+ */
+export function getCreateAlertFromViewUrl({
+  projects,
+  eventView,
+  organization,
+  referrer,
+  alertType,
+}: {
+  eventView: EventView;
+  organization: Organization;
+  projects: Project[];
+  alertType?: MetricAlertType;
+  referrer?: string;
+}): LocationDescriptor {
+  const project = projects.find(p => p.id === `${eventView.project[0]}`);
+  const queryParams = eventView.generateQueryStringObject();
+
+  let query = decodeScalar(queryParams.query);
+  if (project && query?.includes(`project:${project.slug}`)) {
+    query = query.replace(`project:${project.slug}`, '');
+  }
+
+  const alertTemplate = alertType
+    ? AlertWizardRuleTemplates[alertType]
+    : DEFAULT_WIZARD_TEMPLATE;
+
+  return getMetricMonitorUrl({
+    project,
+    environment: queryParams.environment,
+    aggregate: decodeScalar(queryParams.yAxis) ?? alertTemplate.aggregate,
+    dataset: alertTemplate.dataset,
+    organization,
+    query,
+    referrer,
+    eventTypes: [alertTemplate.eventTypes],
+  });
+}
+
+export function canCreateAlerts(organization: Organization, projects: Project[]) {
+  return (
+    isDemoModeActive() ||
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}))
+  );
+}

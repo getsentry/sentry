@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -17,7 +19,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';

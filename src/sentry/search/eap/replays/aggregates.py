@@ -5,6 +5,7 @@ from sentry.search.eap.aggregate_utils import count_processor
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
+    NumericArgumentDefinition,
     count_argument_resolver_optimized,
 )
 
@@ -29,22 +30,15 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
             )
         ],
         attribute_resolver=count_argument_resolver_optimized(REPLAYS_ALWAYS_PRESENT_ATTRIBUTES),
+        valid_arithmetic=True,
     ),
     "sum": AggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
         default_search_type="integer",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            )
+            NumericArgumentDefinition(),
         ],
+        valid_arithmetic=True,
     ),
     "min": AggregateDefinition(
         internal_function=Function.FUNCTION_MIN,
@@ -63,6 +57,7 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
     "max": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
@@ -81,5 +76,6 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
                 },
             )
         ],
+        valid_arithmetic=True,
     ),
 }

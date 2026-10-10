@@ -1,11 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -19,9 +19,9 @@ import {useAutomationBuilderErrorContext} from 'sentry/views/automations/compone
 import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {
   DataConditionNodeContext,
-  dataConditionNodesMap,
   useDataConditionNodeContext,
-} from 'sentry/views/automations/components/dataConditionNodes';
+} from 'sentry/views/automations/components/dataConditionNodeContext';
+import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
 
 interface DataConditionNodeListProps {

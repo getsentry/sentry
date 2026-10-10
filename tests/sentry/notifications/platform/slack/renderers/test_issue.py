@@ -134,7 +134,6 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.notes == "test note"
         assert len(result.rule.data["actions"]) == 1
         action_blob = result.rule.data["actions"][0]
-        assert action_blob["workflow_id"] == invocation.workflow_id
         assert (
             action_blob["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
         )
@@ -154,7 +153,6 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.tags is None
         assert len(result.rule.data["actions"]) == 1
         action_blob = result.rule.data["actions"][0]
-        assert action_blob["workflow_id"] == invocation.workflow_id
         assert (
             action_blob["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
         )
@@ -204,7 +202,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         project_slug = self.project.slug
         project_id = self.project.id
         group_id = group.id
-        block_id = json.dumps({"issue": group_id, "rule": workflow_id, "workflow": workflow_id})
+        block_id = json.dumps({"issue": group_id, "workflow": workflow_id})
 
         issue_url = (
             f"http://testserver/organizations/{org_slug}/issues/{group_id}/"
@@ -234,7 +232,6 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
                     "block_id": json.dumps(
                         {
                             "issue": group_id,
-                            "rule": workflow_id,
                             "workflow": workflow_id,
                             "block": "tags",
                         },

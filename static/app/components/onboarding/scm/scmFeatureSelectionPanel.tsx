@@ -1,4 +1,5 @@
 import {type ReactNode, useCallback, useId, useMemo} from 'react';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -10,7 +11,6 @@ import {
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
 import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';

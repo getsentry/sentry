@@ -23,7 +23,6 @@ from sentry.notifications.types import (
     RuleFuture as RuleFuture,
 )
 from sentry.notifications.utils.participants import get_notification_recipients
-from sentry.notifications.utils.rules import split_rules_by_rule_workflow_id
 from sentry.plugins.base.structs import Notification
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
@@ -64,8 +63,8 @@ class MailAdapter:
         }
         log_event = "dispatched"
         for future in futures:
-            rules.append(future.rule)
-            extra["rule_id"] = future.rule.id
+            rules.append(future.context.origin)
+            extra["rule_id"] = future.context.action_id
             if not future.kwargs:
                 continue
             raise NotImplementedError(
@@ -84,26 +83,29 @@ class MailAdapter:
 
             digest_key = unsplit_key(project, target_type, target_identifier, fallthrough_choice)
             extra["digest_key"] = digest_key
-            rules_and_workflows = split_rules_by_rule_workflow_id(rules)
-            rules_by_identifier_key = {
-                IdentifierKey.RULE: rules_and_workflows.rules,
-                IdentifierKey.WORKFLOW: rules_and_workflows.workflow_rules,
-            }
-            immediate_delivery = False
-            for identifier_key, parsed_rules in rules_by_identifier_key.items():
-                # If any of the records are added immediately, we can deliver the digest immediately
-                if parsed_rules:
-                    immediate_delivery = immediate_delivery or digests.backend.add(
-                        digest_key,
-                        event_to_record(
-                            event,
-                            parsed_rules,
-                            notification_uuid=notification_uuid,
-                            identifier_key=identifier_key,
-                        ),
-                        increment_delay=get_digest_option("increment_delay"),
-                        maximum_delay=get_digest_option("maximum_delay"),
+            workflow_rules = []
+            for rule in rules:
+                if rule.workflow_id is None:
+                    logger.warning(
+                        "mail.adapter.notification.missing_workflow_id",
+                        extra={"rule_id": rule.legacy_rule_id, "project_id": project.id},
                     )
+                    continue
+                workflow_rules.append(rule)
+
+            immediate_delivery = False
+            if workflow_rules:
+                immediate_delivery = digests.backend.add(
+                    digest_key,
+                    event_to_record(
+                        event,
+                        workflow_rules,
+                        notification_uuid=notification_uuid,
+                        identifier_key=IdentifierKey.WORKFLOW,
+                    ),
+                    increment_delay=get_digest_option("increment_delay"),
+                    maximum_delay=get_digest_option("maximum_delay"),
+                )
             if immediate_delivery:
                 deliver_digest.delay(digest_key, notification_uuid=notification_uuid)
             else:

@@ -16,6 +16,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
@@ -435,6 +436,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         now = before_now(days=20).replace(microsecond=0)
         conversation_id = uuid4().hex
 
+        records = [{"content": "User prefers dark mode", "score": 0.95}]
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now,
@@ -445,6 +447,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             memory_query_text="dietary preferences",
             memory_record_id="mem_123",
             memory_record_count=3,
+            memory_records=records,
             trace_id=uuid4().hex,
         )
 
@@ -464,6 +467,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.memory.query.text"] == "dietary preferences"
         assert span["gen_ai.memory.record.id"] == "mem_123"
         assert span["gen_ai.memory.record.count"] == 3
+        assert json.loads(span["gen_ai.memory.records"]) == records
 
     def test_single_trace_conversation(self) -> None:
         now = before_now(days=20).replace(microsecond=0)
@@ -1074,12 +1078,15 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 1
         expected_stats = {
+            "cacheReadTokens": 30,
+            "cacheWriteTokens": 15,
             "endTimestamp": int(now.timestamp() * 1000),
             "errors": 1,
             "errorToolNames": ["database"],
             "inputTokens": 190,
             "llmCalls": 2,
             "outputTokens": 110,
+            "reasoningTokens": 12,
             "startTimestamp": int((now - timedelta(seconds=2)).timestamp() * 1000),
             "toolCalls": 1,
             "toolErrors": 1,

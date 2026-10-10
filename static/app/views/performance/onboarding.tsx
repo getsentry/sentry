@@ -734,7 +734,7 @@ const Body = styled('div')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;

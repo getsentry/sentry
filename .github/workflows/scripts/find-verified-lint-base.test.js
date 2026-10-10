@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {test} from 'node:test';
 
-import {findVerifiedLintBase} from './find-verified-lint-base.js';
+import {EXACT_BUDGETS_STEP, findVerifiedLintBase} from './find-verified-lint-base.js';
 
 function fixture(t, changed = 'src/example.py') {
   const original = process.cwd();
@@ -41,7 +41,10 @@ function fixture(t, changed = 'src/example.py') {
   const job = {
     name: 'oxlint',
     head_sha: verified,
-    steps: [{name: 'Verify lint ratchet', conclusion: 'success'}],
+    steps: [
+      {name: 'Verify lint ratchet', conclusion: 'success'},
+      {name: EXACT_BUDGETS_STEP, conclusion: 'success'},
+    ],
   };
   const runs = [run];
   const jobs = [job];
@@ -122,12 +125,12 @@ test('changed source, assets, configuration, or budgets invalidate ancestor proo
 test('a skipped, failed, missing, or unrelated verification cannot certify the base', async t => {
   const {run, job, find} = fixture(t);
   for (const conclusion of ['skipped', 'failure', null]) {
-    job.steps[0].conclusion = conclusion;
+    job.steps[1].conclusion = conclusion;
     assert.equal(await find(), '');
   }
   job.steps = [{name: 'oxlint (all files)', conclusion: 'success'}];
   assert.equal(await find(), '');
-  job.steps = [{name: 'Verify lint ratchet', conclusion: 'success'}];
+  job.steps = [{name: EXACT_BUDGETS_STEP, conclusion: 'success'}];
   job.head_sha = '0'.repeat(40);
   assert.equal(await find(), '');
   job.head_sha = run.head_sha;
@@ -135,6 +138,14 @@ test('a skipped, failed, missing, or unrelated verification cannot certify the b
   assert.equal(await find(), '');
   run.event = 'push';
   run.head_branch = 'feature';
+  assert.equal(await find(), '');
+});
+
+test('a passing ratchet with stale budgets cannot certify the base', async t => {
+  const {job, find} = fixture(t);
+  job.steps[1].conclusion = 'skipped';
+  assert.equal(await find(), '');
+  job.steps = [{name: 'Verify lint ratchet', conclusion: 'success'}];
   assert.equal(await find(), '');
 });
 

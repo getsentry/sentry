@@ -1,12 +1,16 @@
+import {Fragment, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {Button} from '@sentry/scraps/button';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
@@ -119,6 +123,101 @@ describe('VisualizationWidget breakdown series labels', () => {
     });
 
     expect(screen.getByRole('link', {name: 'my_transaction'})).toBeInTheDocument();
+  });
+
+  it('keeps the other group by values next to the model name', () => {
+    const modelWidget = {
+      ...spansBreakdownWidget,
+      queries: [
+        {
+          ...spansBreakdownWidget.queries[0]!,
+          fields: [SpanFields.GEN_AI_REQUEST_MODEL, 'gen_ai.generation.error', 'count()'],
+          columns: [SpanFields.GEN_AI_REQUEST_MODEL, 'gen_ai.generation.error'],
+        },
+      ],
+    };
+    jest.mocked(WidgetCardDataLoader).mockImplementation(({children}: any) =>
+      children({
+        timeseriesResults: [
+          {
+            seriesName: 'gemini-3.7-flash,timed out : count()',
+            data: [{name: 1_000_000, value: 4}],
+            color: '#000',
+          },
+          {
+            seriesName: 'gemini-3.7-flash,connection refused : count()',
+            data: [{name: 1_000_000, value: 1}],
+            color: '#000',
+          },
+        ],
+        tableResults: [
+          {
+            title: '',
+            data: [
+              {
+                [SpanFields.GEN_AI_REQUEST_MODEL]: 'gemini-3.7-flash',
+                'gen_ai.generation.error': 'timed out',
+                'count()': 4,
+              },
+              {
+                [SpanFields.GEN_AI_REQUEST_MODEL]: 'gemini-3.7-flash',
+                'gen_ai.generation.error': 'connection refused',
+                'count()': 1,
+              },
+            ],
+            meta: {fields: {}, units: {}},
+          },
+        ],
+        loading: false,
+      })
+    );
+
+    render(<VisualizationWidget widget={modelWidget} selection={selection} />, {
+      organization: OrganizationFixture({features: ['visibility-explore-view']}),
+    });
+
+    expect(screen.getAllByText('gemini-3.7-flash')).toHaveLength(2);
+    expect(screen.getByText(',timed out')).toBeInTheDocument();
+    expect(screen.getByText(',connection refused')).toBeInTheDocument();
+
+    // Explore links filter on every group by value, not just the model
+    const link = screen.getByRole('link', {name: /timed out/});
+    const query = new URLSearchParams(link.getAttribute('href')!.split('?')[1]).get(
+      'query'
+    );
+    expect(query).toContain('gen_ai.request.model:gemini-3.7-flash');
+    expect(query).toContain('gen_ai.generation.error:"timed out"');
+  });
+});
+
+describe('VisualizationWidget memoization', () => {
+  function EditableWidget() {
+    const [widget, setWidget] = useState(spansBreakdownWidget);
+    return (
+      <Fragment>
+        <Button onClick={() => setWidget(w => ({...w, title: `${w.title}!`}))}>
+          Rename
+        </Button>
+        <Button onClick={() => setWidget(w => ({...w, displayType: DisplayType.AREA}))}>
+          Change type
+        </Button>
+        <VisualizationWidget widget={widget} selection={selection} />
+      </Fragment>
+    );
+  }
+
+  it('does not re-render the chart when only the title changes', async () => {
+    render(<EditableWidget />, {organization: OrganizationFixture()});
+
+    // Let the releases request settle so its re-render isn't counted below
+    await waitFor(() => expect(TimeSeriesWidgetVisualization).toHaveBeenCalledTimes(2));
+    jest.mocked(TimeSeriesWidgetVisualization).mockClear();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Rename'}));
+    expect(TimeSeriesWidgetVisualization).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Change type'}));
+    expect(TimeSeriesWidgetVisualization).toHaveBeenCalled();
   });
 });
 

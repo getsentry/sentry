@@ -1,5 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/play';
+import {IconUser} from '@sentry/icons/user';
 import type {Location, Query} from 'history';
 
 import {Button} from '@sentry/scraps/button';
@@ -29,12 +31,11 @@ import {
 } from 'sentry/components/replays/table/replayTableColumns';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {replayVideoPlatforms} from 'sentry/data/platformCategories';
-import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {isRetryableRequestError} from 'sentry/utils/queryClient';
+import {isRetryableRequestError} from 'sentry/utils/queryClientConfig';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';

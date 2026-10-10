@@ -175,6 +175,7 @@ export interface PullRequestFilesResponse {
 export interface OverviewCodeChangeFile {
   patch: FilePatch;
   repoName: string;
+  codeUrl?: string | null;
 }
 
 // Issue-side facts the endpoint serializes off the Group; mirrors the fields the

@@ -1,6 +1,7 @@
 import React, {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import type {LegendComponentOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -11,13 +12,13 @@ import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadin
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
 import {defined} from 'sentry/utils/defined';
+import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
@@ -73,7 +74,6 @@ import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidge
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';

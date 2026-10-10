@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Callable, Literal, cast
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -25,6 +26,7 @@ from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
     ConditionalAggregateDefinition,
+    NumericArgumentDefinition,
     OrderedAggregationDefinition,
     ResolvedArguments,
     ValueArgumentDefinition,
@@ -132,30 +134,37 @@ def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, Trace
     return (attribute, filter)
 
 
+@dataclass(kw_only=True)
+class PercentileDefinition(AggregateDefinition):
+    default_search_type: constants.SearchType = "duration"
+    arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition] = field(
+        default_factory=lambda: [
+            NumericArgumentDefinition(
+                default_arg="span.duration",
+            )
+        ]
+    )
+    valid_arithmetic: bool = True
+
+
 SPAN_AGGREGATE_DEFINITIONS = {
     "count_op": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
         arguments=[ValueArgumentDefinition(argument_types={"string"})],
         aggregate_resolver=resolve_count_op,
+        valid_arithmetic=True,
     ),
     "count_scores": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+            NumericArgumentDefinition(
                 validator=literal_validator(WEB_VITALS_MEASUREMENTS),
             )
         ],
         aggregate_resolver=resolve_count_scores,
+        valid_arithmetic=True,
     ),
     "count_starts": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -169,6 +178,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
         aggregate_resolver=resolve_count_starts,
+        valid_arithmetic=True,
     ),
     "http_response_count": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -180,6 +190,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
             )
         ],
         aggregate_resolver=resolve_http_response_count,
+        valid_arithmetic=True,
     ),
     "bounded_sample": ConditionalAggregateDefinition(
         # Bounded sample will return True if the sample is between the lower bound (2nd parameter) and if provided, greater the upper bound (3rd parameter).
@@ -202,55 +213,32 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_SUM,
         default_search_type="duration",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+            NumericArgumentDefinition(
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "avg": AggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    "integer",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+            NumericArgumentDefinition(
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "avg_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+            NumericArgumentDefinition(
                 default_arg="span.duration",
             )
         ],
         extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        valid_arithmetic=True,
     ),
     "count": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -258,20 +246,12 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="integer",
         processor=count_processor,
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+            NumericArgumentDefinition(
                 default_arg="span.duration",
             )
         ],
         attribute_resolver=count_argument_resolver_optimized(SPANS_ALWAYS_PRESENT_ATTRIBUTES),
+        valid_arithmetic=True,
     ),
     "count_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -279,187 +259,60 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="integer",
         processor=count_processor,
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+            NumericArgumentDefinition(
                 default_arg="span.duration",
             )
         ],
         extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        valid_arithmetic=True,
     ),
-    "p50": AggregateDefinition(
+    "p50": PercentileDefinition(
         internal_function=Function.FUNCTION_P50,
-        default_search_type="duration",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-                default_arg="span.duration",
-            )
-        ],
     ),
-    "p50_sample": AggregateDefinition(
+    "p50_sample": PercentileDefinition(
         internal_function=Function.FUNCTION_P50,
-        default_search_type="duration",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-                default_arg="span.duration",
-            )
-        ],
         extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
-    "p75": AggregateDefinition(
+    "p75": PercentileDefinition(
         internal_function=Function.FUNCTION_P75,
-        default_search_type="duration",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-                default_arg="span.duration",
-            )
-        ],
     ),
-    "p90": AggregateDefinition(
+    "p90": PercentileDefinition(
         internal_function=Function.FUNCTION_P90,
-        default_search_type="duration",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-                default_arg="span.duration",
-            )
-        ],
     ),
-    "p95": AggregateDefinition(
+    "p95": PercentileDefinition(
         internal_function=Function.FUNCTION_P95,
-        default_search_type="duration",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-                default_arg="span.duration",
-            )
-        ],
     ),
-    "p99": AggregateDefinition(
+    "p99": PercentileDefinition(
         internal_function=Function.FUNCTION_P99,
-        default_search_type="duration",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-                default_arg="span.duration",
-            )
-        ],
     ),
-    "p100": AggregateDefinition(
+    "p100": PercentileDefinition(
         internal_function=Function.FUNCTION_MAX,
-        default_search_type="duration",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-                default_arg="span.duration",
-            )
-        ],
     ),
     "max": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
         default_search_type="duration",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+            NumericArgumentDefinition(
                 # timestamp has search_type="string" for display purposes but its
                 # internal_type is DOUBLE, so max/min on it is valid.
                 field_allowlist={"timestamp"},
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "min": AggregateDefinition(
         internal_function=Function.FUNCTION_MIN,
         default_search_type="duration",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+            NumericArgumentDefinition(
                 # timestamp has search_type="string" for display purposes but its
                 # internal_type is DOUBLE, so max/min on it is valid.
                 field_allowlist={"timestamp"},
                 default_arg="span.duration",
             )
         ],
+        valid_arithmetic=True,
     ),
     "any": AggregateDefinition(
         internal_function=Function.FUNCTION_ANY,
@@ -755,6 +608,7 @@ def if_combinator(definition: AggregateDefinition) -> AggregateDefinition:
             ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
             *definition.arguments,
         ],
+        valid_arithmetic=definition.valid_arithmetic,
     )
 
 

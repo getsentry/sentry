@@ -1,10 +1,10 @@
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
+
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
-
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {
   getButtonContentClassName,

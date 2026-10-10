@@ -1,8 +1,9 @@
+import {IconSpan} from '@sentry/icons/span';
+
 import {
   ResourceLink,
   type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

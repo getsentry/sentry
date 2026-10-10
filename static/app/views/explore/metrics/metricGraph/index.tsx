@@ -2,16 +2,17 @@ import {Fragment, useMemo, useState} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {hasDroppedData} from 'sentry/components/droppedData/buckets';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
-import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
@@ -162,11 +163,15 @@ function Graph({
       : createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
+  const [interval] = useChartInterval();
   const {droppedEvents, acceptedEvents} = useDroppedData({
     dataset: DiscoverDatasets.TRACEMETRICS,
+    interval,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.TRACEMETRICS);
+  const openDroppedDataDrawer = useDroppedDataDrawer({
+    dataset: DiscoverDatasets.TRACEMETRICS,
+  });
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);

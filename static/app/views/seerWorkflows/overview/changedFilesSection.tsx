@@ -1,10 +1,11 @@
 import {Fragment, type ReactNode, useState} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconChevron, IconCode} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
 import {ChangedFileRow, type FileChangeTag} from './changedFileRow';
@@ -17,6 +18,7 @@ interface ChangedFile {
   deletions: number;
   path: string;
   renderDiff: () => ReactNode;
+  fileUrl?: string | null;
 }
 
 export interface RepoFileGroup {
@@ -100,6 +102,7 @@ function RepoGroup({
             deletions={file.deletions}
             path={file.path}
             changeTag={file.changeTag}
+            fileUrl={file.fileUrl}
             expanded={isExpanded}
             onExpandedChange={next => onToggle(key, next)}
           >

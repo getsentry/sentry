@@ -1,4 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import {IconCode} from '@sentry/icons/code';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -32,8 +34,6 @@ import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetA
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {IconCode} from 'sentry/icons/iconCode';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -276,6 +276,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
               <FileDiffViewer
                 key={index}
                 patch={patch.patch}
+                fileUrl={patch.code_url}
                 showBorder
                 collapsible
                 defaultExpanded={shouldExpandDiffs}

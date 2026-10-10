@@ -1433,6 +1433,39 @@ describe('Results', () => {
     });
   });
 
+  describe('Save as', () => {
+    it('groups saving, monitors and dashboards in one dropdown', async () => {
+      const organization = OrganizationFixture({
+        features: ['discover-basic', 'discover-query', 'dashboards-edit'],
+      });
+
+      renderMockRequests();
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            query: generateFields(),
+          },
+          route: '/organizations/:orgId/explore/discover/results/',
+        },
+        organization,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
+
+      expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Monitor'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Dashboard widget'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Create Monitor'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('transactions deprecation', () => {
     const features = ['discover-basic'];
 

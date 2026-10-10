@@ -1,4 +1,5 @@
 import isPropValid from '@emotion/is-prop-valid';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import type {LocationDescriptor} from 'history';
 import type {DistributedOmit} from 'type-fest';
 
@@ -7,8 +8,6 @@ import {Link} from '@sentry/scraps/link';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
-
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {
   getButtonContentClassName,

@@ -1,10 +1,9 @@
 import {css, cx} from '@linaria/core';
+import {IconChevron} from '@sentry/icons/chevron';
 import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
-
-import {IconChevron} from 'sentry/icons';
 
 export type DropdownButtonProps = DistributedOmit<
   ButtonProps,
