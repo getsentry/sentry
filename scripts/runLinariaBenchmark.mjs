@@ -206,7 +206,13 @@ for (const variant of variants) {
 
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, 'http://localhost');
-  const variant = url.searchParams.get('variant') ?? 'linaria';
+  const requestedVariant = url.searchParams.get('variant');
+  const variant =
+    requestedVariant === 'emotion'
+      ? 'emotion'
+      : requestedVariant === 'stylex'
+        ? 'stylex'
+        : 'linaria';
   if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
     response.setHeader(
       'Content-Type',
