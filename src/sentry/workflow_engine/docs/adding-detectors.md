@@ -37,11 +37,11 @@ flowchart TD
 
 ### Handler hierarchy
 
-| Class                                                         | Role                                                                                                                                                                |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`BaseDetectorHandler`](../handlers/detector/base.py)         | Abstract interface: `_evaluate`, `evaluate`, `extract_value`, and `create_occurrence`. Holds the detector and nothing else.                                         |
-| [`DetectorHandler`](../handlers/detector/base.py)             | Shared implementation: condition-group loading, evaluation metrics, a default stateless `evaluate`, and shared evidence and event data. The base for new detectors. |
-| [`StatefulDetectorHandler`](../handlers/detector/stateful.py) | `DetectorHandler` plus dedupe, priority thresholds, durable state, and resolution. Replaces the default `evaluate`.                                                 |
+| Class                                                         | Role                                                                                                                                                              |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`BaseDetectorHandler`](../handlers/detector/base.py)         | Abstract interface: `_evaluate`, `evaluate`, `extract_value`, and `create_occurrence`. Shared occurrence identity, fingerprint, evidence, and event data helpers. |
+| [`DetectorHandler`](../handlers/detector/condition.py)        | Data condition implementation: condition-group loading, evaluation metrics, and a default stateless `evaluate`. The base for new detectors.                       |
+| [`StatefulDetectorHandler`](../handlers/detector/stateful.py) | `DetectorHandler` plus dedupe, priority thresholds, durable state, and resolution. Replaces the default `evaluate`.                                               |
 
 ### `BaseDetectorHandler`
 
@@ -52,7 +52,7 @@ that associates error issues with a detector. It does not get evaluated in the n
 
 ### `DetectorHandler`
 
-[`DetectorHandler`](../handlers/detector/base.py) is the base class for every detector
+[`DetectorHandler`](../handlers/detector/condition.py) is the base class for every detector
 that does not need persisted state. It loads the detector's trigger condition group and
 provides a default stateless `evaluate`. A concrete subclass implements `extract_value`
 and `create_occurrence`.
@@ -127,7 +127,7 @@ Every handler implements `extract_value`. A stateful handler also implements
 ```python
 def extract_value(
     self, data_packet: DataPacket[ExamplePacket]
-) -> float | dict[DetectorGroupKey, float]:
+) -> float | DetectorGroupValues[float]:
     return data_packet.packet.value
 
 
@@ -135,9 +135,10 @@ def extract_dedupe_value(self, data_packet: DataPacket[ExamplePacket]) -> int:
     return data_packet.packet.sequence
 ```
 
-`extract_value` can return one value or a mapping of group key to value. Group keys
-create independent Issue Platform fingerprints for one detector, and independent
-detector state for stateful handlers.
+`extract_value` can return one value, or `DetectorGroupValues` mapping group key to value.
+Group keys create independent Issue Platform fingerprints for one detector, and independent
+detector state for stateful handlers. Any other return value, including a plain `dict`, is
+one ungrouped value.
 
 `extract_dedupe_value` must return a positive integer whose ordering matches the source
 stream. Missing Redis state is read as zero, so a first value of zero or less is skipped.
@@ -155,7 +156,7 @@ orchestration.
 A `DetectorGroupKey` is `str | None`:
 
 - Return one value for an ungrouped detector; the state key is `None`.
-- Return a mapping for independent substreams.
+- Return `DetectorGroupValues` for independent substreams.
 - Use non-empty strings no longer than 200 characters. Do not use `""`: state-key
   construction and the database uniqueness constraint treat it like ungrouped `None`.
 - Keep keys stable across trigger and recovery packets.
@@ -163,9 +164,7 @@ A `DetectorGroupKey` is `str | None`:
   Issue Platform group.
 - Do not put unbounded IDs or raw user-controlled values into group keys without a
   product-level retention and cardinality plan.
-- Do not return an empty dictionary to mean "no groups." Both the default and stateful
-  evaluations treat an empty dictionary as one ungrouped evaluation value. Override
-  `evaluate` if a packet can legitimately contain no groups to evaluate.
+- Return an empty `DetectorGroupValues` to mean "no groups"; nothing is evaluated.
 
 ## Implement Occurrence Creation
 
