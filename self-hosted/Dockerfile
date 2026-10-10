@@ -13,7 +13,7 @@ ADD --chmod=755 \
 ARG TARGETARCH
 FROM odiff-${TARGETARCH} AS odiff
 
-FROM python:3.13.15-slim-trixie AS application
+FROM ghcr.io/getsentry/image-mirror-library-python:3.13.15-slim-trixie AS application
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"

@@ -1,12 +1,14 @@
-import type {ReactNode} from 'react';
+import {useId, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Disclosure} from '@sentry/scraps/disclosure';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {TagVariant} from 'sentry/utils/theme';
+import {OpenFileButton} from 'sentry/views/seerExplorer/components/openFileButton';
 
 export interface FileChangeTag {
   label: string;
@@ -21,6 +23,7 @@ export function ChangedFileRow({
   expanded,
   onExpandedChange,
   children,
+  fileUrl,
 }: {
   additions: number;
   changeTag: FileChangeTag | null;
@@ -29,33 +32,45 @@ export function ChangedFileRow({
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
   path: string;
+  fileUrl?: string | null;
 }) {
+  const contentId = useId();
+  const toggle = () => onExpandedChange(!expanded);
+
   return (
-    <FileRow>
-      <Disclosure size="sm" expanded={expanded} onExpandedChange={onExpandedChange}>
-        <Disclosure.Title
-          trailingItems={
-            <Flex gap="xs" align="center">
-              <Text size="sm" monospace variant="success">
-                +{additions}
-              </Text>
-              <Text size="sm" monospace variant="danger">
-                -{deletions}
-              </Text>
-            </Flex>
-          }
+    <FileRow data-test-id="changed-file-row">
+      <TitleRow align="center" gap="sm" paddingRight="xs" onClick={toggle}>
+        <ToggleButton
+          size="sm"
+          variant="transparent"
+          icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
+          aria-expanded={expanded}
+          aria-controls={contentId}
+          onClick={e => {
+            e.stopPropagation();
+            toggle();
+          }}
         >
-          <Flex gap="md" align="center" minWidth="0" width="100%">
-            <Container minWidth="0" flexShrink={1}>
-              <FilePath size="sm" monospace variant="secondary" ellipsis title={path}>
-                {path}
-              </FilePath>
-            </Container>
-            {changeTag ? <Tag variant={changeTag.variant}>{changeTag.label}</Tag> : null}
-          </Flex>
-        </Disclosure.Title>
-        <Disclosure.Content>{children}</Disclosure.Content>
-      </Disclosure>
+          <Container minWidth="0" flexShrink={1}>
+            <FilePath size="sm" monospace variant="secondary" ellipsis title={path}>
+              {path}
+            </FilePath>
+          </Container>
+        </ToggleButton>
+        <OpenFileButton fileUrl={fileUrl} />
+        {changeTag ? <Tag variant={changeTag.variant}>{changeTag.label}</Tag> : null}
+        <Flex flex="1" justify="end" gap="xs" align="center">
+          <Text size="sm" monospace variant="success">
+            +{additions}
+          </Text>
+          <Text size="sm" monospace variant="danger">
+            -{deletions}
+          </Text>
+        </Flex>
+      </TitleRow>
+      <Container id={contentId} hidden={!expanded}>
+        {children}
+      </Container>
     </FileRow>
   );
 }
@@ -64,13 +79,29 @@ const FileRow = styled(Container)`
   & + & {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
+`;
 
-  [data-disclosure] > *:first-child {
-    border-radius: 0;
+// Mirrors Disclosure.Title: the row, not the button, owns the hover/active background.
+const TitleRow = styled(Flex)`
+  cursor: pointer;
+
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
-  [data-disclosure] > *:last-child {
-    padding: 0;
+  &:active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
+`;
+
+const ToggleButton = styled(Button)`
+  min-width: 0;
+  justify-content: flex-start;
+  padding-left: ${p => p.theme.space.xs};
+
+  &&:hover,
+  &&:active {
+    background-color: transparent;
   }
 `;
 

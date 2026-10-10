@@ -8,6 +8,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import (
+    TEST_NOTIFICATION_ID,
     NotificationOrigin,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
@@ -148,6 +149,17 @@ class NotificationHelpersTest(TestCase):
         assert origin.label == rule.label
         assert origin.legacy_rule_id == rule.id
         assert origin.workflow_id == workflow_id
+        assert not origin.is_test_notification()
+
+    def test_notification_origin_identifies_test_notification(self) -> None:
+        origin = NotificationOrigin.from_legacy_data(
+            label="Test notification",
+            environment_id=None,
+            data={},
+            fallback_legacy_rule_id=TEST_NOTIFICATION_ID,
+        )
+
+        assert origin.is_test_notification()
 
     def test_get_email_link_extra_params(self) -> None:
         rule: Rule = self.create_project_rule(self.project)

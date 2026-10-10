@@ -20,7 +20,7 @@ const DIFF_TYPE_TAG: Record<DiffFileType, FileChangeTag | null> = {
 
 function groupByRepo(codeChanges: OverviewCodeChangeFile[]): RepoFileGroup[] {
   const groups = new Map<string | null, RepoFileGroup>();
-  for (const {repoName: rawRepoName, patch} of codeChanges) {
+  for (const {repoName: rawRepoName, patch, codeUrl} of codeChanges) {
     const repoName = rawRepoName || null;
     const group = groups.get(repoName) ?? {repoName, files: []};
     group.files.push({
@@ -28,6 +28,7 @@ function groupByRepo(codeChanges: OverviewCodeChangeFile[]): RepoFileGroup[] {
       deletions: patch.removed,
       path: patch.path,
       changeTag: DIFF_TYPE_TAG[patch.type],
+      fileUrl: codeUrl,
       renderDiff: () => <FileDiffViewer hideHeader patch={patch} />,
     });
     groups.set(repoName, group);
