@@ -18,16 +18,16 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 from sentry.workflow_engine.handlers.detector.base import (
+    DetectorEvaluations,
     DetectorOccurrence,
     EventData,
-    GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.handlers.detector.stateful import (
     DetectorThresholds,
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.models import DataPacket, DetectorState
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
@@ -127,9 +127,8 @@ class ProcessingErrorDetectorHandler(
     @override
     def create_occurrence(
         self,
-        evaluation_result: DataConditionGroupEvaluation,
+        evaluation: DetectorEvaluation,
         data_packet: DataPacket[ProcessingErrorPacketValue],
-        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         event_data_dict = data_packet.packet.event_data
         errors = get_path(event_data_dict, "errors", filter=True, default=[])
@@ -157,7 +156,7 @@ class ProcessingErrorDetectorHandler(
             type=self.group_type,
             level="warning",
             culprit="",
-            priority=priority,
+            priority=evaluation.priority,
         )
 
         event_data: EventData = {
@@ -169,25 +168,27 @@ class ProcessingErrorDetectorHandler(
 
     @override
     def evaluate(
-        self, data_packet: DataPacket[ProcessingErrorPacketValue]
-    ) -> GroupedDetectorEvaluationResult:
+        self,
+        data_packet: DataPacket[ProcessingErrorPacketValue],
+        values: Mapping[DetectorGroupKey, ProcessingErrorCheckStatus],
+    ) -> DetectorEvaluations:
         """
         Custom evaluation that skips dedupe and threshold counting.
         Uses atomic DB updates for state transitions instead of the
         parent's batched state manager approach.
         """
-        data_value = self.extract_value(data_packet)
+        data_value = values[None]
         results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
         detector_trigger_evaluations, evaluated_priority = self.evaluate_conditions(data_value)
 
         if detector_trigger_evaluations is None or detector_trigger_evaluations.triggered is False:
-            return GroupedDetectorEvaluationResult(result=results, tainted=False)
+            return DetectorEvaluations(result=results, tainted=False)
 
         # Only handle triggering (FAILURE → HIGH). Resolution is handled
         # by a separate periodic task, not by the detector handler.
         if evaluated_priority != DetectorPriorityLevel.HIGH:
-            return GroupedDetectorEvaluationResult(result=results, tainted=False)
+            return DetectorEvaluations(result=results, tainted=False)
 
         # Atomic state transition: use filter().update() as a lock.
         # If another process already triggered, rows_updated will be 0.
@@ -195,7 +196,7 @@ class ProcessingErrorDetectorHandler(
 
         if not rows_updated:
             metrics.incr(f"processing_errors.{self.detector.type}.state_transition_race")
-            return GroupedDetectorEvaluationResult(result=results, tainted=False)
+            return DetectorEvaluations(result=results, tainted=False)
 
         results[None] = self._build_detector_evaluation_result(
             None,
@@ -205,7 +206,7 @@ class ProcessingErrorDetectorHandler(
             data_value,
         )
 
-        return GroupedDetectorEvaluationResult(result=results, tainted=False)
+        return DetectorEvaluations(result=results, tainted=False)
 
     def _try_state_transition(self, new_priority: DetectorPriorityLevel) -> int:
         """
