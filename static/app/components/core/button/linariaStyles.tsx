@@ -14,8 +14,6 @@ import type {ButtonSize, ButtonVariant} from './types';
  * - `--button-lift`     current lift of the surface; drops on hover/active
  */
 
-// State classes have higher specificity than base and variant classes. This
-// preserves their priority without merging CSS properties during rendering.
 const buttonStyles = {
   base: css`
     position: relative;
@@ -65,29 +63,9 @@ const buttonStyles = {
         0 0 0 2px var(--ln-focus-default, #7553ff);
     }
   `,
-  disabled: css`
-    &&&&&& {
-      opacity: 0.6;
-      cursor: not-allowed;
-      --button-lift: 0px;
-    }
-  `,
-  busy: css`
-    &&&&&&& {
-      cursor: progress;
-      --button-lift: 0px;
-    }
-  `,
-  pressed: css`
-    &&&&& {
-      --button-lift: 0px;
-      &::after {
-        transition: none;
-      }
-    }
-  `,
+  // Emotion styled wrappers must be able to override these variant rules.
   borderless: css`
-    && {
+    & {
       transform: translateY(0px);
       background-color: transparent;
       &:focus-visible {
@@ -107,25 +85,6 @@ const buttonStyles = {
       &::after {
         display: none;
       }
-    }
-  `,
-  borderlessInert: css`
-    &&& {
-      background-color: transparent;
-      &:hover {
-        background-color: inherit;
-      }
-      &:active {
-        background-color: inherit;
-      }
-    }
-  `,
-  link: css`
-    &&&& {
-      padding: 0;
-      height: auto;
-      min-height: auto;
-      min-width: auto;
     }
   `,
 };
@@ -286,6 +245,51 @@ const buttonVariantStyles = {
   `,
 };
 
+// Emit state rules after sizes and variants. Use the same selector specificity
+// as Emotion so styled wrappers can override both resting and pointer states.
+const buttonStateStyles = {
+  link: css`
+    padding: 0;
+    height: auto;
+    min-height: auto;
+    min-width: auto;
+  `,
+  borderlessInert: css`
+    background-color: transparent;
+    &:hover,
+    &:active {
+      background-color: inherit;
+    }
+  `,
+  pressed: css`
+    --button-lift: 0px;
+    &:hover,
+    &:active {
+      --button-lift: 0px;
+    }
+    &::after {
+      transition: none;
+    }
+  `,
+  disabled: css`
+    opacity: 0.6;
+    cursor: not-allowed;
+    --button-lift: 0px;
+    &:hover,
+    &:active {
+      --button-lift: 0px;
+    }
+  `,
+  busy: css`
+    cursor: progress;
+    --button-lift: 0px;
+    &:hover,
+    &:active {
+      --button-lift: 0px;
+    }
+  `,
+};
+
 /**
  * The content wrapper, the button's only child (`> span:last-child` in the
  * Emotion styles). It moves with the surface.
@@ -357,11 +361,11 @@ export function getButtonClassName(
     borderless && buttonStyles.borderless,
     borderless &&
       (s.busy || s.disabled || s.variant === 'link') &&
-      buttonStyles.borderlessInert,
-    s.variant === 'link' && buttonStyles.link,
-    s.pressed && buttonStyles.pressed,
-    s.disabled && buttonStyles.disabled,
-    s.busy && buttonStyles.busy,
+      buttonStateStyles.borderlessInert,
+    s.variant === 'link' && buttonStateStyles.link,
+    s.pressed && buttonStateStyles.pressed,
+    s.disabled && buttonStateStyles.disabled,
+    s.busy && buttonStateStyles.busy,
     customCss,
     className
   );
