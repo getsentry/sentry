@@ -658,7 +658,7 @@ shared references are:
 | [`UptimeDetectorHandler`](../../uptime/grouptype.py)                                                  | Stateful trigger/recovery thresholds, source data, evidence, and API config |
 | [`MetricIssueDetectorHandler`](../../incidents/grouptype.py)                                          | Stateful metric thresholds, anomaly payloads, and metric evidence           |
 | Processing error handlers in [`processing_errors/grouptype.py`](../../processing_errors/grouptype.py) | Customized state transitions and asymmetric resolution                      |
-| [`PreprodSizeAnalysisDetectorHandler`](../../preprod/size_analysis/grouptype.py)                      | Custom `DetectorHandler.evaluate` override                                  |
+| [`PreprodSizeAnalysisDetectorHandler`](../../preprod/size_analysis/grouptype.py)                      | Stateless `DetectorHandler` with only hooks: query filtering, fingerprints  |
 
 Copy architecture, not product assumptions. Each example has specialized producer,
 state, and lifecycle behavior.

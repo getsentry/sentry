@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone as dt_timezone
@@ -13,10 +12,8 @@ from sentry.issues.grouptype import GroupCategory, GroupType, NotificationConfig
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.types.group import PriorityLevel
-from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.handlers.detector.base import (
-    DetectorEvaluations,
     DetectorGroupValues,
     DetectorOccurrence,
     EventData,
@@ -24,14 +21,9 @@ from sentry.workflow_engine.handlers.detector.base import (
 from sentry.workflow_engine.handlers.detector.condition import DetectorHandler
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
-from sentry.workflow_engine.processors.data_condition_group import (
-    process_data_condition_group,
-)
-from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
-    DetectorPriorityLevel,
     DetectorSettings,
 )
 
@@ -222,66 +214,13 @@ class PreprodSizeAnalysisDetectorHandler(
             return False
 
     @override
-    def evaluate(
-        self,
-        data_packet: SizeAnalysisDataPacket,
-        values: Mapping[DetectorGroupKey, SizeAnalysisEvaluation],
-    ) -> DetectorEvaluations:
-        evaluation, priority = self._evaluate_conditions(values[None])
-        if evaluation is None or priority is None:
-            return DetectorEvaluations(result={}, tainted=False)
+    def get_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
+        # Every regression is its own issue
+        return [uuid4().hex]
 
-        detector_evaluation = DetectorEvaluation(
-            result=None,
-            data=DetectorEvaluationData(
-                group_key=None,
-                trigger_group_evaluation=evaluation,
-                event_data=None,
-            ),
-            triggered=True,
-            priority=priority,
-        )
-        detector_occurrence, event_data = self.create_occurrence(detector_evaluation, data_packet)
-        occurrence = detector_occurrence.to_issue_occurrence(
-            occurrence_id=event_data["event_id"],
-            event_id=event_data["event_id"],
-            project_id=self.detector.project_id,
-            status=priority,
-            additional_evidence_data={},
-            fingerprint=[uuid4().hex],
-        )
-        result = DetectorEvaluation(
-            result=occurrence,
-            data=DetectorEvaluationData(
-                group_key=None,
-                trigger_group_evaluation=evaluation,
-                event_data=event_data,
-            ),
-            triggered=True,
-            priority=priority,
-        )
-        return DetectorEvaluations(result={None: result}, tainted=False)
-
-    def _evaluate_conditions(
-        self, value: SizeAnalysisEvaluation
-    ) -> tuple[DataConditionGroupEvaluation | None, DetectorPriorityLevel | None]:
-        if not self.condition_group:
-            metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
-            return None, None
-
-        group_evaluation, _ = process_data_condition_group(self.condition_group, value)
-        if not group_evaluation.triggered:
-            return None, None
-
-        priorities = [
-            condition_evaluation.result
-            for condition_evaluation in group_evaluation.data["condition_evaluations"]
-            if isinstance(condition_evaluation.result, DetectorPriorityLevel)
-        ]
-        if not priorities:
-            return None, None
-
-        return group_evaluation, max(priorities)
+    @override
+    def get_occurrence_id(self, group_key: DetectorGroupKey, event_id: str) -> str:
+        return event_id
 
     def _extract_head(self, data_packet: SizeAnalysisDataPacket) -> int:
         measurement = self.detector.config["measurement"]
@@ -312,9 +251,7 @@ class PreprodSizeAnalysisDetectorHandler(
         # Skip evaluating artifacts the detector's query filters out
         if not self._matches_query(data_packet):
             return DetectorGroupValues()
-        return self._extract_measurement(data_packet)
 
-    def _extract_measurement(self, data_packet: SizeAnalysisDataPacket) -> SizeAnalysisEvaluation:
         threshold_type = self.detector.config["threshold_type"]
         match threshold_type:
             case "absolute":
@@ -333,7 +270,6 @@ class PreprodSizeAnalysisDetectorHandler(
         data_packet: SizeAnalysisDataPacket,
     ) -> tuple[DetectorOccurrence, EventData]:
         trigger_evaluation = evaluation.data["trigger_group_evaluation"]
-        priority = evaluation.priority
         current_timestamp = datetime.now(dt_timezone.utc)
         metadata = data_packet.packet.get("metadata")
 
@@ -348,18 +284,8 @@ class PreprodSizeAnalysisDetectorHandler(
 
         platform = metadata["platform"] if metadata else "unknown"
 
-        condition_evaluations = (
-            trigger_evaluation.data["condition_evaluations"] if trigger_evaluation else []
-        )
-        evidence_data: dict[str, Any] = {
-            "detector_id": self.detector.id,
-            "value": self._extract_measurement(data_packet),
-            "conditions": [
-                condition_evaluation.condition.get_snapshot()
-                for condition_evaluation in condition_evaluations
-            ],
-            "config": self.detector.config,
-        }
+        # The platform adds the detector id, value, triggered conditions, and config
+        evidence_data: dict[str, Any] = {}
         if metadata:
             evidence_data["head_artifact_id"] = metadata["head_artifact_id"]
             if "base_artifact_id" in metadata:
@@ -410,10 +336,10 @@ class PreprodSizeAnalysisDetectorHandler(
             type=PreprodSizeAnalysisGroupType,
             level="warning",
             culprit="",
-            priority=priority,
+            priority=evaluation.priority,
         )
 
-        event_data = {
+        event_data: EventData = {
             "event_id": uuid4().hex,
             "project_id": self.detector.project_id,
             "platform": platform,
