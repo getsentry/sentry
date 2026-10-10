@@ -6,6 +6,8 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+
 import MemberListHeader from 'getsentry/overrides/memberListHeader';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
@@ -45,16 +47,26 @@ describe('MemberListHeader', () => {
       body: sub,
     });
 
-    render(<MemberListHeader organization={organization} members={[enabledMember]} />);
+    render(
+      <MemberListHeader
+        organization={organization}
+        members={[disabledMember, enabledMember]}
+      />,
+      {additionalWrapper: SimpleTable}
+    );
 
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(await screen.findByText('Members')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Multiple members requires Team Plan or above')
+    ).toBeInTheDocument();
   });
 
   it('show upgrade if disabled member', async () => {
     const members = [disabledMember, enabledMember];
 
-    render(<MemberListHeader organization={organization} members={members} />);
+    render(<MemberListHeader organization={organization} members={members} />, {
+      additionalWrapper: SimpleTable,
+    });
 
     expect(
       await screen.findByText('Multiple members requires Team Plan or above')
@@ -67,7 +79,9 @@ describe('MemberListHeader', () => {
   it('do not show upgrade if no disabled member', async () => {
     const members = [enabledMember];
 
-    render(<MemberListHeader organization={organization} members={members} />);
+    render(<MemberListHeader organization={organization} members={members} />, {
+      additionalWrapper: SimpleTable,
+    });
 
     await act(tick);
     expect(
