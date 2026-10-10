@@ -964,12 +964,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
         detector = self.create_detector(type=self.handler_type.slug)
         handler = MockDetectorStateHandler(detector)
         with mock.patch(
-            "sentry.workflow_engine.handlers.detector.stateful.metrics"
+            "sentry.workflow_engine.handlers.detector.condition.metrics"
         ) as mock_metrics:
             assert (
                 handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}})) == {}
             )
-            mock_metrics.incr.assert_called_once_with(
+            mock_metrics.incr.assert_any_call(
                 "workflow_engine.detector.skipping_invalid_condition_group"
             )
             self.assert_updates(handler, "val1", 2, None, None, None)

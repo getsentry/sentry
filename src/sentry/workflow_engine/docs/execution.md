@@ -69,7 +69,7 @@ routes non-null results according to the handler's `outcome`.
 
 ### 4. Detector orchestration
 
-Every detector handler inherits [`DetectorHandler`](../handlers/detector/base.py). Its
+Every detector handler inherits [`DetectorHandler`](../handlers/detector/condition.py). Its
 default `evaluate` is stateless; `StatefulDetectorHandler` replaces it with durable
 state and thresholds.
 

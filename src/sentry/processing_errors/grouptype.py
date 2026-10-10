@@ -179,9 +179,7 @@ class ProcessingErrorDetectorHandler(
         data_value = self.extract_value(data_packet)
         results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
-        detector_trigger_evaluations, evaluated_priority = self._evaluation_detector_conditions(
-            data_value
-        )
+        detector_trigger_evaluations, evaluated_priority = self.evaluate_conditions(data_value)
 
         if detector_trigger_evaluations is None or detector_trigger_evaluations.triggered is False:
             return GroupedDetectorEvaluationResult(result=results, tainted=False)
