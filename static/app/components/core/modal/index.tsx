@@ -1,12 +1,26 @@
 import {useCallback, useEffect, useRef, type ComponentProps} from 'react';
 import {createPortal} from 'react-dom';
-import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
+import {
+  css as emotionCss,
+  type Interpolation,
+  type Theme,
+  useTheme,
+} from '@emotion/react';
+import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
-import {Container, ContainerQueryProvider, Flex, Surface} from '@sentry/scraps/layout';
+import {
+  Container,
+  ContainerQueryProvider,
+  Flex,
+  Surface,
+  type ContainerProps,
+} from '@sentry/scraps/layout';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
@@ -19,7 +33,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
-const MotionContainer = motion.create(Container);
+// Caller-supplied modal styles remain supported through an Emotion wrapper.
+const ModalContainer = styled((props: Omit<ContainerProps, 'css'>) => (
+  <Container {...props} />
+))``;
+const MotionContainer = motion.create(ModalContainer);
 
 type ModalOptions = {
   /**
@@ -241,8 +259,8 @@ export function GlobalModal() {
         justify="center"
         align="start"
         overflowY="auto"
-        css={css`
-          z-index: ${theme.zIndex.modal};
+        customCss={css`
+          z-index: ${linariaTheme.zIndex.modal};
         `}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
@@ -264,7 +282,7 @@ export function GlobalModal() {
                 pointerEvents="auto"
                 padding={{zero: 'xl lg', '3xl': '3xl xl'}}
                 css={[
-                  css`
+                  emotionCss`
                     margin-top: 64px;
                     @container (min-width: ${theme.container['3xl']}) {
                       margin-top: 50px;

@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
-import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
@@ -111,7 +112,6 @@ export function IssueDetailsJumpTo() {
 }
 
 function JumpToLink({config}: {config: JumpToSectionConfig}) {
-  const theme = useTheme();
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(config.key),
     config?.initialCollapse ?? false
@@ -138,9 +138,9 @@ function JumpToLink({config}: {config: JumpToSectionConfig}) {
       }}
       variant="transparent"
       size="xs"
-      css={css`
-        color: ${theme.tokens.content.secondary};
-        font-weight: ${theme.font.weight.sans.regular};
+      customCss={css`
+        color: ${linariaTheme.tokens.content.secondary};
+        font-weight: ${linariaTheme.font.weight.sans.regular};
       `}
       analyticsEventName="Issue Details: Jump To Clicked"
       analyticsEventKey="issue_details.jump_to_clicked"

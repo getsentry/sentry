@@ -1,11 +1,9 @@
 import {type LinkProps as ReactRouterLinkProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, type Theme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {css, cx, type LinariaClassName} from '@linaria/core';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonVariant} from '@sentry/scraps/button/types';
-import {getTextStyles} from '@sentry/scraps/text/text';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {useLinkBehavior} from './linkBehaviorContext';
@@ -33,52 +31,73 @@ export interface LinkProps
    * customer-domains (single-tenant).
    */
   to: LocationDescriptor;
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
   /**
    * Indicator if the link should be disabled
    */
   disabled?: boolean;
 }
 
-const getLinkStyles = ({
+const styles = {
+  link: css`
+    font-family: inherit;
+    text-box-edge: text text;
+    text-box-trim: trim-both;
+    border-radius: 2px;
+    &:focus-visible {
+      text-decoration: none;
+      outline: none;
+      box-shadow:
+        0 0 0 0 var(--ln-background-primary, #ffffff),
+        0 0 0 2px var(--ln-focus-default, #7553ff);
+    }
+  `,
+  disabled: css`
+    pointer-events: none;
+    color: var(--ln-content-disabled, #878490);
+    &:hover {
+      color: var(--ln-content-disabled, #878490);
+    }
+  `,
+};
+
+function getLinkClassName(
+  disabled: boolean | undefined,
+  className: string | undefined,
+  customCss?: LinariaClassName
+) {
+  return cx(styles.link, disabled && styles.disabled, customCss, className);
+}
+
+function Anchor({
+  customCss,
   disabled,
-  theme,
-}: {
-  theme: Theme;
+  className,
+  ...props
+}: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  css?: never;
+  customCss?: LinariaClassName;
   disabled?: LinkProps['disabled'];
-}) => css`
-  /* @TODO(jonasbadalic) This was defined on theme and only used here */
-  border-radius: 2px;
-  pointer-events: ${disabled ? 'none' : undefined};
-  color: ${disabled ? theme.tokens.content.disabled : undefined};
-
-  &:hover {
-    color: ${disabled ? theme.tokens.content.disabled : undefined};
+  ref?: React.Ref<HTMLAnchorElement>;
+}) {
+  const domProps: Record<string, unknown> = {};
+  for (const key in props) {
+    if (isPropValid(key)) {
+      domProps[key] = (props as Record<string, unknown>)[key];
+    }
   }
-
-  &:focus-visible {
-    text-decoration: none;
-    ${theme.focusRing()}
-  }
-`;
-
-const getLinkTextStyles = ({theme}: {theme: Theme}) => css`
-  ${getTextStyles({theme, variant: 'inherit'})}
-  font-family: inherit;
-`;
-
-const Anchor = styled('a', {
-  shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
-})<{disabled?: LinkProps['disabled']}>`
-  ${getLinkTextStyles}
-  ${getLinkStyles}
-`;
+  return <a {...domProps} className={getLinkClassName(disabled, className, customCss)} />;
+}
 
 type LinkPropsWithButtonBehavior = LinkProps & {
   busy?: boolean;
   variant?: ButtonVariant;
 };
 
-function LinkBase(props: LinkPropsWithButtonBehavior) {
+function LinkBase({customCss, ...props}: LinkPropsWithButtonBehavior) {
   const {Component, behavior} = useLinkBehavior(props);
   // LinkButton reuses this component for router links and passes these
   // button-only props through at runtime. They are consumed by tracking and
@@ -91,7 +110,12 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
     // [object Object]" when "to" prop is a LocationDescriptor object. Have to create a
     // new object here, as we can't delete the "to" prop as it is a required prop.
     const {to: _to, ...restProps} = props;
-    return <Anchor {...restProps} />;
+    return (
+      <Anchor
+        {...(restProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+        customCss={customCss}
+      />
+    );
   }
 
   const {
@@ -103,19 +127,24 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
     ...linkProps
   } = propsWithBehavior;
 
-  return <Component {...linkProps} onClick={handleClick} />;
+  return (
+    <Component
+      {...linkProps}
+      className={getLinkClassName(false, linkProps.className, customCss)}
+      onClick={handleClick}
+    />
+  );
 }
 
-const StyledLink = styled(LinkBase)`
-  ${getLinkTextStyles}
-  ${getLinkStyles}
-`;
-
 export function Link(props: LinkProps) {
-  return <StyledLink {...props} />;
+  return <LinkBase {...props} />;
 }
 
 interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
   disabled?: LinkProps['disabled'];
   openInNewTab?: boolean;
 }

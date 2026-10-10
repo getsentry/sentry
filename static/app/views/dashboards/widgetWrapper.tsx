@@ -1,5 +1,5 @@
 import type {ComponentPropsWithRef} from 'react';
-import {css} from '@emotion/react';
+import {css} from '@linaria/core';
 import {motion} from 'framer-motion';
 
 import {Container} from '@sentry/scraps/layout';
@@ -23,7 +23,7 @@ export function WidgetWrapper({displayType, ...motionProps}: WidgetWrapperProps)
             }
           : 'span 2 / span 2'
       }
-      css={css`
+      customCss={css`
         touch-action: manipulation;
       `}
     >

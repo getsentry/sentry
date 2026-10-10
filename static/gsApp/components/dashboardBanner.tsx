@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import {css as emotionCss} from '@emotion/react';
 import styled from '@emotion/styled';
 import DashLeft from 'getsentry-images/dashboards-banner-left.svg';
 import DashRight from 'getsentry-images/dashboards-banner-right.svg';
@@ -27,20 +27,10 @@ export function DashboardBanner({organization}: Props) {
       title={t('Customize Dashboards')}
       subtitle={t('Build your own widgets and manage multiple dashboards')}
       backgroundComponent={
-        <Container
+        <BannerBackground
           display={{zero: 'none', xl: 'block'}}
           height="95%"
           width="95%"
-          css={css`
-            background-image: url(${DashLeft}), url(${DashRight});
-            background-position:
-              left center,
-              right center;
-            background-repeat: no-repeat, no-repeat;
-            background-size:
-              20% 100%,
-              20% 100%;
-          `}
         />
       }
       dismissKey="dashboards"
@@ -57,3 +47,14 @@ const StyledBanner = styled(Banner)`
   background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   color: ${p => p.theme.tokens.content.primary};
 `;
+
+const BannerBackground = styled(Container)(emotionCss`
+  background-image: url(${DashLeft}), url(${DashRight});
+  background-position:
+    left center,
+    right center;
+  background-repeat: no-repeat, no-repeat;
+  background-size:
+    20% 100%,
+    20% 100%;
+`);

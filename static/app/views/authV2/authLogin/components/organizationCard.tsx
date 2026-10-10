@@ -1,12 +1,13 @@
 import type {ReactNode} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {IconClose} from '@sentry/icons/close';
 
 import {Avatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {IdentityIcon} from 'sentry/icons/identityIcon';
 import {t, tct} from 'sentry/locale';
@@ -74,9 +75,9 @@ export function OrganizationCard({
           <Container
             position="absolute"
             display={{zero: 'none', 'screen:sm': 'block'}}
-            css={theme => css`
-              top: calc(${theme.space.lg} + 18px);
-              left: calc(100% + ${theme.space.md});
+            customCss={css`
+              top: calc(${linariaTheme.space.lg} + 18px);
+              left: calc(100% + ${linariaTheme.space.md});
               translate: 0 -50%;
             `}
           >

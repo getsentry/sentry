@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css} from '@linaria/core';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconFlag} from '@sentry/icons/flag';
 import {IconInfo} from '@sentry/icons/info';
@@ -8,6 +8,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Collapsible} from 'sentry/components/collapsible';
@@ -74,7 +75,6 @@ export function AppSizeInsightsSidebarRow({
   platform?: Platform;
   projectType?: string | null;
 }) {
-  const theme = useTheme();
   const organization = useOrganization();
   const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
   const [currentPage, setCurrentPage] = useState(0);
@@ -188,14 +188,14 @@ export function AppSizeInsightsSidebarRow({
             <Fragment>
               <Container
                 display="flex"
-                css={() => ({
-                  flexDirection: 'column',
-                  width: '100%',
-                  overflow: 'hidden',
-                  '& > :nth-child(odd)': {
-                    backgroundColor: theme.tokens.background.secondary,
-                  },
-                })}
+                customCss={css`
+                  flex-direction: column;
+                  & > :nth-child(odd) {
+                    background-color: ${linariaTheme.tokens.background.secondary};
+                  }
+                `}
+                width="100%"
+                overflow="hidden"
               >
                 {currentFiles.map((file, fileIndex) => (
                   <FileRow key={`${file.path}-${startIndex + fileIndex}`} file={file} />

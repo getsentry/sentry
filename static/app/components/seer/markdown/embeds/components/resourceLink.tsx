@@ -1,5 +1,5 @@
 import type {ComponentType, ReactNode} from 'react';
-import {css} from '@emotion/react';
+import {css} from '@linaria/core';
 import {IconChat} from '@sentry/icons/chat';
 import {IconCode} from '@sentry/icons/code';
 import {IconCompass} from '@sentry/icons/compass';
@@ -155,7 +155,7 @@ export function ResourceLink({
       align="center"
       display="inline-flex"
       height="1em"
-      css={css`
+      customCss={css`
         vertical-align: text-bottom;
       `}
     >

@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
@@ -8,10 +7,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {
-  DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
-  DO_NOT_USE_getButtonStyles as getButtonStyles,
-} from './styles';
-import type {DO_NOT_USE_ButtonProps as ButtonProps, ButtonSize} from './types';
+  getButtonContentClassName,
+  getButtonDomProps,
+  getButtonClassName,
+  getButtonStyleState,
+} from './linariaStyles';
+import {DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES} from './styles';
+import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
 function preventKeyboardSubmit(
@@ -51,6 +53,22 @@ export function Button({
   const hasTooltip = !!tooltipProps?.title;
   const useAriaDisabled = disabled && hasTooltip;
 
+  const buttonElementProps = {
+    'aria-label': accessibleLabel,
+    'aria-busy': busy,
+    disabled: useAriaDisabled ? undefined : disabled,
+    type,
+    ...props,
+    ...(disabled !== undefined && {'aria-disabled': disabled}),
+  };
+  const styleState = getButtonStyleState(
+    {...buttonElementProps, busy, disabled},
+    size,
+    hasChildren
+  );
+  const className = getButtonClassName(styleState, props.className, props.customCss);
+  const contentClassName = getButtonContentClassName(styleState, {hideWhenBusy: true});
+
   return (
     <Tooltip
       skipWrapper
@@ -58,16 +76,10 @@ export function Button({
       title={tooltipProps?.title}
       disabled={!tooltipProps?.title}
     >
-      <StyledButton
-        aria-label={accessibleLabel}
-        aria-busy={busy}
-        disabled={useAriaDisabled ? undefined : disabled}
-        size={size}
-        type={type}
-        busy={busy}
-        {...props}
-        {...(disabled !== undefined && {'aria-disabled': disabled})}
-        shapeVariant={hasChildren ? 'rectangular' : 'square'}
+      <button
+        {...getButtonDomProps(buttonElementProps)}
+        className={className}
+        style={props.style}
         onClick={handleClick}
         {...(useAriaDisabled && {
           onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) =>
@@ -75,15 +87,7 @@ export function Button({
         })}
         role="button"
       >
-        <Flex
-          as="span"
-          align="center"
-          justify="center"
-          minWidth="0"
-          height="100%"
-          whiteSpace="nowrap"
-          visibility={busy ? 'hidden' : undefined}
-        >
+        <span className={contentClassName}>
           {props.icon && (
             <Flex
               as="span"
@@ -111,17 +115,8 @@ export function Button({
               <IndeterminateLoader variant="monochrome" aria-hidden />
             </Flex>
           )}
-        </Flex>
-      </StyledButton>
+        </span>
+      </button>
     </Tooltip>
   );
 }
-
-const StyledButton = styled('button')<
-  Omit<ButtonProps, 'size'> & {
-    shapeVariant: 'rectangular' | 'square';
-    size: ButtonSize;
-  }
->`
-  ${p => getButtonStyles(p)}
-`;

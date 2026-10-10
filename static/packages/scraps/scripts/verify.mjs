@@ -57,6 +57,14 @@ try {
   };
   await writeFile(join(consumer, 'tsconfig.json'), JSON.stringify(config));
   for (const subpath of Object.keys(packageJson.exports)) {
+    if (subpath === './styles.css') {
+      const css = await readFile(join(installed, packageJson.exports[subpath]), 'utf8');
+      if (!css.trim()) {
+        throw new Error('The packed stylesheet is empty');
+      }
+      console.log('Verified @sentry/scraps/styles.css');
+      continue;
+    }
     const specifier =
       subpath === '.' ? '@sentry/scraps' : `@sentry/scraps/${subpath.slice(2)}`;
     await writeFile(

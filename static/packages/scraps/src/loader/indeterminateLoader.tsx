@@ -1,30 +1,111 @@
 import {useRef, useState} from 'react';
-import {keyframes, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {css, cx, type LinariaClassName} from '@linaria/core';
 import {useResizeObserver} from '@react-aria/utils';
 
-// Load the standalone Emotion theme augmentation without a runtime import.
-// eslint-disable-next-line unicorn/require-module-specifiers
-import type {} from '@sentry/scraps/theme';
-
 interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
   variant?: 'vibrant' | 'monochrome';
 }
 
-const SQUIGGLE_TILE =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='1 0 16 8'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M17 6c-4 0-4-4-8-4S5 6 1 6'/%3E%3C/svg%3E\")";
-
-const indeterminateSlow = keyframes`
-  0% { left: -35%; right: 100%; }
-  60% { left: 100%; right: -90%; }
-  100% { left: 100%; right: -90%; }
-`;
-
-const indeterminateFast = keyframes`
-  0% { left: -200%; right: 100%; }
-  60% { left: 107%; right: -8%; }
-  100% { left: 107%; right: -8%; }
-`;
+const styles = {
+  track: css`
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    width: calc(round(down, 100% - 16px, 8px) + 16px);
+    height: 8px;
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='1 0 16 8'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M17 6c-4 0-4-4-8-4S5 6 1 6'/%3E%3C/svg%3E");
+      mask-repeat: repeat-x;
+      mask-size: 16px 8px;
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='1 0 16 8'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M17 6c-4 0-4-4-8-4S5 6 1 6'/%3E%3C/svg%3E");
+      -webkit-mask-repeat: repeat-x;
+      -webkit-mask-size: 16px 8px;
+    }
+  `,
+  trackVibrant: css`
+    &::before {
+      background-color: var(--ln-border-secondary, #e6e6e9);
+      opacity: 1;
+    }
+  `,
+  trackMonochrome: css`
+    &::before {
+      background-color: currentColor;
+      opacity: 0.2;
+    }
+  `,
+  colorMask: css`
+    position: absolute;
+    inset: 0;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='1 0 16 8'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M17 6c-4 0-4-4-8-4S5 6 1 6'/%3E%3C/svg%3E");
+    mask-repeat: repeat-x;
+    mask-size: 16px 8px;
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='1 0 16 8'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M17 6c-4 0-4-4-8-4S5 6 1 6'/%3E%3C/svg%3E");
+    -webkit-mask-repeat: repeat-x;
+    -webkit-mask-size: 16px 8px;
+  `,
+  bar: css`
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    animation-iteration-count: infinite;
+    animation-fill-mode: backwards;
+  `,
+  barVibrant: css`
+    background-color: var(--ln-border-accentVibrant, #7553ff);
+  `,
+  barMonochrome: css`
+    background-color: currentColor;
+  `,
+  slow: css`
+    animation-name: ln-loader-animation-0;
+    @keyframes ln-loader-animation-0 {
+      0% {
+        left: -35%;
+        right: 100%;
+      }
+      60% {
+        left: 100%;
+        right: -90%;
+      }
+      100% {
+        left: 100%;
+        right: -90%;
+      }
+    }
+  `,
+  fast: css`
+    animation-name: ln-loader-animation-1;
+    @keyframes ln-loader-animation-1 {
+      0% {
+        left: -200%;
+        right: 100%;
+      }
+      60% {
+        left: 107%;
+        right: -8%;
+      }
+      100% {
+        left: 107%;
+        right: -8%;
+      }
+    }
+  `,
+  timing: css`
+    animation-duration: var(--ln-loader-duration);
+    animation-delay: var(--ln-loader-delay);
+  `,
+};
 
 // Lerp animation timing based on track width.
 // Small (~128px): 2.0s duration, 1.0s delay
@@ -57,90 +138,50 @@ function useAnimationTiming() {
 
 export function IndeterminateLoader({
   variant = 'vibrant',
+  customCss,
+  className,
+  style,
   ...props
 }: IndeterminateLoaderProps) {
-  const theme = useTheme();
   const {ref, duration, delay} = useAnimationTiming();
+  const isMonochrome = variant === 'monochrome';
+  const barColor = isMonochrome ? styles.barMonochrome : styles.barVibrant;
+  const sx = {
+    className: cx(
+      styles.track,
+      isMonochrome ? styles.trackMonochrome : styles.trackVibrant
+    ),
+  };
 
   return (
-    <Track
+    <div
       ref={ref}
       role="progressbar"
       aria-label="Loading"
-      opacity={variant === 'monochrome' ? '0.2' : '1'}
-      color={variant === 'monochrome' ? 'currentColor' : theme.tokens.border.secondary}
       {...props}
+      className={cx(sx.className, customCss, className)}
+      style={style}
     >
-      <ColorMask>
-        <Bar
-          color={
-            variant === 'monochrome' ? 'currentColor' : theme.tokens.border.accent.vibrant
+      <span {...{className: cx(styles.colorMask)}}>
+        <span
+          {...{className: cx(styles.bar, barColor, styles.slow, styles.timing)}}
+          style={
+            {
+              '--ln-loader-duration': `${duration}s`,
+              '--ln-loader-delay': '0s',
+            } as React.CSSProperties
           }
-          animation={indeterminateSlow}
-          timing="cubic-bezier(0.4, 0.0, 0.2, 1)"
-          duration={`${duration}s`}
-          delay="0s"
         />
-        <Bar
-          color={
-            variant === 'monochrome' ? 'currentColor' : theme.tokens.border.accent.vibrant
+        <span
+          {...{className: cx(styles.bar, barColor, styles.fast, styles.timing)}}
+          style={
+            {
+              '--ln-loader-duration': `${duration}s`,
+              '--ln-loader-delay': `${delay}s`,
+            } as React.CSSProperties
           }
-          animation={indeterminateFast}
-          timing="cubic-bezier(0.4, 0.0, 0.2, 1)"
-          duration={`${duration}s`}
-          delay={`${delay}s`}
         />
-      </ColorMask>
-    </Track>
+      </span>
+    </div>
   );
 }
-
-const Track = styled('div')<{color: string; opacity: string}>`
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  width: calc(round(down, 100% - 16px, 8px) + 16px);
-  height: 8px;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: ${p => p.color};
-    opacity: ${p => p.opacity};
-    mask-image: ${SQUIGGLE_TILE};
-    mask-repeat: repeat-x;
-    mask-size: 16px 8px;
-    -webkit-mask-image: ${SQUIGGLE_TILE};
-    -webkit-mask-repeat: repeat-x;
-    -webkit-mask-size: 16px 8px;
-  }
-`;
-
-const ColorMask = styled('span')`
-  position: absolute;
-  inset: 0;
-  mask-image: ${SQUIGGLE_TILE};
-  mask-repeat: repeat-x;
-  mask-size: 16px 8px;
-  -webkit-mask-image: ${SQUIGGLE_TILE};
-  -webkit-mask-repeat: repeat-x;
-  -webkit-mask-size: 16px 8px;
-`;
-
-const Bar = styled('span')<{
-  animation: ReturnType<typeof keyframes>;
-  color: string;
-  delay: string;
-  duration: string;
-  timing: string;
-}>`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: ${p => p.color};
-  animation: ${p => p.animation} ${p => p.duration} ${p => p.timing} ${p => p.delay}
-    infinite backwards;
-`;

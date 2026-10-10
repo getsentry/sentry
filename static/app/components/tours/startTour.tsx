@@ -1,7 +1,9 @@
-import {css, ThemeProvider} from '@emotion/react';
+import {css as emotionCss, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 
 import {Flex, Container} from '@sentry/scraps/layout';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -34,11 +36,11 @@ export function StartTourModal({
         radius="md"
         background="primary"
         overflow="hidden"
-        css={theme => css`
-          margin: -${theme.space['3xl']} -${theme.space['2xl']};
+        customCss={css`
+          margin: -${linariaTheme.space['3xl']} -${linariaTheme.space['2xl']};
 
-          @container (min-width: ${theme.container['3xl']}) {
-            margin-inline: -${theme.space['3xl']};
+          @container (min-width: ${linariaTheme.container['3xl']}) {
+            margin-inline: -${linariaTheme.space['3xl']};
           }
         `}
       >
@@ -92,7 +94,7 @@ const Description = styled('div')`
   white-space: pre-line;
 `;
 
-export const startTourModalCss = css`
+export const startTourModalCss = emotionCss`
   width: 545px;
   [role='document'] {
     box-shadow: none;

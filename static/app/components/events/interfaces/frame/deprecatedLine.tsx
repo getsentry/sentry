@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css as emotionCss} from '@emotion/react';
+import {css, cx} from '@linaria/core';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconFix} from '@sentry/icons/fix';
 import {IconRefresh} from '@sentry/icons/refresh';
@@ -11,6 +12,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
@@ -304,7 +306,7 @@ export function DeprecatedLine({
                         />
                       ),
                       {
-                        modalCss: css`
+                        modalCss: emotionCss`
                           max-width: 800px;
                           width: 100%;
                         `,
@@ -393,29 +395,35 @@ function DefaultLine({isExpandable, isSubFrame, ...props}: DefaultLineProps) {
     <Grid
       align="center"
       columns="var(--default-line-columns, minmax(0, 1fr) max-content)"
-      css={theme => css`
-        background: ${
-          isSubFrame ? theme.colors.surface200 : theme.tokens.background.tertiary
-        };
-        word-break: break-word;
-        font-size: ${theme.font.size.sm};
-        line-height: 16px;
-        cursor: ${isExpandable ? 'pointer' : 'default'};
-        code {
-          font-family: ${theme.font.family.sans};
-        }
-
-        @container (max-width: ${theme.container.xl}) {
-          &:has([data-has-setup]) {
-            --default-line-columns: 1fr;
-            row-gap: ${theme.space.xs};
-          }
-        }
-      `}
+      cursor={isExpandable ? 'pointer' : 'default'}
       minHeight="40px"
       padding="sm lg"
       position="relative"
       {...props}
+      customCss={cx(
+        css`
+          background: ${linariaTheme.tokens.background.tertiary};
+          word-break: break-word;
+          font-size: ${linariaTheme.font.size.sm};
+          line-height: 16px;
+          code {
+            font-family: ${linariaTheme.font.family.sans};
+          }
+
+          @container (max-width: ${linariaTheme.container.xl}) {
+            &:has([data-has-setup]) {
+              --default-line-columns: 1fr;
+              row-gap: ${linariaTheme.space.xs};
+            }
+          }
+        `,
+        isSubFrame &&
+          css`
+            && {
+              background: ${linariaTheme.colors.surface200};
+            }
+          `
+      )}
     />
   );
 }

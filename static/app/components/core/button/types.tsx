@@ -1,3 +1,4 @@
+import type {LinariaClassName} from '@linaria/core';
 import type {LocationDescriptor} from 'history';
 
 import type {Responsive} from '@sentry/scraps/layout';
@@ -20,6 +21,10 @@ export interface DO_NOT_USE_CommonButtonProps extends AnalyticsProps {
    * Indicates that the button is "doing" something.
    */
   busy?: boolean;
+  /** Emotion css is not supported; use an Emotion styled wrapper. */
+  css?: never;
+  /** Custom styles from Linaria css; Emotion styles are not supported. */
+  customCss?: LinariaClassName;
   /**
    * The icon to render inside of the button. The size will be set
    * appropriately based on the size of the button.

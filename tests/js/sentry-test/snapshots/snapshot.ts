@@ -15,6 +15,9 @@ import type {
   SnapshotTestMetadata,
 } from 'sentry-test/snapshots/snapshot-image-metadata';
 
+// eslint-disable-next-line boundaries/dependencies -- SSR snapshots need the generated dark-theme class
+import {linariaDarkTheme} from '@sentry/scraps/theme/darkTheme';
+
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 const FONTS_DIR = path.resolve(PROJECT_ROOT, 'static/fonts');
 
@@ -43,7 +46,8 @@ function getFontFaceCSS(): string {
 
 function renderToHTML(
   element: ReactElement,
-  rootDisplay: 'inline-block' | 'block' = 'inline-block'
+  rootDisplay: 'inline-block' | 'block' = 'inline-block',
+  theme?: 'light' | 'dark'
 ): string {
   const cache = createCache({key: 'snap'});
   const {extractCriticalToChunks, constructStyleTagsFromChunks} =
@@ -53,12 +57,19 @@ function renderToHTML(
   const html = renderToString(wrapped);
   const chunks = extractCriticalToChunks(html);
   const styleTags = constructStyleTagsFromChunks(chunks);
+  // The test transform records these rules without defining document, so
+  // Emotion can keep its synchronous SSR extraction path.
+  const linariaStyles = (
+    globalThis as typeof globalThis & Record<symbol, Map<string, string> | undefined>
+  )[Symbol.for('sentry.test.linariaCss')];
+  const linariaCss = Array.from(linariaStyles?.values() ?? []).join('\n');
 
   return `<!DOCTYPE html>
-<html>
+<html${theme === 'dark' ? ` class="${linariaDarkTheme}"` : ''}>
 <head>
   <meta charset="utf-8" />
   <style>${getFontFaceCSS()}</style>
+  <style data-linaria>${linariaCss}</style>
   ${styleTags}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; animation: none !important; transition: none !important; }
@@ -140,7 +151,7 @@ export async function takeSnapshot({
   interaction,
 }: TakeSnapshotOptions): Promise<void> {
   const element = renderFn();
-  const fullHTML = renderToHTML(element, viewport ? 'block' : 'inline-block');
+  const fullHTML = renderToHTML(element, viewport ? 'block' : 'inline-block', theme);
 
   const browser = await getBrowser();
   const context = await browser.newContext({

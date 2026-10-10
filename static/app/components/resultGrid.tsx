@@ -7,8 +7,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import {css, keyframes, useTheme} from '@emotion/react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {IconList} from '@sentry/icons/list';
 import {IconSearch} from '@sentry/icons/search';
 import {IconWarning} from '@sentry/icons/warning';
@@ -23,6 +24,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
@@ -715,7 +717,6 @@ export function ResultGrid({
   const api = apiProp ?? defaultApi;
   const location = useLocation();
   const navigate = useNavigate();
-  const theme = useTheme();
 
   const needsRegion = isRegional || isCellScoped;
 
@@ -1297,10 +1298,10 @@ export function ResultGrid({
         wrap="wrap"
         gap="lg"
         marginBottom={hasSelectors || hasSearch || statusNote ? 'md' : '0'}
-        css={css`
+        customCss={css`
           /* Keep adjacent dropdowns above each other. */
           button + div {
-            z-index: ${theme.zIndex.dropdown + 2};
+            z-index: ${linariaTheme.zIndex.dropdown + 2};
           }
         `}
       >

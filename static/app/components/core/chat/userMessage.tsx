@@ -1,7 +1,8 @@
-import {css} from '@emotion/react';
+import {css} from '@linaria/core';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container} from '@sentry/scraps/layout';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 interface UserMessageProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -43,8 +44,8 @@ export function UserMessage({
       whiteSpace="pre-wrap"
       // `overflow-wrap`/`word-wrap` are not layout props; they keep long
       // unbroken tokens (URLs, stack frames) from overflowing the bubble.
-      css={theme => css`
-        color: ${theme.tokens.content.primary};
+      customCss={css`
+        color: ${linariaTheme.tokens.content.primary};
         word-wrap: break-word;
         overflow-wrap: anywhere;
       `}

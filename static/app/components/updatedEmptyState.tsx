@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -288,8 +289,6 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
 }
 
 function EventWaitingIndicator() {
-  const theme = useTheme();
-
   return (
     <Flex
       align="center"
@@ -303,7 +302,7 @@ function EventWaitingIndicator() {
       <Text size="md" variant="promotion">
         {t("Waiting for this project's first error")}
       </Text>
-      <Container flexShrink={0} css={pulsingIndicatorStyles({theme})} />
+      <PulsingIndicator flexShrink={0} />
     </Flex>
   );
 }
@@ -317,3 +316,7 @@ export function BodyTitle({children}: {children: React.ReactNode}) {
     </Container>
   );
 }
+
+const PulsingIndicator = styled(Container)`
+  ${pulsingIndicatorStyles}
+`;

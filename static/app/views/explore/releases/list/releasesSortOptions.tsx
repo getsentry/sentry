@@ -53,7 +53,7 @@ export function ReleasesSortOptions({
           options={sortOptions}
           selected={selected}
           onSelect={onSelect}
-          style={{zIndex: 2}}
+          style={{...containerProps.style, zIndex: 2}}
         />
       )}
     </Container>

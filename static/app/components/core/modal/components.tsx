@@ -1,10 +1,11 @@
-import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {IconClose} from '@sentry/icons/close';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
@@ -41,12 +42,12 @@ const ModalFooter = styled((props: React.HTMLAttributes<HTMLElement>) => {
       justify="end"
       borderTop="primary"
       padding={{zero: '2xl xl', '3xl': '2xl 3xl'}}
-      css={(theme: Theme) => css`
-        margin: ${theme.space['2xl']} -${theme.space['2xl']} -${theme.space['3xl']};
+      customCss={css`
+        margin: ${linariaTheme.space['2xl']} -${linariaTheme.space['2xl']} -${linariaTheme.space['3xl']};
 
-        @container (min-width: ${theme.container['3xl']}) {
-          margin-right: -${theme.space['3xl']};
-          margin-left: -${theme.space['3xl']};
+        @container (min-width: ${linariaTheme.container['3xl']}) {
+          margin-right: -${linariaTheme.space['3xl']};
+          margin-left: -${linariaTheme.space['3xl']};
         }
       `}
     />
@@ -68,13 +69,13 @@ const makeClosableHeader = (closeModal: () => void) => {
       <Flex
         {...props}
         as="header"
-        css={(theme: Theme) => css`
-          margin: -${theme.space['3xl']} -${theme.space.xl}
-            ${theme.space['2xl']} -${theme.space['2xl']};
+        customCss={css`
+          margin: -${linariaTheme.space['3xl']} -${linariaTheme.space.xl}
+            ${linariaTheme.space['2xl']} -${linariaTheme.space['2xl']};
 
-          @container (min-width: ${theme.container['3xl']}) {
-            margin-right: -${theme.space['3xl']};
-            margin-left: -${theme.space['3xl']};
+          @container (min-width: ${linariaTheme.container['3xl']}) {
+            margin-right: -${linariaTheme.space['3xl']};
+            margin-left: -${linariaTheme.space['3xl']};
           }
 
           h1,
@@ -84,7 +85,7 @@ const makeClosableHeader = (closeModal: () => void) => {
           h5,
           h6 {
             font-size: 20px;
-            font-weight: ${theme.font.weight.sans.medium};
+            font-weight: ${linariaTheme.font.weight.sans.medium};
             margin-bottom: 0;
             line-height: 1.1;
           }

@@ -1,10 +1,11 @@
 import {Component, Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css} from '@linaria/core';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -201,11 +202,11 @@ class SpendLimitsEditModal extends Component<Props, State> {
     return (
       <Fragment>
         <Container
-          css={theme => css`
-            margin: -${theme.space['2xl']};
+          customCss={css`
+            margin: -${linariaTheme.space['2xl']};
 
-            @container (min-width: ${theme.container['3xl']}) {
-              margin-inline: -${theme.space['3xl']};
+            @container (min-width: ${linariaTheme.container['3xl']}) {
+              margin-inline: -${linariaTheme.space['3xl']};
             }
           `}
         >

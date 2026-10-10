@@ -14,6 +14,8 @@ const productionEntryPoints = [
   'static/app/serviceWorker/worker/worker.ts',
   // scripts are entry points
   'scripts/*.ts',
+  // Build-time CSS extraction runs from Rspack loaders and library config.
+  'build-utils/linaria.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
@@ -85,6 +87,8 @@ const config: KnipConfig = {
       includeEntryExports: true,
     },
     'static/packages/scraps': {
+      // Generated theme modules expose the complete token vocabulary to the compiler.
+      entry: ['src/theme/{constants,tokens}.linaria.ts!'],
       project: [
         '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!',
         // Test helpers and package verification scripts are not production code.

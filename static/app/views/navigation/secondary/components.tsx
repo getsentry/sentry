@@ -26,8 +26,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
@@ -620,7 +621,7 @@ function ReorderableListItem<T extends {id: string | number}>(
         background={isDragging ? 'secondary' : undefined}
         ref={setNodeRef}
         data-is-dragging={isDragging ? true : undefined}
-        css={reorderableHandleCoordination}
+        customCss={reorderableHandleCoordination}
         style={{
           listStyleType: 'none',
           transform: CSS.Transform.toString(transform),
@@ -830,7 +831,7 @@ function GrabHandle() {
           aria-label={t('Drag to reorder')}
           data-drag-icon
           ref={setActivatorNodeRef}
-          style={{cursor: isDragging ? 'grabbing' : 'grab'}}
+          style={{...p.style, cursor: isDragging ? 'grabbing' : 'grab'}}
         >
           <IconGrabbable variant="muted" aria-hidden="true" />
         </GrabHandleAnimation>

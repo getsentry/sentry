@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
@@ -9,6 +10,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AnsiText} from 'sentry/components/ansiText';
@@ -88,8 +90,8 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
         background="primary"
         paddingTop="md"
         paddingBottom="md"
-        css={cssTheme => css`
-          padding-inline: var(--issue-details-inset, ${cssTheme.space['2xl']});
+        customCss={css`
+          padding-inline: var(--issue-details-inset, ${linariaTheme.space['2xl']});
         `}
       >
         <Flex justify="between">

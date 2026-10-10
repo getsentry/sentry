@@ -114,12 +114,15 @@ describe('Grid', () => {
       const props: GridProps<any> = {};
       expectTypeOf(props.children).toEqualTypeOf<React.ReactNode | undefined>();
     });
-    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+    it('render prop signature limits children to (props: {className, style}) => React.ReactNode | undefined', () => {
       const props: GridPropsWithRenderFunction<any> = {
         children: () => {},
       };
       expectTypeOf(props.children).toEqualTypeOf<
-        (props: {className: string}) => React.ReactNode | undefined
+        (props: {
+          className: string;
+          style?: React.CSSProperties;
+        }) => React.ReactNode | undefined
       >();
     });
   });

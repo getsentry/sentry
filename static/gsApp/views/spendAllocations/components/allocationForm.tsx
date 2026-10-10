@@ -1,12 +1,13 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {css} from '@linaria/core';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {theme as linariaTheme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -256,11 +257,11 @@ export function AllocationForm({
         </Flex>
       </Header>
       <Container
-        css={theme => css`
-          margin: -${theme.space['2xl']};
+        customCss={css`
+          margin: -${linariaTheme.space['2xl']};
 
-          @container (min-width: ${theme.container['3xl']}) {
-            margin-inline: -${theme.space['3xl']};
+          @container (min-width: ${linariaTheme.container['3xl']}) {
+            margin-inline: -${linariaTheme.space['3xl']};
           }
         `}
       >

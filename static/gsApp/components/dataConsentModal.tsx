@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css as emotionCss} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 import {IconFix} from '@sentry/icons/fix';
@@ -49,24 +49,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
 
   return (
     <Fragment>
-      <Container
-        height="200px"
-        overflow="hidden"
-        radius="md md 0 0"
-        css={theme => css`
-          margin: -${theme.space['3xl']} -${theme.space['2xl']} 0;
-
-          @container (min-width: ${theme.container['3xl']}) {
-            margin-inline: -${theme.space['3xl']};
-          }
-
-          background-image: url(${missionControl});
-          background-size: cover;
-          background-repeat: no-repeat;
-          background-position: center;
-          clip-path: polygon(100% 0%, 0% 0%, 0% 85%, 15% 75%, 80% 95%, 90% 85%, 100% 85%);
-        `}
-      />
+      <BannerImage height="200px" overflow="hidden" radius="md md 0 0" />
       <DismissButton
         analyticsEventKey="data_consent_banner.dismissed"
         analyticsEventName="Data Consent Banner: Dismissed"
@@ -250,3 +233,19 @@ const DismissButton = styled(Button)`
   background-color: rgba(255, 255, 255, 0.8);
   border-radius: 50%;
 `;
+
+const BannerImage = styled(Container)(
+  ({theme}) => emotionCss`
+    margin: -${theme.space['3xl']} -${theme.space['2xl']} 0;
+
+    @container (min-width: ${theme.container['3xl']}) {
+      margin-inline: -${theme.space['3xl']};
+    }
+
+    background-image: url(${missionControl});
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    clip-path: polygon(100% 0%, 0% 0%, 0% 85%, 15% 75%, 80% 95%, 90% 85%, 100% 85%);
+  `
+);
