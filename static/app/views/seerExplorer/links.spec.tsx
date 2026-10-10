@@ -450,7 +450,7 @@ describe('entity links added for Code Mode API coverage', () => {
     ).toEqual({pathname: '/organizations/org-slug/monitors/alerts/881/'});
   });
 
-  it('links a classic cron monitor to the modern monitors list', () => {
+  it('links a classic cron monitor to the modern cron monitors list', () => {
     expect(
       resolveLink(
         {
@@ -463,8 +463,13 @@ describe('entity links added for Code Mode API coverage', () => {
       )
     ).toEqual({
       id: 'get_cron_monitor_details',
-      label: 'View monitors',
-      url: {pathname: '/organizations/org-slug/monitors/'},
+      label: 'View cron monitors',
+      url: {pathname: '/organizations/org-slug/monitors/crons/'},
+    });
+
+    expect(resolveLink(LINK_RULE_EXAMPLES.get_cron_monitor_details!, ctx)?.url).toEqual({
+      pathname: '/organizations/org-slug/monitors/crons/',
+      query: {project: '2'},
     });
   });
 

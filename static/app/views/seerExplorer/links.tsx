@@ -14,6 +14,7 @@ import {
 import {
   makeMonitorBasePathname,
   makeMonitorDetailsPathname,
+  makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
@@ -433,10 +434,19 @@ export const LINK_RULES: LinkRule[] = [
   {
     id: 'get_cron_monitor_details',
     prefix: /\/monitors\/\{monitor_id_or_slug\}/,
-    resolve: ({title}, {organization}) => ({
-      label: title ?? t('View monitors'),
-      url: {pathname: makeMonitorBasePathname(organization.slug)},
-    }),
+    resolve: ({params, title}, {organization, projects}) => {
+      const project = resolveProject(params.project_id_or_slug, projects);
+      return {
+        label: title ?? t('View cron monitors'),
+        url: {
+          pathname: makeMonitorTypePathname(
+            organization.slug,
+            'monitor_check_in_failure'
+          ),
+          ...(project?.id ? {query: {project: project.id}} : {}),
+        },
+      };
+    },
   },
   {
     id: 'get_issue_alert_rule',
