@@ -7,6 +7,7 @@ packages:
   - static/packages/scraps
   - static/oxlint/eslintPluginScraps
   - static/oxlint/eslintPluginSentry
+disallowWorkspaceCycles: true
 shamefullyHoist: true
 minimumReleaseAge: 720
 minimumReleaseAgeExclude:
