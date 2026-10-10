@@ -27,26 +27,40 @@ export function needsLinariaTransform(source: string): boolean {
   return /from ['"]@linaria\/core['"]/.test(source) && /\b\w+\s*`/.test(source);
 }
 
+export async function collectLinariaFiles(roots = LINARIA_ROOTS): Promise<string[]> {
+  const filesByRoot = await Promise.all(
+    roots.map(async root => {
+      const directories = [root];
+      const files: string[] = [];
+      for (const directory of directories) {
+        // Recursive readdir follows pnpm's directory symlinks on some Node
+        // versions, including links back to the source tree itself.
+        for (const entry of await fs.readdir(directory, {withFileTypes: true})) {
+          const filename = path.join(directory, entry.name);
+          if (entry.isDirectory() && entry.name !== 'node_modules') {
+            directories.push(filename);
+          } else if (
+            entry.isFile() &&
+            /\.tsx?$/.test(entry.name) &&
+            !/\.(spec|test|snapshots|d)\.tsx?$/.test(entry.name)
+          ) {
+            files.push(filename);
+          }
+        }
+      }
+      return files.sort();
+    })
+  );
+  return [...new Set(filesByRoot.flat())];
+}
+
 /**
  * Match the StyleX spike's single stylesheet. Stable file order keeps styles
  * independent of lazy chunks. Core styles come first, then custom app classes.
  * Emotion wrappers follow the extracted stylesheet in the cascade.
  */
 export async function collectLinariaCss(roots = LINARIA_ROOTS): Promise<string> {
-  const filesByRoot = await Promise.all(
-    roots.map(async directory =>
-      (await fs.readdir(directory, {recursive: true, withFileTypes: true}))
-        .filter(
-          entry =>
-            entry.isFile() &&
-            /\.tsx?$/.test(entry.name) &&
-            !/\.(spec|test|snapshots|d)\.tsx?$/.test(entry.name)
-        )
-        .map(entry => path.join(entry.parentPath, entry.name))
-        .sort()
-    )
-  );
-  const files = [...new Set(filesByRoot.flat())];
+  const files = await collectLinariaFiles(roots);
   const styles = [];
   for (const file of files) {
     const source = await fs.readFile(file, 'utf8');
