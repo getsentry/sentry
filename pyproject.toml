@@ -1747,7 +1747,6 @@ module = [
     "tests.sentry.incidents",
     "tests.sentry.incidents.endpoints.*",
     "tests.sentry.incidents.models.*",
-    "tests.sentry.incidents.subscription_processor.*",
     "tests.sentry.incidents.test_charts",
     "tests.sentry.incidents.test_logic",
     "tests.sentry.incidents.test_metric_issue_detector_handler",
