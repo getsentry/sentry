@@ -30,6 +30,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
+from sentry.monitors.logic.monitor_status import sync_cron_detector_enabled
 from sentry.monitors.models import (
     MONITOR_CONFIG,
     CheckInStatus,
@@ -51,7 +52,6 @@ from sentry.monitors.utils import (
     get_max_runtime,
     get_request_attribution,
     signal_monitor_created,
-    sync_cron_detector_enabled,
     update_issue_alert_rule,
 )
 from sentry.users.services.user.service import user_service

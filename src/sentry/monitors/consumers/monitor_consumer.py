@@ -43,6 +43,7 @@ from sentry.monitors.logic.monitor_environment import (
     monitor_has_newer_status_affecting_checkins,
     update_monitor_environment,
 )
+from sentry.monitors.logic.monitor_status import update_monitor_status
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -83,7 +84,6 @@ from sentry.monitors.utils import (
     get_timeout_at,
     signal_first_checkin,
     signal_monitor_created,
-    update_monitor_status,
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator

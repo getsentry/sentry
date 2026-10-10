@@ -41,6 +41,7 @@ from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.monitors.logic.monitor_status import sync_cron_detector_enabled
 from sentry.monitors.models import (
     DEFAULT_STATUS_ORDER,
     MONITOR_ENVIRONMENT_ORDERING,
@@ -53,7 +54,6 @@ from sentry.monitors.serializers import (
     MonitorSerializer,
     MonitorSerializerResponse,
 )
-from sentry.monitors.utils import sync_cron_detector_enabled
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.types.actor import Actor
