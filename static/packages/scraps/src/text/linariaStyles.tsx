@@ -189,7 +189,7 @@ function getDecorationKey(
   return parts.length ? (parts.join(' ') as keyof typeof decorations) : undefined;
 }
 
-export function getColorStyle(variant: ContentVariant | 'muted' | 'inherit' | undefined) {
+function getColorStyle(variant: ContentVariant | 'muted' | 'inherit' | undefined) {
   if (variant === 'inherit') {
     return null;
   }

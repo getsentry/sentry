@@ -16,7 +16,7 @@ import type {ButtonSize, ButtonVariant} from './types';
 
 // State classes have higher specificity than base and variant classes. This
 // preserves their priority without merging CSS properties during rendering.
-export const buttonStyles = {
+const buttonStyles = {
   base: css`
     position: relative;
     display: inline-flex;
@@ -130,7 +130,7 @@ export const buttonStyles = {
   `,
 };
 
-export const buttonSizeStyles = {
+const buttonSizeStyles = {
   md: css`
     --button-elevation: 2px;
     --button-lift: 2px;
@@ -198,7 +198,7 @@ export const buttonSizeStyles = {
 };
 
 // Use min width as a progressive enhancement for square buttons.
-export const buttonSquareStyles = {
+const buttonSquareStyles = {
   md: css`
     padding: 0;
     min-width: 36px;
@@ -217,7 +217,7 @@ export const buttonSquareStyles = {
   `,
 };
 
-export const buttonVariantStyles = {
+const buttonVariantStyles = {
   primary: css`
     --button-surface: var(--ln-interactive-chonkyEmbossedAccentBackground, #7553ff);
     --button-chonk: var(--ln-interactive-chonkyEmbossedAccentChonk, #5827d6);
@@ -290,7 +290,7 @@ export const buttonVariantStyles = {
  * The content wrapper, the button's only child (`> span:last-child` in the
  * Emotion styles). It moves with the surface.
  */
-export const buttonContentStyles = {
+const buttonContentStyles = {
   base: css`
     z-index: 1;
     position: relative;

@@ -22,10 +22,10 @@ export function needsLinariaTransform(source: string): boolean {
  * Match the StyleX spike's single stylesheet. Stable file order keeps styles
  * independent of lazy chunks and leaves Emotion wrappers later in the cascade.
  */
-export async function collectLinariaCss(): Promise<string> {
+export async function collectLinariaCss(roots = LINARIA_ROOTS): Promise<string> {
   const files = (
     await Promise.all(
-      LINARIA_ROOTS.map(async directory =>
+      roots.map(async directory =>
         (await fs.readdir(directory, {recursive: true, withFileTypes: true}))
           .filter(
             entry =>

@@ -11000,22 +11000,3 @@ export const breakpointVarSuffix: Record<string, string> = {
   'screen:2xl': '18-screen-2xl',
 };
 export type LayoutProperty = keyof typeof baseStyles;
-export type ResponsiveKey =
-  | '3xs'
-  | '2xs'
-  | 'xs'
-  | 'sm'
-  | 'md'
-  | 'lg'
-  | 'xl'
-  | '2xl'
-  | '3xl'
-  | '4xl'
-  | '5xl'
-  | 'screen:2xs'
-  | 'screen:xs'
-  | 'screen:sm'
-  | 'screen:md'
-  | 'screen:lg'
-  | 'screen:xl'
-  | 'screen:2xl';

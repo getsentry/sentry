@@ -539,10 +539,7 @@ const layoutFile =
   'export const breakpointVarSuffix: Record<string, string> = ' +
   JSON.stringify(breakpointVarSuffix) +
   ';\n' +
-  'export type LayoutProperty = keyof typeof baseStyles;\n' +
-  'export type ResponsiveKey = ' +
-  BREAKPOINTS.map(([k]) => JSON.stringify(k)).join(' | ') +
-  ';\n';
+  'export type LayoutProperty = keyof typeof baseStyles;\n';
 const outputs: Array<[string, string]> = [
   [path.join(SCRAPS, 'theme/tokens.linaria.ts'), tokensFile],
   [path.join(SCRAPS, 'theme/darkTheme.tsx'), darkFile],

@@ -57,7 +57,14 @@ tarball contents and dependencies, typechecks and imports each public export,
 and server renders representative components in both themes.
 
 Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
-The package does not include application providers, global CSS, or fonts.
+Consumers also load the extracted component CSS once in their browser entry:
+
+```ts
+import '@sentry/scraps/styles.css';
+```
+
+JavaScript exports do not import CSS, so Node can load them for server rendering.
+The package does not include application providers, application-wide resets, or fonts.
 
 ## Prepare a release
 
