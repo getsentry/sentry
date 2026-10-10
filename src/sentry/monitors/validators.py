@@ -30,6 +30,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
+from sentry.monitors.logic.monitor_status import sync_cron_detector_enabled
 from sentry.monitors.models import (
     MONITOR_CONFIG,
     CheckInStatus,
@@ -617,6 +618,8 @@ class MonitorValidator(CamelSnakeSerializer):
 
         if params:
             instance.update(**params)
+            if "status" in params:
+                sync_cron_detector_enabled(instance)
             create_audit_entry(
                 request=self.context["request"],
                 organization_id=instance.organization_id,

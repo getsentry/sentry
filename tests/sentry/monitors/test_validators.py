@@ -20,7 +20,7 @@ from sentry.monitors.models import (
     is_monitor_muted,
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
-from sentry.monitors.utils import get_detector_for_monitor
+from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
     MonitorIncidentDetectorValidator,
@@ -32,7 +32,12 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.workflow_engine.models import DataConditionGroup, DataSource, DataSourceDetector
+from sentry.workflow_engine.models import (
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+)
 
 
 class MonitorValidatorCreateTest(MonitorTestCase):
@@ -758,6 +763,10 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
     def test_update_status_to_disabled(self) -> None:
         """Test updating monitor status to disabled."""
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
+        assert detector.enabled
+
         validator = MonitorValidator(
             instance=self.monitor,
             data={"status": "disabled"},
@@ -773,12 +782,16 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
         updated_monitor = validator.save()
         assert updated_monitor.status == ObjectStatus.DISABLED
+        assert not Detector.objects.get(id=detector.id).enabled
 
     @patch("sentry.quotas.backend.check_assign_seat")
     def test_update_status_to_active_with_quota_check(self, mock_check_seat):
         """Test updating monitor status to active checks quota."""
         # Start with disabled monitor
         self.monitor.update(status=ObjectStatus.DISABLED)
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
+        assert not detector.enabled
 
         mock_result = MagicMock()
         mock_result.assignable = True
@@ -800,6 +813,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.status == ObjectStatus.ACTIVE
         mock_check_seat.assert_called_once_with(seat_object=self.monitor)
+        assert Detector.objects.get(id=detector.id).enabled
 
     @patch("sentry.quotas.backend.check_assign_seat")
     def test_update_status_to_active_quota_exceeded(self, mock_check_seat):

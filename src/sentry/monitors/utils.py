@@ -8,6 +8,7 @@ from django.http.request import HttpRequest
 from rest_framework.request import Request
 
 from sentry import audit_log
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.middleware import is_frontend_request
@@ -438,6 +439,7 @@ def ensure_cron_detector(monitor: Monitor) -> Detector | None:
                     name=monitor.name,
                     owner_user_id=monitor.owner_user_id,
                     owner_team_id=monitor.owner_team_id,
+                    enabled=monitor.status == ObjectStatus.ACTIVE,
                     config={},
                 )
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)

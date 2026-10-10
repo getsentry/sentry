@@ -1635,6 +1635,9 @@ class MonitorConsumerTest(TestCase):
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
         assert monitor.status == ObjectStatus.DISABLED
+        detector = get_detector_for_monitor(monitor)
+        assert detector is not None
+        assert not detector.enabled
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
         assign_seat.assert_called_with(seat_object=monitor)
