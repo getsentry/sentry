@@ -42,6 +42,12 @@ class ProjectTransactionThresholdSerializer(serializers.Serializer):
 
 @cell_silo_endpoint
 class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
+    """
+    Legacy: project Apdex/User Misery thresholds only apply to the transactions dataset used
+    by the AM1 performance pages. On EAP, `apdex` and `user_misery` take the threshold as an
+    explicit argument, so this endpoint is intentionally kept private.
+    """
+
     owner = ApiOwner.DATA_BROWSING
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,

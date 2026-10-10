@@ -113,6 +113,12 @@ class TestDetectorUtils:
             "[4:15::9:8]:2013",
             ("https://[4:15::9:8]:2013/dogs/*", ["2013"], {}),
         ),
+        URLTestCase(  # a scrubbed bracketed IP address with a port
+            "https://[[ip]]:2013/dogs/1121",
+            True,
+            "[[ip]]:2013",
+            ("https://[[ip]]:2013/dogs/*", ["1121"], {}),
+        ),
         URLTestCase(
             "https://dogs.are.great/dogs/[number]",
             False,

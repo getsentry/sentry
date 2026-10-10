@@ -147,6 +147,25 @@ class TestFormulas(BaseFormulaTest):
         assert "params" in response.data
         assert "200 characters" in str(response.data["params"]["value"][0])
 
+    def test_create_explore_formula_rejects_calculations_on_columns(self) -> None:
+        data = self.formula_object.copy()
+        data["params"].append(
+            {
+                "name": "calc_column",
+                "type": "calculation",
+                "order": 0,
+                "value": "{duration} * 4",
+            }
+        )
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=data,
+            )
+            assert response.status_code == 400, response.content
+        assert "non_field_errors" in response.data
+        assert "Columns cannot be used in calculations" in str(response.data["non_field_errors"][0])
+
     def test_calculation_without_value(self) -> None:
         self.formula_object["params"].append(
             {
