@@ -108,7 +108,7 @@ class BasePaginator:
                     index = queryset.query.order_by.index(f"-{self.key}")
                     new_order_by = list(queryset.query.order_by)
                     new_order_by[index] = queryset.query.order_by[index][1:]
-                    queryset.query.order_b = tuple(new_order_by)
+                    queryset.query.order_by = tuple(new_order_by)
             else:
                 if asc:
                     queryset = queryset.order_by(self.key)
