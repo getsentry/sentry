@@ -190,6 +190,7 @@ vercel.json                                              @getsentry/owners-js-bu
 build-utils/                                             @getsentry/owners-js-build
 oxlint.config.ts                                         @getsentry/owners-js-build
 oxlint-suppressions.json                                 @getsentry/design-engineering
+/.github/workflows/prune-oxlint-suppressions.yml           @getsentry/design-engineering
 /scripts/custom-oxlint.ts                                @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
