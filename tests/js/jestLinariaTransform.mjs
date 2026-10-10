@@ -12,7 +12,7 @@ const linariaTransformer = {
     return {
       ...transformer,
       getCacheKey(source, filename, config) {
-        return `linaria-8.2.0-wyw-2.5.1-linaria-custom-css-prop-${transformer.getCacheKey(source, filename, config)}`;
+        return `linaria-8.2.0-wyw-2.5.1-linaria-custom-css-prop-ssr-styles-${transformer.getCacheKey(source, filename, config)}`;
       },
       process(source, filename, config) {
         if (/from ['"]@linaria\/core['"]/.test(source) && /\b\w+\s*`/.test(source)) {
@@ -29,11 +29,22 @@ const linariaTransformer = {
               {input: source, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024}
             )
           );
-          // Test the extracted CSS rather than Linaria's mock css tag. The app
-          // receives the combined stylesheet through linaria-css-loader.
+          // Keep extracted rules for Node-rendered snapshots as well as DOM tests.
+          // The app receives its stylesheet through linaria-css-loader.
           source = result.code;
           if (result.cssText) {
-            source += `\nif (typeof document !== 'undefined') {const sheet = document.createElement('style'); sheet.textContent = ${JSON.stringify(result.cssText)}; document.head.appendChild(sheet);}`;
+            source += `
+{
+  const key = Symbol.for('sentry.test.linariaCss');
+  const styles = globalThis[key] ??= new Map();
+  const css = ${JSON.stringify(result.cssText)};
+  styles.set(${JSON.stringify(filename)}, css);
+  if (typeof document !== 'undefined') {
+    const sheet = document.createElement('style');
+    sheet.textContent = css;
+    document.head.appendChild(sheet);
+  }
+}`;
           }
         }
         return transformer.process(source, filename, config);

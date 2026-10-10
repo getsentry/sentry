@@ -40,7 +40,7 @@ export async function collectLinariaCss(roots = LINARIA_ROOTS): Promise<string> 
           entry =>
             entry.isFile() &&
             /\.tsx?$/.test(entry.name) &&
-            !/\.(spec|d)\.tsx?$/.test(entry.name)
+            !/\.(spec|test|snapshots|d)\.tsx?$/.test(entry.name)
         )
         .map(entry => path.join(entry.parentPath, entry.name))
         .sort()
