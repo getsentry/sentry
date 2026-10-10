@@ -371,8 +371,18 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         request = self._make_superuser_request(user)
         drf_request = drf_request_from_request(request)
         perm = self.permission_cls()
-        with pytest.raises(SuperuserRequired):
-            perm.has_object_permission(drf_request, APIView(), self.org)
+        with (
+            viewer_context_scope(ViewerContext(user_id=user.id, actor_type=ActorType.USER)),
+            mock.patch(
+                "sentry.auth.access.get_superuser_access_expiry", return_value=123
+            ) as expiry,
+        ):
+            with pytest.raises(SuperuserRequired):
+                perm.has_object_permission(drf_request, APIView(), self.org)
+            ctx = get_viewer_context()
+            assert ctx is not None
+            assert ctx.superuser is None
+            expiry.assert_not_called()
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     def test_superuser_member_does_not_require_org_auth(self) -> None:
@@ -381,7 +391,17 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         request = self._make_superuser_request(user)
         drf_request = drf_request_from_request(request)
         perm = self.permission_cls()
-        assert perm.has_object_permission(drf_request, APIView(), self.org)
+        with (
+            viewer_context_scope(ViewerContext(user_id=user.id, actor_type=ActorType.USER)),
+            mock.patch(
+                "sentry.auth.access.get_superuser_access_expiry", return_value=123
+            ) as expiry,
+        ):
+            assert perm.has_object_permission(drf_request, APIView(), self.org)
+            ctx = get_viewer_context()
+            assert ctx is not None
+            assert ctx.superuser is None
+            expiry.assert_not_called()
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     def test_superuser_authorized_org_allowed(self) -> None:
@@ -390,7 +410,17 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         request.superuser.authorize_org(self.org.slug, "for_unit_test", "testing")
         drf_request = drf_request_from_request(request)
         perm = self.permission_cls()
-        assert perm.has_object_permission(drf_request, APIView(), self.org)
+        with (
+            viewer_context_scope(ViewerContext(user_id=user.id, actor_type=ActorType.USER)),
+            mock.patch("sentry.auth.access.get_superuser_access_expiry", return_value=123),
+        ):
+            perm.determine_access(drf_request, self.org)
+            ctx = get_viewer_context()
+            assert ctx is not None
+            assert ctx.organization_id == self.org.id
+            assert ctx.superuser is not None
+            assert ctx.superuser.expires_at == 123
+            assert perm.has_object_permission(drf_request, APIView(), self.org)
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     def test_staff_endpoint_skips_per_org_auth(self) -> None:

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import time
+from datetime import timedelta
 
 import jwt as pyjwt
 import pytest
 from django.test import override_settings
+from django.utils import timezone
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -99,6 +103,25 @@ class TestEncodeDecodeRoundtrip(TestCase):
 
 
 class TestEncodeViewerContext(TestCase):
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_superuser_jwt_lifetime_cannot_exceed_five_minutes(self):
+        vc = ViewerContext(
+            superuser=SuperuserAccess(expires_at=int(time.time()) + 600, read_only=True)
+        )
+        claims = pyjwt.decode(encode_viewer_context(vc), options={"verify_signature": False})
+        assert claims["exp"] - claims["iat"] == 300
+
+    @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
+    def test_superuser_deadline_is_not_renewed_when_reencoded(self):
+        deadline = int(time.time()) + 300
+        vc = ViewerContext(superuser=SuperuserAccess(expires_at=deadline, read_only=False))
+        token = encode_viewer_context(vc)
+        with freeze_time(timezone.now() + timedelta(minutes=4)):
+            propagated = encode_viewer_context(decode_viewer_context(token))
+        claims = pyjwt.decode(propagated, options={"verify_signature": False})
+        assert claims["superuser"] == {"expires_at": deadline, "read_only": False}
+        assert claims["exp"] == deadline
+
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_standard_claims_present(self):
         vc = ViewerContext(organization_id=1, actor_type=ActorType.USER)
