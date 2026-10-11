@@ -549,7 +549,8 @@ class BuildSnqlQueryTest(TestCase):
         },
         SnubaQuery.Type.CRASH_RATE: {
             Dataset.Sessions: {
-                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
+                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id,
+                **kwargs: [
                     Function(
                         function="if",
                         parameters=[
@@ -569,7 +570,8 @@ class BuildSnqlQueryTest(TestCase):
                         alias="_crash_rate_alert_aggregate",
                     )
                 ],
-                "percentage(users_crashed, users) as _crash_rate_alert_aggregate": lambda org_id, **kwargs: [
+                "percentage(users_crashed, users) as _crash_rate_alert_aggregate": lambda org_id,
+                **kwargs: [
                     Function(
                         function="if",
                         parameters=[
@@ -588,7 +590,9 @@ class BuildSnqlQueryTest(TestCase):
                 ],
             },
             Dataset.Metrics: {
-                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id, metric_mri, **kwargs: [
+                "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": lambda org_id,
+                metric_mri,
+                **kwargs: [
                     Function(
                         function="sumIf",
                         parameters=[
@@ -672,7 +676,9 @@ class BuildSnqlQueryTest(TestCase):
                         alias="crashed",
                     ),
                 ],
-                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate": lambda org_id, metric_mri, **kwargs: [
+                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate": lambda org_id,
+                metric_mri,
+                **kwargs: [
                     Function(
                         function="uniqIf",
                         parameters=[
