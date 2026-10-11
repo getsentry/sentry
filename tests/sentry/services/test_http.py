@@ -295,7 +295,7 @@ from granian._internal import load_target
 
 from sentry.runner import configure
 
-# Whatever this platform defaults to.
+# Fork, whatever this platform defaults to.
 multiprocessing.set_start_method("fork")
 configure()
 frozen_by_configure = gc.get_freeze_count()
