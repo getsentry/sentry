@@ -1,4 +1,8 @@
-import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  CronDetectorFixture,
+  CronMonitorDataSourceFixture,
+  IssueStreamDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -114,6 +118,17 @@ describe('DetectorLink', () => {
 
     expect(screen.getByText(/all issues in/i)).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('renders cron detector without crashing when queryObj is null', () => {
+    const cronDetector = CronDetectorFixture({
+      dataSources: [CronMonitorDataSourceFixture({queryObj: null as any})],
+    });
+
+    render(<DetectorLink detector={cronDetector} />, {organization});
+
+    // Should render the detector link without throwing
+    expect(screen.getByRole('link', {name: /cron detector/i})).toBeInTheDocument();
   });
 
   it('renders percent thresholds using delta values in details', () => {

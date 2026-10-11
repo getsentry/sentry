@@ -214,7 +214,11 @@ function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
 }
 
 function CronDetectorDetails({detector}: {detector: CronDetector}) {
-  const config = detector.dataSources[0].queryObj.config;
+  const queryObj = detector.dataSources[0]?.queryObj;
+  if (!queryObj) {
+    return null;
+  }
+  const config = queryObj.config;
 
   return <DetailItem>{scheduleAsText(config)}</DetailItem>;
 }
