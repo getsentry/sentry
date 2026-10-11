@@ -102,7 +102,6 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         with (
             self.tasks(),
-            self.feature("organizations:auto-link-repos-by-name"),
             self.options({"repository.auto-link-by-name-dry-run": False}),
         ):
             sync_repos_for_org(self.oi.id)

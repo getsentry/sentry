@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from django.db.models import Exists, OuterRef
 from django.utils.text import slugify
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -64,9 +64,6 @@ def auto_link_repos_by_name(
 
     Returns the number of links created
     """
-    if not features.has("organizations:auto-link-repos-by-name", organization):
-        return 0
-
     dry_run = options.get("repository.auto-link-by-name-dry-run")
 
     repo_qs = Repository.objects.filter(
