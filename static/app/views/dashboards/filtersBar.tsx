@@ -32,6 +32,7 @@ import {
   getTagKeysInMultipleDatasets,
   globalFilterKeysAreEqual,
   globalFiltersAreEqual,
+  isValidGlobalFilter,
   mergeGlobalFilters,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
@@ -136,9 +137,13 @@ export function FiltersBar({
     [];
 
   const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
-    const savedFilters = filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+    const savedFilters = (filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? []).filter(
+      isValidGlobalFilter
+    );
     const initialFilters =
-      savedFilters.length > 0 ? savedFilters : prebuiltDashboardFilters;
+      savedFilters.length > 0
+        ? savedFilters
+        : prebuiltDashboardFilters.filter(isValidGlobalFilter);
     const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
 
     if (!urlFilters) {

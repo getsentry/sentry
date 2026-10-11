@@ -16,6 +16,23 @@ import type {Tag} from 'sentry/types/group';
 import {getFieldDefinition, type FieldDefinition} from 'sentry/utils/fields';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 
+/**
+ * Global filters come from untyped sources (saved dashboard JSON, URL query
+ * params), so verify the shape before using `filter.tag.key` and friends.
+ */
+export function isValidGlobalFilter(filter: unknown): filter is GlobalFilter {
+  if (typeof filter !== 'object' || filter === null) {
+    return false;
+  }
+  const {tag, dataset} = filter as Partial<GlobalFilter>;
+  return (
+    typeof tag === 'object' &&
+    tag !== null &&
+    typeof tag.key === 'string' &&
+    typeof dataset === 'string'
+  );
+}
+
 export function globalFilterKeysAreEqual(a: GlobalFilter, b: GlobalFilter): boolean {
   return a.tag.key === b.tag.key && a.dataset === b.dataset;
 }

@@ -181,6 +181,25 @@ describe('FiltersBar', () => {
     expect(screen.getByRole('button', {name: /^os\.name.*Linux/i})).toBeInTheDocument();
   });
 
+  it('ignores saved global filters that are missing a tag', async () => {
+    renderFilterBar({
+      filters: {
+        globalFilter: [
+          {dataset: WidgetType.SPANS, value: ''} as unknown as GlobalFilter,
+          {
+            dataset: WidgetType.SPANS,
+            tag: {key: 'os.name', name: 'OS Name', kind: FieldKind.FIELD},
+            value: 'os.name:[Linux]',
+          },
+        ],
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {name: /^os\.name.*Linux/i})
+    ).toBeInTheDocument();
+  });
+
   it('shows the dataset in a tooltip on the filter trigger', async () => {
     renderFilterBar({
       filters: {
