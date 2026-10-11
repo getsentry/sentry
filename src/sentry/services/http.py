@@ -1,12 +1,112 @@
 from __future__ import annotations
 
+import gc
+import logging
+import multiprocessing
 import os
-from collections.abc import MutableMapping
+import threading
+from collections.abc import Mapping, MutableMapping
+from importlib import import_module
 from typing import Any
 
+import sentry_sdk
+from django.db import connections
 from granian import Granian
 
+from sentry.runner.boot_gc import env_flag
 from sentry.services.base import Service
+
+logger = logging.getLogger(__name__)
+
+PRELOAD_ENV_VAR = "SENTRY_GRANIAN_PRELOAD"
+
+
+def _granian_start_method() -> str:
+    # How granian (2.8.2, WorkerProcess in granian/server/mp.py) starts workers:
+    # anything but fork or spawn, e.g. forkserver (the Linux default from
+    # Python 3.14), runs as spawn. allow_none=True: a bare get_start_method()
+    # would pin the default, and a later set_start_method() would fail.
+    method = (
+        multiprocessing.get_start_method(allow_none=True)
+        or multiprocessing.get_all_start_methods()[0]
+    )
+    return method if method in ("fork", "spawn") else "spawn"
+
+
+def _preload_skip_reason(options: Mapping[str, Any], debug_server: bool) -> str | None:
+    if debug_server:
+        # wsgiref serves the app from this process, without workers.
+        return "debug server"
+    if options["reload"]:
+        # The reloader re-forks workers from the master when a file changes, so
+        # they would keep serving the code preloaded there.
+        return "reload"
+    start_method = _granian_start_method()
+    if start_method != "fork":
+        # Spawned workers start a new interpreter and import the app anyway.
+        return f"{start_method} start method"
+    return None
+
+
+def _preload_app(target: str) -> None:
+    """
+    Import the app in the granian master before it forks any workers. granian
+    (2.8.2, load_target) imports the target with __import__, so workers find it
+    in sys.modules instead of each running the sentry.wsgi warmup again: the
+    warm heap is shared copy-on-write, and every worker, respawns included,
+    starts without the warmup. Worker RSS, and so reload-on-rss, still counts
+    shared pages.
+
+    The sharing lasts only with SENTRY_BOOT_GC_FREEZE=1, which freezes the warm
+    heap here. Without it, each worker's first full collection writes GC
+    bookkeeping into every inherited page, so workers end up about as large as
+    without the preload, and only the warmup CPU saving remains.
+
+    Since they skip the warmup, respawned workers serve within milliseconds of
+    a crash, so a request that kills a worker (segfault, OOM kill) and is
+    retried onto the same worker within granian's fixed 5.5 s crash-loop window
+    now stops the whole server ("Worker crash loop detected, exiting"); without
+    the preload, the warmup used part of that window.
+
+    Workers run the code the master imported, so code changes need a master
+    restart; a SIGHUP worker reload doesn't pick them up. atexit handlers
+    registered by the import only run in the master: multiprocessing clears them
+    in forked children, as it already does for everything configure() registers.
+
+    An exception from the import propagates, so `sentry run web` exits before
+    granian starts: no worker is forked from a half-imported app.
+    """
+    module = target.partition(":")[0]
+    threads_before = set(threading.enumerate())
+
+    # The warmup request would otherwise start an SDK session in the master.
+    # Sending it a minute later starts the transport's thread and opens a pooled
+    # connection to the DSN host; workers forked after that would share the
+    # connection, and their transport would miss its first wakeup.
+    with sentry_sdk.isolation_scope() as scope:
+        scope.stop_auto_session_tracking()
+        # Nor any error or transaction, for the same reason. Django and the
+        # console log handlers still print these errors. Spans that the span
+        # batcher streams, from a sampled warmup transaction, skip event
+        # processors: the threads_started warning below still reports them.
+        scope.add_event_processor(lambda event, hint: None)
+        import_module(module)
+
+    # request_started only closes expired DB connections, and request_finished
+    # never fires because the warmup doesn't close its response, so connections
+    # from configure() or the warmup can still be open. Don't fork them.
+    connections.close_all()
+
+    # Workers, respawns included, keep being forked from this process, so report
+    # any thread the import left running (none should be).
+    new_threads = [t.name for t in threading.enumerate() if t not in threads_before]
+    if new_threads:
+        logger.warning("granian.preload.threads_started", extra={"threads": new_threads})
+    # Whether the import froze the warm heap (SENTRY_BOOT_GC_FREEZE), so that
+    # workers keep sharing it.
+    logger.info(
+        "granian.preload.done", extra={"target": module, "gc_frozen": gc.get_freeze_count()}
+    )
 
 
 def _run_server(options: dict[str, Any]):
@@ -112,7 +212,14 @@ class SentryHTTPServer(Service):
 
     def run(self):
         self.prepare_environment()
-        if self.debug or os.environ.get("SENTRY_RUNNING_GRANIAN") == "0":
+        debug_server = self.debug or os.environ.get("SENTRY_RUNNING_GRANIAN") == "0"
+        if env_flag(PRELOAD_ENV_VAR):
+            skip_reason = _preload_skip_reason(self.options, debug_server)
+            if skip_reason is None:
+                _preload_app(self.options["module"])
+            else:
+                logger.warning("granian.preload.skipped", extra={"reason": skip_reason})
+        if debug_server:
             from wsgiref.simple_server import make_server
 
             from sentry.wsgi import application

@@ -10,12 +10,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 
 from sentry.runner.boot_gc import frozen_after_boot
 
-# When granian forks workers (multiprocessing's "fork" start method), they come
-# from a master that already ran configure(), so configure() is skipped here and
-# nothing else freezes what the warmup below loads (about 40% more long-lived
-# objects on top of configure()). When it spawns them instead (macOS, or Linux
-# on Python 3.14+ unless "fork" is selected), configure() runs inside this block
-# and is frozen with it. See sentry.runner.boot_gc.
+# When granian forks workers (multiprocessing's "fork" start method), this runs
+# in a process that already ran configure(): each worker, or the master before
+# it forks them with SENTRY_GRANIAN_PRELOAD (sentry.services.http). configure()
+# is skipped here, and nothing else freezes what the warmup below loads (about
+# 40% more long-lived objects on top of configure()). When it spawns them
+# instead (macOS, or Linux on Python 3.14+ unless "fork" is selected),
+# configure() runs inside this block and is frozen with it. See
+# sentry.runner.boot_gc.
 with frozen_after_boot("wsgi_warmup"):
     # Configure the application only if it seemingly isn't already configured
     from django.conf import settings

@@ -54,8 +54,13 @@ ENV_VAR = "SENTRY_BOOT_GC_FREEZE"
 _ENABLED_VALUES = frozenset(("1", "true", "t", "yes", "y", "on"))
 
 
+def env_flag(name: str) -> bool:
+    """Whether the environment variable `name` is set to a true value."""
+    return os.environ.get(name, "").strip().lower() in _ENABLED_VALUES
+
+
 def is_enabled() -> bool:
-    return os.environ.get(ENV_VAR, "").strip().lower() in _ENABLED_VALUES
+    return env_flag(ENV_VAR)
 
 
 @contextmanager
