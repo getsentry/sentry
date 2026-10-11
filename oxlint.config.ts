@@ -400,7 +400,6 @@ const config = defineConfig({
       {
         category: 'test-support',
         pattern: [
-          'scripts/test.js',
           'tests/js/fixtures/**/*',
           'tests/js/sentry-test/**/*',
           'static/packages/scraps/test/**/*',
