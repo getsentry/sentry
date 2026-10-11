@@ -23,16 +23,18 @@ Trade-offs: cyclic garbage made of frozen objects is never reclaimed, frozen
 objects in reference cycles are not finalized at interpreter exit, and
 `gc.get_objects()` / `gc.get_referrers()` don't see frozen objects.
 
+This is off by default, so processes boot exactly as before. Set
+`SENTRY_BOOT_GC_FREEZE=1` (or true/yes/on) in a process's environment to turn
+it on, for example for one region or one service at a time. It is read when
+each boot step starts, so it takes effect at the next process start, and
+setting it from sentry.conf.py is too late for configure(). Leave it unset
+before debugging the heap.
+
 The collector is process-wide. While a boot step runs, children forked by
 other threads inherit a disabled collector, so run boot steps on the thread
-that forks. GC is re-enabled when a boot step ends, so `gc.disable()` called
-during one (for example from sentry.conf.py) does not last; use
-`gc.set_threshold(0)` or the kill switch instead.
-
-Set `SENTRY_BOOT_GC_FREEZE=0` (or false/off/no) in the process environment to
-turn all of this off, for example before debugging the heap. It is read when
-each boot step starts, so it takes effect at the next process start, and
-setting it from sentry.conf.py is too late for configure().
+that forks. GC is re-enabled when a boot step ends, so with this on,
+`gc.disable()` called during one (for example from sentry.conf.py) does not
+last; use `gc.set_threshold(0)` instead.
 
 This module is imported before Django settings exist, so it may only import
 the standard library at module level.
@@ -46,13 +48,14 @@ import time
 from collections.abc import Generator
 from contextlib import contextmanager
 
-KILL_SWITCH_ENV_VAR = "SENTRY_BOOT_GC_FREEZE"
-# The false spellings of sentry.utils.types.Bool. Unset or empty means enabled.
-_DISABLED_VALUES = frozenset(("0", "false", "f", "no", "n", "off"))
+ENV_VAR = "SENTRY_BOOT_GC_FREEZE"
+# The true spellings of sentry.utils.types.Bool. Anything else, including
+# unset or empty, leaves this off.
+_ENABLED_VALUES = frozenset(("1", "true", "t", "yes", "y", "on"))
 
 
 def is_enabled() -> bool:
-    return os.environ.get(KILL_SWITCH_ENV_VAR, "").strip().lower() not in _DISABLED_VALUES
+    return os.environ.get(ENV_VAR, "").strip().lower() in _ENABLED_VALUES
 
 
 @contextmanager
@@ -61,10 +64,10 @@ def frozen_after_boot(point: str) -> Generator[None]:
     Pause automatic garbage collection while a boot step runs, then collect
     and freeze everything that survived it.
 
-    Does nothing if the kill switch is set, or if GC is already disabled on
-    entry: an enclosing `frozen_after_boot` (or whoever disabled GC) owns the
-    collector and decides when to collect. If the boot step raises, GC is
-    re-enabled and nothing is frozen.
+    Does nothing unless `SENTRY_BOOT_GC_FREEZE` is set to a true value, or if
+    GC is already disabled on entry: an enclosing `frozen_after_boot` (or
+    whoever disabled GC) owns the collector and decides when to collect. If the
+    boot step raises, GC is re-enabled and nothing is frozen.
 
     `point` names the boot step in metrics.
     """

@@ -35,10 +35,10 @@ class FakeGC:
 
 
 @pytest.fixture(autouse=True)
-def kill_switch_unset() -> Generator[None]:
-    # Tests must not depend on a SENTRY_BOOT_GC_FREEZE exported in the shell.
-    with mock.patch.dict(os.environ):
-        os.environ.pop("SENTRY_BOOT_GC_FREEZE", None)
+def freeze_turned_on() -> Generator[None]:
+    # The freeze is opt-in. Turn it on for every test, whatever the shell
+    # exports; the opt-in tests below override it.
+    with mock.patch.dict(os.environ, {"SENTRY_BOOT_GC_FREEZE": "1"}):
         yield
 
 
@@ -125,10 +125,18 @@ def test_nested_windows_collect_and_freeze_once(
     )
 
 
-@pytest.mark.parametrize("value", ["0", "false", "False", "OFF", " no ", "n"])
-def test_kill_switch_leaves_gc_alone(
-    value: str, fake_gc: FakeGC, distribution: mock.MagicMock
-) -> None:
+def test_off_when_unset(fake_gc: FakeGC, distribution: mock.MagicMock) -> None:
+    with mock.patch.dict(os.environ):
+        os.environ.pop("SENTRY_BOOT_GC_FREEZE")
+        with frozen_after_boot("configure"):
+            pass
+
+    assert fake_gc.calls == []
+    distribution.assert_not_called()
+
+
+@pytest.mark.parametrize("value", ["", "0", "false", "OFF", "no", "anything"])
+def test_off_for_other_values(value: str, fake_gc: FakeGC, distribution: mock.MagicMock) -> None:
     # The literal name, not the constant: operators rely on it.
     with mock.patch.dict(os.environ, {"SENTRY_BOOT_GC_FREEZE": value}):
         with frozen_after_boot("configure"):
@@ -138,10 +146,8 @@ def test_kill_switch_leaves_gc_alone(
     distribution.assert_not_called()
 
 
-@pytest.mark.parametrize("value", ["1", "", "true", "yes", "anything"])
-def test_other_kill_switch_values_keep_the_freeze(
-    value: str, fake_gc: FakeGC, distribution: mock.MagicMock
-) -> None:
+@pytest.mark.parametrize("value", ["1", "true", "True", "YES", " on ", "y"])
+def test_on_for_true_values(value: str, fake_gc: FakeGC, distribution: mock.MagicMock) -> None:
     with mock.patch.dict(os.environ, {"SENTRY_BOOT_GC_FREEZE": value}):
         with frozen_after_boot("configure"):
             pass

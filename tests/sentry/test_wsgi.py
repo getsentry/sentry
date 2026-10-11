@@ -32,10 +32,11 @@ from django.conf import settings
 resolver = django.urls.resolvers.get_resolver()
 assert resolver._populated is True
 
-# Boot left the collector running and froze the boot heap (sentry.runner.boot_gc).
+# The boot GC freeze is opt-in: with it unset, boot leaves the collector as
+# it always was (sentry.runner.boot_gc).
 import gc
 assert gc.isenabled()
-assert gc.get_freeze_count() > 0
+assert gc.get_freeze_count() == 0
 """
 
 # Shaped like a granian fork worker: the master already ran configure(), so
@@ -57,9 +58,9 @@ assert gc.get_freeze_count() > frozen_by_configure
 """
 
 
-def boot_gc_enabled_env() -> dict[str, str]:
-    # Pin the boot GC freeze on for the child, whatever the shell exports.
-    return {**os.environ, "SENTRY_BOOT_GC_FREEZE": "1"}
+def env_without_boot_gc_freeze() -> dict[str, str]:
+    # The child's setting must not depend on what the shell exports.
+    return {k: v for k, v in os.environ.items() if k != "SENTRY_BOOT_GC_FREEZE"}
 
 
 def test_wsgi_init() -> None:
@@ -69,12 +70,12 @@ def test_wsgi_init() -> None:
     """
     subprocess.check_call(
         [sys.executable, "-c", SUBPROCESS_TEST_WSGI_WARMUP],
-        env=boot_gc_enabled_env(),
+        env=env_without_boot_gc_freeze(),
     )
 
 
 def test_wsgi_warmup_is_frozen_after_configure() -> None:
     subprocess.check_call(
         [sys.executable, "-c", SUBPROCESS_TEST_WSGI_AFTER_CONFIGURE],
-        env=boot_gc_enabled_env(),
+        env={**env_without_boot_gc_freeze(), "SENTRY_BOOT_GC_FREEZE": "1"},
     )
