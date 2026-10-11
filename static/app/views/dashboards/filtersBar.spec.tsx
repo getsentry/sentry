@@ -276,6 +276,41 @@ describe('FiltersBar', () => {
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 
+  it('ignores saved global filters missing a tag after cancelling unsaved changes', async () => {
+    const onCancel = jest.fn();
+    renderFilterBar({
+      hasUnsavedChanges: true,
+      onCancel,
+      location: LocationFixture({
+        query: {
+          [DashboardFilterKeys.GLOBAL_FILTER]: JSON.stringify({
+            dataset: WidgetType.SPANS,
+            tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
+            value: 'browser.name:[Chrome]',
+          } satisfies GlobalFilter),
+        },
+      }),
+      filters: {
+        globalFilter: [
+          {dataset: WidgetType.SPANS, value: ''} as unknown as GlobalFilter,
+          {
+            dataset: WidgetType.SPANS,
+            tag: {key: 'os.name', name: 'OS Name', kind: FieldKind.FIELD},
+            value: 'os.name:[Linux]',
+          },
+        ],
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+
+    expect(onCancel).toHaveBeenCalled();
+    // Resetting from saved filters must not crash on the malformed entry.
+    expect(
+      await screen.findByRole('button', {name: /^os\.name.*Linux/i})
+    ).toBeInTheDocument();
+  });
+
   it('should not render save button with temporary filter', async () => {
     const newLocation = LocationFixture({
       query: {
