@@ -12,7 +12,10 @@
       "default": "./src/jest.ts"
     },
     "./environment": "./environment.mjs",
-    "./runner": "./bin/test.mjs",
+    "./runner": {
+      "types": "./.types/runner.d.ts",
+      "default": "./src/runner.ts"
+    },
     "./jest-dom": {
       "types": "./.types/jestDom.d.ts",
       "default": "./src/jestDom.ts"

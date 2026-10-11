@@ -32,6 +32,19 @@ uses the same environment variables and watch behavior as the root test command.
 The root CI command runs tests in packages with a test script, including Icons and
 Scraps, on shard zero. Thus shared changes run both consumer suites.
 
+Scripts can import `run` from `@sentry-internal/test-utils/runner`:
+
+```js
+import {run} from '@sentry-internal/test-utils/runner';
+
+const status = await run(['--ci', '--runInBand']);
+process.exitCode = status;
+```
+
+`run` starts the same CLI in a child process and returns its exit code. Jest's
+`--forceExit` cannot stop the calling script. Importing the API does not start
+Jest or change the caller's environment.
+
 ## React helpers
 
 Import Testing Library APIs and `userEvent` from

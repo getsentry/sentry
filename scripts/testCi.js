@@ -1,5 +1,6 @@
 import {spawnSync} from 'node:child_process';
-import {fileURLToPath} from 'node:url';
+
+import {run} from '@sentry-internal/test-utils/runner';
 
 /**
  * @param {string} command
@@ -13,9 +14,7 @@ function runTests(command, args) {
   return result.status ?? 1;
 }
 
-// A child process lets the package tests run even when Jest uses --forceExit.
-const appStatus = runTests(process.execPath, [
-  fileURLToPath(import.meta.resolve('@sentry-internal/test-utils/runner')),
+const appStatus = await run([
   '--ci',
   '--maxWorkers=75%',
   '--colors',
