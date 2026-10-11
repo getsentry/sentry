@@ -6,11 +6,11 @@ import {
   type RenderHookOptions,
   type RenderOptions,
   type RenderResult,
-} from '@testing-library/react';
+} from '@sentry-internal/test-utils/reactTestingLibrary';
 
 import {lightTheme} from '@sentry/scraps/theme';
 
-export {act, screen} from '@testing-library/react';
+export {act, screen} from '@sentry-internal/test-utils/reactTestingLibrary';
 
 function ThemeWrapper({children}: {children: ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;

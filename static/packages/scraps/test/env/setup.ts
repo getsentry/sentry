@@ -1,5 +1,3 @@
-import '@testing-library/jest-dom';
-
-import {configure} from '@testing-library/react';
+import {configure} from '@sentry-internal/test-utils/reactTestingLibrary';
 
 configure({testIdAttribute: 'data-test-id'});

@@ -11,7 +11,8 @@
     "rootDir": ".",
     "outDir": ".types",
     "tsBuildInfoFile": ".types/tsconfig.tsbuildinfo",
-    "types": ["jest", "node", "@testing-library/jest-dom"]
+    "types": ["jest", "node", "@sentry-internal/test-utils/jest-dom"]
   },
-  "include": ["src", "test"]
+  "include": ["src"],
+  "references": [{"path": "../test-utils"}]
 }

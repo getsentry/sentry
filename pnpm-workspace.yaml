@@ -5,6 +5,7 @@ packages:
   - static/gsAdmin
   - static/packages/icons
   - static/packages/scraps
+  - static/packages/test-utils
   - static/oxlint/eslintPluginScraps
   - static/oxlint/eslintPluginSentry
 disallowWorkspaceCycles: true

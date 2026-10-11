@@ -56,6 +56,7 @@
     "static/packages"
   ],
   "references": [
+    {"path": "./static/packages/test-utils"},
     {"path": "./static/packages/icons"},
     {"path": "./static/packages/scraps/tsconfig.test.json"}
   ]

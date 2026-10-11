@@ -1,10 +1,10 @@
 import {createRef, Fragment} from 'react';
+import {getEmotionRules} from '@sentry-internal/test-utils/emotion';
 import {expectTypeOf} from 'expect-type';
 
 import {lightTheme as theme} from '@sentry/scraps/theme';
 
 import {render, screen} from '../../test/env';
-import {getEmotionRules} from '../../test/env/emotion';
 
 import {Text, type TextProps, type TextPropsWithRenderFunction} from './index';
 

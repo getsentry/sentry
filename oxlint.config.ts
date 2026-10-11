@@ -328,6 +328,7 @@ const config = defineConfig({
           'tests/js',
           'static/packages/scraps/test',
           'static/packages/icons/test',
+          'static/packages/test-utils',
         ],
       },
       // Sentry application and assets.
@@ -399,9 +400,11 @@ const config = defineConfig({
       {
         category: 'test-support',
         pattern: [
+          'scripts/test.js',
           'tests/js/fixtures/**/*',
           'tests/js/sentry-test/**/*',
           'static/packages/scraps/test/**/*',
+          'static/packages/test-utils/**/*',
           'tests/js/getsentry-test/**/*',
           'static/gsApp/__fixtures__/**/*',
           'static/**/*{t,T}estUtils*.{js,jsx,mjs,ts,tsx}',
@@ -1808,6 +1811,7 @@ const config = defineConfig({
         'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
         'static/packages/icons/src/**/*.spec.tsx',
         'static/packages/icons/test/**/*.{ts,tsx,mjs}',
+        'static/packages/test-utils/**/*.{ts,tsx,mjs}',
       ],
       rules: {
         'import/no-relative-parent-imports': 'off',
@@ -1818,8 +1822,18 @@ const config = defineConfig({
             patterns: [
               ...restrictedImportPatterns,
               {
-                group: ['sentry/*', 'sentry-test/*', 'sentry-fixture/*'],
-                message: 'Package tests must be independent of the Sentry application.',
+                group: [
+                  'sentry',
+                  'sentry/*',
+                  'getsentry',
+                  'getsentry/*',
+                  'admin',
+                  'admin/*',
+                  'sentry-test/*',
+                  'sentry-fixture/*',
+                  'getsentry-test/*',
+                ],
+                message: 'Package tests must be independent of the applications.',
               },
             ],
             paths: restrictedImportPaths.filter(

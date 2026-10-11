@@ -1,0 +1,53 @@
+{
+  "name": "@sentry-internal/test-utils",
+  "version": "0.0.0",
+  "private": true,
+  "bin": {
+    "sentry-test": "./bin/test.mjs"
+  },
+  "type": "module",
+  "exports": {
+    "./jest": {
+      "types": "./.types/jest.d.ts",
+      "default": "./src/jest.ts"
+    },
+    "./environment": "./environment.mjs",
+    "./runner": "./bin/test.mjs",
+    "./jest-dom": {
+      "types": "./.types/jestDom.d.ts",
+      "default": "./src/jestDom.ts"
+    },
+    "./reactTestingLibrary": {
+      "types": "./.types/reactTestingLibrary.d.ts",
+      "default": "./src/reactTestingLibrary.ts"
+    },
+    "./emotion": {
+      "types": "./.types/emotion.d.ts",
+      "default": "./src/emotion.ts"
+    }
+  },
+  "dependencies": {
+    "@jest/environment": "30.5.1",
+    "@jest/environment-jsdom-abstract": "30.5.1",
+    "@jest/types": "30.5.1",
+    "@swc/core": "1.16.13",
+    "@swc/jest": "0.2.39",
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.7",
+    "jest": "30.5.1",
+    "jsdom": "30.1.1"
+  },
+  "devDependencies": {
+    "@types/jest": "30.0.0",
+    "@types/node": "26.6.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

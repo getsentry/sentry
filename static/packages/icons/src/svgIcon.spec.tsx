@@ -1,8 +1,8 @@
 import type {ComponentType} from 'react';
 import {createRef} from 'react';
 import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@sentry-internal/test-utils/reactTestingLibrary';
 import type {IconGraphProps} from '@sentry/icons/graph';
-import {render, screen} from '@testing-library/react';
 import {expectTypeOf} from 'expect-type';
 
 import type {SVGIconProps} from './svgIcon';
