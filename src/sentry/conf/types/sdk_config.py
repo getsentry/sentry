@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
+from sentry_sdk._types import DataCollectionUserOptions
 from sentry_sdk.types import Event, Hint, Log
-
-if TYPE_CHECKING:
-    from sentry_sdk._types import DataCollectionUserOptions
 
 
 class SdkConfig(TypedDict):
