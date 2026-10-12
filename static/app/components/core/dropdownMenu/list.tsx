@@ -13,6 +13,7 @@ import type {Node} from '@react-types/shared';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 
+import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';
 import type {MenuItemProps} from './item';
 import {DropdownMenuItem} from './item';
