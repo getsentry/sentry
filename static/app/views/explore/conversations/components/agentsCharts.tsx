@@ -113,7 +113,7 @@ export function AgentsCharts() {
       createGroupedWidget({
         id: 'explore-agents-agent-runs',
         interval: chartInterval,
-        title: t('Agent runs'),
+        title: t('Agent Runs'),
         description: t('Number of agent runs grouped by agent name.'),
         query: agentRunsQuery,
         groupBy: SpanFields.GEN_AI_AGENT_NAME,
@@ -124,7 +124,7 @@ export function AgentsCharts() {
       createGroupedWidget({
         id: 'explore-agents-tool-calls',
         interval: chartInterval,
-        title: t('Tool calls'),
+        title: t('Tool Calls'),
         description: t('Number of tool calls grouped by tool name.'),
         query: toolCallsQuery,
         groupBy: SpanFields.GEN_AI_TOOL_NAME,
