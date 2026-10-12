@@ -602,6 +602,19 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="*",
                     function_pattern="SentryWidgetsBindingMixin.handleBeginFrame",
                 ),
+                # Since 10.0.0-alpha.7, the Sentry Flutter SDK also overrides drawFrame and
+                # attachToBuildOwner to record app start. Both only forward to Flutter (try/finally,
+                # no catch), so any error Flutter throws while building, laying out, or attaching
+                # widgets has one of them as the first SDK frame, causing false positives. Errors
+                # in the SDK's own recorder code still have the recorder as the first SDK frame.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="SentryWidgetsBindingMixin.drawFrame",
+                ),
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="SentryWidgetsBindingMixin.attachToBuildOwner",
+                ),
                 # This is the integration responsible for reporting unhandled errors.
                 # For certain errors the frame is sometimes included in the stacktrace which leads to false positives.
                 FunctionAndModulePattern(
