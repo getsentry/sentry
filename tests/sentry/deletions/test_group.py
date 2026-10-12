@@ -6,6 +6,7 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 from snuba_sdk import Column, Condition, DeleteQuery, Entity, Function, Op, Query, Request
@@ -665,3 +666,36 @@ class DeleteGroupEventAttachmentsTest(TestCase):
 
         assert not EventAttachment.objects.filter(group_id=group.id).exists()
         assert EventAttachment.objects.filter(id=kept.id).exists()
+
+    def test_event_attachment_row_kept_when_blob_delete_fails(self) -> None:
+        group = self.create_group(project=self.project)
+        ok = EventAttachment.objects.create(
+            event_id=uuid4().hex,
+            project_id=self.project.id,
+            group_id=group.id,
+            name="ok.png",
+            blob_path="v2/ok",
+        )
+        failing = EventAttachment.objects.create(
+            event_id=uuid4().hex,
+            project_id=self.project.id,
+            group_id=group.id,
+            name="fail.png",
+            blob_path="v2/fail",
+        )
+
+        def fake_delete_blob(attachment: EventAttachment, organization_id: int | None) -> None:
+            if attachment.id == failing.id:
+                raise RuntimeError("objectstore unavailable")
+
+        task = deletions.get(model=EventAttachment, query={"group_id__in": [group.id]})
+        with (
+            mock.patch.object(
+                EventAttachment, "delete_blob", autospec=True, side_effect=fake_delete_blob
+            ),
+            pytest.raises(RuntimeError),
+        ):
+            task.chunk()
+
+        assert not EventAttachment.objects.filter(id=ok.id).exists()
+        assert EventAttachment.objects.filter(id=failing.id).exists()
