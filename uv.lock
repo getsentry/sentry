@@ -2460,7 +2460,7 @@ requires-dist = [
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.10.0" },
     { name = "sentry-scm", specifier = ">=1.7.2" },
-    { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.68.0" },
+    { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.71.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "simplejson", specifier = ">=3.17.6" },
     { name = "slack-sdk", specifier = ">=3.40.1" },
@@ -2686,14 +2686,14 @@ wheels = [
 
 [[package]]
 name = "sentry-sdk"
-version = "2.68.0"
+version = "2.71.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "certifi" },
     { name = "urllib3" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.68.0-py3-none-any.whl", hash = "sha256:538e56c2d03679d42f7c0cb5f1af73a7a510b00abc7e296c13ac49b107b713a4" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.71.0-py3-none-any.whl", hash = "sha256:9ed36b4c206048aa67b5ddba0a6e28d59fc55cf10d60f5f7aea2c3917184bf4a" },
 ]
 
 [package.optional-dependencies]
