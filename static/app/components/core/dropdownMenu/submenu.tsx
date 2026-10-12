@@ -8,8 +8,8 @@ import {Container} from '@sentry/scraps/layout';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 import {DropdownMenuContent} from './content';
-import {DropdownMenuItem, type MenuItemProps} from './item';
 import {DropdownMenuContext} from './context';
+import {DropdownMenuItem, type MenuItemProps} from './item';
 import {type DropdownMenuListProps} from './list';
 
 interface DropdownSubmenuProps extends Pick<

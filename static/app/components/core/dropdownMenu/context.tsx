@@ -1,5 +1,4 @@
 import {createContext} from 'react';
-
 import type {TreeState} from '@react-stately/tree';
 
 import type {useOverlay} from 'sentry/utils/useOverlay';
