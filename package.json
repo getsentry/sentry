@@ -68,7 +68,7 @@
     "@rspack/core": "2.2.8",
     "@rspack/plugin-react-refresh": "2.0.2",
     "@sentry-internal/global-search": "^1.0.0",
-    "@sentry/conventions": "^0.26.0",
+    "@sentry/conventions": "^0.27.0",
     "@sentry/core": "11.0.0",
     "@sentry/node": "11.0.0",
     "@sentry/react": "11.0.0",
