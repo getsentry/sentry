@@ -86,7 +86,7 @@ let testMatch = JEST_TESTS;
 function getTestsForGroup(
   nodeIndex: number,
   nodeTotal: number,
-  allTests: ReadonlyArray<string>,
+  allTests: readonly string[],
   testStats: Record<string, number>
 ): string[] {
   if (allTests.length === 0) {
@@ -195,11 +195,7 @@ function getTestsForGroup(
   return groups[nodeIndex].map(test => `<rootDir>/${test}`);
 }
 
-if (
-  JEST_TESTS &&
-  typeof CI_NODE_TOTAL !== 'undefined' &&
-  typeof CI_NODE_INDEX !== 'undefined'
-) {
+if (JEST_TESTS && CI_NODE_TOTAL !== undefined && CI_NODE_INDEX !== undefined) {
   let balance: null | Record<string, number> = null;
 
   const BALANCE_RESULTS_PATH = path.resolve(
@@ -368,4 +364,23 @@ const config: Config.InitialOptions = {
   },
 };
 
-export default config;
+/** Scope discovery and coverage while retaining the shared setup and CI test list. */
+export function createJestConfig(testDirectory?: string): Config.InitialOptions {
+  if (testDirectory === undefined) {
+    return config;
+  }
+  const directoryPattern = testDirectory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return {
+    ...config,
+    testPathIgnorePatterns: [
+      ...(config.testPathIgnorePatterns ?? []),
+      `<rootDir>/(?!${directoryPattern}/)`,
+    ],
+    collectCoverageFrom: [
+      `${testDirectory}/**/*.{js,jsx,ts,tsx}`,
+      `!${testDirectory}/**/*.spec.{js,jsx,ts,tsx}`,
+      `!${testDirectory}/**/*.test.{js,jsx,ts,tsx}`,
+    ],
+    coverageDirectory: path.join(rootDir, '.artifacts/coverage', testDirectory),
+  };
+}

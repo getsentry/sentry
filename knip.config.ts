@@ -25,10 +25,18 @@ const productionEntryPoints = [
   'views/authV2/authLogin/**/*.{ts,tsx}',
 ];
 
+// Scoped configs reuse the test package's dependencies. Parse the shared config
+// in its owning workspace, and treat each wrapper as a development entry.
+const scopedJest = {
+  config: [],
+  entry: ['jest.config.mjs', '**/*.{spec,test}.{js,ts,tsx}'],
+};
+
 const frontendWorkspace = {
+  jest: scopedJest,
   // SWC injects these imports while compiling each app package.
   ignoreDependencies: ['core-js'],
-  entry: ['**/*.spec.{js,ts,tsx}'],
+  entry: ['**/*.{spec,test}.{js,ts,tsx}'],
   project: [
     '**/*.{js,ts,tsx,mdx}!',
     // fixtures and helpers are only used in tests and stories
@@ -47,7 +55,7 @@ const config: KnipConfig = {
   workspaces: {
     '.': {
       // The root runs app tests, but Jest is declared in the test package.
-      jest: {config: 'tests/js/jest.config.ts'},
+      jest: {config: 'tests/js/jest.config.ci.mjs'},
       entry: ['scripts/*.ts!', 'build-utils/mdx-plugins.ts'],
       project: [
         'static/**/*.{js,ts,tsx,mdx,less}!',
@@ -66,10 +74,8 @@ const config: KnipConfig = {
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'zrender', // used in echarts
-        // Referenced by its node_modules path in tests/js/jest.config.ts.
+        // Referenced by its node_modules path in tests/js/createJestConfig.ts.
         'reflux',
-        'admin', // The root owns admin test execution and affected selection.
-        'getsentry', // The root owns billing test execution and affected selection.
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.
@@ -104,6 +110,7 @@ const config: KnipConfig = {
       ...frontendWorkspace,
     },
     'tests/js': {
+      jest: {config: ['jest.config.mjs', 'jest.config.ci.mjs']},
       entry: ['**/*.spec.{js,ts,tsx}', 'test-balancer/*.ts'],
       project: ['**/*.{js,cjs,mjs,ts,tsx,mdx}'],
       ignoreDependencies: [
@@ -132,7 +139,11 @@ const config: KnipConfig = {
         '!{test,scripts}/**!',
       ],
     },
+    'static/oxlint/eslintPluginScraps': {
+      jest: scopedJest,
+    },
     'static/oxlint/eslintPluginSentry': {
+      jest: scopedJest,
       // RuleTester resolves these cross-file fixtures by filename.
       ignoreFiles: ['fixtures/**/*.{ts,tsx}'],
     },

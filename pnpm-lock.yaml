@@ -342,9 +342,6 @@ importers:
       '@types/node':
         specifier: 26.6.4
         version: 26.6.4
-      admin:
-        specifier: workspace:@sentry-internal/gs-admin@*
-        version: link:static/gsAdmin
       eslint:
         specifier: 10.8.0
         version: 10.8.0(jiti@2.7.0)(supports-color@8.1.1)
@@ -372,9 +369,6 @@ importers:
       eslint-plugin-unicorn:
         specifier: 74.0.0
         version: 74.0.0(eslint@10.8.0(jiti@2.7.0)(supports-color@8.1.1))
-      getsentry:
-        specifier: workspace:@sentry-internal/gs-app@*
-        version: link:static/gsApp
       getsentry-test:
         specifier: workspace:@sentry-internal/getsentry-test@*
         version: link:tests/js/getsentry-test

@@ -95,9 +95,12 @@ Incubator rules appear as warnings in editors. The lint wrapper promotes them to
 ```bash
 pnpm test-ci <file_path>                       # run tests
 pnpm test-ci components/avatar.spec.tsx        # specific file(s)
+pnpm --filter @sentry-internal/app test        # watch Sentry app tests
 ```
 
 `test-ci` runs app tests first, then workspace package tests in parallel. File arguments select app tests; package tests always run. In sharded CI, only shard 0 runs package tests.
+
+`pnpm test` invokes all package test scripts. App, lint, and test-support scripts have scoped Jest configs.
 
 ### Context-Aware Loading
 

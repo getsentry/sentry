@@ -400,6 +400,8 @@ const config = defineConfig({
         category: 'test-support',
         pattern: [
           'scripts/testCi.js',
+          'static/{app,gsApp,gsAdmin}/jest.config.mjs',
+          'static/oxlint/*/jest.config.mjs',
           'tests/js/fixtures/**/*',
           'tests/js/sentry-test/**/*',
           'static/packages/scraps/test/**/*',
@@ -1709,6 +1711,7 @@ const config = defineConfig({
     {
       files: [
         'tests/js/bin/*.mjs',
+        'tests/js/createJestConfig.ts',
         'tests/js/jest-pegjs-transform.js',
         'tests/js/sentry-test/jest-environment.cjs',
         'tests/js/sentry-test/jest-environment-node.cjs',

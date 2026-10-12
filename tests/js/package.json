@@ -78,7 +78,9 @@
     "./jest-environment": "./sentry-test/jest-environment.cjs",
     "./jest-environment-node": "./sentry-test/jest-environment-node.cjs",
     "./jest-pegjs-transform": "./jest-pegjs-transform.js",
-    "./jest.config": "./jest.config.ts",
+    "./createJestConfig": "./createJestConfig.ts",
+    "./jest.config": "./jest.config.mjs",
+    "./jest.config.ci": "./jest.config.ci.mjs",
     "./jest.config.snapshots": "./jest.config.snapshots.ts",
     "./jestReactRouterResolver": "./jestReactRouterResolver.cjs",
     "./jiraIntegration": "./fixtures/jiraIntegration.ts",
@@ -186,6 +188,9 @@
     "./widgetQuery": "./fixtures/widgetQuery.ts",
     "./workflowEngine": "./fixtures/workflowEngine.ts",
     "./wrapWithStructuredClone": "./sentry-test/wrapWithStructuredClone.cjs"
+  },
+  "scripts": {
+    "test": "sentry-test --watch --config jest.config.mjs"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",

@@ -18,7 +18,7 @@ process.on('unhandledRejection', err => {
 
 let argv = process.argv.slice(2);
 
-// Use the package config unless the caller selects another config.
+// Use the full CI config unless the caller selects another config.
 if (
   !argv.some(
     arg =>
@@ -30,7 +30,7 @@ if (
 ) {
   argv = [
     '--config',
-    fileURLToPath(new URL('../jest.config.ts', import.meta.url)),
+    fileURLToPath(new URL('../jest.config.ci.mjs', import.meta.url)),
     ...argv,
   ];
 }

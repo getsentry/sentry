@@ -135,10 +135,6 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
  * state that only exists once a module is loaded, so they check this instead
  * of loading the module (and everything it imports) into every spec.
  */
-function isModuleLoaded(moduleName: string): boolean {
-  return require.resolve(moduleName) in require.cache;
-}
-
 // Close any open modals before each test
 beforeEach(() => {
   if (require.resolve('sentry/stores/modalStore') in require.cache) {
