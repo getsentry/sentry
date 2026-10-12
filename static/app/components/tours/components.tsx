@@ -3,6 +3,7 @@ import {Fragment, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {State as PopperState} from '@popperjs/core';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
@@ -403,6 +404,7 @@ export function TourGuide({
     isOpen,
     position,
     offset,
+    onPositioned: scrollOverlayIntoView,
   });
 
   // Update the overlay positioning when the content changes
@@ -447,7 +449,7 @@ export function TourGuide({
                         `,
                       }}
                     >
-                      <TourBody ref={scrollToElement}>
+                      <TourBody>
                         {isTopRowVisible && (
                           <TopRow>
                             <div>{countText}</div>
@@ -482,8 +484,11 @@ export function TourGuide({
   );
 }
 
-function scrollToElement(element: HTMLDivElement | null) {
-  element?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
+// Scroll only after Popper has positioned the overlay. On mount it still sits at
+// its top-left placeholder, so scrolling then would leave a step anchored further
+// down the page (e.g. the issue details sidebar at narrow widths) off-screen.
+function scrollOverlayIntoView({elements}: Partial<PopperState>) {
+  elements?.popper.scrollIntoView?.({block: 'center', behavior: 'smooth'});
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
