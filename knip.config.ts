@@ -3,57 +3,52 @@ import type {KnipConfig} from 'knip';
 const isProductionMode = process.argv.includes('--production');
 
 const productionEntryPoints = [
-  // the main entry points - app, gsAdmin & gsApp
-  'static/app/index.tsx',
+  // the main entry point also loads gsAdmin & gsApp
+  'index.tsx',
   // scraps has all index.tsx file as separate entry points
-  'static/app/components/core/*/index.tsx',
+  'components/core/*/index.tsx',
   // defined in rsbuild.config.ts pipelines
-  'static/app/utils/setupStatics.tsx',
+  'utils/setupStatics.tsx',
   // Source-scoped Rspack/Jest aliases use this runtime entry; TS uses types.d.ts.
-  'static/app/utils/reactRouterV6/index.ts',
-  'static/app/serviceWorker/worker/worker.ts',
-  // scripts are entry points
-  'scripts/*.ts',
+  'utils/reactRouterV6/index.ts',
+  'serviceWorker/worker/worker.ts',
   // very dynamically imported
-  'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
+  'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
   // TODO: Remove when wired into Seer Explorer
-  'static/app/components/core/chat/thinkingBlock.tsx',
-  'static/app/components/core/chat/toolCall.tsx',
+  'components/core/chat/thinkingBlock.tsx',
+  'components/core/chat/toolCall.tsx',
   // todo find out how chartcuterie works
-  'static/app/chartcuterie/**/*.{js,ts,tsx}',
+  'chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when the autofixRef embed consumes it (#122099)
-  'static/app/components/seer/autofixChatContext.tsx',
-  'static/app/components/brandPageLayout/**/*.{ts,tsx}',
+  'components/seer/autofixChatContext.tsx',
+  'components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
-  'static/app/views/authV2/authLogin/**/*.{ts,tsx}',
+  'views/authV2/authLogin/**/*.{ts,tsx}',
 ];
 
-const testingEntryPoints = [
-  'static/**/*.spec.{js,ts,tsx}',
-  'static/**/*.snapshots.tsx',
-  'tests/js/**/*.spec.{js,ts,tsx}',
-  'tests/js/test-balancer/*.ts',
-];
-
-const storyBookEntryPoints = [
-  // our storybook implementation is here
-  'static/app/stories/storybook.tsx',
-  'static/app/stories/playground/*.tsx',
-  'static/**/*.stories.{js,ts,tsx}',
-  'static/**/*.mdx',
-  'build-utils/mdx-plugins.ts',
-];
+const frontendWorkspace = {
+  entry: ['**/*.spec.{js,ts,tsx}'],
+  project: [
+    '**/*.{js,ts,tsx,mdx}!',
+    // fixtures and helpers are only used in tests and stories
+    '!**/{fixtures,__fixtures__}/**!',
+    '!**/*{t,T}estUtils*.{js,ts,tsx}!',
+    '!**/__stories__/*.{js,ts,tsx}!',
+    '!stories/**/*.{js,ts,tsx}!',
+  ],
+};
 
 const config: KnipConfig = {
+  // MDX tooling is declared at the root, but stories belong to the app workspace.
+  compilers: {mdx: true},
   workspaces: {
     '.': {
       entry: [
-        ...productionEntryPoints.map(entry => `${entry}!`),
-        ...testingEntryPoints,
-        ...storyBookEntryPoints,
-        // figma code connect files - consumed by Figma CLI
-        'static/**/*.figma.{tsx,jsx}',
+        'scripts/*.ts!',
+        'tests/js/**/*.spec.{js,ts,tsx}',
+        'tests/js/test-balancer/*.ts',
+        'build-utils/mdx-plugins.ts',
       ],
       project: [
         'static/**/*.{js,ts,tsx,mdx,less}!',
@@ -74,19 +69,54 @@ const config: KnipConfig = {
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
         'zrender', // used in echarts
+        // Knip does not count jest.mock/requireActual calls in tests/js/setup.ts.
+        '@sentry-internal/global-search',
+        '@stripe/react-stripe-js',
+        '@stripe/stripe-js',
+        '@tanstack/react-pacer',
+        'echarts-for-react',
+        // Referenced by its node_modules path in jest.config.ts.
+        'reflux',
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.
       ignoreFiles: ['static/**/*.less'],
     },
+    'static/app': {
+      ...frontendWorkspace,
+      entry: [
+        ...productionEntryPoints.map(entry => `${entry}!`),
+        ...frontendWorkspace.entry,
+        '**/*.snapshots.tsx',
+        '**/*.stories.{js,ts,tsx}',
+        '**/*.mdx',
+        // figma code connect files - consumed by Figma CLI
+        '**/*.figma.{tsx,jsx}',
+        'stories/storybook.tsx',
+        'stories/playground/*.tsx',
+      ],
+      // Imported through the getsentry/* source alias.
+      ignoreDependencies: ['@sentry-internal/gs-app'],
+    },
+    'static/gsApp': {
+      ...frontendWorkspace,
+      entry: [...frontendWorkspace.entry, '**/*.snapshots.tsx'],
+      // Imported through the sentry/* source alias.
+      ignoreDependencies: ['@sentry-internal/app'],
+    },
+    'static/gsAdmin': {
+      ...frontendWorkspace,
+      // Imported through the sentry/* and getsentry/* source aliases.
+      ignoreDependencies: ['@sentry-internal/app', '@sentry-internal/gs-app'],
+    },
     'static/packages/icons': {
       // test helpers are only used outside production.
-      project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!', '!test/**!'],
+      project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!', '!test/**!'],
       includeEntryExports: true,
     },
     'static/packages/scraps': {
       project: [
-        '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!',
+        '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.
         '!{test,scripts}/**!',
       ],
