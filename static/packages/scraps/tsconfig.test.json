@@ -6,9 +6,8 @@
     "declarationMap": true,
     "outDir": ".types",
     "tsBuildInfoFile": ".types/tsconfig.tsbuildinfo",
-    "types": ["jest", "node", "@sentry-internal/test-utils/jest-dom"]
+    "types": ["jest", "node", "@testing-library/jest-dom"]
   },
   "include": ["src", "test"],
-  "exclude": [],
-  "references": [{"path": "../test-utils"}]
+  "exclude": []
 }

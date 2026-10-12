@@ -3,7 +3,7 @@ import * as jsdom from 'jsdom';
 
 // Jest loads environments through their default export.
 // eslint-disable-next-line @sentry/no-default-exports
-export default class TestEnvironment extends JSDOMEnvironment {
+export default class IconsTestEnvironment extends JSDOMEnvironment {
   /**
    * @param {import('@jest/environment').JestEnvironmentConfig} config
    * @param {import('@jest/environment').EnvironmentContext} context

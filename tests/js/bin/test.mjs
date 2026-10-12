@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import process from 'node:process';
+import {fileURLToPath} from 'node:url';
 
 import {run} from 'jest';
 
@@ -16,6 +17,23 @@ process.on('unhandledRejection', err => {
 });
 
 let argv = process.argv.slice(2);
+
+// Use the package config unless the caller selects another config.
+if (
+  !argv.some(
+    arg =>
+      arg === '--config' ||
+      arg === '-c' ||
+      arg.startsWith('--config=') ||
+      arg.startsWith('-c=')
+  )
+) {
+  argv = [
+    '--config',
+    fileURLToPath(new URL('../jest.config.ts', import.meta.url)),
+    ...argv,
+  ];
+}
 
 // Remove watch if in CI or in coverage mode
 if (process.env.CI || process.env.SENTRY_PRECOMMIT || argv.includes('--coverage')) {

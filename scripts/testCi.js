@@ -1,6 +1,6 @@
 import {spawnSync} from 'node:child_process';
 
-import {run} from '@sentry-internal/test-utils/runner';
+import {run} from 'sentry-test/runner';
 
 /**
  * @param {string} command

@@ -44,16 +44,10 @@ const config: KnipConfig = {
   compilers: {mdx: true},
   workspaces: {
     '.': {
-      entry: [
-        'scripts/*.ts!',
-        'tests/js/**/*.spec.{js,ts,tsx}',
-        'tests/js/test-balancer/*.ts',
-        'build-utils/mdx-plugins.ts',
-      ],
+      entry: ['scripts/*.ts!', 'build-utils/mdx-plugins.ts'],
       project: [
         'static/**/*.{js,ts,tsx,mdx,less}!',
         'config/**/*.ts',
-        'tests/js/**/*.{js,ts,tsx}',
         // fixtures can be ignored in production - it's fine that they are only used in tests
         '!static/**/{fixtures,__fixtures__}/**!',
         // helper files for tests - it's fine that they are only used in tests
@@ -67,16 +61,12 @@ const config: KnipConfig = {
       ignoreDependencies: [
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
-        '@swc-contrib/mut-cjs-exports', // used in jest config
         'zrender', // used in echarts
-        // Knip does not count jest.mock/requireActual calls in tests/js/setup.ts.
-        '@sentry-internal/global-search',
-        '@stripe/react-stripe-js',
-        '@stripe/stripe-js',
-        '@tanstack/react-pacer',
-        'echarts-for-react',
-        // Referenced by its node_modules path in jest.config.ts.
+        // Referenced by its node_modules path in tests/js/jest.config.ts.
         'reflux',
+        // The root owns test execution and affected selection for these apps.
+        'admin',
+        'getsentry',
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.
@@ -89,6 +79,7 @@ const config: KnipConfig = {
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
         ...frontendWorkspace.entry,
+        '**/__mocks__/**/*.{js,ts,tsx}',
         '**/*.snapshots.tsx',
         '**/*.stories.{js,ts,tsx}',
         '**/*.mdx',
@@ -100,10 +91,29 @@ const config: KnipConfig = {
     },
     'static/gsApp': {
       ...frontendWorkspace,
-      entry: [...frontendWorkspace.entry, '**/*.snapshots.tsx'],
+      entry: [
+        ...frontendWorkspace.entry,
+        '**/*.snapshots.tsx',
+        '**/__mocks__/**/*.{js,ts,tsx}',
+      ],
     },
     'static/gsAdmin': {
       ...frontendWorkspace,
+    },
+    'tests/js': {
+      entry: ['**/*.spec.{js,ts,tsx}', 'test-balancer/*.ts'],
+      project: ['**/*.{js,cjs,mjs,ts,tsx,mdx}'],
+      ignoreDependencies: [
+        '@sentry-internal/global-search', // jest.mock does not count as an import.
+        '@tanstack/react-pacer',
+        'echarts-for-react',
+        'sonner', // Setup checks its presence through require.resolve.
+      ],
+    },
+    'tests/js/getsentry-test': {
+      project: ['**/*.{js,ts,tsx,mdx}'],
+      // React is used through jest.requireActual in the billing setup.
+      ignoreDependencies: ['react', '@stripe/react-stripe-js', '@stripe/stripe-js'],
     },
     'static/packages/icons': {
       // test helpers are only used outside production.

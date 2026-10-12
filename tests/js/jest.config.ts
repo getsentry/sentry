@@ -1,9 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import {fileURLToPath} from 'node:url';
 
 import type {Config} from '@jest/types';
 import type {Options as SwcOptions} from '@swc/core';
+
+const rootDir = path.resolve(import.meta.dirname, '../..');
 
 const swcConfig: SwcOptions = {
   isModule: true,
@@ -25,7 +28,7 @@ const swcConfig: SwcOptions = {
       },
     },
     experimental: {
-      plugins: [['@swc-contrib/mut-cjs-exports', {}]],
+      plugins: [[fileURLToPath(import.meta.resolve('@swc-contrib/mut-cjs-exports')), {}]],
     },
   },
 };
@@ -41,7 +44,7 @@ const {
   SENTRY_DSN,
 } = process.env;
 
-const JEST_TEST_FILES_PATH = path.resolve(import.meta.dirname, 'jest-test-files.json');
+const JEST_TEST_FILES_PATH = path.resolve(rootDir, 'jest-test-files.json');
 const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
   ? (JSON.parse(fs.readFileSync(JEST_TEST_FILES_PATH, 'utf-8')) as string[])
   : undefined;
@@ -200,7 +203,7 @@ if (
   let balance: null | Record<string, number> = null;
 
   const BALANCE_RESULTS_PATH = path.resolve(
-    import.meta.dirname,
+    rootDir,
     'tests',
     'js',
     'test-balancer',
@@ -212,9 +215,7 @@ if (
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList: string[] = JEST_TESTS.map(file =>
-    file.replace(import.meta.dirname, '')
-  );
+  const envTestList: string[] = JEST_TESTS.map(file => file.replace(rootDir, ''));
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
   optionalTags['ci.total_tests'] = JEST_TESTS.length;
@@ -254,6 +255,7 @@ const ESM_NODE_MODULES = [
 ];
 
 const config: Config.InitialOptions = {
+  rootDir,
   verbose: false,
   cacheDirectory: '.cache/jest',
   collectCoverageFrom: [
@@ -277,9 +279,6 @@ const config: Config.InitialOptions = {
       '<rootDir>/static/packages/scraps/src/$1',
       '<rootDir>/static/app/components/core/$1',
     ],
-    '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
-    '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
-    '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
 
@@ -297,9 +296,10 @@ const config: Config.InitialOptions = {
   setupFiles: [
     '<rootDir>/tests/js/sentry-test/setupReact.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
-    'jest-canvas-mock',
+    fileURLToPath(import.meta.resolve('jest-canvas-mock')),
   ],
   setupFilesAfterEnv: [
+    'getsentry-test/setup',
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
   ],
@@ -322,7 +322,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
+    '^.+\\.[mc]?[jt]sx?$': [fileURLToPath(import.meta.resolve('@swc/jest')), swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
@@ -341,7 +341,7 @@ const config: Config.InitialOptions = {
    */
   clearMocks: true,
 
-  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.js',
+  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.cjs',
   testEnvironmentOptions: {
     globalsCleanup: 'on',
     sentryConfig: {

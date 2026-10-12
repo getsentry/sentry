@@ -1,0 +1,53 @@
+{
+  "name": "@sentry-internal/getsentry-test",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./fixtures/adminAuditLog": "./fixtures/adminAuditLog.ts",
+    "./fixtures/am1Plans": "./fixtures/am1Plans.ts",
+    "./fixtures/am2Plans": "./fixtures/am2Plans.ts",
+    "./fixtures/am3Plans": "./fixtures/am3Plans.ts",
+    "./fixtures/billingConfig": "./fixtures/billingConfig.ts",
+    "./fixtures/billingDetails": "./fixtures/billingDetails.ts",
+    "./fixtures/billingHistory": "./fixtures/billingHistory.ts",
+    "./fixtures/billingStat": "./fixtures/billingStat.ts",
+    "./fixtures/charge": "./fixtures/charge.ts",
+    "./fixtures/constants": "./fixtures/constants.ts",
+    "./fixtures/customerUsage": "./fixtures/customerUsage.ts",
+    "./fixtures/docIntegration": "./fixtures/docIntegration.ts",
+    "./fixtures/featureList": "./fixtures/featureList.ts",
+    "./fixtures/invoice": "./fixtures/invoice.ts",
+    "./fixtures/invoicePreview": "./fixtures/invoicePreview.ts",
+    "./fixtures/metricHistory": "./fixtures/metricHistory.ts",
+    "./fixtures/mm1Plans": "./fixtures/mm1Plans.ts",
+    "./fixtures/mm2Plans": "./fixtures/mm2Plans.ts",
+    "./fixtures/owner": "./fixtures/owner.ts",
+    "./fixtures/planDetailsLookup": "./fixtures/planDetailsLookup.ts",
+    "./fixtures/policies": "./fixtures/policies.ts",
+    "./fixtures/policyRevisions": "./fixtures/policyRevisions.ts",
+    "./fixtures/project": "./fixtures/project.ts",
+    "./fixtures/recurringCredit": "./fixtures/recurringCredit.ts",
+    "./fixtures/reservedBudget": "./fixtures/reservedBudget.ts",
+    "./fixtures/spendAllocation": "./fixtures/spendAllocation.ts",
+    "./fixtures/subscription": "./fixtures/subscription.ts",
+    "./fixtures/usageLog": "./fixtures/usageLog.ts",
+    "./fixtures/usageTotal": "./fixtures/usageTotal.ts",
+    "./planTier": "./planTier.ts",
+    "./setup": "./setup.ts"
+  },
+  "dependencies": {
+    "@stripe/react-stripe-js": "^3.9.2",
+    "@stripe/stripe-js": "^5.10.0",
+    "getsentry": "workspace:@sentry-internal/gs-app@*",
+    "getsentry-test": "workspace:@sentry-internal/getsentry-test@*",
+    "lodash": "^4.18.1",
+    "moment-timezone": "0.6.2",
+    "react": "19.3.0",
+    "sentry": "workspace:@sentry-internal/app@*",
+    "sentry-fixture": "workspace:@sentry-internal/sentry-test@*"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.24",
+    "@types/node": "26.6.4"
+  }
+}

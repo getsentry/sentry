@@ -328,7 +328,6 @@ const config = defineConfig({
           'tests/js',
           'static/packages/scraps/test',
           'static/packages/icons/test',
-          'static/packages/test-utils',
         ],
       },
       // Sentry application and assets.
@@ -400,10 +399,10 @@ const config = defineConfig({
       {
         category: 'test-support',
         pattern: [
+          'scripts/testCi.js',
           'tests/js/fixtures/**/*',
           'tests/js/sentry-test/**/*',
           'static/packages/scraps/test/**/*',
-          'static/packages/test-utils/**/*',
           'tests/js/getsentry-test/**/*',
           'static/gsApp/__fixtures__/**/*',
           'static/**/*{t,T}estUtils*.{js,jsx,mjs,ts,tsx}',
@@ -450,8 +449,6 @@ const config = defineConfig({
     'fixtures/artifact_bundle_debug_ids/**/*',
     'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
     'fixtures/profiles/embedded.js',
-    'jest.config.ts',
-    'jest.config.snapshots.ts',
     'api-docs/**/*',
     'src/sentry/static/sentry/js/**/*',
     'src/sentry/templates/sentry/**/*',
@@ -771,8 +768,8 @@ const config = defineConfig({
         case: 'camelCase',
         ignore: [
           '^jest-pegjs-transform\\.js$',
-          '^jest-environment\\.js$',
-          '^jest-environment-node\\.js$',
+          '^jest-environment\\.cjs$',
+          '^jest-environment-node\\.cjs$',
           // Mocks named after external packages must preserve the package's
           // kebab-case basename so Jest can resolve them.
           '^(?:analytics-browser|react-(?:date-range|lazyload))\\.tsx$',
@@ -1711,12 +1708,14 @@ const config = defineConfig({
     },
     {
       files: [
+        'tests/js/bin/*.mjs',
         'tests/js/jest-pegjs-transform.js',
-        'tests/js/sentry-test/jest-environment.js',
-        'tests/js/sentry-test/jest-environment-node.js',
-        'tests/js/sentry-test/wrapWithStructuredClone.js',
+        'tests/js/sentry-test/jest-environment.cjs',
+        'tests/js/sentry-test/jest-environment-node.cjs',
+        'tests/js/sentry-test/wrapWithStructuredClone.cjs',
         'tests/js/sentry-test/mocks/*',
         'tests/js/sentry-test/loadFixtures.ts',
+        'tests/js/sentry-test/runner.ts',
         'tests/js/setup.ts',
       ],
       rules: {
@@ -1810,7 +1809,6 @@ const config = defineConfig({
         'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
         'static/packages/icons/src/**/*.spec.tsx',
         'static/packages/icons/test/**/*.{ts,tsx,mjs}',
-        'static/packages/test-utils/**/*.{ts,tsx,mjs}',
       ],
       rules: {
         'import/no-relative-parent-imports': 'off',
@@ -1821,18 +1819,8 @@ const config = defineConfig({
             patterns: [
               ...restrictedImportPatterns,
               {
-                group: [
-                  'sentry',
-                  'sentry/*',
-                  'getsentry',
-                  'getsentry/*',
-                  'admin',
-                  'admin/*',
-                  'sentry-test/*',
-                  'sentry-fixture/*',
-                  'getsentry-test/*',
-                ],
-                message: 'Package tests must be independent of the applications.',
+                group: ['sentry/*', 'sentry-test/*', 'sentry-fixture/*'],
+                message: 'Package tests must be independent of the Sentry application.',
               },
             ],
             paths: restrictedImportPaths.filter(
