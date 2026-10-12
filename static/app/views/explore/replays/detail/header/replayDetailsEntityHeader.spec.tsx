@@ -93,6 +93,77 @@ describe('ReplayDetailsEntityHeader', () => {
     ).toBeInTheDocument();
   });
 
+  it('links the title to the replay index filtered by the user', () => {
+    const replayRecord = replayRecordFixture({
+      user: {
+        id: '7',
+        username: '',
+        email: 'me@example.com',
+        ip: '127.0.0.1',
+        display_name: 'me@example.com',
+      },
+    });
+    mockViewedBy(replayRecord.id);
+
+    render(
+      <ReplayDetailsEntityHeader
+        readerResult={readerResultFixture({replayRecord, isPending: true})}
+      />,
+      {organization}
+    );
+
+    const link = screen.getByRole('link', {name: 'Replay user, me@example.com'});
+    const href = decodeURIComponent(link.getAttribute('href') ?? '');
+
+    // Email over id: both are indexed, and the email is the filter a person
+    // reading the index can recognise.
+    expect(href).toContain(`/organizations/${organization.slug}/explore/replays/`);
+    expect(href).toContain('query=user.email:"me@example.com"');
+    expect(href).toContain(`project=${project.id}`);
+  });
+
+  it('falls back to the user id when there is no email', () => {
+    const replayRecord = replayRecordFixture({
+      user: {
+        id: '7',
+        username: '',
+        email: '',
+        ip: '127.0.0.1',
+        display_name: 'Anonymous User',
+      },
+    });
+    mockViewedBy(replayRecord.id);
+
+    render(
+      <ReplayDetailsEntityHeader
+        readerResult={readerResultFixture({replayRecord, isPending: true})}
+      />,
+      {organization}
+    );
+
+    const link = screen.getByRole('link', {name: 'Replay user, Anonymous User'});
+    expect(decodeURIComponent(link.getAttribute('href') ?? '')).toContain(
+      'query=user.id:"7"'
+    );
+  });
+
+  it('leaves the title as plain text when there is nothing to filter on', () => {
+    // The fixture's default user carries only an IP, which the index cannot
+    // be filtered by.
+    const replayRecord = replayRecordFixture();
+    mockViewedBy(replayRecord.id);
+
+    render(
+      <ReplayDetailsEntityHeader
+        readerResult={readerResultFixture({replayRecord, isPending: true})}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByRole('heading', {name: /Replay user/})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Replay user/})).not.toBeInTheDocument();
+  });
+
   it('reads viewers from the project slug, the key useMarkReplayViewed refetches', async () => {
     const replayRecord = replayRecordFixture();
     const viewedBy = mockViewedBy(replayRecord.id);
