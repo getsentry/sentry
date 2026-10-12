@@ -6,16 +6,16 @@ import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconResize} from '@sentry/icons/resize';
 import * as Sentry from '@sentry/react';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {connect} from 'echarts/core';
 import cloneDeep from 'lodash/cloneDeep';
-import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -153,20 +153,19 @@ function DashboardInner({
   const forceCheckTimeout = useRef<number | undefined>(undefined);
   const isGeneratedDashboard = location.query.seerRunId !== undefined;
 
-  const debouncedHandleResize = useMemo(
-    () =>
-      debounce(() => {
-        const start = performance.now();
-        setWindowWidth(window.innerWidth);
-        scheduleMicroTask(() => {
-          const duration = performance.now() - start;
-          Sentry.metrics.distribution('dashboards.widget.onResize', duration, {
-            unit: 'millisecond',
-            attributes: {page: 'dashboard'},
-          });
+  const debouncedHandleResize = useDebouncedCallback(
+    () => {
+      const start = performance.now();
+      setWindowWidth(window.innerWidth);
+      scheduleMicroTask(() => {
+        const duration = performance.now() - start;
+        Sentry.metrics.distribution('dashboards.widget.onResize', duration, {
+          unit: 'millisecond',
+          attributes: {page: 'dashboard'},
         });
-      }, 250),
-    []
+      });
+    },
+    {wait: 250}
   );
 
   useEffect(() => {

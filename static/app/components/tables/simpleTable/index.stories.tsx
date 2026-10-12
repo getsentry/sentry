@@ -358,7 +358,60 @@ export default Storybook.story('SimpleTable', story => {
       </Fragment>
     );
   });
+
+  story('Density', () => {
+    return (
+      <Fragment>
+        <p>
+          Set{' '}
+          <Storybook.JSXProperty
+            name="density"
+            value="'compressed' | 'default' | 'comfortable'"
+          />{' '}
+          to change how much room each row takes. Compressed tables use small text, a
+          shorter header, tight cell padding, and no lines between rows, which suits long,
+          scannable lists such as a replay's network requests. Comfortable tables give
+          their cells more padding.
+        </p>
+
+        {DENSITIES.map(density => (
+          <Fragment key={density}>
+            <p>
+              <code>density="{density}"</code>
+            </p>
+            <SimpleTableWithColumns
+              density={density}
+              header={
+                <SimpleTable.HeaderRow>
+                  {headers.map(header => (
+                    <SimpleTable.HeaderCell key={header.key}>
+                      {header.label}
+                    </SimpleTable.HeaderCell>
+                  ))}
+                </SimpleTable.HeaderRow>
+              }
+            >
+              {data.map(row => (
+                <SimpleTable.Row key={row.name}>
+                  <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    {t('%s monitors', row.monitors.length)}
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>{row.action}</SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    <TimeAgoCell date={row.lastTriggered} />
+                  </SimpleTable.RowCell>
+                </SimpleTable.Row>
+              ))}
+            </SimpleTableWithColumns>
+          </Fragment>
+        ))}
+      </Fragment>
+    );
+  });
 });
+
+const DENSITIES = ['compressed', 'default', 'comfortable'] as const;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 1fr 1fr 1fr;

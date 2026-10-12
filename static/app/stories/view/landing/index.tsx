@@ -2,6 +2,7 @@ import type {PropsWithChildren} from 'react';
 import {Fragment} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 import type {LocationDescriptor} from 'history';
 
 import heroImg from 'sentry-images/stories/landing/robopigeon.png';
@@ -13,7 +14,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconOpen} from 'sentry/icons';
 import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

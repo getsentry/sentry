@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconSearch} from '@sentry/icons/search';
 import type {Location} from 'history';
 
 import {Pagination} from '@sentry/scraps/pagination';
@@ -10,7 +11,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
-import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

@@ -46,6 +46,7 @@ from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
     NotificationActionContext,
+    NotificationOrigin,
     RuleFuture,
 )
 from sentry.notifications.utils.digest import get_digest_subject
@@ -1400,9 +1401,10 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=project)
+        origin = NotificationOrigin.from_legacy_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project, (event_to_record(event, (origin,)), event_to_record(event2, (origin,)))
         )
 
         with self.tasks():
@@ -1456,9 +1458,10 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=project)
+        origin = NotificationOrigin.from_legacy_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project, (event_to_record(event, (origin,)), event_to_record(event2, (origin,)))
         )
 
         features = ["organizations:session-replay"]
@@ -1484,8 +1487,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     def test_notify_digest_single_record(self, send_async: MagicMock, notify: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(project=self.project)
+        origin = NotificationOrigin.from_legacy_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        digest = build_digest(self.project, (event_to_record(event, (rule,)),))
+        digest = build_digest(self.project, (event_to_record(event, (origin,)),))
         self.adapter.notify_digest(
             self.project,
             digest,
@@ -1511,9 +1515,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=self.project)
+        origin = NotificationOrigin.from_legacy_rule(rule)
 
         digest = build_digest(
-            self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            self.project,
+            (event_to_record(event, (origin,)), event_to_record(event2, (origin,))),
         )
 
         with self.tasks():
@@ -1552,9 +1558,10 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             "targetIdentifier": str(444),
         }
         rule = self.create_project_rule(name="a rule", action_data=[action_data])
+        origin = NotificationOrigin.from_legacy_rule(rule)
 
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project, (event_to_record(event, (origin,)), event_to_record(event2, (origin,)))
         )
 
         with self.tasks():
@@ -1631,6 +1638,24 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         futures = [RuleFuture(NotificationActionContext.from_legacy_rule(rule), {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.backend.add.call_count == 1
+
+    @mock.patch("sentry.mail.adapter.digests")
+    @mock.patch("sentry.mail.adapter.logger")
+    def test_digest_skips_rule_without_workflow_id(
+        self, mock_logger: MagicMock, digests: MagicMock
+    ) -> None:
+        digests.backend.enabled.return_value = True
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = self.create_project_rule(project=self.project, include_workflow_id=False)
+        future = RuleFuture(NotificationActionContext.from_legacy_rule(rule), {})
+
+        self.adapter.rule_notify(event, [future], ActionTargetType.ISSUE_OWNERS)
+
+        digests.backend.add.assert_not_called()
+        mock_logger.warning.assert_called_once_with(
+            "mail.adapter.notification.missing_workflow_id",
+            extra={"rule_id": rule.id, "project_id": self.project.id},
+        )
 
     def test_notify_includes_uuid(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)

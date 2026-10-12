@@ -1,4 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconWarning} from '@sentry/icons/warning';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
@@ -13,8 +15,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';

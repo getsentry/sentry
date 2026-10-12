@@ -1,7 +1,8 @@
 import logging
 
+from sentry_sdk import traces
+
 from sentry.utils import metrics
-from sentry.utils.tracing import start_span
 from sentry.workflow_engine.caches.detector import get_detectors_by_data_source
 from sentry.workflow_engine.models import DataPacket, Detector
 
@@ -26,9 +27,9 @@ def process_data_source[T](
 ) -> tuple[DataPacket[T], list[Detector]]:
     metrics.incr("workflow_engine.process_data_sources", tags={"query_type": query_type})
 
-    with start_span(
-        op="workflow_engine.process_data_sources.get_enabled_detectors",
+    with traces.start_span(
         name="workflow_engine.process_data_sources.get_enabled_detectors",
+        attributes={"sentry.op": "workflow_engine.process_data_sources.get_enabled_detectors"},
     ):
         detectors = bulk_fetch_enabled_detectors(data_packet.source_id, query_type)
 

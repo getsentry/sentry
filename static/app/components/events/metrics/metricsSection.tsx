@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -11,7 +12,6 @@ import {
   NUMBER_ABBREVIATED_METRICS,
 } from 'sentry/components/events/metrics/useMetricsIssueSection';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

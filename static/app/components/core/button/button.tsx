@@ -1,12 +1,11 @@
 import styled from '@emotion/styled';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
-
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,

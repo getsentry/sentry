@@ -1,5 +1,11 @@
 import {useMemo, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconBot} from '@sentry/icons/bot';
+import {IconBug} from '@sentry/icons/bug';
+import {IconCode} from '@sentry/icons/code';
+import {IconList} from '@sentry/icons/list';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -25,12 +31,6 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {IconOpen} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
-import {IconBug} from 'sentry/icons/iconBug';
-import {IconCode} from 'sentry/icons/iconCode';
-import {IconList} from 'sentry/icons/iconList';
-import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tn} from 'sentry/locale';
 
 interface ArtifactPreviewProps {

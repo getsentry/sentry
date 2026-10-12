@@ -268,7 +268,8 @@ const config: Config.InitialOptions = {
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/stories/storyManifest\\.generated$':
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
-    '^sentry/(.*)': '<rootDir>/static/app/$1',
+    '^\\./storyManifest\\.generated$':
+      '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
     '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
     '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
     // The app falls back to core components until they move into scraps.
@@ -276,8 +277,6 @@ const config: Config.InitialOptions = {
       '<rootDir>/static/packages/scraps/src/$1',
       '<rootDir>/static/app/components/core/$1',
     ],
-    '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
-    '^admin/(.*)': '<rootDir>/static/gsAdmin/$1',
     '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
@@ -296,6 +295,7 @@ const config: Config.InitialOptions = {
   },
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
+    '<rootDir>/tests/js/sentry-test/setupReact.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     'jest-canvas-mock',
   ],
@@ -309,6 +309,7 @@ const config: Config.InitialOptions = {
   testPathIgnorePatterns: [
     '<rootDir>/tests/sentry/lang/javascript/',
     '<rootDir>/static/packages/scraps/',
+    '<rootDir>/static/packages/icons/',
   ],
   // Coding agents check out nested git worktrees under .claude/worktrees/, each a
   // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual

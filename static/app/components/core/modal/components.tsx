@@ -1,12 +1,11 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {IconClose} from 'sentry/icons/iconClose';
 
 function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
   const {t} = useTranslation();
