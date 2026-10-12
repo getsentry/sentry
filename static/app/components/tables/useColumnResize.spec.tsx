@@ -175,10 +175,11 @@ describe('useColumnResize', () => {
     });
     const grid = screen.getByTestId('grid');
     Object.defineProperty(grid, 'clientWidth', {configurable: true, get: () => table});
-    Object.defineProperty(grid, 'offsetHeight', {configurable: true, get: () => 240});
+    Object.defineProperty(grid, 'clientHeight', {configurable: true, get: () => 240});
+    Object.defineProperty(grid, 'offsetHeight', {configurable: true, get: () => 242});
   }
 
-  it('publishes the table height to the handle as a CSS variable', () => {
+  it('publishes the table height inside its borders to the handle as a CSS variable', () => {
     render(<TestTable />);
     stubGeometry({cell: 150, table: 900});
 

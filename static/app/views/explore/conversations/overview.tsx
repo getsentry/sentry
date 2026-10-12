@@ -121,24 +121,6 @@ function ConversationsOverviewPage() {
     isLoading: isOnboardingLoading,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
-  const conversationsResult = useConversations();
-  const {
-    data: conversations,
-    isFetching: isConversationsFetching,
-    error: conversationsError,
-  } = conversationsResult;
-  useConversationDirectHitRedirect({
-    isDirectHit: conversationsResult.isDirectHit,
-    conversations,
-  });
-  const showMissingMessagesAlert =
-    !isConversationsFetching &&
-    !conversationsError &&
-    conversations.length > 0 &&
-    conversations.every(
-      conversation => !conversation.firstInput && !conversation.lastOutput
-    );
-
   const [selectedTab, setSelectedTab] = useQueryState(
     'table',
     agentsTableTabParser.withOptions({history: 'replace'})
@@ -146,6 +128,25 @@ function ConversationsOverviewPage() {
   const activeTab: AgentsTableTab =
     selectedTab ?? (hasConversations ? 'conversations' : 'traces');
   const isConversationsTab = activeTab === 'conversations';
+  const conversationsResult = useConversations({enabled: isConversationsTab});
+  const {
+    data: conversations,
+    isFetching: isConversationsFetching,
+    error: conversationsError,
+  } = conversationsResult;
+  useConversationDirectHitRedirect({
+    isDirectHit: isConversationsTab && conversationsResult.isDirectHit,
+    conversations,
+  });
+  const showMissingMessagesAlert =
+    isConversationsTab &&
+    !isConversationsFetching &&
+    !conversationsError &&
+    conversations.length > 0 &&
+    conversations.every(
+      conversation => !conversation.firstInput && !conversation.lastOutput
+    );
+
   const searchPlaceholder =
     activeTab === 'conversations'
       ? t('Search by conversation ID, user, model, or message')

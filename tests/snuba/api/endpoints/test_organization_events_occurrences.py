@@ -750,12 +750,15 @@ class OrganizationEventsOccurrencesArrayQueryTest(
         #   tags[array_tags] = ["eap_items", "occurrences"]
         self._create_occurrence_with_arrays(occurrence_count=2)
         field = "tags[array_tags, array]"
+        # The `[*]` membership operator sits on the attribute name, inside the
+        # bracket (`tags[name[*], array]`), while the selected column stays `field`.
+        member = "tags[array_tags[*], array]"
         cases = [
             # (description, query, value, expected_count, must_contain_in_each_match)
-            ("present value =", f"{field}[*]:eap_items", "eap_items", 2, True),
-            ("present value !=", f"!{field}[*]:eap_items", "eap_items", 0, False),
-            ("absent value =", f"{field}[*]:nonexistent", "nonexistent", 0, True),
-            ("absent value !=", f"!{field}[*]:nonexistent", "nonexistent", 2, False),
+            ("present value =", f"{member}:eap_items", "eap_items", 2, True),
+            ("present value !=", f"!{member}:eap_items", "eap_items", 0, False),
+            ("absent value =", f"{member}:nonexistent", "nonexistent", 0, True),
+            ("absent value !=", f"!{member}:nonexistent", "nonexistent", 2, False),
         ]
         for description, query, value, expected_count, must_contain in cases:
             response = self.request_with_feature_flag(

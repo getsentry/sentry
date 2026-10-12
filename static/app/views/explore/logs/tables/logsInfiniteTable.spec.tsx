@@ -791,6 +791,35 @@ describe('LogsInfiniteTable', () => {
     );
   });
 
+  it('renders colored text without escape codes when an injected error row has an ANSI title', async () => {
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: \x1B[31mBoom\x1B[0m happened',
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    const colored = await screen.findByText('Boom');
+
+    expect(colored.style.color).toContain('color-mix(in srgb,');
+    expect(screen.getByTestId('log-table-cell-error')).toHaveTextContent(
+      /^TypeError: Boom happened$/
+    );
+  });
+
   it('renders injected error rows without the empty state when the logs query is empty', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({

@@ -10,10 +10,10 @@ import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 import {DropdownMenuContent} from './content';
+import {DropdownMenuContext} from './context';
 import {DropdownButton} from './dropdownButton';
 import type {MenuItemProps} from './item';
 import type {DropdownMenuListProps} from './list';
-import {DropdownMenuContext} from './list';
 
 export type {MenuItemProps};
 

@@ -1,14 +1,17 @@
 import type {ReactNode} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPlay} from '@sentry/icons/play';
 import type {LocationDescriptor} from 'history';
 import invariant from 'invariant';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -22,17 +25,13 @@ import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseBu
 import {NumericDropdownFilter} from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import {OSBrowserDropdownFilter} from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconPlay} from 'sentry/icons/iconPlay';
+import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {
-  useListItemCheckboxContext,
-  type ListItemCheckboxState,
-} from 'sentry/utils/list/useListItemCheckboxState';
+import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
+import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -414,27 +413,18 @@ export const ReplaySelectColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: undefined,
   Component: ({replay}) => {
-    const {isSelected, toggleSelected} = useListItemCheckboxContext();
     if (replay.is_archived) {
       return null;
     }
     return (
       <CheckboxClickCapture onClick={e => e.stopPropagation()}>
         <CheckboxCellContainer>
-          <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
-            <Checkbox
-              id={`replay-table-select-${replay.id}`}
-              disabled={isSelected(replay.id) === 'all-selected'}
-              checked={isSelected(replay.id) !== false}
-              onChange={() => {
-                toggleSelected(replay.id);
-              }}
-            />
-          </CheckboxClickTarget>
-
-          <Tooltip title={t('Unread')} skipWrapper disabled={Boolean(replay.has_viewed)}>
-            <UnreadIndicator data-has-viewed={replay.has_viewed} />
-          </Tooltip>
+          <ListItemSelectCheckbox htmlPrefix="replay-table-select" value={replay.id} />
+          {replay.has_viewed ? (
+            <Container width="8px" height="8px" />
+          ) : (
+            <UnreadIndicator />
+          )}
         </CheckboxCellContainer>
       </CheckboxClickCapture>
     );
@@ -567,28 +557,6 @@ const CheckboxCellContainer = styled('div')`
   justify-content: center;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-
-  padding: ${p => p.theme.space.xs} 0 0 0;
-`;
-
-const CheckboxClickTarget = styled('label')`
-  cursor: pointer;
-  display: block;
-  margin: -${p => p.theme.space.md};
-  padding: ${p => p.theme.space.md};
-  max-width: unset;
-  line-height: 0;
-`;
-
-const UnreadIndicator = styled('div')`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-
-  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-  &[data-has-viewed='true'] {
-    background-color: transparent;
-  }
 `;
 
 const SpanOperationBreakdown = styled('div')`

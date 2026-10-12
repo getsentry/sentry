@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
@@ -14,7 +15,6 @@ import {IssueSeerBadge} from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconChat} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import {getTitle} from 'sentry/utils/events';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -171,10 +171,6 @@ const GroupExtra = styled('div')`
     background-position: left center;
     background-size: 1px 10px;
     background-repeat: no-repeat;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    line-height: 1;
   }
 `;
 

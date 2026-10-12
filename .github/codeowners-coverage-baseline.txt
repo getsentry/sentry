@@ -291,14 +291,12 @@ src/sentry/web_vitals/types.py
 src/sentry/wsgi.py
 src/sudo/LICENSE
 src/sudo/__init__.py
-src/sudo/forms.py
 src/sudo/middleware.py
 src/sudo/models.py
 src/sudo/py.typed
 src/sudo/settings.py
 src/sudo/signals.py
 src/sudo/utils.py
-src/sudo/views.py
 static/app/__mocks__/api.tsx
 static/app/__mocks__/prismjs.tsx
 static/app/__mocks__/react-date-range.tsx

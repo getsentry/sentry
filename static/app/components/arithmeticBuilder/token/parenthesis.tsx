@@ -1,10 +1,10 @@
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconParenthesis} from '@sentry/icons/parenthesis';
 
 import type {Token, TokenParenthesis} from 'sentry/components/arithmeticBuilder/token';
 import {Parenthesis} from 'sentry/components/arithmeticBuilder/token';
 import {DeletableToken} from 'sentry/components/arithmeticBuilder/token/deletableToken';
-import {IconParenthesis} from 'sentry/icons/iconParenthesis';
 
 interface ArithmeticTokenParenthesisProps {
   item: Node<Token>;

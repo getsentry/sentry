@@ -1,11 +1,10 @@
-import type {ComponentProps, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {type BreadcrumbListProps, BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
 
 interface BreadcrumbListDemoProps {
-  items: ComponentProps<typeof BreadcrumbList>['items'];
+  items: BreadcrumbListProps['items'];
   title?: ReactNode;
 }
 
@@ -24,11 +23,7 @@ export function BreadcrumbListDemo({items, title}: BreadcrumbListDemoProps) {
       </Flex>
       {title !== undefined && (
         <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
-          {flexProps => (
-            <Heading as="h1" variant="inherit" {...flexProps}>
-              {title}
-            </Heading>
-          )}
+          {title}
         </Flex>
       )}
     </Flex>

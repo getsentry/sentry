@@ -1,3 +1,5 @@
+import {IconProject} from '@sentry/icons/project';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -5,7 +7,6 @@ import {Link} from '@sentry/scraps/link';
 import {Table} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconProject} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';

@@ -8,8 +8,9 @@ import {Container} from '@sentry/scraps/layout';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 import {DropdownMenuContent} from './content';
+import {DropdownMenuContext} from './context';
 import {DropdownMenuItem, type MenuItemProps} from './item';
-import {DropdownMenuContext, type DropdownMenuListProps} from './list';
+import {type DropdownMenuListProps} from './list';
 
 interface DropdownSubmenuProps extends Pick<
   DropdownMenuListProps,
@@ -39,6 +40,7 @@ export function DropdownSubmenu({
     triggerRef,
     triggerProps: {ref: setTriggerElement},
     overlayProps,
+    overlayRef,
   } = useOverlay({
     isOpen: state.selectionManager.isSelected(node.key),
     onClose: rootOverlayState?.close,
@@ -73,6 +75,7 @@ export function DropdownSubmenu({
         aria-haspopup={menuTriggerProps['aria-haspopup']}
         aria-expanded={isOpen}
         aria-controls={menuTriggerProps['aria-controls']}
+        submenuRef={isOpen ? overlayRef : undefined}
         renderAs="div"
         node={node}
         state={state}

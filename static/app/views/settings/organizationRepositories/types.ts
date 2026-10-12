@@ -4,6 +4,7 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
+import type {AvatarProject} from 'sentry/types/project';
 
 /**
  * Fuse match results keyed by `repository.id`, used to highlight the matched
@@ -59,6 +60,12 @@ export interface ScmInstallation {
    * the rest of the row.
    */
   mappingsLoading?: boolean;
+  /**
+   * Called when the user clicks a mapped project chip on a repository row.
+   * When set, chips become buttons (not project-details links). When omitted,
+   * chips keep their default link behavior.
+   */
+  onMappedProjectClick?: (repo: Repository, project: AvatarProject) => void;
   /**
    * Called when the user clicks the settings button. When omitted the button
    * is hidden.

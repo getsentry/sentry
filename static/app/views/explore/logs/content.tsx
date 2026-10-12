@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -58,7 +58,7 @@ export default function LogsContent() {
         }
       >
         <AnalyticsArea name="explore.logs">
-          <AiQueryProvider>
+          <AiQueryProvider strategy="Logs">
             <LogsPageStack flex={1} data-footer-constrained data-hide-footer>
               <LogsQueryParamsProvider
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
@@ -133,16 +133,20 @@ function LogsHeader() {
           title={title}
         />
       ) : (
-        <TopBar.Slot name="title">
-          {title || t('Logs')}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/explore/logs/"
-            title={t(
-              'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
-            )}
-            linkLabel={t('Read the Docs')}
-          />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: title || t('Logs'),
+            labelTooltip: (
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/logs/">
+                {t(
+                  'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
+                )}
+              </DocumentationHint>
+            ),
+          }}
+        />
       )}
       <TopBar.Slot name="feedback">
         <FeedbackButton

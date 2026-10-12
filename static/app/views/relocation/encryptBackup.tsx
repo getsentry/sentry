@@ -1,8 +1,8 @@
+import {IconTerminal} from '@sentry/icons/terminal';
 import {motion} from 'framer-motion';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
-import {IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';

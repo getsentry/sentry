@@ -5,7 +5,9 @@ from typing import Any
 
 import sentry_sdk
 from django.conf import settings
+from sentry_sdk import traces
 
+from sentry.ingest.event_payload import load_event_payload, prepare_submit
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.processing import (
     get_native_symbolication_functions,
@@ -26,7 +28,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import symbolication_tasks
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
-from sentry.utils.tracing import set_span_data, start_span
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.symbolication")
@@ -60,15 +61,14 @@ class SymbolicationTimeout(Exception):
 def _do_symbolicate_event(
     *,
     task_kind: SymbolicatorTaskKind,
-    cache_key: str,
+    cache_key: str | None,
     start_time: float | None,
     event_id: str | None,
     data: Event | None = None,
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
 ) -> None:
-    if data is None:
-        data = processing.event_processing_store.get(cache_key)
+    data = load_event_payload(data, cache_key, processing.event_processing_store)
 
     if data is None:
         metrics.incr(
@@ -98,6 +98,7 @@ def _do_symbolicate_event(
                 start_time=start_time,
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
+                data=data,
             )
             return
         # else:
@@ -109,6 +110,7 @@ def _do_symbolicate_event(
             data_has_changed=has_changed,
             from_symbolicate=True,
             has_attachments=has_attachments,
+            data=data,
         )
 
     symbolication_function = task_kind.function
@@ -134,9 +136,9 @@ def _do_symbolicate_event(
     project = Project.objects.get_from_cache(id=project_id)
     # needed for efficient featureflag checks in getsentry
     # NOTE: The `organization` is used for constructing the symbol sources.
-    with start_span(
-        op="lang.native.symbolicator.organization.get_from_cache",
+    with traces.start_span(
         name="lang.native.symbolicator.organization.get_from_cache",
+        attributes={"sentry.op": "lang.native.symbolicator.organization.get_from_cache"},
     ):
         project.set_cached_field_value(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
@@ -164,14 +166,16 @@ def _do_symbolicate_event(
             "tasks.store.symbolicate_event.symbolication",
             tags={"symbolication_function": symbolication_function_name},
         ),
-        start_span(
-            op=f"tasks.store.symbolicate_event.{symbolication_function_name}",
+        traces.start_span(
             name=f"tasks.store.symbolicate_event.{symbolication_function_name}",
+            attributes={
+                "sentry.op": f"tasks.store.symbolicate_event.{symbolication_function_name}"
+            },
         ) as span,
     ):
         try:
             symbolicated_data = symbolication_function(symbolicator, data)
-            set_span_data(span, "symbolicated_data", bool(symbolicated_data))
+            span.set_attribute("symbolicated_data", bool(symbolicated_data))
 
             if symbolicated_data:
                 data = symbolicated_data
@@ -209,9 +213,6 @@ def _do_symbolicate_event(
     if not isinstance(data, dict):
         data = dict(data.items())
 
-    if has_changed:
-        cache_key = processing.event_processing_store.store(data)
-
     return _continue_to_process_event()
 
 
@@ -223,12 +224,15 @@ def _do_symbolicate_event(
 
 def submit_symbolicate(
     task_kind: SymbolicatorTaskKind,
-    cache_key: str,
+    cache_key: str | None,
     event_id: str | None,
     start_time: float | None,
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
+    data: Event | None = None,
 ) -> None:
+    data, cache_key = prepare_submit(data, cache_key, event_id)
+
     # Because of `mock` usage, we cannot just save a reference to the actual function
     # into the `TASK_FNS` dict. We actually have to access it at runtime from the global scope
     # on every invocation. Great stuff!
@@ -247,6 +251,7 @@ def submit_symbolicate(
         event_id=event_id,
         has_attachments=has_attachments,
         symbolicate_functions=symbolicate_function_names,
+        data=data,
     )
 
 
@@ -268,7 +273,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         silo_mode=SiloMode.CELL,
     )
     def symbolication_fn(
-        cache_key: str,
+        cache_key: str | None = None,
         start_time: float | None = None,
         event_id: str | None = None,
         data: Event | None = None,

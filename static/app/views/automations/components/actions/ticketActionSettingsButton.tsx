@@ -1,18 +1,16 @@
 import {useMemo} from 'react';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
 import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {TicketCreationAction} from 'sentry/types/workflowEngine/actions';
-import {
-  actionNodesMap,
-  useActionNodeContext,
-} from 'sentry/views/automations/components/actionNodes';
+import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
+import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
 
 export function TicketActionSettingsButton() {
