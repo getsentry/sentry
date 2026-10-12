@@ -42,8 +42,12 @@ const frontendWorkspace = {
 const config: KnipConfig = {
   // MDX tooling is declared at the root, but stories belong to the app workspace.
   compilers: {mdx: true},
+  // Test package exports are development entry points, not production code.
+  ignoreWorkspaces: ['tests/js!', 'tests/js/getsentry-test!'],
   workspaces: {
     '.': {
+      // The root runs app tests, but Jest is declared in the test package.
+      jest: {config: 'tests/js/jest.config.ts'},
       entry: ['scripts/*.ts!', 'build-utils/mdx-plugins.ts'],
       project: [
         'static/**/*.{js,ts,tsx,mdx,less}!',
