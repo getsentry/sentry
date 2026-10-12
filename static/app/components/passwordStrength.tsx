@@ -1,13 +1,9 @@
-import {Fragment} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'zxcv... Remove this comment to see the full error message
 import zxcvbn from 'zxcvbn';
 
-import {Container} from '@sentry/scraps/layout';
-
 import {ProgressRing} from 'sentry/components/progressRing';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 /**
  * The maximum score that zxcvbn reports
@@ -20,42 +16,6 @@ type Props = {
    */
   value: string;
 };
-
-/**
- * NOTE: Do not import this component synchronously. The zxcvbn library is
- * relatively large. This component should be loaded async as a split chunk.
- */
-export function PasswordStrength(props: Props) {
-  const theme = useTheme();
-  const strength = getPasswordStrength(props.value, theme);
-
-  if (!strength) {
-    return null;
-  }
-
-  const styles = css`
-    background: ${strength.color};
-    width: ${strength.percent}%;
-  `;
-
-  return (
-    <Fragment>
-      <StrengthProgress
-        role="progressbar"
-        aria-valuenow={strength.score}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <Container height="100%" css={styles} />
-      </StrengthProgress>
-      <StrengthLabel>
-        {tct('Strength: [textScore]', {
-          textScore: <ScoreText>{strength.label}</ScoreText>,
-        })}
-      </StrengthLabel>
-    </Fragment>
-  );
-}
 
 /** @public */
 export function PasswordStrengthRing({value}: Props) {
@@ -118,23 +78,5 @@ function getPasswordStrength(value: string, theme: Theme) {
     color: colors[score],
     grade: grades[score],
     label: labels[score],
-    percent: Math.round(((score + 1) / MAX_SCORE) * 100),
   };
 }
-
-const StrengthProgress = styled('div')`
-  background: ${p => p.theme.colors.gray200};
-  height: 8px;
-  border-radius: 2px;
-  overflow: hidden;
-`;
-
-const StrengthLabel = styled('div')`
-  font-size: 0.8em;
-  margin-top: ${p => p.theme.space['2xs']};
-  color: ${p => p.theme.colors.gray500};
-`;
-
-const ScoreText = styled('strong')`
-  color: ${p => p.theme.colors.black};
-`;

@@ -2,9 +2,12 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework import serializers
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -12,6 +15,7 @@ from sentry.api.client_kind import get_client_kind
 from sentry.api.endpoints.timeseries import Annotation
 from sentry.api.helpers.data_annotations import (
     DATASET_TO_CATEGORY,
+    DROPPED_OUTCOMES,
     get_dropped_data_annotations,
     record_dropped_events_telemetry,
 )
@@ -51,11 +55,36 @@ class DroppedEventsResponse(TypedDict):
     acceptedEvents: list[DroppedEventsBucket]
 
 
+class DroppedEventsQueryParamsSerializer(serializers.Serializer[dict[str, Any]]):
+    """The optional drop-scoping filters. Both document the params (via
+    ``extend_schema``) and validate them: ``outcome`` is a closed choice of drop
+    classifications, while ``reason`` is an open string since client-discard
+    reasons are SDK-defined. The filters narrow the dropped side only."""
+
+    outcome = serializers.ChoiceField(
+        [o.api_name() for o in DROPPED_OUTCOMES],
+        required=False,
+        help_text=(
+            "Narrow the dropped events (only) to a single top-level drop "
+            "classification (e.g. `rate_limited`, `filtered`)."
+        ),
+    )
+    reason = serializers.CharField(
+        required=False,
+        help_text=(
+            "Narrow the dropped events to a single reason, the sub-classification "
+            "within an outcome (e.g. `spike_protection` within `rate_limited`). "
+            "Should be combined with `outcome`."
+        ),
+    )
+
+
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
+    owner = ApiOwner.EXPLORE
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
     @extend_schema(
@@ -70,6 +99,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             VisibilityParams.DATASET,
             VisibilityParams.INTERVAL,
+            DroppedEventsQueryParamsSerializer,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -79,41 +109,46 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             404: api_constants.RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[DroppedEventsResponse]:
         """Return the events Sentry received but dropped (rate limited, filtered,
         invalid, abuse, client discarded, cardinality limited) bucketed over the
         requested interval, alongside the accepted volume per bucket so a caller
         can compute the dropped share.
 
         Select the dropped-data type with ``dataset`` and the bucket size with
-        ``interval``.
+        ``interval``. Optionally scope the dropped side to one classification with
+        ``outcome`` (top-level) and/or ``reason`` (sub-classification within an
+        outcome); the accepted volume is always returned in full.
         """
         dataset = self.get_dataset(request, organization)
         if DATASET_TO_CATEGORY.get(dataset) is None:
             supported = ", ".join(
                 sorted(DATASET_LABELS[ds] for ds in DATASET_TO_CATEGORY if ds in DATASET_LABELS)
             )
-            return Response(
-                {"detail": f"dataset does not support dropped events; must be one of: {supported}"},
-                status=400,
+            raise ParseError(
+                f"dataset does not support dropped events; must be one of: {supported}"
             )
+
+        filters = DroppedEventsQueryParamsSerializer(data=request.GET)
+        if not filters.is_valid():
+            raise ParseError(filters.errors)
+        outcome = filters.validated_data.get("outcome")
+        reason = filters.validated_data.get("reason")
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
-            return Response(
-                {
-                    "meta": {
-                        "dataset": DATASET_LABELS[dataset],
-                        "start": 0,
-                        "end": 0,
-                        "interval": 0,
-                    },
-                    "droppedEvents": [],
-                    "acceptedEvents": [],
+            empty: DroppedEventsResponse = {
+                "meta": {
+                    "dataset": DATASET_LABELS[dataset],
+                    "start": 0,
+                    "end": 0,
+                    "interval": 0,
                 },
-                status=200,
-            )
+                "droppedEvents": [],
+                "acceptedEvents": [],
+            }
+            return Response(empty, status=200)
 
         with handle_query_errors():
             # top_events=0 / use_rpc=False: no aggregation query runs here, so this
@@ -126,7 +161,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             with start_span(op="dropped_events.serve", name=_ENDPOINT):
                 try:
                     dropped_raw, accepted_raw = get_dropped_data_annotations(
-                        dataset, snuba_params, rollup
+                        dataset, snuba_params, rollup, outcome=outcome, reason=reason
                     )
                     dropped_events = [_to_bucket(bucket) for bucket in dropped_raw]
                     accepted_events = [
@@ -151,7 +186,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             "end": snuba_params.end_date.timestamp() * 1000,
             "interval": rollup * 1000,
         }
-        response: dict[str, Any] = {
+        response: DroppedEventsResponse = {
             "meta": meta,
             "droppedEvents": dropped_events,
             "acceptedEvents": accepted_events,

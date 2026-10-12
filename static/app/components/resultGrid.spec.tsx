@@ -83,7 +83,7 @@ describe('ResultGrid', () => {
 
     const {router} = render(<ExampleBasicResultGrid />);
 
-    await screen.findByTestId('pagination');
+    await screen.findByRole('button', {name: 'Next'});
 
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
@@ -109,7 +109,7 @@ describe('ResultGrid', () => {
       />
     );
 
-    await screen.findByTestId('pagination');
+    await screen.findByRole('button', {name: 'Next'});
     await userEvent.click(screen.getByRole('button', {name: /Status/}));
     await userEvent.click(await screen.findByRole('option', {name: 'Active'}));
     await waitFor(() => expect(router.location.query.status).toBe('active'));
@@ -638,6 +638,19 @@ describe('ResultGrid allowAllRegions', () => {
     let respond = true;
     const stubApi = {
       clear: jest.fn(),
+      // fetchRegionPages (all-regions) uses requestPromise
+      requestPromise: jest.fn((url: string, _options: any) => {
+        if (respond) {
+          const name = url.startsWith('/_admin/cells/us/') ? 'Acme' : 'Beta';
+          return Promise.resolve([
+            [{id: '1', name, members: 5}],
+            'success',
+            {getResponseHeader: () => null},
+          ]);
+        }
+        return new Promise(() => {}); // never settles
+      }),
+      // single-region fetch still uses api.request with callbacks
       request: jest.fn((url: string, options: any) => {
         if (respond) {
           const name = url.startsWith('/_admin/cells/us/') ? 'Acme' : 'Beta';
@@ -708,18 +721,19 @@ describe('ResultGrid allowAllRegions', () => {
   });
 
   it('marks a region as failed when the fetch itself rejects (e.g. blocked request)', async () => {
-    // The real API client swallows fetch rejections without calling success
-    // or error, so the grid must resolve the region through requestPromise.
     const stubApi = {
       clear: jest.fn(),
-      request: jest.fn((url: string, options: any) => {
+      requestPromise: jest.fn((url: string, _options: any) => {
         if (url.startsWith('/_admin/cells/us/')) {
-          options.success([{id: '1', name: 'Acme', members: 5}], 'success', {
-            getResponseHeader: () => null,
-          });
-          return {requestPromise: Promise.resolve()};
+          return Promise.resolve([
+            [{id: '1', name: 'Acme', members: 5}],
+            'success',
+            {
+              getResponseHeader: () => null,
+            },
+          ]);
         }
-        return {requestPromise: Promise.reject(new Error('Failed to fetch'))};
+        return Promise.reject(new Error('Failed to fetch'));
       }),
     };
 

@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 import {useQuery} from '@tanstack/react-query';
 
 import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
@@ -9,7 +10,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DocIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -100,7 +100,7 @@ export default function DocIntegrationDetailsView() {
 
   return (
     <IntegrationLayout.Body
-      integrationName={integrationName}
+      title={integrationName}
       alert={null}
       topSection={
         <IntegrationLayout.TopSection

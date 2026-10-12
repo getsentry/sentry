@@ -23,6 +23,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouplink import GroupLink
@@ -54,6 +55,16 @@ class GitLabWebhookTestCase(GitLabTestCase):
 
 
 class WebhookTest(GitLabWebhookTestCase):
+    def _post_push_event(self, data: bytes = PUSH_EVENT) -> None:
+        response = self.client.post(
+            self.url,
+            data=data,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        assert response.status_code == 204
+
     def assert_commit_author(self, author: CommitAuthor) -> None:
         assert author.email
         assert author.name
@@ -304,11 +315,21 @@ class WebhookTest(GitLabWebhookTestCase):
         assert len(commits) == 2
         for commit in commits:
             assert commit.organization_id == self.organization.id
+        file_changes = CommitFileChange.objects.filter(
+            commit_id__in=[commit.id for commit in commits]
+        )
+        assert file_changes.count() == 4
+        assert {change.organization_id for change in file_changes} == {self.organization.id}
 
         commits = Commit.objects.filter(repository_id=other_repo.id).all()
         assert len(commits) == 2
         for commit in commits:
             assert commit.organization_id == other_org.id
+        file_changes = CommitFileChange.objects.filter(
+            commit_id__in=[commit.id for commit in commits]
+        )
+        assert file_changes.count() == 4
+        assert {change.organization_id for change in file_changes} == {other_org.id}
 
     def test_merge_event_handled_only_by_organizations_with_the_repo(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
@@ -371,6 +392,87 @@ class WebhookTest(GitLabWebhookTestCase):
             assert author.name
             assert author.organization_id == self.organization.id
 
+    def test_push_event_creates_commit_file_changes(self) -> None:
+        repo = self.create_gitlab_repo("getsentry/sentry")
+        push_event = orjson.loads(PUSH_EVENT)
+        push_event["commits"][0]["removed"] = ["src/deleted.py"]
+        self._post_push_event(orjson.dumps(push_event))
+
+        commit_keys = dict(Commit.objects.filter(repository_id=repo.id).values_list("id", "key"))
+        file_changes = CommitFileChange.objects.filter(commit_id__in=commit_keys).order_by(
+            "commit_id", "filename"
+        )
+        assert {change.organization_id for change in file_changes} == {self.organization.id}
+        assert [
+            (commit_keys[change.commit_id], change.filename, change.type) for change in file_changes
+        ] == [
+            (push_event["commits"][0]["id"], "CHANGELOG", "A"),
+            (push_event["commits"][0]["id"], "app/controller/application.rb", "M"),
+            (push_event["commits"][0]["id"], "src/deleted.py", "D"),
+            (push_event["commits"][1]["id"], "CHANGELOG", "A"),
+            (push_event["commits"][1]["id"], "app/controller/application.rb", "M"),
+        ]
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_push_event_codeowners_change_triggers_auto_sync(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        push_event = orjson.loads(PUSH_EVENT)
+        push_event["commits"][0]["added"] = [".gitlab/CODEOWNERS"]
+        push_event["commits"][1]["added"] = []
+        self._post_push_event(orjson.dumps(push_event))
+
+        commit = Commit.objects.get(key=push_event["commits"][0]["id"])
+        mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_push_event_non_codeowners_change_does_not_trigger_auto_sync(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        self._post_push_event()
+        mock_code_owners_auto_sync.delay.assert_not_called()
+
+    def test_push_event_missing_file_change_fields(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        push_event = orjson.loads(PUSH_EVENT)
+        for commit in push_event["commits"]:
+            del commit["added"]
+            del commit["modified"]
+            del commit["removed"]
+
+        self._post_push_event(orjson.dumps(push_event))
+        assert Commit.objects.count() == 2
+        assert CommitFileChange.objects.count() == 0
+
+    def test_push_event_duplicate_delivery_is_idempotent(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+
+        for _ in range(2):
+            self._post_push_event()
+
+        assert Commit.objects.count() == 2
+        assert CommitFileChange.objects.count() == 4
+
+    @patch("sentry.tasks.codeowners.code_owners_auto_sync")
+    def test_push_event_duplicate_filename_creates_one_change_and_sync_task(
+        self, mock_code_owners_auto_sync: MagicMock
+    ) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        push_event = orjson.loads(PUSH_EVENT)
+        push_event["commits"] = [push_event["commits"][0]]
+        push_event["commits"][0]["added"] = ["CODEOWNERS"]
+        push_event["commits"][0]["modified"] = ["CODEOWNERS"]
+        push_event["commits"][0]["removed"] = []
+        self._post_push_event(orjson.dumps(push_event))
+
+        commit = Commit.objects.get()
+        assert list(
+            CommitFileChange.objects.filter(commit_id=commit.id).values_list("filename", "type")
+        ) == [("CODEOWNERS", "A")]
+        mock_code_owners_auto_sync.delay.assert_called_once_with(commit_id=commit.id)
+
     def test_push_event_create_commits_with_no_author_email(self) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
         push_event = orjson.loads(PUSH_EVENT)
@@ -417,6 +519,7 @@ class WebhookTest(GitLabWebhookTestCase):
         )
         assert response.status_code == 204
         assert 0 == Commit.objects.count()
+        assert 0 == CommitFileChange.objects.count()
 
     def test_push_event_known_author(self) -> None:
         CommitAuthor.objects.create(

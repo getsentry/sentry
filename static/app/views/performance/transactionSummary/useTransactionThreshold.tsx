@@ -20,6 +20,10 @@ interface UseTransactionThresholdProps {
   eventView: EventView;
   organization: Organization;
   transactionName: string;
+  /**
+   * Skips loading the threshold when the caller won't offer the control.
+   */
+  enabled?: boolean;
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 }
 
@@ -46,6 +50,7 @@ export function useTransactionThreshold({
   eventView,
   organization,
   transactionName,
+  enabled = true,
   onChangeThreshold,
 }: UseTransactionThresholdProps): TransactionThreshold {
   const {openModal} = useModal();
@@ -65,7 +70,11 @@ export function useTransactionThreshold({
       staleTime: 0,
     }
   );
-  const overrideQuery = useQuery({...overrideOptions, retry: false});
+  const overrideQuery = useQuery({
+    ...overrideOptions,
+    enabled: overrideOptions.enabled && enabled,
+    retry: false,
+  });
 
   const projectOptions = apiOptions.as<ThresholdResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',

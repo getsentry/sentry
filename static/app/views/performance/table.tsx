@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState, type ReactNode} from 'react';
+import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -11,8 +12,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
-import {IconStar} from 'sentry/icons';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -481,7 +481,7 @@ export function Table({
                       }
                       isLoading={isLoading}
                     >
-                      <GridEditable
+                      <DataGrid
                         isLoading={isLoading}
                         data={tableData ? tableData.data : []}
                         columnOrder={columnOrder}

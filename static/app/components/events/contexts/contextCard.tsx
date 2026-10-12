@@ -3,29 +3,23 @@ import startCase from 'lodash/startCase';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
-  getContextAttributeKey,
   getContextIcon,
   getContextMeta,
   getContextTitle,
   getContextType,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
-import {hasScrubbedData} from 'sentry/components/events/meta/annotatedText/utils';
 import {
   KeyValueTableCard,
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
-  KeyValueTableSubject,
 } from 'sentry/components/tables/keyValueTable';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListDataItem} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
-import type {GetFieldDefinitionType} from 'sentry/utils/fields';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -39,8 +33,6 @@ interface ContextCardProps {
 }
 
 interface ContextCardContentConfig {
-  // The registry each key's field definition is looked up in, for hover details.
-  attributeDetailsType?: GetFieldDefinitionType;
   // Omit error styling from being displayed, even if context is invalid
   disableErrors?: boolean;
   // Displays value as plain text, rather than a hyperlink if applicable
@@ -55,11 +47,14 @@ interface ContextCardContentProps {
   meta: Record<string, any>;
   alias?: string;
   config?: ContextCardContentConfig;
-  /**
-   * The context's `type`, which names its field definitions even when the alias
-   * has been renamed. Without it the alias is used.
-   */
-  type?: string;
+}
+
+function getContextItemMeta(
+  meta: Record<string, any> | undefined,
+  key: string
+): Pick<KeyValueTableDataRowProps, 'errors' | 'meta'> {
+  const itemMeta = meta?.[key];
+  return {meta: itemMeta, errors: itemMeta?.['']?.err ?? []};
 }
 
 export function ContextCardContent({
@@ -67,39 +62,19 @@ export function ContextCardContent({
   alias,
   meta,
   config,
-  type,
   ...props
 }: ContextCardContentProps) {
   const {key: contextKey, subject} = item;
   if (contextKey === 'type') {
     return null;
   }
-  const contextMeta = meta?.[contextKey];
-  const contextErrors = contextMeta?.['']?.err ?? [];
+  const {meta: contextMeta, errors: contextErrors} = getContextItemMeta(meta, contextKey);
   const contextSubject =
     config?.includeAliasInSubject && alias ? `${startCase(alias)}: ${subject}` : subject;
-  const attributeDetailsType = config?.attributeDetailsType;
 
   return (
     <KeyValueTableDataRow
-      item={{
-        ...item,
-        subject: contextSubject,
-        subjectNode:
-          attributeDetailsType && defined(alias) ? (
-            <KeyValueTableSubject>
-              <AttributeDetailsTooltip
-                attributeKey={getContextAttributeKey({alias, contextKey, type})}
-                fieldDefinitionType={attributeDetailsType}
-                isScrubbed={hasScrubbedData(contextMeta?.['']?.rem)}
-              >
-                {contextSubject}
-              </AttributeDetailsTooltip>
-            </KeyValueTableSubject>
-          ) : (
-            item.subjectNode
-          ),
-      }}
+      item={{...item, subject: contextSubject}}
       meta={contextMeta}
       errors={config?.disableErrors ? [] : contextErrors}
       disableLink={config?.disableLink ?? false}
@@ -127,15 +102,10 @@ export function ContextCard({alias, event, type, project, value = {}}: ContextCa
     location,
   });
 
-  const contentItems = contextItems.map<KeyValueTableDataRowProps>(item => {
-    const itemMeta: KeyValueTableDataRowProps['meta'] = meta?.[item?.key];
-    const itemErrors: KeyValueTableDataRowProps['errors'] = itemMeta?.['']?.err ?? [];
-    return {
-      item,
-      meta: itemMeta,
-      errors: itemErrors,
-    };
-  });
+  const contentItems = contextItems.map<KeyValueTableDataRowProps>(item => ({
+    item,
+    ...getContextItemMeta(meta, item.key),
+  }));
 
   return (
     <KeyValueTableCard

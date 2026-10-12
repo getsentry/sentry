@@ -16,6 +16,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
+import {AuthCritter} from 'sentry/views/authV2/authCritter';
 import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
 
 import {AccountAuthentication} from './components/accountAuthentication';
@@ -207,7 +208,7 @@ export default function AuthLogin() {
 
   return (
     <Fragment>
-      <Stack width="100%" maxWidth="360px" gap="2xl">
+      <Stack position="relative" width="100%" maxWidth="360px" gap="2xl">
         <Heading as="h1" size="3xl" align="center">
           {t('Sign in to Sentry')}
         </Heading>
@@ -293,6 +294,7 @@ export default function AuthLogin() {
             )}
           </MotionStack>
         </AnimatePresence>
+        <AuthCritter />
       </Stack>
 
       {(loginConfig?.warning || loginConfig?.loginBannerMarkdown) && (

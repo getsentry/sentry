@@ -1,5 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -9,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {

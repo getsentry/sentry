@@ -103,6 +103,7 @@ def create_activity_notification_example(
     activity_data: dict[str, Any] | None = None,
 ) -> ActivityNotificationData:
     return ActivityNotificationData(
+        organization_id=1,
         activity_user_name="Jane Doe",
         issue_short_id="JAVASCRIPT-1",
         issue_url=EXAMPLE_ISSUE_URL,
@@ -275,6 +276,7 @@ def build_activity_notification_data(
 
     action_data = dict(
         source=source,
+        organization_id=organization.id,
         activity_type=activity.type,
         issue_short_id=group.qualified_short_id,
         issue_url=absolute_uri(issue_url),

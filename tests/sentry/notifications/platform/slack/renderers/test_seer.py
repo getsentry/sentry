@@ -263,7 +263,9 @@ class SeerSlackRendererTest(TestCase):
 
 class SeerSlackRendererAgentErrorTest(TestCase):
     def test_render_agent_error(self) -> None:
-        data = SeerAgentError(error_message="Seer could not explore your organization.")
+        data = SeerAgentError(
+            organization_id=1, error_message="Seer could not explore your organization."
+        )
         renderable = SeerSlackRenderer._render_agent_error(data)
 
         assert renderable["text"] == "Seer stumbled: Seer had some trouble..."
@@ -278,6 +280,7 @@ class SeerSlackRendererAgentErrorTest(TestCase):
 
     def test_render_agent_error_custom_title(self) -> None:
         data = SeerAgentError(
+            organization_id=1,
             error_message="Timeout.",
             error_title="Agent failed",
         )
@@ -294,7 +297,7 @@ class SeerSlackRendererAgentErrorTest(TestCase):
         assert ">Timeout." in body_block.text.text
 
     def test_render_dispatches_to_agent_error(self) -> None:
-        data = SeerAgentError(error_message="Something went wrong.")
+        data = SeerAgentError(organization_id=1, error_message="Something went wrong.")
         renderable = SeerSlackRenderer.render(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="", body=[]),

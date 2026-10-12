@@ -10,7 +10,7 @@ from sentry import features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
-from sentry.api.utils import default_start_end_dates
+from sentry.api.utils import default_start_end_dates, handle_query_errors
 from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.seer_api import (
@@ -231,13 +231,14 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
 
             # Query for replay existence and start/end times, to prevent spawning a Seer task and DB entry for non-existent replays.
             start, end = default_start_end_dates()  # Query last 90d.
-            snuba_response = query_replay_instance(
-                project_id=project.id,
-                replay_id=replay_id,
-                start=start,
-                end=end,
-                organization=project.organization,
-            )
+            with handle_query_errors():
+                snuba_response = query_replay_instance(
+                    project_id=project.id,
+                    replay_id=replay_id,
+                    start=start,
+                    end=end,
+                    organization=project.organization,
+                )
             if not snuba_response:
                 return self.respond(
                     {"detail": "Replay not found."},

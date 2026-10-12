@@ -82,6 +82,22 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         # Clear the cache after each test
         cache.delete(f"ai-group-summary-v2:{self.group.id}")
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.seer.autofix.issue_summary._generate_summary")
+    def test_first_assignment_does_not_record_scanner_usage(
+        self, mock_generate_summary: MagicMock, mock_record_seer_run: MagicMock
+    ) -> None:
+        summary = IssueSummary(group_id=str(self.group.id), event_id="event", headline="Summary")
+        mock_generate_summary.return_value = summary
+
+        result = get_or_generate_issue_summary(
+            self.group, source=SeerAutomationSource.FIRST_ASSIGNMENT
+        )
+
+        assert result == summary
+        mock_generate_summary.assert_called_once()
+        mock_record_seer_run.assert_not_called()
+
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     def test_get_issue_summary_with_existing_summary(self, mock_call_seer):
         existing_summary = {

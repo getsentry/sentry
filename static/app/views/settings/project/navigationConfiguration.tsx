@@ -47,6 +47,13 @@ export function getNavigationConfiguration({
           description: t("View and manage a project's tags and context"),
         },
         {
+          path: `${pathPrefix}/attributes/`,
+          title: t('Attributes'),
+          description: t("Browse a project's log, metric, and span attributes"),
+          keywords: [t('attribute'), t('attributes')],
+          show: () => !!organization?.features?.includes('attribute-management'),
+        },
+        {
           path: `${pathPrefix}/environments/`,
           title: t('Environments'),
           keywords: [t('environment'), t('env'), t('staging'), t('production')],

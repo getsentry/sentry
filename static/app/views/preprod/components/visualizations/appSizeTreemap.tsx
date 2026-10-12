@@ -1,6 +1,12 @@
 import {useContext, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconContract} from '@sentry/icons/contract';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconFix} from '@sentry/icons/fix';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconSearch} from '@sentry/icons/search';
 import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,14 +20,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
-import {
-  IconClose,
-  IconContract,
-  IconExpand,
-  IconFix,
-  IconLightning,
-  IconSearch,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';

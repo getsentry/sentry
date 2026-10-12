@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   formatDateRange,
@@ -18,6 +19,7 @@ import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {useProjects} from 'sentry/utils/useProjects';
 
 const MAX_PROJECT_CHIPS = 3;
+const MAX_FIELD_CHIPS = 3;
 
 export function QueryTokens(props: QueryTokensProps) {
   const normalizedDateTimeParams = normalizeSeerDateTimeParams(props);
@@ -36,8 +38,10 @@ function NewQueryTokens({
   visualizations,
   expandedProjectIds,
   crossEvents,
+  extraFields,
 }: QueryTokensProps) {
   const tokens: React.ReactNode[] = [];
+  const {strategy} = useAiQueryContext();
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {projects} = useProjects();
   // Project is applied to the page-level project selector, so surface it as the
@@ -100,6 +104,31 @@ function NewQueryTokens({
           {groupBys.map((groupBy, idx) => (
             <ExploreGroupBys key={idx}>{groupBy}</ExploreGroupBys>
           ))}
+        </Stack>
+      </Stack>
+    );
+  }
+
+  // Extra fields only land as sample-table columns, so they're meaningless
+  // alongside group bys (aggregate mode) or on Issues/Metrics, whose UI has no
+  // column selection to apply them to.
+  const showExtraFields =
+    !groupBys?.length &&
+    !!extraFields?.length &&
+    strategy !== 'Issues' &&
+    strategy !== 'Metrics';
+
+  if (showExtraFields) {
+    const visibleFields = extraFields.slice(0, MAX_FIELD_CHIPS);
+
+    tokens.push(
+      <Stack key="fields">
+        <ExploreParamTitle>{t('Fields')}</ExploreParamTitle>
+        <Stack as="span" gap="xs" overflow="hidden">
+          {visibleFields.map(field => (
+            <ExploreGroupBys key={field}>{field}</ExploreGroupBys>
+          ))}
+          {extraFields.length > MAX_FIELD_CHIPS && <ExploreGroupBys>…</ExploreGroupBys>}
         </Stack>
       </Stack>
     );

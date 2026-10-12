@@ -1,4 +1,5 @@
 import {ApiTokenFixture} from 'sentry-fixture/apiToken';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -204,5 +205,63 @@ describe('ApiNewToken', () => {
     expect(
       screen.queryByRole('checkbox', {name: 'Continuous Integration (CI)'})
     ).not.toBeInTheDocument();
+  });
+
+  it('does not render granular permissions without the flag', () => {
+    render(<ApiNewToken />);
+    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Dashboards'})).not.toBeInTheDocument();
+  });
+
+  describe('with granular-permission-scopes-ui', () => {
+    const organization = OrganizationFixture({
+      features: ['granular-permission-scopes-ui'],
+    });
+
+    it('replaces the existing permissions with granular ones', () => {
+      render(<ApiNewToken />, {organization});
+      expect(screen.getByRole('textbox', {name: 'Dashboards'})).toBeInTheDocument();
+      expect(screen.queryByRole('textbox', {name: 'Project'})).not.toBeInTheDocument();
+    });
+
+    it('submits the selected levels and the levels before them', async () => {
+      MockApiClient.clearMockResponses();
+      const assignMock = MockApiClient.addMockResponse({
+        method: 'POST',
+        url: '/api-tokens/',
+      });
+
+      render(<ApiNewToken />, {organization});
+
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Dashboards'}),
+        'Write'
+      );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Members'}), 'Read');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Member Invites'}),
+        'Invite'
+      );
+
+      const expectedScopes = [
+        'dashboard:create',
+        'dashboard:read',
+        'dashboard:write',
+        'member:invite',
+        'member:read',
+      ];
+      expect(screen.getByText(expectedScopes.join(', '))).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+      await waitFor(() =>
+        expect(assignMock).toHaveBeenCalledWith(
+          '/api-tokens/',
+          expect.objectContaining({
+            data: expect.objectContaining({scopes: expectedScopes}),
+          })
+        )
+      );
+    });
   });
 });

@@ -1,8 +1,8 @@
 from typing import Any
 from unittest import mock
 
-import sentry_sdk
 from google.api_core.exceptions import RetryError
+from sentry_sdk import traces
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.status_change_consumer import process_status_change_message, update_status
@@ -319,12 +319,12 @@ class TestProcessWorkflowActivity(TestCase):
 
         with (
             self.tasks(),
-            sentry_sdk.start_transaction(
-                op="process_status_change_message",
+            traces.start_span(
                 name="issues.status_change_consumer",
-            ) as txn,
+                attributes={"sentry.op": "process_status_change_message"},
+            ) as span,
         ):
-            process_status_change_message(self.message, txn)
+            process_status_change_message(self.message, span)
 
             # Workflow engine evaluated activity update in process_workflows
             mock_incr.assert_any_call(

@@ -262,6 +262,7 @@ const config: Config.InitialOptions = {
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
+  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|avif|webp|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
@@ -295,6 +296,7 @@ const config: Config.InitialOptions = {
   },
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
+    '<rootDir>/tests/js/sentry-test/setupReact.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     'jest-canvas-mock',
   ],
@@ -308,6 +310,7 @@ const config: Config.InitialOptions = {
   testPathIgnorePatterns: [
     '<rootDir>/tests/sentry/lang/javascript/',
     '<rootDir>/static/packages/scraps/',
+    '<rootDir>/static/packages/icons/',
   ],
   // Coding agents check out nested git worktrees under .claude/worktrees/, each a
   // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
@@ -348,7 +351,8 @@ const config: Config.InitialOptions = {
         dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
-        tracesSampleRate: CI ? 0.75 : 0,
+        // Trace every master run so failures there are always traceable; sample PRs
+        tracesSampleRate: CI ? (IS_MASTER_BRANCH ? 1 : 0.75) : 0,
         profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },

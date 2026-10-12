@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -19,7 +20,6 @@ import {
 import {LazyRender} from 'sentry/components/lazyRender';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';

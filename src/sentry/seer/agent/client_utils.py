@@ -138,6 +138,7 @@ class AgentRunOptions(TypedDict):
     is_context_engine_enabled: NotRequired[bool]
     enable_bash_mode: NotRequired[bool]
     enable_coding: NotRequired[bool]
+    enable_pr_context_tools: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
