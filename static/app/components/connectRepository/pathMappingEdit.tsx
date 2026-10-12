@@ -1,6 +1,7 @@
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconBranch} from '@sentry/icons/branch';
 import {IconSentry} from '@sentry/icons/sentry';
+import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {withFieldGroup} from '@sentry/scraps/form';
@@ -9,6 +10,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SOURCE_ROOT_PLACEHOLDER, STACK_ROOT_PLACEHOLDER} from './constants';
 import {
@@ -20,7 +22,11 @@ import {
 import {PathMappingDeleteButton} from './pathMappingDeleteButton';
 import {PathMappingPreview} from './pathMappingPreview';
 import {PathMappingWarningAlert} from './pathMappingWarningAlert';
+import {PathPrefixCombobox} from './pathPrefixCombobox';
+import {stackCodeMappingPrefixesOptions} from './queries';
 import type {PathMappingWarning} from './warnings';
+
+const PREFIX_MENU_MAX_HEIGHT = 250;
 
 export const PathMappingEdit = withFieldGroup({
   defaultValues: {stackRoot: '', sourceRoot: '', branch: ''},
@@ -32,7 +38,7 @@ export const PathMappingEdit = withFieldGroup({
     providerKey?: string;
     warning?: PathMappingWarning;
   },
-  render: ({
+  render: function PathMappingEditRender({
     group,
     defaultBranch,
     hasCodeOwner,
@@ -40,7 +46,12 @@ export const PathMappingEdit = withFieldGroup({
     projectSlug,
     providerKey,
     warning,
-  }) => {
+  }) {
+    const organization = useOrganization();
+    const stackPrefixes = useQuery(
+      stackCodeMappingPrefixesOptions({orgSlug: organization.slug, projectSlug})
+    );
+
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
 
     return (
@@ -77,13 +88,7 @@ export const PathMappingEdit = withFieldGroup({
           </group.AppField>
 
           <Grid columns={{zero: '1fr', '2xs': '1fr auto 1fr'}} gap="xl">
-            <group.AppField
-              name="stackRoot"
-              listeners={{
-                onBlur: ({value}) =>
-                  group.setFieldValue('stackRoot', normalizeRoot(value)),
-              }}
-            >
+            <group.AppField name="stackRoot">
               {field => (
                 <field.Layout.Stack
                   label={
@@ -95,11 +100,16 @@ export const PathMappingEdit = withFieldGroup({
                   }
                   hintText={t('The start of the paths in your stack traces.')}
                 >
-                  <field.Input
+                  <PathPrefixCombobox
+                    aria-label={t('Stack trace prefix')}
                     value={field.state.value}
                     onChange={field.handleChange}
+                    options={stackPrefixes.data?.prefixes ?? []}
+                    isLoading={stackPrefixes.isLoading}
                     placeholder={STACK_ROOT_PLACEHOLDER}
                     disabled={hasCodeOwner}
+                    menuWidth="100cqi"
+                    maxMenuHeight={PREFIX_MENU_MAX_HEIGHT}
                   />
                 </field.Layout.Stack>
               )}
