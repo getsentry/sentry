@@ -1,15 +1,6 @@
 import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-
-import {
-  groupIntoBuckets,
-  hasDroppedData,
-  reasonDescription,
-  reasonTitle,
-  severityColor,
-  withAlpha,
-} from './utils';
+import {groupIntoBuckets, hasDroppedData} from './buckets';
 
 describe('hasDroppedData', () => {
   it('is true when there is at least one dropped event', () => {
@@ -183,93 +174,5 @@ describe('groupIntoBuckets', () => {
 
     expect(buckets[0]!.accepted.count).toBe(0);
     expect(buckets[0]!.ratio).toBe(1);
-  });
-});
-
-describe('severityColor', () => {
-  const opaque = (color: string) => `${color}FF`.toUpperCase();
-
-  it.each([
-    ['light', lightTheme],
-    ['dark', darkTheme],
-  ])('colors drop ratios with the %s magma scale', (_, theme) => {
-    const scale = theme.tokens.dataviz.sequential.magma.series5;
-
-    expect(severityColor(0, theme)).toBe(opaque(theme.tokens.background.secondary));
-    expect(severityColor(0.001, theme)).toBe(opaque(scale[0]));
-    expect(severityColor(0.049, theme)).toBe(opaque(scale[0]));
-    expect(severityColor(0.05, theme)).toBe(opaque(scale[1]));
-    expect(severityColor(0.1, theme)).toBe(opaque(scale[2]));
-    expect(severityColor(0.25, theme)).toBe(opaque(scale[3]));
-    expect(severityColor(0.5, theme)).toBe(opaque(scale[4]));
-    expect(severityColor(1, theme)).toBe(opaque(scale[4]));
-  });
-
-  it.each([
-    ['light', lightTheme],
-    ['dark', darkTheme],
-  ])('returns #RRGGBBAA colors in the %s theme', (_, themeVariant) => {
-    for (const ratio of [0, 0.05, 0.1, 0.25, 0.5]) {
-      expect(severityColor(ratio, themeVariant)).toMatch(/^#[0-9A-F]{8}$/);
-    }
-  });
-});
-
-describe('withAlpha', () => {
-  it('appends an alpha channel to a #RRGGBB color', () => {
-    expect(withAlpha('#ff9500', 0.5)).toBe('#FF950080');
-  });
-
-  it('replaces the alpha channel of a #RRGGBBAA color', () => {
-    expect(withAlpha('#FF9500FF', 0)).toBe('#FF950000');
-  });
-});
-
-describe('reasonTitle', () => {
-  it('maps a known reason code to its human title', () => {
-    expect(reasonTitle('sample_rate')).toBe('Dropped by sample rate');
-    expect(reasonTitle('too_large:span')).toBe('Span payload too large');
-  });
-
-  it('maps category-prefixed quota reasons to the quota title', () => {
-    expect(reasonTitle('span_usage_exceeded')).toBe('Quota exceeded');
-    expect(reasonTitle('log_bytes_usage_exceeded')).toBe('Quota exceeded');
-  });
-
-  it('falls back to the raw code for an unknown reason', () => {
-    expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
-  });
-});
-
-describe('reasonDescription', () => {
-  it('returns the short description for a known reason', () => {
-    expect(reasonDescription('queue_overflow', 'span')).toBe(
-      "SDK's send queue was full."
-    );
-  });
-
-  it('names the data type from the event category', () => {
-    expect(reasonDescription('project_abuse_limit', 'log_item')).toBe(
-      'Your log events exceeded the project abuse limit.'
-    );
-    expect(reasonDescription('usage_exceeded', 'trace_metric')).toBe(
-      'Your organization hit its quota for the application metric event type.'
-    );
-  });
-
-  it('describes category-prefixed quota reasons', () => {
-    expect(reasonDescription('span_usage_exceeded', 'span')).toBe(
-      'Your organization hit its quota for the span event type.'
-    );
-  });
-
-  it('drops the data type for an unknown category', () => {
-    expect(reasonDescription('too_large:event', 'unknown')).toBe(
-      'The event exceeded maximum payload size.'
-    );
-  });
-
-  it('returns undefined for an unknown reason', () => {
-    expect(reasonDescription('some_new_reason', 'span')).toBeUndefined();
   });
 });

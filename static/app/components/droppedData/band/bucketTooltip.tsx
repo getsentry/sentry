@@ -6,11 +6,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  type DroppedDataBucket,
-  formatDroppedShare,
-  type OutcomeVolume,
-} from 'sentry/components/droppedData/utils';
+import {formatDroppedShare} from 'sentry/components/droppedData/outcomes';
+import type {DroppedDataBucket, OutcomeVolume} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import {getFormat} from 'sentry/utils/dates';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';

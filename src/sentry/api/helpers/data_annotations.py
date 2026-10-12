@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 import sentry_sdk
+from sentry_sdk import traces
 
 from sentry.api.endpoints.timeseries import Annotation
 from sentry.constants import DataCategory
@@ -16,7 +17,6 @@ from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -164,11 +164,13 @@ def get_dropped_data_annotations(
         return [], []
     organization_id = snuba_params.organization_id
 
-    with start_span(
-        name="data_annotations.get_dropped_data", op="data_annotations.get_dropped_data"
+    with traces.start_span(
+        name="data_annotations.get_dropped_data",
+        attributes={
+            "sentry.op": "data_annotations.get_dropped_data",
+            "category": category.api_name(),
+        },
     ) as span:
-        set_span_data(span, "category", category.api_name())
-
         item_rows = _run_category_query(category, snuba_params, rollup, organization_id)
         accepted_by_bucket = _accepted_by_bucket(item_rows)
         dropped_by_key = _dropped_by_bucket_reason(item_rows)
@@ -206,6 +208,6 @@ def get_dropped_data_annotations(
             )
             accepted_annotations.append(annotation)
 
-        set_span_data(span, "dropped_annotation_count", len(dropped_annotations))
-        set_span_data(span, "accepted_annotation_count", len(accepted_annotations))
+        span.set_attribute("dropped_annotation_count", len(dropped_annotations))
+        span.set_attribute("accepted_annotation_count", len(accepted_annotations))
         return dropped_annotations, accepted_annotations

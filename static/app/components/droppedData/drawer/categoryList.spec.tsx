@@ -5,7 +5,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {
   droppedEventsToCategorySections,
   DroppedDataCategoryList,
-} from 'sentry/components/droppedData/droppedDataCategoryList';
+} from 'sentry/components/droppedData/drawer/categoryList';
 
 describe('droppedEventsToCategorySections', () => {
   it('returns no sections for no dropped events', () => {

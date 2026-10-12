@@ -1,13 +1,9 @@
 import type {Theme} from '@emotion/react';
 
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
-import {defined} from 'sentry/utils/defined';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-
-const CONFIGURED_CLIENT_DISCARD_REASONS = new Set(['before_send', 'sample_rate']);
 
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
   [Outcome.CLIENT_DISCARD]: t('Client discard'),
@@ -121,15 +117,6 @@ export function reasonDescription(reason: string, category: string): string | un
     : description;
 }
 
-export function hasDroppedData(
-  droppedEvents: DroppedEventsBucket[] | undefined,
-  acceptedEvents?: DroppedEventsBucket[]
-): droppedEvents is DroppedEventsBucket[] {
-  return (
-    defined(droppedEvents) && highlightedBuckets(droppedEvents, acceptedEvents).length > 0
-  );
-}
-
 export function getOutcomeColors(
   outcomes: string[],
   theme: Theme
@@ -148,163 +135,4 @@ const SHARE_MIN_VALUE = 0.0001;
 
 export function formatDroppedShare(ratio: number): string {
   return formatPercentage(ratio, 2, {minimumValue: SHARE_MIN_VALUE});
-}
-
-function isConfiguredDrop({outcome, reason}: DroppedEventsBucket): boolean {
-  if (outcome === 'filtered') {
-    return true;
-  }
-
-  return outcome === 'client_discard' && CONFIGURED_CLIENT_DISCARD_REASONS.has(reason);
-}
-
-export function withAlpha(color: string, alpha: number): string {
-  const channel = Math.round(alpha * 255)
-    .toString(16)
-    .padStart(2, '0');
-  return `${color.slice(0, 7)}${channel}`.toUpperCase();
-}
-
-const SEVERITY_THRESHOLDS = [0, 0.05, 0.1, 0.25, 0.5] as const;
-
-export function severityColor(ratio: number, theme: Theme): string {
-  if (ratio <= 0) {
-    return withAlpha(theme.tokens.background.secondary, 1);
-  }
-
-  const scale = theme.tokens.dataviz.sequential.magma.series5;
-  const step = SEVERITY_THRESHOLDS.findLastIndex(threshold => ratio >= threshold);
-  return withAlpha(scale[step]!, 1);
-}
-
-interface EventVolume {
-  count: number;
-}
-
-export interface OutcomeVolume extends EventVolume {
-  outcome: string;
-}
-
-/**
- * Dropped and accepted volume for one chart time bucket.
- */
-export interface DroppedDataBucket {
-  accepted: EventVolume;
-  byOutcome: OutcomeVolume[];
-  dropped: EventVolume;
-  end: number;
-  events: DroppedEventsBucket[];
-  ratio: number;
-  start: number;
-}
-
-interface BucketDraft {
-  byOutcome: Map<string, OutcomeVolume>;
-  dropped: EventVolume;
-  end: number;
-  events: DroppedEventsBucket[];
-  start: number;
-}
-
-function emptyVolume(): EventVolume {
-  return {count: 0};
-}
-
-function addCount(volume: EventVolume, event: DroppedEventsBucket): void {
-  volume.count += event.count;
-}
-
-function addDroppedEvent(
-  drafts: Map<string, BucketDraft>,
-  event: DroppedEventsBucket
-): void {
-  if (isConfiguredDrop(event)) {
-    return;
-  }
-
-  const key = `${event.start}-${event.end}`;
-  let draft = drafts.get(key);
-
-  if (!draft) {
-    draft = {
-      start: event.start,
-      end: event.end,
-      events: [],
-      byOutcome: new Map(),
-      dropped: emptyVolume(),
-    };
-    drafts.set(key, draft);
-  }
-
-  draft.events.push(event);
-  addCount(draft.dropped, event);
-
-  let outcomeVolume = draft.byOutcome.get(event.outcome);
-  if (!outcomeVolume) {
-    outcomeVolume = {
-      outcome: event.outcome,
-      ...emptyVolume(),
-    };
-    draft.byOutcome.set(event.outcome, outcomeVolume);
-  }
-  addCount(outcomeVolume, event);
-}
-
-function acceptedVolumeByStart(events: DroppedEventsBucket[]): Map<number, EventVolume> {
-  const volumes = new Map<number, EventVolume>();
-
-  for (const event of events) {
-    const accepted = volumes.get(event.start) ?? emptyVolume();
-    addCount(accepted, event);
-    volumes.set(event.start, accepted);
-  }
-
-  return volumes;
-}
-
-function toBucket(
-  draft: BucketDraft,
-  acceptedByStart: Map<number, EventVolume>
-): DroppedDataBucket {
-  const accepted = acceptedByStart.get(draft.start) ?? emptyVolume();
-  const total = draft.dropped.count + accepted.count;
-  const ratio = total > 0 ? draft.dropped.count / total : 0;
-
-  return {
-    start: draft.start,
-    end: draft.end,
-    events: draft.events,
-    byOutcome: Array.from(draft.byOutcome.values()).sort((a, b) => b.count - a.count),
-    dropped: draft.dropped,
-    accepted,
-    ratio,
-  };
-}
-
-/**
- * Group dropped events by their `(start, end)` time bucket, joining the
- * accepted volume for the same bucket so every total has a denominator.
- */
-export function groupIntoBuckets(
-  droppedEvents: DroppedEventsBucket[],
-  acceptedEvents: DroppedEventsBucket[] = []
-): DroppedDataBucket[] {
-  const drafts = new Map<string, BucketDraft>();
-
-  for (const event of droppedEvents) {
-    addDroppedEvent(drafts, event);
-  }
-
-  const acceptedByStart = acceptedVolumeByStart(acceptedEvents);
-
-  return Array.from(drafts.values()).map(draft => toBucket(draft, acceptedByStart));
-}
-
-export function highlightedBuckets(
-  droppedEvents: DroppedEventsBucket[],
-  acceptedEvents?: DroppedEventsBucket[]
-): DroppedDataBucket[] {
-  return groupIntoBuckets(droppedEvents, acceptedEvents).filter(
-    bucket => bucket.ratio > 0
-  );
 }
