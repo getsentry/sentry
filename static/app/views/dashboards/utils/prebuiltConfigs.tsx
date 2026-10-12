@@ -85,6 +85,12 @@ type OnboardingConfig =
       requiredProjectFlags: ProjectTelemetryFlag[];
       // Custom onboarding component (AI Agents, MCP, Node.js Runtime Metrics)
       type: 'custom';
+      /**
+       * Span query used to detect data when none of the project flags are set.
+       * The span pipeline only sets these flags for segments that contain their
+       * root span, so OTLP-only projects can have data without the flag.
+       */
+      spanDataFallback?: {referrer: string; search: string};
     }
   | {
       description: string;

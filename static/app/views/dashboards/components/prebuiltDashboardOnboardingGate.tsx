@@ -1,3 +1,4 @@
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -6,6 +7,7 @@ import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltCo
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {Onboarding as AgentOnboarding} from 'sentry/views/insights/pages/agents/onboarding';
@@ -41,6 +43,30 @@ export function PrebuiltDashboardOnboardingGate({
   // Whether the selected projects have span of the required type
   const hasFirstSpan = useHasFirstSpan(moduleName);
 
+  const selectedProjects = getSelectedProjectList(
+    pageFilters.selection.projects,
+    projects
+  );
+
+  const hasProjectFlag =
+    onboarding !== undefined &&
+    onboarding.type !== 'module' &&
+    onboarding.requiredProjectFlags.some(flag => selectedProjects.some(p => p[flag]));
+
+  const spanDataFallback =
+    onboarding?.type === 'custom' ? onboarding.spanDataFallback : undefined;
+
+  const fallbackRequest = useSpans(
+    {
+      search: spanDataFallback?.search,
+      fields: ['id'],
+      limit: 1,
+      enabled: !!spanDataFallback && !hasProjectFlag,
+      pageFilters: pageFilters.selection,
+    },
+    spanDataFallback?.referrer ?? ''
+  );
+
   if (!onboarding) {
     return children;
   }
@@ -67,17 +93,12 @@ export function PrebuiltDashboardOnboardingGate({
     return children;
   }
 
-  const selectedProjects = getSelectedProjectList(
-    pageFilters.selection.projects,
-    projects
-  );
-
-  const hasData = onboarding.requiredProjectFlags.some(flag =>
-    selectedProjects.some(p => p[flag])
-  );
-
-  if (hasData) {
+  if (hasProjectFlag || fallbackRequest.data.length > 0) {
     return children;
+  }
+
+  if (fallbackRequest.isLoading) {
+    return <LoadingIndicator />;
   }
 
   if (onboarding.type === 'custom') {

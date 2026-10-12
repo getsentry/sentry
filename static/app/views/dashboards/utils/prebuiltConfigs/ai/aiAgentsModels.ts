@@ -11,6 +11,8 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const AI_GENERATIONS_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
@@ -189,5 +191,6 @@ export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {
     type: 'custom',
     componentId: 'agent-monitoring',
     requiredProjectFlags: ['hasInsightsAgentMonitoring'],
+    spanDataFallback: {search: getHasAiSpansFilter(), referrer: Referrer.ONBOARDING},
   },
 };
