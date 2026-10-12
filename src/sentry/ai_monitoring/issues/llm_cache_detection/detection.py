@@ -8,33 +8,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
-from sentry.ai_monitoring.utils import canonical_model_name
-
 DETECTION_WINDOW_DAYS = 7
 
-# Provider documentation is the only source for cacheable prefix minimums:
-# https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
-# https://platform.openai.com/docs/guides/prompt-caching
-# https://ai.google.dev/gemini-api/docs/caching
-# Keys are canonical model names. A key covers variants and snapshots.
-MIN_CACHEABLE_PREFIX_TOKENS_BY_MODEL: dict[str, int] = {
-    "claude-fable-5": 512,
-    "claude-mythos-5": 512,
-    "claude-opus-5": 512,
-    "claude-sonnet-5-5": 512,
-    "claude-3-5-haiku": 2_048,
-    "claude-mythos-preview": 2_048,
-    "claude-opus-4-7": 2_048,
-    "claude-haiku-4-5": 4_096,
-    "claude-opus-4-5": 4_096,
-    "claude-opus-4-6": 4_096,
-    "gemini-2-5-flash": 2_048,
-    "gemini-2-5-pro": 2_048,
-    "gemini-3": 4_096,
-}
-
-# OpenAI and most Claude models use this minimum.
-DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS = 1_024
+# Smaller prompts do not produce material savings, even when a provider can cache them.
+MIN_CACHEABLE_PREFIX_TOKENS = 4_096
 MIN_CALLS_FOR_CONFIDENCE = 200
 MIN_SAMPLED_CALLS = 50
 NOT_CACHING_MAX_HIT_RATE = 0.05
@@ -167,7 +144,7 @@ class CacheFinding:
 
 def classify_call_site(stats: CallSiteStats) -> Classification:
     """Classify token sums before traffic and instrumentation probes."""
-    if stats.avg_input_tokens < min_cacheable_prefix_tokens(stats.model):
+    if stats.avg_input_tokens < MIN_CACHEABLE_PREFIX_TOKENS:
         return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.SMALL_PROMPTS)
     if stats.call_count < MIN_CALLS_FOR_CONFIDENCE:
         return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_VOLUME)
@@ -192,18 +169,6 @@ def classify_call_site(stats: CallSiteStats) -> Classification:
         return Classification(CacheOutcome.NOT_CACHING, reason)
 
     return Classification(CacheOutcome.HEALTHY, OutcomeReason.CACHE_ACTIVITY)
-
-
-def min_cacheable_prefix_tokens(model: str) -> int:
-    name = canonical_model_name(model)
-    matches = [
-        key
-        for key in MIN_CACHEABLE_PREFIX_TOKENS_BY_MODEL
-        if name == key or name.startswith(f"{key}-")
-    ]
-    if not matches:
-        return DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS
-    return MIN_CACHEABLE_PREFIX_TOKENS_BY_MODEL[max(matches, key=len)]
 
 
 def reports_only_positive_cache_values(model: str) -> bool:

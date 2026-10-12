@@ -6,8 +6,8 @@ from datetime import timedelta
 import pytest
 
 from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
-    DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS,
     DETECTION_WINDOW_DAYS,
+    MIN_CACHEABLE_PREFIX_TOKENS,
     MIN_CALLS_FOR_CONFIDENCE,
     MIN_SAMPLED_CALLS,
     AgentLabelSource,
@@ -18,7 +18,6 @@ from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
     DetectionWindow,
     OutcomeReason,
     classify_call_site,
-    min_cacheable_prefix_tokens,
 )
 
 
@@ -33,7 +32,7 @@ def make_stats() -> CallSiteStats:
         sum_input_tokens=1_000_000,
         sum_cache_read_tokens=100_000,
         sum_cache_creation_tokens=150_000,
-        avg_input_tokens=2_000,
+        avg_input_tokens=5_000,
     )
 
 
@@ -106,7 +105,6 @@ def test_token_derived_properties() -> None:
             replace(
                 make_stats(),
                 model="gemini-2.5-pro",
-                avg_input_tokens=3_000,
                 sum_cache_read_tokens=0,
                 sum_cache_creation_tokens=0,
             ),
@@ -123,7 +121,7 @@ def test_token_derived_properties() -> None:
             id="thrash",
         ),
         pytest.param(
-            replace(make_stats(), avg_input_tokens=DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS - 1),
+            replace(make_stats(), avg_input_tokens=MIN_CACHEABLE_PREFIX_TOKENS - 1),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.SMALL_PROMPTS),
             id="small-prompts",
         ),
@@ -141,18 +139,6 @@ def test_token_derived_properties() -> None:
 )
 def test_classify_call_site(stats: CallSiteStats, expected: Classification) -> None:
     assert classify_call_site(stats) == expected
-
-
-@pytest.mark.parametrize(
-    ("model", "expected"),
-    [
-        ("us.anthropic.claude-haiku-4-5-20251001-v1:0", 4_096),
-        ("claude-sonnet-5-5", 512),
-        ("custom-model", DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS),
-    ],
-)
-def test_min_cacheable_prefix_tokens(model: str, expected: int) -> None:
-    assert min_cacheable_prefix_tokens(model) == expected
 
 
 def test_severity_counts_uncached_input_and_unrecouped_writes() -> None:
