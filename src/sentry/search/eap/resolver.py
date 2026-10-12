@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -69,6 +70,8 @@ from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.search.exceptions import InvalidIssueSearchQuery
+
+logger = logging.getLogger(__name__)
 
 
 def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
@@ -1329,6 +1332,13 @@ class SearchResolver:
                     function_definition, function_name, alias, columns, default_value
                 )
             except Exception:
+                logger.warning(
+                    "resolver.deprecated_function_used",
+                    extra={
+                        "organization_id": self.params.organization_id,
+                        "function_name": function_name,
+                    },
+                )
                 return self._resolve_function(
                     deprecated_definition, function_name, alias, columns, default_value
                 )

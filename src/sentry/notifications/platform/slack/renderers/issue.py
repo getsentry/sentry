@@ -12,7 +12,6 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
 )
-from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.workflow_engine.tasks.utils import fetch_event
 
 
@@ -44,7 +43,8 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
             else None
         )
         scopes = set(integration.metadata.get("scopes") or []) if integration else set()
-        send_nudge = data.rule.id != TEST_NOTIFICATION_ID and should_send_nudge_block(
+        origin = data.rule.to_notification_origin()
+        send_nudge = not origin.is_test_notification() and should_send_nudge_block(
             organization=group.organization, notification_uuid=data.notification_uuid
         )
 
@@ -52,7 +52,7 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
             group=group,
             event=event,
             tags=set(data.tags) if data.tags else None,
-            rules=[data.rule.to_notification_origin()],
+            rules=[origin],
             notes=data.notes,
             send_nudge=send_nudge,
             has_mentions_read_scope=SlackScope.APP_MENTIONS_READ in scopes,
