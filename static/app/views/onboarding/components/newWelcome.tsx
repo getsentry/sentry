@@ -1,4 +1,12 @@
 import {useEffect} from 'react';
+import {IconBot} from '@sentry/icons/bot';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconProfiling} from '@sentry/icons/profiling';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconSpan} from '@sentry/icons/span';
+import {IconTerminal} from '@sentry/icons/terminal';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconWarning} from '@sentry/icons/warning';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -7,16 +15,6 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/components/onboarding/consts';
-import {
-  IconBot,
-  IconGraph,
-  IconProfiling,
-  IconSeer,
-  IconSpan,
-  IconTerminal,
-  IconTimer,
-  IconWarning,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -602,6 +602,18 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/attributes/',
+        },
+      },
+      path: 'attributes/',
+      name: t('Attributes'),
+      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+    },
+    {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
           switchTo: '/settings/:orgId/projects/:projectId/tags/',
         },
       },
@@ -655,8 +667,8 @@ function buildRoutes(): RouteObject[] {
       },
       path: 'seer/',
       name: t('Seer'),
-      // eslint-disable-next-line boundaries/dependencies -- TODO: move to getsentry routes
-      component: make(() => import('getsentry/views/seerAutomation/projectDetails')),
+      // eslint-disable-next-line import/no-relative-parent-imports, import-js/no-relative-packages -- TODO: move to getsentry routes
+      component: make(() => import('../../gsApp/views/seerAutomation/projectDetails')),
     },
     {
       handle: {

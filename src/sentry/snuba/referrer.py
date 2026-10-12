@@ -440,6 +440,7 @@ class Referrer(StrEnum):
     # Misc
     API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN = "api.insights.org-event-average-span"
 
+    API_CODE_MAPPING_STACK_PREFIXES = "api.code-mapping.stack-prefixes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"

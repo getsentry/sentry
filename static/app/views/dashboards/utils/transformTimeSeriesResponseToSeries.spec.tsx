@@ -31,12 +31,14 @@ describe('transformTimeSeriesResponseToSeries', () => {
     {
       name: 'single y-axis',
       alias: '',
+      columns: [],
       timeSeries: [makeTimeSeries('count()')],
       expected: ['count()'],
     },
     {
       name: 'multiple y-axes with an alias',
       alias: 'Alias',
+      columns: [],
       timeSeries: [makeTimeSeries('count()'), makeTimeSeries('p50(span.duration)')],
       expected: ['Alias : count()', 'Alias : p50(span.duration)'],
     },
@@ -57,6 +59,18 @@ describe('transformTimeSeriesResponseToSeries', () => {
       expected: ['Chrome', '[TypeError,(no value)],None', 'Other'],
     },
     {
+      name: 'a group by value that collides with the Other bucket',
+      alias: '',
+      timeSeries: [
+        makeTimeSeries('count()', {
+          groupBy: [{key: 'browser', value: 'Other'}],
+          order: 0,
+        }),
+        makeTimeSeries('count()', {isOther: true, order: 1}),
+      ],
+      expected: ['Other (browser)', 'Other'],
+    },
+    {
       name: 'groups with multiple y-axes and an alias',
       alias: 'Alias',
       timeSeries: [
@@ -65,14 +79,34 @@ describe('transformTimeSeriesResponseToSeries', () => {
       ],
       expected: ['Alias > Chrome : count()', 'Alias > Chrome : p50(span.duration)'],
     },
-  ])('matches events-stats series names for $name', ({alias, timeSeries, expected}) => {
-    const result = transformTimeSeriesResponseToSeries(
-      {timeSeries},
-      WidgetQueryFixture({name: alias})
-    );
+    {
+      name: 'a grouped query with no groups and a single y-axis',
+      alias: 'Alias',
+      columns: ['browser'],
+      timeSeries: [makeTimeSeries('count()', {groupBy: null})],
+      expected: ['Alias : count()'],
+    },
+    {
+      name: 'a grouped query with no groups and multiple y-axes',
+      alias: 'Alias',
+      columns: ['browser'],
+      timeSeries: [
+        makeTimeSeries('count()', {groupBy: null}),
+        makeTimeSeries('p50(span.duration)', {groupBy: null}),
+      ],
+      expected: ['Alias >  : count()', 'Alias >  : p50(span.duration)'],
+    },
+  ])(
+    'matches events-stats series names for $name',
+    ({alias, columns, timeSeries, expected}) => {
+      const result = transformTimeSeriesResponseToSeries(
+        {timeSeries},
+        WidgetQueryFixture({name: alias, ...(columns ? {columns} : {})})
+      );
 
-    expect(result.map(({seriesName}) => seriesName)).toEqual(expected);
-  });
+      expect(result.map(({seriesName}) => seriesName)).toEqual(expected);
+    }
+  );
 
   it('keeps the original time series and converts its values to series data', () => {
     const timeSeries = makeTimeSeries('count()');

@@ -7,6 +7,7 @@ import {
   type ComponentProps,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueryState} from 'nuqs';
 
@@ -25,7 +26,6 @@ import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTi
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';

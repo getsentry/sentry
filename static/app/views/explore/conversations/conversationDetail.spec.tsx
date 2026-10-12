@@ -56,6 +56,8 @@ const CONVERSATION_BODY = [
 ];
 
 const DEFAULT_STATS: ConversationStats = {
+  cacheReadTokens: 0,
+  cacheWriteTokens: 0,
   endTimestamp: 2_000_000,
   errors: 0,
   errorToolNames: [],
@@ -64,6 +66,7 @@ const DEFAULT_STATS: ConversationStats = {
   llmCalls: 2,
   usageByModel: [],
   outputTokens: 0,
+  reasoningTokens: 0,
   startTimestamp: 1_000_000,
   toolCalls: 0,
   toolErrors: 0,
@@ -237,31 +240,31 @@ describe('ConversationDetailPage summary stats', () => {
     });
   });
 
-  it('shows available token counts from the API', async () => {
+  it('uses token counters from the API without reconciling them', async () => {
     mockApis(null, CONVERSATION_BODY, {
       usageByModel: [
         {
-          cacheReadTokens: 0,
+          cacheReadTokens: 80,
           cacheWriteTokens: 0,
           inputCost: 0,
           inputTokens: 100,
           llmCalls: 1,
           model: null,
           outputCost: 0,
-          outputTokens: 0,
+          outputTokens: 20,
           reasoningTokens: 0,
           totalCost: 0,
-          totalTokens: 150,
+          totalTokens: 200,
         },
       ],
-      totalTokens: 150,
+      totalTokens: 200,
     });
     renderPage();
 
-    const tokenCount = await screen.findByText('150');
+    const tokenCount = await screen.findByText('200');
     await userEvent.hover(tokenCount.parentElement!);
 
-    expect(await screen.findAllByText('150')).toHaveLength(2);
+    expect(await screen.findAllByText('200')).toHaveLength(2);
     expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.getByText('Unknown model')).toBeInTheDocument();
     expect(screen.queryByText('Input cost')).not.toBeInTheDocument();

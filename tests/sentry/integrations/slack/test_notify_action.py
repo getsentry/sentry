@@ -15,6 +15,7 @@ from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
+from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.analytics import (
@@ -103,7 +104,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel"},
-            rule=fake_rule,
+            context=NotificationActionContext.from_legacy_rule(fake_rule),
         )
 
         results = list(rule.after(event=event))
@@ -142,7 +143,16 @@ class SlackNotifyActionTest(RuleTestCase):
                 "channel": "#my-channel",
                 "channel_id": "123",
             },
-            rule=fake_rule,
+            context=NotificationActionContext(
+                origin=NotificationOrigin(
+                    label=fake_rule.label,
+                    environment_id=None,
+                    workflow_id=None,
+                    legacy_rule_id=-1,
+                ),
+                action_id=-1,
+                project=self.project,
+            ),
         )
 
         results = list(rule.after(event=event))
@@ -419,7 +429,7 @@ class SlackNotifyActionTest(RuleTestCase):
                     "channel": "#my-channel",
                     "channel_id": "123",
                 },
-                rule=fake_rule,
+                context=NotificationActionContext.from_legacy_rule(fake_rule),
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"

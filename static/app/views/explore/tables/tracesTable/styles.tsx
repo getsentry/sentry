@@ -1,92 +1,15 @@
-import type {ComponentProps} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, type Responsive} from '@sentry/scraps/layout';
+import {Container, type Responsive} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 export const StyledPanel = styled(Panel)`
   margin-bottom: 0px;
   overflow: hidden;
-`;
-
-interface StyledPanelHeaderProps extends ComponentProps<typeof PanelHeader> {
-  justify: ComponentProps<typeof Flex>['justify'];
-  children?: React.ReactNode;
-  lightText?: boolean;
-  radius?: ComponentProps<typeof Flex>['radius'];
-}
-
-export function StyledPanelHeader({
-  children,
-  justify,
-  radius = '0',
-  lightText = false,
-  ...props
-}: StyledPanelHeaderProps) {
-  return (
-    <Flex justify={justify} radius={radius} height="100%">
-      {flexProps => (
-        <Text as="div" wrap="nowrap">
-          <TablePanelHeader lightText={lightText} {...flexProps} {...props}>
-            {children}
-          </TablePanelHeader>
-        </Text>
-      )}
-    </Flex>
-  );
-}
-
-const TablePanelHeader = styled(PanelHeader)`
-  border-radius: 0;
-`;
-
-export const StyledPanelItem = styled(PanelItem, {
-  shouldForwardProp: prop => isPropValid(prop) && prop !== 'overflow',
-})<{
-  align?: 'left' | 'center' | 'right';
-  overflow?: boolean;
-  span?: number;
-}>`
-  align-items: center;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}
-  ${p => (p.align === 'right' ? 'justify-content: flex-end;' : null)}
-  ${p =>
-    p.overflow
-      ? css`
-          display: block;
-          width: 100%;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        `
-      : null}
-  ${p =>
-    p.align === 'center'
-      ? css`
-          justify-content: space-around;
-        `
-      : p.align === 'left' || p.align === 'right'
-        ? css`
-            text-align: ${p.align};
-          `
-        : undefined}
-  ${p =>
-    p.span &&
-    css`
-      grid-column: auto / span ${p.span};
-    `}
-  white-space: nowrap;
-`;
-
-export const MoreMatchingSpans = styled(StyledPanelItem)`
-  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 export const WrappingText = styled('div')`
@@ -97,21 +20,14 @@ export const WrappingText = styled('div')`
   text-overflow: ellipsis;
 `;
 
-export const StyledSpanPanelItem = styled(StyledPanelItem)`
-  &:nth-child(10n + 1),
-  &:nth-child(10n + 2),
-  &:nth-child(10n + 3),
-  &:nth-child(10n + 4),
-  &:nth-child(10n + 5) {
-    background-color: ${p => p.theme.tokens.background.secondary};
-  }
-`;
-
-export const SpanTablePanelItem = styled(StyledPanelItem)`
+export const SpanTableCell = styled(SimpleTable.FullWidthCell)`
   background-color: ${p => p.theme.colors.gray100};
+  padding: ${p => p.theme.space.md};
 `;
 
-export const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string}>`
+export const BreakdownCell = styled(SimpleTable.RowCell, {
+  shouldForwardProp: prop => prop !== 'highlightedSliceName',
+})<{highlightedSliceName: string}>`
   ${p =>
     p.highlightedSliceName
       ? css`--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
@@ -153,10 +69,4 @@ export function EmptyStateText({
 
 export const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-export const SpanPanelContent = styled('div')`
-  width: 100%;
-  display: grid;
-  grid-template-columns: 100px auto repeat(1, min-content) 100px 75px;
 `;

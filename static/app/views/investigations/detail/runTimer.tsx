@@ -3,7 +3,7 @@ import {useEffect, useState} from 'react';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {formatInvestigationDuration} from 'sentry/utils/duration/formatInvestigationDuration';
+import {formatElapsedDuration} from 'sentry/utils/duration/formatElapsedDuration';
 import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
 
 export function InvestigationRunTimer({
@@ -86,7 +86,7 @@ function LiveDuration({seconds, active}: {active: boolean; seconds: number}) {
       role="timer"
       aria-label={t('Investigation active time')}
     >
-      {formatInvestigationDuration(seconds + localSeconds)}
+      {formatElapsedDuration((seconds + localSeconds) * 1000)}
     </Text>
   );
 }
