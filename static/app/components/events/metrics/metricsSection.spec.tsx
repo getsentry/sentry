@@ -157,7 +157,7 @@ describe('MetricsSection', () => {
     expect(details.mock.calls[0]![1].query.routing_hint).toBe('issue-metric-hint');
   });
 
-  it('renders cell action menus outside an expanded metric row', async () => {
+  it('keeps cell action menus inside an expanded metric row', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/trace-items/${metricId}/`,
       body: {
@@ -181,10 +181,11 @@ describe('MetricsSection', () => {
       .closest<HTMLElement>('[data-test-id="cell-action-container"]')!;
     await userEvent.click(within(metricNameCell).getByRole('button', {name: 'Actions'}));
 
+    // Portaling to document.body would put the menu below the metrics drawer.
     const menuItem = await screen.findByRole('menuitemradio', {
       name: 'Open in Explore',
     });
-    expect(metricRow).not.toContainElement(menuItem);
+    expect(metricRow).toContainElement(menuItem);
   });
 
   it('renders empty when no trace id', () => {
