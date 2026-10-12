@@ -6,7 +6,6 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
-import pytest
 from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 from snuba_sdk import Column, Condition, DeleteQuery, Entity, Function, Op, Query, Request
@@ -667,7 +666,7 @@ class DeleteGroupEventAttachmentsTest(TestCase):
         assert not EventAttachment.objects.filter(group_id=group.id).exists()
         assert EventAttachment.objects.filter(id=kept.id).exists()
 
-    def test_event_attachment_row_kept_when_blob_delete_fails(self) -> None:
+    def test_event_attachment_blob_failure_does_not_block_deletion(self) -> None:
         group = self.create_group(project=self.project)
         ok = EventAttachment.objects.create(
             event_id=uuid4().hex,
@@ -683,19 +682,33 @@ class DeleteGroupEventAttachmentsTest(TestCase):
             name="fail.png",
             blob_path="v2/fail",
         )
+        missing = EventAttachment.objects.create(
+            event_id=uuid4().hex,
+            project_id=self.project.id,
+            group_id=group.id,
+            name="missing.png",
+            blob_path="v2/missing",
+        )
+        side_effects = {
+            failing.id: RuntimeError("objectstore unavailable"),
+            missing.id: FileNotFoundError(),
+        }
 
         def fake_delete_blob(attachment: EventAttachment, organization_id: int | None) -> None:
-            if attachment.id == failing.id:
-                raise RuntimeError("objectstore unavailable")
+            exc = side_effects.get(attachment.id)
+            if exc is not None:
+                raise exc
 
         task = deletions.get(model=EventAttachment, query={"group_id__in": [group.id]})
         with (
             mock.patch.object(
                 EventAttachment, "delete_blob", autospec=True, side_effect=fake_delete_blob
-            ),
-            pytest.raises(RuntimeError),
+            ) as mock_delete_blob,
+            mock.patch("sentry.deletions.defaults.eventattachment.metrics") as mock_metrics,
         ):
-            task.chunk()
+            while task.chunk():
+                pass
 
-        assert not EventAttachment.objects.filter(id=ok.id).exists()
-        assert EventAttachment.objects.filter(id=failing.id).exists()
+        assert mock_delete_blob.call_count == 3
+        mock_metrics.incr.assert_called_once_with("deletions.eventattachment.delete_blob_failed")
+        assert not EventAttachment.objects.filter(id__in=[ok.id, failing.id, missing.id]).exists()
