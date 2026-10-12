@@ -3,15 +3,13 @@ import type {KnipConfig} from 'knip';
 const isProductionMode = process.argv.includes('--production');
 
 const productionEntryPoints = [
-  // the main entry point also loads gsAdmin & gsApp
-  'index.tsx',
   // scraps has all index.tsx file as separate entry points
   'components/core/*/index.tsx',
-  // defined in rsbuild.config.ts pipelines
+  // Build entry points that are not package entry points.
   'utils/setupStatics.tsx',
+  'serviceWorker/worker/worker.ts',
   // Source-scoped Rspack/Jest aliases use this runtime entry; TS uses types.d.ts.
   'utils/reactRouterV6/index.ts',
-  'serviceWorker/worker/worker.ts',
   // very dynamically imported
   'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
@@ -28,6 +26,8 @@ const productionEntryPoints = [
 ];
 
 const frontendWorkspace = {
+  // SWC injects these imports while compiling each app package.
+  ignoreDependencies: ['core-js'],
   entry: ['**/*.spec.{js,ts,tsx}'],
   project: [
     '**/*.{js,ts,tsx,mdx}!',
@@ -84,6 +84,8 @@ const config: KnipConfig = {
     },
     'static/app': {
       ...frontendWorkspace,
+      // Locale modules are loaded with a template-string import.
+      ignoreDependencies: [...frontendWorkspace.ignoreDependencies, 'moment'],
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
         ...frontendWorkspace.entry,
@@ -95,19 +97,13 @@ const config: KnipConfig = {
         'stories/storybook.tsx',
         'stories/playground/*.tsx',
       ],
-      // Imported through the getsentry/* source alias.
-      ignoreDependencies: ['@sentry-internal/gs-app'],
     },
     'static/gsApp': {
       ...frontendWorkspace,
       entry: [...frontendWorkspace.entry, '**/*.snapshots.tsx'],
-      // Imported through the sentry/* source alias.
-      ignoreDependencies: ['@sentry-internal/app'],
     },
     'static/gsAdmin': {
       ...frontendWorkspace,
-      // Imported through the sentry/* and getsentry/* source aliases.
-      ignoreDependencies: ['@sentry-internal/app', '@sentry-internal/gs-app'],
     },
     'static/packages/icons': {
       // test helpers are only used outside production.

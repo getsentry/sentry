@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "sentry",
+  "name": "@sentry-internal/monorepo",
   "version": "0.0.0",
   "private": true,
   "repository": {
@@ -44,7 +44,7 @@
     "build-js-po": "node build-utils/ts-extract-gettext.ts",
     "build-profile": "RSPACK_STATS=1 NODE_ENV=production node scripts/buildProfile.ts",
     "extract-form-fields": "node scripts/extractFormFields.ts",
-    "gen:embed-widgets": "esbuild scripts/genEmbedWidgets.ts --bundle --platform=node --format=esm --packages=external --outfile=.artifacts/genEmbedWidgets.mjs && node .artifacts/genEmbedWidgets.mjs",
+    "gen:embed-widgets": "esbuild scripts/genEmbedWidgets.ts --bundle --platform=node --format=esm --outfile=.artifacts/genEmbedWidgets.mjs && node .artifacts/genEmbedWidgets.mjs",
     "gen:platform-info": "node scripts/genPlatformProductInfo.ts",
     "validate-api-examples": "pnpm --filter @sentry-internal/api-docs exec openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install",
@@ -113,6 +113,7 @@
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-mdx-frontmatter": "^6.0.0",
+    "sentry": "workspace:@sentry-internal/app@*",
     "style-loader": "4.0.0",
     "swc-plugin-component-annotate": "1.18.0",
     "ts-checker-rspack-plugin": "1.6.2",
@@ -148,6 +149,7 @@
     "eslint-plugin-regexp": "3.1.1",
     "eslint-plugin-testing-library": "7.16.2",
     "eslint-plugin-unicorn": "74.0.0",
+    "getsentry": "workspace:@sentry-internal/gs-app@*",
     "jest": "30.5.1",
     "jest-canvas-mock": "^2.5.8",
     "jest-environment-node": "30.5.1",
