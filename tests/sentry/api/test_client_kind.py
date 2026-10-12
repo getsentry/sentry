@@ -357,7 +357,7 @@ class AttributionSpanTest(TestCase):
             attributes={
                 "sentry.op": ATTRIBUTION_SPAN_OP,
                 ATTRIBUTE_NAMES.HTTP_ROUTE: EVENTS_ROUTE,
-                "client_kind_test": "script",
+                "client_kind": "script",
             },
         )
         assert attributes == [
@@ -376,7 +376,7 @@ class AttributionSpanTest(TestCase):
             attributes={
                 "sentry.op": ATTRIBUTION_SPAN_OP,
                 ATTRIBUTE_NAMES.HTTP_ROUTE: EVENTS_ROUTE,
-                "client_kind_test": "script",
+                "client_kind": "script",
             },
         )
         assert (ATTRIBUTE_NAMES.HTTP_ROUTE, EVENTS_ROUTE) in attributes
