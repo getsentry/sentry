@@ -2451,7 +2451,7 @@ requires-dist = [
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
     { name = "sentry-arroyo", specifier = ">=2.42.2" },
-    { name = "sentry-conventions", specifier = ">=0.26.0" },
+    { name = "sentry-conventions", specifier = ">=0.27.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=3.0.2" },
     { name = "sentry-ophio", specifier = ">=1.2.0" },
@@ -2562,10 +2562,10 @@ wheels = [
 
 [[package]]
 name = "sentry-conventions"
-version = "0.26.0"
+version = "0.27.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.26.0-py3-none-any.whl", hash = "sha256:2d2b38170327260f2825a483105f6340253c59f9d662bc40baf82dbed4cea857" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.27.0-py3-none-any.whl", hash = "sha256:744a778c3c449ba70fbb1ac0c6764400673c6c18641af3cfa7451b876c2fc24c" },
 ]
 
 [[package]]
