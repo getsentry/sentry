@@ -4051,11 +4051,6 @@
       "count": 1
     }
   },
-  "static/gsApp/views/cancelSubscription.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
   "static/gsApp/views/invoiceDetails/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
