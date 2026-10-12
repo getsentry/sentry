@@ -96,7 +96,7 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug')],
+          keywords: [t('slug'), t('org slug'), t('organization slug'), 'SENTRY_ORG'],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -135,6 +135,8 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
             t('pii'),
             t('attachments'),
             t('advanced data scrubbing'),
+            t('prevent storing of ip addresses'),
+            t('ip address'),
           ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
@@ -261,6 +263,7 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/mcp-cli/`,
           title: t('MCP & CLI'),
+          keywords: [t('claude'), t('cursor'), t('mcp server')],
           description: t('Connect to Sentry via MCP server or the Sentry CLI'),
           id: 'mcp-cli',
         },
@@ -342,6 +345,9 @@ function getDeveloperNavigationConfiguration(
         t('token'),
         t('credentials'),
         t('user auth tokens'),
+        t('create new token'),
+        t('access token'),
+        t('sentry auth token'),
         'SENTRY_AUTH_TOKEN',
       ],
       description: t(
@@ -369,6 +375,10 @@ function getDeveloperNavigationConfiguration(
         t('token'),
         t('credentials'),
         t('user auth tokens'),
+        t('create new token'),
+        t('access token'),
+        t('sentry auth token'),
+        t('organization auth token'),
         'SENTRY_AUTH_TOKEN',
       ],
       description: t('Manage organization tokens'),

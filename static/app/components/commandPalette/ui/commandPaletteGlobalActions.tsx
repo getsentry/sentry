@@ -426,7 +426,11 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
+        <CMDKAction
+          display={{label: t('Explore'), icon: <IconCompass />}}
+          keywords={[t('discover')]}
+          limit={4}
+        >
           <CMDKAction
             display={{label: t('Traces')}}
             keywords={[t('spans'), t('trace explorer')]}
@@ -464,7 +468,7 @@ export function GlobalCommandPaletteActions() {
           )}
           <CMDKAction
             display={{label: t('Releases')}}
-            keywords={[t('release health')]}
+            keywords={[t('release health'), t('crash free rate')]}
             to={`${prefix}/explore/releases/`}
           />
           {organization.features.includes('gen-ai-conversations') && (
@@ -486,7 +490,10 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+        <CMDKAction
+          display={{label: t('Dashboards'), icon: <IconDashboard />}}
+          keywords={[t('insights'), t('performance'), t('web vitals')]}
+        >
           <CMDKAction
             display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
