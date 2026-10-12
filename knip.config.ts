@@ -110,7 +110,6 @@ const config: KnipConfig = {
         '@sentry-internal/global-search', // jest.mock does not count as an import.
         '@tanstack/react-pacer', // loaded with requireActual
         'echarts-for-react', // jest.mock in setup.ts
-        'sonner', // Setup checks its module cache entry with dynamic require.resolve.
       ],
     },
     'tests/js/getsentry-test': {

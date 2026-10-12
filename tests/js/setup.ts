@@ -141,7 +141,7 @@ function isModuleLoaded(moduleName: string): boolean {
 
 // Close any open modals before each test
 beforeEach(() => {
-  if (isModuleLoaded('sentry/stores/modalStore')) {
+  if (require.resolve('sentry/stores/modalStore') in require.cache) {
     jest
       .requireActual<typeof import('sentry/stores/modalStore')>(
         'sentry/stores/modalStore'
@@ -151,7 +151,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   // Toasts are held by sonner, so there are none to dismiss until it is loaded.
-  if (isModuleLoaded('sonner')) {
+  if (require.resolve('sonner') in require.cache) {
     const {toast} =
       jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
     act(() => void toast.dismiss());
