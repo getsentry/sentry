@@ -4,7 +4,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import type {TagProps} from '@sentry/scraps/badge';
 import {ProjectsBadge} from '@sentry/scraps/badge';
 import {ROW_HEIGHT, TITLE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
@@ -185,27 +185,39 @@ export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: b
     .map((tag, index) => ({tag, index}))
     .filter(entry => entry.tag !== null);
 
+  const heading = (
+    <Heading
+      as="h2"
+      size="lg"
+      density="comfortable"
+      ellipsis
+      variant={props.type === 'link' ? 'accent' : undefined}
+      aria-label={accessibleName}
+    >
+      {value}
+    </Heading>
+  );
+
   return (
     <Flex align="center" gap="sm" minWidth={0} minHeight={ROW_HEIGHT}>
       {leadingGraphic && <LeadingGraphicSlot graphic={leadingGraphic} />}
-      <Heading
-        as="h2"
-        size="lg"
-        density="comfortable"
-        ellipsis
-        variant={props.type === 'link' ? 'accent' : undefined}
-        aria-label={accessibleName}
-      >
-        {props.type === 'link' ? (
-          // Named like the heading, so a links list reads "Replay user,
-          // anonymous@example.com" rather than a bare address.
-          <Link to={props.to} aria-label={accessibleName}>
-            {value}
-          </Link>
-        ) : (
-          value
-        )}
-      </Heading>
+      {props.type === 'link' ? (
+        // The anchor sits outside the element that clips, because the focus
+        // ring is a box-shadow painted beyond its own box and `ellipsis`
+        // clips everything inside the heading. `Container` floors the
+        // anchor's width so it still shrinks as a flex item.
+        <Container minWidth={0}>
+          {styleProps => (
+            // Named like the heading, so a links list reads "Replay user,
+            // anonymous@example.com" rather than a bare address.
+            <Link to={props.to} aria-label={accessibleName} {...styleProps}>
+              {heading}
+            </Link>
+          )}
+        </Container>
+      ) : (
+        heading
+      )}
       {visibleTags.length > 0 && (
         <Flex align="center" gap="xs" flexShrink={0}>
           {visibleTags.map(({tag, index}) => (

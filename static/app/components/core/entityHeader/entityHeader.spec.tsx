@@ -62,16 +62,19 @@ describe('EntityHeader', () => {
         />
       );
 
-      // The heading keeps the name it has as plain text, and the link carries
-      // the same one, so a links list reads "Replay user, Session" rather than
-      // a bare value.
-      const heading = screen.getByRole('heading', {
-        level: 2,
-        name: 'Replay user, Session',
-      });
+      // The anchor wraps the heading rather than sitting inside it: `ellipsis`
+      // puts `overflow: hidden` on the heading, which would clip the focus
+      // ring the other way round. The heading keeps the name it has as plain
+      // text and the link carries the same one, so a links list reads
+      // "Replay user, Session" rather than a bare value.
+      const link = screen.getByRole('link', {name: 'Replay user, Session'});
+      expect(link).toHaveAttribute(
+        'href',
+        '/replays/?query=user.email%3A%22me%40example.com%22'
+      );
       expect(
-        within(heading).getByRole('link', {name: 'Replay user, Session'})
-      ).toHaveAttribute('href', '/replays/?query=user.email%3A%22me%40example.com%22');
+        within(link).getByRole('heading', {level: 2, name: 'Replay user, Session'})
+      ).toBeVisible();
     });
 
     it('renders tags beside the title and hides the leading graphic from AT', () => {
