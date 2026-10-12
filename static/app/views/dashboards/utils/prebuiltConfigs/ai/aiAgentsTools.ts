@@ -11,9 +11,10 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const TOOL_SPANS_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:tool`;
+const TOOL_SPANS_FILTER = getToolSpansFilter();
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
