@@ -118,12 +118,6 @@ export interface UseOverlayProps
    */
   onInteractOutside?: () => void;
   /**
-   * Called once Popper has positioned a newly mounted overlay. Before this, the
-   * overlay sits at its initial top-left placeholder position. Keep the function
-   * stable; a new function on each render makes Popper reapply its options.
-   */
-  onPositioned?: PopperProps<any>['onFirstUpdate'];
-  /**
    * Position for the overlay.
    */
   position?: PopperProps<any>['placement'];
@@ -162,7 +156,6 @@ export function useOverlay({
   shouldCloseOnInteractOutside,
   onInteractOutside,
   disableTrigger,
-  onPositioned,
   strategy = 'absolute',
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
@@ -278,7 +271,6 @@ export function useOverlay({
     update: popperUpdate,
   } = usePopper(triggerElement, overlayElement, {
     modifiers,
-    onFirstUpdate: onPositioned,
     placement: position,
     strategy,
   });

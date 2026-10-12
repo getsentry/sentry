@@ -1,4 +1,4 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   TourAction,
@@ -13,9 +13,6 @@ import {
   TestTourContext,
 } from 'sentry/components/tours/testUtils';
 import {useTourReducer} from 'sentry/components/tours/tourContext';
-
-// The guide scrolls itself into view once Popper reports its first position
-jest.unmock('react-popper');
 
 jest.mock('sentry/components/tours/tourContext', () => ({
   useTourReducer: jest.fn(),
@@ -348,49 +345,34 @@ describe('Tour Components', () => {
       expect(screen.getByRole('button', {name: 'Test Action'})).toBeInTheDocument();
       expect(screen.getByText('50/100')).toBeInTheDocument();
       expect(screen.getByText('Child Element')).toBeInTheDocument();
-      await waitFor(() =>
-        expect(mockScrollIntoView).toHaveBeenCalledWith({
-          block: 'center',
-          behavior: 'smooth',
-        })
-      );
       await userEvent.click(screen.getByRole('button', {name: 'Close'}));
       expect(mockHandleDismiss).toHaveBeenCalled();
     });
 
-    it('scrolls the guide into view only after it has been positioned', async () => {
-      const scrolledToTops: string[] = [];
-      Element.prototype.scrollIntoView = jest.fn(function (this: HTMLElement) {
-        scrolledToTops.push(this.closest<HTMLElement>('[style]')!.style.top);
+    it('scrolls the highlighted element into view and pins the guide to the viewport', async () => {
+      const scrolledElements: Element[] = [];
+      Element.prototype.scrollIntoView = jest.fn(function (this: Element) {
+        scrolledElements.push(this);
       });
 
       render(
         <TourGuide isOpen title="Test Title" description="Test Description">
-          {({ref, ...props}) => (
-            <div
-              {...props}
-              ref={element => {
-                // Simulate a step anchored far down the page
-                if (element) {
-                  element.getBoundingClientRect = () =>
-                    DOMRect.fromRect({x: 0, y: 2000, width: 300, height: 600});
-                }
-                if (typeof ref === 'function') {
-                  ref(element);
-                }
-              }}
-            >
-              Child Element
-            </div>
-          )}
+          {props => <div {...props}>Child Element</div>}
         </TourGuide>
       );
 
-      expect(await screen.findByText('Test Title')).toBeInTheDocument();
-      await waitFor(() => expect(scrolledToTops).toHaveLength(1));
-      // Popper renders the overlay at `top: 0` until its first update; scrolling
-      // then would target the top of the page instead of the anchored step.
-      expect(scrolledToTops[0]).not.toBe('0px');
+      const guide = await screen.findByText('Test Title');
+      // The highlighted element, not the guide, is scrolled so that nested scroll
+      // containers holding it are scrolled too
+      expect(scrolledElements).toEqual([screen.getByText('Child Element')]);
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+      // Fixed positioning keeps the guide from extending the document's height
+      expect(guide.closest<HTMLElement>('[style*="position"]')).toHaveStyle({
+        position: 'fixed',
+      });
     });
   });
 });
