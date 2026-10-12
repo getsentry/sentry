@@ -6,6 +6,8 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from snuba_sdk import Column, Condition, DeleteQuery, Entity, Function, Op, Query, Request
 
 from sentry import deletions, nodestore
@@ -618,3 +620,48 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             assert first_batch == [group2.id, group1.id]  # group2 has less times_seen than group1
             # group3 and group4 have the same times_seen, thus sorted by id
             assert second_batch == [group3.id, group4.id]
+
+
+class DeleteGroupEventAttachmentsTest(TestCase):
+    def test_event_attachments_deleted_in_bulk(self) -> None:
+        group = self.create_group(project=self.project)
+        other_group = self.create_group(project=self.project)
+        for i in range(5):
+            EventAttachment.objects.create(
+                event_id=uuid4().hex,
+                project_id=self.project.id,
+                group_id=group.id,
+                type="event.minidump" if i == 0 else "event.attachment",
+                name=f"file{i}.dmp",
+                blob_path=f"v2/blob-{i}",
+            )
+        kept = EventAttachment.objects.create(
+            event_id=uuid4().hex,
+            project_id=self.project.id,
+            group_id=other_group.id,
+            name="keep.png",
+        )
+
+        task = deletions.get(model=EventAttachment, query={"group_id__in": [group.id]})
+
+        with (
+            mock.patch.object(EventAttachment, "delete_blob", autospec=True) as mock_delete_blob,
+            mock.patch("sentry.deletions.defaults.eventattachment.cache") as mock_cache,
+            CaptureQueriesContext(connections[router.db_for_write(EventAttachment)]) as ctx,
+        ):
+            while task.chunk():
+                pass
+
+        attachment_deletes = [
+            q
+            for q in ctx.captured_queries
+            if q["sql"].startswith('DELETE FROM "sentry_eventattachment"')
+        ]
+        assert len(attachment_deletes) == 1
+        assert mock_delete_blob.call_count == 5
+        for call in mock_delete_blob.call_args_list:
+            assert call.kwargs["organization_id"] == self.project.organization_id
+        mock_cache.delete_many.assert_called_once_with([f"cr:{group.id}"])
+
+        assert not EventAttachment.objects.filter(group_id=group.id).exists()
+        assert EventAttachment.objects.filter(id=kept.id).exists()
