@@ -7,6 +7,11 @@ export interface ControlTooltipProps extends Omit<
   title?: TooltipProps['title'];
 }
 
+export type WithControlTooltipProps<Props> = Props & {
+  /** A disabled control with a tooltip remains focusable so users can read its explanation. */
+  tooltipProps?: ControlTooltipProps;
+};
+
 export function preventDisabledInteraction(event: React.SyntheticEvent) {
   event.preventDefault();
   event.stopPropagation();

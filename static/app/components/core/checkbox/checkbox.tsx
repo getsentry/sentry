@@ -8,7 +8,7 @@ import {
   preventDisabledInteraction,
   Tooltip,
   useDisabledTooltip,
-  type ControlTooltipProps,
+  type WithControlTooltipProps,
 } from '@sentry/scraps/tooltip';
 
 import type {FormSize} from 'sentry/utils/theme';
@@ -73,28 +73,22 @@ const checkboxSizeMap: Record<NonNullable<CheckboxProps['size']>, CheckboxConfig
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-export interface CheckboxProps extends Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  'checked' | 'size'
-> {
-  /**
-   * Is the checkbox active? Supports 'indeterminate'
-   */
-  checked?: React.InputHTMLAttributes<HTMLInputElement>['checked'] | 'indeterminate';
-  /**
-   * Ref to the native checkbox input element.
-   */
-  ref?: React.Ref<HTMLInputElement>;
-  /**
-   * The size of the checkbox. Defaults to 'sm'.
-   */
-  size?: FormSize;
-  /**
-   * Props for an explanatory tooltip. A disabled checkbox with a tooltip remains
-   * focusable so keyboard and screen reader users can access the explanation.
-   */
-  tooltipProps?: ControlTooltipProps;
-}
+export type CheckboxProps = WithControlTooltipProps<
+  Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> & {
+    /**
+     * Is the checkbox active? Supports 'indeterminate'
+     */
+    checked?: React.InputHTMLAttributes<HTMLInputElement>['checked'] | 'indeterminate';
+    /**
+     * Ref to the native checkbox input element.
+     */
+    ref?: React.Ref<HTMLInputElement>;
+    /**
+     * The size of the checkbox. Defaults to 'sm'.
+     */
+    size?: FormSize;
+  }
+>;
 
 export function Checkbox({
   checked = false,
