@@ -154,7 +154,7 @@ function absoluteWindows(
   const windows: HeatMapWindow[] = [];
 
   let cursor = alignedStart;
-  for (const count of bucketDistribution.toReversed()) {
+  for (const count of bucketDistribution.slice().reverse()) {
     const end = cursor + count * intervalMs;
     windows.push({start: getUtcDateString(cursor), end: getUtcDateString(end)});
     cursor = end;

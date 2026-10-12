@@ -130,35 +130,38 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component.
     // Reverse the flags to show newest at the top by default.
-    return eventFlags.toReversed().map(f => {
-      return {
-        item: {
-          key: f.flag,
-          subject: f.flag,
-          value: (
-            <Flex align="center" gap="sm" wrap="wrap">
-              <Text as="span" monospace wrap="nowrap">
-                {f.result.toString()}
-              </Text>
-              {suspectFlagNames.has(f.flag) && (
-                <Text as="div" size="sm" variant="secondary" wrap="nowrap">
-                  {t('Suspect')}
+    return eventFlags
+      .slice()
+      .reverse()
+      .map(f => {
+        return {
+          item: {
+            key: f.flag,
+            subject: f.flag,
+            value: (
+              <Flex align="center" gap="sm" wrap="wrap">
+                <Text as="span" monospace wrap="nowrap">
+                  {f.result.toString()}
                 </Text>
-              )}
-            </Flex>
-          ),
-          actionButton: (
-            <FlagActionDropdown
-              flag={f.flag}
-              result={f.result.toString()}
-              generateAction={generateAction}
-            />
-          ),
-          actionButtonAlwaysVisible: true,
-        },
-        isSuspectFlag: suspectFlagNames.has(f.flag),
-      };
-    });
+                {suspectFlagNames.has(f.flag) && (
+                  <Text as="div" size="sm" variant="secondary" wrap="nowrap">
+                    {t('Suspect')}
+                  </Text>
+                )}
+              </Flex>
+            ),
+            actionButton: (
+              <FlagActionDropdown
+                flag={f.flag}
+                result={f.result.toString()}
+                generateAction={generateAction}
+              />
+            ),
+            actionButtonAlwaysVisible: true,
+          },
+          isSuspectFlag: suspectFlagNames.has(f.flag),
+        };
+      });
   }, [suspectFlagNames, eventFlags, generateAction]);
 
   const onViewAllFlags = (focusControl?: FlagControlOptions) => {

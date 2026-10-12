@@ -183,14 +183,14 @@
       "last 10 Chrome versions",
       "last 10 Firefox versions",
       "last 4 Safari major versions",
-      "last 4 iOS major versions",
+      "last 3 iOS major versions",
       "Firefox ESR"
     ],
     "development": [
       "last 10 Chrome versions",
       "last 10 Firefox versions",
       "last 4 Safari major versions",
-      "last 4 iOS major versions",
+      "last 3 iOS major versions",
       "Firefox ESR"
     ],
     "test": [

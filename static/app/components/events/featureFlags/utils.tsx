@@ -63,9 +63,9 @@ export const sortedFlags = ({
     case OrderBy.A_TO_Z:
       return handleSortAlphabetical(flags);
     case OrderBy.Z_TO_A:
-      return handleSortAlphabetical(flags).toReversed();
+      return handleSortAlphabetical(flags).slice().reverse();
     case OrderBy.OLDEST:
-      return flags.toReversed();
+      return flags.slice().reverse();
     default:
       return flags;
   }

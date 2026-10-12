@@ -1043,7 +1043,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         parent = parent.parent;
       }
 
-      for (const ancestor of ancestors.toReversed()) {
+      for (const ancestor of ancestors.slice().reverse()) {
         ancestor.expand(true, tree);
       }
     }

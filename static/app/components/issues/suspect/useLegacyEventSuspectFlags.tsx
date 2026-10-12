@@ -98,7 +98,8 @@ export function useLegacyEventSuspectFlags({
   const suspectFlags = useMemo(() => {
     return data
       ? data.data
-          .toReversed()
+          .slice()
+          .reverse()
           .filter(
             (rawFlag, idx, rawFlagArray) =>
               idx === rawFlagArray.findIndex(f => f.flag === rawFlag.flag)

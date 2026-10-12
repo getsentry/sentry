@@ -31,15 +31,18 @@ export function PlatformList({
 
   const content = platforms.length ? (
     <PlatformIcons>
-      {visiblePlatforms.toReversed().map((visiblePlatform, index) => (
-        <StyledPlatformIcon
-          data-test-id={`platform-icon-${visiblePlatform}`}
-          key={visiblePlatform + index}
-          platform={visiblePlatform}
-          size={size}
-          alt=""
-        />
-      ))}
+      {visiblePlatforms
+        .slice()
+        .reverse()
+        .map((visiblePlatform, index) => (
+          <StyledPlatformIcon
+            data-test-id={`platform-icon-${visiblePlatform}`}
+            key={visiblePlatform + index}
+            platform={visiblePlatform}
+            size={size}
+            alt=""
+          />
+        ))}
     </PlatformIcons>
   ) : (
     // Decorative: the platform is conveyed by adjacent text (e.g. a project

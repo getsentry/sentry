@@ -109,7 +109,7 @@ export function extractDashboardFromSession(
   title: string;
   widgets: Widget[];
 } | null {
-  for (const block of (session.blocks ?? []).toReversed()) {
+  for (const block of (session.blocks ?? []).slice().reverse()) {
     const artifact = block.artifacts?.find(
       a => a.key === DASHBOARD_ARTIFACT_KEY && a.data
     );

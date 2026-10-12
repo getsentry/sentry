@@ -1211,13 +1211,16 @@ function cleanPatches(patches: ExplorerFilePatch[]): ExplorerFilePatch[] {
 
   const patchedFiles = new Set<string>();
 
-  patches.toReversed().forEach(patch => {
-    if (patchedFiles.has(patch.patch.path)) {
-      return;
-    }
-    patchedFiles.add(patch.patch.path);
-    cleanedPatches.push(patch);
-  });
+  patches
+    .slice()
+    .reverse()
+    .forEach(patch => {
+      if (patchedFiles.has(patch.patch.path)) {
+        return;
+      }
+      patchedFiles.add(patch.patch.path);
+      cleanedPatches.push(patch);
+    });
 
   return cleanedPatches.reverse().filter(patch => {
     return patch.patch.added > 0 || patch.patch.removed > 0;

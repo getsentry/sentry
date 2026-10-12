@@ -49,7 +49,7 @@ function getCombinedStacktrace({
     includeJSContext: true,
   });
 
-  const orderedStacktrace = newestFirst ? stacktrace.toReversed() : stacktrace;
+  const orderedStacktrace = newestFirst ? stacktrace.slice().reverse() : stacktrace;
   return orderedStacktrace.join(STACKTRACE_SECTION_SEPARATOR);
 }
 

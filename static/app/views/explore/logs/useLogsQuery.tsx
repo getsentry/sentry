@@ -398,7 +398,7 @@ export function useInfiniteLogsQuery({
         // We reverse the data if the query sort direction has been changed from the table sort direction.
         return {
           ...response,
-          json: {...response.json, data: response.json.data.toReversed()},
+          json: {...response.json, data: response.json.data.slice().reverse()},
         };
       }
       return response;

@@ -218,7 +218,7 @@ export function NativeContent({
     .filter((frame): frame is React.ReactElement => !!frame);
 
   if (newestFirst) {
-    convertedFrames = convertedFrames.toReversed();
+    convertedFrames = convertedFrames.slice().reverse();
   }
 
   const wrapperClassName = `traceback ${

@@ -59,7 +59,7 @@ export function BreadCrumbs({
 
   const displayCrumbs = useMemo(() => {
     const sortedCrumbs =
-      sort === BreadcrumbSort.OLDEST ? enhancedCrumbs : enhancedCrumbs.toReversed();
+      sort === BreadcrumbSort.OLDEST ? enhancedCrumbs : enhancedCrumbs.slice().reverse();
     const filteredCrumbs = applyFilters(sortedCrumbs, filters);
     const searchedCrumbs = applyBreadcrumbSearch(filteredCrumbs, search);
     return searchedCrumbs;

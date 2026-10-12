@@ -191,5 +191,5 @@ export function getRows({
     rows = rows.slice(-maxDepth);
   }
 
-  return newestFirst ? rows.toReversed() : rows;
+  return newestFirst ? rows.slice().reverse() : rows;
 }
