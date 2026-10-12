@@ -136,6 +136,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-koa",
     "node-mastra",
     "node-nestjs",
+    "node-pi-durable",
     "php",
     "php-laravel",
     "php-symfony",
