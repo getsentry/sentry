@@ -157,6 +157,36 @@ describe('MetricsSection', () => {
     expect(details.mock.calls[0]![1].query.routing_hint).toBe('issue-metric-hint');
   });
 
+  it('renders cell action menus outside an expanded metric row', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${metricId}/`,
+      body: {
+        itemId: metricId,
+        meta: {},
+        timestamp: '2025-01-01T12:00:00.000Z',
+        attributes: [],
+      },
+    });
+    render(<MetricsSection event={event} project={project} group={group} />, {
+      organization,
+    });
+    const expandButton = await screen.findByRole('button', {
+      name: 'Toggle trace details',
+    });
+    await userEvent.click(expandButton);
+
+    const metricRow = expandButton.closest('tr')!;
+    const metricNameCell = within(metricRow)
+      .getByText('http.server.duration')
+      .closest<HTMLElement>('[data-test-id="cell-action-container"]')!;
+    await userEvent.click(within(metricNameCell).getByRole('button', {name: 'Actions'}));
+
+    const menuItem = await screen.findByRole('menuitemradio', {
+      name: 'Open in Explore',
+    });
+    expect(metricRow).not.toContainElement(menuItem);
+  });
+
   it('renders empty when no trace id', () => {
     const eventWithoutTrace = EventFixture({
       contexts: {},

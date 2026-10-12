@@ -269,6 +269,9 @@ function MetricDefaultCell({
         source,
       })}
       allowActions={shouldRemoveAddFilter ? ISSUE_DETAILS_CELL_ACTIONS : undefined}
+      // An expanded row is sticky with its own stacking context, so an inline
+      // menu would render underneath the expanded attributes row below it.
+      usePortalOnDropdown
     />
   );
 }
