@@ -323,6 +323,16 @@ class OAuthAuthorizeCodeTest(TestCase):
             "Access to CI workflows including source map uploads, release creation, and code mappings.",
         ]
 
+    def test_includes_auth_csrf_token_sync(self) -> None:
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+        assert b"function syncCsrfTokens()" in resp.content
+
     def test_groups_read_and_write_permissions(self) -> None:
         self.login_as(self.user)
 
