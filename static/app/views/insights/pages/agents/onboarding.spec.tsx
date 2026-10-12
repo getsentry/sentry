@@ -160,6 +160,7 @@ describe('Onboarding deployment target', () => {
     ['node-mastra', 'Mastra', /@mastra\/observability/],
     ['node-flue', 'Flue', /flue add tooling sentry/],
     ['node-eve', 'Eve', /Install the Sentry Node SDK in your Eve project/],
+    ['node-pi-durable', 'Pi Durable', /npm install @sentry\/node@\^11\.6\.0/],
   ] as const)(
     'uses the %s project integration without showing a selector',
     async (platform, integration, setupCode) => {
@@ -174,7 +175,7 @@ describe('Onboarding deployment target', () => {
     }
   );
 
-  it.each(['node-mastra', 'node-flue', 'node-eve'] as const)(
+  it.each(['node-mastra', 'node-flue', 'node-eve', 'node-pi-durable'] as const)(
     'hides generic Conversations guidance for %s projects',
     async platform => {
       const {organization} = setupProject(platform);
@@ -293,6 +294,37 @@ describe('Onboarding deployment target', () => {
     // The user can still switch to Cloudflare.
     await userEvent.click(runtimeSelector);
     expect(await screen.findByRole('option', {name: 'Cloudflare'})).toBeInTheDocument();
+  });
+
+  it('switches Pi Durable to the Cloudflare SDK on the Cloudflare runtime', async () => {
+    const {organization} = setupProject('node');
+
+    render(<Onboarding />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Pi Durable'}));
+
+    // Pi Durable runs on both runtimes, so the runtime selector stays interactive.
+    const runtimeSelector = await screen.findByRole('button', {name: 'Node'});
+    expect(runtimeSelector).toBeEnabled();
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/npm install @sentry\/node@\^11\.6\.0/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
+
+    await userEvent.click(runtimeSelector);
+    await userEvent.click(await screen.findByRole('option', {name: 'Cloudflare'}));
+
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/npm install @sentry\/cloudflare@\^11\.6\.0/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
   });
 
   it('pins and locks the runtime to Node when a Node-only SDK is selected', async () => {

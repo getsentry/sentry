@@ -15,6 +15,10 @@ import {
 import {onboarding as eveFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-eve/onboarding';
 import {onboarding as flueFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
 import {onboarding as mastraFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
+import {
+  onboarding as piDurableFrameworkOnboarding,
+  PI_DURABLE_MIN_SDK_VERSION,
+} from 'sentry/gettingStartedDocs/node-pi-durable/onboarding';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
@@ -36,6 +40,7 @@ const INTEGRATION_MIN_VERSIONS: Partial<Record<AgentIntegration, string>> = {
   [AgentIntegration.CLOUDFLARE_AGENTS]: CLOUDFLARE_AGENTS_MIN_VERSION,
   [AgentIntegration.EVE]: '11.0.0',
   [AgentIntegration.MASTRA]: '11.0.0',
+  [AgentIntegration.PI_DURABLE]: PI_DURABLE_MIN_SDK_VERSION,
 };
 
 const CLOUDFLARE_AGENT_TRACING_DOCS =
@@ -798,6 +803,10 @@ export function getInstallStep(
     return eveFrameworkOnboarding.install(params);
   }
 
+  if (selected === AgentIntegration.PI_DURABLE) {
+    return piDurableFrameworkOnboarding.install(params);
+  }
+
   const resolvedPackageName =
     getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE
       ? '@sentry/cloudflare'
@@ -1022,6 +1031,10 @@ function getVerifyStep(params: DocsParams): OnboardingStep[] {
     return eveFrameworkOnboarding.verify(params);
   }
 
+  if (selected === AgentIntegration.PI_DURABLE) {
+    return piDurableFrameworkOnboarding.verify(params);
+  }
+
   // The Agents SDK only produces spans once the wrapped agent runs, so there's
   // no standalone snippet to verify - trigger the agent instead.
   if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
@@ -1234,6 +1247,10 @@ function getAgentConfigureSteps(
 
   if (selected === AgentIntegration.EVE) {
     return eveFrameworkOnboarding.configure(params);
+  }
+
+  if (selected === AgentIntegration.PI_DURABLE) {
+    return piDurableFrameworkOnboarding.configure(params);
   }
 
   return getConfigureStep({

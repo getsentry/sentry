@@ -90,6 +90,7 @@ const server = new Set<PlatformKey>([
   'node-koa',
   'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -189,6 +190,7 @@ export const createablePlatforms = new Set<PlatformKey>([
  */
 export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
   native: ['cpp', 'c++'],
+  'node-pi-durable': ['earendil'],
 };
 
 export const categoryList = [

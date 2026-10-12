@@ -103,6 +103,7 @@ export type PlatformKey =
   | 'node-koa'
   | 'node-mastra'
   | 'node-nestjs'
+  | 'node-pi-durable'
   | 'node-nodeawslambda'
   | 'node-nodegcpfunctions'
   | 'objc'

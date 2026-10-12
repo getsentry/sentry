@@ -564,6 +564,7 @@ const INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS = new Set<string>([
   AgentIntegration.EVE,
   AgentIntegration.FLUE,
   AgentIntegration.MASTRA,
+  AgentIntegration.PI_DURABLE,
 ]);
 
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {

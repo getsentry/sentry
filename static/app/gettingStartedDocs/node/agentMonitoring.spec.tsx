@@ -63,6 +63,7 @@ describe('node agentMonitoring onboarding', () => {
   it.each([
     ['11.0.0', 'eve'],
     ['11.0.0', 'mastra'],
+    ['11.6.0', 'pi_durable'],
     ['10.69.0', 'cloudflare_agents'],
     ['10.67.0', 'openai'],
   ])('requires SDK version %s for %s', (expectedVersion, integration) => {
@@ -298,6 +299,41 @@ describe('node agentMonitoring onboarding', () => {
       expect(
         texts.some(text => typeof text === 'string' && text.includes('Start Eve'))
       ).toBe(true);
+    });
+  });
+
+  describe('Pi Durable', () => {
+    it('preloads Sentry.init with the Node SDK on Node', () => {
+      const params = makeParams({integration: 'pi_durable'});
+      const installCode = collectCode(config.install(params));
+      const configureCode = collectCode(config.configure(params));
+
+      expect(installCode).toContain('npm install @sentry/node@^11.6.0');
+      expect(configureCode).toContain('Sentry.init({');
+      expect(configureCode).toContain('node --import ./instrument.mjs server.mjs');
+      expect(configureCode).not.toContain('sentryCloudflareVitePlugin');
+    });
+
+    it('uses build-time instrumentation with the Cloudflare Vite plugin on Cloudflare', () => {
+      const params = makeParams({
+        integration: 'pi_durable',
+        deploymentTarget: 'cloudflare',
+      });
+      const installCode = collectCode(config.install(params));
+      const configureCode = collectCode(config.configure(params));
+
+      expect(installCode).toContain('npm install @sentry/cloudflare@^11.6.0');
+      expect(configureCode).toContain('sentryCloudflareVitePlugin()');
+      expect(configureCode).toContain('defineCloudflareOptions');
+      expect(configureCode).toContain('nodejs_compat');
+      expect(configureCode).not.toContain('Sentry.init(');
+    });
+
+    it('verifies through a conversation rather than a raw SDK snippet', () => {
+      const steps = config.verify(makeParams({integration: 'pi_durable'}));
+
+      expect(collectCode(steps)).toBe('');
+      expect(collectText(steps)).toContain('Pi Durable conversations');
     });
   });
 
