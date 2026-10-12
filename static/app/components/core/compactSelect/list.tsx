@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useId, useMemo} from 'react';
+import {Fragment, useContext, useId, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -8,9 +8,10 @@ import {useListState} from '@react-stately/list';
 import {defined} from 'sentry/utils/defined';
 import type {FormSize} from 'sentry/utils/theme';
 
-import {ControlContext} from './control';
+import {ControlContext} from './controlContext';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
+import {SelectFilterContext} from './selectFilterContext';
 import type {
   ListItemBase,
   SelectKey,
@@ -28,7 +29,7 @@ import {
   shouldCloseOnSelect,
 } from './utils';
 
-export const SelectFilterContext = createContext(new Set<SelectKey>());
+export {SelectFilterContext} from './selectFilterContext';
 
 interface BaseListProps<Value extends SelectKey>
   extends

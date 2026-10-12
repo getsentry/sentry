@@ -8,7 +8,10 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {useLocation} from 'sentry/utils/useLocation';
 
+import {useFieldId, useHintTextId} from './fieldIds';
 import {FieldMeta} from './meta';
+
+export {useFieldId, useHintTextId, useLabelId} from './fieldIds';
 
 export type BaseFieldProps<T extends HTMLElement> = {
   disabled?: boolean | string;
@@ -39,24 +42,6 @@ export const useAutoSaveIndicator = () => {
   }
 
   return null;
-};
-
-export const useFieldId = () => {
-  const field = useFieldContext();
-
-  return field.form.formId + field.name;
-};
-
-export const useHintTextId = () => {
-  const fieldId = useFieldId();
-
-  return `${fieldId}-hint`;
-};
-
-export const useLabelId = () => {
-  const fieldId = useFieldId();
-
-  return `${fieldId}-label`;
 };
 
 function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | null>) {
