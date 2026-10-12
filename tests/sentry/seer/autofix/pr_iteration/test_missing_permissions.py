@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -14,7 +15,17 @@ from sentry.integrations.utils.github_permission_tiers import (
     PR_ITERATION_TIER,
     get_missing_permission_tiers,
 )
-from sentry.seer.agent.client_models import RepoPRState, SeerRunState
+from sentry.integrations.utils.github_permissions import GITHUB_APP_LATEST_PERMISSIONS
+from sentry.models.repository import Repository
+from sentry.seer.agent.client_models import (
+    MemoryBlock,
+    Message,
+    RepoPRState,
+    SeerRunState,
+    ToolCall,
+    ToolLink,
+    ToolResult,
+)
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
@@ -22,6 +33,8 @@ from sentry.seer.autofix.pr_iteration.missing_permissions import (
     MISSING_PERMISSIONS_EXTRA,
     _tiers_tag,
     block_iteration_for_missing_permissions,
+    failed_tool_calls,
+    get_blocked_pr_iteration_permissions,
     get_missing_permissions_marker,
     post_missing_permissions_comment,
 )
@@ -29,6 +42,7 @@ from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events, assert_not_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils import json
 from sentry.utils.locking import UnableToAcquireLock
 
 MODULE = "sentry.seer.autofix.pr_iteration.missing_permissions"
@@ -111,7 +125,7 @@ def _state(**pr_numbers: int | None) -> SeerRunState:
             repo_name.replace("__", "/"): RepoPRState(
                 repo_name=repo_name.replace("__", "/"),
                 pr_number=pr_number,
-                pr_id=4242 if pr_number is not None else None,
+                pr_id="4242" if pr_number is not None else None,
             )
             for repo_name, pr_number in pr_numbers.items()
         },
@@ -164,7 +178,7 @@ class BlockIterationForMissingPermissionsTest(TestCase):
             organization_id=self.organization.id,
             repo_name=REPO_NAME,
             pr_number=7,
-            pr_id=4242,
+            pr_id="4242",
             integration_id=INTEGRATION_ID,
             repository_id=123,
         )
@@ -217,7 +231,6 @@ class BlockIterationForMissingPermissionsTest(TestCase):
                     project_id=self.project.id,
                     group_id=self.group.id,
                     run_id=RUN_ID,
-                    iteration_index=0,
                     duration_ms=0,
                     outcome="missing_permissions",
                 )
@@ -258,7 +271,7 @@ class PostMissingPermissionsCommentTest(TestCase):
             run_id=RUN_ID,
             repo_name=REPO_NAME,
             pr_number=7,
-            pr_id=4242,
+            pr_id="4242",
             integration_id=integration_id,
             queued_repository_id=queued_repository_id,
             log_ctx=_log_ctx(_state(getsentry__sentry=7)),
@@ -331,7 +344,7 @@ class PostMissingPermissionsCommentTest(TestCase):
         marker = get_missing_permissions_marker(self.seer_run, REPO_NAME)
         assert marker is not None
         assert marker["missing_tiers"] == ["pr_iteration"]
-        assert marker["pr_id"] == 4242
+        assert marker["pr_id"] == "4242"
 
     def test_stays_silent_once_marked(self, mock_get_perms) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
@@ -527,7 +540,7 @@ class CommentedMetricTagTest(TestCase):
             run_id=RUN_ID,
             repo_name=REPO_NAME,
             pr_number=7,
-            pr_id=4242,
+            pr_id="4242",
             integration_id=INTEGRATION_ID,
             log_ctx=_log_ctx(_state(getsentry__sentry=7)),
         )
@@ -535,3 +548,129 @@ class CommentedMetricTagTest(TestCase):
         commented = [c for c in mock_incr.call_args_list if c[0][0].endswith(".commented")]
         assert len(commented) == 1
         assert commented[0][1]["tags"] == {"missing_tiers": "autofix_pull_requests-pr_iteration"}
+
+
+# After GITHUB_APP_PERMISSIONS_UPDATED_AT, in the naive-UTC isoformat the token
+# refresh writes.
+FRESH_REFRESH_AT = "2026-08-01T00:00:00"
+
+_FULL_PERMISSIONS = dict(GITHUB_APP_LATEST_PERMISSIONS)
+# Holds everything up to and including Autofix; only the PR iteration tier is
+# missing (its scopes are dropped from the full set).
+_MISSING_PR_ITERATION = {
+    scope: level
+    for scope, level in _FULL_PERMISSIONS.items()
+    if scope not in PR_ITERATION_TIER.introduced
+}
+
+
+def _block(
+    *,
+    calls: Sequence[tuple[str, str | None, bool]] = (),
+) -> MemoryBlock:
+    """Build a block from (function, repo_name, is_error) tuples. tool_links and
+    tool_results are kept index-aligned with the tool calls, mirroring seer."""
+    tool_calls: list[ToolCall] = []
+    tool_links: list[ToolLink | None] = []
+    tool_results: list[ToolResult | None] = []
+    for i, (fn, repo, is_error) in enumerate(calls):
+        call_id = f"call-{i}"
+        args = json.dumps({"repo_name": repo} if repo is not None else {})
+        tool_calls.append(ToolCall(id=call_id, function=fn, args=args))
+        tool_links.append(ToolLink(kind=fn, params={"is_error": True}) if is_error else None)
+        tool_results.append(ToolResult(tool_call_id=call_id, tool_call_function=fn, content="x"))
+    return MemoryBlock(
+        id="b",
+        message=Message(role="assistant", content="", tool_calls=tool_calls or None),
+        timestamp="2023-07-18T12:00:00Z",
+        tool_links=tool_links or None,
+        tool_results=tool_results or None,
+    )
+
+
+def _single_repo_state(*, pr_number: int | None) -> SeerRunState:
+    return SeerRunState(
+        run_id=1,
+        blocks=[],
+        status="completed",
+        updated_at="2023-07-18T12:00:00Z",
+        repo_pr_states={REPO_NAME: RepoPRState(repo_name=REPO_NAME, pr_number=pr_number)},
+    )
+
+
+def test_failed_tool_calls_returns_errored_calls() -> None:
+    block = _block(
+        calls=[
+            ("code_file_edit", "org/repo-a", False),
+            ("summarize_failed_ci_logs", "org/repo-b", True),
+        ]
+    )
+    calls = failed_tool_calls([block])
+    assert [call.function for call in calls] == ["summarize_failed_ci_logs"]
+
+
+def test_failed_tool_calls_aggregates_across_blocks() -> None:
+    blocks = [
+        _block(calls=[("t", "org/repo-a", True)]),
+        _block(calls=[("u", "org/repo-b", True)]),
+    ]
+    assert [call.function for call in failed_tool_calls(blocks)] == ["t", "u"]
+
+
+class GetBlockedPrIterationPermissionsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="9999",
+            metadata={"permissions": _MISSING_PR_ITERATION, "last_refresh_at": FRESH_REFRESH_AT},
+        )
+        self.repo = self.create_repo(
+            project=self.create_project(organization=self.organization),
+            name=REPO_NAME,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+
+    def test_warns_when_a_pr_exists_and_feedback_is_queued(self) -> None:
+        missing = get_blocked_pr_iteration_permissions(
+            self.organization, _single_repo_state(pr_number=7), has_actionable_feedback=True
+        )
+
+        assert set(missing) == {REPO_NAME}
+        assert [tier.key for tier in missing[REPO_NAME].missing_tiers] == ["pr_iteration"]
+        assert missing[REPO_NAME].installation_id == "9999"
+        assert missing[REPO_NAME].repository_id == self.repo.id
+
+    def test_silent_without_actionable_feedback(self) -> None:
+        assert (
+            get_blocked_pr_iteration_permissions(
+                self.organization, _single_repo_state(pr_number=7), has_actionable_feedback=False
+            )
+            == {}
+        )
+
+    def test_silent_before_the_pr_is_created(self) -> None:
+        assert (
+            get_blocked_pr_iteration_permissions(
+                self.organization, _single_repo_state(pr_number=None), has_actionable_feedback=True
+            )
+            == {}
+        )
+
+    def test_silent_when_the_install_is_healthy(self) -> None:
+        healthy = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="8888",
+            metadata={"permissions": _FULL_PERMISSIONS, "last_refresh_at": FRESH_REFRESH_AT},
+        )
+        Repository.objects.filter(id=self.repo.id).update(integration_id=healthy.id)
+
+        assert (
+            get_blocked_pr_iteration_permissions(
+                self.organization, _single_repo_state(pr_number=7), has_actionable_feedback=True
+            )
+            == {}
+        )

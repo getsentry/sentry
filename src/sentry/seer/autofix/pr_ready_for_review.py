@@ -12,18 +12,24 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
+def _public_pr_id(pr_id: str | None) -> int | str | None:
+    if pr_id is not None and pr_id.isdigit():
+        return int(pr_id)
+    return pr_id
+
+
 def format_pull_requests_payload(state: SeerRunState) -> list[dict]:
     return [
         {
             "provider": pull_request.provider or "unknown",
             "repo_name": pull_request.repo_name,
             "pull_request": {
-                "pr_id": pull_request.pr_id,
+                "pr_id": _public_pr_id(pull_request.pr_id),
                 "pr_number": pull_request.pr_number,
                 "pr_url": pull_request.pr_url,
             },
         }
-        for pull_request in state.repo_pr_states.values()
+        for pull_request in state.get_created_pull_request_states()
     ]
 
 
@@ -47,6 +53,8 @@ def emit_pr_ready_for_review(
     pull_requests = format_pull_requests_payload(state)
     if filtered_repos:
         pull_requests = [pr for pr in pull_requests if pr["repo_name"] in filtered_repos]
+    if not pull_requests:
+        return
 
     payload = {
         "run_id": state.run_id,

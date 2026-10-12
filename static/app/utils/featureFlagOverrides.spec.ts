@@ -15,30 +15,8 @@ describe('FeatureFlagOverrides', () => {
     });
   });
 
-  describe('getFlagMap', () => {
-    it('should convert `organization.features` into the shape of FlagMap', () => {
-      localStorageWrapper.setItem(
-        LOCALSTORAGE_KEY,
-        '{"enable-issues":false,"enable-profiling":true}'
-      );
-      const inst = new FeatureFlagOverrides();
-
-      expect(organization.features).toEqual([
-        'enable-issues',
-        'enable-profiling',
-        'enable-replay',
-      ]);
-
-      expect(inst.getFlagMap(organization)).toEqual({
-        'enable-issues': true,
-        'enable-profiling': true,
-        'enable-replay': true,
-      });
-    });
-  });
-
   describe('getOverrides', () => {
-    it('should return the FlapMap of everything that is manually overridden', () => {
+    it('should return all manually overridden flags', () => {
       localStorageWrapper.setItem(
         LOCALSTORAGE_KEY,
         '{"enable-issues":false,"enable-profiling":true}'

@@ -211,4 +211,152 @@ describe('SimpleTable component', () => {
       screen.queryByRole('columnheader', {name: 'No results'})
     ).not.toBeInTheDocument();
   });
+
+  it('renders children as the table sections when given custom sections', () => {
+    render(
+      <SimpleTable customSections>
+        <SimpleTable.Head>
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        </SimpleTable.Head>
+        <SimpleTable.Body data-test-id="pinned">
+          <SimpleTable.Row>
+            <SimpleTable.RowCell>Pinned</SimpleTable.RowCell>
+          </SimpleTable.Row>
+        </SimpleTable.Body>
+        <SimpleTable.Body data-test-id="rows">
+          <SimpleTable.Row>
+            <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+          </SimpleTable.Row>
+        </SimpleTable.Body>
+      </SimpleTable>
+    );
+
+    expect(screen.getAllByRole('rowgroup')).toHaveLength(3);
+    expect(
+      within(screen.getByTestId('pinned')).getByRole('cell', {name: 'Pinned'})
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('rows')).getByRole('cell', {name: 'Row'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders only a body when no header is given', () => {
+    render(
+      <SimpleTable>
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    expect(screen.getAllByRole('rowgroup')).toHaveLength(1);
+    expect(screen.queryByRole('columnheader')).not.toBeInTheDocument();
+  });
+
+  it('renders resize handles only for columns that opt in', () => {
+    render(
+      <SimpleTable
+        columns={[{key: 'a', resizable: true}, {key: 'b'}, {key: 'c'}]}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell columnIndex={0}>A</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={1}>B</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={2}>C</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>0</SimpleTable.RowCell>
+          <SimpleTable.RowCell>1</SimpleTable.RowCell>
+          <SimpleTable.RowCell>2</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
+  });
+
+  it('scrolls its overflow and caps its height when scrollable with a max height', () => {
+    render(
+      <SimpleTable maxHeight="200px" scrollable>
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    const rules = getEmotionRules(screen.getByRole('table')).join('');
+
+    expect(rules).toContain('overflow: auto');
+    expect(rules).toContain('max-height: 200px');
+  });
+
+  it('clips its overflow when not scrollable', () => {
+    render(
+      <SimpleTable>
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    const rules = getEmotionRules(screen.getByRole('table')).join('');
+
+    expect(rules).toContain('overflow: hidden');
+    expect(rules).not.toContain('grid-template-rows');
+  });
+
+  it('tightens cells, shortens the header, drops row dividers, and shrinks text when compressed', () => {
+    render(
+      <SimpleTable
+        density="compressed"
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>One</SimpleTable.RowCell>
+        </SimpleTable.Row>
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>Two</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    const headerRules = getEmotionRules(
+      screen.getByRole('columnheader', {name: 'A'})
+    ).join('');
+    const headerRowRules = getEmotionRules(screen.getByRole('row', {name: 'A'})).join('');
+
+    expect(getEmotionRules(screen.getByRole('cell', {name: 'One'})).join('')).toContain(
+      'padding: 4px 8px'
+    );
+    expect(
+      getEmotionRules(screen.getByRole('row', {name: 'One'})).join('')
+    ).not.toContain('border-bottom');
+    expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
+      'font-size: 12px'
+    );
+    expect(headerRules).toContain('padding: 0px 8px');
+    expect(headerRules).toContain('font-size: 12px');
+    expect(headerRowRules).toContain('min-height: 26px');
+  });
+
+  it('pads cells more when comfortable', () => {
+    render(
+      <SimpleTable density="comfortable">
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>One</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    expect(getEmotionRules(screen.getByRole('cell', {name: 'One'})).join('')).toContain(
+      'padding: 16px'
+    );
+  });
 });

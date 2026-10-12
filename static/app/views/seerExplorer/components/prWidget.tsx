@@ -1,14 +1,17 @@
 import {useMemo} from 'react';
 import type React from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconOpen} from '@sentry/icons/open';
+import {IconUpload} from '@sentry/icons/upload';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconCheckmark, IconOpen, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import type {MenuItemProps} from 'sentry/views/seerExplorer/components/explorerMenu';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -171,6 +174,8 @@ export function usePRWidgetData({
       const prState = repoPRStates[repoName];
       const syncStatus = repoSyncStatus[repoName];
       const isCreating = prState?.pr_creation_status === 'creating';
+      const prUrl =
+        prState?.pr_url && isValidUrl(prState.pr_url) ? prState.pr_url : undefined;
 
       return {
         key: repoName,
@@ -217,7 +222,7 @@ export function usePRWidgetData({
                     </Text>
                   )}
                   <PRLink
-                    href={prState?.pr_url ?? undefined}
+                    href={prUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
@@ -235,8 +240,8 @@ export function usePRWidgetData({
         ),
         handler: () => {
           // If repo has a PR, open it
-          if (syncStatus?.hasPR && prState?.pr_url) {
-            window.open(prState.pr_url, '_blank');
+          if (syncStatus?.hasPR && prUrl) {
+            window.open(prUrl, '_blank');
           }
         },
       };

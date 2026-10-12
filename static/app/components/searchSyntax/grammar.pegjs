@@ -67,6 +67,7 @@ filter
   / aggregate_filter
   / has_filter
   / is_filter
+  / regex_filter
   / array_includes_filter
   / text_in_filter
   / text_filter
@@ -226,6 +227,24 @@ array_includes_filter
       );
     }
 
+regex_filter
+  = negation:negation?
+    key:(array_includes_key / text_key)
+    sep
+    value:regex_value {
+      return tc.tokenRegexFilter(key, value.literal, value.pattern, !!negation);
+    }
+
+regex_value
+  = "//" pattern:regex_pattern "//" &end_value {
+      return {pattern, literal: tc.tokenValueText(text(), false)};
+    }
+
+regex_pattern
+  = (!("//" end_value) [^\n])* {
+      return tc.tokenValueText(text(), false);
+    }
+
 // in filter key:[val1, val2]
 text_in_filter
   = negation:negation?
@@ -332,8 +351,8 @@ explicit_array_tag_key
 array_access_suffix = open_bracket "*" closed_bracket
 
 array_includes_tag_key
-  = base:explicit_array_tag_key array_access_suffix {
-      return tc.tokenKeyArrayIncludes(base, "*");
+  = prefix:"tags" open_bracket key:escaped_key array_access_suffix spaces comma spaces 'array' closed_bracket {
+      return tc.tokenKeyArrayIncludes(tc.tokenKeyExplicitArrayTag(prefix, key), "*");
     }
 
 array_includes_attr_key

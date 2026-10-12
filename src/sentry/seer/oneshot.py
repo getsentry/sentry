@@ -9,7 +9,6 @@ payload/result contract each one defines.
 
 from __future__ import annotations
 
-import contextlib
 import logging
 from collections.abc import Callable, Mapping
 from typing import Any
@@ -26,12 +25,6 @@ from sentry.seer.signed_seer_api import (
     make_oneshot_request,
 )
 from sentry.utils import metrics
-from sentry.viewer_context import (
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-    viewer_context_scope,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -54,11 +47,13 @@ def call_seer_oneshot(
     """Dispatch a single synchronous Seer task and return its parsed JSON body.
 
     This is the shared boilerplate behind the one-shot style Seer calls: it
-    builds viewer context from ``organization`` (plus an optional ``user_id``),
-    invokes ``make_request`` with the default timeout, and on a non-2xx response
-    increments ``error_metric`` (merging ``error_metric_tags`` with the response
-    ``status``) before raising :class:`SeerApiError`. On success it returns the
-    decoded JSON object; callers shape it into their own result contract.
+    supplies legacy viewer metadata from ``organization`` (plus an optional
+    ``user_id``), invokes ``make_request`` with the default timeout, and on a
+    non-2xx response increments ``error_metric`` (merging ``error_metric_tags``
+    with the response ``status``) before raising :class:`SeerApiError`. On
+    success it returns the decoded JSON object; callers shape it into their own
+    result contract. The caller is responsible for establishing the ambient
+    ``ViewerContext`` at its request, consumer, or task boundary.
 
     Seer task endpoints require viewer context with an organization, so
     ``organization`` is mandatory.
@@ -67,22 +62,11 @@ def call_seer_oneshot(
     if user_id is not None:
         viewer_context["user_id"] = user_id
 
-    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
-    if get_viewer_context() is None:
-        scope = viewer_context_scope(
-            ViewerContext(
-                organization_id=organization.id,
-                user_id=user_id,
-                actor_type=ActorType.USER if user_id is not None else ActorType.SYSTEM,
-            )
-        )
-
-    with scope:
-        response = make_request(
-            body,
-            timeout=timeout if timeout is not None else settings.SEER_DEFAULT_TIMEOUT,
-            viewer_context=viewer_context,
-        )
+    response = make_request(
+        body,
+        timeout=timeout if timeout is not None else settings.SEER_DEFAULT_TIMEOUT,
+        viewer_context=viewer_context,
+    )
 
     if response.status >= 400:
         metrics.incr(

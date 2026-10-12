@@ -312,6 +312,23 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert len(response.data) == 1
         assert response.data[0]["email"] == self.user.email
 
+    def test_scope_query_granular_scope(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": 'scope:"dashboard:read"'}
+        )
+        assert len(response.data) == 0
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_scope_query_granular_scope_with_feature(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": 'scope:"dashboard:read"'}
+        )
+        assert len(response.data) == 2
+        assert {member["email"] for member in response.data} == {
+            self.user.email,
+            self.user2.email,
+        }
+
     def test_role_query(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:member"}

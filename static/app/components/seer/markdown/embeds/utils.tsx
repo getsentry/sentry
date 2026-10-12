@@ -6,6 +6,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NODE_ENV} from 'sentry/constants/env';
 import {t} from 'sentry/locale';
 
+import {describeInvalidEmbed} from './invalidEmbedReport';
 import type {SeerEmbedProps} from './registry';
 import {useTrackEmbedRendered} from './renderTracking';
 import {ALL_SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
@@ -21,14 +22,28 @@ export type EmbedOutput<N extends SeerEmbedName> = z.output<
  */
 const reportedInvalidEmbeds = new Set<string>();
 
-function reportInvalidEmbed(name: string, issues: readonly z.core.$ZodIssue[]) {
+function reportInvalidEmbed({
+  name,
+  level,
+  schema,
+  data,
+  issues,
+}: {
+  data: unknown;
+  issues: readonly z.core.$ZodIssue[];
+  level: SeerEmbedProps['level'];
+  name: string;
+  schema: z.ZodType;
+}) {
+  const report = describeInvalidEmbed(name, schema, data, issues);
+
   if (NODE_ENV === 'development') {
     // eslint-disable-next-line no-console
-    console.warn(`[SeerEmbed] ${name}: invalid props`, issues);
+    console.warn(report.title, report);
     return;
   }
 
-  const key = `${name}:${issues.map(issue => `${issue.code}@${issue.path.join('.')}`).join('|')}`;
+  const key = report.fingerprint.join('|');
   if (reportedInvalidEmbeds.has(key)) {
     return;
   }
@@ -37,9 +52,16 @@ function reportInvalidEmbed(name: string, issues: readonly z.core.$ZodIssue[]) {
   Sentry.withScope(scope => {
     scope.setLevel('warning');
     scope.setTag('seer_embed.name', name);
-    scope.setExtra('issues', issues);
-    scope.setFingerprint(['seer-embed-invalid-props', name]);
-    Sentry.captureException(new Error(`[SeerEmbed] ${name}: invalid props`));
+    scope.setTag('seer_embed.level', level);
+    scope.setTag('seer_embed.invalid_fields', report.invalidFields);
+    scope.setContext('seer_embed', {
+      failures: report.failures,
+      likely_renames: report.likelyRenames,
+      unexpected_keys: report.unexpectedKeys,
+      received_keys: report.receivedKeys,
+    });
+    scope.setFingerprint(report.fingerprint);
+    Sentry.captureException(new Error(report.title));
   });
 }
 
@@ -88,7 +110,7 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
       rendered: parsed.success && level !== 'markdown',
     });
     if (!parsed.success) {
-      reportInvalidEmbed(name, parsed.error.issues);
+      reportInvalidEmbed({name, level, schema, data, issues: parsed.error.issues});
       return null;
     }
     const parsedData = parsed.data as EmbedOutput<N>;

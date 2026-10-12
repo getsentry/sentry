@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -59,7 +60,6 @@ function makeExplorerAutofixData({
 describe('SeerDrawer', () => {
   const organization = OrganizationFixture({
     hideAiFeatures: false,
-    features: ['gen-ai-features'],
   });
 
   const mockGroup = GroupFixture();
@@ -365,6 +365,14 @@ describe('SeerDrawer', () => {
   describe('PR polling', () => {
     const autofixUrl = `/organizations/${DetailedProjectFixture().organization.slug}/issues/${GroupFixture().id}/autofix/`;
 
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     function mockAutofixWithPr() {
       return MockApiClient.addMockResponse({
         url: autofixUrl,
@@ -389,7 +397,10 @@ describe('SeerDrawer', () => {
       );
 
       const callsAfterLoad = getMock.mock.calls.length;
-      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(10_000);
+      });
 
       expect(getMock.mock.calls).toHaveLength(callsAfterLoad);
     });
@@ -402,7 +413,7 @@ describe('SeerDrawer', () => {
         render(<SeerDrawer group={mockGroup} project={mockProject} />, {
           organization: OrganizationFixture({
             hideAiFeatures: false,
-            features: ['gen-ai-features', feature],
+            features: [feature],
           }),
         });
 
@@ -412,14 +423,12 @@ describe('SeerDrawer', () => {
 
         const callsAfterLoad = getMock.mock.calls.length;
 
-        await waitFor(
-          () => {
-            expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
-          },
-          {timeout: 15_000}
-        );
-      },
-      20_000
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(10_000);
+        });
+
+        expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
+      }
     );
   });
 });

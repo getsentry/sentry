@@ -1,5 +1,6 @@
-import {useCallback} from 'react';
-import {useBlocker} from 'react-router-dom';
+import {useCallback, useEffect, useEffectEvent} from 'react';
+import {useBlocker} from 'react-router';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -7,7 +8,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -107,12 +107,21 @@ export function PlatformDocHeader({
     platform.id,
   ]);
 
-  useBlocker(({historyAction}) => {
-    if (historyAction === 'POP') {
-      handleGoBack();
-    }
-    return false;
+  // Keep return navigation on the docs until deletion and the restore URL are ready.
+  const blocker = useBlocker(
+    ({historyAction}) => historyAction === 'POP' && !!recentCreatedProject
+  );
+  const handleBlockedBack = useEffectEvent(() => {
+    void handleGoBack();
   });
+
+  useEffect(() => {
+    if (blocker.state !== 'blocked') {
+      return;
+    }
+
+    handleBlockedBack();
+  }, [blocker.state]);
 
   return (
     <Flex

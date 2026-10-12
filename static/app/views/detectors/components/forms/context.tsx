@@ -11,6 +11,7 @@ type DetectorFormContextType = {
   hasSetDetectorName: boolean;
   setHasSetDetectorName: (value: boolean) => void;
   detector?: Detector;
+  duplicateDetector?: Detector;
 };
 
 const DetectorFormContext = createContext<DetectorFormContextType | null>(null);
@@ -18,17 +19,27 @@ const DetectorFormContext = createContext<DetectorFormContextType | null>(null);
 export function DetectorFormProvider({
   detectorType,
   detector,
+  duplicateDetector,
   children,
 }: {
   children: React.ReactNode;
   detectorType: DetectorType;
   detector?: Detector;
+  duplicateDetector?: Detector;
 }) {
-  const [hasSetDetectorName, setHasSetDetectorName] = useState(false);
+  const [hasSetDetectorName, setHasSetDetectorName] = useState(
+    Boolean(duplicateDetector)
+  );
 
   return (
     <DetectorFormContext.Provider
-      value={{detectorType, hasSetDetectorName, setHasSetDetectorName, detector}}
+      value={{
+        detectorType,
+        hasSetDetectorName,
+        setHasSetDetectorName,
+        detector,
+        duplicateDetector,
+      }}
     >
       {children}
     </DetectorFormContext.Provider>

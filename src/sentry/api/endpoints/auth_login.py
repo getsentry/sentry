@@ -54,6 +54,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     owner = ApiOwner.FOUNDATIONS
     # Disable authentication and permission requirements.
     permission_classes = ()
+    csrf_protect = True
 
     def get_password_organization(
         self,

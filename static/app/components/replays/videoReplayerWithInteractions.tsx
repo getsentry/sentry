@@ -1,5 +1,5 @@
 import type {Theme} from '@emotion/react';
-import {Replayer} from '@sentry-internal/rrweb';
+import {Replayer} from '@sentry/rrweb';
 
 import type {VideoReplayerConfig} from 'sentry/components/replays/videoReplayer';
 import {

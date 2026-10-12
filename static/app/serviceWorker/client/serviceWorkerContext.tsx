@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {isServiceWorkerSupported} from 'sentry/serviceWorker/client/isServiceWorkerSupported';
 import {ServiceWorkerController} from 'sentry/serviceWorker/client/serviceWorkerInterface';
+import {trustedScriptUrl} from 'sentry/utils/trustedTypes';
 
 const DEBUG_LOGGING = false;
 
@@ -15,8 +16,12 @@ function log(message: string, options?: Sentry.metrics.MetricOptions) {
   }
 }
 
-function getWorkerUrl(): string {
-  return window.__SENTRY_DEV_UI ? '/entrypoints/service-worker.js' : '/service-worker.js';
+function getWorkerUrl(): TrustedScriptURL {
+  const url = window.__SENTRY_DEV_UI
+    ? '/entrypoints/service-worker.js'
+    : '/service-worker.js';
+
+  return trustedScriptUrl(url);
 }
 
 const Context = createContext({

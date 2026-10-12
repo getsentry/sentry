@@ -4,11 +4,13 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {ChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
-import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
+import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 const SEER_EXPLORER_DRAWER_KEY = 'seer-explorer-drawer';
 
@@ -18,6 +20,12 @@ export type OpenSeerExplorerDrawerOptions = {
    * with a fresh session.
    */
   appendToOpenRun?: boolean;
+  /**
+   * An "Ask Seer" question to show as Seer's. Nothing is sent until the user
+   * replies. It joins the conversation on screen, or a new chat when Explorer
+   * is closed. The provider stores it in chat state; the drawer only opens.
+   */
+  chatPrompt?: ChatPrompt;
   /**
    * Optional query string to auto-submit once the drawer opens. Takes effect on
    * an empty session, or the open one with `appendToOpenRun`.

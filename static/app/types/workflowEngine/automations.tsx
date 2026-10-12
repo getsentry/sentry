@@ -9,7 +9,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 export type NewAutomationAction = Omit<Action, 'id'>;
 export type NewAutomationDataCondition = Omit<DataCondition, 'id'>;
 
-interface NewAutomationDataConditionGroup extends Omit<
+export interface NewAutomationDataConditionGroup extends Omit<
   DataConditionGroup,
   'actions' | 'conditions' | 'id'
 > {
@@ -40,6 +40,16 @@ export interface Automation extends Readonly<AutomationBase> {
   readonly triggers: DataConditionGroup | null;
 }
 
+interface AlertPreviewResult {
+  groupId: string;
+  isThrottled: boolean;
+  triggeredAt: string;
+}
+
+export interface AlertPreviewResponse {
+  results: AlertPreviewResult[];
+}
+
 export interface AutomationFireHistory {
   count: number;
   eventId: string;
@@ -47,11 +57,6 @@ export interface AutomationFireHistory {
   lastTriggered: string;
   detector?: Detector;
 }
-
-export type AutomationStats = {
-  count: number;
-  date: string;
-};
 
 /**
  * Warning information about the status of actions in an automation.

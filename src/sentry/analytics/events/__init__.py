@@ -60,9 +60,9 @@ from .join_request_created import *  # noqa: F401,F403
 from .join_request_link_viewed import *  # noqa: F401,F403
 from .manual_issue_assignment import *  # noqa: F401,F403
 from .member_invited import *  # noqa: F401,F403
-from .metric_alert_with_ui_component_created import *  # noqa: F401,F403
 from .missing_members_nudge import *  # noqa: F401,F403
 from .monitor_mark_failed import *  # noqa: F401,F403
+from .notification_tracking import *  # noqa: F401,F403
 from .oauth_consent import *  # noqa: F401,F403
 from .onboarding_complete import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403

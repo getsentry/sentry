@@ -21,3 +21,16 @@ export function formatLLMCosts(cost: string | number | null) {
   }
   return formatDollars(number);
 }
+
+/**
+ * Full-precision cost for tooltips. Cheap models routinely produce costs that
+ * `formatLLMCosts` rounds to `$0.01` or `<$0.01`, so the rounded value alone
+ * is not useful for comparing calls.
+ */
+export function formatLLMCostsExact(cost: string | number) {
+  return Number(cost).toLocaleString(undefined, {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 8,
+  });
+}

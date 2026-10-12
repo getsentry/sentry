@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
+import {IconClose} from '@sentry/icons/close';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
@@ -29,7 +30,9 @@ import {
   type CustomComboboxMenu,
   type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
+import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
@@ -73,9 +76,8 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -299,7 +301,7 @@ export function tokenSupportsMultipleValues(
   keys: TagCollection,
   fieldDefinition: FieldDefinition | null
 ): boolean {
-  if (fieldDefinition?.allowMultipleValues === false) {
+  if (fieldDefinition?.allowMultipleValues === false || isRegexOperator(token.operator)) {
     return false;
   }
 
@@ -399,8 +401,12 @@ function useFilterSuggestions({
   // every key loaded. So we should try to fetch values for it even if it
   // doesn't exist in the list of available keys.
   const shouldFetchTagKeys = token.filter === FilterType.HAS && !!getTagKeys;
+  const isRegexValue = isRegexOperator(token.operator);
   const shouldFetchValues =
-    !shouldFetchTagKeys && predefinedValues === null && (key ? !key.predefined : true);
+    !shouldFetchTagKeys &&
+    !isRegexValue &&
+    predefinedValues === null &&
+    (key ? !key.predefined : true);
   const shouldUseDefaultSuggestionOrder = shouldUseDefaultNumericSuggestions(
     filterValue,
     valueType
@@ -504,6 +510,10 @@ function useFilterSuggestions({
   );
 
   const suggestionGroups = useMemo(() => {
+    if (isRegexValue) {
+      return [];
+    }
+
     let groups: SuggestionSection[];
     if (shouldFetchTagKeys) {
       const suggestions =
@@ -545,6 +555,7 @@ function useFilterSuggestions({
   }, [
     data,
     asyncKeys,
+    isRegexValue,
     predefinedValues,
     shouldFetchTagKeys,
     shouldFetchValues,
@@ -673,7 +684,7 @@ export function getInitialInputValue(
   if (canSelectMultipleValues) {
     return getMultiSelectInputValue(token);
   }
-  if (isNumericFilterToken(token)) {
+  if (isNumericFilterToken(token) || isRegexOperator(token.operator)) {
     return token.value.text;
   }
   if (token.filter === FilterType.HAS && editingCommittedValue) {
@@ -715,9 +726,11 @@ export function SearchQueryBuilderValueCombobox({
     fieldDefinition
   );
   const valueType = getFilterValueType(token, fieldDefinition);
-  const canUseWildcard = disallowWildcard
-    ? false
-    : keySupportsWildcard(fieldDefinition, valueType);
+  const isRegexValue = isRegexOperator(token.operator);
+  const canUseWildcard =
+    disallowWildcard || isRegexValue
+      ? false
+      : keySupportsWildcard(fieldDefinition, valueType);
   // Multi-select renders committed values as chips, so the input starts empty
   // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
@@ -744,7 +757,7 @@ export function SearchQueryBuilderValueCombobox({
     return false;
   });
 
-  const filterValue = unescapeAsteriskSearchValue(inputValue);
+  const filterValue = isRegexValue ? inputValue : unescapeAsteriskSearchValue(inputValue);
 
   const selectedValues = useMemo(
     () =>
@@ -858,9 +871,14 @@ export function SearchQueryBuilderValueCombobox({
     // a long neighbouring chip can't keep it off-screen.
     const containerRect = container.getBoundingClientRect();
     const inputRect = input.getBoundingClientRect();
+    // An input wider than the row can't be brought fully into view.
+    const isWiderThanRow = inputRect.width > containerRect.width;
+    if (isWiderThanRow && input.selectionStart !== input.value.length) {
+      return;
+    }
     if (inputRect.right > containerRect.right) {
       container.scrollLeft += inputRect.right - containerRect.right;
-    } else if (inputRect.left < containerRect.left) {
+    } else if (inputRect.left < containerRect.left && !isWiderThanRow) {
       container.scrollLeft -= containerRect.left - inputRect.left;
     }
   }, []);
@@ -1006,6 +1024,15 @@ export function SearchQueryBuilderValueCombobox({
         return true;
       }
 
+      if (isRegexValue) {
+        if (/\/\/[\t\n )]/.test(value)) {
+          return false;
+        }
+        dispatch({type: 'UPDATE_TOKEN_VALUE', token, value, op});
+        onCommit();
+        return true;
+      }
+
       const valueForSaving =
         escapeSearchValue && valueType === FieldValueType.STRING
           ? escapeTagValueForSearch(value)
@@ -1073,6 +1100,7 @@ export function SearchQueryBuilderValueCombobox({
     [
       token,
       fieldDefinition,
+      isRegexValue,
       valueType,
       getSuggestedFilterKey,
       filterKeys,
@@ -1226,7 +1254,7 @@ export function SearchQueryBuilderValueCombobox({
         getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue);
 
       // If there's no user input and the token has no value, set a default one
-      if (!value && !token.value.text) {
+      if (!value && !token.value.text && !isRegexValue) {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token,
@@ -1255,6 +1283,7 @@ export function SearchQueryBuilderValueCombobox({
       dispatch,
       editingCommittedValue,
       fieldDefinition,
+      isRegexValue,
       onCommit,
       token,
       updateFilterValue,
@@ -1289,6 +1318,11 @@ export function SearchQueryBuilderValueCombobox({
     },
     [dispatch, fieldDefinition, selectedValues, token]
   );
+
+  const focusInputFromDelimiter = (e: React.MouseEvent) => {
+    e.preventDefault();
+    inputRef.current?.focus();
+  };
 
   const editValue = (index: number) => {
     const target = selectedValues[index];
@@ -1402,6 +1436,7 @@ export function SearchQueryBuilderValueCombobox({
         inputValue={inputValue}
         filterValue={filterValue}
         placeholder={placeholder}
+        renderInputValue={isRegexValue ? renderRegexPattern : undefined}
         token={token}
         inputLabel={t('Edit filter value')}
         keepVisibleRef={ref}
@@ -1441,18 +1476,29 @@ export function SearchQueryBuilderValueCombobox({
   const inputSlot = editingChip
     ? committedValues.filter(v => v.index < editingChip.index).length
     : chips.length;
-  const chipRow = [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+  const chipRow = isRegexValue
+    ? [
+        <RegexDelimiter
+          key="regex-start"
+          onMouseDown={focusInputFromDelimiter}
+          paddingRight="2xs"
+        />,
+        valueInput,
+        <RegexDelimiter key="regex-end" onMouseDown={focusInputFromDelimiter} />,
+      ]
+    : [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+  const rowScrolls = canSelectMultipleValues || isRegexValue;
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
         <ValueEditingChips
           align="center"
-          gap="2xs"
+          gap={isRegexValue ? undefined : '2xs'}
           minWidth="0"
           height="100%"
-          overflowX={canSelectMultipleValues ? 'auto' : undefined}
-          overflowY={canSelectMultipleValues ? 'hidden' : undefined}
+          overflowX={rowScrolls ? 'auto' : undefined}
+          overflowY={rowScrolls ? 'hidden' : undefined}
           ref={ref}
           data-test-id="filter-value-editing"
         >

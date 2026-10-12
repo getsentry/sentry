@@ -1,13 +1,15 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
+import {IconClose} from '@sentry/icons/close';
+import {IconSearch} from '@sentry/icons/search';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconClose, IconSearch, IconWarning} from 'sentry/icons';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import {TagChip} from 'sentry/views/preprod/snapshots/tagChip';
 import {useTagFilters} from 'sentry/views/preprod/snapshots/tagFilterContext';
@@ -146,7 +148,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
     return rows;
   }, [sections, collapsed, showSectionHeaders]);
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: virtualRows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: i =>
@@ -171,7 +173,6 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
   }, [activeItemKey, virtualRows, virtualizer]);
 
   const hasGroups = sections.some(s => s.groups.length > 0);
-  const virtualItems = virtualizer.getVirtualItems();
 
   return (
     <Stack height="100%" width="100%">
@@ -219,7 +220,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
         {hasGroups ? (
           <div
             style={{
-              height: virtualizer.getTotalSize(),
+              height: totalSize,
               position: 'relative',
               width: '100%',
             }}

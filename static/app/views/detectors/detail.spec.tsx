@@ -16,13 +16,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -38,6 +32,10 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 describe('DetectorDetails', () => {
   const organization = OrganizationFixture();
+  const organizationWithMonitorDuplication = OrganizationFixture({
+    ...organization,
+    features: [...organization.features, 'monitor-duplication'],
+  });
   const project = ProjectFixture();
   const defaultDataSource = SnubaQueryDataSourceFixture();
   const ownerTeam = TeamFixture();
@@ -134,7 +132,11 @@ describe('DetectorDetails', () => {
       name: 'detector1',
       projectId: project.id,
       dataSources: [dataSource],
-      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
+      owner: ActorFixture({
+        id: ownerTeam.id,
+        name: ownerTeam.slug,
+        type: 'team',
+      }),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
@@ -207,7 +209,9 @@ describe('DetectorDetails', () => {
         level: 1,
       });
 
-      expect(within(heading).getByTestId('platform-icon-javascript')).toBeInTheDocument();
+      expect(heading.parentElement?.parentElement).toContainElement(
+        screen.getByTestId('platform-icon-javascript')
+      );
     });
 
     it('can edit the detector when the user has alerts:write access', async () => {
@@ -226,10 +230,30 @@ describe('DetectorDetails', () => {
       });
     });
 
-    it('disables the edit button when the user does not have alerts:write access', async () => {
+    it('can open a prefilled create form to duplicate the detector', async () => {
+      const {router} = render(<DetectorDetails />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Duplicate'}));
+
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/monitors/new/settings/`
+      );
+      expect(router.location.query).toEqual({
+        detectorType: 'metric_issue',
+        duplicateFrom: snubaQueryDetector.id,
+        project: snubaQueryDetector.projectId,
+      });
+    });
+
+    it('disables edit and duplicate actions without alerts:write access', async () => {
       const orgWithoutAlertsWrite = {
-        ...organization,
-        access: organization.access.filter(a => a !== 'alerts:write'),
+        ...organizationWithMonitorDuplication,
+        access: organizationWithMonitorDuplication.access.filter(
+          access => access !== 'alerts:write'
+        ),
       };
       ProjectsStore.loadInitialData([ProjectFixture({access: []})]);
       render(<DetectorDetails />, {
@@ -239,6 +263,10 @@ describe('DetectorDetails', () => {
 
       const editButton = await screen.findByRole('button', {name: 'Edit'});
       expect(editButton).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('button', {name: 'Duplicate'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('displays ongoing issues for the detector', async () => {
@@ -272,7 +300,11 @@ describe('DetectorDetails', () => {
       id: '1',
       name: 'detector1',
       projectId: project.id,
-      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
+      owner: ActorFixture({
+        id: ownerTeam.id,
+        name: ownerTeam.slug,
+        type: 'team',
+      }),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
@@ -378,7 +410,11 @@ describe('DetectorDetails', () => {
       id: '1',
       name: 'detector1',
       projectId: project.id,
-      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
+      owner: ActorFixture({
+        id: ownerTeam.id,
+        name: ownerTeam.slug,
+        type: 'team',
+      }),
       workflowIds: ['1', '2'],
       dataSources: [cronMonitorDataSource],
     });
@@ -443,7 +479,11 @@ describe('DetectorDetails', () => {
             },
           }),
         ],
-        owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
+        owner: ActorFixture({
+          id: ownerTeam.id,
+          name: ownerTeam.slug,
+          type: 'team',
+        }),
         workflowIds: ['1', '2'],
       });
 

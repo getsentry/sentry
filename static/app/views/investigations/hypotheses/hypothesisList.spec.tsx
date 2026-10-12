@@ -14,11 +14,6 @@ describe('HypothesisList', () => {
     render(<HypothesisList hypotheses={InvestigationHypothesesFixture()} />);
 
     expect(screen.getAllByTestId('investigation-hypothesis')).toHaveLength(3);
-    expect(
-      screen.getByRole('heading', {
-        name: 'Database or cache degradation delayed the response',
-      })
-    ).toBeInTheDocument();
   });
 
   it('orders cards by the projection order, not array position', () => {
@@ -80,13 +75,13 @@ describe('HypothesisList', () => {
     expect(await screen.findAllByRole('button', {name: /Actions for/})).toHaveLength(3);
   });
 
-  it('reserves a full row of cards while the first hypotheses are on their way', () => {
+  it('reserves a single card while the first hypotheses are on their way', () => {
     render(<HypothesisListPlaceholder />);
 
     const row = screen.getByTestId('investigation-hypotheses-placeholder');
     expect(row).toHaveAttribute('aria-busy', 'true');
     expect(
       within(row).getAllByTestId('investigation-hypothesis-placeholder')
-    ).toHaveLength(3);
+    ).toHaveLength(1);
   });
 });

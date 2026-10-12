@@ -882,7 +882,7 @@ def _maybe_chain(claim: _MailboxClaim, chain_depth: int) -> None:
     """
     Dispatch the mailbox's next claim directly, skipping the scheduler's
     re-discovery gap, while this lineage is within max_chain_depth links —
-    at the option's default of 1 the ordinary dispatch is the whole chain.
+    at 1 the ordinary dispatch is the whole chain.
 
     Strict providers only: their absolute-head gate admits one claim at a time,
     so a chain stays a single lineage per mailbox — a due-head provider would

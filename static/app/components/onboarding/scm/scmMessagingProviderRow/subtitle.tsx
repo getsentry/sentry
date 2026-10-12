@@ -1,7 +1,6 @@
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {SCM_MESSAGING_PROVIDER_DESCRIPTIONS} from 'sentry/components/onboarding/scm/messagingProviders';
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {t} from 'sentry/locale';
@@ -17,29 +16,11 @@ export function RowSubtitle({
   resolvedProvider: ScmMessagingResolvedProvider;
   visualState: RowVisualState;
 }) {
-  if (
-    visualState === 'installable' ||
-    visualState === 'loading' ||
-    visualState === 'installing' ||
-    visualState === 'choose-destination'
-  ) {
-    return (
-      <Text variant="muted" size="sm">
-        {SCM_MESSAGING_PROVIDER_DESCRIPTIONS[resolvedProvider.providerKey]}
-      </Text>
-    );
-  }
-
   if (visualState === 'install-forbidden') {
     return (
-      <Stack gap="2xs">
-        <Text variant="muted" size="sm">
-          {SCM_MESSAGING_PROVIDER_DESCRIPTIONS[resolvedProvider.providerKey]}
-        </Text>
-        <Text variant="muted" size="sm">
-          {t('Ask an organization admin to connect %s.', resolvedProvider.provider.name)}
-        </Text>
-      </Stack>
+      <Text variant="muted" size="sm">
+        {t('Ask an organization admin to connect %s.', resolvedProvider.provider.name)}
+      </Text>
     );
   }
 

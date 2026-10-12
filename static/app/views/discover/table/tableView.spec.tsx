@@ -48,7 +48,7 @@ describe('TableView > CellActions', () => {
   };
 
   const location = LocationFixture({
-    pathname: '/organizations/org-slug/explore/discover/results/',
+    pathname: '/organizations/org-slug/explore/errors/results/',
     query: locationQuery,
   });
 
@@ -154,7 +154,7 @@ describe('TableView > CellActions', () => {
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/explore/errors/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
     );
   });
 
@@ -167,7 +167,7 @@ describe('TableView > CellActions', () => {
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-transaction&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/explore/errors/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-transaction&statsPeriod=14d&yAxis=p95'
     );
   });
 
@@ -444,83 +444,6 @@ describe('TableView > CellActions', () => {
       expect.stringMatching(
         new RegExp(
           '/organizations/org-slug/insights/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
-        )
-      )
-    );
-  });
-
-  it('renders trace view link', () => {
-    const traceRows: TableData = {
-      meta: {
-        trace: 'string',
-        id: 'string',
-        transaction: 'string',
-        timestamp: 'date',
-        project: 'string',
-      },
-      data: [
-        {
-          trace: '7fdf8efed85a4f9092507063ced1995b',
-          id: '509663014077465b8981b65225bdec0f',
-          transaction: '/organizations/',
-          timestamp: '2019-05-23T22:12:48+00:00',
-          project: 'project-slug',
-        },
-      ],
-    };
-
-    const traceQuery = {
-      id: '42',
-      name: 'best query',
-      field: ['id', 'transaction', 'timestamp'],
-      queryDataset: 'transaction-like',
-      sort: ['transaction'],
-      query: '',
-      project: ['123'],
-      statsPeriod: '14d',
-      environment: ['staging'],
-      yAxis: 'p95',
-    };
-
-    const traceLocation = LocationFixture({
-      pathname: '/organizations/org-slug/explore/discover/results/',
-      query: traceQuery,
-    });
-
-    render(
-      <TableView
-        organization={organization}
-        location={traceLocation}
-        eventView={EventView.fromLocation(traceLocation)}
-        isLoading={false}
-        tableData={traceRows}
-        onChangeShowTags={onChangeShowTags}
-        error={null}
-        isFirstPage
-        measurementKeys={null}
-        showTags={false}
-        title=""
-        queryDataset={SavedQueryDatasets.TRANSACTIONS}
-      />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: traceLocation.pathname,
-            query: traceQuery,
-          },
-        },
-      }
-    );
-
-    const firstRow = screen.getAllByRole('row')[1]!;
-    const link = within(firstRow).getByTestId('view-event');
-
-    expect(link).toHaveAttribute(
-      'href',
-      expect.stringMatching(
-        new RegExp(
-          '/organizations/org-slug/explore/discover/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
         )
       )
     );

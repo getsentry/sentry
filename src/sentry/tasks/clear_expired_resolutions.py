@@ -8,7 +8,7 @@ from django.db.models.functions import Coalesce
 from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
@@ -36,6 +36,11 @@ def clear_expired_resolutions(release_id):
 
     if features.has("organizations:release-resolution-finalized-order", release.organization):
         _clear_finalized_resolutions(release)
+        return
+
+    # The legacy path assigns the triggering release directly. The finalized
+    # path can also reevaluate an archived anchor, so it filters successors instead.
+    if release.status not in (ReleaseStatus.OPEN, None):
         return
 
     resolution_list = list(

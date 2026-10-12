@@ -135,6 +135,7 @@ function extractRequest(
   contextify: Contextify
 ): string {
   let modulePath = contextify(rootContext, resourcePath)
+    .replace(/^\.\/packages\/scraps\/src\//, '@sentry/scraps/')
     .replace(/^\.\/app\/components\/core\//, '@sentry/scraps/')
     .replace(/^\.\/app\//, 'sentry/')
     .replace(/\.[cm]?[jt]sx?$/, '');

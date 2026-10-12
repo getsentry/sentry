@@ -1,16 +1,15 @@
 import {Fragment, useRef, useState, type ReactNode, type RefObject} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -174,7 +173,6 @@ interface SampleTableRowProps {
 
 function FieldCellWrapper({
   field,
-  row,
   children,
   index,
   source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
@@ -182,7 +180,6 @@ function FieldCellWrapper({
   children: ReactNode;
   field: SampleTableColumnKey;
   index: number;
-  row: TraceMetricEventsResponseItem;
   source?: MetricsSamplesTableSource;
 }) {
   const columnType = getMetricTableColumnType(field);
@@ -194,9 +191,7 @@ function FieldCellWrapper({
         style={{minWidth: VALUE_COLUMN_MIN_WIDTH}}
         source={source}
       >
-        <Tooltip showOnlyOnOverflow title={row[TraceMetricKnownFieldKey.METRIC_VALUE]}>
-          {children}
-        </Tooltip>
+        {children}
       </NumericSimpleTableRowCell>
     );
   }
@@ -263,6 +258,9 @@ function MetricDefaultCell({
       data={row}
       unit={meta?.units?.[field]}
       meta={meta}
+      tooltipTitle={
+        isMetricValue ? String(row[TraceMetricKnownFieldKey.METRIC_VALUE]) : undefined
+      }
       extraMenuItems={getExtraMenuItems({
         field,
         organization,
@@ -385,21 +383,11 @@ export function SampleTableRow({
     <Fragment>
       <StickyTableRow ref={ref} sticky={isExpanded ? true : undefined}>
         {columns.map((field, i) => {
-          const isValueColumn = field === TraceMetricKnownFieldKey.METRIC_VALUE;
           const cellContent = renderFieldCell(field);
 
           return (
-            <FieldCellWrapper key={i} field={field} index={i} row={row} source={source}>
-              {isValueColumn ? (
-                <Tooltip
-                  showOnlyOnOverflow
-                  title={row[TraceMetricKnownFieldKey.METRIC_VALUE]}
-                >
-                  {cellContent}
-                </Tooltip>
-              ) : (
-                cellContent
-              )}
+            <FieldCellWrapper key={i} field={field} index={i} source={source}>
+              {cellContent}
             </FieldCellWrapper>
           );
         })}

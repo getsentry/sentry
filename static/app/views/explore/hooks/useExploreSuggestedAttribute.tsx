@@ -1,5 +1,9 @@
 import {useCallback} from 'react';
 
+import {
+  addArrayMembershipOperator,
+  stripArrayMembershipOperator,
+} from 'sentry/components/searchSyntax/utils';
 import type {TagCollection} from 'sentry/types/group';
 
 interface UseExploreSuggestedAttributeOptions {
@@ -51,14 +55,14 @@ export function useExploreSuggestedAttribute({
       // Array attributes filter by membership. Resolve both the `[*]` form and
       // the bare root name to the backend key; getInitialFilterText adds the
       // `[*]` operator, so plain `:` and `[*]:` both produce a membership filter.
-      if (key.endsWith('[*]')) {
-        const base = key.slice(0, -'[*]'.length);
+      const base = stripArrayMembershipOperator(key);
+      if (base !== key) {
         if (base in arrayAttributes) {
-          return `${base}[*]`;
+          return addArrayMembershipOperator(base);
         }
         const explicitArrayWithOperator = `tags[${base},array]`;
         if (explicitArrayWithOperator in arrayAttributes) {
-          return `${explicitArrayWithOperator}[*]`;
+          return addArrayMembershipOperator(explicitArrayWithOperator);
         }
       }
 

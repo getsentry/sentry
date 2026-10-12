@@ -132,7 +132,10 @@ const StyledLeadingItems = styled('div')<{
   gap: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.md};
   flex-shrink: 0;
-  align-items: flex-start;
+  /* Match the label's first line without centering against any details below it. */
+  min-height: 1.4em;
+  align-self: flex-start;
+  align-items: center;
 
   ${p => p.disabled && 'opacity: 0.5;'}
 `;
@@ -222,8 +225,8 @@ export type MenuListItemProps = {
   trailingItems?: ExtraContent;
 };
 
-interface OtherProps {
-  as?: React.ElementType;
+interface OtherProps<T extends React.ElementType> {
+  as?: T;
   detailsProps?: Partial<React.ComponentProps<typeof StyledDetails>>;
   innerWrapProps?: Partial<React.ComponentProps<typeof StyledInnerWrap>>;
   isFocused?: boolean;
@@ -232,14 +235,15 @@ interface OtherProps {
   labelProps?: Partial<React.ComponentProps<typeof StyledLabel>>;
 }
 
-interface Props extends MenuListItemProps, OtherProps {
-  ref?: React.Ref<HTMLLIElement>;
+interface Props<T extends React.ElementType = 'li'>
+  extends MenuListItemProps, OtherProps<T> {
+  ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
 }
 
-function BaseMenuListItem({
+function BaseMenuListItem<T extends React.ElementType = 'li'>({
   label,
   details,
-  as = 'li',
+  as,
   priority = 'default',
   size,
   disabled = false,
@@ -256,8 +260,8 @@ function BaseMenuListItem({
   tooltipOptions,
   ref,
   ...props
-}: Props) {
-  const itemRef = useRef<HTMLLIElement>(null);
+}: Props<T>) {
+  const itemRef = useRef<HTMLElement>(null);
   const labelId = useId();
   const detailId = useId();
 
@@ -266,8 +270,8 @@ function BaseMenuListItem({
       aria-disabled={disabled}
       aria-labelledby={labelId}
       aria-describedby={detailId}
-      as={as}
-      ref={mergeRefs(ref, itemRef)}
+      as={as ?? 'li'}
+      ref={mergeRefs(ref, itemRef) as React.RefCallback<HTMLElement>}
       {...props}
     >
       <Tooltip
@@ -342,7 +346,7 @@ function BaseMenuListItem({
   );
 }
 
-export const MenuListItem = memo(BaseMenuListItem);
+export const MenuListItem = memo(BaseMenuListItem) as typeof BaseMenuListItem;
 
 const POPPER_OPTIONS = {
   placement: 'right-start' as const,
@@ -365,7 +369,7 @@ function DetailsOverlay({
 }: {
   children: React.ReactNode;
   id: string;
-  itemRef: React.RefObject<HTMLLIElement | null>;
+  itemRef: React.RefObject<HTMLElement | null>;
   size: Props['size'];
 }) {
   const theme = useTheme();

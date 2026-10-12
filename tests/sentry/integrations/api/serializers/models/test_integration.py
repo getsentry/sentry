@@ -1,13 +1,16 @@
 from unittest import mock
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 from sentry.api.serializers import serialize
-from sentry.integrations.api.serializers.models.integration import IntegrationConfigSerializer
+from sentry.integrations.api.serializers.models import integration as integration_serializer
+from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER, TIERS
 from sentry.integrations.utils.github_permissions import GITHUB_APP_LATEST_PERMISSIONS
-from sentry.organizations.services.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+
+FRESH_REFRESH_AT = "2026-08-01T00:00:00"
+STALE_REFRESH_AT = "2026-07-01T00:00:00"
 
 
 @control_silo_test
@@ -35,7 +38,10 @@ class IntegrationSerializerTest(TestCase):
             provider="github",
             external_id="1",
             name="octocat",
-            metadata={"permissions": {"contents": "read"}},
+            metadata={
+                "permissions": {"contents": "read"},
+                "last_refresh_at": FRESH_REFRESH_AT,
+            },
         )
 
         result = serialize(integration, self.user)
@@ -48,91 +54,202 @@ class IntegrationSerializerTest(TestCase):
             provider="github",
             external_id="2",
             name="octocat",
-            metadata={"permissions": {"contents": "write"}},
+            metadata={
+                "permissions": {"contents": "write"},
+                "last_refresh_at": FRESH_REFRESH_AT,
+            },
         )
 
         result = serialize(integration, self.user)
 
         assert result["outOfDate"] is False
 
-    def test_full_organizations_are_scoped_to_each_batch(self) -> None:
-        other_organization = self.create_organization()
-        project = self.create_project(organization=self.organization)
-        other_project = self.create_project(organization=other_organization)
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
+    def test_github_warns_when_out_of_date_is_a_guess(self) -> None:
+        """A snapshot from before the app changed still shows the banner.
+
+        It was read against the old required set, so it may be naming a
+        permission this install was never asked for. The warning is how we find
+        out how often that happens before changing what users see.
+        """
         integration = self.create_provider_integration(
-            provider="vercel",
-            name="Vercel",
-            external_id="vercel:1",
-            metadata={"installation_type": "user"},
-        )
-        first = self.create_organization_integration(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-        second = self.create_organization_integration(
-            organization_id=other_organization.id, integration_id=integration.id
+            provider="github",
+            external_id="6",
+            name="octocat",
+            metadata={
+                "permissions": {"contents": "read"},
+                "last_refresh_at": STALE_REFRESH_AT,
+            },
         )
 
-        with (
-            patch.object(organization_service, "get", wraps=organization_service.get) as get_org,
-            patch("sentry.integrations.vercel.integration.VercelIntegration.get_client") as client,
-        ):
-            client.return_value.get_user.return_value = {"username": "example"}
-            client.return_value.get_projects.return_value = []
-            result = serialize([first, second], self.user)
-            get_org.assert_has_calls(
-                [call(id=self.organization.id), call(id=other_organization.id)], any_order=True
-            )
-            assert get_org.call_count == 2
+        with mock.patch.object(integration_serializer.logger, "warning") as mock_warning:
+            result = serialize(integration, self.user)
 
-            # The registered serializer is reused, but organization data must not be.
-            get_org.reset_mock()
-            repeated = serialize([first, second], self.user)
-            assert repeated == result
-            assert get_org.call_count == 2
+        assert result["outOfDate"] is True
+        assert mock_warning.call_args.args[0] == "github_permissions.stale_snapshot"
 
-        assert [item["organizationId"] for item in result] == [
-            self.organization.id,
-            other_organization.id,
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
+    def test_github_warns_without_a_refresh_timestamp(self) -> None:
+        integration = self.create_provider_integration(
+            provider="github",
+            external_id="7",
+            name="octocat",
+            metadata={"permissions": {"contents": "read"}},
+        )
+
+        with mock.patch.object(integration_serializer.logger, "warning") as mock_warning:
+            result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert mock_warning.call_args.args[0] == "github_permissions.stale_snapshot"
+
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
+    def test_github_does_not_warn_when_a_stale_snapshot_looks_complete(self) -> None:
+        """Nothing to guess about: we are not telling the user anything."""
+        integration = self.create_provider_integration(
+            provider="github",
+            external_id="8",
+            name="octocat",
+            metadata={
+                "permissions": {"contents": "write"},
+                "last_refresh_at": STALE_REFRESH_AT,
+            },
+        )
+
+        with mock.patch.object(integration_serializer.logger, "warning") as mock_warning:
+            result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is False
+        assert not mock_warning.called
+
+    def test_github_missing_features_lists_tiers_oldest_first(self) -> None:
+        # only the PR iteration tier is missing.
+        integration = self.create_provider_integration(
+            provider="github",
+            external_id="3",
+            name="octocat",
+            metadata={
+                "permissions": {
+                    "administration": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "repository_hooks": "write",
+                    "pull_requests": "write",
+                    "checks": "write",
+                    "statuses": "write",
+                    "contents": "write",
+                }
+            },
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert result["missingFeatures"] == [
+            {
+                "key": PR_ITERATION_TIER.key,
+                "description": PR_ITERATION_TIER.description,
+            }
         ]
-        assert [item["id"] for item in result[0]["configOrganization"][0]["sentryProjects"]] == [
-            project.id
-        ]
-        assert [item["id"] for item in result[1]["configOrganization"][0]["sentryProjects"]] == [
-            other_project.id
-        ]
-        assert (
-            f"/settings/{self.organization.slug}/integrations/"
-            in result[0]["dynamicDisplayInformation"]["configure_integration"]["instructions"][0]
-        )
-        assert (
-            f"/settings/{other_organization.slug}/integrations/"
-            in result[1]["dynamicDisplayInformation"]["configure_integration"]["instructions"][0]
+
+    def test_github_missing_features_lists_every_tier_when_permissions_are_null(self) -> None:
+        integration = self.create_provider_integration(
+            provider="github",
+            external_id="4",
+            name="octocat",
+            metadata={"permissions": None},
         )
 
-    def test_config_serializer_without_preloaded_organization(self) -> None:
-        project = self.create_project(organization=self.organization)
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="vercel",
-            name="Vercel",
-            external_id="vercel:1",
-            metadata={"installation_type": "user"},
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert result["missingFeatures"] == [
+            {"key": tier.key, "description": tier.description} for tier in reversed(TIERS)
+        ]
+
+    def test_github_missing_features_lists_every_tier_when_permissions_are_absent(self) -> None:
+        integration = self.create_provider_integration(
+            provider="github", external_id="5", name="octocat", metadata={}
         )
 
-        with (
-            patch.object(organization_service, "get", wraps=organization_service.get) as get_org,
-            patch("sentry.integrations.vercel.integration.VercelIntegration.get_client") as client,
-        ):
-            client.return_value.get_user.return_value = {"username": "example"}
-            client.return_value.get_projects.return_value = []
-            result = IntegrationConfigSerializer(self.organization.id).serialize(
-                integration, {}, self.user
-            )
+        result = serialize(integration, self.user)
 
-        get_org.assert_called_once_with(id=self.organization.id)
-        assert [item["id"] for item in result["configOrganization"][0]["sentryProjects"]] == [
-            project.id
+        assert result["outOfDate"] is True
+        assert result["missingFeatures"] == [
+            {"key": tier.key, "description": tier.description} for tier in reversed(TIERS)
         ]
+
+    def test_slack_missing_mentions_feature(self) -> None:
+        integration = self.create_provider_integration(
+            provider="slack",
+            external_id="T123",
+            name="Workspace",
+            metadata={"scopes": ["channels:history", "chat:write"]},
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert result["missingFeatures"] == [
+            {
+                "key": "seer_mentions",
+                "description": (
+                    "Mention @Sentry in Slack to ask any questions and investigate issues."
+                ),
+            }
+        ]
+
+    def test_slack_missing_features_when_scopes_are_absent(self) -> None:
+        integration = self.create_provider_integration(
+            provider="slack", external_id="T123", name="Workspace", metadata={}
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert [feature["key"] for feature in result["missingFeatures"]] == ["seer_mentions"]
+
+    def test_slack_missing_features_when_scopes_are_null(self) -> None:
+        integration = self.create_provider_integration(
+            provider="slack", external_id="T123", name="Workspace", metadata={"scopes": None}
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert [feature["key"] for feature in result["missingFeatures"]] == ["seer_mentions"]
+
+    def test_slack_missing_features_when_scopes_are_empty(self) -> None:
+        integration = self.create_provider_integration(
+            provider="slack", external_id="T123", name="Workspace", metadata={"scopes": []}
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is True
+        assert [feature["key"] for feature in result["missingFeatures"]] == ["seer_mentions"]
+
+    def test_slack_mentions_scope_satisfies_upgrade(self) -> None:
+        integration = self.create_provider_integration(
+            provider="slack",
+            external_id="T123",
+            name="Workspace",
+            metadata={"scopes": ["app_mentions:read"]},
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["outOfDate"] is False
+        assert result["missingFeatures"] == []
+
+    def test_provider_without_permissions_model_has_no_missing_features(self) -> None:
+        integration = self.create_provider_integration(
+            provider="opsgenie", external_id="opsgenie:2", name="Team B", metadata={}
+        )
+
+        result = serialize(integration, self.user)
+
+        assert result["missingFeatures"] is None
 
     def test_config_data_error_disables_integration(self) -> None:
         integration = self.create_provider_integration(

@@ -107,8 +107,7 @@ describe('FeedbackActivitySection', () => {
       {organization}
     );
 
-    await userEvent.type(getCommentEditor(), comment);
-    await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
+    await userEvent.type(getCommentEditor(), `${comment}{Enter}`);
 
     expect(postMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1337/comments/',

@@ -31,12 +31,12 @@ import {
   MetricAlertQuotaMessage,
 } from 'getsentry/components/metricAlertQuotaMessage';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerConfigReminder';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import {ReplayInit} from 'getsentry/components/replayInit';
-import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import {
   shouldExcludeOrg,
   SuperuserWarning,
@@ -72,7 +72,6 @@ import {useMetricDetectorLimit} from 'getsentry/overrides/useMetricDetectorLimit
 import {useReplayForCriticalFlow} from 'getsentry/overrides/useReplayForCriticalFlow';
 import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
-import {trackMetric} from 'getsentry/utils/trackMetric';
 import SeerAutomationTrial from 'getsentry/views/seerAutomation/trial';
 
 import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
@@ -131,7 +130,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    */
   'analytics:raw-track-event': rawTrackAnalyticsEvent,
   'analytics:init-user': analyticsInitUser,
-  'metrics:event': trackMetric,
 
   /**
    * Sidebar augmentation
@@ -233,11 +231,11 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:org-stats-banner': () => OrgStatsBanner,
   'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
   'component:enhanced-org-stats': () => LazyEnhancedOrganizationStats,
+  'component:explore-quota-exceeded-alert': () => QuotaExceededAlert,
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
   'component:scm-github-multi-org-install': () => ScmGithubMultiOrgInstall,
-  'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
   'component:product-selection-availability': () => ProductSelectionAvailability,

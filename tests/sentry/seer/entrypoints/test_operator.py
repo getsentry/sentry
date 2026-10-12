@@ -4,6 +4,7 @@ from typing import Any, TypedDict, cast
 from unittest.mock import Mock, patch
 
 import pytest
+from django.test import override_settings
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.integrations.types import ExternalProviders
@@ -109,6 +110,7 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
         MockCachePayload(**cache_payload)
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class SeerOperatorTest(TestCase):
     def setUp(self) -> None:
         self.entrypoint = MockAutofixEntrypoint()
@@ -512,37 +514,23 @@ class SeerOperatorTest(TestCase):
         )
 
     def test_can_trigger_autofix_returns_false_without_seer_access(self) -> None:
+        self.organization.update_option("sentry:hide_ai_features", True)
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     def test_can_trigger_autofix_returns_true_when_all_conditions_met(self, mock_quota):
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-            }
-        ):
-            assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     def test_can_trigger_autofix_returns_false_for_ineligible_category(self, mock_quota):
         from sentry.issues.grouptype import FeedbackGroup
 
         feedback_group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-            }
-        ):
-            assert SeerAutofixOperator.can_trigger_autofix(group=feedback_group) is False
+        assert SeerAutofixOperator.can_trigger_autofix(group=feedback_group) is False
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
     def test_can_trigger_autofix_returns_false_without_quota(self, mock_quota):
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-            }
-        ):
-            assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_seer_event_creates_activity_rca_completed(self, _mock_has_access):
@@ -941,6 +929,7 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
         return None
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestSeerAgentOperatorAccess(TestCase):
     def setUp(self) -> None:
         self.entrypoint = MockAgentEntrypoint()
@@ -953,7 +942,6 @@ class TestSeerAgentOperatorAccess(TestCase):
         with (
             self.feature(
                 {
-                    "organizations:gen-ai-features": True,
                     "organizations:seer-explorer": True,
                 }
             ),
@@ -976,9 +964,9 @@ class TestSeerAgentOperatorAccess(TestCase):
                 entrypoint_key=MockNoAccessEntrypoint.key,
             )
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_has_access_without_seer_agent(self):
-        with self.feature({"organizations:gen-ai-features": False}):
-            assert not SeerAgentOperator.has_access(organization=self.organization)
+        assert not SeerAgentOperator.has_access(organization=self.organization)
 
 
 class TestSeerOperatorCompletionHook(TestCase):

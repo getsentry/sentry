@@ -119,7 +119,7 @@ class RepositoryPushedHandlerTest(TestCase):
         self.org_integrations = context.organization_integrations
 
     def _handle(self, payload: dict[str, Any]) -> None:
-        RepositoryPushedHandler()(
+        RepositoryPushedHandler("repository.pushed")(
             payload, "whd_01example", self.rpc_integration, self.org_integrations
         )
 

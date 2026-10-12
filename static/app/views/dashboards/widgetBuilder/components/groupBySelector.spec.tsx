@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {TagStore} from 'sentry/stores/tagStore';
 import {decodeList} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
@@ -141,6 +142,39 @@ describe('WidgetBuilderGroupBySelector', () => {
     expect(screen.queryByText('tags[my_string,string]')).not.toBeInTheDocument();
   });
 
+  it('matches saved legacy tags[name] group bys to the tag option', async () => {
+    TagStore.loadTagsSuccess([{key: 'my_tag', name: 'my_tag'}]);
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderGroupBySelector />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.ERRORS,
+              displayType: DisplayType.LINE,
+              field: ['tags[my_tag]'],
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'my_tag'}));
+
+    expect(await screen.findByRole('option', {name: /my_tag/})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(
+      screen.queryByRole('option', {name: /tags\[my_tag\]/})
+    ).not.toBeInTheDocument();
+  });
+
   it('badges typed EAP attributes with their real type', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
@@ -202,9 +236,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     const addGroupButton = await screen.findByRole('button', {name: 'Add Group'});
     expect(addGroupButton).toBeDisabled();
 
-    // The QueryField component renders a Select component with a disabled input
-    const selectInput = await screen.findByRole('textbox');
-    expect(selectInput).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Select group'})).toBeDisabled();
   });
 
   it('enables group by selector when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
@@ -234,8 +266,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     const addGroupButton = await screen.findByRole('button', {name: 'Add Group'});
     expect(addGroupButton).toBeEnabled();
 
-    const selectInput = await screen.findByRole('textbox');
-    expect(selectInput).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Select group'})).toBeEnabled();
   });
 
   it('enables group by selector when discover-saved-queries-deprecation feature flag but not transaction widget type', async () => {
@@ -265,8 +296,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     const addGroupButton = await screen.findByRole('button', {name: 'Add Group'});
     expect(addGroupButton).toBeEnabled();
 
-    const selectInput = await screen.findByRole('textbox');
-    expect(selectInput).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Select group'})).toBeEnabled();
   });
 
   it('hides group by fields that are hidden in the trace metrics dataset', async () => {

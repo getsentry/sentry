@@ -323,19 +323,35 @@ class CursorOriginReadsTest(TestCase):
         responses.add(
             responses.GET,
             f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents",
-            json={"type": "file", "encoding": "base64", "content": b64encode(b"hi").decode()},
+            json={
+                "type": "file",
+                "encoding": "base64",
+                "content": b64encode(b"hi").decode(),
+                "entries": [],
+            },
         )
 
         assert self.origin_client.get_file(repo, "a.py", ref=None) == "hi"
 
     @responses.activate
-    def test_get_file_on_a_directory_raises_api_error(self) -> None:
-        """A directory has entries and no content; callers handle ApiError, not KeyError."""
+    def test_get_file_reads_an_empty_file(self) -> None:
         repo = Repository(name=REPO)
         responses.add(
             responses.GET,
             f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents",
-            json={"type": "dir", "entries": []},
+            json={"type": "file", "encoding": "base64", "content": "", "entries": []},
+        )
+
+        assert self.origin_client.get_file(repo, "empty.py", ref=None) == ""
+
+    @responses.activate
+    def test_get_file_on_a_directory_raises_api_error(self) -> None:
+        """Origin sends a directory with empty content, so only its type tells it apart."""
+        repo = Repository(name=REPO)
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents",
+            json={"type": "dir", "encoding": "", "content": "", "size": "0", "entries": []},
         )
 
         with pytest.raises(ApiError):

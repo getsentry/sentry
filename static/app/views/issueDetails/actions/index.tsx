@@ -1,12 +1,20 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSubscribed} from '@sentry/icons/subscribed';
+import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
+import {IconUpload} from '@sentry/icons/upload';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
@@ -24,15 +32,6 @@ import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {openConfirmModal} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
-  IconCheckmark,
-  IconClock,
-  IconCopy,
-  IconEllipsis,
-  IconSubscribed,
-  IconUnsubscribed,
-  IconUpload,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
@@ -40,6 +39,7 @@ import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/grou
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
@@ -105,6 +105,7 @@ interface GroupActionsProps {
 
 interface GroupResolutionActionsProps extends GroupActionsProps {
   onUpdate: (data: GroupStatusResolution) => void;
+  variant?: 'primary' | 'secondary';
 }
 
 export function GroupResolutionActions({
@@ -113,6 +114,7 @@ export function GroupResolutionActions({
   group,
   onUpdate,
   project,
+  variant = 'primary',
 }: GroupResolutionActionsProps) {
   const hasRelease = !!project.features?.includes('releases');
   const eventReleaseVersion = event?.release?.versionInfo?.version;
@@ -177,12 +179,22 @@ export function GroupResolutionActions({
       onUpdate={onUpdate}
       project={project}
       size="sm"
-      priority="primary"
+      variant={variant}
     />
   );
 }
 
-export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+export function GroupActions({
+  group,
+  project,
+  disabled,
+  event,
+  onUpdateSuccess,
+  resolveVariant = 'primary',
+}: GroupActionsProps & {
+  onUpdateSuccess?: () => void;
+  resolveVariant?: 'primary' | 'secondary';
+}) {
   const {openModal} = useModal();
 
   const theme = useTheme();
@@ -201,9 +213,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
   const issueCommandLabel = useMemo(() => {
-    const {title: rawIssueTitle} = getTitle(group);
-    const title = rawIssueTitle ?? '';
-    const message = getMessage(group);
+    const title = stripAnsi(getTitle(group).title ?? '');
+    const message = stripAnsi(getMessage(group) ?? '');
     return message && message !== title ? `${title}: ${message}` : title;
   }, [group]);
 
@@ -255,62 +266,31 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     });
   };
 
-  const onDelete = () => {
+  const onDelete = async () => {
     addLoadingMessage(t('Delete event\u2026'));
-
-    bulkDelete(
-      api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-      },
-      {
-        success: () => {
-          clearIndicators();
-
-          addSuccessMessage(t('Issue deleted'));
-          navigate({
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {project: project.id},
-          });
-        },
-      }
-    );
-
     trackIssueAction('deleted');
     IssueListCacheStore.reset();
-  };
 
-  const onUpdate = (data: UpdateData, onComplete?: () => void) => {
-    const successMessage = getUpdateSuccessMessage(group, data);
-
-    bulkUpdate(
-      api,
-      {
+    try {
+      await bulkDelete(api, {
         orgId: organization.slug,
         projectId: project.slug,
         itemIds: [group.id],
-        data,
-      },
-      {
-        success: () => {
-          clearIndicators();
-          if (successMessage) {
-            addSuccessMessage(successMessage);
-          }
-          onComplete?.();
-        },
-        complete: () => {
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({
-              organizationSlug: organization.slug,
-              groupId: group.id,
-            }),
-          });
-        },
-      }
-    );
+      });
+      clearIndicators();
+
+      addSuccessMessage(t('Issue deleted'));
+      navigate({
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {project: project.id},
+      });
+    } catch {
+      // GroupStore already shows the error
+    }
+  };
+
+  const onUpdate = async (data: UpdateData, onComplete?: () => void) => {
+    const successMessage = getUpdateSuccessMessage(group, data);
 
     if (isResolutionStatus(data)) {
       trackIssueAction(
@@ -323,6 +303,30 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       trackIssueAction('mark_reviewed');
     }
     IssueListCacheStore.reset();
+
+    try {
+      await bulkUpdate(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data,
+      });
+      clearIndicators();
+      if (successMessage) {
+        addSuccessMessage(successMessage);
+      }
+      onComplete?.();
+      onUpdateSuccess?.();
+    } catch {
+      // GroupStore already shows the error
+    } finally {
+      queryClient.invalidateQueries({
+        queryKey: groupQueryKey({
+          organizationSlug: organization.slug,
+          groupId: group.id,
+        }),
+      });
+    }
   };
 
   const onReprocessEvent = () => {
@@ -552,6 +556,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               group={group}
               onUpdate={onUpdate}
               project={project}
+              variant={resolveVariant}
             />
           </Flex>
         ) : (
@@ -562,6 +567,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               group={group}
               onUpdate={onUpdate}
               project={project}
+              variant={resolveVariant}
             />
             <ArchiveActions
               size="sm"
@@ -591,12 +597,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           analyticsEventName="Issue Details: Share Action Clicked"
         />
         <DropdownMenu
-          triggerProps={{
-            'aria-label': t('More Actions'),
-            icon: <IconEllipsis />,
-            showChevron: false,
-            size: 'sm',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              aria-label={t('More Actions')}
+              icon={<IconEllipsis />}
+              size="sm"
+            />
+          )}
           items={[
             {
               key: 'mark-review',

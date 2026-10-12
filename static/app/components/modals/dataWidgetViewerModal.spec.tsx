@@ -12,6 +12,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
@@ -232,8 +233,8 @@ describe('Modals -> DataWidgetViewerModal', () => {
           widget: {...mockWidget, widgetType: WidgetType.ERRORS},
         });
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
-        expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeEnabled();
+        expect(screen.getByText('Open in Explore')).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeEnabled();
       });
 
       it('renders updated table columns and orderby', async () => {
@@ -289,15 +290,15 @@ describe('Modals -> DataWidgetViewerModal', () => {
         expect(await screen.findByText('This is a description')).toBeInTheDocument();
       });
 
-      it('redirects user to Discover when clicking Open in Discover', async () => {
+      it('redirects user to Explore when clicking Open in Explore', async () => {
         mockEvents();
         await renderModal({
           initialData,
           widget: {...mockWidget, widgetType: WidgetType.ERRORS},
         });
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+        expect(screen.getByRole('button', {name: 'Open in Explore'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/explore/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/explore/errors/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -362,9 +363,9 @@ describe('Modals -> DataWidgetViewerModal', () => {
           initialData: {...initialData, initialRouterConfig},
           widget: {...mockWidget, widgetType: WidgetType.ERRORS},
         });
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+        expect(screen.getByRole('button', {name: 'Open in Explore'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/explore/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/explore/errors/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -381,9 +382,9 @@ describe('Modals -> DataWidgetViewerModal', () => {
           initialData: {...initialData, initialRouterConfig},
           widget: {...mockWidget, widgetType: WidgetType.ERRORS},
         });
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+        expect(screen.getByRole('button', {name: 'Open in Explore'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/explore/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/explore/errors/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -1267,13 +1268,16 @@ describe('Modals -> DataWidgetViewerModal', () => {
         widget: mockSpanWidget,
       });
 
-      const transactionCell = await screen.findByText('test-transaction');
-      expect(transactionCell).toBeInTheDocument();
+      const transactionCell = await screen.findByRole('cell', {
+        name: /test-transaction/,
+      });
+      await userEvent.click(
+        within(transactionCell).getByRole('button', {name: 'Actions'})
+      );
 
-      await userEvent.click(transactionCell);
-
-      const menuOption = await screen.findByText('View span samples');
-      expect(menuOption).toBeInTheDocument();
+      const menuOption = await screen.findByRole('menuitemradio', {
+        name: 'View span samples',
+      });
 
       await userEvent.click(menuOption);
 
@@ -1312,10 +1316,17 @@ describe('Modals -> DataWidgetViewerModal', () => {
 
       await renderModal({initialData, widget: mockSpanWidget});
 
-      const transactionCell = await screen.findByText('test-transaction');
-      await userEvent.click(transactionCell);
+      const transactionCell = await screen.findByRole('cell', {
+        name: /test-transaction/,
+      });
+      await userEvent.click(
+        within(transactionCell).getByRole('button', {name: 'Actions'})
+      );
 
-      expect(screen.queryByText('View span samples')).not.toBeInTheDocument();
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'View span samples'})
+      ).not.toBeInTheDocument();
     });
   });
 });

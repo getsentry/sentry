@@ -101,6 +101,14 @@ describe('GroupDetailsLayout', () => {
       }),
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {isSeerConfigured: false},
+    });
+    MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       body: [project],
     });
@@ -129,13 +137,17 @@ describe('GroupDetailsLayout', () => {
 
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
-      await screen.findByText('Track this issue in Jira, GitHub, etc.')
+      await screen.findByRole('link', {
+        name: 'Track this issue in Jira, GitHub, etc.',
+      })
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close sidebar'}));
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
-      screen.queryByText('Track this issue in Jira, GitHub, etc.')
+      screen.queryByRole('link', {
+        name: 'Track this issue in Jira, GitHub, etc.',
+      })
     ).not.toBeInTheDocument();
   });
 });

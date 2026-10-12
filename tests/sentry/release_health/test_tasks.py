@@ -684,15 +684,14 @@ class TestAdoptReleasesPath(TestMetricReleaseMonitor):
         ).exists()
 
     def test_auto_creation_disabled_does_not_create_release(self) -> None:
-        # With the feature flag and the project opting out, a release referenced
-        # only by sessions must not be auto-created.
+        # With the project opting out, a release referenced only by sessions must
+        # not be auto-created.
         self.project1.update_option("sentry:enable_auto_release_creation", False)
 
-        with self.feature("organizations:auto-release-creation"):
-            adopt_releases(
-                self.organization.id,
-                {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
-            )
+        adopt_releases(
+            self.organization.id,
+            {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
+        )
 
         assert not Release.objects.filter(
             organization_id=self.organization.id, version="9.9.9"
@@ -707,31 +706,16 @@ class TestAdoptReleasesPath(TestMetricReleaseMonitor):
         self.project1.update_option("sentry:enable_auto_release_creation", False)
         existing = self.create_release(project=self.project1, version="9.9.9")
 
-        with self.feature("organizations:auto-release-creation"):
-            adopt_releases(
-                self.organization.id,
-                {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
-            )
+        adopt_releases(
+            self.organization.id,
+            {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
+        )
 
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
             release_id=existing.id,
             environment__name="prod",
             adopted__isnull=False,
-        ).exists()
-
-    def test_auto_creation_disabled_without_feature_flag(self) -> None:
-        # Without the feature flag the project option is ignored and the release is
-        # auto-created as before.
-        self.project1.update_option("sentry:enable_auto_release_creation", False)
-
-        adopt_releases(
-            self.organization.id,
-            {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
-        )
-
-        assert Release.objects.filter(
-            organization_id=self.organization.id, version="9.9.9"
         ).exists()
 
 

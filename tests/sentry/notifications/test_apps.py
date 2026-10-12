@@ -41,6 +41,8 @@ class NotificationsDjangoAppTest(TestCase):
         assert set(renderer_registry.registrations) == {
             (NotificationProviderKey.DISCORD, NotificationSource.ISSUE),
             (NotificationProviderKey.DISCORD, NotificationSource.METRIC_ALERT),
+            (NotificationProviderKey.MSTEAMS, NotificationSource.ISSUE),
+            (NotificationProviderKey.MSTEAMS, NotificationSource.METRIC_ALERT),
             (NotificationProviderKey.SLACK, NotificationSource.ISSUE),
             (NotificationProviderKey.SLACK, NotificationSource.METRIC_ALERT),
             (NotificationProviderKey.SLACK, NotificationSource.SEER_AGENT_ERROR),

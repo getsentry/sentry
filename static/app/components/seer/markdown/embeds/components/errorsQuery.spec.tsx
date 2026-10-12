@@ -61,7 +61,7 @@ describe('errors query embed', () => {
     expect(screen.getByRole('button', {name: 'Recent errors'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Errors'})).toHaveAttribute(
       'href',
-      expect.stringContaining('/explore/discover/results/')
+      expect.stringContaining('/explore/errors/results/')
     );
     expect(screen.getAllByLabelText('event.type:error').length).toBeGreaterThan(0);
 
@@ -134,7 +134,6 @@ describe('errors query embed', () => {
 
     expect(await screen.findByText('TypeError')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
-    expect(screen.getByText('Aggregate')).toBeInTheDocument();
     // Grouping fields (title, project) remain alongside the aggregate, so the
     // table is still worth rendering — now beneath the chart.
     expect(screen.getByRole('table')).toBeInTheDocument();

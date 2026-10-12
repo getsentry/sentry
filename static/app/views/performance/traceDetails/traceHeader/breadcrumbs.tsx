@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 import type {
   RoutableModuleNames,
@@ -389,9 +388,9 @@ function getKnownSourceParentCrumbs({
     case TraceViewSources.DISCOVER:
       return [
         {
-          label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
+          label: t('Errors'),
           to: getBreadCrumbTarget(
-            makeDiscoverPathname({path: '/homepage/', organization}),
+            makeDiscoverPathname({path: '/', organization}),
             location.query
           ),
         },

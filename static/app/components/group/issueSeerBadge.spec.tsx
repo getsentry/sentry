@@ -15,7 +15,7 @@ describe('IssueSeerBadge', () => {
 
   it('links to the issue details drawer without the autofix-page feature', () => {
     render(<IssueSeerBadge group={group} />, {
-      organization: OrganizationFixture({features: ['gen-ai-features']}),
+      organization: OrganizationFixture({features: []}),
     });
 
     expect(screen.getByRole('link')).toHaveAttribute(
@@ -27,7 +27,7 @@ describe('IssueSeerBadge', () => {
   it('links to the autofix tab with the feature', () => {
     render(<IssueSeerBadge group={group} />, {
       organization: OrganizationFixture({
-        features: ['gen-ai-features', 'autofix-page'],
+        features: ['autofix-page'],
       }),
     });
 

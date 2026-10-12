@@ -1,6 +1,9 @@
 import {useCallback, useLayoutEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCase} from '@sentry/icons/case';
+import {IconClose} from '@sentry/icons/close';
+import {IconSearch} from '@sentry/icons/search';
 import type {QueryKey} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -28,7 +31,6 @@ import {
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
-import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
@@ -71,6 +73,11 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  /**
+   * When true, the regex operators ("matches regex", "does not match regex") are
+   * offered for string filters, and key://pattern// values are parsed as regexes.
+   */
+  allowRegexOperators?: boolean;
   /**
    * Query key used to scope async filter key metadata. When omitted, metadata is
    * scoped to this query builder instance.
@@ -219,6 +226,17 @@ export interface SearchQueryBuilderProps {
    * a scrollable container.
    */
   portalTarget?: HTMLElement | null;
+  /**
+   * Keys that should be sorted above all other keys in the filter key
+   * autocomplete, regardless of how they score against the typed value.
+   * Relative ordering within the prioritized group still follows the search
+   * score.
+   *
+   * Useful when a subset of keys maps to what the user already sees on the
+   * page (e.g. table headers), so those should win over raw attributes that
+   * happen to match the input more literally.
+   */
+  prioritizedFilterKeys?: string[];
   queryInterface?: QueryInterfaceType;
 
   /**

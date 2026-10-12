@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Thresholds, type ThresholdsConfig} from './thresholds';
 
@@ -62,5 +62,36 @@ describe('Widget Builder > ThresholdsStep', () => {
       'placeholder',
       'No max'
     );
+  });
+
+  it('passes a selected interval and clears it when Fixed is selected', async () => {
+    const onThresholdTimeWindowChange = jest.fn();
+    const {rerender} = render(
+      <Thresholds
+        thresholdsConfig={exampleThresholdsConfig}
+        onThresholdChange={jest.fn()}
+        onUnitChange={jest.fn()}
+        onThresholdTimeWindowChange={onThresholdTimeWindowChange}
+        showThresholdTimeWindow
+      />
+    );
+
+    await userEvent.click(screen.getByText('Fixed'));
+    await userEvent.click(screen.getByText('10 minutes'));
+    expect(onThresholdTimeWindowChange).toHaveBeenLastCalledWith('10m');
+
+    rerender(
+      <Thresholds
+        thresholdsConfig={{...exampleThresholdsConfig, timeWindow: '10m'}}
+        onThresholdChange={jest.fn()}
+        onUnitChange={jest.fn()}
+        onThresholdTimeWindowChange={onThresholdTimeWindowChange}
+        showThresholdTimeWindow
+      />
+    );
+
+    await userEvent.click(screen.getByText('10 minutes'));
+    await userEvent.click(screen.getByText('Fixed'));
+    expect(onThresholdTimeWindowChange).toHaveBeenLastCalledWith(undefined);
   });
 });

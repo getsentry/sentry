@@ -140,8 +140,8 @@ class OriginContents(TypedDict):
     sha: str
     encoding: str
     size: str
-    content: NotRequired[str]
-    entries: NotRequired[list[OriginContentEntry]]
+    content: str
+    entries: list[OriginContentEntry]
 
 
 class OriginApp(TypedDict):
@@ -278,6 +278,11 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
             verify_ssl=verify_ssl,
             logging_context=logging_context,
         )
+
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        """The Origin client doesn't use scm-platform's credentials_set, so drop it."""
+        kwargs.pop("credentials_set", None)
+        return super().request(*args, **kwargs)
 
     @control_silo_function
     def _refresh_access_token(self) -> AccessTokenData | None:
@@ -490,11 +495,9 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
         contents = self.get_contents(repo.name, path, ref=ref)
-        # A directory answers with entries and no content
-        content = contents.get("content")
-        if content is None:
+        if contents["type"] != "file":
             raise ApiError(f"No file content at {path!r} in {repo.name}")
-        return b64decode(content).decode("utf-8")
+        return b64decode(contents["content"]).decode("utf-8")
 
     def get_remaining_api_requests(self) -> int:
         return self._rate_limit_remaining

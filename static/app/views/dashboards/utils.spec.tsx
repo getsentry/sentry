@@ -139,25 +139,23 @@ describe('Dashboards util', () => {
         OrganizationFixture()
       );
       expect(url).toBe(
-        '/organizations/org-slug/explore/discover/results/?field=count%28%29&name=Test%20Query&project=&query=&queryDataset=transaction-like&statsPeriod=7d&yAxis=count%28%29'
+        '/organizations/org-slug/explore/errors/results/?field=count%28%29&name=Test%20Query&project=&query=&queryDataset=transaction-like&statsPeriod=7d&yAxis=count%28%29'
       );
     });
     it('returns the discover url of a topn widget query', () => {
       widget = {
         ...widget,
-        ...{
-          displayType: DisplayType.TOP_N,
-          queries: [
-            {
-              name: '',
-              conditions: 'error.unhandled:true',
-              fields: ['error.type', 'count()'],
-              aggregates: ['count()'],
-              columns: ['error.type'],
-              orderby: '-count',
-            },
-          ],
-        },
+        displayType: DisplayType.TOP_N,
+        queries: [
+          {
+            name: '',
+            conditions: 'error.unhandled:true',
+            fields: ['error.type', 'count()'],
+            aggregates: ['count()'],
+            columns: ['error.type'],
+            orderby: '-count',
+          },
+        ],
       };
       const url = getWidgetDiscoverUrl(
         widget,
@@ -166,25 +164,23 @@ describe('Dashboards util', () => {
         OrganizationFixture()
       );
       expect(url).toBe(
-        '/organizations/org-slug/explore/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&project=&query=error.unhandled%3Atrue&queryDataset=transaction-like&sort=-count&statsPeriod=7d&yAxis=count%28%29'
+        '/organizations/org-slug/explore/errors/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&project=&query=error.unhandled%3Atrue&queryDataset=transaction-like&sort=-count&statsPeriod=7d&yAxis=count%28%29'
       );
     });
     it('applies the dashboard filters to the query', () => {
       widget = {
         ...widget,
-        ...{
-          displayType: DisplayType.LINE,
-          queries: [
-            {
-              name: '',
-              conditions: 'transaction.op:test',
-              fields: [],
-              aggregates: [],
-              columns: [],
-              orderby: '',
-            },
-          ],
-        },
+        displayType: DisplayType.LINE,
+        queries: [
+          {
+            name: '',
+            conditions: 'transaction.op:test',
+            fields: [],
+            aggregates: [],
+            columns: [],
+            orderby: '',
+          },
+        ],
       };
       const url = getWidgetDiscoverUrl(
         widget,

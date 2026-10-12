@@ -1,11 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
-const BASE_FEATURES = ['seer-explorer', 'gen-ai-features'];
+const BASE_FEATURES = ['seer-explorer'];
 
 function orgWith(...extraFeatures: string[]) {
   return OrganizationFixture({
@@ -36,6 +38,7 @@ function defaultProps(overrides = {}) {
 
 describe('SeerExplorerHeader', () => {
   beforeEach(() => {
+    ConfigStore.set('user', UserFixture());
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/seer/runs/`,
@@ -62,8 +65,24 @@ describe('SeerExplorerHeader', () => {
   }
 
   describe('Debug menu', () => {
+    beforeEach(() => {
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}],
+        })
+      );
+    });
+
     it('does not render when no debug feature flags are enabled', async () => {
       await renderHeader();
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+    });
+
+    it('does not render for non-employees with a debug flag enabled', async () => {
+      ConfigStore.set('user', UserFixture());
+      await renderHeader({}, orgWith('seer-explorer-allow-bash-mode'));
+
       expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
     });
 

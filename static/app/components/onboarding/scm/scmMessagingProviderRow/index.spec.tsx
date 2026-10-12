@@ -299,17 +299,14 @@ describe('ScmMessagingProviderRow', () => {
       expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
     });
 
-    it('still shows the Choose destination CTA for a connected provider', () => {
+    it('still shows the Set up CTA for a connected provider', () => {
       // A member without org:integrations cannot install, but can still configure
       // a destination on an integration that is already connected.
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
         organization: noAccessOrg,
       });
 
-      expect(screen.getByText('Authorized')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: /Choose destination/})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Set up/})).toBeInTheDocument();
     });
   });
 
@@ -569,22 +566,21 @@ describe('ScmMessagingProviderRow', () => {
   });
 
   describe('choose-destination state (connected, not yet configured)', () => {
-    it('shows the Authorized tag without opening the picker', () => {
+    it('shows the Set up CTA without opening the picker', () => {
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
 
-      expect(screen.getByText('Authorized')).toBeInTheDocument();
-      expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Set up/})).toBeInTheDocument();
       expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
     });
 
-    it('opens the channel picker with onCancel when Choose destination is clicked', async () => {
+    it('opens the channel picker with onCancel when Set up is clicked', async () => {
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
 
       expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
+      await userEvent.click(screen.getByRole('button', {name: /Set up/}));
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
       expect(renderChannelPicker).toHaveBeenCalledWith(
@@ -605,7 +601,7 @@ describe('ScmMessagingProviderRow', () => {
 
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
 
-      await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
+      await userEvent.click(screen.getByRole('button', {name: /Set up/}));
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
 
       act(() => capturedOnCancel?.());
@@ -615,7 +611,7 @@ describe('ScmMessagingProviderRow', () => {
       );
       // The picker unmounted the control that had focus, so the row hands it
       // back rather than letting it fall to the body.
-      expect(screen.getByRole('button', {name: /Choose destination/})).toHaveFocus();
+      expect(screen.getByRole('button', {name: /Set up/})).toHaveFocus();
     });
 
     it('passes only eligible integrations to the picker when a provider has mixed installations', async () => {
@@ -645,7 +641,7 @@ describe('ScmMessagingProviderRow', () => {
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
       renderRow(mixedMsteams, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
 
-      await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
+      await userEvent.click(screen.getByRole('button', {name: /Set up/}));
 
       expect(renderChannelPicker).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -693,9 +689,7 @@ describe('ScmMessagingProviderRow', () => {
       expect(screen.queryByRole('button', {name: /Edit/})).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: /Remove/})).not.toBeInTheDocument();
       // Shows choose-destination CTA instead of auto-expanding the picker.
-      expect(
-        screen.getByRole('button', {name: /Choose destination/})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Set up/})).toBeInTheDocument();
     });
 
     it('saves the setup and calls onContinue without closing the picker', async () => {
@@ -718,7 +712,7 @@ describe('ScmMessagingProviderRow', () => {
         renderChannelPicker,
       });
 
-      await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
+      await userEvent.click(screen.getByRole('button', {name: /Set up/}));
 
       act(() => capturedOnConfigured?.(selectedSlackSetup));
       expect(onMessagingSetupChange).toHaveBeenCalledWith(selectedSlackSetup);
@@ -729,11 +723,11 @@ describe('ScmMessagingProviderRow', () => {
   });
 
   describe('configured state', () => {
-    it('shows the Connected tag', () => {
+    it('shows the saved destination', () => {
       renderRow(connectedSlack, selectedSlackSetup);
 
-      expect(screen.getByText('Connected')).toBeInTheDocument();
-      expect(screen.queryByText('Authorized')).not.toBeInTheDocument();
+      expect(screen.getByText('#alerts')).toBeInTheDocument();
+      expect(screen.getByText('test-workspace')).toBeInTheDocument();
     });
 
     it('enters configuring state when Edit is clicked and passes onCancel to the picker', async () => {

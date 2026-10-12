@@ -31,6 +31,9 @@ class WebhookEventHandler:
 
     EVENT_TYPE: IntegrationWebhookEventType
 
+    def __init__(self, event_type: str) -> None:
+        self.event_type = event_type
+
     def __call__(
         self,
         payload: Mapping[str, Any],

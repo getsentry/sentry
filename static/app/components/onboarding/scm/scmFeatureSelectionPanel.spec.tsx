@@ -16,6 +16,17 @@ const pythonPlatform: OnboardingSelectedSDK = {
   category: 'popular',
 };
 
+// Wizard-driven: in PLATFORM_PRODUCT_INFO but not platformProductAvailability,
+// so the panel renders the read-only cards.
+const nextjsPlatform: OnboardingSelectedSDK = {
+  key: 'javascript-nextjs',
+  name: 'Next.js',
+  language: 'javascript',
+  type: 'framework',
+  link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+  category: 'browser',
+};
+
 // In neither platformProductAvailability nor PLATFORM_PRODUCT_INFO, so the
 // section has nothing to configure.
 const platformWithoutProducts: OnboardingSelectedSDK = {
@@ -51,9 +62,7 @@ describe('ScmFeatureSelectionPanel', () => {
       }
     );
 
-    expect(
-      await screen.findByText('What do you want to instrument?')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('What do you want to track?')).toBeInTheDocument();
     expect(screen.getByText(/unlimited volume for 14 days/)).toBeInTheDocument();
     expect(screen.getByText('5,000 errors / mo')).toBeInTheDocument();
   });
@@ -70,6 +79,37 @@ describe('ScmFeatureSelectionPanel', () => {
     expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeInTheDocument();
 
     expect(screen.queryByText(/unlimited volume for 14 days/)).not.toBeInTheDocument();
+    expect(screen.queryByText('5,000 errors / mo')).not.toBeInTheDocument();
+  });
+
+  it('shows per-product volumes on the read-only cards during onboarding', async () => {
+    render(
+      <ScmFeatureSelectionPanel
+        {...defaultProps({analyticsFlow: 'onboarding', selectedPlatform: nextjsPlatform})}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        'Your setup wizard will ask which of these to turn on in the next step.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('5,000 errors / mo')).toBeInTheDocument();
+  });
+
+  it('hides per-product volumes on the read-only cards outside onboarding', async () => {
+    render(
+      <ScmFeatureSelectionPanel
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedPlatform: nextjsPlatform,
+        })}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Error monitoring')).toBeInTheDocument();
     expect(screen.queryByText('5,000 errors / mo')).not.toBeInTheDocument();
   });
 

@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEventPermission
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
@@ -68,14 +69,15 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
         filter_params = self.get_filter_params(request, project, date_filter_optional=False)
 
         # If no rows were found then the replay does not exist and a 404 is returned.
-        viewed_by_ids_response: list[dict[str, Any]] = query_replay_viewed_by_ids(
-            project_id=project.id,
-            replay_id=replay_id,
-            start=filter_params["start"],
-            end=filter_params["end"],
-            request_user_id=request.user.id,
-            organization=project.organization,
-        )
+        with handle_query_errors():
+            viewed_by_ids_response: list[dict[str, Any]] = query_replay_viewed_by_ids(
+                project_id=project.id,
+                replay_id=replay_id,
+                start=filter_params["start"],
+                end=filter_params["end"],
+                request_user_id=request.user.id,
+                organization=project.organization,
+            )
         if not viewed_by_ids_response:
             return Response(status=404)
 
@@ -111,18 +113,21 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
 
         # make a query to avoid overwriting the `finished_at` column
         filter_params = self.get_filter_params(request, project, date_filter_optional=False)
-        finished_at_response = execute_query(
-            query=make_full_aggregation_query(
-                fields=["finished_at"],
-                replay_ids=[replay_id],
-                project_ids=[project.id],
-                period_start=filter_params["start"],
-                period_end=filter_params["end"],
-                request_user_id=request.user.id,
-            ),
-            tenant_id={"organization_id": project.organization.id} if project.organization else {},
-            referrer="replays.endpoints.viewed_by_post",
-        )["data"]
+        with handle_query_errors():
+            finished_at_response = execute_query(
+                query=make_full_aggregation_query(
+                    fields=["finished_at"],
+                    replay_ids=[replay_id],
+                    project_ids=[project.id],
+                    period_start=filter_params["start"],
+                    period_end=filter_params["end"],
+                    request_user_id=request.user.id,
+                ),
+                tenant_id={"organization_id": project.organization.id}
+                if project.organization
+                else {},
+                referrer="replays.endpoints.viewed_by_post",
+            )["data"]
         if not finished_at_response:
             return Response(status=404)
 

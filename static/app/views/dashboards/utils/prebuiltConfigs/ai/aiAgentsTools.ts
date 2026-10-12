@@ -20,6 +20,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-tool-calls',
       title: t('Tool Calls'),
+      description: t('Tool call volume grouped by tool name.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -40,6 +41,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-tool-errors',
       title: t('Tool Errors'),
+      description: t('Number of failed tool calls grouped by tool name.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -65,6 +67,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 const TOOLS_TABLE: PrebuiltWidget = {
   id: 'ai-agents-tools-table',
   title: t('Tools'),
+  description: t('Tool requests, errors, and duration by tool name.'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
@@ -75,13 +78,13 @@ const TOOLS_TABLE: PrebuiltWidget = {
       fields: [
         SpanFields.GEN_AI_TOOL_NAME,
         'count()',
-        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
+        'equation|count_if(`span.status:internal_error`) + count_if(`span.status:error`)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
-        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
+        'equation|count_if(`span.status:internal_error`) + count_if(`span.status:error`)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],

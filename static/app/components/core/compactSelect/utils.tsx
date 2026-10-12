@@ -5,7 +5,7 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {defined} from 'sentry/utils/defined';
 import {fzf} from 'sentry/utils/search/fzf';

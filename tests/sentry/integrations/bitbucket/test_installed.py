@@ -133,6 +133,47 @@ class BitbucketInstalledEndpointTest(APITestCase):
         del integration_after.metadata["webhook_secret"]
         assert integration.metadata == integration_after.metadata
 
+    def test_existing_installation_rejects_overwrite_without_jwt(self) -> None:
+        integration, _ = Integration.objects.get_or_create(
+            provider=self.provider,
+            external_id=self.client_key,
+            defaults={"name": self.username, "metadata": self.metadata},
+        )
+        wrong_secret = "wrong-secret"
+        data = {**self.team_data_from_bitbucket, "sharedSecret": wrong_secret}
+
+        response = self.client.post(self.path, data=data)
+
+        assert response.status_code == 401
+        integration.refresh_from_db()
+        assert integration.metadata["shared_secret"] == self.shared_secret
+
+    def test_existing_installation_rejects_overwrite_with_invalid_jwt(self) -> None:
+        integration, _ = Integration.objects.get_or_create(
+            provider=self.provider,
+            external_id=self.client_key,
+            defaults={"name": self.username, "metadata": self.metadata},
+        )
+        wrong_secret = "wrong-secret"
+        data = {**self.team_data_from_bitbucket, "sharedSecret": wrong_secret}
+        token = jwt.encode(
+            {
+                "iss": self.client_key,
+                "qsh": get_query_hash(self.path, method="POST", query_params={}),
+            },
+            wrong_secret,
+        )
+
+        response = self.client.post(
+            self.path,
+            data=data,
+            HTTP_AUTHORIZATION=f"JWT {token}",
+        )
+
+        assert response.status_code == 401
+        integration.refresh_from_db()
+        assert integration.metadata["shared_secret"] == self.shared_secret
+
     def test_installed_without_username(self) -> None:
         """Test a user (not team) installation where the user has hidden their username from public view"""
 

@@ -3,6 +3,8 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.constants import ObjectStatus
 from sentry.models.promptsactivity import PromptsActivity
@@ -15,11 +17,26 @@ from sentry.tasks.seer.explorer_index import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, decode_viewer_context, get_viewer_context
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestGetSeerAgentEnabledProjects(TestCase):
+    def test_returns_nothing_on_self_hosted(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        project.flags.has_transactions = True
+        project.save()
+
+        with (
+            freeze_time(datetime(2024, 1, 15, project.id % 23, tzinfo=UTC)),
+            self.feature({"organizations:seer-explorer-index": [org.slug]}),
+        ):
+            assert list(get_seer_explorer_enabled_projects()) == [(project.id, org.id)]
+            with override_settings(SENTRY_SELF_HOSTED=True):
+                assert list(get_seer_explorer_enabled_projects()) == []
+
     @freeze_time("2024-01-15 12:00:00")
     def test_returns_projects_with_feature_flag(self) -> None:
         org1 = self.create_organization()
@@ -55,7 +72,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org1.slug, org2.slug],
                 "organizations:seer-explorer-index": [org1.slug, org2.slug],
             }
         ):
@@ -93,7 +109,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -119,7 +134,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -138,7 +152,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -161,7 +174,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -192,7 +204,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -222,12 +233,7 @@ class TestGetSeerAgentEnabledProjects(TestCase):
             feature="seer_autofix_setup_acknowledged",
         )
 
-        with self.feature(
-            {
-                "organizations:gen-ai-features": [org.slug],
-            }
-        ):
-            result = list(get_seer_explorer_enabled_projects())
+        result = list(get_seer_explorer_enabled_projects())
 
         assert len(result) == 0
         assert project.id not in [p[0] for p in result]
@@ -249,7 +255,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-added": [org.slug],
             }
         ):
@@ -276,7 +281,6 @@ class TestGetSeerAgentEnabledProjects(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seat-based-seer-enabled": [org.slug],
             }
         ):
@@ -287,6 +291,7 @@ class TestGetSeerAgentEnabledProjects(TestCase):
             assert project.id in project_ids
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
 class TestScheduleExplorerIndex(TestCase):
     def test_skips_when_killswitch_enabled(self) -> None:
@@ -314,7 +319,6 @@ class TestScheduleExplorerIndex(TestCase):
 
         with self.feature(
             {
-                "organizations:gen-ai-features": [org.slug],
                 "organizations:seer-explorer-index": [org.slug],
             }
         ):
@@ -387,40 +391,32 @@ class TestRunExplorerIndexForProjects(TestCase):
                 run_explorer_index_for_projects([(1, 100)], "2024-01-15T12:00:00+00:00")
                 mock_request.assert_not_called()
 
-    @patch("sentry.tasks.seer.explorer_index.make_agent_index_request")
-    def test_sets_viewer_context_for_single_org_batch(self, mock_request):
-        mock_request.return_value.status = 200
-        mock_request.return_value.json.return_value = {"scheduled_count": 2, "projects": []}
-
-        captured_vc = None
-
-        def capture_vc(*args, **kwargs):
-            nonlocal captured_vc
-            captured_vc = get_viewer_context()
-            return mock_request.return_value
-
-        mock_request.side_effect = capture_vc
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_sets_viewer_context_for_single_org_batch(self, mock_urlopen):
+        mock_urlopen.return_value = HTTPResponse(b'{"scheduled_count":2,"projects":[]}', status=200)
 
         run_explorer_index_for_projects([(1, 100), (2, 100)], "2024-01-15T12:00:00+00:00")
 
-        assert captured_vc is not None
-        assert captured_vc.organization_id == 100
-        assert captured_vc.actor_type == ActorType.SYSTEM
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context.organization_id == 100
+        assert viewer_context.actor_type == ActorType.SYSTEM
+        assert get_viewer_context() is None
 
-    @patch("sentry.tasks.seer.explorer_index.make_agent_index_request")
-    def test_no_viewer_context_org_for_multi_org_batch(self, mock_request):
-        mock_request.return_value.status = 200
-        mock_request.return_value.json.return_value = {"scheduled_count": 2, "projects": []}
-
-        captured_vc = None
-
-        def capture_vc(*args, **kwargs):
-            nonlocal captured_vc
-            captured_vc = get_viewer_context()
-            return mock_request.return_value
-
-        mock_request.side_effect = capture_vc
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_sets_system_viewer_context_without_org_for_multi_org_batch(self, mock_urlopen):
+        mock_urlopen.return_value = HTTPResponse(b'{"scheduled_count":2,"projects":[]}', status=200)
 
         run_explorer_index_for_projects([(1, 100), (2, 200)], "2024-01-15T12:00:00+00:00")
 
-        assert captured_vc is None
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context.organization_id is None
+        assert viewer_context.actor_type == ActorType.SYSTEM
+        assert get_viewer_context() is None

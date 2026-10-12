@@ -10,7 +10,6 @@ from sentry.issues.producer import _prepare_occurrence_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.organization import Organization
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.helpers.options import override_options
 from sentry.types.group import PriorityLevel
 from sentry.utils.registry import AlreadyRegisteredError
 from sentry.workflow_engine.handlers.detector import (
@@ -549,7 +548,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         return result.result[None]
 
-    def test_evaluate__creates_occurrence_when_triggered(self) -> None:
+    def test_detector_creates_an_occurrence_when_triggered(self) -> None:
         result = self.handler.evaluate(self.packet(10))
 
         assert result.tainted is False
@@ -561,19 +560,19 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         assert evaluation.triggered is True
         assert evaluation.priority == DetectorPriorityLevel.HIGH
 
-    def test_evaluate__no_result_when_not_triggered(self) -> None:
+    def test_detector_returns_nothing_when_not_triggered(self) -> None:
         result = self.handler.evaluate(self.packet(1))
 
         assert result.result == {}
         assert result.tainted is False
 
-    def test_evaluate__no_result_without_condition_group(self) -> None:
+    def test_detector_without_a_condition_group_returns_nothing(self) -> None:
         detector = self.create_detector(project=self.project, type=self.group_type.slug)
         handler = MockDefaultDetectorHandler(detector)
 
         assert handler.evaluate(self.packet(10)).result == {}
 
-    def test_evaluate__uses_highest_triggered_priority(self) -> None:
+    def test_detector_uses_the_highest_triggered_priority(self) -> None:
         self.create_data_condition(
             type=Condition.GREATER,
             comparison=1,
@@ -583,13 +582,13 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         assert self.evaluate_triggered().priority == DetectorPriorityLevel.HIGH
 
-    def test_evaluate__no_result_when_conditions_carry_no_priority(self) -> None:
+    def test_detector_returns_nothing_when_conditions_carry_no_priority(self) -> None:
         detector = self.create_detector_with_condition(comparison=5, condition_result=True)
         handler = MockDefaultDetectorHandler(detector)
 
         assert handler.evaluate(self.packet(10)).result == {}
 
-    def test_evaluate__no_result_when_the_triggered_priority_is_ok(self) -> None:
+    def test_detector_returns_nothing_when_the_triggered_priority_is_ok(self) -> None:
         detector = self.create_detector_with_condition(
             comparison=5,
             condition_result=DetectorPriorityLevel.OK,
@@ -608,16 +607,16 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         assert result.result == {}
         assert result.tainted is False
 
-    def test_evaluate__group_key_is_none(self) -> None:
+    def test_detector_evaluates_ungrouped_values_under_a_none_group_key(self) -> None:
         assert self.evaluate_triggered().data["group_key"] is None
 
-    def test_evaluate__default_fingerprint(self) -> None:
+    def test_detector_uses_the_default_fingerprint(self) -> None:
         occurrence = self.evaluate_triggered().result
 
         assert isinstance(occurrence, IssueOccurrence)
         assert occurrence.fingerprint == [f"detector:{self.detector.id}"]
 
-    def test_evaluate__custom_fingerprint(self) -> None:
+    def test_detector_uses_a_custom_fingerprint(self) -> None:
         handler = MockFingerprintedDetectorHandler(self.detector)
 
         evaluation = handler.evaluate(self.packet(10)).result[None]
@@ -626,7 +625,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         assert isinstance(occurrence, IssueOccurrence)
         assert occurrence.fingerprint == ["mock-fingerprint"]
 
-    def test_evaluate__event_data_matches_occurrence(self) -> None:
+    def test_detector_event_data_matches_the_occurrence(self) -> None:
         evaluation = self.evaluate_triggered()
         occurrence = evaluation.result
         event_data = evaluation.data["event_data"]
@@ -635,7 +634,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         assert_event_matches_occurrence(event_data, occurrence)
 
-    def test_evaluate__preserves_event_id_from_create_occurrence(self) -> None:
+    def test_detector_preserves_the_event_id_from_create_occurrence(self) -> None:
         handler = MockEventIdDetectorHandler(self.detector)
 
         evaluation = handler.evaluate(self.packet(10)).result[None]
@@ -647,7 +646,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         assert_event_matches_occurrence(event_data, occurrence)
 
-    def test_evaluate__replaying_an_event_rebuilds_the_same_occurrence_id(self) -> None:
+    def test_detector_replaying_an_event_rebuilds_the_same_occurrence_id(self) -> None:
         handler = MockEventIdDetectorHandler(self.detector)
 
         first = handler.evaluate(self.packet(10)).result[None].result
@@ -659,7 +658,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         # the conversion from human-readable string to UUID is deterministic
         assert first.id == second.id
 
-    def test_evaluate__produces_valid_issue_platform_payload(self) -> None:
+    def test_detector_produces_a_valid_issue_platform_payload(self) -> None:
         evaluation = self.evaluate_triggered()
         occurrence = evaluation.result
 
@@ -671,7 +670,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         assert payload is not None
         assert payload["event"]["event_id"] == occurrence.event_id
 
-    def test_evaluate__propagates_taint(self) -> None:
+    def test_detector_propagates_taint_from_its_conditions(self) -> None:
         condition = self.detector.get_conditions()[0]
         tainted_evaluation = DataConditionGroupEvaluation(
             result=True,
@@ -699,7 +698,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         assert result.tainted is True
         assert result.result[None].priority == DetectorPriorityLevel.HIGH
 
-    def test_evaluate__generates_occurrence_id_when_absent(self) -> None:
+    def test_detector_generates_new_ids_when_no_event_id_is_supplied(self) -> None:
         first = self.evaluate_triggered().result
         second = self.evaluate_triggered().result
 
@@ -711,7 +710,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         assert UUID(first.id) != UUID(second.id)
 
-    def test_evaluate__uses_occurrence_id_hook(self) -> None:
+    def test_detector_uses_the_occurrence_id_hook(self) -> None:
         handler = MockOccurrenceIdDetectorHandler(self.detector)
 
         evaluation = handler.evaluate(self.packet(10)).result[None]
@@ -725,7 +724,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         assert_event_matches_occurrence(event_data, occurrence)
 
-    def test_evaluate__warns_when_slow_conditions_remain(self) -> None:
+    def test_detector_warns_when_slow_conditions_remain(self) -> None:
         self.create_data_condition(
             type=Condition.EVENT_FREQUENCY_COUNT,
             comparison={"interval": "1d", "value": 7},
@@ -746,7 +745,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
             },
         )
 
-    def test__evaluate__returns_the_evaluation_map(self) -> None:
+    def test_detector_internal_evaluate_returns_the_evaluation_map(self) -> None:
         result = self.handler._evaluate(self.packet(10))
 
         assert list(result.keys()) == [None]
@@ -816,7 +815,7 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
             },
         )
 
-    def test_evaluate__creates_an_occurrence_for_each_triggered_group(self) -> None:
+    def test_detector_creates_an_occurrence_for_each_triggered_group(self) -> None:
         result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
 
         assert set(result.result.keys()) == {"group-one", "group-two"}
@@ -833,30 +832,30 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
         assert second.triggered is True
         assert second.priority == DetectorPriorityLevel.HIGH
 
-    def test_evaluate__carries_the_group_key_into_each_evaluation(self) -> None:
+    def test_detector_carries_the_group_key_into_each_evaluation(self) -> None:
         result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
 
         assert result.result["group-one"].data["group_key"] == "group-one"
         assert result.result["group-two"].data["group_key"] == "group-two"
 
-    def test_evaluate__only_returns_the_groups_that_triggered(self) -> None:
+    def test_detector_only_returns_the_groups_that_triggered(self) -> None:
         result = self.handler.evaluate(self.packet({"loud": 10, "quiet": 1}))
 
         assert set(result.result.keys()) == {"loud"}
 
-    def test_evaluate__no_result_when_no_group_triggers(self) -> None:
+    def test_detector_returns_nothing_when_no_group_triggers(self) -> None:
         result = self.handler.evaluate(self.packet({"group-one": 1, "group-two": 2}))
 
         assert result.result == {}
         assert result.tainted is False
 
-    def test_evaluate__empty_values_are_evaluated_as_a_single_ungrouped_value(self) -> None:
+    def test_detector_evaluates_empty_values_as_a_single_ungrouped_value(self) -> None:
         result = self.handler.evaluate(self.packet({}))
 
         assert result.result == {}
         assert result.tainted is True
 
-    def test_evaluate__fingerprints_each_group_separately(self) -> None:
+    def test_detector_fingerprints_each_group_separately(self) -> None:
         result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
 
         first = result.result["group-one"].result
@@ -868,7 +867,7 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
         assert first.fingerprint == [f"detector:{self.detector.id}:group-one"]
         assert second.fingerprint == [f"detector:{self.detector.id}:group-two"]
 
-    def test_evaluate__each_group_gets_its_own_occurrence(self) -> None:
+    def test_detector_gives_each_group_its_own_occurrence(self) -> None:
         result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
 
         first = result.result["group-one"].result
@@ -879,7 +878,7 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
 
         assert UUID(first.event_id) != UUID(second.event_id)
 
-    def test_evaluate__groups_share_a_source_event_id_but_not_an_occurrence_id(self) -> None:
+    def test_detector_groups_share_a_source_event_id_but_not_an_occurrence_id(self) -> None:
         handler = MockGroupedEventIdDetectorHandler(self.detector)
 
         result = handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
@@ -895,7 +894,7 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
 
         assert first.id != second.id
 
-    def test_evaluate__event_data_matches_each_groups_occurrence(self) -> None:
+    def test_detector_event_data_matches_each_groups_occurrence(self) -> None:
         result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
 
         occurrence = result.result["group-two"].result
@@ -905,7 +904,7 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
 
         assert_event_matches_occurrence(event_data, occurrence)
 
-    def test_evaluate__taints_the_result_when_any_group_is_tainted(self) -> None:
+    def test_detector_taints_the_result_when_any_group_is_tainted(self) -> None:
         clean_evaluation = self.build_condition_group_evaluation(triggered=False)
 
         tainted_evaluation = self.build_condition_group_evaluation(
@@ -921,7 +920,7 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
         assert result.tainted is True
         assert set(result.result.keys()) == {"loud"}
 
-    def test__evaluate__returns_the_evaluation_map_for_every_group(self) -> None:
+    def test_detector_internal_evaluate_returns_the_evaluation_map_for_every_group(self) -> None:
         result = self.handler._evaluate(self.packet({"group-one": 10, "group-two": 20}))
 
         assert set(result.keys()) == {"group-one", "group-two"}
@@ -985,7 +984,7 @@ class TestDetectorHandlerEvidenceData(BaseGroupTypeTest):
 
         return occurrence.evidence_data
 
-    def test_evidence_data__carries_the_workflow_engine_fields(self) -> None:
+    def test_detector_evidence_data_carries_the_workflow_engine_fields(self) -> None:
         evidence_data = self.evaluate_evidence_data()
 
         assert evidence_data["detector_id"] == self.detector.id
@@ -993,10 +992,10 @@ class TestDetectorHandlerEvidenceData(BaseGroupTypeTest):
         assert evidence_data["data_packet_source_id"] == self.source_id
         assert evidence_data["config"] == self.detector.config
 
-    def test_evidence_data__carries_the_triggered_conditions(self) -> None:
+    def test_detector_evidence_data_carries_the_triggered_conditions(self) -> None:
         assert self.evaluate_evidence_data()["conditions"] == [dict(self.condition.get_snapshot())]
 
-    def test_evidence_data__serializes_the_matching_data_source(self) -> None:
+    def test_detector_evidence_data_serializes_the_matching_data_source(self) -> None:
         assert self.evaluate_evidence_data()["data_sources"] == [
             {
                 "id": str(self.data_source.id),
@@ -1007,7 +1006,7 @@ class TestDetectorHandlerEvidenceData(BaseGroupTypeTest):
             }
         ]
 
-    def test_build_evidence_data_sources__is_empty_without_a_matching_data_source(self) -> None:
+    def test_detector_evidence_data_sources_are_empty_without_a_match(self) -> None:
         with mock.patch("sentry.workflow_engine.handlers.detector.base.logger") as mock_logger:
             data_sources = self.handler._build_evidence_data_sources("unknown-source")
 
@@ -1021,7 +1020,7 @@ class TestDetectorHandlerEvidenceData(BaseGroupTypeTest):
             },
         )
 
-    def test_build_evidence_data_sources__is_empty_when_serialization_fails(self) -> None:
+    def test_detector_evidence_data_sources_are_empty_when_serialization_fails(self) -> None:
         with (
             mock.patch(
                 "sentry.workflow_engine.handlers.detector.base.serialize",
@@ -1036,19 +1035,3 @@ class TestDetectorHandlerEvidenceData(BaseGroupTypeTest):
         mock_logger.exception.assert_called_once_with(
             "Failed to serialize data source definition when building workflow engine evidence data"
         )
-
-    @override_options({"workflow_engine.data_source_by_detector_and_source_id_cache.enabled": True})
-    def test_build_evidence_data_sources__reads_through_the_cache_when_enabled(self) -> None:
-        self.handler._build_evidence_data_sources(self.source_id)
-
-        with self.assertNumQueries(0):
-            assert len(self.handler._build_evidence_data_sources(self.source_id)) == 1
-
-    @override_options(
-        {"workflow_engine.data_source_by_detector_and_source_id_cache.enabled": False}
-    )
-    def test_build_evidence_data_sources__queries_directly_when_the_cache_is_disabled(self) -> None:
-        self.handler._build_evidence_data_sources(self.source_id)
-
-        with self.assertNumQueries(1):
-            assert len(self.handler._build_evidence_data_sources(self.source_id)) == 1

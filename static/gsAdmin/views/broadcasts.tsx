@@ -9,7 +9,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 
 import {CreateBroadcastModal} from 'admin/components/createBroadcastModal';
 import {PageHeader} from 'admin/components/pageHeader';
-import {getBroadcastSchema} from 'admin/schemas/broadcasts';
 
 const getRow = (row: any) => [
   <td key="title">
@@ -39,10 +38,9 @@ export function Broadcasts() {
   const {openModal} = useModal();
 
   const hasPermission = ConfigStore.get('user').permissions.has('broadcasts.admin');
-  const fields = getBroadcastSchema();
 
   const handleNewBroadcast = () => {
-    openModal(deps => <CreateBroadcastModal {...deps} fields={fields} />, {
+    openModal(deps => <CreateBroadcastModal {...deps} />, {
       closeEvents: 'escape-key',
     });
   };

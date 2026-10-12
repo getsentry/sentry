@@ -159,7 +159,7 @@ describe('TraceViewLogsSection', () => {
     });
   });
 
-  it('shows the similar spans log row action', async () => {
+  it('shows the connected spans log row action', async () => {
     const now = new Date();
     const organization = OrganizationFixture({features: ['ourlogs-enabled']});
     MockApiClient.addMockResponse({
@@ -187,6 +187,6 @@ describe('TraceViewLogsSection', () => {
     const messageCell = await screen.findByTestId('log-table-cell-message');
     await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
 
-    expect(await screen.findByText('Explore similar spans')).toBeInTheDocument();
+    expect(await screen.findByText('Explore connected spans')).toBeInTheDocument();
   });
 });

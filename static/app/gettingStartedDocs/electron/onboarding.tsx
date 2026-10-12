@@ -5,7 +5,10 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getDataCollectionStep,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 import {installCodeBlock} from './utils';
@@ -57,6 +60,10 @@ export const onboarding: OnboardingConfig = {
       guideLink:
         'https://docs.sentry.io/platforms/javascript/guides/electron/sourcemaps/',
       ...params,
+    }),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/electron/configuration/options/#dataCollection',
     }),
   ],
   verify: () => [

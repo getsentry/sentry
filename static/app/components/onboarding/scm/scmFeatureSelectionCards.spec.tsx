@@ -187,9 +187,13 @@ describe('ScmFeatureSelectionCards', () => {
 
     const tracingCard = screen.getByRole('checkbox', {name: /Tracing/});
     expect(tracingCard).toHaveAccessibleDescription(
-      'Free plan includes 5M spans / month. Upgrade to Team or Business to send more.'
+      'Your Free plan includes 5M spans / month. Upgrade to Team or Business to send more.'
     );
     expect(tracingCard).not.toHaveAccessibleName(/Free plan includes/);
+
+    // The volume label sits inside the card button, so it must not be a focus
+    // stop of its own: interactive content cannot nest inside a button.
+    expect(tracingCard.querySelector('[tabindex="0"]')).toBeNull();
   });
 
   it('renders skeletons in place of volume tags while loading', () => {

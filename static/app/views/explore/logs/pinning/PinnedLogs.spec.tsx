@@ -1,13 +1,7 @@
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  type RenderOptions,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -47,7 +41,7 @@ const renderRow = (dataRow: OurLogsResponseItem) => (
   </tr>
 );
 
-function PinnedLogsWrapper() {
+function ExamplePinnedLogsInner() {
   const logsPinning = useLogsPinning()!;
   const pinnedLogsQuery = usePinnedLogsQuery({allRows, logsPinning});
 
@@ -63,23 +57,15 @@ function PinnedLogsWrapper() {
   );
 }
 
-function AdditionalWrapper({children}: {children: React.ReactNode}) {
+function ExamplePinnedLogs() {
   return (
     <LogsQueryParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
       source="location"
     >
-      {children}
+      <ExamplePinnedLogsInner />
     </LogsQueryParamsProvider>
   );
-}
-
-function renderPinnedLogs(options: RenderOptions = {}) {
-  return render(<PinnedLogsWrapper />, {
-    organization,
-    additionalWrapper: AdditionalWrapper,
-    ...options,
-  });
 }
 
 describe('PinnedLogs', () => {
@@ -94,13 +80,14 @@ describe('PinnedLogs', () => {
   });
 
   it('renders nothing when no rows are pinned', () => {
-    renderPinnedLogs();
+    render(<ExamplePinnedLogs />, {organization});
 
     expect(screen.queryByRole('toolbar')).not.toBeInTheDocument();
   });
 
   it('renders the pinned row when its id is present in allRows', () => {
-    renderPinnedLogs({
+    render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'log-1'}},
       },
@@ -123,7 +110,8 @@ describe('PinnedLogs', () => {
       body: {data: [fetchedRow], meta: {fields: {id: 'string'}, units: {}}},
     });
 
-    renderPinnedLogs({
+    render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'log-3'}},
       },
@@ -140,7 +128,8 @@ describe('PinnedLogs', () => {
       body: {data: [], meta: {fields: {}, units: {}}},
     });
 
-    renderPinnedLogs({
+    render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'missing-log'}},
       },
@@ -157,7 +146,8 @@ describe('PinnedLogs', () => {
       body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
     });
 
-    const {router} = renderPinnedLogs({
+    const {router} = render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'missing-log'}},
       },
@@ -185,7 +175,8 @@ describe('PinnedLogs', () => {
       match: [MockApiClient.matchQuery({query: 'id:[log-b]'})],
     });
 
-    const {router} = renderPinnedLogs({
+    const {router} = render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'log-a'}},
       },
@@ -212,7 +203,8 @@ describe('PinnedLogs', () => {
       body: {data: [], meta: {fields: {id: 'string'}, units: {}}},
     });
 
-    renderPinnedLogs({
+    render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'log-1,missing-log'}},
       },
@@ -233,7 +225,8 @@ describe('PinnedLogs', () => {
       body: {detail: 'Internal Error'},
     });
 
-    renderPinnedLogs({
+    render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'missing-log'}},
       },
@@ -259,7 +252,8 @@ describe('PinnedLogs', () => {
   });
 
   it('renders pinned rows in ascending order when sorted ascending', () => {
-    renderPinnedLogs({
+    render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {
           pathname: '/',
@@ -276,7 +270,8 @@ describe('PinnedLogs', () => {
   });
 
   it('shows the count of pinned rows in the collapse toggle label', () => {
-    renderPinnedLogs({
+    render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'log-1,log-2'}},
       },
@@ -286,7 +281,8 @@ describe('PinnedLogs', () => {
   });
 
   it('hides the rendered pinned rows when the collapse button is clicked', async () => {
-    renderPinnedLogs({
+    render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'log-1'}},
       },
@@ -298,7 +294,8 @@ describe('PinnedLogs', () => {
   });
 
   it('shows the rendered pinned rows again when the toggle button is clicked twice', async () => {
-    renderPinnedLogs({
+    render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'log-1'}},
       },
@@ -311,7 +308,8 @@ describe('PinnedLogs', () => {
   });
 
   it('removes the rendered pinned rows when the Clear all button is clicked', async () => {
-    renderPinnedLogs({
+    render(<ExamplePinnedLogs />, {
+      organization,
       initialRouterConfig: {
         location: {pathname: '/', query: {logsPinned: 'log-1'}},
       },

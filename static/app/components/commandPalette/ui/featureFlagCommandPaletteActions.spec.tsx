@@ -168,4 +168,45 @@ describe('FeatureFlagCommandPaletteActions', () => {
     );
     expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe('{"new-feature":true}');
   });
+
+  it('does not offer to clear overrides when none are stored', async () => {
+    render(<ExampleFeatureFlagActions />, {organization: OrganizationFixture()});
+
+    await openCommandPalette();
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'Clear Local Feature Flag Overrides'
+    );
+
+    expect(
+      screen.queryByRole('option', {name: 'Clear Local Feature Flag Overrides'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears stored overrides from the command palette', async () => {
+    localStorageWrapper.setItem(LOCALSTORAGE_KEY, '{"enabled-feature":false}');
+    render(<ExampleFeatureFlagActions />, {
+      organization: OrganizationFixture({features: ['enabled-feature']}),
+    });
+    const reloadError = jest.spyOn(console, 'error').mockImplementation();
+
+    await openCommandPalette();
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'Clear Local Feature Flag Overrides'
+    );
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Clear Local Feature Flag Overrides/})
+    );
+
+    expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBeNull();
+    expect(reloadError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'Not implemented: navigation to another Document'
+        ),
+      })
+    );
+    reloadError.mockRestore();
+  });
 });

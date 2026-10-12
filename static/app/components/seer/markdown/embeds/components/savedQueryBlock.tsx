@@ -1,3 +1,5 @@
+import {IconStar} from '@sentry/icons/star';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -5,13 +7,9 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  getSavedQueryDatasetLabel,
-  useGetSavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 
 import {SavedQueryLink, type SavedQueryData} from './savedQueryLink';
@@ -43,10 +41,6 @@ export default function SavedQueryBlock({data}: {data: SavedQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={
-        // Trust the dataset the API reports over the one the tag claimed.
-        <Tag variant="muted">{getSavedQueryDatasetLabel(savedQuery.dataset)}</Tag>
-      }
       href={getSavedQueryTraceItemUrl({savedQuery, organization})}
       icon={IconStar}
       linkLabel={t('View Query')}

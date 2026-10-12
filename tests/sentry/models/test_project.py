@@ -9,9 +9,11 @@ from sentry.db.models.fields.slug import SentrySlugField
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.ingest.legacy_filter_lists import STAGE_OPTION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.organizationmember import OrganizationMember
@@ -34,6 +36,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
@@ -1076,6 +1079,19 @@ class CopyProjectSettingsTest(TestCase):
         assert project.copy_settings_from(self.other_project.id)
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
+
+    @override_options({STAGE_OPTION: {"releases": "double_write"}})
+    def test_copy_writes_the_row_of_a_double_written_list(self) -> None:
+        self.other_project.update_option("sentry:releases", ["1.*"])
+        project = self.create_project(fire_project_created=True)
+
+        assert project.copy_settings_from(self.other_project.id)
+
+        assert project.get_option("sentry:releases") == ["1.*"]
+        row = CustomInboundFilter.objects.get(project_id=project.id)
+        assert row.legacy_filter == "release-version"
+        assert row.conditions == [{"type": "release", "value": ["1.*"]}]
+        self.assert_settings_copied(project)
 
 
 @control_silo_test

@@ -206,7 +206,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.find_user_for_scm_actor")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_triggers_agent_when_authorized(
         self,
@@ -254,7 +254,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
 
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_skips_when_no_write_access(
         self,
@@ -274,7 +274,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_skips_when_no_agent_state(
         self,
@@ -298,7 +298,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_review_comment_hoists_file_and_line(
         self,

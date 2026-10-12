@@ -7,10 +7,9 @@ import uuid
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, NamedTuple, cast
+from typing import Any, NamedTuple
 
 from django.conf import settings
-from redis.exceptions import WatchError
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import json, redis
@@ -26,6 +25,9 @@ from .model import (
     initial_stages,
 )
 
+compare_and_set_script = redis.load_redis_script("utils/compare_and_set.lua")
+compare_and_delete_script = redis.load_redis_script("utils/compare_and_delete.lua")
+
 RUN_LIFETIME = timedelta(days=7)
 """Maximum lifetime of a registered onboarding run."""
 
@@ -36,7 +38,7 @@ CLIENT_CLAIM_RETRY_DELAY = 0.01
 """Delay between client-run claim attempts while another registration initializes."""
 
 ATOMIC_UPDATE_RETRIES = 50
-"""Maximum attempts to update a run when concurrent Redis transactions race."""
+"""Maximum attempts to update a run when concurrent writers race."""
 
 TOKEN_LENGTH = 10
 """Length of the short handoff code included in the onboarding prompt."""
@@ -185,104 +187,83 @@ class OnboardingProgressService:
     def _claim_client_run(self, index_key: str) -> ClientRunClaim:
         """Return the active indexed run or atomically claim the client id for a new run."""
         for attempt in range(CLIENT_CLAIM_RETRIES):
-            try:
-                with self.redis.pipeline() as pipeline:
-                    pipeline.watch(index_key)
-                    indexed_run_id = self._decode(cast(bytes | str | None, pipeline.get(index_key)))
-                    if indexed_run_id is not None:
-                        existing = self._load(self._state_key(indexed_run_id))
-                        if existing is None and attempt < CLIENT_CLAIM_RETRIES - 1:
-                            time.sleep(CLIENT_CLAIM_RETRY_DELAY)
-                            continue
-                        if (
-                            existing is not None
-                            and existing.run_status is RunStatus.ACTIVE
-                            and datetime.now(timezone.utc) < existing.expires_at
-                        ):
-                            return ClientRunClaim(existing=existing)
-                    claimed_run_id = uuid.uuid4().hex
-                    pipeline.multi()
-                    pipeline.set(
-                        index_key,
-                        claimed_run_id,
-                        ex=int(RUN_LIFETIME.total_seconds()),
-                    )
-                    pipeline.execute()
-                    return ClientRunClaim(claimed_run_id=claimed_run_id)
-            except WatchError:
-                continue
+            raw_indexed = self.redis.get(index_key)
+            indexed_run_id = self._decode(raw_indexed)
+            if indexed_run_id is not None:
+                existing = self._load(self._state_key(indexed_run_id))
+                if existing is None and attempt < CLIENT_CLAIM_RETRIES - 1:
+                    time.sleep(CLIENT_CLAIM_RETRY_DELAY)
+                    continue
+                if (
+                    existing is not None
+                    and existing.run_status is RunStatus.ACTIVE
+                    and datetime.now(timezone.utc) < existing.expires_at
+                ):
+                    return ClientRunClaim(existing=existing)
+            claimed_run_id = uuid.uuid4().hex
+            if self._compare_and_set(
+                index_key, raw_indexed, claimed_run_id, int(RUN_LIFETIME.total_seconds())
+            ):
+                return ClientRunClaim(claimed_run_id=claimed_run_id)
 
         raise RuntimeError("Unable to claim an onboarding client run")
 
     def _claim_token_index(self, key: str, run_id: str, ttl: int) -> None:
         for attempt in range(CLIENT_CLAIM_RETRIES):
-            try:
-                with self.redis.pipeline() as pipeline:
-                    pipeline.watch(key)
-                    indexed_run_id = self._decode(cast(bytes | str | None, pipeline.get(key)))
-                    if indexed_run_id is not None:
-                        existing = self._load(self._state_key(indexed_run_id))
-                        if existing is None and attempt < CLIENT_CLAIM_RETRIES - 1:
-                            time.sleep(CLIENT_CLAIM_RETRY_DELAY)
-                            continue
-                        if (
-                            existing is not None
-                            and existing.run_status is RunStatus.ACTIVE
-                            and datetime.now(timezone.utc) < existing.expires_at
-                        ):
-                            raise ValueError("Onboarding code is already in use")
+            raw_indexed = self.redis.get(key)
+            indexed_run_id = self._decode(raw_indexed)
+            if indexed_run_id is not None:
+                existing = self._load(self._state_key(indexed_run_id))
+                if existing is None and attempt < CLIENT_CLAIM_RETRIES - 1:
+                    time.sleep(CLIENT_CLAIM_RETRY_DELAY)
+                    continue
+                if (
+                    existing is not None
+                    and existing.run_status is RunStatus.ACTIVE
+                    and datetime.now(timezone.utc) < existing.expires_at
+                ):
+                    raise ValueError("Onboarding code is already in use")
 
-                    pipeline.multi()
-                    pipeline.set(key, run_id, ex=ttl)
-                    pipeline.execute()
-                    return
-            except WatchError:
-                continue
+            if self._compare_and_set(key, raw_indexed, run_id, ttl):
+                return
 
         raise RuntimeError("Unable to claim onboarding code")
 
     def _release_index(self, key: str, run_id: str) -> None:
-        for _ in range(CLIENT_CLAIM_RETRIES):
-            try:
-                with self.redis.pipeline() as pipeline:
-                    pipeline.watch(key)
-                    indexed_run_id = self._decode(cast(bytes | str | None, pipeline.get(key)))
-                    if indexed_run_id != run_id:
-                        return
-
-                    pipeline.multi()
-                    pipeline.delete(key)
-                    pipeline.execute()
-                    return
-            except WatchError:
-                continue
-
-        raise RuntimeError("Unable to release onboarding index")
+        compare_and_delete_script((key,), (run_id,), self.redis)
 
     def _atomic_update(
         self, run_id: str, mutate: Callable[[OnboardingRun], OnboardingRun]
     ) -> UpdatedRun:
         key = self._state_key(run_id)
         for _ in range(ATOMIC_UPDATE_RETRIES):
-            try:
-                with self.redis.pipeline() as pipeline:
-                    pipeline.watch(key)
-                    raw = cast(bytes | str | None, pipeline.get(key))
-                    if raw is None:
-                        raise RunNotFound
-                    current = self._deserialize(raw)
-                    updated = mutate(current)
-                    if updated == current:
-                        return UpdatedRun(current, False)
+            raw = self.redis.get(key)
+            if raw is None:
+                raise RunNotFound
+            current = self._deserialize(raw)
+            updated = mutate(current)
+            if updated == current:
+                return UpdatedRun(current, False)
 
-                    pipeline.multi()
-                    pipeline.set(key, self._serialize(updated), ex=self._remaining_ttl(updated))
-                    pipeline.execute()
-                    return UpdatedRun(updated, True)
-            except WatchError:
-                continue
+            if self._compare_and_set(
+                key, raw, self._serialize(updated), self._remaining_ttl(updated)
+            ):
+                return UpdatedRun(updated, True)
 
         raise RuntimeError("Unable to update onboarding progress")
+
+    def _compare_and_set(
+        self, key: str, expected: bytes | str | None, value: str, ttl: int
+    ) -> bool:
+        """
+        Set key only if it still holds expected
+        """
+        result = compare_and_set_script(
+            (key,),
+            ("1" if expected is not None else "0", expected or b"", value, ttl),
+            self.redis,
+        )
+        return bool(result)
 
     def _remaining_ttl(self, run: OnboardingRun) -> int:
         remaining = run.expires_at - datetime.now(timezone.utc)

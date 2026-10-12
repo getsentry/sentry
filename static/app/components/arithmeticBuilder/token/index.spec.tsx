@@ -53,16 +53,10 @@ interface TokensProp {
   expression: string;
   dispatch?: Dispatch<ArithmeticBuilderAction>;
   getFilterTagValues?: GetTagValues;
-  /**
-   * Mirrors `explore-conditional-aggregates`. Defaults to on so EAP filter-first
-   * coverage stays the default; Discover 3/4-arg `_if` tests pass `false`.
-   */
-  hasConditionalAggregates?: boolean;
   references?: Set<string>;
 }
 
 function Tokens(props: TokensProp) {
-  const hasConditionalAggregates = props.hasConditionalAggregates ?? true;
   const {state, dispatch} = useArithmeticBuilderAction({
     initialExpression: props.expression,
     references: props.references,
@@ -82,14 +76,9 @@ function Tokens(props: TokensProp) {
         functionArgument => functionArgument.name === key
       );
 
-      return getExploreEquationFieldDefinition(
-        key,
-        argument?.kind,
-        hasConditionalAggregates,
-        attributeTexts
-      );
+      return getExploreEquationFieldDefinition(key, argument?.kind, attributeTexts);
     },
-    [hasConditionalAggregates]
+    []
   );
 
   return (
@@ -100,11 +89,8 @@ function Tokens(props: TokensProp) {
         aggregations,
         functionArguments,
         getFieldDefinition: getSpanFieldDefinition,
-        getFilterTagValues: hasConditionalAggregates
-          ? props.getFilterTagValues
-          : undefined,
+        getFilterTagValues: props.getFilterTagValues,
         getSuggestedKey,
-        hasConditionalAggregates,
         references: props.references,
       }}
     >
@@ -194,23 +180,7 @@ describe('token', () => {
       });
     });
 
-    it('fills in every argument when selecting avg_if', async () => {
-      render(<Tokens expression="" hasConditionalAggregates={false} />);
-
-      const input = screen.getByRole('combobox', {name: 'Add a term'});
-
-      await userEvent.click(input);
-      await userEvent.type(input, 'avg_if');
-      await userEvent.click(screen.getByRole('option', {name: 'avg_if'}));
-
-      expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(span.duration,span.op,equals,db)',
-        })
-      ).toBeInTheDocument();
-    });
-
-    it('fills in filter-first arguments when selecting avg_if with the feature', async () => {
+    it('fills in filter-first arguments when selecting avg_if', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {name: 'Add a term'});
@@ -224,25 +194,6 @@ describe('token', () => {
           name: 'avg_if(``,span.duration)',
         })
       ).toBeInTheDocument();
-    });
-
-    it('does not render the EAP filter argument input when the feature is off', async () => {
-      render(
-        <Tokens
-          expression="avg_if(`span.op:db`,span.duration)"
-          hasConditionalAggregates={false}
-        />
-      );
-
-      expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(`span.op:db`,span.duration)',
-        })
-      ).toBeInTheDocument();
-
-      expect(
-        screen.queryByRole('combobox', {name: 'Add a filter'})
-      ).not.toBeInTheDocument();
     });
 
     it('allows selecting function with no arguments using mouse', async () => {
@@ -1463,7 +1414,7 @@ describe('token', () => {
       });
     });
 
-    it('keeps Discover-style avg_if arguments editable when the feature is on', async () => {
+    it('keeps Discover-style avg_if arguments editable', async () => {
       render(<Tokens expression="avg_if(span.duration,span.op,equals,queue.process)" />);
 
       const argumentsGrid = await screen.findByRole('grid', {name: 'Enter arguments'});

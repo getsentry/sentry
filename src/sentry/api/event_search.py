@@ -157,7 +157,6 @@ explicit_tag_key        = "tags" open_bracket escaped_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
 explicit_boolean_tag_key = "tags" open_bracket escaped_key spaces comma spaces "boolean" closed_bracket
-explicit_array_tag_key =   "tags" open_bracket escaped_key spaces comma spaces "array" closed_bracket
 
 aggregate_key                    = key open_paren spaces function_args? spaces closed_paren
 function_args                    = aggregate_param (spaces comma spaces !comma aggregate_param?)*
@@ -184,7 +183,7 @@ has_in_list            = open_bracket has_item (spaces comma spaces !comma has_i
 
 # TODO: Wildcard will be special index syntax for array.
 array_includes_suffix = open_bracket "*" closed_bracket
-array_includes_tag_key = explicit_array_tag_key array_includes_suffix
+array_includes_tag_key = "tags" open_bracket escaped_key array_includes_suffix spaces comma spaces "array" closed_bracket
 array_includes_attr_key = (key/ quoted_key) array_includes_suffix
 
 array_includes_key = array_includes_attr_key / array_includes_tag_key
@@ -255,6 +254,14 @@ MAX_REGEX_PATTERN_LENGTH = 64
 
 # A newline ends the line a pattern can span, so it's tracked alongside closing delimiters
 REGEX_CLOSING_DELIMITER_OR_NEWLINE = re.compile(r"\n|//(?=[\t\n )]|\Z)")
+
+REGEX_ESCAPE_SEQUENCE = re.compile(r"\\.")
+
+
+def regex_pattern_length(pattern: str) -> int:
+    # An escape like `\.` or `\/` reads as one character, and the search bar adds `\/\/` escapes
+    # of its own, so counting backslashes would reject patterns users see as within the limit
+    return len(REGEX_ESCAPE_SEQUENCE.sub("_", pattern))
 
 
 def regex_pattern_too_long_error(key: str) -> InvalidSearchQuery:
@@ -1554,7 +1561,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             literal = self.visit_value(node.children[3], [])
             return self._handle_basic_filter(search_key, operator, SearchValue(literal))
 
-        if len(pattern) > MAX_REGEX_PATTERN_LENGTH:
+        if regex_pattern_length(pattern) > MAX_REGEX_PATTERN_LENGTH:
             raise regex_pattern_too_long_error(search_key.name)
         validate_regex_pattern(search_key.name, pattern)
         # Escape sequences and `*` mean something to the regex engine, so the pattern skips
@@ -1984,13 +1991,17 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
                 tokens.append(joining_operator)
         return ParenExpression(tokens)
 
-    def visit_explicit_array_tag_key(
+    def visit_array_includes_suffix(self, node: Node, children: object) -> str:
+        return "[*]"
+
+    def visit_array_includes_tag_key(
         self,
         node: Node,
         children: tuple[
             Node,  # "tags"
             str,  # '['
             str,  # escaped_key
+            str,  # "[*]" (array_includes_suffix)
             str,  # ' '
             Node,  # ','
             str,  # ' '
@@ -1999,17 +2010,6 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchKey:
         return SearchKey(f"tags[{children[2]},array]")
-
-    def visit_array_includes_suffix(self, node: Node, children: object) -> str:
-        return "[*]"
-
-    def visit_array_includes_tag_key(
-        self,
-        node: Node,
-        children: tuple[SearchKey, str],  #  "[*]")
-    ) -> SearchKey:
-        inner, _ = children
-        return SearchKey(f"{inner.name}")
 
     def visit_array_includes_attr_key(
         self,

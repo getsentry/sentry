@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import {Outlet, ScrollRestoration} from 'react-router-dom';
+import {Outlet, ScrollRestoration} from 'react-router';
 import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
@@ -22,7 +22,6 @@ import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
@@ -34,8 +33,8 @@ import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
 
@@ -48,8 +47,6 @@ export function OrganizationLayout() {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-
-  useInitSentryToolbar(organization);
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>

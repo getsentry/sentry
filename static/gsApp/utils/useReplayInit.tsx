@@ -6,6 +6,20 @@ import {getClient} from '@sentry/react';
 import {isStaticString} from 'sentry/locale';
 import {useUser} from 'sentry/utils/useUser';
 
+/**
+ * Masking function for rrweb text nodes.
+ *
+ * rrweb may pass non-string values at runtime despite the TypeScript type
+ * signature. Guard against this so `isStaticString` (which calls `.trim()`)
+ * never receives a non-string and throws a TypeError.
+ */
+export function replayMaskFn(text: unknown): string {
+  if (typeof text !== 'string') {
+    return '';
+  }
+  return isStaticString(text) ? text : text.replace(/\S/g, '*');
+}
+
 // Single replayRef across the whole app, even if this hook is called multiple times
 let replayRef: ReturnType<typeof replayIntegration> | null = null;
 // Subscribers waiting for replayRef to become non-null. Needed because
@@ -101,8 +115,7 @@ export function useReplayInit(): boolean {
             'x-sentry-rate-limit-reset',
             'x-served-by',
           ],
-          maskFn: (text: string) =>
-            isStaticString(text) ? text : text.replace(/\S/g, '*'),
+          maskFn: replayMaskFn,
 
           slowClickIgnoreSelectors: [
             '[aria-label*="download" i]',

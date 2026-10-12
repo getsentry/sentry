@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {Location} from 'history';
@@ -20,7 +21,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -30,9 +30,11 @@ import {useFinalizeRelease} from 'sentry/views/explore/releases/components/useFi
 import type {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/explore/releases/list/releasesRequest';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import type {ReleaseSdkVersion} from 'sentry/views/explore/releases/utils/releaseSdkVersionsApiOptions';
 
 import {ReleaseCardCommits} from './releaseCardCommits';
 import {ReleaseCardProjectRow} from './releaseCardProjectRow';
+import {ReleaseCardSdkVersion} from './releaseCardSdkVersion';
 import ReleaseCardStatsPeriod from './releaseCardStatsPeriod';
 
 function getReleaseProjectId(release: Release, selection: PageFilters) {
@@ -61,6 +63,7 @@ type Props = {
   organization: Organization;
   release: Release;
   reloading: boolean;
+  sdkVersions: ReleaseSdkVersion[];
   selection: PageFilters;
   showHealthPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
@@ -72,6 +75,7 @@ export function ReleaseCard({
   activeDisplay,
   location,
   reloading,
+  sdkVersions,
   selection,
   showHealthPlaceholders,
   isTopRelease,
@@ -166,6 +170,7 @@ export function ReleaseCard({
               />
               {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
               &nbsp;
+              <ReleaseCardSdkVersion sdkVersions={sdkVersions} />
             </Container>
             <FinalizeWrapper>
               {release.dateReleased ? (
@@ -260,6 +265,7 @@ export function ReleaseCard({
                     ${cssTheme.tokens.background.primary}
                   );
                   background-repeat: repeat-x;
+                  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The border extends the fade's background fill. */
                   border-bottom: ${cssTheme.space.md} solid
                     ${cssTheme.tokens.background.primary};
                   border-top: ${cssTheme.space.md} solid transparent;

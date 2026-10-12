@@ -40,25 +40,22 @@ export function TraceAiTab({traceSlug}: {traceSlug: string}) {
     trackAnalytics('agent-monitoring.trace.rendered', {organization});
   }, [isLoading, error, nodes.length, traceSlug, organization]);
 
-  const hasConversations =
-    hasGenAiConversationsFeature(organization) && conversationIds.length > 0;
-
-  if (hasConversations) {
+  if (isLoading || error || nodes.length === 0) {
     return (
-      <TraceAiConversations
-        conversationIds={conversationIds}
-        allAiNodes={nodes}
+      <TraceAiSpans
         traceSlug={traceSlug}
+        nodes={nodes}
+        isLoading={isLoading}
+        error={error}
       />
     );
   }
 
   return (
-    <TraceAiSpans
+    <TraceAiConversations
+      conversationIds={hasGenAiConversationsFeature(organization) ? conversationIds : []}
+      allAiNodes={nodes}
       traceSlug={traceSlug}
-      nodes={nodes}
-      isLoading={isLoading}
-      error={error}
     />
   );
 }

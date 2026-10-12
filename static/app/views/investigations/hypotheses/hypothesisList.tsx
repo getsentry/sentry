@@ -13,8 +13,8 @@ import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
  */
 const MIN_CARD_WIDTH = '260px';
 
-/** A run proposes about three explanations, so reserve a row of three. */
-const PLACEHOLDER_CARD_COUNT = 3;
+/** Hold space with a single card rather than guessing how many a run will produce. */
+const PLACEHOLDER_CARD_COUNT = 1;
 
 /** The grid props shared by the real row and its placeholder. */
 const ROW_LAYOUT = {
@@ -39,8 +39,8 @@ type HypothesisListProps = {
 
 /**
  * The hypothesis row before the agent has written any hypotheses. Uses the
- * row's own grid, so the real cards land in the same columns without moving
- * anything.
+ * row's own column sizing, but `auto-fill` keeps the empty tracks so a lone
+ * card stays one column wide instead of stretching across the row.
  */
 export function HypothesisListPlaceholder({
   cards = PLACEHOLDER_CARD_COUNT,
@@ -52,6 +52,7 @@ export function HypothesisListPlaceholder({
   return (
     <Grid
       {...ROW_LAYOUT}
+      columns={`repeat(auto-fill, minmax(${MIN_CARD_WIDTH}, 1fr))`}
       className={className}
       aria-busy
       aria-label={t('Loading possible causes')}

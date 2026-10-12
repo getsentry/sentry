@@ -10,6 +10,7 @@ from sentry.integrations.api.serializers.models.integration import (
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.models.projectcodeowners import ProjectCodeOwners
 
 
 class RepositoryProjectPathConfigSerializerResponse(TypedDict):
@@ -24,6 +25,7 @@ class RepositoryProjectPathConfigSerializerResponse(TypedDict):
     sourceRoot: str
     defaultBranch: str | None
     automaticallyGenerated: bool
+    hasCodeOwner: bool
 
 
 @register(RepositoryProjectPathConfig)
@@ -67,8 +69,17 @@ class RepositoryProjectPathConfigSerializer(
                 if oi.integration_id in integration_by_id
             }
 
+        protected_ids = set(
+            ProjectCodeOwners.objects.filter(
+                repository_project_path_config_id__in=[item.id for item in item_list]
+            ).values_list("repository_project_path_config_id", flat=True)
+        )
+
         return {
-            item: {"integration": integration_by_oi_id.get(item.organization_integration_id)}
+            item: {
+                "integration": integration_by_oi_id.get(item.organization_integration_id),
+                "has_code_owner": item.id in protected_ids,
+            }
             for item in item_list
         }
 
@@ -96,5 +107,6 @@ class RepositoryProjectPathConfigSerializer(
             "sourceRoot": obj.source_root,
             "defaultBranch": obj.default_branch,
             "automaticallyGenerated": obj.automatically_generated,
+            "hasCodeOwner": attrs["has_code_owner"],
         }
         return response

@@ -8,6 +8,7 @@ import type {NewQuery, Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 
 export type LogsQueryData = EmbedOutput<'logsQuery'>;
@@ -48,9 +49,9 @@ export function getLogsQueryFields(data: LogsQueryData): string[] {
  * The logs dataset rejects an `orderby` naming a column the query never
  * selected — "orderby must also be in the selected columns or groupby" — which
  * fails the whole table request rather than degrading. Seer can ask for a
- * `sort` it left out of `fields`, and a samples list that omits `timestamp`
- * makes even the default sort unselected, so fall back to a column the table
- * actually has.
+ * `sort` it left out of `fields`, so fall back to a column the query actually
+ * selects. Samples always select `timestamp` (see `LOG_SAMPLE_ROW_FIELDS`), so
+ * they fall back to newest first.
  *
  * Aggregates need no such care: their fields are `[...groupBy, ...yAxes]`, so
  * the trailing y-axis is always selected.
@@ -69,8 +70,24 @@ function resolveLogsSort(data: LogsQueryData, fields: string[]): string {
   return `-${fields.at(-1)}`;
 }
 
+/**
+ * Samples lead each row with the logs table's severity dot and precise
+ * timestamp, so fetch what those need even when Seer's columns leave them out.
+ * They are requested, not shown: the table's columns stay `getLogsQueryFields`.
+ */
+const LOG_SAMPLE_ROW_FIELDS = [
+  OurLogKnownFieldKey.SEVERITY,
+  OurLogKnownFieldKey.SEVERITY_NUMBER,
+  OurLogKnownFieldKey.TIMESTAMP,
+  OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+];
+
 export function buildLogsEventView(data: LogsQueryData): EventView {
-  const fields = getLogsQueryFields(data);
+  const visibleFields = getLogsQueryFields(data);
+  const fields =
+    data.mode === 'samples'
+      ? Array.from(new Set([...visibleFields, ...LOG_SAMPLE_ROW_FIELDS]))
+      : visibleFields;
   const query: NewQuery = {
     id: undefined,
     name: data.title ?? 'Logs',

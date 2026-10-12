@@ -1,0 +1,4 @@
+dist/
+.types/
+.verify-*/
+.artifacts/

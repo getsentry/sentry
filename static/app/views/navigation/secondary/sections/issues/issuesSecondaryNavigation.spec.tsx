@@ -12,7 +12,7 @@ import type {LLMContextNodeSnapshot} from 'sentry/views/seerExplorer/contexts/ll
 describe('IssuesSecondaryNavigation', () => {
   const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned,identified] assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
-    features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
+    features: ['issue-inbox', 'seat-based-seer-enabled'],
   });
 
   beforeEach(() => {
@@ -73,7 +73,7 @@ describe('IssuesSecondaryNavigation', () => {
   it('does not render Inbox or request its count without the inbox feature', async () => {
     const request = mockInboxCount({});
     const organizationWithoutAutofix = OrganizationFixture({
-      features: ['gen-ai-features', 'seat-based-seer-enabled'],
+      features: ['seat-based-seer-enabled'],
     });
 
     renderNavigation(organizationWithoutAutofix);
@@ -86,12 +86,7 @@ describe('IssuesSecondaryNavigation', () => {
   it('renders the Autofix Overview link when the org has seer-night-shift-ui', async () => {
     mockInboxCount({});
     const organizationWithOverview = OrganizationFixture({
-      features: [
-        'issue-inbox',
-        'gen-ai-features',
-        'seat-based-seer-enabled',
-        'seer-night-shift-ui',
-      ],
+      features: ['issue-inbox', 'seat-based-seer-enabled', 'seer-night-shift-ui'],
     });
 
     renderNavigation(organizationWithOverview);

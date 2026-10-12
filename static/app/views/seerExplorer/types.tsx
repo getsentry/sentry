@@ -20,6 +20,7 @@ function zLooseEnum<T extends string>(values: readonly [T, ...T[]]) {
 // Schemas used by runtime type guards
 
 const explorerFilePatchSchema = z.object({
+  code_url: z.string().nullish(),
   diff: z.string(),
   patch: z.custom<FilePatch>(isFilePatch),
   repo_name: z.string(),
@@ -30,7 +31,7 @@ const repoPRStateSchema = z.object({
   commit_sha: z.string().nullable(),
   pr_creation_error: z.string().nullable(),
   pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
-  pr_id: z.number().nullable(),
+  pr_id: z.union([z.string(), z.number()]).nullable(),
   pr_number: z.number().nullable(),
   pr_url: z.string().nullable(),
   repo_name: z.string(),
@@ -206,22 +207,6 @@ export interface Block {
   tool_results?: Array<ToolResult | null> | null;
 }
 
-// The Seer backend sends 'Thinking...' as message.content on in-flight blocks
-// (see add_loading_response_block in the Seer service). Normalize it to null at
-// the API boundary so downstream code never encounters the sentinel.
-const THINKING_SENTINEL = 'Thinking...';
-
-export function normalizeBlocks(blocks: Block[] | undefined): Block[] {
-  if (!blocks) {
-    return [];
-  }
-  return blocks.map(block =>
-    block.message.content === THINKING_SENTINEL
-      ? {...block, message: {...block.message, content: null}}
-      : block
-  );
-}
-
 export interface ExplorerSession {
   dateCreated: string;
   id: string;
@@ -284,4 +269,9 @@ export type SeerExplorerResponse = {
     repo_pr_states?: Record<string, RepoPRState>;
   } | null;
   sentry_run_id?: string | null;
+};
+
+export type RespondToUserInputOptions = {
+  /** Called when the response fails to send, so callers can undo optimistic local state. */
+  onError?: () => void;
 };

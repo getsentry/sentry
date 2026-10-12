@@ -1,0 +1,134 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "8bbdecb4ad2f92d58133a93ee009a07b"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          type*
+            "EXC_BAD_ACCESS"
+          stacktrace*
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              filename*
+                "main.mm"
+              function*
+                "main"
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              function*
+                "-[UnityAppController repaint]"
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              function*
+                "PlayerLoop"
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              function*
+                "ScriptingInvocation::Invoke"
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              filename*
+                "il2cppinvokertable.cpp"
+              function*
+                "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              filename*
+                "enemyspawner.cs"
+              function*
+                "EnemySpawner_Update"
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              filename*
+                "combatsystem.cs"
+              function*
+                "CombatSystem_ApplyDamage"
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              filename*
+                "tmp_text.cs"
+              function*
+                "TMP_Text_SetText"
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              filename*
+                "animation.bindings.cs"
+              function*
+                "Animation_Play"
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              filename*
+                "il2cppcodegen.cpp"
+              function*
+                "il2cpp_codegen_raise_null_reference_exception"
+  system*
+    hash: "bae55c8a9132232871adf6b662a2d6da"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          type*
+            "EXC_BAD_ACCESS"
+          stacktrace*
+            frame*
+              function*
+                "start"
+            frame*
+              filename*
+                "main.mm"
+              function*
+                "main"
+            frame*
+              function*
+                "-[UnityAppController repaint]"
+            frame*
+              function*
+                "PlayerLoop"
+            frame*
+              function*
+                "ScriptingInvocation::Invoke"
+            frame*
+              filename*
+                "il2cppinvokertable.cpp"
+              function*
+                "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
+            frame*
+              filename*
+                "enemyspawner.cs"
+              function*
+                "EnemySpawner_Update"
+            frame*
+              filename*
+                "combatsystem.cs"
+              function*
+                "CombatSystem_ApplyDamage"
+            frame*
+              filename*
+                "tmp_text.cs"
+              function*
+                "TMP_Text_SetText"
+            frame*
+              filename*
+                "animation.bindings.cs"
+              function*
+                "Animation_Play"
+            frame*
+              filename*
+                "il2cppcodegen.cpp"
+              function*
+                "il2cpp_codegen_raise_null_reference_exception"

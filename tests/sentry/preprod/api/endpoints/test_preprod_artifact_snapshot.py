@@ -2,11 +2,15 @@ import os
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 import zstandard
 from django.urls import reverse
 
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.analytics import PreprodArtifactApiGetSnapshotDetailsEvent
+from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
+    validate_preprod_snapshot_post_schema,
+)
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_base import (
     LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS,
 )
@@ -21,6 +25,56 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.preprod.snapshots.precompute import build_head_images_payload
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+
+
+class TestSnapshotImageCountValidation:
+    @pytest.mark.parametrize(
+        ("image_count", "expected_error"),
+        [
+            (50_001, None),
+            (100_000, None),
+            (
+                100_001,
+                "The images field is required and must be an object mapping image names to image metadata.",
+            ),
+        ],
+    )
+    def test_images(self, image_count: int, expected_error: str | None) -> None:
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                f"image-{i}.png": {"content_hash": "abc123", "width": 1, "height": 1}
+                for i in range(image_count)
+            },
+        }
+
+        _, error = validate_preprod_snapshot_post_schema(orjson.dumps(data))
+
+        assert error == expected_error
+
+    @pytest.mark.parametrize(
+        ("image_count", "expected_error"),
+        [
+            (50_001, None),
+            (100_000, None),
+            (
+                100_001,
+                "The all_image_file_names field must be an array of strings with at most 100000 entries.",
+            ),
+        ],
+    )
+    def test_all_image_file_names(self, image_count: int, expected_error: str | None) -> None:
+        data = {
+            "app_id": "com.example.app",
+            "images": {},
+            "selective": True,
+            "base_sha": "a" * 40,
+            "all_image_file_names": [f"image-{i}.png" for i in range(image_count)],
+        }
+
+        _, error = validate_preprod_snapshot_post_schema(orjson.dumps(data))
+
+        assert error == expected_error
 
 
 class ProjectPreprodSnapshotTest(APITestCase):

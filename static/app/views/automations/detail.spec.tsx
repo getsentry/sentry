@@ -85,7 +85,20 @@ describe('AutomationDetail', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/123/stats/',
-      body: [],
+      body: {
+        meta: {dataset: 'workflow', start: 0, end: 60 * 60 * 1000},
+        timeSeries: [
+          {
+            yAxis: 'count()',
+            values: [],
+            meta: {
+              interval: 60 * 60 * 1000,
+              valueType: 'integer',
+              valueUnit: null,
+            },
+          },
+        ],
+      },
     });
 
     MockApiClient.addMockResponse({
@@ -358,6 +371,34 @@ describe('AutomationDetail', () => {
 
     await screen.findByRole('heading', {name: /Test Automation/i});
 
+    expect(screen.getByRole('button', {name: 'Disable'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('disables action buttons for an all-projects alert without org:write', async () => {
+    const alertWriterOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read', 'alerts:write'],
+    });
+    const projectScopeRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/project-scope/',
+      body: {projectIds: [], includesAllProjects: true},
+    });
+
+    render(<AutomationDetail />, {
+      organization: alertWriterOrganization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    await waitFor(() => expect(projectScopeRequest).toHaveBeenCalled());
     expect(screen.getByRole('button', {name: 'Disable'})).toHaveAttribute(
       'aria-disabled',
       'true'

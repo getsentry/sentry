@@ -1,0 +1,124 @@
+---
+source: tests/sentry/grouping/test_variants.py::test_variants
+---
+app:
+  hash: null
+  contributing component: null
+  hint: ignored because system exception takes precedence
+  root_component:
+    app (ignored because system exception takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (non app frame)
+            function*
+              "__libc_init"
+          frame (non app frame)
+            function*
+              "android_main"
+          frame (non app frame)
+            function*
+              "UnityPlayerLoop"
+          frame (non app frame)
+            function*
+              "ScriptingInvocation::Invoke"
+          frame (non app frame)
+            filename*
+              "il2cppinvokertable.cpp"
+            function*
+              "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
+          frame (non app frame)
+            filename*
+              "enemyspawner.cs"
+            function*
+              "EnemySpawner_Update"
+          frame (non app frame)
+            filename*
+              "combatsystem.cs"
+            function*
+              "CombatSystem_ApplyDamage"
+          frame (non app frame)
+            filename*
+              "tmp_text.cs"
+            function*
+              "TMP_Text_SetText"
+          frame (non app frame)
+            filename*
+              "animation.bindings.cs"
+            function*
+              "Animation_Play"
+          frame (non app frame)
+            filename*
+              "il2cppcodegen.cpp"
+            function*
+              "il2cpp_codegen_raise_null_reference_exception"
+          frame (non app frame)
+            function*
+              "sentry__handle_signal"
+          frame (non app frame)
+            function*
+              "sentry_android_capture_envelope"
+        type*
+          "EXC_BAD_ACCESS"
+        value*
+          "Attempted to dereference null pointer."
+--------------------------------------------------------------------------
+system:
+  hash: "d7d07d1374dbfe9aab4cac5b2be8c38c"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by built-in stacktrace rule (category:internals -group))
+            function*
+              "__libc_init"
+          frame*
+            function*
+              "android_main"
+          frame*
+            function*
+              "UnityPlayerLoop"
+          frame*
+            function*
+              "ScriptingInvocation::Invoke"
+          frame*
+            filename*
+              "il2cppinvokertable.cpp"
+            function*
+              "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
+          frame*
+            filename*
+              "enemyspawner.cs"
+            function*
+              "EnemySpawner_Update"
+          frame*
+            filename*
+              "combatsystem.cs"
+            function*
+              "CombatSystem_ApplyDamage"
+          frame*
+            filename*
+              "tmp_text.cs"
+            function*
+              "TMP_Text_SetText"
+          frame*
+            filename*
+              "animation.bindings.cs"
+            function*
+              "Animation_Play"
+          frame*
+            filename*
+              "il2cppcodegen.cpp"
+            function*
+              "il2cpp_codegen_raise_null_reference_exception"
+          frame*
+            function*
+              "sentry__handle_signal"
+          frame*
+            function*
+              "sentry_android_capture_envelope"
+        type*
+          "EXC_BAD_ACCESS"
+        value (ignored because stacktrace takes precedence)
+          "Attempted to dereference null pointer."

@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -7,9 +8,9 @@ import {
   getAutofixRunExists,
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
@@ -25,9 +26,7 @@ export function IssueSeerBadge({group}: IssueSeerBadgeProps) {
   const autofixRunExists = getAutofixRunExists(group);
   const seerFixable = isIssueQuickFixable(group);
   const showSeer =
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures &&
-    (autofixRunExists || seerFixable);
+    areAiFeaturesAllowed(organization) && (autofixRunExists || seerFixable);
 
   let seerTitle = null;
   if (autofixRunExists && seerFixable) {

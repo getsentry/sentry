@@ -1,14 +1,13 @@
 from typing import Any
 
 from django.db.models import CharField
-
-from sentry.utils.tracing import trace
+from sentry_sdk import traces
 
 from ._base import EncryptedField
 
 
 class EncryptedCharField(EncryptedField, CharField):
-    @trace
+    @traces.trace
     def from_db_value(self, value: Any, expression: Any, connection: Any) -> Any:
         db_value = super().from_db_value(value, expression, connection)
         if db_value is None:

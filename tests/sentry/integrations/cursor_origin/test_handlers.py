@@ -64,7 +64,7 @@ class InstallationEventHandlerTest(TestCase):
             provider="cursor_origin", external_id=INSTALLATION_ID
         )
         assert context.integration is not None
-        HANDLERS[event_type]()(
+        HANDLERS[event_type](event_type)(
             payload if payload is not None else _installation(),
             DELIVERY_ID,
             context.integration,
@@ -127,6 +127,18 @@ class InstallationEventHandlerTest(TestCase):
         assert metadata["access_token"] == "oit_stored"
         assert metadata["expires_at"] == "2026-09-16T23:00:00Z"
         assert metadata["repo_selection_mode"] == "all"
+
+    def test_an_update_with_an_unknown_owner_type_is_applied(self) -> None:
+        """Origin sends an empty string when it doesn't know the owner type."""
+        self._handle(
+            "installation.updated",
+            _installation(
+                target={"slug": "acme", "id": "ns_01example", "type": ""},
+                repoSelectionMode="all",
+            ),
+        )
+
+        assert self._integration().metadata["repo_selection_mode"] == "all"
 
     def test_an_update_without_a_slug_is_refused(self) -> None:
         """Origin documents the target's slug as always present."""
@@ -208,7 +220,7 @@ class InstallationEventHandlerTest(TestCase):
             metadata={**stale.metadata, "access_token": "oit_refreshed"},
         )
 
-        HANDLERS["installation.updated"]()(
+        HANDLERS["installation.updated"]("installation.updated")(
             _installation(), DELIVERY_ID, stale, context.organization_integrations
         )
 

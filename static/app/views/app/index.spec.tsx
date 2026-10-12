@@ -1,4 +1,3 @@
-import Cookies from 'js-cookie';
 import {InstallWizardFixture} from 'sentry-fixture/installWizard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -7,6 +6,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {getOverride, registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import type {User} from 'sentry/types/user';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {App} from 'sentry/views/app';
 
@@ -38,7 +38,6 @@ describe('App', () => {
   const configState = ConfigStore.getState();
 
   beforeEach(() => {
-    Cookies.remove('sentry_react_auth', {path: '/'});
     const organization = OrganizationFixture();
 
     ConfigStore.init();
@@ -77,8 +76,6 @@ describe('App', () => {
   });
 
   afterEach(() => {
-    Cookies.remove('sentry_react_auth', {path: '/'});
-    localStorage.removeItem('sentry_react_auth_rollout_organization');
     jest.clearAllMocks();
   });
 
@@ -88,19 +85,6 @@ describe('App', () => {
     await waitFor(() => OrganizationsStore.getAll().length === 1);
     expect(screen.getByText('placeholder content')).toBeInTheDocument();
     expect(testableWindowLocation.replace).not.toHaveBeenCalled();
-  });
-
-  it.each(['0', '1'])('preserves the Auth V2 cookie %s on app load', async cookie => {
-    Cookies.set('sentry_react_auth', cookie, {path: '/'});
-    localStorage.setItem(
-      'sentry_react_auth_rollout_organization',
-      JSON.stringify('org-slug')
-    );
-
-    render(<App />, {initialRouterConfig: defaultRouterConfig});
-
-    expect(await screen.findByText('placeholder content')).toBeInTheDocument();
-    expect(Cookies.get('sentry_react_auth')).toBe(cookie);
   });
 
   it('requires an explicit NewsletterConsent choice', async () => {
@@ -263,5 +247,42 @@ describe('App', () => {
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
     expect(getMock).toHaveBeenCalled();
+  });
+
+  describe('analytics initialization', () => {
+    const initUser = jest.fn();
+
+    beforeEach(() => {
+      registerOverride('analytics:init-user', initUser);
+    });
+
+    it('initializes analytics for a logged-in user', async () => {
+      const user = ConfigStore.get('user');
+
+      render(<App />, {initialRouterConfig: defaultRouterConfig});
+
+      await waitFor(() => expect(initUser).toHaveBeenCalledWith(user));
+    });
+
+    // Analytics SDKs write non-essential tracking cookies on init, which must
+    // never happen on pre-auth pages. See https://sentry.io/cookiebounty/
+    it('does not initialize analytics on pre-auth pages', async () => {
+      ConfigStore.set('user', null as unknown as User);
+      ConfigStore.set('shouldPreloadData', false);
+
+      render(<App />, {initialRouterConfig: defaultRouterConfig});
+
+      expect(await screen.findByText('placeholder content')).toBeInTheDocument();
+      expect(initUser).not.toHaveBeenCalled();
+    });
+
+    it('does not initialize analytics without a user even when preloading', async () => {
+      ConfigStore.set('user', null as unknown as User);
+
+      render(<App />, {initialRouterConfig: defaultRouterConfig});
+
+      await waitFor(() => expect(OrganizationsStore.getAll()).toHaveLength(1));
+      expect(initUser).not.toHaveBeenCalled();
+    });
   });
 });

@@ -1,6 +1,8 @@
 import {useRef, useState} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconClose} from '@sentry/icons/close';
+import {IconReturn} from '@sentry/icons/return';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -12,9 +14,6 @@ import {
   isPrIterationPaused,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconClose} from 'sentry/icons/iconClose';
-import {IconReturn} from 'sentry/icons/iconReturn';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -83,10 +82,7 @@ export function PrIterationFeedbackForm({
 
   return (
     <Stack gap="xl">
-      <Flex gap="xs" align="center">
-        <Text>{prompt}</Text>
-        <FeatureBadge type="alpha" />
-      </Flex>
+      <Text>{prompt}</Text>
       <Tooltip title={pausedTooltip} disabled={!isPaused} containerDisplayMode="block">
         <InputGroup>
           <InputGroup.TextArea

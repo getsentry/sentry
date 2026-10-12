@@ -1,3 +1,5 @@
+import {useEffect, useEffectEvent, useRef} from 'react';
+
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
 
@@ -37,6 +39,7 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
       data: any;
       isFetched: boolean;
       isFetching: boolean;
+      isError?: boolean;
     };
   };
   queryOptions?: QueryOptions<TQueryFn>;
@@ -45,6 +48,9 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
   canTriggerHighAccuracy?: (data: ReturnType<TQueryFn>['result']) => boolean;
   disableExtrapolation?: boolean;
+  onHighAccuracyError?: (result: ReturnType<TQueryFn>['result']) => void;
+  onHighAccuracyRequest?: () => void;
+  onHighAccuracySuccess?: (result: ReturnType<TQueryFn>['result']) => void;
 }
 
 /**
@@ -106,6 +112,50 @@ export function useProgressiveQuery<
     },
     enabled: highAccuracyMode,
   });
+
+  const highAccuracyIsFetching =
+    highAccuracyMode && highAccuracyRequest.result.isFetching;
+  const highAccuracyIsError = highAccuracyMode && !!highAccuracyRequest.result.isError;
+  const highAccuracyIsSuccess =
+    highAccuracyMode &&
+    highAccuracyRequest.result.isFetched &&
+    !highAccuracyIsFetching &&
+    !highAccuracyIsError;
+
+  const onHighAccuracyRequest = useEffectEvent(() => {
+    queryOptions?.onHighAccuracyRequest?.();
+  });
+  const onHighAccuracySuccess = useEffectEvent(() => {
+    queryOptions?.onHighAccuracySuccess?.(highAccuracyRequest.result);
+  });
+  const onHighAccuracyError = useEffectEvent(() => {
+    queryOptions?.onHighAccuracyError?.(highAccuracyRequest.result);
+  });
+
+  // Outcomes are only reported for fetches observed here, so cached results
+  // read on remount don't count as successes or failures without a request.
+  const hasPendingHighAccuracyFetch = useRef(false);
+
+  useEffect(() => {
+    if (highAccuracyIsFetching) {
+      hasPendingHighAccuracyFetch.current = true;
+      onHighAccuracyRequest();
+    }
+  }, [highAccuracyIsFetching]);
+
+  useEffect(() => {
+    if (highAccuracyIsSuccess && hasPendingHighAccuracyFetch.current) {
+      hasPendingHighAccuracyFetch.current = false;
+      onHighAccuracySuccess();
+    }
+  }, [highAccuracyIsSuccess]);
+
+  useEffect(() => {
+    if (highAccuracyIsError && hasPendingHighAccuracyFetch.current) {
+      hasPendingHighAccuracyFetch.current = false;
+      onHighAccuracyError();
+    }
+  }, [highAccuracyIsError]);
 
   if (nonExtrapolatedMode) {
     return {
