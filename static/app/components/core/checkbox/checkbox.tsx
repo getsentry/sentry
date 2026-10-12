@@ -5,9 +5,9 @@ import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {
-  getDisabledTooltipProps,
   preventDisabledInteraction,
   Tooltip,
+  useDisabledTooltip,
   type ControlTooltipProps,
 } from '@sentry/scraps/tooltip';
 
@@ -119,7 +119,7 @@ export function Checkbox({
     style: props.style,
   };
 
-  const disabledTooltipProps = getDisabledTooltipProps<HTMLInputElement>({
+  const disabledTooltipProps = useDisabledTooltip<HTMLInputElement>({
     disabled,
     onKeyDown: props.onKeyDown,
     tooltipTitle: tooltipProps?.title,

@@ -4,7 +4,7 @@ import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
-import {getDisabledTooltipProps, Tooltip} from '@sentry/scraps/tooltip';
+import {Tooltip, useDisabledTooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {
@@ -37,7 +37,7 @@ export function Button({
 
   // When a tooltip is present, use aria-disabled instead of native disabled
   // so the button stays focusable and the tooltip can open on keyboard focus.
-  const disabledTooltipProps = getDisabledTooltipProps<HTMLButtonElement>({
+  const disabledTooltipProps = useDisabledTooltip<HTMLButtonElement>({
     disabled,
     onKeyDown: props.onKeyDown,
     tooltipTitle: tooltipProps?.title,

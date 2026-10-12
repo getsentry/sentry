@@ -22,7 +22,7 @@ type DisabledTooltipOptions<Element extends HTMLElement> = {
  * Keeps disabled controls with explanatory tooltips focusable while preserving
  * native disabled behavior for controls without a tooltip.
  */
-export function getDisabledTooltipProps<Element extends HTMLElement>({
+export function useDisabledTooltip<Element extends HTMLElement>({
   disabled,
   onKeyDown,
   tooltipTitle,
