@@ -34,8 +34,6 @@ import type {
 } from './types';
 import {getDisabledOptions, getHiddenOptions, getSearchConfig} from './utils';
 
-export {ControlContext} from './controlContext';
-
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
 // will defer the focus call until the next frame, after the browser and react

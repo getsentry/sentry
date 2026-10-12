@@ -1,1 +1,0 @@
-export {DropdownSubmenu} from './list';

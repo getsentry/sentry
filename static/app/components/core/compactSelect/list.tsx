@@ -29,8 +29,6 @@ import {
   shouldCloseOnSelect,
 } from './utils';
 
-export {SelectFilterContext} from './selectFilterContext';
-
 interface BaseListProps<Value extends SelectKey>
   extends
     Omit<ListProps<any>, 'disallowEmptySelection'>,

@@ -37,8 +37,6 @@ import {
 } from './reactSelectWrapper';
 import type {SelectValue} from './types';
 
-export {CheckWrap} from './styles';
-
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
 

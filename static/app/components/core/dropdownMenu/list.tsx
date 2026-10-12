@@ -173,7 +173,7 @@ function DropdownMenuCollection({
   );
 }
 
-export function DropdownMenuList({
+function DropdownMenuList({
   closeOnSelect = true,
   onClose,
   size,
@@ -392,7 +392,7 @@ interface DropdownSubmenuProps extends Pick<
   state: TreeState<MenuItemProps>;
 }
 
-export function DropdownSubmenu({
+function DropdownSubmenu({
   items,
   node,
   state,
