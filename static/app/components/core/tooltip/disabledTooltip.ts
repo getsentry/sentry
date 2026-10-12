@@ -30,15 +30,18 @@ export function useDisabledTooltip<Element extends HTMLElement>({
   const usesAriaDisabled = Boolean(disabled && tooltipTitle);
 
   return {
-    disabled: usesAriaDisabled ? undefined : disabled,
-    ...(disabled !== undefined && {'aria-disabled': disabled}),
-    ...(usesAriaDisabled && {
-      onKeyDown: (event: React.KeyboardEvent<Element>) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          preventDisabledInteraction(event);
-        }
-        onKeyDown?.(event);
-      },
-    }),
+    usesAriaDisabled,
+    disabledProps: {
+      disabled: usesAriaDisabled ? undefined : disabled,
+      ...(disabled !== undefined && {'aria-disabled': disabled}),
+      ...(usesAriaDisabled && {
+        onKeyDown: (event: React.KeyboardEvent<Element>) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            preventDisabledInteraction(event);
+          }
+          onKeyDown?.(event);
+        },
+      }),
+    },
   };
 }

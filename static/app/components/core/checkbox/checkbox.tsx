@@ -119,12 +119,11 @@ export function Checkbox({
     style: props.style,
   };
 
-  const disabledTooltipProps = useDisabledTooltip<HTMLInputElement>({
+  const {disabledProps, usesAriaDisabled} = useDisabledTooltip({
     disabled,
     onKeyDown: props.onKeyDown,
     tooltipTitle: tooltipProps?.title,
   });
-  const usesAriaDisabled = Boolean(disabled && tooltipProps?.title);
 
   return (
     <CheckboxWrapper
@@ -145,7 +144,7 @@ export function Checkbox({
           checked={checked !== 'indeterminate' && checked}
           type="checkbox"
           {...props}
-          {...disabledTooltipProps}
+          {...disabledProps}
           {...(usesAriaDisabled && {
             onChange: preventDisabledInteraction,
           })}

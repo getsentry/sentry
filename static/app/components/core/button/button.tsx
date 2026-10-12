@@ -37,7 +37,7 @@ export function Button({
 
   // When a tooltip is present, use aria-disabled instead of native disabled
   // so the button stays focusable and the tooltip can open on keyboard focus.
-  const disabledTooltipProps = useDisabledTooltip<HTMLButtonElement>({
+  const {disabledProps} = useDisabledTooltip({
     disabled,
     onKeyDown: props.onKeyDown,
     tooltipTitle: tooltipProps?.title,
@@ -57,7 +57,7 @@ export function Button({
         type={type}
         busy={busy}
         {...props}
-        {...disabledTooltipProps}
+        {...disabledProps}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
         role="button"
