@@ -441,7 +441,9 @@ class SlackService:
             if (
                 not text
             ):  # if there isn't a notification title, try using message description as fallback
-                text = notification.get_message_description(recipient, ExternalProviders.SLACK)
+                text = (
+                    notification.get_message_description(recipient, ExternalProviders.SLACK) or ""
+                )
             payload = {
                 "channel": channel,
                 "unfurl_links": False,

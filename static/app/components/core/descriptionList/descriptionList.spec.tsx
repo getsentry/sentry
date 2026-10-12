@@ -33,4 +33,10 @@ describe('DescriptionList', () => {
 
     expect(screen.getByTestId('list')).not.toHaveAttribute('terms');
   });
+
+  it('does not forward the striped prop to the DOM when one is provided', () => {
+    render(<DescriptionList striped data-test-id="list" />);
+
+    expect(screen.getByTestId('list')).not.toHaveAttribute('striped');
+  });
 });

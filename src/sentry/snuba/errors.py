@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import cast
 
+from sentry_sdk import traces
 from snuba_sdk import Column, Condition
 
 from sentry.discover.arithmetic import categorize_columns
@@ -21,6 +22,7 @@ from sentry.snuba.discover import (
     OTHER_KEY,
     TOP_KEYS_DEFAULT_LIMIT,
     FacetResult,
+    create_groupby_dict,
     create_result_key,
     transform_tips,
     zerofill,
@@ -29,7 +31,6 @@ from sentry.snuba.discover import get_facets as get_discover_facets
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries, get_snuba_column_name
-from sentry.utils.tracing import set_span_data, start_span
 
 is_filter_translation = {}
 for status_key, status_value in STATUS_QUERY_CHOICES.items():
@@ -120,7 +121,7 @@ def timeseries_query(
     *,
     referrer: str,
 ) -> SnubaTSResult:
-    with start_span(op="errors", name="timeseries.filter_transform"):
+    with traces.start_span(name="timeseries.filter_transform", attributes={"sentry.op": "errors"}):
         equations, columns = categorize_columns(selected_columns)
 
         column_resolver = functools.partial(get_snuba_column_name, dataset=Dataset.Events)
@@ -169,7 +170,7 @@ def timeseries_query(
             [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
-    with start_span(op="errors", name="timeseries.transform_results"):
+    with traces.start_span(name="timeseries.transform_results", attributes={"sentry.op": "errors"}):
         results = []
         for snql_query, result in zip(query_list, query_results):
             assert snql_query.params.start is not None
@@ -263,7 +264,9 @@ def top_events_timeseries(
 
     """
     if top_events is None:
-        with start_span(op="discover.errors", name="top_events.fetch_events"):
+        with traces.start_span(
+            name="top_events.fetch_events", attributes={"sentry.op": "discover.errors"}
+        ):
             top_events = query(
                 selected_columns,
                 query=user_query,
@@ -308,6 +311,11 @@ def top_events_timeseries(
             timeseries_columns=timeseries_columns,
             equations=equations,
             snuba_params=snuba_params,
+            config=QueryBuilderConfig(
+                functions_acl=functions_acl,
+                skip_tag_resolution=True,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+            ),
         )
         result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
@@ -329,14 +337,22 @@ def top_events_timeseries(
                     if zerofill_results
                     else []
                 ),
+                "meta": top_events_builder.process_results(result)["meta"],
             },
             snuba_params.start_date,
             snuba_params.end_date,
             rollup,
         )
-    with start_span(op="discover.errors", name="top_events.transform_results") as span:
-        set_span_data(span, "result_count", len(result.get("data", [])))
+    with traces.start_span(
+        name="top_events.transform_results",
+        attributes={
+            "sentry.op": "discover.errors",
+            "result_count": len(result.get("data", [])),
+        },
+    ):
         result = top_events_builder.process_results(result)
+        if len(other_result.get("data", [])):
+            other_result = other_events_builder.process_results(other_result)
 
         issues: Mapping[int, str | None] = {}
         if "issue" in selected_columns:
@@ -348,18 +364,21 @@ def top_events_timeseries(
         translated_groupby = top_events_builder.translated_groupby
 
         results = (
-            {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
+            {OTHER_KEY: {"order": limit, "data": other_result["data"], "is_other": True}}
             if len(other_result.get("data", []))
             else {}
         )
         # Using the top events add the order to the results
         for index, item in enumerate(top_events["data"]):
             result_key = create_result_key(item, translated_groupby, issues)
-            results[result_key] = {"order": index, "data": []}
+            results[result_key] = {"order": index, "data": [], "is_other": False}
         for row in result["data"]:
             result_key = create_result_key(row, translated_groupby, issues)
             if result_key in results:
                 results[result_key]["data"].append(row)
+                results[result_key]["groupby"] = create_groupby_dict(
+                    row, translated_groupby, issues
+                )
             else:
                 logger.warning(
                     "discover.top-events.timeseries.key-mismatch",
@@ -381,8 +400,10 @@ def top_events_timeseries(
                         if zerofill_results
                         else item["data"]
                     ),
+                    "groupby": item.get("groupby", None),
                     "meta": result["meta"],
                     "order": item["order"],
+                    "is_other": item["is_other"],
                 },
                 snuba_params.start_date,
                 snuba_params.end_date,

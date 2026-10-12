@@ -4,7 +4,7 @@ import {
   matchRoutes,
   useLocation,
   useNavigationType,
-} from 'react-router-dom';
+} from 'react-router';
 import {type Event, type Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
@@ -20,6 +20,9 @@ import {
 import type {Config} from 'sentry/types/system';
 import {addUIElementTagToSegmentSpan} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+
+// Server-rendered templates use the SDK to report errors.
+window.Sentry = Sentry;
 
 let lastEventId: string | undefined;
 
@@ -37,6 +40,9 @@ const FILTERED_STATUSES_BY_ERROR_TYPE: Readonly<Record<string, ReadonlySet<strin
   TooManyRequestsError: new Set(['429']),
 };
 const FILTERED_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|DELETE) .* (\d+)$/;
+// A `RequestError` built without a response (the fetch itself failed, e.g. the
+// page navigated away or the network dropped) has no status in its value
+const NO_RESPONSE_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|PATCH|DELETE) \S+$/;
 
 const ENDPOINT_TAG_REGEX = /^([A-Za-z]+ (\/[^/]+)+\/) \d+$/;
 
@@ -258,6 +264,10 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
   for (const error of mainAndMaybeCauseErrors) {
     const {type = '', value = ''} = error;
+
+    if (type === 'RequestError' && NO_RESPONSE_REQUEST_ERROR_VALUE_REGEX.test(value)) {
+      return true;
+    }
 
     const allowedStatuses = FILTERED_STATUSES_BY_ERROR_TYPE[type];
     if (allowedStatuses) {

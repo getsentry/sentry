@@ -1,9 +1,9 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -18,7 +18,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {setApiQueryData} from 'sentry/utils/queryClient';
@@ -130,33 +129,28 @@ export default function UptimeAlertDetails() {
   return (
     <Stack flex={1}>
       <SentryDocumentTitle title={`${detector.name} — Alerts`} />
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Monitors'),
-              to: makeMonitorBasePathname(organization.slug),
-            },
-            {
-              type: 'link',
-              label: getDetectorTypeLabel(detector.type),
-              to: makeMonitorTypePathname(organization.slug, detector.type),
-            },
-          ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: detector.name,
-            leadingGraphic: (
-              <ProjectBadge disableLink hideName project={project} avatarSize={16} />
-            ),
-          }}
-        />
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: detector.name,
+          leadingGraphic: (
+            <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+          ),
+        }}
+        items={[
+          {
+            type: 'link',
+            label: t('Monitors'),
+            to: makeMonitorBasePathname(organization.slug),
+          },
+          {
+            type: 'link',
+            label: getDetectorTypeLabel(detector.type),
+            to: makeMonitorTypePathname(organization.slug, detector.type),
+          },
+        ]}
+      />
       <TopBar.Slot name="actions">
         <StatusToggleButton
           uptimeDetector={detector}

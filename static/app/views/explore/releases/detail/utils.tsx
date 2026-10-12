@@ -8,12 +8,7 @@ import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {
-  Commit,
-  CommitFile,
-  FilesByRepository,
-  Repository,
-} from 'sentry/types/integrations';
+import type {Commit, CommitFile, FilesByRepository} from 'sentry/types/integrations';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {decodeList} from 'sentry/utils/queryString';
@@ -91,14 +86,8 @@ export function getQuery({location}: GetQueryProps) {
   return query;
 }
 
-/**
- * Get repositories to render according to the activeRepository
- */
-export function getReposToRender(repos: string[], activeRepository?: Repository) {
-  if (!activeRepository) {
-    return repos;
-  }
-  return [activeRepository.name];
+export function getReposToRender(repos: string[]) {
+  return repos;
 }
 
 export const releaseComparisonChartLabels = {

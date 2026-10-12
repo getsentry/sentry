@@ -96,6 +96,7 @@ export function writeEditorValue(
   mentions: ReadonlyArray<{end: number; start: number; text: string}>
 ) {
   if (
+    value !== '' &&
     mentions.length === 0 &&
     !root.querySelector('[data-mention]') &&
     readEditorValue(root) === value
@@ -103,7 +104,7 @@ export function writeEditorValue(
     return;
   }
 
-  const fragment = document.createDocumentFragment();
+  const fragment = root.ownerDocument.createDocumentFragment();
   let offset = 0;
 
   for (const mention of mentions.toSorted((a, b) => a.start - b.start)) {
@@ -111,7 +112,7 @@ export function writeEditorValue(
       fragment.append(value.slice(offset, mention.start));
     }
 
-    const element = document.createElement('strong');
+    const element = root.ownerDocument.createElement('strong');
     element.dataset.mention = '';
     element.textContent = mention.text;
     fragment.append(element);
@@ -131,7 +132,7 @@ function getTextOffset(root: HTMLElement, node: Node, offset: number): number | 
     return null;
   }
 
-  const range = document.createRange();
+  const range = root.ownerDocument.createRange();
   range.selectNodeContents(root);
 
   try {
@@ -140,14 +141,14 @@ function getTextOffset(root: HTMLElement, node: Node, offset: number): number | 
     return null;
   }
 
-  const fragmentRoot = document.createElement('div');
+  const fragmentRoot = root.ownerDocument.createElement('div');
   fragmentRoot.append(range.cloneContents());
   return readEditorValue(fragmentRoot).length;
 }
 
 /** Reads the browser selection as an ordered range of flat string offsets. */
 export function getEditorSelection(root: HTMLElement): EditorSelection | null {
-  const selection = window.getSelection();
+  const selection = root.ownerDocument.defaultView?.getSelection();
   if (!selection?.anchorNode || !selection.focusNode) {
     return null;
   }
@@ -185,14 +186,14 @@ export function getDOMPoint(root: HTMLElement, targetOffset: number): DOMPoint {
 
 /** Restores a flat editor selection after React renders the controlled value. */
 export function setEditorSelection(root: HTMLElement, selection: EditorSelection) {
-  const domSelection = window.getSelection();
+  const domSelection = root.ownerDocument.defaultView?.getSelection();
   if (!domSelection) {
     return;
   }
 
   const start = getDOMPoint(root, selection.start);
   const end = getDOMPoint(root, selection.end);
-  const range = document.createRange();
+  const range = root.ownerDocument.createRange();
   range.setStart(start.node, start.offset);
   range.setEnd(end.node, end.offset);
   domSelection.removeAllRanges();

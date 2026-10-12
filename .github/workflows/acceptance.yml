@@ -74,6 +74,21 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
 
+      # devservices bind mounts this into chartcuterie. Create it up front so
+      # docker doesn't create it as root before the config module is built.
+      # chartcuterie polls for the config file until it shows up.
+      - name: Create chartcuterie config directory
+        run: mkdir -p "$CHARTCUTERIE_CONFIG_PATH"
+
+      # The python env and devservices don't depend on the frontend build, so
+      # bring them up in the background while webpack runs.
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        background: true
+        with:
+          mode: acceptance-ci
+
       - name: Step configurations
         id: config
         run: |
@@ -84,7 +99,7 @@ jobs:
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ${{ steps.config.outputs.webpack-path }}
-          key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('rspack.config.ts', 'pnpm-lock.yaml', 'package.json') }}
+          key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('rsbuild.config.ts', 'pnpm-lock.yaml', 'package.json') }}
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -99,11 +114,8 @@ jobs:
         run: |
           make build-chartcuterie-config
 
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: acceptance-ci
+      - name: Wait for sentry env
+        wait: setup
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'

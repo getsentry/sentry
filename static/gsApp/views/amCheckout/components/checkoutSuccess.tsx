@@ -697,6 +697,7 @@ const ZigZagEdge = styled('div')`
   --s: 10px; /* size of the zig-zag */
   --b: 2px; /* control the thickness */
 
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The masked background draws the zigzag border. */
   background: ${p => p.theme.tokens.border.primary};
   height: calc(var(--b) + var(--s) / (2 * tan(var(--a) / 2)));
   --_g: var(--s) repeat-x

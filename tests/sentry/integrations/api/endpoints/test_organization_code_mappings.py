@@ -1,6 +1,9 @@
 from django.urls import reverse
 
-from sentry.integrations.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
+from sentry.integrations.api.endpoints.organization_code_mappings import (
+    BRANCH_NAME_ERROR_MESSAGE,
+    INVALID_SOURCE_ROOT_ERROR_MESSAGE,
+)
 from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
@@ -386,6 +389,41 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.data == {
             "stackRoot": ["Path may not contain spaces or quotations"],
         }
+
+    def test_parent_directory_in_stack_root(self) -> None:
+        response = self.make_post({"stackRoot": "../../"})
+        assert response.status_code == 201
+
+    def test_unsafe_source_root(self) -> None:
+        for source_root in (
+            "../config",
+            "src/../../config",
+            "..\\config",
+            "%2e%2e/config",
+            "%25252e%25252e/config",
+            "C:/config",
+            "C:/../config",
+            "C:\\..\\config",
+            "/C:/config",
+            "src/%00/config",
+        ):
+            response = self.make_post({"sourceRoot": source_root})
+            assert response.status_code == 400
+            assert response.data == {"sourceRoot": [INVALID_SOURCE_ROOT_ERROR_MESSAGE]}
+
+    def test_safely_normalizable_source_root(self) -> None:
+        response = self.make_post({"sourceRoot": "src/../app"})
+        assert response.status_code == 201
+
+    def test_null_byte_in_path_root(self) -> None:
+        response = self.make_post({"stackRoot": "src/\x00/file.py"})
+        assert response.status_code == 400
+        assert response.data == {"stackRoot": ["Null characters are not allowed."]}
+
+    def test_null_byte_in_source_root_uses_builtin_validation(self) -> None:
+        response = self.make_post({"sourceRoot": "src/\x00/file.py"})
+        assert response.status_code == 400
+        assert response.data == {"sourceRoot": ["Null characters are not allowed."]}
 
     def test_quote_in_branch(self) -> None:
         response = self.make_post({"defaultBranch": "f'f"})

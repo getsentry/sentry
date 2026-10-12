@@ -1,4 +1,4 @@
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';

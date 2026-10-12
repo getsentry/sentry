@@ -1,3 +1,4 @@
+import {IconIssues} from '@sentry/icons/issues';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -8,7 +9,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {EmbedSection} from 'sentry/components/seer/markdown/embeds/components/embedSection';
 import {makeIssueTagDistributionPathname} from 'sentry/components/seer/markdown/embeds/components/event/eventPathnames';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';

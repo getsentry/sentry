@@ -1,5 +1,6 @@
 import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {Event} from 'sentry/types/event';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 
 type GetStacktraceBodyArgs = {
   /**
@@ -51,7 +52,7 @@ export function getStacktraceBody({
       if (!msg) {
         return [];
       }
-      return msg?.data?.formatted && [msg.data.formatted];
+      return msg?.data?.formatted && [stripAnsi(msg.data.formatted)];
     }
   }
 

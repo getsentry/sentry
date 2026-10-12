@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {IconGithub} from '@sentry/icons/github';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,7 +14,6 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
-import {IconGithub} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
