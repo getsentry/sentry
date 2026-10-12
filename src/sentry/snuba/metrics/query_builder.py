@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, TypedDict, overload
+from typing import Any, TypedDict, cast, overload
 
 import sentry_sdk
 from snuba_sdk import (
@@ -66,6 +66,7 @@ from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
+    MetricOperationType,
     NON_RESOLVABLE_TAG_VALUES,
     TS_COL_GROUP,
     DerivedMetricParseException,
@@ -128,7 +129,7 @@ def parse_public_field(field: str) -> MetricField:
     matches = PUBLIC_EXPRESSION_REGEX.match(field)
 
     if matches is not None:
-        operation = matches[1]
+        operation = cast(MetricOperationType | None, matches[1])
         metric_name = matches[2]
     else:
         operation = None
@@ -747,11 +748,13 @@ def translate_meta_results(
                 continue
         elif alias_type == AliasMetaType.GROUP_BY_METRIC_FIELD:
             metric_groupby_field = alias_to_metric_group_by_field[record["name"]]
-            defined_parent_meta_type = get_metric_object_from_metric_field(
-                metric_groupby_field.field
-            ).get_meta_type()
-
-            record["type"] = defined_parent_meta_type
+            if isinstance(metric_groupby_field.field, MetricField):
+                defined_parent_meta_type = get_metric_object_from_metric_field(
+                    metric_groupby_field.field
+                ).get_meta_type()
+                record["type"] = (
+                    record["type"] if defined_parent_meta_type is None else defined_parent_meta_type
+                )
         elif alias_type == AliasMetaType.TAG:
             record["type"] = "string"
         elif alias_type == AliasMetaType.DATASET_COLUMN or alias_type == AliasMetaType.TIME_COLUMN:
@@ -800,7 +803,7 @@ class SnubaQueryBuilder:
     @overload
     @staticmethod
     def generate_snql_for_action_by_fields(
-        metric_action_by_field: MetricActionByField,
+        metric_action_by_field: MetricGroupByField,
         use_case_id: UseCaseID,
         org_id: int,
         projects: Sequence[Project],
@@ -809,7 +812,7 @@ class SnubaQueryBuilder:
 
     @staticmethod
     def generate_snql_for_action_by_fields(
-        metric_action_by_field: MetricActionByField,
+        metric_action_by_field: MetricGroupByField | MetricOrderByField,
         use_case_id: UseCaseID,
         org_id: int,
         projects: Sequence[Project],
@@ -821,16 +824,20 @@ class SnubaQueryBuilder:
         the snql generation starts to diverge significantly.
         """
 
-        is_group_by = isinstance(metric_action_by_field, MetricGroupByField)
-        is_order_by = isinstance(metric_action_by_field, MetricOrderByField)
-        if not is_group_by and not is_order_by:
+        group_by_field: MetricGroupByField | None = None
+        order_by_field: MetricOrderByField | None = None
+        if isinstance(metric_action_by_field, MetricGroupByField):
+            group_by_field = metric_action_by_field
+        elif isinstance(metric_action_by_field, MetricOrderByField):
+            order_by_field = metric_action_by_field
+        else:
             raise InvalidParams("The metric action must either be an order by or group by.")
 
         if isinstance(metric_action_by_field.field, str):
             # This transformation is currently supported only for group by because OrderBy doesn't support the Function type.
-            if is_group_by and metric_action_by_field.field == "transaction":
+            if group_by_field is not None and metric_action_by_field.field == "transaction":
                 return transform_null_transaction_to_unparameterized(
-                    use_case_id, org_id, metric_action_by_field.alias
+                    use_case_id, org_id, group_by_field.alias
                 )
 
             # Handles the case when we are trying to group or order by `project` for example, but we want
@@ -842,7 +849,7 @@ class SnubaQueryBuilder:
             else:
                 # The support for tags in the order by is disabled for now because there is no need to have it. If the
                 # need arise, we will implement it.
-                if is_group_by:
+                if group_by_field is not None:
                     assert isinstance(metric_action_by_field.field, str)
                     column_name = resolve_tag_key(use_case_id, org_id, metric_action_by_field.field)
                 else:
@@ -853,16 +860,16 @@ class SnubaQueryBuilder:
             exp = (
                 AliasedExpression(
                     exp=Column(name=column_name),
-                    alias=metric_action_by_field.alias,
+                    alias=group_by_field.alias if group_by_field is not None else None,
                 )
-                if is_group_by and not is_column
+                if group_by_field is not None and not is_column
                 else Column(name=column_name)
             )
 
-            if is_order_by:
+            if order_by_field is not None:
                 # We return a list in order to use the "extend" method and reduce the number of changes across
                 # the codebase.
-                exp = [OrderBy(exp=exp, direction=metric_action_by_field.direction)]
+                exp = [OrderBy(exp=exp, direction=order_by_field.direction)]
 
             return exp
         elif isinstance(metric_action_by_field.field, MetricField):
@@ -871,20 +878,23 @@ class SnubaQueryBuilder:
                     metric_action_by_field.field.op, metric_action_by_field.field.metric_mri
                 )
 
-                if is_group_by:
+                metric_params = cast(
+                    Mapping[str, str | int | float] | None, metric_action_by_field.field.params
+                )
+                if group_by_field is not None:
                     return metric_expression.generate_groupby_statements(
                         use_case_id=use_case_id,
                         alias=metric_action_by_field.field.alias,
-                        params=metric_action_by_field.field.params,
+                        params=metric_params,
                         projects=projects,
                     )[0]
-                elif is_order_by:
+                elif order_by_field is not None:
                     return metric_expression.generate_orderby_clause(
                         use_case_id=use_case_id,
                         alias=metric_action_by_field.field.alias,
-                        params=metric_action_by_field.field.params,
+                        params=metric_params,
                         projects=projects,
-                        direction=metric_action_by_field.direction,
+                        direction=order_by_field.direction,
                     )
                 else:
                     raise NotImplementedError(
@@ -895,7 +905,7 @@ class SnubaQueryBuilder:
                 raise InvalidParams(f"Cannot resolve {metric_action_by_field.field} into SnQL")
         else:
             raise NotImplementedError(
-                f"Unsupported {'group by' if is_group_by else 'order by' if is_order_by else 'None'} field: {metric_action_by_field.field} needs to be either a MetricField or a string"
+                f"Unsupported {'group by' if group_by_field is not None else 'order by' if order_by_field is not None else 'None'} field: {metric_action_by_field.field} needs to be either a MetricField or a string"
             )
 
     def _build_where(self) -> list[BooleanCondition | Condition]:
@@ -922,14 +932,20 @@ class SnubaQueryBuilder:
                         Condition(
                             lhs=metric_expression.generate_where_statements(
                                 use_case_id=self._use_case_id,
-                                params=condition.lhs.params,
+                                params=cast(
+                                    Mapping[str, str | int | float] | None, condition.lhs.params
+                                ),
                                 projects=self._projects,
                                 alias=condition.lhs.alias,
                             )[0],
                             op=condition.op,
                             rhs=(
                                 resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
-                                if require_rhs_condition_resolution(condition.lhs.op)
+                                if (
+                                    isinstance(condition.rhs, str)
+                                    and condition.lhs.op is not None
+                                    and require_rhs_condition_resolution(condition.lhs.op)
+                                )
                                 else condition.rhs
                             ),
                         )
@@ -1097,10 +1113,10 @@ class SnubaQueryBuilder:
     def __update_query_dicts_with_component_entities(
         self,
         component_entities: dict[MetricEntity, Sequence[str]],
-        metric_mri_to_obj_dict: dict[tuple[str | None, str, str], MetricExpressionBase],
-        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]],
+        metric_mri_to_obj_dict: dict[tuple[MetricOperationType | None, str, str], MetricExpressionBase],
+        fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]],
         parent_alias,
-    ) -> dict[tuple[str | None, str, str], MetricExpressionBase]:
+    ) -> dict[tuple[MetricOperationType | None, str, str], MetricExpressionBase]:
         # At this point in time, we are only supporting raw metrics in the metrics attribute of
         # any instance of DerivedMetric, and so in this case the op will always be None
         # ToDo(ahmed): In future PR, we might want to allow for dependency metrics to also have an
@@ -1125,8 +1141,8 @@ class SnubaQueryBuilder:
         return metric_mri_to_obj_dict
 
     def get_snuba_queries(self):
-        metric_mri_to_obj_dict: dict[tuple[str | None, str, str], MetricExpressionBase] = {}
-        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {}
+        metric_mri_to_obj_dict: dict[tuple[MetricOperationType | None, str, str], MetricExpressionBase] = {}
+        fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]] = {}
 
         for select_field in self._metrics_query.select:
             metric_field_obj = metric_object_factory(select_field.op, select_field.metric_mri)
@@ -1252,7 +1268,9 @@ class SnubaResultConverter:
         self,
         organization_id: int,
         metrics_query: DeprecatingMetricsQuery,
-        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]],
+        fields_in_entities: dict[
+            MetricEntity, list[tuple[MetricOperationType | None, str, str]]
+        ],
         intervals: list[datetime],
         results,
         use_case_id: UseCaseID,
