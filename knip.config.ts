@@ -68,9 +68,8 @@ const config: KnipConfig = {
         'zrender', // used in echarts
         // Referenced by its node_modules path in tests/js/jest.config.ts.
         'reflux',
-        // The root owns test execution and affected selection for these apps.
-        'admin',
-        'getsentry',
+        'admin', // The root owns admin test execution and affected selection.
+        'getsentry', // The root owns billing test execution and affected selection.
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.
@@ -109,15 +108,18 @@ const config: KnipConfig = {
       project: ['**/*.{js,cjs,mjs,ts,tsx,mdx}'],
       ignoreDependencies: [
         '@sentry-internal/global-search', // jest.mock does not count as an import.
-        '@tanstack/react-pacer',
-        'echarts-for-react',
-        'sonner', // Setup checks its presence through require.resolve.
+        '@tanstack/react-pacer', // loaded with requireActual
+        'echarts-for-react', // jest.mock in setup.ts
+        'sonner', // Setup checks its module cache entry with dynamic require.resolve.
       ],
     },
     'tests/js/getsentry-test': {
       project: ['**/*.{js,ts,tsx,mdx}'],
-      // React is used through jest.requireActual in the billing setup.
-      ignoreDependencies: ['react', '@stripe/react-stripe-js', '@stripe/stripe-js'],
+      ignoreDependencies: [
+        'react', // loaded with jest.requireActual, which Knip does not track.
+        '@stripe/react-stripe-js', // Billing setup mocks this package; Knip does not track jest.mock.
+        '@stripe/stripe-js', // Billing setup mocks this package; Knip does not track jest.mock.
+      ],
     },
     'static/packages/icons': {
       // test helpers are only used outside production.
