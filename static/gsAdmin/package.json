@@ -5,14 +5,15 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@sentry-internal/app": "workspace:*",
-    "@sentry-internal/gs-app": "workspace:*",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.0.0",
     "@sentry/scraps": "workspace:*",
     "@tanstack/react-pacer": "^0.22.1",
     "@tanstack/react-query": "5.101.4",
+    "admin": "workspace:@sentry-internal/gs-admin@*",
     "classnames": "2.3.1",
+    "core-js": "3.45.0",
+    "getsentry": "workspace:@sentry-internal/gs-app@*",
     "lodash": "^4.18.1",
     "moment-timezone": "0.6.2",
     "nuqs": "2.10.2",
@@ -21,6 +22,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router": "6.30.6",
+    "sentry": "workspace:@sentry-internal/app@*",
     "zod": "4.3.5"
   },
   "devDependencies": {
@@ -28,7 +30,6 @@
     "@types/lodash": "^4.17.24",
     "@types/papaparse": "^5.3.5",
     "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
-    "sentry": "workspace:*"
+    "@types/react-dom": "19.3.0"
   }
 }
