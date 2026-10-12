@@ -7,11 +7,11 @@ from enum import StrEnum
 from typing import Any
 
 from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
+    MIN_CACHEABLE_PREFIX_TOKENS,
     CacheFinding,
     CallSiteWarmth,
     Classification,
     ProbeGap,
-    min_cacheable_prefix_tokens,
 )
 from sentry.ai_monitoring.issues.llm_cache_detection.pricing import PricingGap, SavingsEstimate
 from sentry.ai_monitoring.issues.llm_cache_detection.query import SampleCall
@@ -53,7 +53,7 @@ def _candidate_fields(report: CandidateReport) -> dict[str, Any]:
         "uncached_tokens": stats.uncached_tokens,
         "unrecouped_cache_write_tokens": stats.unrecouped_cache_write_tokens,
         "cache_exceeds_input": stats.cache_exceeds_input,
-        "min_cacheable_prefix_tokens": min_cacheable_prefix_tokens(stats.model),
+        "min_cacheable_prefix_tokens": MIN_CACHEABLE_PREFIX_TOKENS,
     }
 
     for name, measurement in (
