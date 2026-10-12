@@ -6,6 +6,7 @@ import startCase from 'lodash/startCase';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';

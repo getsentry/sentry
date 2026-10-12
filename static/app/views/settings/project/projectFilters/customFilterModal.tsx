@@ -70,7 +70,7 @@ type ConditionFormValue = {
   value: string;
 };
 
-export type FilterFormValues = {
+type FilterFormValues = {
   conditions: ConditionFormValue[];
   dataType: FilterDataType;
   name: string;
