@@ -58,7 +58,26 @@ export function BreadcrumbItemContent({
     </BreadcrumbText>
   ) : null;
 
-  const cleanedBreadcrumbData = cleanBreadcrumbData(bc.data);
+  let cleanedBreadcrumbData = cleanBreadcrumbData(bc.data);
+
+  if (
+    bc.category === 'console' &&
+    !meta?.data &&
+    cleanedBreadcrumbData &&
+    'logger' in cleanedBreadcrumbData &&
+    cleanedBreadcrumbData.logger === 'console' &&
+    'arguments' in cleanedBreadcrumbData &&
+    Array.isArray(cleanedBreadcrumbData.arguments) &&
+    cleanedBreadcrumbData.arguments.length === 1 &&
+    typeof cleanedBreadcrumbData.arguments[0] === 'string' &&
+    cleanedBreadcrumbData.arguments[0] === bc.message
+  ) {
+    delete cleanedBreadcrumbData.arguments;
+    delete cleanedBreadcrumbData.logger;
+    if (Object.keys(cleanedBreadcrumbData).length === 0) {
+      cleanedBreadcrumbData = undefined;
+    }
+  }
 
   const defaultData = defined(cleanedBreadcrumbData) ? (
     <Timeline.Data>

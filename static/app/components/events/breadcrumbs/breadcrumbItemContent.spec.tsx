@@ -10,6 +10,84 @@ import {
 } from 'sentry/types/breadcrumbs';
 
 describe('BreadcrumbItemContent', () => {
+  it.each([true, false])(
+    'does not repeat a single console message when fullyExpanded is %s',
+    fullyExpanded => {
+      const breadcrumb: BreadcrumbTypeDefault = {
+        type: BreadcrumbType.DEFAULT,
+        category: 'console',
+        level: BreadcrumbLevelType.INFO,
+        message: 'UndoManager: startGroupIfNeeded',
+        data: {logger: 'console', arguments: ['UndoManager: startGroupIfNeeded']},
+      };
+      const {container} = render(
+        <BreadcrumbItemContent breadcrumb={breadcrumb} fullyExpanded={fullyExpanded} />
+      );
+
+      expect(container).toHaveTextContent(/^UndoManager: startGroupIfNeeded$/);
+      expect(breadcrumb.data).toEqual({
+        logger: 'console',
+        arguments: ['UndoManager: startGroupIfNeeded'],
+      });
+    }
+  );
+
+  it('keeps additional data when removing repeated console arguments', () => {
+    render(
+      <BreadcrumbItemContent
+        breadcrumb={{
+          type: BreadcrumbType.DEFAULT,
+          category: 'console',
+          level: BreadcrumbLevelType.INFO,
+          message: 'message',
+          data: {logger: 'console', arguments: ['message'], detail: 'extra detail'},
+        }}
+      />
+    );
+
+    expect(screen.getByText('extra detail')).toBeInTheDocument();
+    expect(screen.queryByText('arguments')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    {category: 'console', data: {logger: 'console', arguments: ['different message']}},
+    {category: 'console', data: {logger: 'console', arguments: ['message', 'extra']}},
+    {category: 'console', data: {logger: 'console', arguments: [{value: 'message'}]}},
+    {category: 'custom', data: {logger: 'console', arguments: ['message']}},
+    {category: 'console', data: {logger: 'custom', arguments: ['message']}},
+  ])('keeps console data that is not redundant: %j', ({category, data}) => {
+    render(
+      <BreadcrumbItemContent
+        breadcrumb={{
+          type: BreadcrumbType.DEFAULT,
+          level: BreadcrumbLevelType.INFO,
+          message: 'message',
+          category,
+          data,
+        }}
+      />
+    );
+
+    expect(screen.getByText('arguments')).toBeInTheDocument();
+  });
+
+  it('keeps annotations on repeated console arguments', () => {
+    render(
+      <BreadcrumbItemContent
+        breadcrumb={{
+          type: BreadcrumbType.DEFAULT,
+          category: 'console',
+          level: BreadcrumbLevelType.INFO,
+          message: '[Filtered]',
+          data: {logger: 'console', arguments: ['[Filtered]']},
+        }}
+        meta={{data: {arguments: {'0': {'': {rem: [['@password', 's']]}}}}}}
+      />
+    );
+
+    expect(screen.getByText('arguments')).toBeInTheDocument();
+  });
+
   it('renders default crumbs with all data', () => {
     const breadcrumb: BreadcrumbTypeDefault = {
       type: BreadcrumbType.DEBUG,
