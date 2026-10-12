@@ -110,9 +110,12 @@ const config: KnipConfig = {
       ...frontendWorkspace,
     },
     'tests/js': {
-      jest: {config: ['jest.config.mjs', 'jest.config.ci.mjs']},
+      jest: {
+        config: ['jest.config.mjs', 'jest.config.ci.mjs', 'jest.config.snapshots.ts'],
+      },
       entry: ['**/*.spec.{js,ts,tsx}', 'test-balancer/*.ts'],
       project: ['**/*.{js,cjs,mjs,ts,tsx,mdx}'],
+      includeEntryExports: true,
       ignoreDependencies: [
         '@sentry-internal/global-search', // jest.mock does not count as an import.
         '@tanstack/react-pacer', // loaded with requireActual
@@ -121,6 +124,7 @@ const config: KnipConfig = {
     },
     'tests/js/getsentry-test': {
       project: ['**/*.{js,ts,tsx,mdx}'],
+      includeEntryExports: true,
       ignoreDependencies: [
         'react', // loaded with jest.requireActual, which Knip does not track.
         '@stripe/react-stripe-js', // Billing setup mocks this package; Knip does not track jest.mock.
