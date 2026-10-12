@@ -39,6 +39,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {ReleaseContext} from 'sentry/views/explore/releases/detail';
 import {
   getReleaseParams,
   isReleaseArchived,
@@ -51,14 +52,13 @@ import {
 import type {TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
 
-import {ReleaseContext} from '..';
-
 import {CommitAuthorBreakdown} from './sidebar/commitAuthorBreakdown';
 import {Deploys} from './sidebar/deploys';
 import {OtherProjects} from './sidebar/otherProjects';
 import {ProjectReleaseDetails} from './sidebar/projectReleaseDetails';
 import {ReleaseAdoption} from './sidebar/releaseAdoption';
 import {ReleaseStats} from './sidebar/releaseStats';
+import {SdkVersions} from './sidebar/sdkVersions';
 import {TotalCrashFreeUsers} from './sidebar/totalCrashFreeUsers';
 import {ReleaseArchivedNotice} from './releaseArchivedNotice';
 import {ReleaseComparisonChart} from './releaseComparisonChart';
@@ -449,6 +449,7 @@ function ReleaseOverview() {
                   releaseMeta={releaseMeta}
                   project={project}
                 />
+                <SdkVersions organization={organization} version={version} />
                 {commitCount > 0 && (
                   <CommitAuthorBreakdown
                     version={version}

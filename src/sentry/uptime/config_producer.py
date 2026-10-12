@@ -35,10 +35,14 @@ def get_partition_from_subscription_id(subscription_id: UUID) -> int:
     return int(subscription_id) % settings.UPTIME_CONFIG_PARTITIONS
 
 
+def get_config_key(key_prefix: str, partition: int) -> str:
+    return f"{key_prefix}uptime:configs:{partition}"
+
+
 def get_partition_keys(subscription_id: UUID, config: UptimeRegionConfig) -> tuple[str, str]:
     partition = get_partition_from_subscription_id(subscription_id)
     return (
-        f"{config.config_redis_key_prefix}uptime:configs:{partition}",
+        get_config_key(config.config_redis_key_prefix, partition),
         f"{config.config_redis_key_prefix}uptime:updates:{partition}",
     )
 

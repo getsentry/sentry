@@ -9,7 +9,11 @@ from fixtures.vsts import WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPD
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.vsts import VstsRequestParser
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
+from sentry.testutils.outbox import (
+    assert_no_webhook_payloads,
+    assert_webhook_payloads_for_mailbox,
+    override_mailbox_bucket_count,
+)
 from sentry.testutils.silo import control_silo_test, create_test_cells
 
 
@@ -21,6 +25,8 @@ class VstsRequestParserTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        # Pin the rate-derived width so routing assertions exercise the bucket key.
+        self.enterContext(override_mailbox_bucket_count(64))
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         account_id = WORK_ITEM_UPDATED["resourceContainers"]["collection"]["id"]
@@ -70,7 +76,7 @@ class VstsRequestParserTest(TestCase):
         assert response.status_code == 202
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"vsts:{self.integration.id}:1",
+            mailbox_name=f"vsts:{self.integration.id}:31",
             cell_names=["us"],
         )
 
@@ -138,7 +144,7 @@ class VstsRequestParserTest(TestCase):
         parser.get_response()
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"vsts:{self.integration.id}:1",
+            mailbox_name=f"vsts:{self.integration.id}:31",
             cell_names=["us"],
         )
 

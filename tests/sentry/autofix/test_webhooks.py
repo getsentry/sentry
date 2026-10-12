@@ -16,6 +16,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSource,
 )
 from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
 from sentry.testutils.cases import APITestCase
@@ -44,8 +45,13 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
+    @patch("sentry.seer.autofix.webhooks.metrics.distribution")
     def test_opened(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
+        self,
+        mock_metrics_distribution,
+        mock_metrics_incr,
+        mock_analytics_record,
+        mock_get_agent_state_from_pr_id,
     ):
         group = self.create_group(project=self.project)
         issue_data = self.create_autofix_issue_data(group)
@@ -55,7 +61,7 @@ class AutofixPrWebhookTest(APITestCase):
             blocks=[],
             status="processing",
             updated_at="2025-01-15T10:30:00Z",
-            metadata={"group_id": group.id},
+            metadata={"group_id": group.id, "referrer": AutofixReferrer.SLACK.value},
         )
 
         with self.feature(
@@ -76,7 +82,10 @@ class AutofixPrWebhookTest(APITestCase):
                 self.repo.id,
             )
 
-        mock_metrics_incr.assert_any_call("ai.autofix.pr.opened", tags={"mode": "explorer"})
+        mock_metrics_incr.assert_any_call(
+            "ai.autofix.pr.opened", sample_rate=1.0, tags={"mode": "explorer", "referrer": "slack"}
+        )
+        mock_metrics_distribution.assert_not_called()
         assert_last_analytics_event(
             mock_analytics_record,
             AiAutofixPrOpenedEvent(
@@ -87,6 +96,7 @@ class AutofixPrWebhookTest(APITestCase):
                 run_id=1,
                 github_app="seer",
                 sent_at=1736937000000,
+                referrer="slack",
             ),
         )
 
@@ -137,7 +147,11 @@ class AutofixPrWebhookTest(APITestCase):
                 self.repo.id,
             )
 
-        mock_metrics_incr.assert_any_call("ai.autofix.pr.opened", tags={"mode": "explorer"})
+        mock_metrics_incr.assert_any_call(
+            "ai.autofix.pr.opened",
+            sample_rate=1.0,
+            tags={"mode": "explorer", "referrer": "unknown"},
+        )
         assert_last_analytics_event(
             mock_analytics_record,
             AiAutofixPrOpenedEvent(
@@ -159,8 +173,13 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
+    @patch("sentry.seer.autofix.webhooks.metrics.distribution")
     def test_closed(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
+        self,
+        mock_metrics_distribution,
+        mock_metrics_incr,
+        mock_analytics_record,
+        mock_get_agent_state_from_pr_id,
     ):
         group = self.create_group(project=self.project)
         issue_data = self.create_autofix_issue_data(group)
@@ -169,7 +188,7 @@ class AutofixPrWebhookTest(APITestCase):
             blocks=[],
             status="processing",
             updated_at="2025-01-15T12:00:00Z",
-            metadata={"group_id": group.id},
+            metadata={"group_id": group.id, "referrer": AutofixReferrer.NIGHT_SHIFT.value},
         )
 
         with self.feature(
@@ -183,6 +202,7 @@ class AutofixPrWebhookTest(APITestCase):
                     "number": 42,
                     "html_url": PR_URL,
                     "merged": False,
+                    "created_at": "2025-01-15T10:30:00Z",
                     "closed_at": "2025-01-15T12:00:00Z",
                     "updated_at": "2025-01-15T12:00:00Z",
                 },
@@ -190,7 +210,12 @@ class AutofixPrWebhookTest(APITestCase):
                 self.repo.id,
             )
 
-        mock_metrics_incr.assert_any_call("ai.autofix.pr.closed", tags={"mode": "explorer"})
+        mock_metrics_incr.assert_any_call(
+            "ai.autofix.pr.closed",
+            sample_rate=1.0,
+            tags={"mode": "explorer", "referrer": "night_shift"},
+        )
+        mock_metrics_distribution.assert_not_called()
         assert_last_analytics_event(
             mock_analytics_record,
             AiAutofixPrClosedEvent(
@@ -201,6 +226,7 @@ class AutofixPrWebhookTest(APITestCase):
                 run_id=1,
                 github_app="seer",
                 sent_at=1736942400000,
+                referrer="night_shift",
             ),
         )
 
@@ -221,8 +247,13 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
+    @patch("sentry.seer.autofix.webhooks.metrics.distribution")
     def test_merged(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
+        self,
+        mock_metrics_distribution,
+        mock_metrics_incr,
+        mock_analytics_record,
+        mock_get_agent_state_from_pr_id,
     ):
         group = self.create_group(project=self.project)
         issue_data = self.create_autofix_issue_data(group)
@@ -231,7 +262,7 @@ class AutofixPrWebhookTest(APITestCase):
             blocks=[],
             status="processing",
             updated_at="2025-01-15T14:00:00Z",
-            metadata={"group_id": group.id},
+            metadata={"group_id": group.id, "referrer": AutofixReferrer.WEB.value},
         )
 
         with self.feature(
@@ -245,13 +276,24 @@ class AutofixPrWebhookTest(APITestCase):
                     "number": 42,
                     "html_url": PR_URL,
                     "merged": True,
+                    "created_at": "2025-01-15T10:30:00Z",
                     "merged_at": "2025-01-15T14:00:00Z",
                     "updated_at": "2025-01-15T14:00:00Z",
                 },
                 {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
                 self.repo.id,
             )
-        mock_metrics_incr.assert_any_call("ai.autofix.pr.merged", tags={"mode": "explorer"})
+        mock_metrics_incr.assert_any_call(
+            "ai.autofix.pr.merged",
+            sample_rate=1.0,
+            tags={"mode": "explorer", "referrer": "api.web"},
+        )
+        mock_metrics_distribution.assert_called_once_with(
+            "ai.autofix.pr.time_to_merge_hours",
+            3.5,
+            sample_rate=1.0,
+            tags={"referrer": "api.web"},
+        )
         assert_last_analytics_event(
             mock_analytics_record,
             AiAutofixPrMergedEvent(
@@ -262,6 +304,7 @@ class AutofixPrWebhookTest(APITestCase):
                 run_id=1,
                 github_app="seer",
                 sent_at=1736949600000,
+                referrer="api.web",
             ),
         )
 
@@ -366,7 +409,11 @@ class AutofixPrWebhookTest(APITestCase):
             )
 
         # Analytics still fire even though there's no PR number to attribute against.
-        mock_metrics_incr.assert_any_call("ai.autofix.pr.opened", tags={"mode": "explorer"})
+        mock_metrics_incr.assert_any_call(
+            "ai.autofix.pr.opened",
+            sample_rate=1.0,
+            tags={"mode": "explorer", "referrer": "unknown"},
+        )
         assert_last_analytics_event(
             mock_analytics_record,
             AiAutofixPrOpenedEvent(
@@ -420,7 +467,11 @@ class AutofixPrWebhookTest(APITestCase):
             )
 
         # The analytics event already fired before the attribution write raised.
-        mock_metrics_incr.assert_any_call("ai.autofix.pr.opened", tags={"mode": "explorer"})
+        mock_metrics_incr.assert_any_call(
+            "ai.autofix.pr.opened",
+            sample_rate=1.0,
+            tags={"mode": "explorer", "referrer": "unknown"},
+        )
         assert_last_analytics_event(
             mock_analytics_record,
             AiAutofixPrOpenedEvent(

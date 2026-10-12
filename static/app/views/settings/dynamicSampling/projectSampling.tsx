@@ -12,12 +12,12 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
+import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {sampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
-import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {

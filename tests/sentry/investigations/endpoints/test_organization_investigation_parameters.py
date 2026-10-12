@@ -67,6 +67,9 @@ class InvestigationParametersEndpointTest(APITestCase):
         assert unrelated.stale_at is None
 
     def test_project_parameter_update_accepts_accessible_project(self) -> None:
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
         parameter = self.create_investigation_parameter(
             investigation=self.investigation,
             key="project",

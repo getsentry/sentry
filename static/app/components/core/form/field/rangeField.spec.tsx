@@ -96,7 +96,7 @@ describe('RangeField', () => {
     render(<TestForm label="Volume" />);
 
     expect(screen.getByText('Volume')).toBeInTheDocument();
-    expect(screen.getByRole('slider')).toBeInTheDocument();
+    expect(screen.getByRole('slider', {name: 'Volume'})).toBeInTheDocument();
   });
 
   it('displays value correctly', () => {

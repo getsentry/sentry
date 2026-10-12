@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -21,7 +22,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {CustomerStats} from 'admin/components/customers/customerStats';
 import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {EventUsers} from 'admin/components/eventUsers';
@@ -51,18 +51,17 @@ export function ProjectDetails() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleRemoveEmail = (userHash: string) => {
+  const handleRemoveEmail = async (userHash: string) => {
     const endpoint = `/projects/${orgId}/${projectId}/users/${userHash}/`;
 
-    api.request(endpoint, {
-      method: 'DELETE',
-      success: () => {
-        addSuccessMessage('User email has been removed.');
-      },
-      error: () => {
-        addErrorMessage('Failed to remove email.');
-      },
-    });
+    try {
+      await api.requestPromise(endpoint, {
+        method: 'DELETE',
+      });
+      addSuccessMessage('User email has been removed.');
+    } catch {
+      addErrorMessage('Failed to remove email.');
+    }
   };
 
   if (isPending) {
@@ -95,7 +94,7 @@ export function ProjectDetails() {
 
   const overview = (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Customer">
           {organization.name}
           {' ('}
@@ -138,8 +137,8 @@ export function ProjectDetails() {
             {'Audit'}
           </ExternalLink>
         </DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DetailLabel title="Features">
           <List>
             {data.features.map(item => (
@@ -147,7 +146,7 @@ export function ProjectDetails() {
             ))}
           </List>
         </DetailLabel>
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 

@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 import responses
 from django.db import connections, router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -7,6 +9,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from fixtures.gitlab import EXTERNAL_ID, PUSH_EVENT, WEBHOOK_SECRET, WEBHOOK_TOKEN
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.gitlab.webhook_types import GITLAB_EVENT_KINDS
 from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint
@@ -141,7 +144,8 @@ class GitlabRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    def test_routing_webhook_properly_no_cells(self) -> None:
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
+    def test_routing_webhook_properly_no_cells(self, mock_incr: MagicMock) -> None:
         request = self.factory.post(
             self.path,
             data=PUSH_EVENT,
@@ -162,6 +166,36 @@ class GitlabRequestParserTest(TestCase):
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
+        mock_incr.assert_any_call(
+            "integrations.webhook.no_organization_integration",
+            tags={"provider": "gitlab"},
+            sample_rate=1.0,
+        )
+
+    @override_cells(cell_config)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
+    def test_routing_webhook_pending_deletion(self, mock_incr: MagicMock) -> None:
+        integration = self.get_integration()
+        OrganizationIntegration.objects.get(integration=integration).update(
+            status=ObjectStatus.PENDING_DELETION
+        )
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+
+        response = self.run_parser(request)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert_no_webhook_payloads()
+        mock_incr.assert_any_call(
+            "integrations.webhook.no_organization_integration",
+            tags={"provider": "gitlab"},
+            sample_rate=1.0,
+        )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)

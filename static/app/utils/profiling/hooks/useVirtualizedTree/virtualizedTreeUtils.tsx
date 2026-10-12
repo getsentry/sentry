@@ -102,15 +102,18 @@ export function markRowAsClicked(
   if (clickedRowKey !== null) {
     const clickedRow = renderedItems.find(row => row.key === clickedRowKey);
     if (clickedRow) {
-      updateGhostRow({
-        element: ghostRowRef,
-        interaction: 'clicked',
-        rowHeight,
-        scrollTop,
-        selectedNodeIndex: clickedRow.key,
-        theme,
-      });
+      ghostRowRef?.style.setProperty('opacity', '0');
+      return;
     }
+
+    updateGhostRow({
+      element: ghostRowRef,
+      interaction: 'clicked',
+      rowHeight,
+      scrollTop,
+      selectedNodeIndex: clickedRowKey,
+      theme,
+    });
   }
 }
 

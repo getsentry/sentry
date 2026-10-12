@@ -6,7 +6,7 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {QueryStatus} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -65,6 +65,7 @@ function useEditorValueSync({mentions, text}: ComposerValue) {
       setEditorSelection(input, selectionToRestore);
       selectionToRestoreRef.current = null;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [mentions, nativeEditVersion, text]);
 
   return {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef};
@@ -97,7 +98,7 @@ function useCaretAnchorPosition({
 
     const start = getDOMPoint(input, activeTrigger.start);
     const end = getDOMPoint(input, activeTrigger.start + trigger.length);
-    const range = document.createRange();
+    const range = input.ownerDocument.createRange();
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
     if (typeof range.getBoundingClientRect !== 'function') {
@@ -127,6 +128,7 @@ function useCaretAnchorPosition({
     const resizeObserver = new ResizeObserver(updatePosition);
     resizeObserver.observe(input);
     return () => resizeObserver.disconnect();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputRef, trigger, updatePosition, value]);
 
   return {anchorRef, updatePosition};
@@ -141,6 +143,7 @@ export function Composer({
   value: inputValue,
   plugins,
   onChange,
+  onKeyDown,
   minHeight,
   placeholder,
   style,
@@ -162,7 +165,11 @@ export function Composer({
   const activeSources = useMemo(
     () =>
       activeTrigger
-        ? sources.filter(source => source.trigger === activeTrigger.trigger)
+        ? sources.filter(
+            source =>
+              source.trigger === activeTrigger.trigger &&
+              (!source.restrictToStart || activeTrigger.start === 0)
+          )
         : [],
     [sources, activeTrigger]
   );
@@ -260,6 +267,28 @@ export function Composer({
     }
     const {source, suggestion} = item;
 
+    if (source.onSelect) {
+      const {start, end} = activeTrigger;
+      dismissedRequestKeyRef.current = getRequestKey(activeTrigger);
+      setActiveTrigger(null);
+      source.onSelect(suggestion, {
+        clear: () => {
+          dismissedRequestKeyRef.current = null;
+          selectionToRestoreRef.current = {start: 0, end: 0};
+          onChange({text: '', mentions: []});
+        },
+        insertText: text => {
+          const nextValue = value.slice(0, start) + text + value.slice(end);
+          const retainedMentions = reconcileMentions(value, nextValue, mentions);
+          const nextCaret = start + text.length;
+          dismissedRequestKeyRef.current = null;
+          selectionToRestoreRef.current = {start: nextCaret, end: nextCaret};
+          onChange({text: nextValue, mentions: retainedMentions});
+        },
+      });
+      return;
+    }
+
     const replacement = source.getText(suggestion);
     const trailingText = /\s/.test(value[activeTrigger.end] ?? '') ? '' : ' ';
     const insertedText = replacement + trailingText;
@@ -350,6 +379,8 @@ export function Composer({
       if (
         event.defaultPrevented ||
         event.nativeEvent.isComposing ||
+        // Safari can end composition before dispatching the confirming keydown.
+        event.nativeEvent.keyCode === 229 ||
         isComposingRef.current
       ) {
         return;
@@ -361,9 +392,19 @@ export function Composer({
           return;
         }
 
-        if ((event.key === 'Enter' || event.key === 'Tab') && focusedKey !== null) {
+        if (
+          (event.key === 'Enter' || event.key === 'Tab') &&
+          !event.shiftKey &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey &&
+          (focusedKey !== null ||
+            (event.key === 'Enter' && (hasSuggestions || queryStatus === 'pending')))
+        ) {
           event.preventDefault();
-          selectSuggestion(focusedKey);
+          if (focusedKey !== null) {
+            selectSuggestion(focusedKey);
+          }
           return;
         }
 
@@ -373,6 +414,7 @@ export function Composer({
           setActiveTrigger(null);
         }
       }
+      onKeyDown?.(event);
     },
     onKeyUp: (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (!event.defaultPrevented) {

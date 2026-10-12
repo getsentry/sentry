@@ -1,4 +1,8 @@
 import {Fragment, useMemo} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconUser} from '@sentry/icons/user';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ActorAvatar, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -7,7 +11,6 @@ import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconCheckmark, IconClock, IconIssues, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
@@ -156,15 +159,13 @@ function AssignActionItems({
 function AssignActions({
   onConfirmBulkUpdate,
   onBulkUpdate,
-  label = t('Assign to'),
 }: {
   onBulkUpdate: (data: Record<string, unknown>) => void;
-  label?: string;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   return (
     <CMDKAction
-      display={{label, icon: <IconUser />}}
+      display={{label: t('Assign to'), icon: <IconUser />}}
       keywords={['assign', 'owner', 'assignee']}
       prompt={t('Search assignees...')}
     >

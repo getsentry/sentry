@@ -8,7 +8,6 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorDetails';
@@ -17,7 +16,6 @@ import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 export function getDetectorDetails({
   event,
   organization,
-  project,
 }: {
   event: Event;
   organization: Organization;
@@ -45,14 +43,15 @@ export function getDetectorDetails({
   const cronSlug = event?.tags?.find(({key}) => key === 'monitor.slug')?.value;
   const cronId = event?.tags?.find(({key}) => key === 'monitor.id')?.value;
   if (cronSlug) {
+    const detectorId: string | number | undefined =
+      event.occurrence?.evidenceData.detectorId;
     return {
       detectorType: 'cron_monitor',
       detectorId: cronId,
       detectorSlug: cronSlug,
-      detectorPath: makeAlertsPathname({
-        path: `/rules/crons/${project.slug}/${cronSlug}/details/`,
-        organization,
-      }),
+      detectorPath: detectorId
+        ? makeMonitorDetailsPathname(organization.slug, String(detectorId))
+        : undefined,
       description: t(
         'This issue was created by a cron monitor. View the monitor details to learn more.'
       ),
@@ -82,12 +81,10 @@ export function getDetectorDetails({
     return {
       detectorType: 'uptime_monitor',
       detectorId: String(detectorId),
-      detectorPath: makeAlertsPathname({
-        path: `/rules/uptime/${project.slug}/${detectorId}/details/`,
-        organization,
-      }),
-      // TODO(issues): Update this to mention detectors when that language is user-facing
-      description: t('This issue was created by an uptime monitoring alert rule.'),
+      detectorPath: makeMonitorDetailsPathname(organization.slug, String(detectorId)),
+      description: t(
+        'This issue was created by an uptime monitor. View the monitor details to learn more.'
+      ),
     };
   }
   return {};

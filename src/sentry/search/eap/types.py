@@ -9,6 +9,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from sentry.search.events.types import EventsResponse
 
 if TYPE_CHECKING:
+    from sentry.explore.models import ExploreSavedFormula
     from sentry.search.eap.resolver import SearchResolver
 
 
@@ -43,6 +44,9 @@ class SearchResolverConfig:
     # so backend resolution semantics remain unchanged.
     api_attribute_visibility_item_type: str | None = None
     api_attribute_visibility_include_internal: bool = False
+    # The queryset of formulas
+    saved_formulas: dict[str, "ExploreSavedFormula"] | None = None
+    api_attribute_visibility_include_internal_convention_attributes: bool = False
 
     def extra_conditions(
         self,

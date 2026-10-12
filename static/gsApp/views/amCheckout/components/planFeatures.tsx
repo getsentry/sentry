@@ -1,18 +1,16 @@
 import type React from 'react';
 import {useMemo} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  IconAdd,
-  IconCheckmark,
-  IconClose,
-  IconLightning,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
@@ -520,7 +518,7 @@ export function PlanFeatures({
   return (
     <Stack>
       <Stack background="secondary" padding="xl" radius="lg" border="primary" gap="xl">
-        <Grid columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(2, 1fr)'}} gap="xl">
+        <Grid columns={{zero: '1fr', '4xl': 'repeat(2, 1fr)'}} gap="xl">
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
         </Grid>

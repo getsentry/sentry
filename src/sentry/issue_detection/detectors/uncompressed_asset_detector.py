@@ -11,6 +11,7 @@ from sentry.models.project import Project
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
     fingerprint_resource_span,
+    get_browser_name,
     get_notification_attachment_body,
     get_numeric_value_from_span,
     get_span_duration,
@@ -155,19 +156,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     @classmethod
     def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
-        tags = event.get("tags", [])
-        browser_name = next(
-            (
-                tag[1]
-                for tag in tags
-                if tag is not None
-                and tag[0] == "browser.name"
-                and len(tag) == 2
-                and tag[1] is not None
-            ),
-            "",
-        )
-        if browser_name.lower() in [
+        if get_browser_name(event).lower() in [
             "chrome",
             "firefox",
             "safari",

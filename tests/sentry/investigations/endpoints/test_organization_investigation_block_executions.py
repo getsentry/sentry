@@ -57,6 +57,9 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
     )
     def test_starts_and_persists_an_immutable_execution(self, mock_client: MagicMock) -> None:
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
         self.investigation.filters = {
             "datetime": {"period": "24h"},
             "environments": ["production"],

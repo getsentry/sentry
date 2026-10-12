@@ -22,6 +22,7 @@ import {
   checkIsAddOnChildCategory,
   displayBudgetName,
   formatReservedWithUnits,
+  getLineItemUnitType,
   getSoftCapType,
   hasPaygBudgetForCategory,
   supportsPayg,
@@ -209,23 +210,27 @@ function DataCategoryUsageBreakdownInfo({
     : reserved;
   const platformReservedField = tct('[planName] plan', {planName: plan.name});
 
+  const unitType = getLineItemUnitType(plan, category);
   const additionalReserved = Math.max(0, reserved - platformReserved);
   const shouldShowAdditionalReserved = additionalReserved > 0;
   const formattedAdditionalReserved = shouldShowAdditionalReserved
-    ? formatReservedWithUnits(additionalReserved, category)
+    ? formatReservedWithUnits(additionalReserved, category, {unitType})
     : null;
   const formattedPlatformReserved =
     reserved > 0
       ? formatReservedWithUnits(
           shouldShowAdditionalReserved ? platformReserved : reserved,
-          category
+          category,
+          {unitType}
         )
       : reserved === UNLIMITED_RESERVED
         ? t('Unlimited')
         : null;
 
   const gifted = metricHistory.free ?? 0;
-  const formattedGifted = gifted ? formatReservedWithUnits(gifted, category) : null;
+  const formattedGifted = gifted
+    ? formatReservedWithUnits(gifted, category, {unitType})
+    : null;
 
   const paygSpend = metricHistory.onDemandSpendUsed ?? 0;
   const paygCategoryBudget = metricHistory.onDemandBudget ?? 0;

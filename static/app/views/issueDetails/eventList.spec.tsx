@@ -4,8 +4,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, renderHook, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHook,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import type {RequestOptions} from 'sentry/api';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
@@ -76,14 +83,8 @@ describe('EventList', () => {
     });
   });
 
-  function renderAllEvents() {
-    render(<EventList group={group} />, {
-      initialRouterConfig,
-    });
-  }
-
   it('renders the list using a discover event query', async () => {
-    renderAllEvents();
+    render(<EventList group={group} />, {initialRouterConfig});
     const {result} = renderHook(() => useEventColumns(group, organization));
 
     expect(await screen.findByText('All Events')).toBeInTheDocument();
@@ -121,34 +122,115 @@ describe('EventList', () => {
     }
   });
 
-  it('updates query from location param change', async () => {
-    const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
-    const locationQuery = {
-      query: {
-        query: `${tagKey}:${tagValue}`,
-      },
+  it.each(['user.email:user@example.com', 'tag_a:1 OR tag_b:2', 'tag_b:2 OR tag_a:1'])(
+    'scopes the event and count queries to the issue for "%s"',
+    async query => {
+      render(<EventList group={group} />, {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {query},
+          },
+        },
+      });
+
+      const expectedArgs = [
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: `${persistantQuery} (${query})`,
+          }),
+        }),
+      ];
+
+      await waitFor(() => {
+        expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
+        expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
+      });
+    }
+  );
+
+  it('shows and retries a failed event request without clearing filters', async () => {
+    const match = [
+      (_url: string, options: RequestOptions) =>
+        options.query?.field?.includes('user.display'),
+    ];
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      match,
+      statusCode: 500,
+      body: {detail: 'Unable to load events.'},
+    });
+    const query = {
+      query: 'release:1.0',
+      environment: 'production',
+      statsPeriod: '7d',
+      sort: 'timestamp',
+      cursor: '2:0:0',
     };
-    render(<EventList group={group} />, {
+    const {router} = render(<EventList group={group} />, {
       initialRouterConfig: {
         ...initialRouterConfig,
-        location: {
-          ...initialRouterConfig.location,
-          query: locationQuery.query,
-        },
+        location: {...initialRouterConfig.location, query},
       },
     });
 
-    const expectedArgs = [
+    expect(await screen.findByText('Unable to load events.')).toBeInTheDocument();
+    const retryRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      match,
+      body: {data: MOCK_EVENTS_TABLE_DATA},
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(
+      await screen.findByText(
+        `Showing 1-${MOCK_EVENTS_TABLE_DATA.length} of ${totalCount} matching events`
+      )
+    ).toBeInTheDocument();
+    expect(router.location.query).toEqual(query);
+    expect(retryRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: [persistantQuery, locationQuery.query.query].join(' '),
+          query: `${persistantQuery} (release:1.0)`,
+          environment: ['production'],
+          statsPeriod: '7d',
+          sort: 'timestamp',
+          cursor: '2:0:0',
         }),
-      }),
-    ];
-    await waitFor(() => {
-      expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
+      })
+    );
+  });
+
+  it('shows the HTTP error message when a failed count request has no detail', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      match: [(_url, options) => options.query?.field?.includes('count()')],
+      statusCode: 503,
+      body: {},
     });
-    expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
+    render(<EventList group={group} />, {initialRouterConfig});
+
+    expect(
+      await screen.findByText(
+        'The server is temporarily unavailable. Please try again in a few moments.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
+  it('keeps the empty state for a successful query with no events', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    render(<EventList group={group} />, {initialRouterConfig});
+
+    expect(
+      await screen.findByText('No results found for your query')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
   });
 });

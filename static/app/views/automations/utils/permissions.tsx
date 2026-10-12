@@ -14,6 +14,10 @@ export function hasOrganizationAutomationWriteAccess(
   return hasEveryAccess(['alerts:write'], {organization});
 }
 
+export function hasAllProjectsAutomationWriteAccess(organization: Organization): boolean {
+  return hasEveryAccess(['org:write'], {organization});
+}
+
 /** Checks alert write access through the project or its organization. */
 export function hasAutomationWriteAccess({
   organization,
@@ -56,7 +60,7 @@ export function canConnectAutomationToDetector({
 }): boolean {
   // Global monitor connections require more than alert write access.
   if (detector.projectId === null) {
-    return hasEveryAccess(['org:write'], {organization});
+    return hasAllProjectsAutomationWriteAccess(organization);
   }
 
   return project

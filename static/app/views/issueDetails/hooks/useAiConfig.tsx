@@ -2,6 +2,7 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {areAiFeaturesAllowed as computeAreAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
@@ -34,8 +35,7 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const areAiFeaturesAllowed =
-    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
+  const areAiFeaturesAllowed = computeAreAiFeaturesAllowed(organization);
 
   const isSummaryEnabled = issueTypeConfig.issueSummary.enabled;
   const isAutofixEnabled = issueTypeConfig.autofix;

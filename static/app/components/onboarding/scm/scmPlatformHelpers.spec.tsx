@@ -27,9 +27,18 @@ describe('platformOptionGroups', () => {
     );
   });
 
-  it('keeps every platform exactly once across sections', () => {
+  it('leaves hidden platforms out of the dropdown', () => {
+    expect(
+      otherGroup!.options.some(option => option.value === 'node-cloudflare-pages')
+    ).toBe(false);
+    expect(
+      platformOptions.filter(option => option.label === 'Cloudflare (Node)')
+    ).toHaveLength(1);
+  });
+
+  it('keeps every offered platform exactly once across sections', () => {
     const values = platformOptions.map(option => option.value);
     expect(new Set(values).size).toBe(values.length);
-    expect(values).toHaveLength(platforms.length);
+    expect(values).toHaveLength(platforms.filter(platform => !platform.hidden).length);
   });
 });

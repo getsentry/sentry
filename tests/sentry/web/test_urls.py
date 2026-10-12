@@ -21,6 +21,23 @@ class ApiDocsRedirectTest(TestCase):
 
 
 @control_silo_test
+class ChangePasswordRedirectTest(TestCase):
+    def test_anonymous(self) -> None:
+        response = self.client.get("/.well-known/change-password")
+
+        assert response.status_code == 302
+        assert response["Location"] == reverse("sentry-account-settings-security")
+
+    def test_authenticated(self) -> None:
+        self.login_as(self.user)
+
+        response = self.client.get(reverse("sentry-change-password-redirect"))
+
+        assert response.status_code == 302
+        assert response["Location"] == reverse("sentry-account-settings-security")
+
+
+@control_silo_test
 class StorybookRoutesTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

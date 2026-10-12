@@ -15,7 +15,6 @@ from sentry.explore.translation.dashboards_translation import translate_dashboar
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardHiddenUser,
     DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -2039,7 +2038,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Invalid conditions" in response.content
 
-    def test_update_widget_with_thresholds_and_preferred_polarity(self) -> None:
+    def test_update_widget_with_thresholds_preferred_polarity_and_time_window(self) -> None:
         data = {
             "title": "Dashboard",
             "widgets": [
@@ -2051,6 +2050,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         "max_values": {"max1": 100, "max2": 200},
                         "unit": "count",
                         "preferred_polarity": "+",
+                        "timeWindow": "10m",
                     },
                     "queries": [
                         {
@@ -2071,6 +2071,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "max_values": {"max1": 100, "max2": 200},
             "unit": "count",
             "preferredPolarity": "+",
+            "timeWindow": "10m",
         }
 
         widget = DashboardWidget.objects.get(id=self.widget_1.id)
@@ -2078,6 +2079,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "max_values": {"max1": 100, "max2": 200},
             "unit": "count",
             "preferred_polarity": "+",
+            "time_window": "10m",
         }
 
     def test_update_widget_with_invalid_preferred_polarity(self) -> None:
@@ -2110,6 +2112,37 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert (
             response.data["widgets"][0]["thresholds"]["preferredPolarity"]
             == "Must be '+', '-', or empty string."
+        )
+
+    def test_update_widget_with_invalid_threshold_time_window(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Line Chart with Invalid Threshold Time Window",
+                    "displayType": "line",
+                    "thresholds": {
+                        "max_values": {"max1": 100, "max2": 200},
+                        "unit": "count",
+                        "timeWindow": "invalid",
+                    },
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["thresholds"]["timeWindow"] == (
+            "Time window must be a positive stats period, such as '5m', '1h', or '1d'."
         )
 
     def test_update_widget_with_axis_range(self) -> None:
@@ -4934,80 +4967,6 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
         )
         assert response.status_code == 204
         assert self.user_2.id not in self.dashboard.favorited_by
-
-
-class OrganizationDashboardHiddenTest(OrganizationDashboardDetailsTestCase):
-    def url(self, dashboard_id):
-        return reverse(
-            "sentry-api-0-organization-dashboard-hidden",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "dashboard_id": dashboard_id,
-            },
-        )
-
-    def test_hide_dashboard(self) -> None:
-        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldHide": True})
-        assert response.status_code == 204
-        assert DashboardHiddenUser.objects.filter(
-            user_id=self.user.id, dashboard=self.dashboard
-        ).exists()
-
-    def test_hide_already_hidden_dashboard(self) -> None:
-        self.create_dashboard_hidden_user(dashboard=self.dashboard, user=self.user)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldHide": True})
-        assert response.status_code == 204
-        assert (
-            DashboardHiddenUser.objects.filter(
-                user_id=self.user.id, dashboard=self.dashboard
-            ).count()
-            == 1
-        )
-
-    def test_unhide_dashboard(self) -> None:
-        other_user = self.create_user()
-        self.create_member(user=other_user, organization=self.organization)
-        self.create_dashboard_hidden_user(dashboard=self.dashboard, user=self.user)
-        self.create_dashboard_hidden_user(dashboard=self.dashboard, user=other_user)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldHide": False})
-        assert response.status_code == 204
-        assert not DashboardHiddenUser.objects.filter(
-            user_id=self.user.id, dashboard=self.dashboard
-        ).exists()
-        assert DashboardHiddenUser.objects.filter(
-            user_id=other_user.id, dashboard=self.dashboard
-        ).exists()
-
-    def test_hide_prebuilt_dashboard(self) -> None:
-        prebuilt = Dashboard.objects.create(
-            title="Prebuilt", organization=self.organization, prebuilt_id=1
-        )
-        response = self.do_request("put", self.url(prebuilt.id), data={"shouldHide": True})
-        assert response.status_code == 204
-        assert DashboardHiddenUser.objects.filter(user_id=self.user.id, dashboard=prebuilt).exists()
-
-    def test_hide_dashboard_without_edit_permissions(self) -> None:
-        other_user = self.create_user()
-        self.create_member(user=other_user, organization=self.organization)
-        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
-        self.login_as(user=other_user)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldHide": True})
-        assert response.status_code == 204
-        assert DashboardHiddenUser.objects.filter(
-            user_id=other_user.id, dashboard=self.dashboard
-        ).exists()
-
-    def test_hide_dashboard_missing_should_hide(self) -> None:
-        response = self.do_request("put", self.url(self.dashboard.id), data={})
-        assert response.status_code == 400
-        assert not DashboardHiddenUser.objects.filter(dashboard=self.dashboard).exists()
-
-    def test_hide_dashboard_from_other_organization(self) -> None:
-        other_org = self.create_organization()
-        other_dashboard = self.create_dashboard(organization=other_org)
-        response = self.do_request("put", self.url(other_dashboard.id), data={"shouldHide": True})
-        assert response.status_code == 404
-        assert not DashboardHiddenUser.objects.filter(dashboard=other_dashboard).exists()
 
 
 class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTestCase):

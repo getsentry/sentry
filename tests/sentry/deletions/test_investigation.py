@@ -6,9 +6,11 @@ from sentry.investigations.models import (
     InvestigationBlockExecution,
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
+    InvestigationComment,
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationProject,
+    InvestigationSeen,
 )
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
@@ -28,6 +30,7 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
         self.favorite = self.create_investigation_favorite(
             investigation=self.investigation, user=self.user
         )
+        self.seen = self.create_investigation_seen(investigation=self.investigation, user=self.user)
 
         self.parameter = self.create_investigation_parameter(
             investigation=self.investigation,
@@ -46,6 +49,12 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
         )
         self.block_parameter = self.create_investigation_block_parameter(
             block=self.block, parameter=self.parameter
+        )
+        self.comment = self.create_investigation_comment(
+            investigation=self.investigation, author=self.user
+        )
+        self.block_comment = self.create_investigation_comment(
+            investigation=self.investigation, author=self.user, block=self.block
         )
 
         self.execution = self.create_investigation_block_execution(
@@ -67,6 +76,10 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not Investigation.objects.filter(id=self.investigation.id).exists()
         assert not InvestigationProject.objects.filter(id=self.investigation_project.id).exists()
         assert not InvestigationFavoriteUser.objects.filter(id=self.favorite.id).exists()
+        assert not InvestigationSeen.objects.filter(id=self.seen.id).exists()
+        assert not InvestigationComment.objects.filter(
+            id__in=[self.comment.id, self.block_comment.id]
+        ).exists()
         assert not InvestigationParameter.objects.filter(id=self.parameter.id).exists()
         assert not InvestigationBlock.objects.filter(
             id__in=[self.block.id, self.upstream_block.id]

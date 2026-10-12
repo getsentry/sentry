@@ -1,13 +1,16 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-import {useMatches} from 'react-router-dom';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  type ReactNode,
+  type RefObject,
+} from 'react';
+import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
-import type {LocationDescriptor} from 'history';
-import queryString from 'query-string';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
-import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
@@ -15,17 +18,13 @@ import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
-import {resolveLink, subjectFromToolLink} from 'sentry/views/seerExplorer/links';
 import type {
   Artifact,
   Block,
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
-  ToolCall,
   ToolLink,
-  ToolResult,
 } from 'sentry/views/seerExplorer/types';
 
 /**
@@ -58,7 +57,7 @@ export const makeSeerExplorerQueryKey = (
  * Registry of custom tool formatters.
  * Add new tools here to customize their display.
  */
-const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
+export const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   telemetry_index_list_nodes: (args, isLoading) => {
     const keyword = args.keyword || 'items';
     return isLoading ? `Scanning for ${keyword}...` : `Scanned for ${keyword}`;
@@ -77,10 +76,11 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   telemetry_live_search: (args, isLoading, resultMetadata) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
-    const projectSlugs = args.project_slugs;
+    const projectSlugs: string[] = args.project_slugs
+      ? ([] as string[]).concat(args.project_slugs)
+      : [];
 
-    const projectInfo =
-      projectSlugs && projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
+    const projectInfo = projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
 
     if (dataset === 'issues') {
       return isLoading
@@ -447,55 +447,6 @@ export function getToolsStringFromBlock(block: Block): string[] {
   return tools;
 }
 
-export function getValidToolLinks(
-  tool_links: Array<ToolLink | null>,
-  tool_results: Array<ToolResult | null>,
-  tool_calls: ToolCall[],
-  organization: Organization,
-  projects?: Array<{id: string; slug: string}>
-) {
-  // Get valid tool links sorted by their corresponding tool call indices
-  // Also create a mapping from tool call index to sorted link index
-  const mappedLinks = tool_links
-    .map((link, idx) => {
-      if (!link) {
-        return null;
-      }
-
-      // Don't show links for tools that returned errors, but do show for empty results
-      if (link.params?.is_error === true) {
-        return null;
-      }
-
-      // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
-      const toolCallId = tool_results[idx]?.tool_call_id;
-      const toolCallIndex = toolCallId
-        ? tool_calls.findIndex(call => call.id === toolCallId)
-        : -1;
-      const canBuildUrl =
-        resolveLink(subjectFromToolLink(link), {organization, projects})?.url !==
-        undefined;
-
-      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
-        return {link, toolCallIndex};
-      }
-      return null;
-    })
-    .filter(item => item !== null)
-    .sort((a, b) => a.toolCallIndex - b.toolCallIndex);
-
-  // Create mapping from tool call index to sorted link index
-  const toolCallToLinkMap = new Map<number, number>();
-  mappedLinks.forEach((item, sortedIndex) => {
-    toolCallToLinkMap.set(item.toolCallIndex, sortedIndex);
-  });
-
-  return {
-    sortedToolLinks: mappedLinks.map(item => item.link),
-    toolCallToLinkIndexMap: toolCallToLinkMap,
-  };
-}
-
 /**
  * Returns a callback to get the route string (normalized path) of the current page for analytics, e.g. /issues/:groupId/.
  * This callback is stable to avoid triggering analytics and re-renders when the location changes.
@@ -516,136 +467,6 @@ export function usePageReferrer(): {getPageReferrer: () => string} {
   return {getPageReferrer};
 }
 
-export function useCopySessionDataToClipboard({
-  blocks,
-  status,
-  organization,
-  projects,
-  enabled,
-}: {
-  blocks: Block[] | undefined;
-  enabled: boolean;
-  organization: Organization | null;
-  status: string | undefined;
-  projects?: Array<{id: string; slug: string}>;
-}) {
-  const [isError, setIsError] = useState(false);
-
-  const copySessionToClipboard = useCallback(async () => {
-    if (!enabled || !organization) {
-      return;
-    }
-    setIsError(false);
-    try {
-      const text = blocks
-        ? formatSessionData(blocks, organization, projects)
-        : `No data available. Status: ${status ?? 'unknown'}`;
-      await navigator.clipboard.writeText(text);
-      addSuccessMessage('Copied conversation to clipboard');
-    } catch (err) {
-      setIsError(true);
-      addErrorMessage('Failed to copy conversation to clipboard');
-    }
-
-    trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});
-  }, [enabled, blocks, status, organization, projects]);
-
-  return {copySessionToClipboard, isError};
-}
-
-function formatSessionData(
-  blocks: Block[],
-  organization: Organization,
-  projects?: Array<{id: string; slug: string}>
-): string {
-  const formatBlock = (block: Block): string => {
-    const {message, timestamp, tool_links, tool_results} = block;
-
-    const {content: messageContent, role, tool_calls, thinking_content} = message;
-
-    const {sortedToolLinks, toolCallToLinkIndexMap} = getValidToolLinks(
-      tool_links || [],
-      tool_results || [],
-      tool_calls || [],
-      organization,
-      projects
-    );
-
-    const toolCallsWithLinks: Array<{
-      metadata: Record<string, any> | null;
-      tool_call: ToolCall;
-      url: string | null;
-    }> = (tool_calls || []).map((tool_call, idx) => {
-      // Build URL if a valid tool link exists for this call.
-      const validLinkIdx = toolCallToLinkIndexMap.get(idx);
-      const validLink =
-        validLinkIdx === undefined ? null : (sortedToolLinks[validLinkIdx] ?? null);
-      const location = validLink
-        ? (resolveLink(subjectFromToolLink(validLink), {organization, projects})?.url ??
-          null)
-        : null;
-      const url = location ? locationToUrl(location) : null;
-
-      // Get metadata from raw tool_links array.
-      const metadata = tool_links?.[idx]?.params || null;
-
-      return {metadata, tool_call, url};
-    });
-
-    const lines: string[] = [];
-    lines.push(`# ${role.toUpperCase()} ${timestamp}`);
-    if (messageContent) {
-      lines.push(messageContent);
-    }
-    if (thinking_content) {
-      lines.push('', '## THINKING CONTENT', thinking_content);
-    }
-
-    if (toolCallsWithLinks.length > 0) {
-      lines.push('', '## TOOL CALLS');
-      toolCallsWithLinks.forEach((item, idx) => {
-        const isError = !!item.metadata?.is_error;
-        const emptyResults = !!item.metadata?.empty_results;
-        const status = isError ? 'ERRORED' : emptyResults ? 'EMPTY RESULTS' : 'SUCCESS';
-
-        lines.push(
-          `${item.tool_call.function} (${status})${item.tool_call.id ? ` (${item.tool_call.id})` : ''}:`,
-          `args: ${item.tool_call.args}`
-        );
-        if (item.url) {
-          lines.push(`URL: ${item.url}`);
-        }
-
-        if (idx < toolCallsWithLinks.length - 1) {
-          lines.push('');
-        }
-      });
-    }
-    lines.push('');
-    return lines.join('\n');
-  };
-
-  return blocks
-    .map(block => formatBlock(block))
-    .join('\n--------------------------------------------------\n\n');
-}
-
-function locationToUrl(location: LocationDescriptor): string | null {
-  if (typeof location === 'string') {
-    const hasOrigin = /^https?:\/\//.test(location);
-    return hasOrigin ? location : `${window.location.origin}${location}`;
-  }
-
-  const {pathname = '', hash, query} = location;
-  const base = `${window.location.origin}${pathname}`;
-
-  const queryPart = query ? `?${queryString.stringify(query)}` : '';
-
-  const hashPart = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
-
-  return `${base}${queryPart}${hashPart}`;
-}
-
 const RUN_ID_QUERY_PARAM = 'explorerRunId';
 const RESUME_RUN_QUERY_PARAM = 'explorerRunResume';
 
@@ -656,8 +477,32 @@ export function parseRunIdParam(value: string): SeerExplorerRunId | null {
   return isUUID(value) ? value : null;
 }
 
+const SeerExplorerDeepLinkParamContext = createContext<RefObject<
+  string | undefined
+> | null>(null);
+
 /**
- * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
+ * Holds the last run ID query param value seen by any `useSeerExplorerDeepLink` listener. The
+ * listeners mount and remount independently (the provider, the drawer, the sidebar, the popped-out
+ * window), so tracking it per listener would make a freshly mounted one treat an already-handled
+ * param as a new link, e.g. switching back to the linked run right after starting a new chat.
+ */
+export function SeerExplorerDeepLinkParamProvider({children}: {children: ReactNode}) {
+  const lastSeenParamRef = useRef<string | undefined>(undefined);
+  return (
+    <SeerExplorerDeepLinkParamContext.Provider value={lastSeenParamRef}>
+      {children}
+    </SeerExplorerDeepLinkParamContext.Provider>
+  );
+}
+
+/**
+ * useEffect which listens for the run ID query param in the current location and runs a callback
+ * whenever its value changes. The param is left in the URL so the link stays shareable and
+ * survives a reload.
+ *
+ * Values seen while disabled are still recorded, so re-enabling (e.g. closing the drawer) doesn't
+ * re-open a run that was already handled.
  */
 export function useSeerExplorerDeepLink({
   callback,
@@ -667,27 +512,79 @@ export function useSeerExplorerDeepLink({
   enabled?: boolean;
 }) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const sharedLastSeenParamRef = useContext(SeerExplorerDeepLinkParamContext);
+  const ownLastSeenParamRef = useRef<string | undefined>(undefined);
+  const lastSeenParamRef = sharedLastSeenParamRef ?? ownLastSeenParamRef;
 
   useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-
     const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
-    if (!paramValue || typeof paramValue !== 'string') {
+    const value = typeof paramValue === 'string' ? paramValue : undefined;
+    if (value === lastSeenParamRef.current) {
+      return;
+    }
+    lastSeenParamRef.current = value;
+
+    if (!enabled || !value) {
       return;
     }
 
-    const runId = parseRunIdParam(paramValue);
+    const runId = parseRunIdParam(value);
     if (runId === null) {
       return;
     }
 
-    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
-    navigate({...location, query: restQuery}, {replace: true});
     callback(runId);
-  }, [location, navigate, callback, enabled]);
+  }, [location, callback, enabled, lastSeenParamRef]);
+}
+
+/**
+ * Returns a callback that removes the run ID query param from the current URL, if it's there.
+ * Pushes a history entry, so browser back returns to the URL with the chat open.
+ */
+export function useRemoveSeerExplorerRunIdParam() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  return useCallback(() => {
+    if (location.query?.[RUN_ID_QUERY_PARAM] === undefined) {
+      return;
+    }
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query;
+    navigate({...location, query: restQuery});
+  }, [location, navigate]);
+}
+
+/**
+ * Keeps the run ID query param in sync with the active run, but only when the param is already in
+ * the URL (i.e. the page was opened from a chat link). Switching runs rewrites the param; starting
+ * a new chat removes it, since there is no run to link to yet.
+ */
+export function useSyncSeerExplorerRunIdToUrl(runId: SeerExplorerRunId | null) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const prevRunIdRef = useRef(runId);
+
+  useEffect(() => {
+    // Only react to run changes. Syncing on mount would overwrite an incoming deep link with the
+    // previously active run before the deep link is handled.
+    if (prevRunIdRef.current === runId) {
+      return;
+    }
+    prevRunIdRef.current = runId;
+
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (paramValue === undefined || paramValue === String(runId)) {
+      return;
+    }
+
+    // Push rather than replace, so the browser back button returns to the previous
+    // conversation (the deep link listener switches to it when the param changes).
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
+    navigate({
+      ...location,
+      query: runId === null ? restQuery : {...restQuery, [RUN_ID_QUERY_PARAM]: runId},
+    });
+  }, [runId, location, navigate]);
 }
 
 /**
@@ -765,38 +662,6 @@ export function getExplorerFeedbackOptions(
 }
 
 /**
- * Checks if Seer Explorer is enabled for the organization.
- * Requires the rollout flag and:
- * - 'gen-ai-features' feature flag
- * - Organization has not disabled open membership
- * - Organization has not disabled AI features (hideAiFeatures is false)
- */
-export function isSeerExplorerEnabled(organization: Organization | null): boolean {
-  if (!organization) {
-    return false;
-  }
-
-  return (
-    organization.openMembership &&
-    !organization.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('seer-explorer')
-  );
-}
-
-/**
- * Whether Seer Explorer should render as a persistent, resizable split-panel
- * sidebar instead of an overlay drawer.
- */
-export function useIsSeerExplorerSidebarEnabled(): boolean {
-  const organization = useOrganization({allowNull: true});
-  return (
-    isSeerExplorerEnabled(organization) &&
-    !!organization?.features.includes('seer-explorer-persistent-sidebar')
-  );
-}
-
-/**
  * localStorage keys for Seer's persisted size in the sidebar split, one per dock
  * orientation (width when docked right, height when docked bottom). We persist
  * *Seer's* size — which is viewport-independent — rather than the content pane's,
@@ -839,21 +704,25 @@ export function getSeerExplorerAnalyticsBrowserSize(): {
 type SeerExplorerSidebarOrientation = 'right' | 'bottom';
 
 /**
- * Resolves the dock preference to a concrete orientation. `auto` docks right on
- * wide viewports (≥ `xl`) and on short landscape viewports (e.g. phones in
- * landscape), and bottom otherwise. Shared by the layout (to lay out the split)
- * and the provider (to persist the popped-out window's size to the right key).
+ * Resolves the dock preference to a concrete orientation. `auto` docks right
+ * whenever the split container is wide enough to fit both panes side by side
+ * (`fitsSideBySide`), and on short landscape viewports (e.g. phones in
+ * landscape) where a bottom dock has no room; bottom otherwise.
+ *
+ * `fitsSideBySide` is measured on the container that wraps *both* the app and
+ * Seer, not on the app pane (`#main`): the app pane shrinks when Seer docks
+ * right, so gating on its width would flip the dock back and forth.
  */
 export function useSeerExplorerSidebarOrientation(
-  sidebarPosition: SeerExplorerSidebarPosition
+  sidebarPosition: SeerExplorerSidebarPosition,
+  fitsSideBySide: boolean
 ): SeerExplorerSidebarOrientation {
   const theme = useTheme();
-  const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
   const isShortLandscape = useMedia(
     `(orientation: landscape) and (max-height: ${theme.breakpoints.xs})`
   );
   if (sidebarPosition === 'auto') {
-    return isWideScreen || isShortLandscape ? 'right' : 'bottom';
+    return fitsSideBySide || isShortLandscape ? 'right' : 'bottom';
   }
   return sidebarPosition;
 }

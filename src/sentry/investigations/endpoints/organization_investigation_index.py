@@ -14,8 +14,8 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
+    organization_project_ids,
     require_authenticated_user,
-    require_investigation_project_access,
     service_error,
     user_id,
 )
@@ -77,9 +77,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             on_results=lambda values: serialize(
                 list(values),
                 request.user,
-                InvestigationSerializer(
-                    accessible_project_ids=request.access.accessible_project_ids
-                ),
+                InvestigationSerializer(),
             ),
         )
 
@@ -89,7 +87,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         values = validator.validated_data
-        project_ids = request.access.accessible_project_ids
+        project_ids = organization_project_ids(organization)
         try:
             if "source" in values and "template_key" not in values:
                 source = values["source"]
@@ -116,8 +114,6 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                         project_ids=requested_project_ids,
                         filters=values.get("filters", {}),
                     )
-                    if not created:
-                        require_investigation_project_access(investigation, project_ids)
                 else:
                     if not set(requested_project_ids).issubset(project_ids):
                         return Response(
@@ -145,8 +141,6 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                         accessible_project_ids=project_ids,
                         title=values.get("title"),
                     )
-                    if not created:
-                        require_investigation_project_access(investigation, project_ids)
                     schedule_eligible_auto_run_blocks(
                         investigation_id=investigation.id,
                         user_id=user_id(request),
@@ -177,7 +171,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             serialize(
                 investigation,
                 request.user,
-                InvestigationDetailsSerializer(accessible_project_ids=project_ids),
+                InvestigationDetailsSerializer(),
             ),
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )

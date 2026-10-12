@@ -1,14 +1,15 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconLink} from '@sentry/icons/link';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {frontend} from 'sentry/data/platformCategories';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 const URL_NOT_FOUND = t('URL not found');
 
@@ -35,7 +36,7 @@ export function FeedbackUrl({eventData, feedbackItem}: Props) {
 
   const urlIsExpected = eventData?.contexts?.feedback || eventData?.tags;
   const displayUrl = urlIsExpected ? String(url ?? URL_NOT_FOUND) : undefined;
-  const urlIsLink = displayUrl && displayUrl !== URL_NOT_FOUND;
+  const linkUrl = displayUrl && isValidUrl(displayUrl) ? displayUrl : undefined;
   return (
     <FeedbackItemSection
       collapsible
@@ -45,13 +46,13 @@ export function FeedbackUrl({eventData, feedbackItem}: Props) {
     >
       <StyledTextCopyInput
         style={
-          urlIsLink ? {cursor: 'pointer', color: theme.tokens.content.accent} : undefined
+          linkUrl ? {cursor: 'pointer', color: theme.tokens.content.accent} : undefined
         }
         onClick={
-          urlIsLink
+          linkUrl
             ? e => {
                 e.preventDefault();
-                openNavigateToExternalLinkModal({linkText: displayUrl});
+                openNavigateToExternalLinkModal({linkText: linkUrl});
               }
             : () => {}
         }

@@ -2,34 +2,23 @@ import {useEffect} from 'react';
 
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ONBOARDING_WELCOME_SCREEN_SOURCE} from 'sentry/views/onboarding/consts';
 
 export function useWelcomeAnalyticsEffect({showAgentSetup}: {showAgentSetup: boolean}) {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
-  const {inExperiment: hasScmOnboarding} = useExperiment({
-    feature: 'onboarding-scm-experiment',
-    reportExposure: false,
-  });
 
   // Kept separate from the cleanup below: the onboarding context value changes
   // identity whenever session state is written, so sharing an effect would let
   // the cleanup re-fire this event.
   useEffect(() => {
-    if (hasScmOnboarding) {
-      trackAnalytics('onboarding.scm_welcome_step_viewed', {organization});
-      if (showAgentSetup) {
-        trackAnalytics('onboarding.scm_welcome_agentic_setup_viewed', {organization});
-      }
-    } else {
-      trackAnalytics('growth.onboarding_start_onboarding', {
+    trackAnalytics('onboarding.scm_welcome_step_viewed', {organization});
+    if (showAgentSetup) {
+      trackAnalytics('onboarding.scm_welcome_agentic_setup_viewed', {
         organization,
-        source: ONBOARDING_WELCOME_SCREEN_SOURCE,
       });
     }
-  }, [organization, hasScmOnboarding, showAgentSetup]);
+  }, [organization, showAgentSetup]);
 
   useEffect(() => {
     // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too

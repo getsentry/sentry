@@ -38,8 +38,6 @@ type EmailRenderable = EmailMultiAlternatives
 
 
 class EmailRenderer(NotificationRenderer[EmailRenderable]):
-    provider_key = NotificationProviderKey.EMAIL
-
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
@@ -49,6 +47,10 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
 
         # Email doesn't support rich text in subjects (obviously, lol)
         subject = rendered_template.subject_text
+        if rendered_template.email_subject_prefix is not None:
+            subject = f"{rendered_template.email_subject_prefix}{subject}"
+        # Avoid BadHeaderError while preserving text from multi-line subjects.
+        subject = " ".join(subject.splitlines())
         footer_html = mark_safe(
             cls.render_text_blocks_to_html_string(rendered_template.footer_blocks)
         )
@@ -75,7 +77,11 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
             context=txt_email_context,
         )
         # Required by RFC 2822 (https://www.rfc-editor.org/rfc/rfc2822.html)
-        headers = {"Message-Id": make_msgid(domain=get_from_email_domain())}
+        headers = dict(rendered_template.email_headers or {})
+        headers.setdefault("Message-Id", make_msgid(domain=get_from_email_domain()))
+        if options.get("mail.enable-replies") and "X-Sentry-Reply-To" in headers:
+            headers["Reply-To"] = headers["X-Sentry-Reply-To"]
+
         email = EmailMultiAlternatives(
             subject=subject,
             body=txt_body,

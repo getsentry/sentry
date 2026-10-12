@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.grouplink import GroupLink
@@ -175,9 +176,9 @@ def _doc_suite(
 @with_feature(
     [
         "organizations:pr-metrics",
-        "organizations:gen-ai-features",
     ]
 )
+@override_settings(SENTRY_SELF_HOSTED=False)
 class PrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -1697,9 +1698,9 @@ EXTERNAL_ID = "556677"
 @with_feature(
     [
         "organizations:pr-metrics",
-        "organizations:gen-ai-features",
     ]
 )
+@override_settings(SENTRY_SELF_HOSTED=False)
 class MultiOrgEmissionDedupeTest(TestCase):
     """A provider PR shared across orgs fans out to one tracked row per org; only
     the canonical (run's-org) row should emit."""
@@ -1826,9 +1827,9 @@ class MultiOrgEmissionDedupeTest(TestCase):
 @with_feature(
     [
         "organizations:pr-metrics",
-        "organizations:gen-ai-features",
     ]
 )
+@override_settings(SENTRY_SELF_HOSTED=False)
 class DeduplicationKeyTest(TestCase):
     """The same provider PR, fanned out to one row per org, must build the same
     opaque deduplication_key so a consumer can collapse them."""

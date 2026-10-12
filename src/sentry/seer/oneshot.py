@@ -47,11 +47,13 @@ def call_seer_oneshot(
     """Dispatch a single synchronous Seer task and return its parsed JSON body.
 
     This is the shared boilerplate behind the one-shot style Seer calls: it
-    builds viewer context from ``organization`` (plus an optional ``user_id``),
-    invokes ``make_request`` with the default timeout, and on a non-2xx response
-    increments ``error_metric`` (merging ``error_metric_tags`` with the response
-    ``status``) before raising :class:`SeerApiError`. On success it returns the
-    decoded JSON object; callers shape it into their own result contract.
+    supplies legacy viewer metadata from ``organization`` (plus an optional
+    ``user_id``), invokes ``make_request`` with the default timeout, and on a
+    non-2xx response increments ``error_metric`` (merging ``error_metric_tags``
+    with the response ``status``) before raising :class:`SeerApiError`. On
+    success it returns the decoded JSON object; callers shape it into their own
+    result contract. The caller is responsible for establishing the ambient
+    ``ViewerContext`` at its request, consumer, or task boundary.
 
     Seer task endpoints require viewer context with an organization, so
     ``organization`` is mandatory.

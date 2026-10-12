@@ -5,11 +5,12 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
+  getSavedQueryDatasetLabel,
+  isExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
@@ -25,8 +26,6 @@ function ExploreSecondaryNavigationImpl() {
     starred: true,
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
-
-  const discoverTransactionsDeprecation = getDiscoverDeprecation(organization);
 
   // Mirrors the <Feature> gates below so the reported nav items match what's
   // actually rendered — including any beta/new/alpha badge shown on them.
@@ -51,10 +50,8 @@ function ExploreSecondaryNavigationImpl() {
   }
   if (organization.features.includes('discover-basic')) {
     navItems.push({
-      label: discoverTransactionsDeprecation ? 'Errors' : 'Discover',
-      to: discoverTransactionsDeprecation
-        ? `${baseUrl}/errors/homepage/`
-        : `${baseUrl}/discover/homepage/`,
+      label: 'Errors',
+      to: `${baseUrl}/errors/`,
     });
   }
   if (organization.features.includes('profiling')) {
@@ -74,7 +71,7 @@ function ExploreSecondaryNavigationImpl() {
   if (organization.openMembership && organization.features.includes('investigations')) {
     navItems.push({
       label: 'Investigations',
-      badge: 'beta',
+      badge: 'alpha',
       to: `${baseUrl}/investigations/`,
     });
   }
@@ -88,7 +85,10 @@ function ExploreSecondaryNavigationImpl() {
     starredQueries: (starredQueries ?? []).map(query => ({
       id: query.id,
       name: query.name,
-      dataset: query.dataset,
+      dataset: isExploreSavedQuery(query)
+        ? getSavedQueryDatasetLabel(query.dataset)
+        : 'Errors',
+      queryType: query.queryType,
     })),
   });
 
@@ -148,19 +148,11 @@ function ExploreSecondaryNavigationImpl() {
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={
-                    discoverTransactionsDeprecation
-                      ? `${baseUrl}/errors/`
-                      : `${baseUrl}/discover/homepage/`
-                  }
-                  activeTo={
-                    discoverTransactionsDeprecation
-                      ? `${baseUrl}/errors/`
-                      : `${baseUrl}/discover/`
-                  }
+                  to={`${baseUrl}/errors/`}
+                  activeTo={`${baseUrl}/errors/`}
                   analyticsItemName="explore_discover"
                 >
-                  {discoverTransactionsDeprecation ? t('Errors') : t('Discover')}
+                  {t('Errors')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
@@ -224,7 +216,7 @@ function ExploreSecondaryNavigationImpl() {
                     to={`${baseUrl}/investigations/`}
                     activeTo={`${baseUrl}/investigations/`}
                     analyticsItemName="explore_investigations"
-                    trailingItems={<FeatureBadge type="beta" />}
+                    trailingItems={<FeatureBadge type="alpha" />}
                   >
                     {t('Investigations')}
                   </SecondaryNavigation.Link>

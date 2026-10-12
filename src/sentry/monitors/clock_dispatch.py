@@ -11,6 +11,7 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -62,16 +63,46 @@ def record_pulse_partitions(pulse: ClockPulse) -> None:
         _partition_set_state.expected_partitions = frozenset(pulse["partition_ids"])
 
 
-def _record_partition_set_metrics(partition_clocks: list[tuple[str, float]]) -> None:
+def _missing_partitions(partition_clocks: list[tuple[str, float]]) -> frozenset[int] | None:
     expected_partitions = _partition_set_state.expected_partitions
 
     if expected_partitions is None:
-        return
+        return None
 
     present_members = {member for member, _ in partition_clocks}
-    missing_count = sum(
-        1 for partition in expected_partitions if f"part-{partition}" not in present_members
+    return frozenset(
+        partition for partition in expected_partitions if f"part-{partition}" not in present_members
     )
+
+
+def _unexpected_members(partition_clocks: list[tuple[str, float]]) -> frozenset[str] | None:
+    """
+    Members of the partition clock set that the most recent clock pulse did not name.
+    """
+    expected_partitions = _partition_set_state.expected_partitions
+
+    if expected_partitions is None:
+        return None
+
+    expected_members = {f"part-{partition}" for partition in expected_partitions}
+    return frozenset(member for member, _ in partition_clocks if member not in expected_members)
+
+
+def _record_partition_set_metrics(
+    missing_partitions: frozenset[int] | None,
+    unexpected_members: frozenset[str] | None,
+) -> None:
+    if unexpected_members is not None:
+        metrics.gauge(
+            "monitors.task.clock_unexpected_partitions",
+            len(unexpected_members),
+            sample_rate=1.0,
+        )
+
+    if missing_partitions is None:
+        return
+
+    missing_count = len(missing_partitions)
 
     now = datetime.now().timestamp()
     if missing_count == 0:
@@ -84,6 +115,13 @@ def _record_partition_set_metrics(partition_clocks: list[tuple[str, float]]) -> 
 
     metrics.gauge("monitors.task.clock_missing_partitions", missing_count, sample_rate=1.0)
     metrics.gauge("monitors.task.clock_stall_gap", stall_gap, sample_rate=1.0)
+
+
+def _should_hold_clock_tick(missing_partitions: frozenset[int] | None) -> bool:
+    if not missing_partitions:
+        return False
+
+    return not options.get("crons.clock_tick.disable_hold_on_missing_partitions")
 
 
 def _dispatch_tick(ts: datetime):
@@ -143,7 +181,12 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
         end=-1,
     )
 
-    _record_partition_set_metrics(partition_clocks)
+    missing_partitions = _missing_partitions(partition_clocks)
+    unexpected_members = _unexpected_members(partition_clocks)
+    _record_partition_set_metrics(missing_partitions, unexpected_members)
+
+    if _should_hold_clock_tick(missing_partitions):
+        return
 
     # the first tuple is the slowest (part-<id>, score), the score is the
     # timestamp. Use `int()` to keep the timestamp (score) as an int

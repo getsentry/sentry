@@ -1,9 +1,11 @@
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {motion} from 'framer-motion';
+
+import {Grid} from '@sentry/scraps/layout';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
+import {ONBOARDING_STAGGER_CHILDREN} from 'sentry/views/onboarding/animations';
 
 import {ScmFeatureCard} from './scmFeatureCard';
 import type {FeatureMeta} from './useScmFeatureMeta';
@@ -16,6 +18,11 @@ interface ScmFeatureSelectionCardsProps {
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
   isVolumeLoading?: boolean;
+  /**
+   * Names the card group. The heading it points at lives in the panel above,
+   * so the group carries no heading of its own.
+   */
+  labelledBy?: string;
 }
 
 export function ScmFeatureSelectionCards({
@@ -26,49 +33,45 @@ export function ScmFeatureSelectionCards({
   featureMeta,
   isVolumeLoading,
   isOnboarding,
+  labelledBy,
 }: ScmFeatureSelectionCardsProps) {
   return (
-    <Stack gap="lg" width="100%" justify="center">
-      {isOnboarding ? (
-        <Flex justify="between" align="center" gap="md">
-          <Heading as="h4" ellipsis>
-            {t('What do you want to instrument?')}
-          </Heading>
-          {availableFeatures.length > 1 ? (
-            <Container>
-              <Text size="sm" variant="secondary" wrap="nowrap">
-                {t('Choose one or more')}
-              </Text>
-            </Container>
-          ) : null}
-        </Flex>
-      ) : null}
-
-      <Stack gap="md">
-        {availableFeatures.map(feature => {
-          const meta = featureMeta[feature];
-          const disabledProduct = disabledProducts[feature];
-          const disabledReason = meta.alwaysEnabled
-            ? t('Error monitoring is always enabled')
-            : disabledProduct?.reason;
-          return (
-            <ScmFeatureCard
-              key={feature}
-              icon={meta.icon}
-              label={meta.label}
-              description={meta.description}
-              isSelected={selectedFeatures.includes(feature) || !!meta.alwaysEnabled}
-              disabled={!!meta.alwaysEnabled || !!disabledProduct}
-              disabledReason={disabledReason}
-              onClick={() => onToggleFeature(feature)}
-              volume={meta.volume}
-              volumeTooltip={meta.volumeTooltip}
-              isVolumeLoading={isVolumeLoading}
-              showVolume={isOnboarding}
-            />
-          );
-        })}
-      </Stack>
-    </Stack>
+    <MotionGrid
+      width="100%"
+      columns={{
+        zero: '1fr',
+        md: 'repeat(2, minmax(0, 1fr))',
+      }}
+      gap="lg"
+      role="group"
+      aria-labelledby={labelledBy}
+      {...ONBOARDING_STAGGER_CHILDREN}
+    >
+      {availableFeatures.map(feature => {
+        const meta = featureMeta[feature];
+        const disabledProduct = disabledProducts[feature];
+        const disabledReason = meta.alwaysEnabled
+          ? t('Error monitoring is always enabled')
+          : disabledProduct?.reason;
+        return (
+          <ScmFeatureCard
+            key={feature}
+            icon={meta.icon}
+            label={meta.label}
+            description={meta.description}
+            isSelected={selectedFeatures.includes(feature) || !!meta.alwaysEnabled}
+            disabled={!!meta.alwaysEnabled || !!disabledProduct}
+            disabledReason={disabledReason}
+            onClick={() => onToggleFeature(feature)}
+            volume={meta.volume}
+            volumeTooltip={meta.volumeTooltip}
+            isVolumeLoading={isVolumeLoading}
+            showVolume={isOnboarding}
+          />
+        );
+      })}
+    </MotionGrid>
   );
 }
+
+const MotionGrid = motion.create(Grid);

@@ -1,9 +1,10 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {t} from 'sentry/locale';
 import type {
   PendingUserInput,
   ReauthMonitoringProviderData,
+  RespondToUserInputOptions,
 } from 'sentry/views/seerExplorer/types';
 
 interface PendingFilePatch {
@@ -34,7 +35,8 @@ interface UsePendingUserInputProps {
   pendingInput: PendingUserInput | null | undefined;
   respondToUserInput: (
     inputId: string,
-    data?: {decisions: boolean[]} | {answers: string[]}
+    data?: {decisions: boolean[]} | {answers: string[]},
+    options?: RespondToUserInputOptions
   ) => void;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   userScrolledUpRef: React.MutableRefObject<boolean>;
@@ -50,6 +52,13 @@ export function usePendingUserInput({
   const pendingInputType = pendingInput?.input_type;
   const pendingInputId = pendingInput?.id;
 
+  // The pending input currently shown, read by async response callbacks so they don't
+  // touch state that now belongs to a different input (e.g. after switching chats).
+  const currentPendingInputIdRef = useRef(pendingInputId);
+  useEffect(() => {
+    currentPendingInputIdRef.current = pendingInputId;
+  }, [pendingInputId]);
+
   // File approval state
   const [fileApprovalIndex, setFileApprovalIndex] = useState(0);
   const [fileApprovalDecisions, setFileApprovalDecisions] = useState<boolean[]>([]);
@@ -61,6 +70,7 @@ export function usePendingUserInput({
       setFileApprovalIndex(0);
       setFileApprovalDecisions([]);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [pendingInput?.id, pendingInputType]);
 
   // Get file approval data
@@ -108,9 +118,20 @@ export function usePendingUserInput({
       if (nextIndex >= fileApprovalTotalPatches) {
         // All patches reviewed - submit to backend
         if (pendingInputId) {
-          respondToUserInput(pendingInputId, {
-            decisions: newDecisions,
-          });
+          respondToUserInput(
+            pendingInputId,
+            {decisions: newDecisions},
+            {
+              // Step back to the last patch so the decision can be made again.
+              onError: () => {
+                if (currentPendingInputIdRef.current !== pendingInputId) {
+                  return;
+                }
+                setFileApprovalDecisions(fileApprovalDecisions);
+                setFileApprovalIndex(fileApprovalIndex);
+              },
+            }
+          );
         }
       }
     },
@@ -152,6 +173,7 @@ export function usePendingUserInput({
       setSelectedOption(0);
       setCustomText('');
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [pendingInput?.id, pendingInputType]);
 
   // Get question data

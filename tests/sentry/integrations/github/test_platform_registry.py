@@ -195,28 +195,6 @@ class TestApplySupersession:
         assert "react-native" in platforms
         assert "javascript-react" not in platforms
 
-    def test_cloudflare_pages_supersedes_workers(self) -> None:
-        results = [
-            DetectedPlatform(
-                platform="node-cloudflare-pages",
-                language="JavaScript",
-                bytes=50000,
-                confidence="high",
-                priority=50,
-            ),
-            DetectedPlatform(
-                platform="node-cloudflare-workers",
-                language="JavaScript",
-                bytes=50000,
-                confidence="high",
-                priority=50,
-            ),
-        ]
-        filtered = _apply_supersession(results)
-        platforms = [r["platform"] for r in filtered]
-        assert "node-cloudflare-pages" in platforms
-        assert "node-cloudflare-workers" not in platforms
-
     def test_no_supersession_keeps_all(self) -> None:
         results = [
             DetectedPlatform(

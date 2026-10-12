@@ -1,12 +1,14 @@
 from unittest.mock import patch
 
+from django.test import override_settings
+
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.agent.client import SeerAgentClient
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRunErrorType,
-    SeerNightShiftRunResult,
+from sentry.seer.models.agentic_triage import (
+    SeerAgenticTriageRunErrorType,
+    SeerAgenticTriageRunResult,
 )
 from sentry.seer.models.run import SeerAgentRun, SeerRunPullRequest
 from sentry.seer.models.workflow import (
@@ -21,6 +23,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerWorkflowsTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-workflows"
 
@@ -38,7 +41,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             organization=self.organization,
             extras={"foo": "bar", "agent_run_id": "seer-legacy-dispatch"},
         )
-        result = SeerNightShiftRunResult.objects.create(
+        result = SeerAgenticTriageRunResult.objects.create(
             run=run,
             kind="agentic_triage",
             group=group,
@@ -83,7 +86,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
     def test_skip_reason_surfaces_on_issue(self) -> None:
         group = self.create_group()
         run = SeerWorkflowRun.objects.create(organization=self.organization)
-        SeerNightShiftRunResult.objects.create(
+        SeerAgenticTriageRunResult.objects.create(
             run=run,
             kind="agentic_triage",
             group=group,
@@ -105,7 +108,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         # group FK is db_constraint=False, so a stale group_id is possible in
         # prod; can't use create+delete since Django still cascades that.
         run = SeerWorkflowRun.objects.create(organization=self.organization)
-        SeerNightShiftRunResult.objects.create(
+        SeerAgenticTriageRunResult.objects.create(
             run=run,
             kind="agentic_triage",
             group_id=999999999,
@@ -132,7 +135,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         SeerRunPullRequest.objects.create(seer_run=issue_seer_run, pull_request=pull_request)
 
         run = SeerWorkflowRun.objects.create(organization=self.organization)
-        SeerNightShiftRunResult.objects.create(
+        SeerAgenticTriageRunResult.objects.create(
             run=run,
             kind="agentic_triage",
             group=group,
@@ -163,7 +166,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         SeerRunPullRequest.objects.create(seer_run=issue_seer_run, pull_request=pull_request)
 
         run = SeerWorkflowRun.objects.create(organization=self.organization)
-        SeerNightShiftRunResult.objects.create(
+        SeerAgenticTriageRunResult.objects.create(
             run=run,
             kind="agentic_triage",
             group=group,
@@ -191,7 +194,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         SeerRunPullRequest.objects.create(seer_run=issue_seer_run, pull_request=pull_request)
 
         run = SeerWorkflowRun.objects.create(organization=self.organization)
-        SeerNightShiftRunResult.objects.create(
+        SeerAgenticTriageRunResult.objects.create(
             run=run,
             kind="agentic_triage",
             group=group,
@@ -218,7 +221,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         SeerRunPullRequest.objects.create(seer_run=seer_run_a, pull_request=pull_request)
 
         run_a = SeerWorkflowRun.objects.create(organization=self.organization)
-        SeerNightShiftRunResult.objects.create(
+        SeerAgenticTriageRunResult.objects.create(
             run=run_a,
             kind="agentic_triage",
             group=group_a,
@@ -226,7 +229,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             extras={"action": "autofix_triggered"},
         )
         run_b = SeerWorkflowRun.objects.create(organization=self.organization)
-        SeerNightShiftRunResult.objects.create(
+        SeerAgenticTriageRunResult.objects.create(
             run=run_b,
             kind="agentic_triage",
             group=group_b,
@@ -269,7 +272,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         SeerWorkflowRunExecution.objects.create(
             run=run,
             extras={
-                "error_type": SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value,
+                "error_type": SeerAgenticTriageRunErrorType.SHARD_DELIVERY_FAILED.value,
                 "error_message": "shard failed",
             },
         )
@@ -284,7 +287,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         run = SeerWorkflowRun.objects.create(
             organization=self.organization,
             extras={
-                "error_type": SeerNightShiftRunErrorType.NO_QUOTA.value,
+                "error_type": SeerAgenticTriageRunErrorType.NO_QUOTA.value,
                 "error_message": "Diagnostic details",
             },
         )
@@ -310,6 +313,15 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             extras={"error_message": "Unexpected error"},
         )
 
+        legacy_shard_run = Factories.create_seer_workflow_run(
+            organization=self.organization,
+            extras={"error_message": "Invalid Night Shift shard plan"},
+        )
+        shard_run = Factories.create_seer_workflow_run(
+            organization=self.organization,
+            extras={"error_message": "Invalid agentic triage shard plan"},
+        )
+
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
 
@@ -317,6 +329,8 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert by_run_id[str(dispatch_run.id)]["errorType"] == "shard_dispatch_failed"
         assert by_run_id[str(no_access_run.id)]["errorType"] == "no_seer_access"
         assert by_run_id[str(unknown_run.id)]["errorType"] == "unknown"
+        assert by_run_id[str(legacy_shard_run.id)]["errorType"] == "invalid_shard_plan"
+        assert by_run_id[str(shard_run.id)]["errorType"] == "invalid_shard_plan"
 
     def test_runs_ordered_by_date_added_desc(self) -> None:
         older = SeerWorkflowRun.objects.create(organization=self.organization)
@@ -417,23 +431,28 @@ class OrganizationSeerWorkflowsTest(APITestCase):
     def create_agent_workflow(
         self, strategy: SeerWorkflowStrategy, feature_id: str
     ) -> SeerWorkflowRun:
-        with self.feature("organizations:gen-ai-features"):
-            return create_workflow_run(
-                SeerAgentClient(self.organization, self.user),
-                strategy=strategy,
-                feature_id=feature_id,
-                title="Test workflow",
-                payload={},
-                extras={"project_ids": [], "results": []},
-            )
+        return create_workflow_run(
+            SeerAgentClient(self.organization, self.user),
+            strategy=strategy,
+            feature_id=feature_id,
+            title="Test workflow",
+            payload={},
+            extras={"project_ids": [], "results": []},
+        )
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerMonitorCleanupTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-workflows"
     method = "post"
 
     def setUp(self) -> None:
         super().setUp()
+        rate_limit_patcher = patch(
+            "sentry.middleware.ratelimit.get_rate_limit_value", return_value=None
+        )
+        rate_limit_patcher.start()
+        self.addCleanup(rate_limit_patcher.stop)
         self.keep = self.create_detector(project=self.project, type="metric_issue", name="Keep")
         self.duplicate = self.create_detector(
             project=self.project, type="metric_issue", name="Copy"
@@ -505,11 +524,9 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             self.get_error_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=404
             )
-            with self.feature(
-                {
-                    "organizations:seer-workflows-monitor-cleanup": True,
-                    "organizations:gen-ai-features": False,
-                }
+            with (
+                override_settings(SENTRY_SELF_HOSTED=True),
+                self.feature("organizations:seer-workflows-monitor-cleanup"),
             ):
                 response = self.get_error_response(
                     self.organization.slug, strategy="duplicate_monitors", status_code=403
@@ -518,9 +535,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             limit.assert_not_called()
 
             limit.return_value = True
-            with self.feature(
-                ["organizations:seer-workflows-monitor-cleanup", "organizations:gen-ai-features"]
-            ):
+            with self.feature("organizations:seer-workflows-monitor-cleanup"):
                 self.get_error_response(
                     self.organization.slug, strategy="duplicate_monitors", status_code=429
                 )
@@ -544,9 +559,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert agent_run.extras["error"] == "The triggering user no longer exists."
 
     def trigger(self):
-        with self.feature(
-            ["organizations:seer-workflows-monitor-cleanup", "organizations:gen-ai-features"]
-        ):
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=202
             )

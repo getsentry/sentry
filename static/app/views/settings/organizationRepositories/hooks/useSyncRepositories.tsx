@@ -224,6 +224,7 @@ export function useSyncRepositories(
       addSuccessMessage(t('Repositories synced successfully'));
       onSyncedRef.current?.();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [query.data, isSyncing, lastSyncBefore]);
 
   // syncNow is undefined while the query is loading or a sync is in progress,

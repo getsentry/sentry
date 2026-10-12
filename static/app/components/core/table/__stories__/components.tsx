@@ -24,8 +24,8 @@ export function OverviewDemo() {
     <StyledTable columns={columns}>
       <Table.Head>
         <Table.Row>
-          {columns.map(column => (
-            <Table.HeadCell columnKey={column.key} key={column.key}>
+          {columns.map((column, index) => (
+            <Table.HeadCell columnIndex={index} key={column.key}>
               {column.key}
             </Table.HeadCell>
           ))}

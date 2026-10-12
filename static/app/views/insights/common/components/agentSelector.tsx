@@ -84,6 +84,13 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
     ]);
   }, [agentData, selectedAgents, orderAnchor]);
 
+  // CompactSelect disables itself when there are no options, so the empty
+  // message is never visible. Explain why on the disabled trigger instead.
+  const disabledReason =
+    !isPending && options.length === 0
+      ? t('No agents found for the selected projects, environments, and date range.')
+      : undefined;
+
   return (
     <CompactSelect
       multiple
@@ -103,6 +110,7 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
+          tooltipProps={{title: disabledReason}}
           prefix={selectedAgents.length === 0 ? undefined : t('Agent')}
         >
           {selectedAgents.length === 0 ? t('All Agents') : triggerProps.children}

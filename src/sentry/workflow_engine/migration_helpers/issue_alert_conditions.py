@@ -3,10 +3,10 @@ from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
 from sentry.notifications.types import AssigneeTargetType
-from sentry.rules.age import AgeComparisonType
-from sentry.rules.conditions.event_frequency import ComparisonType
-from sentry.rules.match import MatchType
 from sentry.workflow_engine.endpoints.validators.base.data_condition import DataConditionInput
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import ComparisonType
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 

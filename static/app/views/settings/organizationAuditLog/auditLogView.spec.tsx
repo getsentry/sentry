@@ -7,6 +7,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -139,8 +140,10 @@ describe('OrganizationAuditLog', () => {
         query: {statsPeriod: '2w'},
       })
     );
-    expect(screen.getByTestId('page-filter-timerange-selector')).toHaveTextContent(
-      'Last 2 weeks'
+    await waitFor(() =>
+      expect(screen.getByTestId('page-filter-timerange-selector')).toHaveTextContent(
+        'Last 2 weeks'
+      )
     );
   });
 });

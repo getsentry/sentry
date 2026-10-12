@@ -7,7 +7,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.net.http import connection_from_url
-from sentry.seer.anomaly_detection.store_data import get_start_index
+from sentry.seer.anomaly_detection.store_data import get_start_index, trim_leading_zeros
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionConfig,
     DetectAnomaliesResponse,
@@ -110,6 +110,7 @@ def get_historical_anomaly_data_from_seer_preview(
     """
     # Check if historical data has at least seven days of data. Return early if not.
     MIN_DAYS = 7
+    historical_data = trim_leading_zeros(historical_data)
     data_start_index = get_start_index(historical_data)
     if data_start_index == -1:
         return []

@@ -361,7 +361,9 @@ describe('ExternalIssueSidebarList', () => {
     render(<ExternalIssueSidebarList event={event} group={group} />);
 
     expect(
-      await screen.findByText('Track this issue in Jira, GitHub, etc.')
+      await screen.findByRole('link', {
+        name: 'Track this issue in Jira, GitHub, etc.',
+      })
     ).toBeInTheDocument();
     expect(
       screen.queryByText('No linked issues or pull requests')

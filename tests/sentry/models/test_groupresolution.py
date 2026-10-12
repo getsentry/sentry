@@ -1,9 +1,56 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
+from sentry.models.group import Group
 from sentry.models.groupresolution import GroupResolution
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.pytest.fixtures import django_db_all
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "resolution_type",
+    [GroupResolution.Type.in_release, GroupResolution.Type.in_next_release],
+    ids=["specific-release", "next-release"],
+)
+def test_finalized_release_order(
+    factories: Factories, default_group: Group, resolution_type: int
+) -> None:
+    now = timezone.now()
+    project = default_group.project
+    resolved_in = factories.create_release(
+        project=project,
+        version="resolved-in",
+        date_added=now - timedelta(days=4),
+        date_released=now - timedelta(days=2),
+    )
+    older = factories.create_release(
+        project=project,
+        version="older",
+        date_added=now - timedelta(days=1),
+        date_released=now - timedelta(days=3),
+    )
+    newer = factories.create_release(
+        project=project,
+        version="newer",
+        date_added=now - timedelta(days=5),
+        date_released=now - timedelta(days=1),
+    )
+    factories.create_group_resolution(
+        group=default_group, release=resolved_in, type=resolution_type
+    )
+
+    # Registration order is the reverse of finalized order for both events.
+    with Feature({"organizations:release-resolution-finalized-order": False}):
+        assert not GroupResolution.has_resolution(default_group, older)
+        assert GroupResolution.has_resolution(default_group, newer)
+    with Feature("organizations:release-resolution-finalized-order"):
+        assert GroupResolution.has_resolution(default_group, older)
+        assert not GroupResolution.has_resolution(default_group, newer)
 
 
 class GroupResolutionTest(TestCase):
@@ -171,6 +218,40 @@ class GroupResolutionTest(TestCase):
             release=self.new_release, group=self.group, type=GroupResolution.Type.in_release
         )
         assert GroupResolution.has_resolution(self.group, self.old_release)
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_semver_order_takes_precedence_over_finalized_dates(self) -> None:
+        self.old_semver_release.update(date_released=timezone.now() + timedelta(days=1))
+        self.new_semver_release.update(date_released=timezone.now() - timedelta(days=1))
+        newer_semver_release = self.create_release(
+            version="foo_package@3.0", date_released=timezone.now() - timedelta(days=2)
+        )
+        self.create_group_resolution(
+            group=self.group,
+            release=self.new_semver_release,
+            type=GroupResolution.Type.in_release,
+        )
+        assert GroupResolution.has_resolution(self.group, self.old_semver_release)
+        assert not GroupResolution.has_resolution(self.group, newer_semver_release)
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_current_release_version_uses_finalized_date(self) -> None:
+        current_release = self.create_release(
+            version="current",
+            date_added=timezone.now(),
+            date_released=timezone.now() - timedelta(minutes=60),
+        )
+        older_release = self.create_release(
+            version="older", date_added=timezone.now() - timedelta(minutes=90)
+        )
+        self.create_group_resolution(
+            group=self.group,
+            release=self.new_release,
+            current_release_version=current_release.version,
+            type=GroupResolution.Type.in_release,
+        )
+        assert not GroupResolution.has_resolution(self.group, self.old_release)
+        assert GroupResolution.has_resolution(self.group, older_release)
 
     def test_for_semver_in_release_with_new_release(self) -> None:
         GroupResolution.objects.create(

@@ -1,3 +1,4 @@
+import kebabCase from 'lodash/kebabCase';
 import {EntryRequestFixture} from 'sentry-fixture/eventEntry';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -6,13 +7,17 @@ import {
   ProblemSpan,
   TransactionEventBuilder,
 } from 'sentry-test/performance/utils';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import type {EventTransaction} from 'sentry/types/event';
 import {IssueType} from 'sentry/types/group';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 import {extractQueryParameters, extractSpanURLString} from './spanMetrics';
+
+function getValueCell(label: string) {
+  return screen.getByTestId(`span-evidence-key-value-list.${kebabCase(label)}`);
+}
 
 describe('SpanEvidenceKeyValueList', () => {
   const projectSlug = 'project';
@@ -85,12 +90,10 @@ describe('SpanEvidenceKeyValueList', () => {
 
       render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
 
-      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
+      const transactionValue = getValueCell('Transaction');
+      expect(transactionValue).toHaveTextContent('/dogpark');
       expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction')
-      ).toHaveTextContent('/dogpark');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
+        within(transactionValue).getByRole('link', {name: '/dogpark'})
       ).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2Fdogpark&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
@@ -100,32 +103,22 @@ describe('SpanEvidenceKeyValueList', () => {
         '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=2'
       );
 
-      expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.parent-span')
-      ).toHaveTextContent('http.server');
+      expect(getValueCell('Parent Span')).toHaveTextContent('http.server');
 
       // Both spans are the same query, so they collapse into a single row, labelled with the
       // number of offending spans
-      expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
-
-      // In the span evidence table, the first row gets a different test id than the rest. They all
-      // start with `span-evidence-key-value-list.`, but the first row also has
-      // `repeating-spans-<repeating_span_count>` on the end.
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.repeating-spans-2')
-      ).toHaveTextContent('SELECT * FROM dogs WHERE id = 1121');
-      const remainingTableRows = screen.queryAllByTestId('span-evidence-key-value-list.');
-      expect(remainingTableRows).toHaveLength(0);
+      expect(getValueCell('Repeating Spans (2)')).toHaveTextContent(
+        'SELECT * FROM dogs WHERE id = 1121'
+      );
 
       // These belong to N+1 API Calls, and shouldn't show up for a DB issue
-      expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
+      expect(screen.queryByText('Parameter')).not.toBeInTheDocument();
       expect(
-        screen.queryByTestId('span-evidence-key-value-list.problem-parameters')
+        screen.queryByRole('cell', {name: 'Problem Parameters'})
       ).not.toBeInTheDocument();
 
       // Only MN+1 issues have a pattern
-      expect(screen.queryByRole('cell', {name: 'Pattern Size'})).not.toBeInTheDocument();
+      expect(screen.queryByText('Pattern Size')).not.toBeInTheDocument();
     });
 
     it('renders the pattern size for MN+1 issues', () => {
@@ -150,10 +143,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
       render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
 
-      expect(screen.getByRole('cell', {name: 'Pattern Size'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.pattern-size')
-      ).toHaveTextContent('3');
+      expect(getValueCell('Pattern Size')).toHaveTextContent('3');
     });
 
     it('leaves spans which are not db spans out of the repeating span rows', () => {
@@ -183,22 +173,18 @@ describe('SpanEvidenceKeyValueList', () => {
       ];
       const event = buildEvent([...pattern, ...pattern], {patternSize: 4});
 
-      render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
-
-      const firstRow = screen.getByTestId(
-        'span-evidence-key-value-list.repeating-spans-6'
+      const {container} = render(
+        <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
       );
-      const unlabelledRows = screen.getAllByTestId('span-evidence-key-value-list.');
 
-      expect(firstRow).toHaveTextContent('SELECT * FROM dogs WHERE id = 1121');
-      expect(unlabelledRows).toHaveLength(1);
-      expect(unlabelledRows[0]).toHaveTextContent('SELECT * FROM tricks WHERE id = 908');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.pattern-size')
-      ).toHaveTextContent('4');
+      expect(getValueCell('Repeating Spans (6)')).toHaveTextContent(
+        'SELECT * FROM dogs WHERE id = 1121'
+      );
+      expect(screen.getByText('SELECT * FROM tricks WHERE id = 908')).toBeInTheDocument();
+      expect(getValueCell('Pattern Size')).toHaveTextContent('4');
 
       // Only the db spans get rows, so the cache span isn't rendered at all
-      expect(screen.getByRole('table')).not.toHaveTextContent('dog_leaderboard');
+      expect(container).not.toHaveTextContent('dog_leaderboard');
     });
 
     it.each([
@@ -228,27 +214,23 @@ describe('SpanEvidenceKeyValueList', () => {
           },
         ]);
 
-        render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
+        const {container} = render(
+          <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
+        );
 
         // Only the first row is labelled, and the number it carries is the total count of offending
         // spans - not the number of rows, and not the number of times the first row's query ran.
         // Here that's three offending spans rendered as two rows, the first of which stands in for
         // two spans.
-        const firstRow = screen.getByTestId(
-          'span-evidence-key-value-list.repeating-spans-3'
+        expect(getValueCell('Repeating Spans (3)')).toHaveTextContent(
+          'SELECT * FROM dogs WHERE id = 1121'
         );
-        const unlabelledRows = screen.getAllByTestId('span-evidence-key-value-list.');
-
-        expect(firstRow).toHaveTextContent('SELECT * FROM dogs WHERE id = 1121');
-        expect(unlabelledRows).toHaveLength(1);
-        expect(unlabelledRows[0]).toHaveTextContent(
-          'SELECT * FROM tricks WHERE id = 908'
-        );
+        expect(
+          screen.getByText('SELECT * FROM tricks WHERE id = 908')
+        ).toBeInTheDocument();
 
         // The second `dogs` query shares a hash with the first, so it gets no row of its own
-        expect(screen.getByRole('table')).not.toHaveTextContent(
-          'SELECT * FROM dogs WHERE id = 1231'
-        );
+        expect(container).not.toHaveTextContent('SELECT * FROM dogs WHERE id = 1231');
       }
     );
   });
@@ -302,13 +284,9 @@ describe('SpanEvidenceKeyValueList', () => {
         />
       );
 
-      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction')
-      ).toHaveTextContent('/');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
-      ).toHaveAttribute(
+      const transactionValue = getValueCell('Transaction');
+      expect(transactionValue).toHaveTextContent('/');
+      expect(within(transactionValue).getByRole('link', {name: '/'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
@@ -317,24 +295,17 @@ describe('SpanEvidenceKeyValueList', () => {
         '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.65'
       );
 
-      expect(screen.getByRole('cell', {name: 'Starting Span'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.starting-span')
-      ).toHaveTextContent('SELECT * FROM USERS LIMIT 100');
+      expect(getValueCell('Starting Span')).toHaveTextContent(
+        'SELECT * FROM USERS LIMIT 100'
+      );
 
-      expect(screen.queryAllByRole('cell', {name: 'Parallelizable Spans'})).toHaveLength(
-        1
-      );
-      const parallelizableSpanKeyValue = screen.getByTestId(
-        'span-evidence-key-value-list.parallelizable-spans'
-      );
+      expect(screen.queryAllByText('Parallelizable Spans')).toHaveLength(1);
+      const parallelizableSpanKeyValue = getValueCell('Parallelizable Spans');
 
       expect(parallelizableSpanKeyValue).toHaveTextContent('SELECT COUNT(*) FROM USERS');
       expect(parallelizableSpanKeyValue).toHaveTextContent('SELECT COUNT(*) FROM ITEMS');
 
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.duration-impact')
-      ).toHaveTextContent('46% (300ms/650ms)');
+      expect(getValueCell('Duration Impact')).toHaveTextContent('46% (300ms/650ms)');
     });
   });
 
@@ -385,9 +356,7 @@ describe('SpanEvidenceKeyValueList', () => {
         />
       );
 
-      const parallelizableSpanKeyValue = screen.getByTestId(
-        'span-evidence-key-value-list.offending-spans'
-      );
+      const parallelizableSpanKeyValue = getValueCell('Offending Spans');
 
       expect(parallelizableSpanKeyValue).toHaveTextContent('GET /endpoint1');
       expect(parallelizableSpanKeyValue).toHaveTextContent('GET /endpoint2');
@@ -455,13 +424,9 @@ describe('SpanEvidenceKeyValueList', () => {
         />
       );
 
-      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction')
-      ).toHaveTextContent('/');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
-      ).toHaveAttribute(
+      const transactionValue = getValueCell('Transaction');
+      expect(transactionValue).toHaveTextContent('/');
+      expect(within(transactionValue).getByRole('link', {name: '/'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
@@ -470,24 +435,16 @@ describe('SpanEvidenceKeyValueList', () => {
         '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=2100'
       );
 
-      expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
-      ).toHaveTextContent('/user/*/book/?book_id=*');
-
-      expect(screen.getByRole('cell', {name: 'Query Parameters'})).toBeInTheDocument();
-
-      const queryParamsKeyValue = screen.getByTestId(
-        'span-evidence-key-value-list.query-parameters'
+      expect(getValueCell('Repeating Spans (2)')).toHaveTextContent(
+        '/user/*/book/?book_id=*'
       );
+
+      const queryParamsKeyValue = getValueCell('Query Parameters');
 
       expect(queryParamsKeyValue).toHaveTextContent('book_id:{7,8}');
       expect(queryParamsKeyValue).toHaveTextContent('sort:{up,down}');
 
-      expect(screen.getByRole('cell', {name: 'Path Parameters'})).toBeInTheDocument();
-      const pathParamsKeyValue = screen.getByTestId(
-        'span-evidence-key-value-list.path-parameters'
-      );
+      const pathParamsKeyValue = getValueCell('Path Parameters');
 
       expect(pathParamsKeyValue).toHaveTextContent('123');
     });
@@ -630,13 +587,9 @@ describe('SpanEvidenceKeyValueList', () => {
         }
       );
 
-      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction')
-      ).toHaveTextContent('/');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
-      ).toHaveAttribute(
+      const transactionValue = getValueCell('Transaction');
+      expect(transactionValue).toHaveTextContent('/');
+      expect(within(transactionValue).getByRole('link', {name: '/'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
@@ -645,14 +598,12 @@ describe('SpanEvidenceKeyValueList', () => {
         '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=10100'
       );
 
-      expect(screen.getByRole('cell', {name: 'Slow DB Query'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.slow-db-query')
-      ).toHaveTextContent('SELECT pokemon FROM pokedex');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.slow-db-query')
-      ).toHaveTextContent('/app/pokedex/queries.py in fetchPokemon at line 42');
-      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
+      const slowDbQuery = getValueCell('Slow DB Query');
+      expect(slowDbQuery).toHaveTextContent('SELECT pokemon FROM pokedex');
+      expect(slowDbQuery).toHaveTextContent(
+        '/app/pokedex/queries.py in fetchPokemon at line 42'
+      );
+      expect(screen.getByText('Duration Impact')).toBeInTheDocument();
 
       expect(screen.getByRole('link', {name: 'More Samples'})).toBeInTheDocument();
     });
@@ -699,9 +650,7 @@ describe('SpanEvidenceKeyValueList', () => {
         }
       );
 
-      const slowDbQuery = screen.getByTestId(
-        'span-evidence-key-value-list.slow-db-query'
-      );
+      const slowDbQuery = getValueCell('Slow DB Query');
 
       expect(slowDbQuery).toHaveTextContent(
         'Query source is not available for this span.'
@@ -740,13 +689,9 @@ describe('SpanEvidenceKeyValueList', () => {
         />
       );
 
-      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction')
-      ).toHaveTextContent('/');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
-      ).toHaveAttribute(
+      const transactionValue = getValueCell('Transaction');
+      expect(transactionValue).toHaveTextContent('/');
+      expect(within(transactionValue).getByRole('link', {name: '/'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
@@ -755,20 +700,13 @@ describe('SpanEvidenceKeyValueList', () => {
         '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=3'
       );
 
-      expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
-      ).toHaveTextContent('resource.script - https://example.com/resource.js');
+      expect(getValueCell('Slow Resource Span')).toHaveTextContent(
+        'resource.script - https://example.com/resource.js'
+      );
 
-      expect(screen.getByRole('cell', {name: 'FCP Delay'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.fcp-delay')
-      ).toHaveTextContent('1s (40% of 2.50s)');
+      expect(getValueCell('FCP Delay')).toHaveTextContent('1s (40% of 2.50s)');
 
-      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.duration-impact')
-      ).toHaveTextContent('33% (1s/3.00s');
+      expect(getValueCell('Duration Impact')).toHaveTextContent('33% (1s/3.00s');
     });
   });
 
@@ -804,13 +742,9 @@ describe('SpanEvidenceKeyValueList', () => {
         />
       );
 
-      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction')
-      ).toHaveTextContent('/');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
-      ).toHaveAttribute(
+      const transactionValue = getValueCell('Transaction');
+      expect(transactionValue).toHaveTextContent('/');
+      expect(within(transactionValue).getByRole('link', {name: '/'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
@@ -819,20 +753,13 @@ describe('SpanEvidenceKeyValueList', () => {
         '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.931'
       );
 
-      expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.slow-resource-span')
-      ).toHaveTextContent('resource.script - https://example.com/resource.js');
+      expect(getValueCell('Slow Resource Span')).toHaveTextContent(
+        'resource.script - https://example.com/resource.js'
+      );
 
-      expect(screen.getByRole('cell', {name: 'Asset Size'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.asset-size')
-      ).toHaveTextContent('29.6 MiB (31041901 B)');
+      expect(getValueCell('Asset Size')).toHaveTextContent('29.6 MiB (31041901 B)');
 
-      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.duration-impact')
-      ).toHaveTextContent('52% (487ms/931ms)');
+      expect(getValueCell('Duration Impact')).toHaveTextContent('52% (487ms/931ms)');
     });
 
     describe('With backwards compatible legacy keys', () => {
@@ -867,10 +794,7 @@ describe('SpanEvidenceKeyValueList', () => {
           />
         );
 
-        expect(screen.getByRole('cell', {name: 'Asset Size'})).toBeInTheDocument();
-        expect(
-          screen.getByTestId('span-evidence-key-value-list.asset-size')
-        ).toHaveTextContent('29.6 MiB (31041901 B)');
+        expect(getValueCell('Asset Size')).toHaveTextContent('29.6 MiB (31041901 B)');
       });
     });
   });
@@ -904,13 +828,9 @@ describe('SpanEvidenceKeyValueList', () => {
         />
       );
 
-      expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction')
-      ).toHaveTextContent('/');
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
-      ).toHaveAttribute(
+      const transactionValue = getValueCell('Transaction');
+      expect(transactionValue).toHaveTextContent('/');
+      expect(within(transactionValue).getByRole('link', {name: '/'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/insights/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
@@ -919,17 +839,11 @@ describe('SpanEvidenceKeyValueList', () => {
         '/organizations/org-slug/explore/traces/trace/8cbbc19c0f54447ab702f00263262726/?eventId=a1&statsPeriod=14d&timestamp=0.487'
       );
 
-      expect(
-        screen.getByRole('cell', {name: 'Large HTTP Payload Span'})
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.large-http-payload-span')
-      ).toHaveTextContent('http.client - https://example.com/api/users');
+      expect(getValueCell('Large HTTP Payload Span')).toHaveTextContent(
+        'http.client - https://example.com/api/users'
+      );
 
-      expect(screen.getByRole('cell', {name: 'Payload Size'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.payload-size')
-      ).toHaveTextContent('29.6 MiB (31041901 B)');
+      expect(getValueCell('Payload Size')).toHaveTextContent('29.6 MiB (31041901 B)');
     });
 
     describe('With backwards compatible legacy keys', () => {
@@ -960,10 +874,7 @@ describe('SpanEvidenceKeyValueList', () => {
           />
         );
 
-        expect(screen.getByRole('cell', {name: 'Payload Size'})).toBeInTheDocument();
-        expect(
-          screen.getByTestId('span-evidence-key-value-list.payload-size')
-        ).toHaveTextContent('29.6 MiB (31041901 B)');
+        expect(getValueCell('Payload Size')).toHaveTextContent('29.6 MiB (31041901 B)');
       });
     });
   });

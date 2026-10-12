@@ -14,10 +14,12 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {EditConnectedMonitors} from './editConnectedMonitors';
@@ -73,10 +75,7 @@ describe('EditConnectedMonitors', () => {
 
   it('disables the all projects option with a message when the user cannot edit', async () => {
     render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />, {
-      organization: OrganizationFixture({
-        features: ['workflow-engine-all-projects-detector'],
-        access: [],
-      }),
+      organization: OrganizationFixture({access: []}),
     });
 
     const allProjectsRadio = await screen.findByRole('radio', {
@@ -97,11 +96,7 @@ describe('EditConnectedMonitors', () => {
       <Form model={model}>
         <EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />
       </Form>,
-      {
-        organization: OrganizationFixture({
-          features: ['workflow-engine-all-projects-detector'],
-        }),
-      }
+      {organization: OrganizationFixture()}
     );
 
     await userEvent.click(
@@ -259,11 +254,7 @@ describe('EditConnectedMonitors', () => {
           setConnectedIds={jest.fn()}
         />
       </Form>,
-      {
-        organization: OrganizationFixture({
-          features: ['workflow-engine-all-projects-detector'],
-        }),
-      }
+      {organization: OrganizationFixture()}
     );
 
     expect(
@@ -271,6 +262,47 @@ describe('EditConnectedMonitors', () => {
     ).toBeChecked();
     await waitFor(() => expect(model.getValue('allProjects')).toBe(true));
   });
+
+  it.each([
+    ['fails', {detail: 'Internal Error'}, 500],
+    ['does not return the connected detector', [], 200],
+  ])(
+    'does not change monitor mode when loading connected detectors %s',
+    async (_description, body, statusCode) => {
+      const allProjectsDetector = AllProjectsDetectorFixture({id: '101'});
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        method: 'GET',
+        body,
+        statusCode,
+        match: [MockApiClient.matchQuery({id: [allProjectsDetector.id]})],
+      });
+      const model = new FormModel();
+      model.setInitialData({
+        allProjects: false,
+        projectIds: [],
+        detectorIds: [allProjectsDetector.id],
+      });
+
+      render(
+        <Form model={model}>
+          <EditConnectedMonitors
+            connectedIds={[allProjectsDetector.id]}
+            setConnectedIds={jest.fn()}
+          />
+        </Form>,
+        {organization: OrganizationFixture()}
+      );
+
+      expect(
+        await screen.findByText('There was an error loading data.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('radio', {name: 'Alert on all issues in selected projects'})
+      ).not.toBeInTheDocument();
+      expect(model.getValue('allProjects')).toBe(false);
+    }
+  );
 
   it('switches between modes correctly', async () => {
     const setConnectedIds = jest.fn();
@@ -299,30 +331,53 @@ describe('EditConnectedMonitors', () => {
     ).toBeChecked();
   });
 
-  it('updates selected project ids in the form when a project is selected', async () => {
-    const model = new FormModel();
-    model.setInitialData({projectIds: [], detectorIds: []});
-
+  it('preserves the displayed and submitted environment when changing selected projects', async () => {
+    ProjectsStore.loadInitialData([
+      {...project, environments: ['production']},
+      {...otherProject, environments: ['staging']},
+    ]);
     const setConnectedIds = jest.fn();
+    const onSubmit = jest.fn();
     render(
-      <Form model={model}>
+      <Form
+        initialData={{projectIds: [], detectorIds: [], environment: null}}
+        onSubmit={onSubmit}
+        submitLabel="Save"
+      >
         <EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />
+        <EnvironmentSelector />
       </Form>
     );
 
-    // Wait for project selector to be available
-    await screen.findByText('Projects');
+    await selectEvent.select(await screen.findByRole('textbox'), project.slug);
+    await userEvent.click(screen.getByRole('button', {name: 'All Environments'}));
+    expect(screen.queryByRole('option', {name: 'staging'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'production'}));
 
-    // Open the project selector dropdown
-    await userEvent.click(screen.getByText('Select projects'));
+    await selectEvent.select(screen.getByRole('textbox'), otherProject.slug);
 
-    // Select a project
-    await userEvent.click(await screen.findByText(otherProject.slug));
+    await userEvent.click(screen.getAllByLabelText('Remove item')[0]!);
+    expect(screen.getByRole('button', {name: 'production'})).toBeInTheDocument();
 
-    // Form model should receive the selected project ID
-    await waitFor(() => {
-      expect(model.getValue('projectIds')).toEqual([otherProject.id]);
-    });
+    await userEvent.click(screen.getByRole('button', {name: 'production'}));
+    expect(
+      screen.getByRole('option', {name: 'production', selected: true})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'staging'})).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({projectIds: [otherProject.id], environment: 'production'}),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything()
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'production'}));
+    await userEvent.click(screen.getByRole('option', {name: 'All Environments'}));
+    expect(screen.getByRole('button', {name: 'All Environments'})).toBeInTheDocument();
   });
 
   it('only offers writable projects to a team admin', async () => {
@@ -424,7 +479,7 @@ describe('EditConnectedMonitors', () => {
       name: /Read-only Monitor/,
     });
     const connectButton = within(readOnlyRow).getByRole('button', {name: 'Connect'});
-    expect(connectButton).toBeDisabled();
+    expect(connectButton).toHaveAttribute('aria-disabled', 'true');
     await userEvent.hover(connectButton);
     expect(
       await screen.findByText(

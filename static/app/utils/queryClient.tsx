@@ -1,6 +1,5 @@
 import type {
   QueryClient,
-  QueryClientConfig,
   Updater,
   UseQueryOptions,
   UseQueryResult,
@@ -13,28 +12,8 @@ import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {selectJson} from 'sentry/utils/api/apiOptions';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-
-const nonRetryCodes = new Set<number | undefined>([400, 401, 402, 403, 404]);
-
-// Overrides to the default react-query options.
-// See https://tanstack.com/query/v5/docs/framework/react/guides/important-defaults
-export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
-  defaultOptions: {
-    queries: {
-      refetchOnReconnect: false,
-      refetchOnWindowFocus: false,
-      retry: (failureCount, err) => {
-        // Disable retries for client errors that won't succeed on retry
-        if (err instanceof RequestError && nonRetryCodes.has(err.status)) {
-          return false;
-        }
-
-        return failureCount < 3;
-      },
-    },
-  },
-};
 
 export const QUERY_API_CLIENT = new Client();
 
@@ -145,7 +124,7 @@ export function setApiQueryData<TResponseData>(
 
 type ApiMutationVariables = {
   method: 'PUT' | 'POST' | 'PATCH' | 'DELETE';
-  url: string;
+  url: ReturnType<typeof getApiUrl>;
   data?: Record<string, unknown>;
   options?: Pick<
     QueryKeyEndpointOptions,

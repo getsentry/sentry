@@ -34,6 +34,7 @@ class GroupIntegrationsTest(APITestCase):
                 "accountType": integration.metadata.get("account_type"),
                 "scopes": integration.metadata.get("scopes"),
                 "outOfDate": None,
+                "missingFeatures": None,
                 "status": integration.get_status_display(),
                 "provider": {
                     "key": provider.key,
@@ -55,6 +56,33 @@ class GroupIntegrationsTest(APITestCase):
                     }
                 ],
             }
+
+    def test_get_linked_github_issue_without_domain_name(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="123",
+            provider="github",
+            name="example-org",
+            metadata={},
+        )
+        self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key="example-org/example-repo#321",
+            title="Example issue",
+        )
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/"
+
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.get(path)
+
+        assert response.status_code == 200
+        assert (
+            response.data[0]["externalIssues"][0]["url"]
+            == "https://github.com/example-org/example-repo/issues/321"
+        )
 
     def test_feature_disabled(self) -> None:
         self.login_as(user=self.user)

@@ -25,7 +25,7 @@ describe('Sentry App Row Buttons', () => {
     );
 
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toBeDisabled();
+    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
 
     const deleteButton = await screen.findByRole('button', {name: 'Delete'});
     expect(deleteButton).toBeEnabled();
@@ -65,24 +65,24 @@ describe('Sentry App Row Buttons', () => {
       />
     );
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toBeDisabled();
+    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.hover(publishButton, {delay: 100});
 
     expect(
       screen.getByText('Published integrations cannot be re-published.')
     ).toBeInTheDocument();
-    expect(publishButton).toBeDisabled();
+    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
 
     const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-    expect(deleteButton).toBeDisabled();
+    expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.hover(deleteButton, {delay: 100});
 
     expect(
       screen.getByText('Published integrations cannot be removed.')
     ).toBeInTheDocument();
-    expect(publishButton).toBeDisabled();
+    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
 
     const dashboardButton = await screen.findByRole('button', {name: 'Dashboard'});
     expect(dashboardButton).toBeEnabled();
@@ -155,7 +155,7 @@ describe('Sentry App Row Buttons', () => {
     expect(
       screen.getByText('Integrations with a UI component must have an icon')
     ).toBeInTheDocument();
-    expect(publishButton).toBeDisabled();
+    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
 
     const deleteButton = await screen.findByRole('button', {name: 'Delete'});
     expect(deleteButton).toBeEnabled();
@@ -178,7 +178,7 @@ describe('Sentry App Row Buttons', () => {
     );
 
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toBeDisabled();
+    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.hover(publishButton, {delay: 100});
 
@@ -207,7 +207,7 @@ describe('Sentry App Row Buttons', () => {
     );
 
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toBeDisabled();
+    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.hover(publishButton, {delay: 100});
 
@@ -236,7 +236,7 @@ describe('Sentry App Row Buttons', () => {
     );
 
     const publishButton = await screen.findByRole('button', {name: 'Publish'});
-    expect(publishButton).toBeDisabled();
+    expect(publishButton).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.hover(publishButton, {delay: 100});
 

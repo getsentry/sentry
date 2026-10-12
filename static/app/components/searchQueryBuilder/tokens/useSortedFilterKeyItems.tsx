@@ -172,6 +172,7 @@ export function useSortedFilterKeyItems({
     disallowLogicalOperators,
     replaceRawSearchKeys,
     matchKeySuggestions,
+    prioritizedFilterKeys,
     getTagKeys,
     filterKeyRegistryQueryKey,
   } = useSearchQueryBuilderConfig();
@@ -210,6 +211,11 @@ export function useSortedFilterKeyItems({
 
     return [...keys, ...asyncKeys.filter(k => !staticKeyValues.has(k.key))];
   }, [filterKeys, asyncKeys, staticKeyValues]);
+
+  const prioritizedKeys = useMemo(
+    () => new Set(prioritizedFilterKeys),
+    [prioritizedFilterKeys]
+  );
 
   // Keys that exist only in asyncKeys and not in the static filterKeys.
   // Used to partition results so async-only keys always render below static keys.
@@ -319,11 +325,19 @@ export function useSortedFilterKeyItems({
         );
       });
 
-    // Partition so async-only keys always appear below static keys,
-    // preserving fuzzy score order within each group.
-    const staticKeyItems = allKeyItems.filter(item => !asyncOnlyKeys.has(item.value));
-    const asyncKeyItems = allKeyItems.filter(item => asyncOnlyKeys.has(item.value));
-    const keyItems = [...staticKeyItems, ...asyncKeyItems];
+    // Partition into tiers so that prioritized keys always appear above every
+    // other match, and async-only keys always appear below static keys.
+    // Fuzzy score order is preserved within each tier.
+    const prioritizedKeyItems = allKeyItems.filter(item =>
+      prioritizedKeys.has(item.value)
+    );
+    const staticKeyItems = allKeyItems.filter(
+      item => !prioritizedKeys.has(item.value) && !asyncOnlyKeys.has(item.value)
+    );
+    const asyncKeyItems = allKeyItems.filter(
+      item => !prioritizedKeys.has(item.value) && asyncOnlyKeys.has(item.value)
+    );
+    const keyItems = [...prioritizedKeyItems, ...staticKeyItems, ...asyncKeyItems];
 
     if (includeSuggestions) {
       const rawSearchSection: KeySectionItem = {
@@ -427,6 +441,7 @@ export function useSortedFilterKeyItems({
     includeSuggestions,
     inputValue,
     matchKeySuggestions,
+    prioritizedKeys,
     replaceRawSearchKeys,
     search,
   ]);

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry import nodestore
 from sentry.api import client
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
@@ -22,13 +23,12 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
-from sentry.replays.testutils import mock_replay, mock_replay_click
+from sentry.replays.testutils import mock_replay
 from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.agent.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     _get_issue_event_timeseries,
     _get_recommended_event,
-    execute_replays_query,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
@@ -50,6 +50,7 @@ from sentry.seer.agent.tools import (
 )
 from sentry.seer.sentry_data_models import (
     EAPTrace,
+    ExecuteQuerySuccessResponse,
     ExecuteTimeseriesQueryErrorResponse,
     ExecuteTimeseriesQuerySuccessResponse,
     IssueDetailsResponse,
@@ -2792,12 +2793,98 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         super().setUp()
         self.max_date_range = timedelta(days=14)
 
+    def test_only_loads_selected_event_body(self) -> None:
+        now = datetime.now(UTC)
+        selected = self.store_event_helper(
+            now - timedelta(hours=2), self.project.id, "a" * 32, "1" * 16
+        )
+        self.store_event_helper(now - timedelta(hours=1), self.project.id, "b" * 32, "2" * 16)
+        group = selected.group
+        assert group is not None
+        with (
+            patch(
+                "sentry.seer.agent.tools.execute_table_query",
+                return_value=ExecuteQuerySuccessResponse(
+                    data=[{"trace": "a" * 32, "count(span.duration)": 1}]
+                ),
+            ),
+            patch.object(nodestore.backend, "get", wraps=nodestore.backend.get) as get_body,
+            patch.object(
+                nodestore.backend, "get_multi", wraps=nodestore.backend.get_multi
+            ) as get_bodies,
+        ):
+            result = _get_recommended_event(group, self.organization, now - timedelta(days=1), now)
+
+        assert result is not None
+        assert result.event_id == selected.event_id
+        get_body.assert_called_once_with(selected.data.id)
+        get_bodies.assert_not_called()
+
+    def test_skips_missing_event_body(self) -> None:
+        now = datetime.now(UTC)
+        event = self.store_event_helper(
+            now - timedelta(hours=2), self.project.id, "a" * 32, "1" * 16
+        )
+        missing = self.store_event_helper(
+            now - timedelta(hours=1), self.project.id, "b" * 32, "2" * 16
+        )
+        nodestore.backend.delete(missing.data.id)
+        assert event.group is not None
+
+        with patch(
+            "sentry.seer.agent.tools.execute_table_query",
+            return_value=ExecuteQuerySuccessResponse(
+                data=[
+                    {"trace": "a" * 32, "count(span.duration)": 1},
+                    {"trace": "b" * 32, "count(span.duration)": 1},
+                ]
+            ),
+        ):
+            result = _get_recommended_event(
+                event.group, self.organization, now - timedelta(days=1), now
+            )
+
+        assert result is not None
+        assert result.event_id == event.event_id
+
+    def test_skips_event_if_body_load_fails(self) -> None:
+        now = datetime.now(UTC)
+        fallback = self.store_event_helper(
+            now - timedelta(hours=2), self.project.id, "b" * 32, "2" * 16
+        )
+        self.store_event_helper(now - timedelta(hours=1), self.project.id, "a" * 32, "1" * 16)
+        assert fallback.group is not None
+
+        with (
+            patch(
+                "sentry.seer.agent.tools.execute_table_query",
+                return_value=ExecuteQuerySuccessResponse(
+                    data=[
+                        {"trace": "a" * 32, "count(span.duration)": 1},
+                        {"trace": "b" * 32, "count(span.duration)": 1},
+                    ]
+                ),
+            ),
+            patch.object(
+                nodestore.backend,
+                "get",
+                side_effect=[RuntimeError("read failed"), fallback.data.copy()],
+            ),
+        ):
+            result = _get_recommended_event(
+                fallback.group, self.organization, now - timedelta(days=1), now
+            )
+
+        assert result is not None
+        assert result.event_id == fallback.event_id
+
     def store_event_helper(
         self,
         dt: datetime,
         project_id: int,
         trace_id: str | None = None,
         span_id: str | None = None,
+        sampled: bool | None = None,
     ) -> Event:
         """All events stored with this method should share a group (same exception)"""
         data = load_data("python", timestamp=dt)
@@ -2807,6 +2894,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
             data["contexts"]["trace"] = {
                 "trace_id": trace_id,
                 "span_id": span_id,
+                "sampled": sampled,
             }
         return self.store_event(data=data, project_id=project_id)
 
@@ -2876,17 +2964,19 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
                 )
 
     def test_get_recommended_event_fallback_if_no_events_in_clamped_range(self) -> None:
-        """Falls back to most recent event in full range if no events in clamped range."""
         project = self.create_project()
         now = datetime.now(UTC)
         start = now - timedelta(days=30)
         end = now
         clamped_start = end - self.max_date_range
 
-        # 2 events before clamped start - should fallback to most recent
+        # The older sampled trace ranks higher.
         event1 = self.store_event_helper(
             dt=clamped_start - timedelta(hours=12),
             project_id=project.id,
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            sampled=True,
         )
         event2 = self.store_event_helper(
             dt=clamped_start - timedelta(hours=10),
@@ -2902,10 +2992,9 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
             end=end,
         )
         assert isinstance(result, GroupEvent)
-        assert result.event_id == event2.event_id
+        assert result.event_id == event1.event_id
 
     def test_get_recommended_event_fallback_if_no_events_with_spans_in_clamped_range(self) -> None:
-        """Falls back to most recent event if no events with spans in clamped range."""
         project = self.create_project()
         now = datetime.now(UTC)
         start = now - timedelta(days=30)
@@ -3568,134 +3657,6 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
                 )
                 is None
             )
-
-    def test_execute_replays_query(self) -> None:
-        replay_id = uuid.uuid4().hex
-        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
-        self.store_replays(
-            mock_replay(
-                replay_timestamp,
-                self.project.id,
-                replay_id,
-                urls=["https://example.com/checkout"],
-            )
-        )
-        self.store_replays(
-            mock_replay_click(
-                replay_timestamp + timedelta(seconds=5),
-                self.project.id,
-                replay_id,
-                node_id=1,
-                tag="button",
-                is_dead=1,
-                is_rage=1,
-            )
-        )
-
-        with self.feature({"organizations:session-replay": True}):
-            result = execute_replays_query(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                query="count_rage_clicks:>0",
-                fields=["id", "project_id", "started_at", "count_rage_clicks", "urls"],
-                sort="-started_at",
-                stats_period="7d",
-                per_page=5,
-            )
-
-        assert result is not None
-        assert len(result["data"]) == 1
-        row = result["data"][0]
-        assert row["id"] == replay_id
-        assert row["project_id"] == str(self.project.id)
-        assert row["started_at"] == replay_timestamp.replace(microsecond=0).isoformat()
-        assert row["count_rage_clicks"] == 1
-        assert row["urls"] == ["https://example.com/checkout"]
-
-    def test_execute_replays_query_with_project_slugs(self) -> None:
-        replay_id = uuid.uuid4().hex
-        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
-        self.store_replays(
-            mock_replay(
-                replay_timestamp,
-                self.project.id,
-                replay_id,
-                urls=["https://example.com/checkout"],
-            )
-        )
-
-        with self.feature({"organizations:session-replay": True}):
-            result = execute_replays_query(
-                organization_id=self.organization.id,
-                project_slugs=[self.project.slug],
-                query="url:*checkout*",
-                fields=["id", "project_id", "started_at", "urls"],
-                sort="-started_at",
-                stats_period="7d",
-                per_page=5,
-            )
-
-        assert result is not None
-        assert len(result["data"]) == 1
-        row = result["data"][0]
-        assert row["id"] == replay_id
-        assert row["project_id"] == str(self.project.id)
-        assert row["started_at"] == replay_timestamp.replace(microsecond=0).isoformat()
-        assert row["urls"] == ["https://example.com/checkout"]
-
-    def test_execute_replays_query_rejects_invalid_fields(self) -> None:
-        with self.feature({"organizations:session-replay": True}):
-            result = execute_replays_query(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                fields=["id", "not_a_replay_field"],
-                stats_period="7d",
-                per_page=5,
-            )
-
-        assert result == {"error": "Invalid replay field(s): not_a_replay_field"}
-
-    def test_execute_replays_query_handles_invalid_sort(self) -> None:
-        replay_id = uuid.uuid4().hex
-        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
-        self.store_replays(mock_replay(replay_timestamp, self.project.id, replay_id))
-
-        with self.feature({"organizations:session-replay": True}):
-            result = execute_replays_query(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                fields=["id", "started_at"],
-                sort="-not_a_sortable_field",
-                stats_period="7d",
-                per_page=5,
-            )
-
-        assert result is not None
-        assert "not_a_sortable_field" in result["error"]
-        assert "sortable field" in result["error"]
-
-    def test_execute_replays_query_pagination_has_more(self) -> None:
-        older_replay_id = uuid.uuid4().hex
-        newer_replay_id = uuid.uuid4().hex
-        older_timestamp = datetime.now(UTC) - timedelta(minutes=10)
-        newer_timestamp = datetime.now(UTC) - timedelta(minutes=5)
-        self.store_replays(mock_replay(older_timestamp, self.project.id, older_replay_id))
-        self.store_replays(mock_replay(newer_timestamp, self.project.id, newer_replay_id))
-
-        with self.feature({"organizations:session-replay": True}):
-            result = execute_replays_query(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                fields=["id", "started_at"],
-                sort="-started_at",
-                stats_period="7d",
-                per_page=1,
-            )
-
-        assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] == newer_replay_id
-        assert result["meta"]["has_more"] is True
 
 
 class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):

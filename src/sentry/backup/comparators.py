@@ -856,9 +856,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.dashboardfavoriteuser": [
                 DateUpdatedComparator("date_added", "date_updated"),
             ],
-            "sentry.dashboardhiddenuser": [
-                DateUpdatedComparator("date_added", "date_updated"),
-            ],
             "sentry.dashboardlastvisited": [
                 DateUpdatedComparator("last_visited", "date_added", "date_updated"),
             ],
@@ -878,7 +875,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_added"),
             ],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
-            "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
@@ -992,7 +988,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "tempest.tempestcredentials": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
+            "explore.exploresavedformula": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquery": [DateUpdatedComparator("date_updated", "date_added")],
+            "explore.exploresavedvariable": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquerystarred": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],

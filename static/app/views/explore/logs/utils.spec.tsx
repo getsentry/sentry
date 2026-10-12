@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/explore/logs/utils';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 describe('viewLogsSamplesTarget', () => {
   it('does not add a filter for an empty group by', () => {

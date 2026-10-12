@@ -12,7 +12,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
-import {safeURL} from 'sentry/utils/url/safeURL';
 
 import {ClientSecretModal} from './clientSecretModal';
 
@@ -30,14 +29,9 @@ type ClientResponse = {
   clientSecret: string;
 };
 
-const urlValidation = z
-  .string()
-  .min(1, 'Field is required')
-  .pipe(z.string().refine(value => Boolean(safeURL(value)), 'Enter a valid URL'));
+const urlValidation = z.url('Enter a valid URL');
 
-const optionalUrlValidation = z
-  .string()
-  .refine(value => value === '' || Boolean(safeURL(value)), 'Enter a valid URL');
+const optionalUrlValidation = urlValidation.or(z.literal(''));
 
 function spaceSeparatedUrls(requiredMessage: string, invalidMessage: string) {
   return z
@@ -47,7 +41,8 @@ function spaceSeparatedUrls(requiredMessage: string, invalidMessage: string) {
     .refine(
       value =>
         value === '' ||
-        value.split(/\s+/).every(url => urlValidation.safeParse(url).success),
+        (!value.includes(',') &&
+          value.split(/\s+/).every(url => urlValidation.safeParse(url).success)),
       invalidMessage
     );
 }
@@ -59,7 +54,8 @@ function optionalSpaceSeparatedUrls(invalidMessage: string) {
     .refine(
       value =>
         value === '' ||
-        value.split(/\s+/).every(url => urlValidation.safeParse(url).success),
+        (!value.includes(',') &&
+          value.split(/\s+/).every(url => urlValidation.safeParse(url).success)),
       invalidMessage
     );
 }

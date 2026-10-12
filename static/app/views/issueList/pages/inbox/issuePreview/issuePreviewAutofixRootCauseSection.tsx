@@ -22,6 +22,7 @@ import {WorkingIndicator} from './workingIndicator';
 export function IssuePreviewAutofixRootCauseSection({
   autofix,
   defaultExpanded,
+  readOnly = false,
   groupId,
   section,
 }: {
@@ -29,13 +30,19 @@ export function IssuePreviewAutofixRootCauseSection({
   defaultExpanded: boolean;
   groupId: string;
   section: AutofixSection;
+  readOnly?: boolean;
 }) {
   const artifact = getAutofixArtifactFromSection(section);
   const rootCause = isRootCauseArtifact(artifact) && artifact.data ? artifact.data : null;
   const evidence = useAutofixSectionEvidence({section});
 
   return (
-    <RetryableAutofixSection autofix={autofix} section={section} step="root_cause">
+    <RetryableAutofixSection
+      autofix={autofix}
+      readOnly={readOnly}
+      section={section}
+      step="root_cause"
+    >
       <IssuePreviewSection aria-label={t('Root Cause')} defaultExpanded={defaultExpanded}>
         <IssuePreviewSection.Title
           trailingItems={

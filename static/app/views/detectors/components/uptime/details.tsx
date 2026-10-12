@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -9,16 +10,14 @@ import {Link} from '@sentry/scraps/link';
 
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {IdBadge} from 'sentry/components/idBadge';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {setApiQueryData} from 'sentry/utils/queryClient';
@@ -31,7 +30,11 @@ import {
   makeDetectorDetailsQueryKey,
   useDetectorQuery,
 } from 'sentry/views/detectors/hooks';
-import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {
+  makeMonitorBasePathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -126,49 +129,47 @@ export default function UptimeAlertDetails() {
   return (
     <Stack flex={1}>
       <SentryDocumentTitle title={`${detector.name} — Alerts`} />
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: t('Monitors'),
-                to: makeMonitorBasePathname(organization.slug),
-              },
-              {
-                label: t('Uptime Monitor'),
-              },
-            ]}
-          />
-          <Layout.Title>
-            <IdBadge
-              project={project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: project.slug}}
-            />
-            {detector.name}
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <TopBar.Slot name="actions">
-          <StatusToggleButton
-            uptimeDetector={detector}
-            onToggleStatus={data => toggleStatus(data)}
-            disabled={!canEdit}
-            {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
-          />
-          <LinkButton
-            icon={<IconEdit />}
-            disabled={!canEdit}
-            tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
-            to={makeAlertsPathname({
-              path: `/uptime-rules/${project.slug}/${detectorId}/`,
-              organization,
-            })}
-          >
-            {t('Edit Rule')}
-          </LinkButton>
-        </TopBar.Slot>
-      </Layout.Header>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: detector.name,
+          leadingGraphic: (
+            <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+          ),
+        }}
+        items={[
+          {
+            type: 'link',
+            label: t('Monitors'),
+            to: makeMonitorBasePathname(organization.slug),
+          },
+          {
+            type: 'link',
+            label: getDetectorTypeLabel(detector.type),
+            to: makeMonitorTypePathname(organization.slug, detector.type),
+          },
+        ]}
+      />
+      <TopBar.Slot name="actions">
+        <StatusToggleButton
+          uptimeDetector={detector}
+          onToggleStatus={data => toggleStatus(data)}
+          disabled={!canEdit}
+          {...(canEdit ? {} : {tooltipProps: {title: permissionTooltipText}})}
+        />
+        <LinkButton
+          icon={<IconEdit />}
+          disabled={!canEdit}
+          tooltipProps={{title: canEdit ? undefined : permissionTooltipText}}
+          to={makeAlertsPathname({
+            path: `/uptime-rules/${project.slug}/${detectorId}/`,
+            organization,
+          })}
+        >
+          {t('Edit Rule')}
+        </LinkButton>
+      </TopBar.Slot>
       <Layout.Body>
         <Layout.Main>
           <StyledPageFilterBar condensed>

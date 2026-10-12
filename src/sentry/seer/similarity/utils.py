@@ -42,19 +42,6 @@ FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 # multiple platforms, some supported and some not, and not worry about events from the unsupported
 # platforms getting sent to Seer during ingest.
 SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(["other"])  # We don't know what's in the event
-# Event platforms corresponding to project platforms which were backfilled before we started
-# filtering stacktraces by length. To keep new events matching with existing data, we bypass
-# length checks for these platforms (their stacktraces will be truncated instead).
-EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK = frozenset(
-    [
-        "go",
-        "javascript",
-        "node",
-        "php",
-        "python",
-        "ruby",
-    ]
-)
 BASE64_ENCODED_PREFIXES = [
     "data:text/html;base64",
     "data:text/javascript;base64",
@@ -351,10 +338,7 @@ def stacktrace_exceeds_limits(
     """
     Check if a stacktrace exceeds length limits for Seer similarity analysis.
 
-    For V1, platforms that bypass length checks (to maintain consistency with backfilled data)
-    have all stacktraces pass through. For non-V1 models, all platforms are subject to length checks.
-
-    If we dont bypass length checks, we use a two-step approach:
+    All platforms use a two-step approach:
     1. First check raw string length - if shorter than token limit, pass immediately
     2. Only if string is long enough to potentially exceed limit, run expensive token count
     """
@@ -374,21 +358,6 @@ def stacktrace_exceeds_limits(
     ):
         # We don't bother to collect a metric on this outcome, because we shouldn't have called the
         # function in the first place
-        return False
-
-    # Certain platforms were backfilled before we added length filtering, so to keep new events
-    # matching with existing data, we bypass the filter for them (their stacktraces will be truncated).
-    # For V2 we apply length checks to all platforms since we're re-embedding everything anyway.
-    if (
-        model_version == GroupingVersion.V1
-        and platform in EVENT_PLATFORMS_BYPASSING_STACKTRACE_LENGTH_CHECK
-    ):
-        metrics.incr(
-            "grouping.similarity.stacktrace_length_filter",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "bypass"},
-        )
-        report_token_count_metric(event, variants, "bypass")
         return False
 
     max_token_count = options.get("seer.similarity.max_token_count")

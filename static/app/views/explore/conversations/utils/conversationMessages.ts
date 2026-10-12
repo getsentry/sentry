@@ -5,11 +5,23 @@ import {
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
-  AGENT_NAME_FIELDS,
   getNumberAttr,
   getStringAttr,
   hasError,
+  resolveAgentName,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getAnswerLabels,
+  getNodeEvaluation,
+  isEvaluationNode,
+  type Evaluation,
+} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {
+  getMemoryPreview,
+  getNodeMemory,
+  isMemoryNode,
+  type Memory,
+} from 'sentry/views/insights/pages/agents/utils/memory';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -18,6 +30,12 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {SpanFields} from 'sentry/views/insights/types';
 
 const FILTERED = '[Filtered]';
+
+/**
+ * Placeholder for message content the SDK didn't record, used when a
+ * conversation's generation spans captured no inputs or outputs at all.
+ */
+export const NOT_REPORTED = '<not reported>';
 
 /**
  * Content that is empty or only whitespace has nothing to render, so we treat
@@ -45,13 +63,15 @@ export interface ConversationMessage {
   content: string;
   id: string;
   nodeId: string;
-  role: 'user' | 'assistant' | 'embedding';
+  role: 'user' | 'assistant' | 'embedding' | 'evaluation' | 'memory';
   timestamp: number;
   agentName?: string;
   duration?: number;
   embeddingHasError?: boolean;
   embeddingInput?: string;
   embeddingTokens?: number;
+  evaluation?: Evaluation;
+  memory?: Memory;
   modelName?: string;
   reasoning?: string;
   toolCalls?: ToolCall[];
@@ -76,7 +96,9 @@ interface ConversationTurn {
  * Extracts conversation messages from trace spans:
  * 1. Partition spans into generation, tool, and embeddings spans
  * 2. Build conversation turns (user input + assistant output pairs)
- * 3. Merge turns that have no assistant response, carrying tool calls forward
+ * 3. Merge turns that have no assistant response, carrying tool calls forward.
+ *    When no turn captured any content, fill placeholder turns instead so the
+ *    conversation's structure still renders.
  * 4. Convert turns to deduplicated, sorted messages
  * 5. Insert embeddings spans as their own standalone messages, positioned by
  *    timestamp — unlike tool calls, embeddings don't need a nearby generation
@@ -85,34 +107,198 @@ interface ConversationTurn {
 export function extractMessagesFromNodes(
   nodes: AITraceSpanNode[]
 ): ConversationMessage[] {
-  const {generationSpans, toolSpans, embeddingSpans} = partitionSpansByType(nodes);
+  const enrichedNodes = enrichAgentMessages(nodes);
+  const {generationSpans, toolSpans, embeddingSpans, evaluationSpans, memorySpans} =
+    partitionSpansByType(enrichedNodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
-  const mergedTurns = mergeEmptyTurns(turns);
+  const displayTurns = turns.some(hasTurnContent)
+    ? mergeEmptyTurns(turns)
+    : fillNotReportedTurns(turns, enrichedNodes);
   const messages = [
-    ...turnsToMessages(mergedTurns),
+    ...turnsToMessages(displayTurns),
     ...embeddingSpansToMessages(embeddingSpans),
+    ...evaluationSpansToMessages(evaluationSpans),
+    ...memorySpansToMessages(memorySpans),
   ];
   messages.sort((a, b) => a.timestamp - b.timestamp);
   return messages;
 }
 
+function nodeHasOwnMessages(node: AITraceSpanNode): boolean {
+  return Boolean(
+    getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
+    getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES) ||
+    getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES) ||
+    getStringAttr(node, SpanFields.GEN_AI_RESPONSE_TEXT)
+  );
+}
+
+function cloneNodeWithAttrs(
+  node: AITraceSpanNode,
+  overrides: Record<string, string>
+): AITraceSpanNode {
+  return {
+    ...node,
+    attributes: {...node.attributes, ...overrides},
+  } as AITraceSpanNode;
+}
+
+// The agent output interleaves assistant messages with `tool` result messages;
+// only the assistant ones map to a generation span. Returns null for anything
+// that isn't the expected array shape.
+function parseAssistantSteps(rawOutput: string): string[] | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawOutput);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(parsed)) {
+    return null;
+  }
+  return parsed
+    .filter(
+      (message): message is {role?: string} =>
+        typeof message === 'object' &&
+        message !== null &&
+        (message as {role?: string}).role === 'assistant'
+    )
+    .map(message => JSON.stringify([message]));
+}
+
+// Groups each agent's generation (ai_client) children under the agent's span id,
+// sorted by start time so an agent's assistant output maps onto them in order.
+function groupGenerationChildrenByAgent(
+  nodes: AITraceSpanNode[]
+): Map<string, AITraceSpanNode[]> {
+  const childrenByAgentId = new Map<string, AITraceSpanNode[]>();
+  for (const node of nodes) {
+    const parentId = node.value?.parent_span_id;
+    if (!parentId || !getIsAiGenerationSpan(getGenAiOpType(node))) {
+      continue;
+    }
+    const siblings = childrenByAgentId.get(parentId);
+    if (siblings) {
+      siblings.push(node);
+    } else {
+      childrenByAgentId.set(parentId, [node]);
+    }
+  }
+  for (const siblings of childrenByAgentId.values()) {
+    siblings.sort((a, b) => getNodeStartTimestamp(a) - getNodeStartTimestamp(b));
+  }
+  return childrenByAgentId;
+}
+
+// Distributes one agent's input/output across its generation children. With one
+// assistant message per generation they map 1:1, and the user input anchors the
+// first child. Otherwise there is no safe per-step mapping, so fall back to the
+// question on the first child and the whole output on the last.
+function buildAgentChildOverrides(
+  children: AITraceSpanNode[],
+  rawInput: string | undefined,
+  rawOutput: string
+): Map<string, Record<string, string>> {
+  const overrides = new Map<string, Record<string, string>>();
+  const assistantSteps = parseAssistantSteps(rawOutput);
+
+  if (assistantSteps && assistantSteps.length === children.length) {
+    children.forEach((child, index) => {
+      overrides.set(child.id, {
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: assistantSteps[index]!,
+        ...(index === 0 && rawInput
+          ? {[SpanFields.GEN_AI_INPUT_MESSAGES]: rawInput}
+          : {}),
+      });
+    });
+    return overrides;
+  }
+
+  if (rawInput) {
+    overrides.set(children[0]!.id, {[SpanFields.GEN_AI_INPUT_MESSAGES]: rawInput});
+  }
+  const lastChild = children.at(-1)!;
+  overrides.set(lastChild.id, {
+    ...overrides.get(lastChild.id),
+    [SpanFields.GEN_AI_OUTPUT_MESSAGES]: rawOutput,
+  });
+  return overrides;
+}
+
+/**
+ * Some SDKs put messages on the agent span instead of its generation spans.
+ * Backfill empty generation children so the standard transcript flow can use them.
+ */
+export function enrichAgentMessages(nodes: AITraceSpanNode[]): AITraceSpanNode[] {
+  const childrenByAgentId = groupGenerationChildrenByAgent(nodes);
+  const overridesById = new Map<string, Record<string, string>>();
+
+  for (const node of nodes) {
+    if (getGenAiOpType(node) !== 'agent') {
+      continue;
+    }
+
+    const rawOutput = getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES);
+    if (!rawOutput || rawOutput === FILTERED) {
+      continue;
+    }
+
+    const children = childrenByAgentId.get(node.id) ?? [];
+    // Keep generation spans as the source when they have their own messages.
+    if (children.length === 0 || children.some(nodeHasOwnMessages)) {
+      continue;
+    }
+
+    const rawInput =
+      getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
+      getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES);
+
+    for (const [childId, overrides] of buildAgentChildOverrides(
+      children,
+      rawInput,
+      rawOutput
+    )) {
+      overridesById.set(childId, overrides);
+    }
+  }
+
+  if (overridesById.size === 0) {
+    return nodes;
+  }
+
+  return nodes.map(node => {
+    const overrides = overridesById.get(node.id);
+    return overrides ? cloneNodeWithAttrs(node, overrides) : node;
+  });
+}
+
 export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   embeddingSpans: AITraceSpanNode[];
+  evaluationSpans: AITraceSpanNode[];
   generationSpans: AITraceSpanNode[];
+  memorySpans: AITraceSpanNode[];
   toolSpans: AITraceSpanNode[];
 } {
   const generationSpans: AITraceSpanNode[] = [];
   const toolSpans: AITraceSpanNode[] = [];
   const embeddingSpans: AITraceSpanNode[] = [];
+  const evaluationSpans: AITraceSpanNode[] = [];
+  const memorySpans: AITraceSpanNode[] = [];
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
-    // Embeddings are checked first: they don't get a dedicated
-    // gen_ai.operation.type (it reports "ai_client"), so they're recognized by
-    // their span op — or, once available, the embeddings-only input attribute.
-    // Either way they must not fall through to generationSpans, where they'd be
-    // dropped for having no chat content.
-    if (getIsEmbeddingsNode(node)) {
+    // Evaluations, embeddings and memory operations are recognized by
+    // gen_ai.operation.name first: until Relay sets a dedicated operation.type
+    // they report "ai_client" like LLM calls (and memory spans may be nested
+    // under tool calls), so matching by name keeps them out of the generation
+    // and tool buckets.
+    if (isEvaluationNode(node)) {
+      evaluationSpans.push(node);
+      continue;
+    }
+    if (isMemoryNode(node)) {
+      memorySpans.push(node);
+    } else if (isEmbeddingsNode(node)) {
       embeddingSpans.push(node);
     } else if (getIsAiGenerationSpan(opType)) {
       generationSpans.push(node);
@@ -124,8 +310,10 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   generationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   toolSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   embeddingSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
+  evaluationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
+  memorySpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
 
-  return {generationSpans, toolSpans, embeddingSpans};
+  return {generationSpans, toolSpans, embeddingSpans, evaluationSpans, memorySpans};
 }
 
 /**
@@ -166,6 +354,53 @@ export function embeddingSpansToMessages(
   }
 
   return messages;
+}
+
+/**
+ * Maps evaluation spans to standalone messages positioned by their own
+ * timestamp, like embeddings. Parts that can't be read are left to the span
+ * detail, which shows them raw.
+ */
+export function evaluationSpansToMessages(
+  evaluationSpans: AITraceSpanNode[]
+): ConversationMessage[] {
+  return evaluationSpans.map(span => {
+    const start = getNodeStartTimestamp(span);
+    const end = getNodeEndTimestamp(span);
+    return {
+      id: `evaluation-${span.id}`,
+      role: 'evaluation',
+      content: '',
+      timestamp: getNodeTimestamp(span),
+      nodeId: span.id,
+      duration: end > start ? end - start : undefined,
+      evaluation: getNodeEvaluation(span) ?? undefined,
+    };
+  });
+}
+
+/**
+ * Maps memory operation spans to standalone messages positioned by their own
+ * timestamp, like embeddings and evaluations. The parsed memory drives the
+ * collapsed preview and the expanded records; the records payload is opt-in, so
+ * it may be absent until the bulk conversation fetch returns it.
+ */
+export function memorySpansToMessages(
+  memorySpans: AITraceSpanNode[]
+): ConversationMessage[] {
+  return memorySpans.map(span => {
+    const start = getNodeStartTimestamp(span);
+    const end = getNodeEndTimestamp(span);
+    return {
+      id: `memory-${span.id}`,
+      role: 'memory',
+      content: '',
+      timestamp: getNodeTimestamp(span),
+      nodeId: span.id,
+      duration: end > start ? end - start : undefined,
+      memory: getNodeMemory(span) ?? undefined,
+    };
+  });
 }
 
 export function buildConversationTurns(
@@ -262,6 +497,81 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
   return result;
 }
 
+function hasTurnContent(turn: ConversationTurn): boolean {
+  return Boolean(turn.userContent || turn.assistantContent || turn.reasoning);
+}
+
+// Walks up to the nearest `invoke_agent` span, so a sub-agent's generations
+// form their own run, like the exchange its captured messages would show.
+function getNearestAgentId(
+  node: AITraceSpanNode,
+  nodesById: Map<string, AITraceSpanNode>
+): string | null {
+  let parentId = node.value?.parent_span_id;
+  while (parentId) {
+    const parent = nodesById.get(parentId);
+    if (!parent) {
+      return null;
+    }
+    if (getGenAiOpType(parent) === 'agent') {
+      return parent.id;
+    }
+    parentId = parent.value?.parent_span_id;
+  }
+  return null;
+}
+
+/**
+ * Fills turns with `NOT_REPORTED` placeholders for a conversation whose spans
+ * captured no message content. The generations of one agent span form one
+ * exchange: a user placeholder on its first generation, an assistant
+ * placeholder on its last, and tool calls in between. A sub-agent's
+ * generations form their own exchange nested inside the calling agent's.
+ * Generations without an agent span form a single exchange. Placeholders are
+ * only shown where the token usage shows the content existed.
+ *
+ * This approximates the transcript's shape. Without content there's no way to
+ * tell which generations produced assistant text or where new user messages
+ * arrived, so a captured transcript can place bubbles differently, e.g. with
+ * assistant output between tool calls or several exchanges within one run.
+ */
+function fillNotReportedTurns(
+  turns: ConversationTurn[],
+  nodes: AITraceSpanNode[]
+): ConversationTurn[] {
+  const nodesById = new Map(nodes.map(node => [node.id, node]));
+  const agentIds = turns.map(turn => getNearestAgentId(turn.generation, nodesById));
+  const firstIndexByAgent = new Map<string | null, number>();
+  const lastIndexByAgent = new Map<string | null, number>();
+  agentIds.forEach((agentId, index) => {
+    if (!firstIndexByAgent.has(agentId)) {
+      firstIndexByAgent.set(agentId, index);
+    }
+    lastIndexByAgent.set(agentId, index);
+  });
+
+  return turns.map((turn, index) => {
+    const agentId = agentIds[index] ?? null;
+    const isRunStart = firstIndexByAgent.get(agentId) === index;
+    const isRunEnd = lastIndexByAgent.get(agentId) === index;
+    const inputTokens = getNumberAttr(
+      turn.generation,
+      SpanFields.GEN_AI_USAGE_INPUT_TOKENS
+    );
+    const reasoningTokens = getNumberAttr(
+      turn.generation,
+      SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS
+    );
+
+    return {
+      ...turn,
+      userContent: isRunStart && inputTokens && inputTokens > 0 ? NOT_REPORTED : null,
+      assistantContent: isRunEnd ? NOT_REPORTED : null,
+      reasoning: reasoningTokens && reasoningTokens > 0 ? NOT_REPORTED : null,
+    };
+  });
+}
+
 export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[] {
   const messages: ConversationMessage[] = [];
   const seenUserContent = new Set<string>();
@@ -282,6 +592,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       turn.userContent &&
       (turn.userContent === FILTERED ||
         turn.userContent === EMPTY_TEXT_CONTENT ||
+        turn.userContent === NOT_REPORTED ||
         !hasHistory ||
         userCountGrew ||
         !seenUserContent.has(turn.userContent))
@@ -301,6 +612,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       turn.assistantContent &&
       (turn.assistantContent === FILTERED ||
         turn.assistantContent === EMPTY_TEXT_CONTENT ||
+        turn.assistantContent === NOT_REPORTED ||
         !seenAssistantContent.has(turn.assistantContent));
     const hasToolCalls = turn.toolCalls.length > 0;
 
@@ -317,13 +629,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       const endTs = Math.max(genEnd, lastToolEnd);
       const duration = endTs > startTs ? endTs - startTs : undefined;
 
-      let agentName: string | undefined;
-      for (const field of AGENT_NAME_FIELDS) {
-        agentName = getStringAttr(turn.generation, field);
-        if (agentName) {
-          break;
-        }
-      }
+      const agentName = resolveAgentName(turn.generation.attributes ?? {});
       const modelName = getStringAttr(turn.generation, SpanFields.GEN_AI_RESPONSE_MODEL);
 
       messages.push({
@@ -495,16 +801,8 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
-/**
- * Embeddings spans don't get a dedicated `gen_ai.operation.type` (it reports
- * `ai_client`), so they're recognized by their span op instead — falling back to
- * the embeddings-only input attribute when it's present.
- */
-function getIsEmbeddingsNode(node: AITraceSpanNode): boolean {
-  return (
-    getStringAttr(node, SpanFields.SPAN_OP) === 'gen_ai.embeddings' ||
-    Boolean(getStringAttr(node, SpanFields.GEN_AI_EMBEDDINGS_INPUT))
-  );
+function isEmbeddingsNode(node: AITraceSpanNode): boolean {
+  return getStringAttr(node, SpanFields.GEN_AI_OPERATION_NAME) === 'embeddings';
 }
 
 // Prefix every line with `> ` so multi-line content forms one blockquote.
@@ -513,6 +811,22 @@ function toBlockquote(text: string): string {
     .split('\n')
     .map(line => `> ${line}`)
     .join('\n');
+}
+
+function evaluationToMarkdown(evaluation: Evaluation | undefined): string[] {
+  const lines: string[] = [];
+  const state = evaluation?.input?.state;
+  if (state !== undefined) {
+    lines.push(toBlockquote(typeof state === 'string' ? state : JSON.stringify(state)));
+  }
+  const answers = getAnswerLabels(
+    evaluation?.answers ?? [],
+    evaluation?.input?.questions
+  ).map(([key, label]) => `- ${key}: ${label}`);
+  if (answers.length > 0) {
+    lines.push(answers.join('\n'));
+  }
+  return lines;
 }
 
 export function messagesToMarkdown(messages: ConversationMessage[]): string {
@@ -528,6 +842,15 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
     } else if (message.role === 'embedding') {
       lines.push('### Embedding');
       lines.push(toBlockquote(message.embeddingInput ?? ''));
+    } else if (message.role === 'evaluation') {
+      lines.push('### Evaluation');
+      lines.push(...evaluationToMarkdown(message.evaluation));
+    } else if (message.role === 'memory') {
+      lines.push('### Memory');
+      const summary = [message.memory?.operation, getMemoryPreview(message.memory)]
+        .filter(Boolean)
+        .join(': ');
+      lines.push(toBlockquote(summary));
     } else {
       const sender = message.agentName || message.modelName || 'Assistant';
       const durationStr =

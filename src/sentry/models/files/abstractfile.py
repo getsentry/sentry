@@ -387,13 +387,14 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         blob_ids = [blob.id for blob in self.blobs.all()]
         ret = super().delete(*args, **kwargs)
 
-        # Wait to delete blobs. This helps prevent
-        # races around frequently used blobs in debug images and release files.
-        transaction.on_commit(
-            lambda: self._delete_unreferenced_blob_task().apply_async(
-                kwargs={"blob_ids": blob_ids}, countdown=60 * 5
-            ),
-            using=router.db_for_write(type(self)),
-        )
+        if blob_ids:
+            # Wait to delete blobs. This helps prevent
+            # races around frequently used blobs in debug images and release files.
+            transaction.on_commit(
+                lambda: self._delete_unreferenced_blob_task().apply_async(
+                    kwargs={"blob_ids": blob_ids}, countdown=60 * 5
+                ),
+                using=router.db_for_write(type(self)),
+            )
 
         return ret

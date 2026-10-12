@@ -23,6 +23,7 @@ export function useRotatingMessage(messages: string[]): string {
     }, delay);
 
     return () => clearTimeout(timer);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [index, messages.length]);
 
   return messages[index]!;

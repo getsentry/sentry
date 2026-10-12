@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Input} from '@sentry/scraps/input';
 import {TextArea} from '@sentry/scraps/textarea';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
@@ -48,17 +47,6 @@ export function Form({
     }
   };
 
-  const onCopy = (value: string) => () => {
-    navigator.clipboard
-      .writeText(value)
-      .then(() => {
-        addSuccessMessage(t('Copied to clipboard'));
-      })
-      .catch(() => {
-        addErrorMessage(t('Error copying to clipboard'));
-      });
-  };
-
   return (
     <form onSubmit={handleSubmit} id="relay-form">
       <FieldGroup
@@ -87,9 +75,7 @@ export function Form({
           inline={false}
           stacked
         >
-          <TextCopyInput onCopy={onCopy(values.publicKey)}>
-            {values.publicKey}
-          </TextCopyInput>
+          <TextCopyInput>{values.publicKey}</TextCopyInput>
         </FieldGroup>
       ) : (
         <FieldWrapper>

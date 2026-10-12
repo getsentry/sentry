@@ -37,6 +37,11 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
     from sentry.workflow_engine.models.data_source import DataSource
+    from sentry.workflow_engine.preview import (
+        ActionFilterPreviewBehavior,
+        UnsupportedPreviewBehavior,
+        WorkflowTriggerPreviewBehavior,
+    )
 
 T = TypeVar("T")
 
@@ -93,6 +98,7 @@ type DetectorResult = IssueOccurrence | StatusChangeMessage | None
 
 class _WorkflowEventLocalCache(TypedDict, total=False):
     group_assignees: Sequence[GroupAssignee]
+    activity_environment: Environment | None
 
 
 @dataclass(frozen=True)
@@ -264,6 +270,16 @@ class DataConditionHandler(Generic[T]):
         return comparison
 
 
+class WorkflowTriggerDataConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+    preview_behavior: ClassVar[WorkflowTriggerPreviewBehavior | UnsupportedPreviewBehavior]
+
+
+class ActionFilterDataConditionHandler(DataConditionHandler[T]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    preview_behavior: ClassVar[ActionFilterPreviewBehavior | UnsupportedPreviewBehavior]
+
+
 class DataConditionType(TypedDict):
     id: int | None
     comparison: int
@@ -285,12 +301,11 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
     event_types: list[SnubaQueryEventType.EventType]
 
 
-@dataclass(frozen=True)
 class DetectorSettings:
-    handler: type[BaseDetectorHandler[Any, Any]] | None = None
-    validator: type[BaseDetectorTypeValidator] | None = None
-    config_schema: dict[str, Any] = field(default_factory=dict)
-    filter: Q | None = None
+    handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
+    validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
+    config_schema: ClassVar[dict[str, Any]] = {}
+    filter: ClassVar[Q | None] = None
 
 
 WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

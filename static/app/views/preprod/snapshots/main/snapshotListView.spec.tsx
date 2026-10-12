@@ -50,8 +50,14 @@ const erroredPair: SnapshotDiffPair = {
   head_image: image(),
 };
 
-function renderListView(items: SidebarItem[], diffMode?: 'split' | 'wipe' | 'onion') {
-  return render(
+function ExampleSnapshotListView({
+  items,
+  diffMode,
+}: {
+  items: SidebarItem[];
+  diffMode?: 'split' | 'wipe' | 'onion';
+}) {
+  return (
     <SnapshotListView
       items={items}
       imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
@@ -83,13 +89,13 @@ describe('SnapshotListView', () => {
   });
 
   it('renders errored pairs as side-by-side cards with a failed badge', () => {
-    renderListView([erroredItem]);
+    render(<ExampleSnapshotListView items={[erroredItem]} />);
 
     expect(screen.getByText('Failed to compare')).toBeInTheDocument();
   });
 
   it('renders errored pairs side-by-side even when the diff mode is onion', () => {
-    renderListView([erroredItem], 'onion');
+    render(<ExampleSnapshotListView items={[erroredItem]} diffMode="onion" />);
 
     expect(screen.getByText('Failed to compare')).toBeInTheDocument();
     // Onion mode renders an opacity slider; side-by-side (split) does not.
@@ -116,7 +122,7 @@ describe('SnapshotListView', () => {
   }
 
   it('renders every card in a large single group (per-card rows) plus one header', () => {
-    renderListView([changedGroup(6)]);
+    render(<ExampleSnapshotListView items={[changedGroup(6)]} />);
 
     expect(screen.getAllByRole('heading', {name: 'Screens'})).toHaveLength(1);
     expect(screen.getByText('Screen 0')).toBeInTheDocument();
@@ -124,7 +130,7 @@ describe('SnapshotListView', () => {
   });
 
   it('frames the first row of a group as frame-top and the last card row as frame-bottom', () => {
-    renderListView([changedGroup(2)]);
+    render(<ExampleSnapshotListView items={[changedGroup(2)]} />);
 
     expect(document.querySelectorAll('[data-frame-top]')).toHaveLength(1);
     expect(document.querySelectorAll('[data-frame-bottom]')).toHaveLength(1);
@@ -132,15 +138,19 @@ describe('SnapshotListView', () => {
   });
 
   it('renders no group header for ungrouped items', () => {
-    renderListView([
-      {
-        key: 'added:solo',
-        name: 'solo.png',
-        displayName: 'solo.png',
-        type: 'added',
-        images: [image({group: undefined, image_file_name: 'solo.png'})],
-      },
-    ]);
+    render(
+      <ExampleSnapshotListView
+        items={[
+          {
+            key: 'added:solo',
+            name: 'solo.png',
+            displayName: 'solo.png',
+            type: 'added',
+            images: [image({group: undefined, image_file_name: 'solo.png'})],
+          },
+        ]}
+      />
+    );
 
     expect(screen.queryByRole('heading', {name: 'solo.png'})).not.toBeInTheDocument();
   });

@@ -77,6 +77,7 @@ export function ConditionalFilterArgumentInput(props: FunctionArgumentInputProps
     }
     input.setSelectionRange(pendingCaret.pos, pendingCaret.pos);
     setSelectionIndex(pendingCaret.pos);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputRef, inputValue]);
 
   // Suggestion updates re-render the controlled input and can reset the DOM caret.
@@ -101,6 +102,7 @@ export function ConditionalFilterArgumentInput(props: FunctionArgumentInputProps
       return;
     }
     input.setSelectionRange(selectionIndex, selectionIndex);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [displayValue, inputRef, isCurrentlyEditing, items, selectionIndex]);
 
   const shouldFilterComboBoxResults = !(editPhase === 'value' && getFilterTagValues);

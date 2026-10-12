@@ -153,7 +153,6 @@ class HandleStatusChangeTest(TestCase):
 
         open_period.refresh_from_db()
         assert open_period is not None
-        assert open_period.resolution_activity is None
         assert open_period.date_ended is None
 
     @patch("sentry.signals.issue_ignored.send_robust")

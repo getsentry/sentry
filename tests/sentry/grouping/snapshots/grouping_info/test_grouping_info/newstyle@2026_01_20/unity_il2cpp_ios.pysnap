@@ -1,0 +1,1004 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "EXC_BAD_ACCESS"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "Attempted to dereference null pointer."
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (category:system -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "start"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "main.mm"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "main"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "UIApplicationMain"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "-[UnityAppController repaint]"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "PlayerLoop"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "ScriptingInvocation::Invoke"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "il2cppinvokertable.cpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "enemyspawner.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "EnemySpawner_Update"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "combatsystem.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "CombatSystem_ApplyDamage"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "tmp_text.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "TMP_Text_SetText"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "animation.bindings.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "Animation_Play"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "il2cppcodegen.cpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "il2cpp_codegen_raise_null_reference_exception"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (family:native function:?[[]Sentry* -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "-[SentryCrashInstallationReporter reportCrash]"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (category:internals -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__pthread_kill"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception stacktrace — in-app frames",
+      "hash": "8bbdecb4ad2f92d58133a93ee009a07b",
+      "hint": null,
+      "key": "app_exception_stacktrace",
+      "type": "component"
+    },
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "EXC_BAD_ACCESS"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "Attempted to dereference null pointer."
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "start"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "main.mm"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "main"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stacktrace rule (category:indirection -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "UIApplicationMain"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "-[UnityAppController repaint]"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "PlayerLoop"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "ScriptingInvocation::Invoke"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "il2cppinvokertable.cpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "enemyspawner.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "EnemySpawner_Update"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "combatsystem.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "CombatSystem_ApplyDamage"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "tmp_text.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "TMP_Text_SetText"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "animation.bindings.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "Animation_Play"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "il2cppcodegen.cpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "il2cpp_codegen_raise_null_reference_exception"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stacktrace rule (family:native function:?[[]Sentry* -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "-[SentryCrashInstallationReporter reportCrash]"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "ignored by built-in stacktrace rule (category:internals -group)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "__pthread_kill"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception stacktrace — all frames",
+      "hash": "bae55c8a9132232871adf6b662a2d6da",
+      "hint": null,
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
+  }
+}

@@ -318,6 +318,12 @@ class RepositoryIntegration(
 
             return self.format_source_url(repo, filepath, branch)
 
+    def encode_source_url(self, url: str) -> str:
+        """Percent-encode a source URL's path, such as square brackets in a filepath."""
+        parsed = urlparse(url)
+        encoded_path = urlquote(unquote(parsed.path), safe="/")
+        return urlunparse(parsed._replace(path=encoded_path))
+
     def get_stacktrace_link(
         self, repo: Repository, filepath: str, default: str, version: str | None
     ) -> str | None:
@@ -346,16 +352,6 @@ class RepositoryIntegration(
             scope.set_tag("stacktrace_link.tried_version", False)
             scope.set_attribute("stacktrace_link.tried_version", False)
 
-            def encode_url(url: str) -> str:
-                parsed = urlparse(url)
-                # Decode the path first to avoid double-encoding
-                decoded_path = unquote(parsed.path)
-                # Encode only unencoded elements
-                encoded_path = urlquote(decoded_path, safe="/")
-                # Encode elements of the filepath like square brackets
-                # Preserve path separators and query params etc.
-                return urlunparse(parsed._replace(path=encoded_path))
-
             try:
                 if version:
                     scope.set_tag("stacktrace_link.tried_version", True)
@@ -364,7 +360,7 @@ class RepositoryIntegration(
                     if source_url:
                         scope.set_tag("stacktrace_link.used_version", True)
                         scope.set_attribute("stacktrace_link.used_version", True)
-                        return encode_url(source_url)
+                        return self.encode_source_url(source_url)
 
                 scope.set_tag("stacktrace_link.used_version", False)
                 scope.set_attribute("stacktrace_link.used_version", False)
@@ -375,7 +371,7 @@ class RepositoryIntegration(
                 lifecycle.record_halt(e)
                 raise
 
-            return encode_url(source_url) if source_url else None
+            return self.encode_source_url(source_url) if source_url else None
 
     def get_codeowner_file(
         self, repo: Repository, ref: str | None = None

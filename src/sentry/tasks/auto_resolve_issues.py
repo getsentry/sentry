@@ -117,7 +117,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
 
         if happened:
             with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
-                activity = Activity.objects.create(
+                Activity.objects.create(
                     group=group,
                     project=project,
                     type=ActivityType.SET_RESOLVED_BY_AGE.value,
@@ -128,7 +128,6 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
                 group=group,
                 new_status=GroupStatus.RESOLVED,
                 resolution_time=resolution_time,
-                resolution_activity=activity,
             )
             if group.issue_type == MetricIssue:
                 update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)

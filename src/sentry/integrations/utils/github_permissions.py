@@ -1,28 +1,27 @@
-"""
-when you update the app, if and only if you want warnings to show in different places in the UI
-then you should update the option with the new expected required permissions and their required level
+"""The permissions the current GitHub App version requests, and helpers to
+compare an installation against them.
 
-if you don't update the option, nothing will break since the option only lists out required permissions:
-if the user's integration contains more permissions than we expect we just ignore it, since there are
-inconsistencies with what permissions we store in the metadata anyways based on whether the integration
-is for an org or a single user
+``GITHUB_APP_LATEST_PERMISSIONS`` is the source of truth for what the latest
+version of the app asks for; an installation that has not accepted that version
+may hold fewer. It lives in the codebase (it used to be the ``github-app.required-permissions``
+option) because it is not a secret and has to stay in lockstep with the app's
+declared permissions and the tiers in ``github_permission_tiers``. Update it
+whenever the app's permissions change.
 
-at the moment there's no way to gate warnings in the UI by which perm is missing, but we can add that
-where the warnings are implemented since this API returns the list of missing scopes / levels
+We only ever compare against it as a floor: an installation holding *more* than
+we expect is ignored, since what GitHub reports in the integration metadata
+already varies by whether the install is for an org or a single user.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from datetime import UTC, datetime
 from enum import IntEnum
 from typing import Any, NamedTuple, TypedDict
 
-from sentry import options
-
 logger = logging.getLogger(__name__)
-
-GITHUB_APP_REQUIRED_PERMISSIONS_OPTION = "github-app.required-permissions"
 
 
 class PermissionLevel(IntEnum):
@@ -36,6 +35,41 @@ class PermissionLevel(IntEnum):
     def parse(cls, level: str) -> PermissionLevel | None:
         """The member ``level`` names, or None if it names none of them."""
         return cls.__members__.get(level.upper())
+
+
+# Approximately when the Sentry GitHub App's requested permissions last changed. A snapshot
+# recorded before this was read against the old required set, so it says nothing
+# about whether an install is missing anything from the current one, and treating
+# it as authoritative nags people over permissions we never asked them for.
+GITHUB_APP_PERMISSIONS_UPDATED_AT = datetime(2026, 7, 11, tzinfo=UTC)
+
+
+def _parse_last_refresh_at(metadata: Mapping[str, Any] | None) -> datetime | None:
+    """When the permissions in `metadata` were read off a fresh installation token.
+
+    The token refresh writes a naive UTC isoformat string and the permissions
+    RPC writes one with an offset, so a value without an offset is read back as
+    UTC rather than rejected.
+    """
+    raw = (metadata or {}).get("last_refresh_at")
+    if not isinstance(raw, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
+
+
+def is_permissions_snapshot_stale(metadata: Mapping[str, Any] | None) -> bool:
+    """True when metadata["permissions"] is too old to judge an install against.
+
+    An absent or unparseable stamp counts as stale: metadata only started
+    carrying one when the app's permissions were already changing, so a missing
+    one means the snapshot is older than any date we would set here.
+    """
+    last_refresh_at = _parse_last_refresh_at(metadata)
+    return last_refresh_at is None or last_refresh_at < GITHUB_APP_PERMISSIONS_UPDATED_AT
 
 
 class GitHubAppPermission(TypedDict):
@@ -57,6 +91,30 @@ class ParsedPermissions(NamedTuple):
     # this to decide whether a map they cannot fully read is one they can act
     # on at all.
     unreadable: dict[str, str]
+
+
+# The union of every permission the latest app version's features expect, as scope -> minimum
+# level. Each scope is introduced by one of the tiers in github_permission_tiers,
+# except the last group, which predates them and is spoken for by BASELINE_TIER:
+#   actions:write, code_quality:read, security_events:read  -> PR iteration
+#   contents:write                                          -> Autofix pull requests
+#   checks:write, statuses:write                            -> Seer code review
+#   pull_requests:write                                     -> PR comments
+#   administration:read, issues:write, metadata:read,
+#   repository_hooks:write                                  -> baseline (earlier features)
+GITHUB_APP_LATEST_PERMISSIONS: dict[str, str] = {
+    "actions": "write",
+    "administration": "read",
+    "checks": "write",
+    "code_quality": "read",
+    "contents": "write",
+    "issues": "write",
+    "metadata": "read",
+    "pull_requests": "write",
+    "repository_hooks": "write",
+    "security_events": "read",
+    "statuses": "write",
+}
 
 
 def parse_github_app_permissions(
@@ -99,19 +157,15 @@ def parse_github_app_permissions(
 def get_missing_github_app_permissions(
     metadata: Mapping[str, Any],
 ) -> list[MissingGithubAppPermission] | None:
-    """The required permissions the install does not hold.
+    """The latest permissions the install does not hold.
 
     None when it holds them all, and also when any level in either map would not
     read: we cannot say what the install holds or what it needs, so we enforce
     nothing rather than report a permission missing that may well be held.
     ``parse_github_app_permissions`` has logged the levels in question.
     """
-    required_permissions = options.get(GITHUB_APP_REQUIRED_PERMISSIONS_OPTION)
-    if not required_permissions:
-        return None
-
     expected = parse_github_app_permissions(
-        required_permissions, source="required_permissions_option"
+        GITHUB_APP_LATEST_PERMISSIONS, source="required_permissions"
     )
 
     integration_permissions = metadata.get("permissions") or {}

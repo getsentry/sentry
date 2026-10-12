@@ -12,6 +12,7 @@ from requests import Response
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.endpoints.integration_proxy import (
+    UNKNOWN_PROVIDER,
     IntegrationProxyFailureMetricType,
     IntegrationProxyRequestValidationException,
     IntegrationProxyRequestValidator,
@@ -28,6 +29,7 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
     ApiForbiddenError,
     ApiHostError,
+    ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiTimeoutError,
     ApiUnauthorized,
@@ -159,7 +161,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         tags: Tags | None = None,
     ):
         metric_name = "hybrid_cloud.integration_proxy.proxy_failure"
-        expected_tags = {"failure_type": failure_type, **(tags or {})}
+        # Most failure types are raised before the integration resolves, so the sentinel is the
+        # common case; tests for failures raised after resolution pass the real provider.
+        expected_tags = {
+            "failure_type": failure_type,
+            "provider": UNKNOWN_PROVIDER,
+            **(tags or {}),
+        }
 
         # A request emits at most one proxy_failure; the tag filter identifies which failure
         # fired rather than disambiguating multiple emissions for the same request.
@@ -226,13 +234,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"provider": "example"}},
         )
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400}},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400, "provider": "example"}},
         )
         # A fully proxied response is never counted as a failure, regardless of the
         # upstream status code.
@@ -358,13 +366,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"provider": "example"}},
         )
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400}},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"status": 400, "provider": "example"}},
         )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
@@ -503,12 +511,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"provider": "example"}},
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.INVALID_IDENTITY,
             count=1,
             mock_metrics=mock_metrics,
+            tags={"provider": "example"},
         )
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
@@ -545,12 +554,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"provider": "example"}},
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR,
             count=1,
             mock_metrics=mock_metrics,
+            tags={"provider": "example"},
         )
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
@@ -588,18 +598,60 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"provider": "example"}},
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR,
             count=1,
             mock_metrics=mock_metrics,
+            tags={"provider": "example"},
         )
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             count=0,
             mock_metrics=mock_metrics,
         )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_handles_api_invalid_request_error(
+        self,
+        mock_metrics: MagicMock,
+        mock_client: MagicMock,
+        mock_get_client: MagicMock,
+        mock_record_event: MagicMock,
+    ) -> None:
+        signature_path = f"/{self.proxy_path}"
+        headers = create_request_headers(
+            self.secret, signature_path=signature_path, integration_id=self.org_integration.id
+        )
+        error = ApiInvalidRequestError(
+            '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'
+        )
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock(side_effect=error)
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 400
+        assert proxy_response.data == {
+            "error": {"code": "BadSyntax", "message": "Bad format of conversation ID"}
+        }
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.API_INVALID_REQUEST_ERROR,
+            count=1,
+            mock_metrics=mock_metrics,
+            tags={"provider": "example"},
+        )
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 2)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 0)
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
@@ -630,12 +682,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"provider": "example"}},
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.UNAUTHORIZED_ERROR,
             count=1,
             mock_metrics=mock_metrics,
+            tags={"provider": "example"},
         )
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
@@ -672,12 +725,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"provider": "example"}},
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.RATE_LIMITED_ERROR,
             count=1,
             mock_metrics=mock_metrics,
+            tags={"provider": "example"},
         )
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
@@ -712,12 +766,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"provider": "example"}},
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.FORBIDDEN_ERROR,
             count=1,
             mock_metrics=mock_metrics,
+            tags={"provider": "example"},
         )
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
@@ -756,12 +811,13 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
             count=1,
             mock_metrics=mock_metrics,
-            kwargs_to_match={"sample_rate": 1.0, "tags": None},
+            kwargs_to_match={"sample_rate": 1.0, "tags": {"provider": "example"}},
         )
         self.assert_failure_metric_count(
             failure_type=IntegrationProxyFailureMetricType.UNKNOWN_ERROR,
             count=1,
             mock_metrics=mock_metrics,
+            tags={"provider": "example"},
         )
         self.assert_metric_count(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
@@ -936,6 +992,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             failure_type=IntegrationProxyFailureMetricType.STREAM_INTERRUPTED,
             count=1,
             mock_metrics=mock_metrics,
+            tags={"provider": "example"},
         )
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
@@ -978,6 +1035,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
             failure_type=IntegrationProxyFailureMetricType.STREAM_INTERRUPTED,
             count=1,
             mock_metrics=mock_metrics,
+            tags={"provider": "example"},
         )
 
 
@@ -1098,6 +1156,9 @@ class IntegrationProxyRequestValidatorTest(TestCase):
             IntegrationProxyRequestValidator(self.build_request())
 
         assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_INTEGRATION
+        # The integration row loaded before the status check rejected it, so the failure can
+        # still name the provider rather than falling back to the sentinel.
+        assert cm.value.integration_context["provider"] == "example"
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(OrganizationIntegration, "integration", None)
@@ -1112,6 +1173,7 @@ class IntegrationProxyRequestValidatorTest(TestCase):
         assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_INTEGRATION
         assert cm.value.integration_context["integration_id"] is None
         assert cm.value.integration_context["organization_id"] == self.organization.id
+        assert cm.value.integration_context["provider"] == UNKNOWN_PROVIDER
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(Integration, "get_installation")
@@ -1127,6 +1189,7 @@ class IntegrationProxyRequestValidatorTest(TestCase):
             IntegrationProxyRequestValidator(self.build_request())
 
         assert cm.value.failure_type == IntegrationProxyFailureMetricType.INVALID_CLIENT
+        assert cm.value.integration_context["provider"] == "example"
 
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(Integration, "get_installation")
@@ -1171,3 +1234,4 @@ class IntegrationProxyRequestValidatorTest(TestCase):
 
         assert cm.value.integration_context["integration_id"] is None
         assert cm.value.integration_context["organization_id"] is None
+        assert cm.value.integration_context["provider"] == UNKNOWN_PROVIDER

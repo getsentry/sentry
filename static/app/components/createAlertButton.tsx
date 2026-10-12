@@ -1,3 +1,4 @@
+import {IconSiren} from '@sentry/icons/siren';
 import type {LocationDescriptor} from 'history';
 
 import type {LinkButtonProps} from '@sentry/scraps/button';
@@ -6,7 +7,6 @@ import {Link} from '@sentry/scraps/link';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {IconSiren} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -143,9 +143,7 @@ export function CreateAlertButton({
       tooltipProps={{
         title: canCreateAlert ? undefined : permissionTooltipText,
         position: 'top',
-        overlayStyle: {
-          maxWidth: '270px',
-        },
+        maxWidth: 270,
       }}
       onClick={projectSlug ? undefined : handleClickWithoutProject}
       {...buttonProps}

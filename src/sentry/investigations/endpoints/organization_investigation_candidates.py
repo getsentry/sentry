@@ -13,7 +13,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
     can_request_actor_create_investigation,
-    investigation_ids_with_project_access,
+    organization_project_ids,
     service_error,
 )
 from sentry.investigations.endpoints.serializers import (
@@ -61,7 +61,7 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             resolved_sources = resolve_investigation_sources(
                 organization=organization,
                 sources=sources,
-                accessible_project_ids=request.access.accessible_project_ids,
+                accessible_project_ids=organization_project_ids(organization),
             )
         except Exception as error:
             response = service_error(error)
@@ -107,9 +107,6 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             for investigation in existing
             if investigation.source_key is not None
         }
-        viewable_ids = investigation_ids_with_project_access(
-            existing, request.access.accessible_project_ids
-        )
         orchestration_by_investigation = orchestration_summaries_by_investigation(existing)
         can_create = can_request_actor_create_investigation(request)
         items: list[dict[str, Any]] = []
@@ -125,17 +122,14 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
                 or existing_by_legacy_source_key.get(investigation_legacy_source_key(source.source))
             )
             if investigation is not None:
-                if investigation.id in viewable_ids:
-                    item: dict[str, Any] = {
-                        "status": "view",
-                        "investigationId": str(investigation.id),
-                    }
-                    orchestration = orchestration_by_investigation.get(investigation.id)
-                    if orchestration is not None:
-                        item["orchestration"] = orchestration
-                    items.append(item)
-                else:
-                    items.append({"status": "unavailable"})
+                item: dict[str, Any] = {
+                    "status": "view",
+                    "investigationId": str(investigation.id),
+                }
+                orchestration = orchestration_by_investigation.get(investigation.id)
+                if orchestration is not None:
+                    item["orchestration"] = orchestration
+                items.append(item)
             elif can_create:
                 items.append({"status": "investigate"})
             else:

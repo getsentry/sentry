@@ -39,6 +39,7 @@ class ExternalActor(Model):
             (ExternalProviders.GITHUB, IntegrationProviderSlug.GITHUB.value),
             (ExternalProviders.GITHUB_ENTERPRISE, IntegrationProviderSlug.GITHUB_ENTERPRISE.value),
             (ExternalProviders.GITLAB, IntegrationProviderSlug.GITLAB.value),
+            (ExternalProviders.CURSOR_ORIGIN, IntegrationProviderSlug.CURSOR_ORIGIN.value),
             (ExternalProviders.JIRA_SERVER, IntegrationProviderSlug.JIRA_SERVER.value),
             (ExternalProviders.PERFORCE, IntegrationProviderSlug.PERFORCE.value),
             # TODO: do migration to delete this from database

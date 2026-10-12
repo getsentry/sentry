@@ -114,7 +114,10 @@ class JiraServerClient(ApiClient):
         else:
             q = query.replace('"', '\\"')
             jql = f'text ~ "{q}"'
-        return self.get(self.SEARCH_URL, params={"jql": jql})
+        return self.get(
+            self.SEARCH_URL,
+            params={"jql": jql, "startAt": 0, "maxResults": 20, "fields": "summary"},
+        )
 
     def create_comment(self, issue_key, comment):
         return self.post(self.COMMENTS_URL % issue_key, data={"body": comment})

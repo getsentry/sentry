@@ -324,7 +324,7 @@ class SeerAgentClient:
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         is_interactive: bool = False,
-        enable_bash_tools: bool = False,
+        enable_bash_mode: bool = False,
         enable_coding: bool = False,
         enable_pr_context_tools: bool = False,
         enable_code_mode_tools: str = "off",
@@ -345,7 +345,7 @@ class SeerAgentClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
-        self.enable_bash_tools = enable_bash_tools and features.has(
+        self.enable_bash_mode = enable_bash_mode and features.has(
             "organizations:seer-explorer-allow-bash-mode", organization, actor=user
         )
         self.enable_code_mode_tools = enable_code_mode_tools
@@ -375,7 +375,7 @@ class SeerAgentClient:
             raise ValueError("category_key and category_value must be provided together")
 
         # Validate base Seer access on init (agent-specific flag checks are done at the endpoint level)
-        has_access, error = has_seer_access_with_detail(organization, user)
+        has_access, error = has_seer_access_with_detail(organization)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
 
@@ -435,8 +435,7 @@ class SeerAgentClient:
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
-            "enable_bash_mode": self.enable_bash_tools,
-            "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
+            "enable_bash_mode": self.enable_bash_mode,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -571,7 +570,7 @@ class SeerAgentClient:
         synchronously (mirror -> FAILED, raises SeerApiError, no retry).
 
         flush=False: leave the row for the async outbox runner to drain and
-        retry. Use for background callers (e.g. night shift).
+        retry. Use for background callers (e.g. agentic triage).
 
         Explicit agent_run_options override any options derived from organization
         configuration.
@@ -688,7 +687,9 @@ class SeerAgentClient:
 
         opts = AgentRunOptions()
 
-        if self.enable_bash_tools:
+        opts["enable_assisted_query_code_mode"] = self.enable_assisted_query_code_mode
+
+        if self.enable_bash_mode:
             opts["enable_bash_mode"] = True
 
         if random.random() < options.get("seer.explorer.context-engine-rollout"):
@@ -733,13 +734,6 @@ class SeerAgentClient:
             )
         ):
             opts["enable_streaming"] = True
-
-        if features.has(
-            "organizations:agentic-triage-sort",
-            self.organization,
-            actor=self.user,
-        ):
-            opts["is_agentic_triage_sort"] = True
 
         return opts
 

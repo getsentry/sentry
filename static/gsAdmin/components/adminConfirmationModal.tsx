@@ -34,6 +34,7 @@ type Props = Omit<ConfirmProps, 'onConfirm'> & {
   onConfirm?: (params: AdminConfirmParams) => void;
   renderModalSpecificContent?: (props: AdminConfirmRenderProps) => React.ReactNode;
   showAuditFields?: boolean;
+  showTicketURL?: boolean;
 };
 
 /**
@@ -46,6 +47,7 @@ export function AdminConfirmationModal({
   renderModalSpecificContent,
   modalSpecificContent,
   showAuditFields = true,
+  showTicketURL = true,
   ...props
 }: Props) {
   return (
@@ -58,6 +60,7 @@ export function AdminConfirmationModal({
             renderModalSpecificContent,
             modalSpecificContent,
             showAuditFields,
+            showTicketURL,
           }}
           {...renderProps}
         />
@@ -73,6 +76,7 @@ type OpenAdminConfirmOptions = Omit<OpenConfirmOptions, 'onConfirm'> & {
   onConfirm?: (params: AdminConfirmParams) => void;
   renderModalSpecificContent?: (props: AdminConfirmRenderProps) => React.ReactNode;
   showAuditFields?: boolean;
+  showTicketURL?: boolean;
 };
 
 export const openAdminConfirmModal = ({
@@ -80,6 +84,7 @@ export const openAdminConfirmModal = ({
   renderModalSpecificContent,
   modalSpecificContent,
   showAuditFields = true,
+  showTicketURL = true,
   ...opts
 }: OpenAdminConfirmOptions) =>
   openConfirmModal({
@@ -90,6 +95,7 @@ export const openAdminConfirmModal = ({
           renderModalSpecificContent,
           modalSpecificContent,
           showAuditFields,
+          showTicketURL,
         }}
         {...renderProps}
       />
@@ -103,6 +109,7 @@ type ConfirmMessageProps = ConfirmMessageRenderProps &
     | 'renderModalSpecificContent'
     | 'modalSpecificContent'
     | 'showAuditFields'
+    | 'showTicketURL'
     | 'onConfirm'
   >;
 
@@ -145,6 +152,7 @@ class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
       renderModalSpecificContent,
       modalSpecificContent,
       showAuditFields,
+      showTicketURL,
       confirm,
       close,
       disableConfirmButton,
@@ -180,23 +188,25 @@ class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
 
         {showAuditFields && (
           <Container marginTop="xl">
-            <InputField
-              data-test-id="url-field"
-              name="ticket-url"
-              type="url"
-              label="TicketURL"
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              onChange={(ticketURL: any) => this.setState({ticketURL})}
-              error={this.state.invalidTicketURL ? 'Invalid ticket URL' : undefined}
-              onBlur={(_: any, e: any) => {
-                const invalidTicketURL =
-                  !e.target.checkValidity() && e.target.value !== '';
-                this.setState({invalidTicketURL});
-                disableConfirmButton(invalidTicketURL);
-              }}
-            />
+            {showTicketURL && (
+              <InputField
+                data-test-id="url-field"
+                name="ticket-url"
+                type="url"
+                label="TicketURL"
+                inline={false}
+                stacked
+                flexibleControlStateSize
+                onChange={(ticketURL: any) => this.setState({ticketURL})}
+                error={this.state.invalidTicketURL ? 'Invalid ticket URL' : undefined}
+                onBlur={(_: any, e: any) => {
+                  const invalidTicketURL =
+                    !e.target.checkValidity() && e.target.value !== '';
+                  this.setState({invalidTicketURL});
+                  disableConfirmButton(invalidTicketURL);
+                }}
+              />
+            )}
             <TextareaField
               data-test-id="notes-field"
               name="notes"

@@ -2,9 +2,11 @@ import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejso
 from typing import Any
 from unittest.mock import Mock, patch
 
+import orjson
 import pytest
 from cryptography.fernet import Fernet
 from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
@@ -14,6 +16,12 @@ from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -136,7 +144,13 @@ class HandleSeerRunCreateTest(TestCase):
 
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_happy_path_explorer(self, mock_request: Mock) -> None:
-        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 99}))
+        observed_contexts: list[ViewerContext | None] = []
+
+        def make_request(*args: Any, **kwargs: Any) -> Mock:
+            observed_contexts.append(get_viewer_context())
+            return Mock(status=200, json=Mock(return_value={"run_id": 99}))
+
+        mock_request.side_effect = make_request
         run = self.create_seer_run(type=SeerRunType.EXPLORER)
 
         handle_seer_run_create(
@@ -148,6 +162,12 @@ class HandleSeerRunCreateTest(TestCase):
         run.refresh_from_db()
         assert run.seer_run_state_id == 99
         assert run.mirror_status == SeerRunMirrorStatus.LIVE
+        assert observed_contexts == [
+            ViewerContext(
+                organization_id=run.organization_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ]
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
@@ -181,9 +201,10 @@ class HandleSeerRunCreateTest(TestCase):
         assert all(isinstance(provider, dict) for provider in providers)
         assert providers[0]["provider_key"] == "datadog"
 
-    @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
-    def test_happy_path_assisted_query(self, mock_request: Mock) -> None:
-        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 7}))
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_happy_path_assisted_query(self, mock_urlopen: Mock) -> None:
+        mock_urlopen.return_value = HTTPResponse(orjson.dumps({"run_id": 7}), status=200)
         run = self.create_seer_run(type=SeerRunType.ASSISTED_QUERY)
 
         handle_seer_run_create(
@@ -196,9 +217,23 @@ class HandleSeerRunCreateTest(TestCase):
         assert run.seer_run_state_id == 7
         assert run.mirror_status == SeerRunMirrorStatus.LIVE
 
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context.organization_id == run.organization_id
+        assert viewer_context.user_id is None
+        assert viewer_context.actor_type == ActorType.SYSTEM
+
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_happy_path_feature_run(self, mock_request: Mock) -> None:
-        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 55}))
+        observed_contexts: list[ViewerContext | None] = []
+
+        def make_request(*args: Any, **kwargs: Any) -> Mock:
+            observed_contexts.append(get_viewer_context())
+            return Mock(status=200, json=Mock(return_value={"run_id": 55}))
+
+        mock_request.side_effect = make_request
         run = self.create_seer_run(type=SeerRunType.FEATURE_RUN)
 
         handle_seer_run_create(
@@ -219,6 +254,12 @@ class HandleSeerRunCreateTest(TestCase):
         assert sent_body["ref"] == str(run.uuid)
         assert sent_body["external_idempotency_key"] == str(run.uuid)
         assert sent_body["referrer"] == "night_shift"
+        assert observed_contexts == [
+            ViewerContext(
+                organization_id=run.organization_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ]
 
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_feature_run_referrer_absent_when_body_carries_none(self, mock_request: Mock) -> None:

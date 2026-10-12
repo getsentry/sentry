@@ -140,7 +140,6 @@ class AuthSAML2Test(AuthProviderTestCase):
         AuthIdentity.objects.create(
             user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
         )
-        self.client.cookies["sentry_react_auth"] = "1"
         self.client.post(self.login_path, {"init": True})
 
         response = self.accept_auth(follow=True)

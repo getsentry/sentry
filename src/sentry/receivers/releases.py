@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
@@ -44,6 +44,7 @@ from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -55,14 +56,58 @@ def validate_release_empty_version(instance: Release, **kwargs):
         )
 
 
-def resolve_group_resolutions(instance, created, **kwargs):
-    if not created:
+def invalidate_release_cache(
+    instance: Release, created: bool, update_fields: Iterable[str] | None = None, **kwargs
+) -> None:
+    if created:
+        return
+    # save() without update_fields may also change either timestamp, so
+    # conservatively invalidate the ingestion cache for those saves as well.
+    if update_fields is not None and not {"date_released", "date_added"}.intersection(
+        update_fields
+    ):
         return
 
-    transaction.on_commit(
-        lambda: clear_expired_resolutions.delay(release_id=instance.id),
-        router.db_for_write(Release),
-    )
+    cache_key = Release.get_cache_key(instance.organization_id, instance.version)
+    release_id = instance.id
+    organization_id = instance.organization_id
+
+    # Ingestion caches whole release objects. Invalidate after commit so a
+    # concurrent lookup can read the updated dates. A cache failure must not
+    # fail an already-committed save or prevent other commit callbacks running.
+    def on_commit() -> None:
+        try:
+            cache.delete(cache_key)
+        except Exception:
+            logger.exception(
+                "release.cache_invalidation_failed",
+                extra={"release_id": release_id, "organization_id": organization_id},
+            )
+
+    transaction.on_commit(on_commit, router.db_for_write(Release))
+
+
+def resolve_group_resolutions(
+    instance: Release, created: bool, update_fields: Iterable[str] | None = None, **kwargs
+) -> None:
+    # save() without update_fields may change either timestamp. Reevaluation
+    # is idempotent, so conservatively handle those saves too.
+    if (
+        not created
+        and update_fields is not None
+        and not {"date_released", "date_added"}.intersection(update_fields)
+    ):
+        return
+
+    release_id = instance.id
+
+    def on_commit() -> None:
+        if created or features.has(
+            "organizations:release-resolution-finalized-order", instance.organization
+        ):
+            clear_expired_resolutions.delay(release_id=release_id)
+
+    transaction.on_commit(on_commit, router.db_for_write(Release))
 
 
 def remove_resolved_link(link):
@@ -458,6 +503,10 @@ pre_save.connect(
     sender=Release,
     dispatch_uid="validate_release_empty_version",
     weak=False,
+)
+
+post_save.connect(
+    invalidate_release_cache, sender=Release, dispatch_uid="invalidate_release_cache", weak=False
 )
 
 post_save.connect(

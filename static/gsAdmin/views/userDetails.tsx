@@ -161,22 +161,22 @@ export function UserDetails() {
 
     openConfirmModal({
       message: 'Are you sure you want to remove this authenticator?',
-      onConfirm: () => {
-        api.request(endpoint, {
-          method: 'DELETE',
-          success: () => {
-            addSuccessMessage('Authenticator has been removed.');
-            const authenticators =
-              user?.authenticators?.filter(a => a.id !== auth.id) ?? [];
-            setApiQueryData(queryClient, makeFetchUserQueryKey(), {
-              ...user,
-              authenticators,
-            });
-          },
-          error: () => {
-            addErrorMessage('Unable to remove authenticator from account.');
-          },
-        });
+      onConfirm: async () => {
+        try {
+          await api.requestPromise(endpoint, {
+            method: 'DELETE',
+            includeAllArgs: true,
+          });
+          addSuccessMessage('Authenticator has been removed.');
+          const authenticators =
+            user?.authenticators?.filter(a => a.id !== auth.id) ?? [];
+          setApiQueryData(queryClient, makeFetchUserQueryKey(), {
+            ...user,
+            authenticators,
+          });
+        } catch {
+          addErrorMessage('Unable to remove authenticator from account.');
+        }
       },
     });
   };
@@ -200,25 +200,21 @@ export function UserDetails() {
         (identity.status === UserIdentityStatus.NEEDED_FOR_ORG_AUTH
           ? ' (Caution: User may be locked out of org access.)'
           : ''),
-      onConfirm: () => {
-        api.request(endpoint, {
-          method: 'DELETE',
-          success: () => {
-            addSuccessMessage('Identity has been disconnected.');
-            const newIdentities =
-              identities?.filter(
-                i => i.id !== identity.id || i.category !== identity.category
-              ) ?? [];
-            setApiQueryData(
-              queryClient,
-              makeFetchUserIdentitiesQueryKey(),
-              newIdentities
-            );
-          },
-          error: () => {
-            addErrorMessage('Unable to remove identity from account.');
-          },
-        });
+      onConfirm: async () => {
+        try {
+          await api.requestPromise(endpoint, {
+            method: 'DELETE',
+            includeAllArgs: true,
+          });
+          addSuccessMessage('Identity has been disconnected.');
+          const newIdentities =
+            identities?.filter(
+              i => i.id !== identity.id || i.category !== identity.category
+            ) ?? [];
+          setApiQueryData(queryClient, makeFetchUserIdentitiesQueryKey(), newIdentities);
+        } catch {
+          addErrorMessage('Unable to remove identity from account.');
+        }
       },
     });
   };

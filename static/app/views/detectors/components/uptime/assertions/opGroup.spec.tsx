@@ -148,6 +148,12 @@ describe('AssertionOpGroup', () => {
 
       // Click to change to "or" group
       await userEvent.click(screen.getByRole('button', {name: 'Assert All'}));
+      expect(
+        await screen.findByRole('listbox', {name: 'Assertion group type'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('listbox', {name: 'Assertion group negation'})
+      ).toBeInTheDocument();
       await userEvent.click(await screen.findByRole('option', {name: 'Assert Any'}));
 
       // Click to add negation
@@ -228,7 +234,7 @@ describe('AssertionOpGroup', () => {
       expect(screen.getByText('Empty assertion group')).toBeInTheDocument();
 
       // Add status code operation
-      await userEvent.click(screen.getByRole('button', {name: 'Add assertion to group'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add Assertion'}));
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Status Code'})
       );
@@ -240,7 +246,7 @@ describe('AssertionOpGroup', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Remove assertion'}));
 
       // Add JSON path operation
-      await userEvent.click(screen.getByRole('button', {name: 'Add assertion to group'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add Assertion'}));
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'JSON Path'})
       );
@@ -252,14 +258,14 @@ describe('AssertionOpGroup', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Remove assertion'}));
 
       // Add header operation
-      await userEvent.click(screen.getByRole('button', {name: 'Add assertion to group'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add Assertion'}));
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Header'}));
 
       // Remove header
       await userEvent.click(screen.getByRole('button', {name: 'Remove assertion'}));
 
       // Add nested group
-      await userEvent.click(screen.getByRole('button', {name: 'Add assertion to group'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add Assertion'}));
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Logical Group'})
       );

@@ -1,10 +1,12 @@
 from typing import cast
 
-from sentry_conventions.attributes import ATTRIBUTE_NAMES
+import pytest
+from sentry_conventions.attributes import ATTRIBUTE_METADATA, ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.enrichment import (
     MAX_AGENT_NAME_ANCESTOR_HOPS,
+    SHARED_SENTRY_ATTRIBUTES,
     TreeEnricher,
     compute_breakdowns,
 )
@@ -554,6 +556,118 @@ def test_conventional_user_attributes_propagated_to_child_spans() -> None:
         )
 
 
+def test_deprecated_shared_attributes() -> None:
+    segment = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        attributes={"service.version": {"type": "string", "value": "segment-release"}},
+    )
+    child = build_mock_span(
+        project_id=1,
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        attributes={"release": {"type": "string", "value": "child-release"}},
+    )
+
+    segment["attributes"] = {"service.version": {"type": "string", "value": "segment-release"}}
+    child["attributes"] = {"release": {"type": "string", "value": "child-release"}}
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    assert attribute_value(enriched[1], "sentry.release") == "child-release"
+
+
+def test_deprecated_shared_attributes_propagated() -> None:
+    segment = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        attributes={"service.version": {"type": "string", "value": "segment-release"}},
+    )
+    child = build_mock_span(project_id=1, parent_span_id="aaaaaaaaaaaaaaaa")
+    segment["attributes"] = {"service.version": {"type": "string", "value": "segment-release"}}
+    child["attributes"] = {}
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    assert attribute_value(enriched[1], "sentry.release") == "segment-release"
+
+
+def test_shared_attributes_have_unique_deprecation_chains() -> None:
+    keys = [
+        candidate
+        for key in SHARED_SENTRY_ATTRIBUTES
+        for candidate in (ATTRIBUTE_METADATA[key].keys if key in ATTRIBUTE_METADATA else (key,))
+    ]
+
+    assert len(keys) == len(set(keys))
+
+
+@pytest.mark.parametrize(
+    "attribute_names",
+    [
+        ("browser.name",),
+        ("sentry.browser.name",),
+        ("browser.name", "sentry.browser.name"),
+        ("service.version",),
+        ("sentry.release", "release", "service.version"),
+        ("user.ip",),
+        ("user.ip_address", "sentry.user.ip", "user.ip"),
+        ("user.username",),
+        ("user.name", "sentry.user.username", "user.username"),
+        ("sentry.user.email",),
+        ("sentry.user",),
+        ("sentry.user.geo.subregion",),
+    ],
+)
+def test_shared_attributes_preserve_segment_keys(attribute_names: tuple[str, ...]) -> None:
+    segment_attributes = {
+        name: {"type": "string", "value": f"segment-value-{i}"}
+        for i, name in enumerate(attribute_names)
+    }
+    segment = build_mock_span(project_id=1, is_segment=True, span_id="aaaaaaaaaaaaaaaa")
+    child = build_mock_span(
+        project_id=1,
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1.0,
+        end_timestamp=2.0,
+    )
+    segment["attributes"] = segment_attributes
+    child["attributes"] = {}
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    assert enriched[1]["attributes"] == {
+        **segment_attributes,
+        "sentry.exclusive_time_ms": {"type": "double", "value": 1000.0},
+    }
+    assert segment["attributes"] == segment_attributes
+    assert child["attributes"] == {}
+
+
+@pytest.mark.parametrize("child_key", ["browser.name", "sentry.browser.name"])
+def test_shared_attribute_chain_not_copied_when_child_has_alias(child_key: str) -> None:
+    segment = build_mock_span(project_id=1, is_segment=True, span_id="aaaaaaaaaaaaaaaa")
+    child = build_mock_span(
+        project_id=1,
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1.0,
+        end_timestamp=2.0,
+    )
+    segment["attributes"] = {
+        "browser.name": {"type": "string", "value": "segment-browser"},
+        "sentry.browser.name": {"type": "string", "value": "segment-legacy-browser"},
+    }
+    child["attributes"] = {child_key: {"type": "string", "value": "child-browser"}}
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    assert enriched[1]["attributes"] == {
+        child_key: {"type": "string", "value": "child-browser"},
+        "sentry.exclusive_time_ms": {"type": "double", "value": 1000.0},
+    }
+
+
 def test_conventional_user_attributes_not_overwritten_on_child() -> None:
     """If a child span already has a conventional user attribute, the segment
     value must not overwrite it."""
@@ -584,6 +698,84 @@ def test_conventional_user_attributes_not_overwritten_on_child() -> None:
     enriched_child = enriched[1]
     assert attribute_value(enriched_child, ATTRIBUTE_NAMES.USER_EMAIL) == "child@example.com"
     assert attribute_value(enriched_child, ATTRIBUTE_NAMES.USER_ID) == "111"
+
+
+@pytest.mark.parametrize("attribute_name", ["user.email", "sentry.user.email"])
+def test_null_shared_attribute_value_not_overwritten(attribute_name: str) -> None:
+    segment = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        attributes={
+            ATTRIBUTE_NAMES.USER_EMAIL: {"type": "string", "value": "segment@example.com"},
+            ATTRIBUTE_NAMES.USER_ID: {"type": "string", "value": "123"},
+        },
+    )
+    child = build_mock_span(
+        project_id=1,
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        attributes={attribute_name: {"type": "string", "value": None}},
+    )
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    enriched_attributes = enriched[1]["attributes"]
+    assert enriched_attributes is not None
+    assert enriched_attributes[attribute_name] == {"type": "string", "value": None}
+    assert attribute_value(enriched[1], ATTRIBUTE_NAMES.USER_EMAIL) is None
+    assert attribute_value(enriched[1], ATTRIBUTE_NAMES.USER_ID) == "123"
+
+
+def test_null_shared_attribute_envelope_inherits_segment_value() -> None:
+    segment = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        attributes={
+            ATTRIBUTE_NAMES.USER_EMAIL: {"type": "string", "value": "segment@example.com"},
+        },
+    )
+    child = build_mock_span(
+        project_id=1,
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        attributes={ATTRIBUTE_NAMES.USER_EMAIL: None},
+    )
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    assert attribute_value(enriched[1], ATTRIBUTE_NAMES.USER_EMAIL) == "segment@example.com"
+
+
+def test_device_attributes_propagated_to_child_spans() -> None:
+    device_attrs = {
+        "sentry.device.class": {"type": "string", "value": "3"},
+        "sentry.device.model": {"type": "string", "value": "iPhone15,2"},
+        "sentry.device.brand": {"type": "string", "value": "Apple"},
+        "sentry.device.name": {"type": "string", "value": "iPhone"},
+    }
+
+    segment = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        attributes=device_attrs,
+    )
+    child = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+    )
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    enriched_child = enriched[1]
+    assert {name: attribute_value(enriched_child, name) for name in device_attrs} == {
+        name: attr["value"] for name, attr in device_attrs.items()
+    }
 
 
 def test_enrich_gen_ai_agent_name_from_immediate_parent() -> None:

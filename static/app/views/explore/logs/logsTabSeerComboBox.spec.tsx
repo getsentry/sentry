@@ -5,6 +5,7 @@ import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askS
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
   LOGS_CURSOR_KEY,
+  LOGS_FIELDS_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {getLogsSeerLocationQuery} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -366,6 +367,30 @@ describe('getLogsSeerLocationQuery', () => {
       {groupBy: 'service.name'},
       {chartType: ChartType.LINE, yAxes: ['count(message)']},
     ]);
+  });
+
+  it('appends extra fields onto the current samples columns', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({}),
+      currentAggregateFields: [],
+      currentFields: ['timestamp', 'message'],
+      pageDatetime,
+      result: seerResult({extraFields: ['severity', 'message']}),
+    });
+
+    expect(query[LOGS_FIELDS_KEY]).toEqual(['timestamp', 'message', 'severity']);
+  });
+
+  it('leaves the samples columns untouched when Seer returns no extra fields', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({}),
+      currentAggregateFields: [],
+      currentFields: ['timestamp', 'message'],
+      pageDatetime,
+      result: seerResult({}),
+    });
+
+    expect(query).not.toHaveProperty(LOGS_FIELDS_KEY);
   });
 
   it('applies expanded project ids returned by Seer', () => {

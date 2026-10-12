@@ -125,6 +125,9 @@ class IntegrationFeatures(StrEnum):
     CODEOWNERS = "codeowners"
     USER_MAPPING = "user-mapping"
     CODING_AGENT = "coding-agent"
+    # Adding this to IntegrationProvider.features lists the provider on Seer's
+    # connectors page, which is intended for infrastructure telemetry (e.g. Datadog
+    # and GCP).
     SEER_CONTEXT = "seer-context"
 
     # features currently only existing on plugins:
@@ -246,7 +249,11 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     """whether multiple installations of this integration are allowed per organization"""
 
     overwrite_existing_integration = True
-    """whether installation refreshes an existing Integration's global fields"""
+    """
+    whether installation refreshes an existing Integration's global fields. When
+    False, fields are still refreshed if no organization has the integration
+    installed, e.g. when reinstalling after an uninstall.
+    """
 
     can_disable = False
     """

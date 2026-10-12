@@ -59,8 +59,8 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.utils import (
+    get_org_sample_rate,
     has_custom_dynamic_sampling,
     has_dynamic_sampling,
     is_organization_mode_sampling,

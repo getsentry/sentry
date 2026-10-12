@@ -66,20 +66,6 @@ def test_ignores_a_blob_with_no_size() -> None:
     ) == {"Python": 7}
 
 
-def test_tolerates_a_stringified_size() -> None:
-    assert languages_from_tree(
-        [{"path": "a.py", "mode": "100644", "type": "blob", "size": "300"}]
-    ) == {"Python": 300}
-
-
-def test_ignores_an_unreadable_size() -> None:
-    entries: list[dict[str, Any]] = [
-        {"path": "a.py", "mode": "100644", "type": "blob", "size": "big"},
-        {"path": "b.py", "mode": "100644", "type": "blob", "size": None},
-    ]
-    assert languages_from_tree(entries) == {}
-
-
 def test_excludes_vendored_and_build_output() -> None:
     assert languages_from_tree(
         [

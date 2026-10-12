@@ -20,6 +20,7 @@ class GroupOpenPeriodActivityResponse(TypedDict):
 
 class GroupOpenPeriodResponse(TypedDict):
     id: str
+    groupId: str
     start: datetime
     end: datetime | None
     isOpen: bool
@@ -84,6 +85,7 @@ class GroupOpenPeriodSerializer(Serializer[GroupOpenPeriodResponse]):
         time_window = kwargs.get("time_window", 0)
         return GroupOpenPeriodResponse(
             id=str(obj.id),
+            groupId=str(obj.group_id),
             start=calculate_event_date_from_update_date(obj.date_started, time_window),
             end=(
                 calculate_event_date_from_update_date(obj.date_ended, time_window)

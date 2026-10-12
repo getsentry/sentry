@@ -8,14 +8,12 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
-from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
-from sentry.seer.endpoints.utils import resolve_seer_run
+from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission, resolve_seer_run
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
@@ -82,16 +80,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 }
             }
         """
-        has_feature = features.has(
-            "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        )
-        if not has_feature:
-            return Response(
-                {"detail": "Feature flag not enabled"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
+        has_seer_access, detail = has_seer_access_with_detail(organization)
         if not has_seer_access:
             return Response(
                 {"detail": detail},

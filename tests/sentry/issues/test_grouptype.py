@@ -19,6 +19,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import redis_clusters
+from sentry.workflow_engine.registry import detector_settings_registry
 
 
 class BaseGroupTypeTest(TestCase):
@@ -26,6 +27,9 @@ class BaseGroupTypeTest(TestCase):
         super().setUp()
         self.registry_patcher = patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry())
         self.registry_patcher.__enter__()
+
+        self.detector_settings_patcher = patch.dict(detector_settings_registry.registrations)
+        self.detector_settings_patcher.__enter__()
 
         class ErrorGroupType(GroupType):
             type_id = -1
@@ -41,6 +45,7 @@ class BaseGroupTypeTest(TestCase):
 
     def tearDown(self) -> None:
         super().tearDown()
+        self.detector_settings_patcher.__exit__(None, None, None)
         self.registry_patcher.__exit__(None, None, None)
 
 

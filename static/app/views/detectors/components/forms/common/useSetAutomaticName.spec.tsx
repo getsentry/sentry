@@ -6,7 +6,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {
+  BaseDetectorUpdatePayload,
+  Detector,
+} from 'sentry/types/workflowEngine/detectors';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
@@ -28,31 +31,36 @@ function TestDetectorForm() {
   );
 }
 
+function ExampleDetectorForm({
+  detector,
+  initialFormData = {},
+}: {
+  detector?: Detector;
+  initialFormData?: Record<string, unknown>;
+}) {
+  return (
+    <DetectorFormProvider detectorType="error" detector={detector}>
+      <NewDetectorLayout<BaseDetectorUpdatePayload, BaseDetectorUpdatePayload>
+        detectorType="error"
+        formDataToEndpointPayload={data => data}
+        initialFormData={initialFormData}
+      >
+        <TestDetectorForm />
+      </NewDetectorLayout>
+    </DetectorFormProvider>
+  );
+}
+
 describe('useSetAutomaticName', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-
-  const renderDetectorForm = (detector?: Detector, initialFormData = {}) => {
-    return render(
-      <DetectorFormProvider detectorType="error" detector={detector}>
-        <NewDetectorLayout
-          detectorType="error"
-          formDataToEndpointPayload={data => data as any}
-          initialFormData={initialFormData}
-        >
-          <TestDetectorForm />
-        </NewDetectorLayout>
-      </DetectorFormProvider>,
-      {organization}
-    );
-  };
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
   });
 
   it('automatically generates and updates name from field value', async () => {
-    renderDetectorForm();
+    render(<ExampleDetectorForm />, {organization});
 
     await screen.findByText('New Monitor');
 
@@ -69,7 +77,7 @@ describe('useSetAutomaticName', () => {
   });
 
   it('stops auto-generating after user manually edits name', async () => {
-    renderDetectorForm();
+    render(<ExampleDetectorForm />, {organization});
 
     await screen.findByText('New Monitor');
 
@@ -102,7 +110,10 @@ describe('useSetAutomaticName', () => {
       projectId: project.id,
     });
 
-    renderDetectorForm(detector, {name: detector.name});
+    render(
+      <ExampleDetectorForm detector={detector} initialFormData={{name: detector.name}} />,
+      {organization}
+    );
 
     await screen.findByText(detector.name);
 

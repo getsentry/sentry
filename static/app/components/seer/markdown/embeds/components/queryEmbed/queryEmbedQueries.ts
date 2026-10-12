@@ -4,7 +4,7 @@ import type {Query} from 'history';
 import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -29,7 +29,7 @@ export function useQueryEmbedEventsTable({
   const organization = useOrganization();
 
   return useQuery({
-    ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
+    ...apiOptions.as<EventsTableData>()('/organizations/$organizationIdOrSlug/events/', {
       path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
       query: {
         ...eventView.generateQueryStringObject(),

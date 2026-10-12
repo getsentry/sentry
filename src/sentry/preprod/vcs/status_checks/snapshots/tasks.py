@@ -17,6 +17,7 @@ from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import evaluate_snapshot_changes_by_artifact_id
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.pr_comments.snapshot_templates import _selected_types_query
 from sentry.preprod.vcs.repo_utils import resolve_base_repo_url
 from sentry.preprod.vcs.status_checks.snapshots.config import (
     get_snapshot_approval_policy,
@@ -320,6 +321,13 @@ def create_preprod_snapshot_status_check_task(
         else all_artifacts[0]
     )
     target_url = get_preprod_artifact_url(url_artifact, view_type="snapshots")
+    url_metrics = snapshot_metrics_map.get(url_artifact.id)
+    url_comparison = comparisons_map.get(url_metrics.id) if url_metrics else None
+    if url_comparison is not None and url_comparison.state not in (
+        PreprodSnapshotComparison.State.PENDING,
+        PreprodSnapshotComparison.State.PROCESSING,
+    ):
+        target_url += _selected_types_query(url_comparison)
 
     post_snapshot_status_check_task.delay(
         preprod_artifact_id=preprod_artifact.id,

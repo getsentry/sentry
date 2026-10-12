@@ -20,6 +20,7 @@ const defaultProps = {
 export const CircleIndicator = styled('div')<Props>`
   display: inline-block;
   position: relative;
+  flex-shrink: 0;
   border-radius: 50%;
   height: ${p => p.size ?? defaultProps.size}px;
   width: ${p => p.size ?? defaultProps.size}px;

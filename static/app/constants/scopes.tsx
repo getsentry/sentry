@@ -33,6 +33,10 @@ export const API_ACCESS_SCOPE_DETAILS = {
     resource: t('Members'),
     access: 'admin',
   },
+  'member:invite': {
+    resource: t('Members'),
+    access: 'readWrite',
+  },
   'member:read': {
     resource: t('Members'),
     access: 'read',

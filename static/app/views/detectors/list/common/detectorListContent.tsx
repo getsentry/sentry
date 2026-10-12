@@ -119,7 +119,9 @@ function DetectorListContentInner({
     query,
     sort: sort ? `${sort.kind === 'asc' ? '' : '-'}${sort.field}` : '',
     monitorCount: hits,
-    cursor,
+    // `?? null` so the key survives serialization on page 1, where there is no
+    // cursor — an undefined value would drop the field entirely.
+    cursor: cursor ?? null,
     isLoading,
     ...toLLMContextProjectFields(selectedProjects),
     displayedMonitors: formatDetectorRows(

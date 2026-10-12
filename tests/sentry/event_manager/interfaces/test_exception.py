@@ -280,3 +280,62 @@ def test_iteration() -> None:
     assert inst[0].type == "ValueError"
     for exc in inst:
         assert exc.type == "ValueError"
+
+
+def test_get_api_meta_with_non_numeric_keys() -> None:
+    # Create exception with multiple values to test various index keys
+    inst = Exception.to_python(
+        {
+            "values": [
+                {"type": "ValueError"},
+                {"type": "TypeError"},
+                {"type": "RuntimeError"},
+                {"type": "KeyError"},
+                {"type": "IndexError"},
+                {"type": "AttributeError"},
+                {"type": "ZeroDivisionError"},
+                {"type": "ImportError"},
+                {"type": "NameError"},
+                {"type": "SyntaxError"},
+                {"type": "OSError"},
+                {"type": "IOError"},
+            ]
+        }
+    )
+
+    # Test mix of valid single-digit, multi-digit, and invalid keys
+    meta: dict[str, dict[str, dict[str, object]]] = {
+        "values": {
+            "0": {},  # valid single-digit
+            "": {},  # invalid: empty string
+            "1": {},  # valid single-digit
+            "invalid": {},  # invalid: non-numeric string
+            "10": {},  # valid multi-digit
+            "11": {},  # valid multi-digit
+            "-1": {},  # invalid: negative number string
+            "3.14": {},  # invalid: float string
+            "9": {},  # valid single-digit
+            "123": {},  # invalid: index out of range but numeric format
+        }
+    }
+
+    result = inst.get_api_meta(meta)
+
+    # Valid single-digit keys should be present
+    assert "0" in result["values"]
+    assert "1" in result["values"]
+    assert "9" in result["values"]
+
+    # Valid multi-digit keys should be present
+    assert "10" in result["values"]
+    assert "11" in result["values"]
+
+    # Invalid keys should be filtered out
+    assert "" not in result["values"]
+    assert "invalid" not in result["values"]
+    assert "-1" not in result["values"]
+    assert "3.14" not in result["values"]
+
+    # Numeric but out-of-range index should still be filtered
+    # (int("123") will work, but self.values[123] will raise IndexError)
+    assert "123" not in result["values"]

@@ -3,6 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
@@ -13,7 +15,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
 from sentry.issues.action_log.types import SetResolvedInReleaseAction
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.distribution import Distribution
 from sentry.models.environment import Environment
@@ -25,6 +27,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+from sentry.models.project import Project
 from sentry.models.release import (
     Release,
     ReleaseStatus,
@@ -45,7 +48,101 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.strings import truncatechars
+
+
+@django_db_all
+@pytest.mark.parametrize("use_finalized_order", [False, True], ids=["legacy", "finalized"])
+@pytest.mark.parametrize("successor_status", [ReleaseStatus.OPEN, None], ids=["open", "null"])
+def test_next_release_excludes_archived_successors(
+    factories: Factories,
+    default_project: Project,
+    use_finalized_order: bool,
+    successor_status: int | None,
+) -> None:
+    now = timezone.now()
+    # An archived starting point is still valid; only successors are filtered.
+    anchor = factories.create_release(
+        project=default_project,
+        version="anchor",
+        date_added=now - timedelta(days=3),
+        status=ReleaseStatus.ARCHIVED,
+    )
+    factories.create_release(
+        project=default_project,
+        version="archived-successor",
+        date_added=now - timedelta(days=2),
+        status=ReleaseStatus.ARCHIVED,
+    )
+    with pytest.raises(Release.DoesNotExist):
+        Release.objects.get_next_release(
+            default_project, anchor, use_finalized_order=use_finalized_order
+        )
+
+    successor = factories.create_release(
+        project=default_project,
+        version="eligible-successor",
+        date_added=now - timedelta(days=1),
+        status=successor_status,
+    )
+    assert (
+        Release.objects.get_next_release(
+            default_project, anchor, use_finalized_order=use_finalized_order
+        )
+        == successor
+    )
+
+
+class NextReleaseOrderingTest(TestCase):
+    def test_finalized_order_and_legacy_order(self) -> None:
+        now = timezone.now()
+        current = self.create_release(version="current", date_added=now - timedelta(days=3))
+        next_release = self.create_release(
+            version="next",
+            date_added=now - timedelta(days=4),
+            date_released=now - timedelta(days=2),
+        )
+        late_old_release = self.create_release(
+            version="old", date_added=now - timedelta(days=1), date_released=now - timedelta(days=5)
+        )
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=False)
+            == late_old_release
+        )
+
+    def test_current_release_uses_its_finalized_date(self) -> None:
+        now = timezone.now()
+        current = self.create_release(
+            version="current", date_added=now, date_released=now - timedelta(days=3)
+        )
+        next_release = self.create_release(version="next", date_added=now - timedelta(days=2))
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
+
+    def test_no_successor(self) -> None:
+        current = self.create_release(version="current")
+        with pytest.raises(Release.DoesNotExist):
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+
+    def test_equal_dates_and_project_scope(self) -> None:
+        current = self.create_release(version="current")
+        other_project = self.create_project(organization=self.organization)
+        self.create_release(
+            project=other_project, version="other-project", date_added=current.date_added
+        )
+        next_release = self.create_release(version="next", date_added=current.date_added)
+        self.create_release(version="later", date_added=current.date_added)
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
 
 
 @pytest.mark.parametrize(
@@ -820,7 +917,7 @@ class SetCommitsTestCase(TestCase):
         )
         commit = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="a" * 40)
         assert commit.author is not None
-        assert commit.author.email == truncatechars(commit_email, 75)
+        assert commit.author.email == truncatechars(commit_email, COMMIT_AUTHOR_EMAIL_LENGTH)
 
     @receivers_raise_on_send()
     def test_multiple_authors(self) -> None:
@@ -2236,3 +2333,68 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_filter = Release.get_unused_filter(self.cutoff_date)
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
+
+
+# The write paths themselves are under test here, so rows are built directly rather
+# than through fixtures.
+class ReleaseShadowIdTest(TestCase):
+    def setUp(self) -> None:
+        self.org = self.create_organization()
+        self.project = self.create_project(organization=self.org)
+
+    def assert_new_id_mirrors_id(self, release: Release) -> None:
+        release.refresh_from_db()
+        assert release.new_id == release.id
+
+    def test_single_row_writes_populate_new_id(self) -> None:
+        created = Release.objects.create(organization=self.org, version="created")
+        self.assert_new_id_mirrors_id(created)
+
+        saved = Release(organization=self.org, version="saved")
+        saved.save()
+        self.assert_new_id_mirrors_id(saved)
+
+        fetched = Release.get_or_create(project=self.project, version="fetched")
+        self.assert_new_id_mirrors_id(fetched)
+
+    # The version exists in the org but not on this project, so the create hits the
+    # unique constraint and falls back to fetching the existing row.
+    def test_get_or_create_conflict_leaves_no_null_new_id(self) -> None:
+        other_project = self.create_project(organization=self.org)
+        existing = self.create_release(project=other_project, version="1.0")
+
+        release = Release.get_or_create(project=self.project, version="1.0")
+
+        assert release.id == existing.id
+        assert not Release.objects.filter(organization=self.org, new_id__isnull=True).exists()
+
+    def test_bulk_create_populates_new_id(self) -> None:
+        releases = Release.objects.bulk_create(
+            [Release(organization=self.org, version=f"bulk-{i}") for i in range(3)]
+        )
+
+        for release in releases:
+            self.assert_new_id_mirrors_id(release)
+
+    # `objects.create()` already forces the insert; a bare `save()` is what would probe.
+    def test_bare_save_issues_no_update(self) -> None:
+        release = Release(organization=self.org, version="1.0")
+        using = router.db_for_write(Release)
+
+        with CaptureQueriesContext(connections[using]) as queries:
+            release.save()
+
+        updates = [
+            query["sql"]
+            for query in queries.captured_queries
+            if query["sql"].lstrip().upper().startswith('UPDATE "SENTRY_RELEASE"')
+        ]
+        assert updates == []
+
+    # The id is claimed before `pre_save` fires, so the semver hook must not read a set
+    # id as an existing row.
+    def test_create_still_parses_semver_columns(self) -> None:
+        release = Release.objects.create(organization=self.org, version="pkg@1.2.3")
+
+        release.refresh_from_db()
+        assert (release.package, release.major, release.minor, release.patch) == ("pkg", 1, 2, 3)

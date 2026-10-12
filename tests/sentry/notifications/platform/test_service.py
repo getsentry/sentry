@@ -6,7 +6,11 @@ from django.utils import timezone
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
-from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
+from sentry.notifications.platform.provider import (
+    SendFailure,
+    SendFailureStatus,
+    SendSuccessResult,
+)
 from sentry.notifications.platform.service import (
     KILLSWITCH_OPTION_KEY,
     NotificationKillswitchedError,
@@ -23,8 +27,11 @@ from sentry.notifications.platform.target import (
     serialize_target,
 )
 from sentry.notifications.platform.templates.data_export import DataExportFailure
+from sentry.notifications.platform.tracking import NotificationTrackingContext
 from sentry.notifications.platform.types import (
+    NotificationCategory,
     NotificationProviderKey,
+    NotificationSource,
     NotificationTargetResourceType,
 )
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
@@ -300,6 +307,59 @@ class NotificationServiceTest(TestCase):
         mock_send.assert_called_once()
 
 
+@mock.patch("sentry.notifications.platform.service.record_sent")
+class NotificationServiceRecordSentTest(TestCase):
+    def setUp(self) -> None:
+        self.target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.EMAIL,
+            resource_type=NotificationTargetResourceType.EMAIL,
+            resource_id="test@example.com",
+        )
+        self.data = MockNotification(message="test", organization_id=self.organization.id)
+
+    def expected_context(self) -> NotificationTrackingContext:
+        return NotificationTrackingContext(
+            source=NotificationSource.TEST,
+            provider=NotificationProviderKey.EMAIL,
+            category=NotificationCategory.DEBUG,
+            notification_uuid=self.data.notification_uuid,
+            organization_id=self.organization.id,
+        )
+
+    @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
+    def test_records_successful_send(
+        self, mock_send: mock.MagicMock, mock_record_sent: mock.MagicMock
+    ) -> None:
+        mock_send.return_value = SendSuccessResult()
+
+        NotificationService(data=self.data).notify_target(target=self.target)
+
+        mock_record_sent.assert_called_once_with(self.expected_context())
+
+    @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
+    def test_records_successful_async_send(
+        self, mock_send: mock.MagicMock, mock_record_sent: mock.MagicMock
+    ) -> None:
+        mock_send.return_value = SendSuccessResult()
+
+        with self.tasks():
+            NotificationService(data=self.data).notify_async(targets=[self.target])
+
+        mock_record_sent.assert_called_once_with(self.expected_context())
+
+    @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
+    def test_does_not_record_failed_send(
+        self, mock_send: mock.MagicMock, mock_record_sent: mock.MagicMock
+    ) -> None:
+        mock_send.return_value = SendFailure(
+            status=SendFailureStatus.FAILURE, exception=IntegrationError(message="failed")
+        )
+
+        NotificationService(data=self.data).notify_target(target=self.target)
+
+        mock_record_sent.assert_not_called()
+
+
 class NotificationDataSerializationTest(TestCase):
     def test_deserialize_raises_error_without_source(self) -> None:
         serialized = {
@@ -320,10 +380,19 @@ class NotificationDataSerializationTest(TestCase):
         assert isinstance(reconstructed, MockNotification)
         assert reconstructed.source == original_notification.source
         assert reconstructed.message == original_notification.message
+        assert reconstructed.notification_uuid == original_notification.notification_uuid
+
+    def test_notification_uuid_is_unique_per_notification(self) -> None:
+        first = MockNotification(message="test")
+        second = MockNotification(message="test")
+
+        assert first.notification_uuid
+        assert first.notification_uuid != second.notification_uuid
 
     def test_roundtrip_with_complex_data_types(self) -> None:
         now = timezone.now()
         data = DataExportFailure(
+            organization_id=1,
             error_message="Export failed",
             error_payload={"export_type": "Issues", "project": [123]},
             creation_date=now,

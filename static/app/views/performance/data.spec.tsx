@@ -1,10 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {
-  MEPState,
-  METRIC_SEARCH_SETTING_PARAM,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {
   DEFAULT_STATS_PERIOD,
   generateGenericPerformanceEventView,
 } from 'sentry/views/performance/data';
@@ -113,7 +109,6 @@ describe('generateGenericPerformanceEventView()', () => {
       LocationFixture({
         query: {
           query: 'tag:value transaction:*auth*',
-          [METRIC_SEARCH_SETTING_PARAM]: MEPState.METRICS_ONLY,
         },
       }),
       true

@@ -1,6 +1,7 @@
 import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconPanel} from '@sentry/icons/panel';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -8,7 +9,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
-import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {
@@ -290,7 +290,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawerImpl(
 const ResizableVerticalDrawer = styled('div')`
   width: 1px;
   grid-area: drawer;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
   position: relative;
 `;

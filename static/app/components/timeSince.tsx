@@ -95,6 +95,7 @@ export function TimeSince({
   const relative = useMemo(() => {
     void tick; // Ensure recomputation when tick changes
     return getRelativeDate(date, suffix, t('in'), unitStyle);
+    // oxlint-disable-next-line react/memo-dependencies
   }, [date, suffix, unitStyle, tick]);
 
   useEffect(() => {

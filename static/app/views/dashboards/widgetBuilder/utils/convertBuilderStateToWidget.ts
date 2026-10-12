@@ -16,6 +16,7 @@ import {
   serializeSorts,
   type WidgetBuilderState,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 /**
@@ -145,6 +146,18 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     ? null
     : state.limit;
 
+  let thresholds = state.thresholds;
+  if (
+    thresholds?.timeWindow &&
+    !canScaleThresholds({
+      displayType: state.displayType ?? DisplayType.TABLE,
+      queries: widgetQueries,
+    })
+  ) {
+    thresholds = {...thresholds};
+    delete thresholds.timeWindow;
+  }
+
   return {
     title: state.title ?? '',
     description: state.description,
@@ -154,7 +167,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     widgetType: state.dataset,
     limit,
     legendType: state.legendType ?? null,
-    thresholds: state.thresholds,
+    thresholds,
     axisRange: getAxisRange(state.axisRange) ?? datasetConfig.axisRange,
   };
 }

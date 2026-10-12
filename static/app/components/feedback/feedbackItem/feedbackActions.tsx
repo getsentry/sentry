@@ -1,15 +1,17 @@
 import type {CSSProperties} from 'react';
 import {Fragment, useCallback} from 'react';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackAssignedTo} from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import {useFeedbackActions} from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
-import {IconCopy, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -200,12 +202,14 @@ function MediumWidth({
 
       <DropdownMenu
         position="bottom-end"
-        triggerProps={{
-          'aria-label': t('Action Menu'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          size: 'xs',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Action Menu')}
+            icon={<IconEllipsis />}
+            size="xs"
+          />
+        )}
         items={[
           {
             key: 'spam',
@@ -265,12 +269,14 @@ function SmallWidth({
   return (
     <DropdownMenu
       position="bottom-end"
-      triggerProps={{
-        'aria-label': t('Action Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Action Menu')}
+          icon={<IconEllipsis />}
+          size="xs"
+        />
+      )}
       items={[
         {
           key: 'resolve',

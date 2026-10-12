@@ -383,6 +383,36 @@ describe('mapSeerResponseItem', () => {
       })
     ).not.toHaveProperty('crossEvents');
   });
+
+  it('maps extra_fields to extraFields', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'samples',
+        extra_fields: ['span.op', 'span.duration'],
+      })
+    ).toEqual(expect.objectContaining({extraFields: ['span.op', 'span.duration']}));
+  });
+
+  it.each([undefined, []])('omits extraFields when extra_fields is %p', extraFields => {
+    expect(
+      mapSeerResponseItem({
+        query: 'span.op:db',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'samples',
+        extra_fields: extraFields,
+      })
+    ).not.toHaveProperty('extraFields');
+  });
 });
 
 describe('buildSeerDateTimeSelection', () => {

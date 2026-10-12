@@ -166,9 +166,6 @@ export function SelectRow({
   showAggregateSelector = true,
 }: SelectRowProps) {
   const organization = useOrganization();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
   const {state, dispatch} = useWidgetBuilderContext();
   const datasetConfig = getDatasetConfig(state.dataset);
   const columnSelectRef = useRef<HTMLDivElement>(null);
@@ -386,11 +383,6 @@ export function SelectRow({
         return nextField;
       }
       const existingFilter = conditionalAggregate?.filter;
-      // Flag-off: do not invent `_if` combinators on plain aggregates, but still
-      // preserve an Explore-style filter already on the field when editing.
-      if (!hasConditionalAggregates && existingFilter === undefined) {
-        return nextField;
-      }
       const filter = supportsConditionalAggregateFilter(nextAggregateName)
         ? (existingFilter ?? '')
         : '';
@@ -414,7 +406,7 @@ export function SelectRow({
         nextField.alias
       );
     },
-    [conditionalAggregate?.filter, hasConditionalAggregates, isSpansDataset]
+    [conditionalAggregate?.filter, isSpansDataset]
   );
 
   const handleFilterSearch = useCallback(
@@ -441,7 +433,6 @@ export function SelectRow({
   );
 
   const showFilterSearchBar =
-    hasConditionalAggregates &&
     isSpansDataset &&
     field.kind === FieldValueKind.FUNCTION &&
     supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
@@ -513,8 +504,7 @@ export function SelectRow({
               let newFields = cloneDeep(fields);
               // Normalize Explore-style `_if` fields to the base aggregate before
               // updating, so column/parameter logic does not treat the search filter
-              // as the column argument. Do this even when the feature is off so
-              // saved `_if` widgets are not corrupted on edit.
+              // as the column argument.
               const existingField = newFields[index];
               if (
                 isSpansDataset &&

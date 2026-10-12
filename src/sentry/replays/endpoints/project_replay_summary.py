@@ -13,7 +13,7 @@ from sentry import features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
-from sentry.api.utils import default_start_end_dates
+from sentry.api.utils import default_start_end_dates, handle_query_errors
 from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.seer_api import (
@@ -154,7 +154,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 project.organization,
                 actor=request.user,
             )
-            and has_seer_access(project.organization, actor=request.user)
+            and has_seer_access(project.organization)
         )
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
@@ -163,10 +163,8 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         traces.new_trace()
         span = None
         if self.sample_rate_get:
-            active_propagation_context = (
-                sentry_sdk.get_current_scope().get_active_propagation_context()
-            )
-            prev_sampling_context = active_propagation_context.custom_sampling_context
+            propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+            prev_sampling_context = propagation_context.custom_sampling_context
             Scope.set_custom_sampling_context({"sample_rate": self.sample_rate_get})
             try:
                 span = traces.start_span(
@@ -175,7 +173,10 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                     parent_span=None,
                 )
             finally:
-                active_propagation_context.custom_sampling_context = prev_sampling_context
+                propagation_context = (
+                    sentry_sdk.get_current_scope().get_active_propagation_context()
+                )
+                propagation_context.custom_sampling_context = prev_sampling_context
         if span is None:
             span = traces.start_span(
                 name="replays.endpoints.project_replay_summary.get",
@@ -215,10 +216,8 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         traces.new_trace()
         span = None
         if self.sample_rate_post:
-            active_propagation_context = (
-                sentry_sdk.get_current_scope().get_active_propagation_context()
-            )
-            prev_sampling_context = active_propagation_context.custom_sampling_context
+            propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+            prev_sampling_context = propagation_context.custom_sampling_context
             Scope.set_custom_sampling_context({"sample_rate": self.sample_rate_post})
             try:
                 span = traces.start_span(
@@ -227,7 +226,10 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                     parent_span=None,
                 )
             finally:
-                active_propagation_context.custom_sampling_context = prev_sampling_context
+                propagation_context = (
+                    sentry_sdk.get_current_scope().get_active_propagation_context()
+                )
+                propagation_context.custom_sampling_context = prev_sampling_context
 
         if span is None:
             span = traces.start_span(
@@ -266,13 +268,14 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
 
             # Query for replay existence and start/end times, to prevent spawning a Seer task and DB entry for non-existent replays.
             start, end = default_start_end_dates()  # Query last 90d.
-            snuba_response = query_replay_instance(
-                project_id=project.id,
-                replay_id=replay_id,
-                start=start,
-                end=end,
-                organization=project.organization,
-            )
+            with handle_query_errors():
+                snuba_response = query_replay_instance(
+                    project_id=project.id,
+                    replay_id=replay_id,
+                    start=start,
+                    end=end,
+                    organization=project.organization,
+                )
             if not snuba_response:
                 return self.respond(
                     {"detail": "Replay not found."},

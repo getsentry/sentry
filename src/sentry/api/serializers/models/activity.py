@@ -36,8 +36,10 @@ class ResolvedMention(TypedDict):
 
 
 class ActivitySerializerResponse(TypedDict):
-    # Byte-identical envelope of ActivitySerializer.serialize() — always these six keys.
+    # Matches the envelope of ActivitySerializer.serialize().
     id: str
+    # The reference accepted by the notes endpoints, or null for non-comments.
+    commentId: str | None
     # The serialized acting user (a user serializer response), or null for
     # system/integration activity. Left loose: the full user shape is out of scope.
     user: dict[str, Any] | None
@@ -247,6 +249,7 @@ class ActivitySerializer(Serializer):
 
         return {
             "id": str(obj.id),
+            "commentId": str(obj.id) if obj.type == ActivityType.NOTE.value else None,
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],
             "type": obj.get_type_display(),

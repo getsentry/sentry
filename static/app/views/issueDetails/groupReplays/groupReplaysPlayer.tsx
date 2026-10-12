@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT_LARGE} from 'sentry/components/events/eventReplay/constants';
@@ -62,9 +62,13 @@ export function GroupReplaysPlayer({
         </Alert.Container>
       )}
       renderLoading={() => (
-        <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
-          <LoadingIndicator />
-        </StyledNegativeSpaceContainer>
+        <Container height={`${REPLAY_LOADING_HEIGHT_LARGE}px`} radius="md">
+          {props => (
+            <NegativeSpaceContainer {...props}>
+              <LoadingIndicator />
+            </NegativeSpaceContainer>
+          )}
+        </Container>
       )}
     >
       {({replay}) => {
@@ -81,7 +85,12 @@ export function GroupReplaysPlayer({
         }
 
         return (
-          <PlayerContainer data-test-id="player-container">
+          <FluidHeight
+            position="relative"
+            maxHeight={`${REPLAY_LOADING_HEIGHT_LARGE}px`}
+            minHeight={{zero: 'auto', xl: `${REPLAY_LOADING_HEIGHT_LARGE}px`}}
+            overflow="visible"
+          >
             <ReplayPlayerPluginsContextProvider>
               <ReplayReaderProvider replay={replay}>
                 <ReplayPlayerStateContextProvider>
@@ -99,23 +108,9 @@ export function GroupReplaysPlayer({
                 </ReplayPlayerStateContextProvider>
               </ReplayReaderProvider>
             </ReplayPlayerPluginsContextProvider>
-          </PlayerContainer>
+          </FluidHeight>
         );
       }}
     </ReplayLoadingState>
   );
 }
-
-const PlayerContainer = styled(FluidHeight)`
-  position: relative;
-  max-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    min-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
-  }
-  overflow: unset;
-`;
-
-const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
-  border-radius: ${p => p.theme.radius.md};
-`;

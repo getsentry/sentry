@@ -22,6 +22,7 @@ import {
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
+import {MonitorBuilderNode} from 'sentry/views/detectors/components/forms/common/monitorBuilderLLMContext';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
@@ -99,6 +100,8 @@ export function EditDetectorLayout<
           </EditLayoutDeprecated.HeaderFields>
         )}
       </EditLayoutDeprecated.Header>
+
+      <MonitorBuilderNode detector={detector} />
 
       <EditLayoutDeprecated.Body maxWidth={maxWidth}>
         {children}

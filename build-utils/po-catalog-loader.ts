@@ -14,25 +14,26 @@ type CompiledPoCatalog = Record<string, string[] | CatalogMetadata>;
 
 const poCatalogLoader: LoaderDefinition = function (source) {
   const catalog = po.parse(source);
-  const messages = catalog.translations[''];
   const output: CompiledPoCatalog = Object.create(null);
 
-  for (const messageId in messages) {
-    if (!messageId) {
-      continue;
-    }
+  for (const [context, messages] of Object.entries(catalog.translations)) {
+    for (const messageId in messages) {
+      if (!messageId) {
+        continue;
+      }
 
-    const message = messages[messageId];
-    const reference = message.comments?.reference;
-    if (!reference || !FRONTEND_REFERENCE.test(reference)) {
-      continue;
-    }
+      const message = messages[messageId];
+      const reference = message.comments?.reference;
+      if (!reference || !FRONTEND_REFERENCE.test(reference)) {
+        continue;
+      }
 
-    if (message.msgstr.includes('')) {
-      continue;
-    }
+      if (message.msgstr.includes('')) {
+        continue;
+      }
 
-    output[messageId] = message.msgstr;
+      output[context ? `${context}\u0004${messageId}` : messageId] = message.msgstr;
+    }
   }
 
   const lang = catalog.headers.Language;

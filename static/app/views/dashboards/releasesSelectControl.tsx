@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {IconReleases} from '@sentry/icons/releases';
+import {useDebouncer} from '@tanstack/react-pacer';
 import isEqual from 'lodash/isEqual';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -12,7 +13,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
-import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 
@@ -50,6 +50,9 @@ export function ReleasesSelectControl({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeReleases, setActiveReleases] = useState(selectedReleases);
   const [isReleasesDropdownOpen, setIsReleasesDropdownOpen] = useState(false);
+  const searchDebouncer = useDebouncer(setSearchTerm, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
 
   // Event counts are lazy-loaded only when the dropdown is open to reduce API calls
   const {data: releases, isLoading: loading} = useReleases(
@@ -59,11 +62,12 @@ export function ReleasesSelectControl({
   );
 
   function resetSearch() {
+    searchDebouncer.cancel();
     setSearchTerm('');
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect, react/no-deriving-state-in-effects
     setActiveReleases(selectedReleases);
   }, [selectedReleases]);
 
@@ -79,11 +83,7 @@ export function ReleasesSelectControl({
     <StyledCompactSelect
       multiple
       clearable
-      search={{
-        onChange: debounce(val => {
-          setSearchTerm(val);
-        }, DEFAULT_DEBOUNCE_DURATION),
-      }}
+      search={{onChange: searchDebouncer.maybeExecute}}
       id={id}
       disabled={isDisabled}
       loading={loading}
@@ -179,18 +179,17 @@ const StyledBadge = styled(Badge)`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    max-width: 300px;
-  }
+  max-width: 300px;
 `;
 
 const ButtonLabelWrapper = styled('span')`
   gap: ${p => p.theme.space.xs};
   width: 100%;
+  min-width: 0;
   text-align: left;
   align-items: center;
   display: inline-grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
 `;
 
 const MenuTitleWrapper = styled('span')`

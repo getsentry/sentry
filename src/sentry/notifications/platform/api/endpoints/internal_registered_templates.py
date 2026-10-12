@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.api.permissions import SentryIsAuthenticated
+from sentry.api.permissions import SuperuserPermission
 from sentry.notifications.platform.discord.provider import DiscordRenderable, DiscordRenderer
 from sentry.notifications.platform.email.provider import EmailRenderer
 from sentry.notifications.platform.msteams.provider import MSTeamsRenderable, MSTeamsRenderer
@@ -27,7 +27,7 @@ from sentry.notifications.platform.types import (
 @control_silo_endpoint
 class InternalRegisteredTemplatesEndpoint(Endpoint):
     owner = ApiOwner.NOTIFICATIONS
-    permission_classes = (SentryIsAuthenticated,)
+    permission_classes = (SuperuserPermission,)
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     def get(self, request: Request) -> Response:
@@ -104,7 +104,7 @@ def serialize_slack_preview[T: NotificationData](
 ) -> dict[str, Any]:
     data = template.example_data
     rendered_template = template.render_example()
-    renderer = SlackNotificationProvider.get_renderer(data=data, category=template.category)
+    renderer = SlackNotificationProvider.get_renderer(data=data)
     message = renderer.render(data=data, rendered_template=rendered_template)
 
     serialized_blocks = []

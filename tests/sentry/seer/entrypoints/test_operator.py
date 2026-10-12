@@ -4,6 +4,7 @@ from typing import Any, TypedDict, cast
 from unittest.mock import Mock, patch
 
 import pytest
+from django.test import override_settings
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.integrations.types import ExternalProviders
@@ -109,6 +110,7 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
         MockCachePayload(**cache_payload)
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class SeerOperatorTest(TestCase):
     def setUp(self) -> None:
         self.entrypoint = MockAutofixEntrypoint()
@@ -212,6 +214,7 @@ class SeerOperatorTest(TestCase):
         assert mock_push_changes.call_args.kwargs["author"] == {
             "name": self.user.get_display_name(),
             "email": "583231+octocat@users.noreply.github.com",
+            "scm_login": "octocat",
         }
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
@@ -511,37 +514,23 @@ class SeerOperatorTest(TestCase):
         )
 
     def test_can_trigger_autofix_returns_false_without_seer_access(self) -> None:
+        self.organization.update_option("sentry:hide_ai_features", True)
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     def test_can_trigger_autofix_returns_true_when_all_conditions_met(self, mock_quota):
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-            }
-        ):
-            assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     def test_can_trigger_autofix_returns_false_for_ineligible_category(self, mock_quota):
         from sentry.issues.grouptype import FeedbackGroup
 
         feedback_group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-            }
-        ):
-            assert SeerAutofixOperator.can_trigger_autofix(group=feedback_group) is False
+        assert SeerAutofixOperator.can_trigger_autofix(group=feedback_group) is False
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
     def test_can_trigger_autofix_returns_false_without_quota(self, mock_quota):
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-            }
-        ):
-            assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_seer_event_creates_activity_rca_completed(self, _mock_has_access):
@@ -728,9 +717,14 @@ class SeerOperatorTest(TestCase):
             event_type=SentryAppEventType.SEER_PR_CREATED,
             event_payload=event_payload,
             organization_id=self.organization.id,
+            activity_attribution={
+                "referrer": AutofixReferrer.WEB,
+                "actor_user_id": self.user.id,
+            },
         )
 
         activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
+        assert activity.user_id == self.user.id
         assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
         assert (
             activity.data["pull_requests"][0]["pull_request"]["pr_url"]
@@ -935,6 +929,7 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
         return None
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestSeerAgentOperatorAccess(TestCase):
     def setUp(self) -> None:
         self.entrypoint = MockAgentEntrypoint()
@@ -947,7 +942,6 @@ class TestSeerAgentOperatorAccess(TestCase):
         with (
             self.feature(
                 {
-                    "organizations:gen-ai-features": True,
                     "organizations:seer-explorer": True,
                 }
             ),
@@ -970,9 +964,9 @@ class TestSeerAgentOperatorAccess(TestCase):
                 entrypoint_key=MockNoAccessEntrypoint.key,
             )
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_has_access_without_seer_agent(self):
-        with self.feature({"organizations:gen-ai-features": False}):
-            assert not SeerAgentOperator.has_access(organization=self.organization)
+        assert not SeerAgentOperator.has_access(organization=self.organization)
 
 
 class TestSeerOperatorCompletionHook(TestCase):

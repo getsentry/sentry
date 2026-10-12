@@ -85,14 +85,19 @@ describe('alert embed', () => {
     });
 
     // The block's name is the collapse toggle; the link out is a separate target.
+    // The status dot sits inside the toggle, so its label joins the toggle's name.
     expect(
-      await screen.findByRole('button', {name: automation.name}, {timeout: 5_000})
+      await screen.findByRole(
+        'button',
+        {name: `${automation.name} Enabled`},
+        {timeout: 5_000}
+      )
     ).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Enabled'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Alert'})).toHaveAttribute(
       'href',
       `/organizations/org-slug/monitors/alerts/${automation.id}/`
     );
-    expect(screen.getByText('Issue alert - Enabled')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {name: 'Conditions and actions'})
     ).toBeInTheDocument();

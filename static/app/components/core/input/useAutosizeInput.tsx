@@ -58,6 +58,7 @@ export function useAutosizeInput(
     if (sourceRef.current) {
       resize(sourceRef.current, sizingDivRef);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [options?.value]);
 
   const onInputChange = useCallback((_event: any) => {

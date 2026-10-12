@@ -52,6 +52,8 @@ MAX_ACTIVITY_REFETCHES = 3
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
     id: str
+    # The reference accepted by the notes endpoints, or null for non-comments.
+    commentId: str | None
     # the serialized acting user when actorType is USER, otherwise null
     user: dict[str, Any] | None
     sentry_app: _ActivitySentryAppEmbed | None
@@ -72,6 +74,7 @@ def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerR
     )
     return {
         "id": "0",
+        "commentId": None,
         "user": None,
         "sentry_app": None,
         "type": ActivityType.FIRST_SEEN.name.lower(),
@@ -81,20 +84,20 @@ def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerR
     }
 
 
-def _serialized_id(obj: GroupActionLogEntry) -> str:
+def _serialized_comment_id(obj: GroupActionLogEntry) -> str | None:
     """
-    The id clients address this entry by.
+    The comment reference accepted by the notes endpoints.
 
     The notes endpoints resolve ``note_id`` against ``Activity.id``, so a COMMENT
-    serializes its ``comment_id`` (the Activity it mirrors) rather than its own.
+    references its ``comment_id`` (the Activity it mirrors).
     COMMENT_EDIT and COMMENT_DELETE carry a ``comment_id`` too, but theirs points
-    at the GALE id of the COMMENT they supersede, so they keep their own.
+    at the GALE id of the COMMENT they supersede, not an addressable comment.
     """
     if obj.type == GroupActionType.COMMENT.value:
         match obj.action:
             case CommentAction(comment_id=comment_id):
                 return str(comment_id)
-    return str(obj.id)
+    return None
 
 
 def _fold_comment_mutations(
@@ -331,7 +334,8 @@ class GroupActionLogEntrySerializer(Serializer):
             data.pop("current_release_version", None)
 
         return {
-            "id": _serialized_id(obj),
+            "id": str(obj.id),
+            "commentId": _serialized_comment_id(obj),
             "type": type_display,
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],

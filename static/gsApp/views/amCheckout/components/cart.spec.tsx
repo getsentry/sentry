@@ -250,7 +250,10 @@ describe('Cart', () => {
       />
     );
 
-    expect(await screen.findByRole('button', {name: 'Confirm'})).toBeDisabled(); // not Confirm and pay because we don't know the billed total without preview data
+    expect(await screen.findByRole('button', {name: 'Confirm'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    ); // not Confirm and pay because we don't know the billed total without preview data
     expect(mockResponse).not.toHaveBeenCalled();
     expect(screen.getByText('Plan renews monthly.')).toBeInTheDocument(); // no renewal date specified
   });
@@ -281,7 +284,10 @@ describe('Cart', () => {
       />
     );
 
-    expect(await screen.findByRole('button', {name: 'Confirm'})).toBeDisabled(); // not Confirm and pay because we don't know the billed total without preview data
+    expect(await screen.findByRole('button', {name: 'Confirm'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    ); // not Confirm and pay because we don't know the billed total without preview data
     expect(mockResponse).not.toHaveBeenCalled();
     expect(screen.getByText('Plan renews monthly.')).toBeInTheDocument(); // no renewal date specified
   });

@@ -139,6 +139,7 @@ export function useExplorerMenu({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setSelectedIndex(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [menuItems]);
 
   // Scroll selected item into view when selection changes
@@ -198,12 +199,13 @@ export function useExplorerMenu({
 
   useEffect(() => {
     if (isVisible) {
+      const ownerDocument = composerRef.current?.ownerDocument ?? document;
       // Use capture phase to intercept events before they reach other handlers
-      document.addEventListener('keydown', handleKeyDown, true);
-      return () => document.removeEventListener('keydown', handleKeyDown, true);
+      ownerDocument.addEventListener('keydown', handleKeyDown, true);
+      return () => ownerDocument.removeEventListener('keydown', handleKeyDown, true);
     }
     return;
-  }, [handleKeyDown, isVisible]);
+  }, [composerRef, handleKeyDown, isVisible]);
 
   // Calculate menu position based on anchor element
   useEffect(() => {
@@ -237,12 +239,14 @@ export function useExplorerMenu({
     const relativeLeft = rect.left - panelRect.left;
 
     if (menuMode === 'slash-commands-keyboard') {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setMenuPosition({
         bottom: `${panelRect.height - relativeTop + spacing}px`,
         left: `${relativeLeft}px`,
       });
     } else {
       // Position above anchor (since button is at bottom of panel)
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setMenuPosition({
         bottom: `${panelRect.height - relativeTop + spacing}px`,
         right: `${panelRect.width - relativeLeft - rect.width}px`,

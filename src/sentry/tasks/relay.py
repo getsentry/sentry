@@ -3,6 +3,7 @@ import time
 
 import sentry_sdk
 from django.db import connections, router, transaction
+from sentry_sdk import traces
 
 from sentry.constants import DataCategory
 from sentry.models.options.organization_option import OrganizationOption
@@ -14,7 +15,6 @@ from sentry.taskworker.namespaces import relay_invalidation_tasks, relay_tasks
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
-from sentry.utils.tracing import set_span_tag, start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -122,14 +122,14 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
 
     You must only provide one single argument, not all.
 
-    :returns: A dict mapping all affected public keys to their config.  The dict will not
-       contain keys which should be retained in the cache unchanged.
+    :returns: An iterator of ``(public_key, config)`` pairs.  Each pair is yielded as soon
+       as its config is computed, so the caller can write it to the cache without waiting
+       for the rest.  Keys which should be retained in the cache unchanged are not yielded.
     """
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
 
     validate_args(organization_id, project_id, public_key)
-    configs = {}
 
     if organization_id:
         # We want to re-compute all projects in an organization, instead of simply
@@ -147,7 +147,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                     # recalculate it.  If the config was not there at all, we leave it and avoid the
                     # cost of re-computation.
                     if projectconfig_cache.backend.get(key.public_key) is not None:
-                        configs[key.public_key] = compute_projectkey_config(key)
+                        yield key.public_key, compute_projectkey_config(key)
                         action = "recompute"
                     else:
                         action = "not-cached"
@@ -163,7 +163,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                 # recalculate it.  If the config was not there at all, we leave it and avoid the
                 # cost of re-computation.
                 if projectconfig_cache.backend.get(key.public_key) is not None:
-                    configs[key.public_key] = compute_projectkey_config(key)
+                    yield key.public_key, compute_projectkey_config(key)
                     action = "recompute"
                 else:
                     action = "not-cached"
@@ -183,14 +183,12 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
             # handlers that sent off the invalidation tasks before the DB
             # transaction was committed, causing us to write stale caches. That
             # bug was fixed in https://github.com/getsentry/sentry/pull/35671
-            configs[public_key] = {"disabled": True}
+            yield public_key, {"disabled": True}
         else:
-            configs[public_key] = compute_projectkey_config(key)
+            yield public_key, compute_projectkey_config(key)
 
     else:
         raise TypeError("One of the arguments must not be None")
-
-    return configs
 
 
 def compute_projectkey_config(key):
@@ -267,13 +265,13 @@ def invalidate_project_config(
     sentry_sdk.set_context("kwargs", kwargs)
     sentry_sdk.set_attribute("kwargs", str(kwargs))
 
-    updated_configs = compute_configs(
+    for updated_public_key, config in compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
-    )
-    projectconfig_cache.backend.set_many(updated_configs)
+    ):
+        projectconfig_cache.backend.set_many({updated_public_key: config})
 
 
-@trace
+@traces.trace
 def schedule_invalidate_project_config(
     *,
     trigger,
@@ -349,11 +347,13 @@ def schedule_invalidate_project_config(
             countdown=countdown,
         )
 
-    with start_span(
-        op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+    with traces.start_span(
         name="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
-    ) as span:
-        set_span_tag(span, "transaction_db", transaction_db)
+        attributes={
+            "sentry.op": "relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+            "transaction_db": transaction_db,
+        },
+    ):
         connection = connections[transaction_db]
         # Outside an atomic block, on_commit() runs the callback immediately under
         # autocommit, but raises TransactionManagementError under manual transaction

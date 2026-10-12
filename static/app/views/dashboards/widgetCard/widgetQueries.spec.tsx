@@ -6,14 +6,8 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {PageFilters} from 'sentry/types/core';
-import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import {
-  DashboardsMEPContext,
-  DashboardsMEPProvider,
-} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
 
@@ -30,16 +24,7 @@ describe('Dashboards > WidgetQueries', () => {
   });
 
   const renderWithProviders = (component: React.ReactNode, options?: any) =>
-    render(
-      <MetricsResultsMetaProvider>
-        <DashboardsMEPProvider>
-          <MEPSettingProvider forceTransactions={false}>
-            <WidgetQueryQueueProvider>{component}</WidgetQueryQueueProvider>
-          </MEPSettingProvider>
-        </DashboardsMEPProvider>
-      </MetricsResultsMetaProvider>,
-      options
-    );
+    render(<WidgetQueryQueueProvider>{component}</WidgetQueryQueueProvider>, options);
 
   const multipleQueryWidget = {
     title: 'Errors',
@@ -185,22 +170,16 @@ describe('Dashboards > WidgetQueries', () => {
     );
   });
 
-  it('sets errorMessage when the first request fails', async () => {
-    const okMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      match: [MockApiClient.matchQuery({query: 'event.type:error'})],
-      body: [],
-    });
+  it('sets errorMessage when a request fails', async () => {
     const failMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       statusCode: 400,
       body: {detail: 'Bad request data'},
-      match: [MockApiClient.matchQuery({query: 'event.type:default'})],
     });
 
     let error: string | undefined;
     renderWithProviders(
-      <WidgetQueries widget={multipleQueryWidget}>
+      <WidgetQueries widget={singleQueryWidget}>
         {({errorMessage}: {errorMessage?: string}) => {
           error = errorMessage;
           return <div data-test-id="child" />;
@@ -209,12 +188,11 @@ describe('Dashboards > WidgetQueries', () => {
       {organization: initialData.organization}
     );
 
-    // Child should be rendered and 2 requests should be sent.
+    // Child should be rendered and a request should be sent.
     expect(await screen.findByTestId('child')).toBeInTheDocument();
     await waitFor(() => {
-      expect(error).toBe('Bad request data');
+      expect(error).toBe('GET /organizations/{orgSlug}/events-stats/');
     });
-    expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(1);
   });
 
@@ -664,34 +642,28 @@ describe('Dashboards > WidgetQueries', () => {
 
     // Simulate a re-render with a new query alias
     rerender(
-      <MetricsResultsMetaProvider>
-        <DashboardsMEPProvider>
-          <MEPSettingProvider forceTransactions={false}>
-            <WidgetQueryQueueProvider>
-              <WidgetQueries
-                widget={{
-                  ...lineWidget,
-                  queries: [
-                    {
-                      conditions: 'event.type:error',
-                      fields: ['count()'],
-                      aggregates: ['count()'],
-                      columns: [],
-                      name: 'this query alias changed',
-                      orderby: '',
-                    },
-                  ],
-                }}
-              >
-                {props => {
-                  childProps = props;
-                  return <div data-test-id="child" />;
-                }}
-              </WidgetQueries>
-            </WidgetQueryQueueProvider>
-          </MEPSettingProvider>
-        </DashboardsMEPProvider>
-      </MetricsResultsMetaProvider>
+      <WidgetQueryQueueProvider>
+        <WidgetQueries
+          widget={{
+            ...lineWidget,
+            queries: [
+              {
+                conditions: 'event.type:error',
+                fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
+                name: 'this query alias changed',
+                orderby: '',
+              },
+            ],
+          }}
+        >
+          {props => {
+            childProps = props;
+            return <div data-test-id="child" />;
+          }}
+        </WidgetQueries>
+      </WidgetQueryQueueProvider>
     );
 
     // Did not re-query
@@ -699,103 +671,6 @@ describe('Dashboards > WidgetQueries', () => {
     expect(childProps.timeseriesResults![0]!.seriesName).toBe(
       'this query alias changed : count()'
     );
-  });
-
-  it('charts send metricsEnhanced requests', async () => {
-    const {organization} = initialData;
-    const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [
-            1000,
-            [
-              {
-                count: 100,
-              },
-            ],
-          ],
-        ],
-        isMetricsData: false,
-        start: 1000,
-        end: 2000,
-      },
-    });
-    const setIsMetricsMock = jest.fn();
-
-    const children = jest.fn(() => <div />);
-
-    renderWithProviders(
-      <DashboardsMEPContext
-        value={{
-          isMetricsData: undefined,
-          setIsMetricsData: setIsMetricsMock,
-        }}
-      >
-        <WidgetQueries widget={singleQueryWidget}>{children}</WidgetQueries>
-      </DashboardsMEPContext>,
-      {
-        organization: {
-          ...organization,
-          features: [...organization.features],
-        },
-      }
-    );
-
-    expect(mock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
-      })
-    );
-
-    await waitFor(() => {
-      expect(setIsMetricsMock).toHaveBeenCalledWith(false);
-    });
-  });
-
-  it('tables send metricsEnhanced requests', async () => {
-    const {organization} = initialData;
-    const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string', isMetricsData: true},
-        data: [{title: 'ValueError'}],
-      },
-    });
-    const setIsMetricsMock = jest.fn();
-
-    const children = jest.fn(() => <div />);
-
-    renderWithProviders(
-      <DashboardsMEPContext
-        value={{
-          isMetricsData: undefined,
-          setIsMetricsData: setIsMetricsMock,
-        }}
-      >
-        <WidgetQueries widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}>
-          {children}
-        </WidgetQueries>
-      </DashboardsMEPContext>,
-      {
-        organization: {
-          ...organization,
-          features: [...organization.features],
-        },
-      }
-    );
-
-    expect(mock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
-      })
-    );
-
-    await waitFor(() => {
-      expect(setIsMetricsMock).toHaveBeenCalledWith(true);
-    });
   });
 
   it('does not inject equation aliases for top N requests', async () => {

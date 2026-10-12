@@ -1,5 +1,5 @@
 import {createContext, useCallback, useEffect, useMemo} from 'react';
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';

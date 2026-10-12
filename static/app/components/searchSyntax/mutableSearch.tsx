@@ -376,7 +376,7 @@ function quoteIfNeeded(value: string): string {
   if (VALUE_IS_LIST_RE.test(value) || VALUE_IS_QUOTED_RE.test(value)) {
     return value;
   }
-  if (NEEDS_QUOTING_RE.test(value)) {
+  if (NEEDS_QUOTING_RE.test(value) || /^\/\//.test(value)) {
     return '"' + escapeDoubleQuotes(value) + '"';
   }
   return value;

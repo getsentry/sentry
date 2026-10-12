@@ -6,6 +6,7 @@ from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import compare_version as compare_version_relay
 from sentry_relay.processing import parse_release
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -16,6 +17,7 @@ from sentry.db.models import (
 )
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.releases.constants import DB_VERSION_LENGTH
+from sentry.models.releases.util import release_order_date
 from sentry.utils import metrics
 
 
@@ -81,14 +83,17 @@ class GroupResolution(Model):
             Helper function that compares release versions based on date for
             `GroupResolution.Type.in_next_release`
             """
-            return res_release == release.id or res_release_datetime > release.date_added
+            return res_release == release.id or res_release_datetime > release_order_date(
+                release.date_added, release.date_released, use_finalized_order=use_finalized_order
+            )
 
         try:
             (
                 res_type,
                 res_release,
                 res_release_version,
-                res_release_datetime,
+                res_release_date_added,
+                res_release_date_released,
                 current_release_version,
             ) = (
                 cls.objects.filter(group=group)
@@ -98,6 +103,7 @@ class GroupResolution(Model):
                     "release__id",
                     "release__version",
                     "release__date_added",
+                    "release__date_released",
                     "current_release_version",
                 )[0]
             )
@@ -108,6 +114,15 @@ class GroupResolution(Model):
         # in application configuration, and thus this must be older
         if not release:
             return True
+
+        use_finalized_order = features.has(
+            "organizations:release-resolution-finalized-order", group.organization
+        )
+        res_release_datetime = release_order_date(
+            res_release_date_added,
+            res_release_date_released,
+            use_finalized_order=use_finalized_order,
+        )
 
         follows_semver = follows_semver_versioning_scheme(
             project_id=group.project.id,
@@ -155,7 +170,11 @@ class GroupResolution(Model):
 
                     return compare_release_dates_for_in_next_release(
                         res_release=current_release_obj.id,
-                        res_release_datetime=current_release_obj.date_added,
+                        res_release_datetime=release_order_date(
+                            current_release_obj.date_added,
+                            current_release_obj.date_released,
+                            use_finalized_order=use_finalized_order,
+                        ),
                         release=release,
                     )
                 except Release.DoesNotExist:
@@ -194,6 +213,8 @@ class GroupResolution(Model):
                     ...
 
             # Fallback to older model if semver comparison fails due to whatever reason
-            return res_release_datetime >= release.date_added
+            return res_release_datetime >= release_order_date(
+                release.date_added, release.date_released, use_finalized_order=use_finalized_order
+            )
         else:
             raise NotImplementedError

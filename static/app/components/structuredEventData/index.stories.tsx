@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 
@@ -183,18 +182,10 @@ export default Storybook.story('StructuredEventData', story => {
     return (
       <Fragment>
         <p>
-          Using the <Storybook.JSXProperty name="showCopyButton" value /> property and
-          <Storybook.JSXProperty name="onCopy" value /> callback, you can customize
-          whether to show a copy to clipboard button, and what happens when copy is
-          pressed.
+          Use the <Storybook.JSXProperty name="showCopyButton" value /> property to show a
+          copy to clipboard button.
         </p>
-        <StructuredEventData
-          data={{red: 'fish', blue: 'fish'}}
-          showCopyButton
-          onCopy={() => {
-            addSuccessMessage('Copied successfully!');
-          }}
-        />
+        <StructuredEventData data={{red: 'fish', blue: 'fish'}} showCopyButton />
       </Fragment>
     );
   });

@@ -32,7 +32,7 @@ describe('ResolveActions', () => {
         />
       );
       const button = screen.getByRole('button', {name: 'Resolve'});
-      expect(button).toBeDisabled();
+      expect(button).toHaveAttribute('aria-disabled', 'true');
       await userEvent.click(button);
       expect(spy).not.toHaveBeenCalled();
     });

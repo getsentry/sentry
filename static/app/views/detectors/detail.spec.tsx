@@ -28,9 +28,14 @@ import {
 import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import DetectorDetails from 'sentry/views/detectors/detail';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 describe('DetectorDetails', () => {
   const organization = OrganizationFixture();
+  const organizationWithMonitorDuplication = OrganizationFixture({
+    ...organization,
+    features: [...organization.features, 'monitor-duplication'],
+  });
   const project = ProjectFixture();
   const defaultDataSource = SnubaQueryDataSourceFixture();
   const ownerTeam = TeamFixture();
@@ -127,7 +132,11 @@ describe('DetectorDetails', () => {
       name: 'detector1',
       projectId: project.id,
       dataSources: [dataSource],
-      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
+      owner: ActorFixture({
+        id: ownerTeam.id,
+        name: ownerTeam.slug,
+        type: 'team',
+      }),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
@@ -141,6 +150,27 @@ describe('DetectorDetails', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=9998m',
         body: [GroupFixture()],
+      });
+    });
+
+    it('publishes a monitor-detail node for Seer', async () => {
+      let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
+      function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+        ({getLLMContext} = useLLMContext());
+        return <DetectorDetails />;
+      }
+
+      render(<Component />, {organization, initialRouterConfig});
+      await screen.findByRole('heading', {name: /detector1/});
+
+      // What only this test can prove: the node is registered and published for
+      // the monitor in view. The field mapping itself is covered by
+      // detectorLLMContext.spec.tsx.
+      await waitFor(() => {
+        expect(
+          getLLMContext!().nodes.find(node => node.nodeType === 'monitor-detail')?.data
+        ).toEqual(expect.objectContaining({id: '1', name: 'detector1'}));
       });
     });
 
@@ -164,6 +194,26 @@ describe('DetectorDetails', () => {
       ).toBeInTheDocument();
     });
 
+    it('renders the project platform badge beside the page title', async () => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: project.id, platform: 'javascript'}),
+      ]);
+
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      const heading = await screen.findByRole('heading', {
+        name: snubaQueryDetector.name,
+        level: 1,
+      });
+
+      expect(heading.parentElement?.parentElement).toContainElement(
+        screen.getByTestId('platform-icon-javascript')
+      );
+    });
+
     it('can edit the detector when the user has alerts:write access', async () => {
       const {router} = render(<DetectorDetails />, {
         organization,
@@ -180,10 +230,30 @@ describe('DetectorDetails', () => {
       });
     });
 
-    it('disables the edit button when the user does not have alerts:write access', async () => {
+    it('can open a prefilled create form to duplicate the detector', async () => {
+      const {router} = render(<DetectorDetails />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Duplicate'}));
+
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/monitors/new/settings/`
+      );
+      expect(router.location.query).toEqual({
+        detectorType: 'metric_issue',
+        duplicateFrom: snubaQueryDetector.id,
+        project: snubaQueryDetector.projectId,
+      });
+    });
+
+    it('disables edit and duplicate actions without alerts:write access', async () => {
       const orgWithoutAlertsWrite = {
-        ...organization,
-        access: organization.access.filter(a => a !== 'alerts:write'),
+        ...organizationWithMonitorDuplication,
+        access: organizationWithMonitorDuplication.access.filter(
+          access => access !== 'alerts:write'
+        ),
       };
       ProjectsStore.loadInitialData([ProjectFixture({access: []})]);
       render(<DetectorDetails />, {
@@ -193,6 +263,10 @@ describe('DetectorDetails', () => {
 
       const editButton = await screen.findByRole('button', {name: 'Edit'});
       expect(editButton).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('button', {name: 'Duplicate'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('displays ongoing issues for the detector', async () => {
@@ -226,7 +300,11 @@ describe('DetectorDetails', () => {
       id: '1',
       name: 'detector1',
       projectId: project.id,
-      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
+      owner: ActorFixture({
+        id: ownerTeam.id,
+        name: ownerTeam.slug,
+        type: 'team',
+      }),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
     });
 
@@ -332,7 +410,11 @@ describe('DetectorDetails', () => {
       id: '1',
       name: 'detector1',
       projectId: project.id,
-      owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
+      owner: ActorFixture({
+        id: ownerTeam.id,
+        name: ownerTeam.slug,
+        type: 'team',
+      }),
       workflowIds: ['1', '2'],
       dataSources: [cronMonitorDataSource],
     });
@@ -397,7 +479,11 @@ describe('DetectorDetails', () => {
             },
           }),
         ],
-        owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
+        owner: ActorFixture({
+          id: ownerTeam.id,
+          name: ownerTeam.slug,
+          type: 'team',
+        }),
         workflowIds: ['1', '2'],
       });
 

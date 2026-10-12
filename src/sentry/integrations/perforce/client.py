@@ -30,9 +30,6 @@ os.environ.setdefault("P4CONFIG", ".p4config")
 
 logger = logging.getLogger(__name__)
 
-# Default buffer size when fetching changelist ranges to ensure complete coverage
-DEFAULT_REVISION_RANGE = 10
-
 P4PORT_ALLOWED_TRANSPORTS = frozenset(
     {
         "tcp",
@@ -503,12 +500,13 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         Get changelists for a depot path.
 
-        Uses p4 changes command to list changelists.
-        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_changes.html
+        Bounds are expressed with Perforce's revision-range syntax on the depot
+        path (``//depot/...@from,@to``), an inclusive ``[from, to]`` interval.
+        API docs: https://help.perforce.com/helix-core/server-apps/cmdref/current/Content/CmdRef/p4_changes.html
 
         Args:
             depot_path: Depot path (e.g., //depot/main/...)
-            max_changes: Maximum number of changes to return when start_cl/end_cl not specified
+            max_changes: Maximum number of changes to return (P4 ``-m``)
             start_cl: Starting changelist number (exclusive) - returns changes > start_cl. Must be int.
             end_cl: Ending changelist number (inclusive) - returns changes <= end_cl. Must be int.
 
@@ -519,7 +517,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             TypeError: If start_cl or end_cl are not integers
         """
         with self._connect() as p4:
-            # Validate types - changelists must be integers
             if start_cl is not None and not isinstance(start_cl, int):
                 raise TypeError(
                     f"start_cl must be an integer or None, got {type(start_cl).__name__}"
@@ -527,34 +524,36 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             if end_cl is not None and not isinstance(end_cl, int):
                 raise TypeError(f"end_cl must be an integer or None, got {type(end_cl).__name__}")
 
-            start_cl_num = start_cl
-            end_cl_num = end_cl
+            # start_cl is exclusive; Perforce range bounds are inclusive.
+            lower = start_cl + 1 if start_cl is not None else None
+            upper = end_cl
 
-            # Calculate how many changes to fetch based on range
-            if start_cl_num is not None and end_cl_num is not None:
-                # Fetch enough to cover the range, adding buffer for safety
-                range_size = abs(end_cl_num - start_cl_num) + DEFAULT_REVISION_RANGE
-                fetch_limit = max(range_size, max_changes)
+            # An empty window (e.g. previousCommit == commit) has no changes to
+            # return, and would otherwise form an inverted "@hi,@lo" range.
+            if lower is not None and upper is not None and lower > upper:
+                return []
+
+            if lower is not None and upper is not None:
+                revision_spec = f"{depot_path}@{lower},@{upper}"
+            elif upper is not None:
+                # Bare "@upper" means "at or before upper"; no "@0" floor, which
+                # is not a real changelist.
+                revision_spec = f"{depot_path}@{upper}"
+            elif lower is not None:
+                revision_spec = f"{depot_path}@{lower},@now"
+            else:
+                revision_spec = depot_path
+
+            # -m keeps only the highest-numbered N changes, so size it to the full
+            # window or it would drop the older end of a wide range.
+            if lower is not None and upper is not None:
+                fetch_limit = max(upper - lower + 1, max_changes)
             else:
                 fetch_limit = max_changes
 
-            args = ["-m", str(fetch_limit), "-l"]
-
-            # P4 -e flag: return changes at or before specified changelist (upper bound)
-            # Use it for end_cl (inclusive upper bound)
-            if end_cl_num is not None:
-                args.extend(["-e", str(end_cl_num)])
-
-            args.append(depot_path)
+            args = ["-m", str(fetch_limit), "-l", revision_spec]
 
             changes = p4.run("changes", *args)
-
-            # Client-side filter for start_cl (exclusive lower bound)
-            # Filter out changes <= start_cl to get changes > start_cl
-            if start_cl_num is not None:
-                changes = [
-                    c for c in changes if c.get("change") and int(c["change"]) > start_cl_num
-                ]
 
             return [
                 P4ChangeInfo(

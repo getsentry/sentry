@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, memo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
@@ -12,6 +12,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import type {Choices} from 'sentry/types/core';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {withApi} from 'sentry/utils/withApi';
@@ -163,6 +164,47 @@ function SelectFieldWrapper({
   );
 }
 
+const SOFT_CAP_TYPE_CHOICES: Choices = [
+  ['ON_DEMAND', 'On Demand'],
+  ['TRUE_FORWARD', 'True Forward'],
+];
+
+/**
+ * The modal keeps every field in one state object, so without memo each change
+ * to any field re-renders one of these selects per plan category.
+ */
+const SoftCapTypeField = memo(function SoftCapTypeField({
+  capitalizedApiName,
+  disabled,
+  onChange,
+  titleName,
+  value,
+}: {
+  capitalizedApiName: string;
+  disabled: boolean;
+  onChange: (capitalizedApiName: string, softCapType: string | undefined) => void;
+  titleName: string;
+  value: string | null | undefined;
+}) {
+  return (
+    <SelectFieldWrapper
+      label={`Soft Cap Type ${titleName}`}
+      name={`softCapType${capitalizedApiName}`}
+    >
+      <Select
+        name={`softCapType${capitalizedApiName}`}
+        inputId={`id-softCapType${capitalizedApiName}`}
+        aria-label={`Soft Cap Type ${titleName}`}
+        clearable
+        choices={SOFT_CAP_TYPE_CHOICES}
+        disabled={disabled}
+        value={value}
+        onChange={(option: any) => onChange(capitalizedApiName, option?.value)}
+      />
+    </SelectFieldWrapper>
+  );
+});
+
 class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   state: ModalState = {
     isLoading: true,
@@ -286,6 +328,19 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     this.state.data.onDemandInvoicedManual === 'SHARED' ||
     this.state.data.onDemandInvoicedManual === 'PER_CATEGORY';
 
+  handleSoftCapTypeChange = (
+    capitalizedApiName: string,
+    softCapType: string | undefined
+  ) => {
+    this.setState(state => ({
+      ...state,
+      data: {
+        ...state.data,
+        [`softCapType${capitalizedApiName}`]: softCapType ? softCapType : null,
+      },
+    }));
+  };
+
   isEnablingSoftCap = () =>
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('softCapType'))
@@ -375,7 +430,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     }
   };
 
-  handleSubmit = () => {
+  handleSubmit = async () => {
     this.setState({errorMessage: null});
     const postData: Record<string, any> = {...this.state.data};
 
@@ -568,19 +623,19 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     }
     delete postData.seerBudget;
 
-    this.props.api.request(this.endpoint, {
-      method: 'POST',
-      data: postData,
-      success: () => {
-        this.props.onSuccess();
-        this.props.closeModal();
-      },
-      error: error => {
-        this.onSubmitError({
-          responseJSON: error.responseJSON,
-        });
-      },
-    });
+    try {
+      await this.props.api.requestPromise(this.endpoint, {
+        method: 'POST',
+        data: postData,
+        includeAllArgs: true,
+      });
+      this.props.onSuccess();
+      this.props.closeModal();
+    } catch (error: any) {
+      this.onSubmitError({
+        responseJSON: error.responseJSON,
+      });
+    }
   };
 
   render() {
@@ -881,33 +936,13 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                               }
                             />
                           </FormFieldWrapper>
-                          <SelectFieldWrapper
-                            label={`Soft Cap Type ${titleName}`}
-                            name={`softCapType${capitalizedApiName}`}
-                          >
-                            <Select
-                              name={`softCapType${capitalizedApiName}`}
-                              inputId={`id-softCapType${capitalizedApiName}`}
-                              aria-label={`Soft Cap Type ${titleName}`}
-                              clearable
-                              choices={[
-                                ['ON_DEMAND', 'On Demand'],
-                                ['TRUE_FORWARD', 'True Forward'],
-                              ]}
-                              disabled={this.isEnablingOnDemandMaxSpend()}
-                              value={this.state.data[`softCapType${capitalizedApiName}`]}
-                              onChange={(option: any) => {
-                                const v = option?.value;
-                                this.setState(state => ({
-                                  ...state,
-                                  data: {
-                                    ...state.data,
-                                    [`softCapType${capitalizedApiName}`]: v ? v : null,
-                                  },
-                                }));
-                              }}
-                            />
-                          </SelectFieldWrapper>
+                          <SoftCapTypeField
+                            capitalizedApiName={capitalizedApiName}
+                            titleName={titleName}
+                            disabled={this.isEnablingOnDemandMaxSpend()}
+                            value={this.state.data[`softCapType${capitalizedApiName}`]}
+                            onChange={this.handleSoftCapTypeChange}
+                          />
                           {this.isReservedBudgetCategory(category) && (
                             <FormFieldWrapper
                               label={`Reserved Cost-Per-Event ${titleName}`}

@@ -1,6 +1,7 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
+from django.core.cache import cache
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemColumnValues,
     TraceItemTableResponse,
@@ -14,9 +15,13 @@ from sentry.ingestion_delay.query import (
     LAST_INGESTED_LABEL,
     NO_MEASUREMENT,
     IngestionDelayMeasurement,
+    _measurement_cache_key,
+    get_ingestion_delay_measurement,
     measure_ingestion_delay,
 )
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -61,7 +66,7 @@ class GetIngestionDelayMeasurementTest(OrganizationEventsEndpointTestBase):
         self.store_spans([span])
 
     def test_returns_measured_value(self) -> None:
-        before_insert = datetime.now(tz=UTC)
+        before_insert = before_now(seconds=1)
         self._store_span_received_at(before_now(seconds=42.5))
         status = self._measure_ingestion_delay()
         delay = status.delay_seconds
@@ -74,7 +79,7 @@ class GetIngestionDelayMeasurementTest(OrganizationEventsEndpointTestBase):
         assert last_ingested_at > before_insert
 
     def test_returns_measured_value_multiple_spans(self) -> None:
-        before_insert = datetime.now(tz=UTC)
+        before_insert = before_now(seconds=1)
         for i in range(100):
             self._store_span_received_at(before_now(seconds=i * 10))
         status = self._measure_ingestion_delay()
@@ -106,3 +111,61 @@ class GetIngestionDelayMeasurementTest(OrganizationEventsEndpointTestBase):
     def test_query_failure_does_not_propagate(self, mock_table_rpc: mock.MagicMock) -> None:
         mock_table_rpc.side_effect = Exception("snuba is down")
         assert self._measure_ingestion_delay() == FAILED_MEASUREMENT
+
+    @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
+    def test_lookback_option_sets_the_measurement_window(
+        self, mock_table_rpc: mock.MagicMock
+    ) -> None:
+        mock_table_rpc.return_value = [self._response()]
+        now = datetime.now(tz=UTC)
+
+        with override_options({"ingestion-delay.measurement-lookback-minutes": 15}):
+            measure_ingestion_delay(
+                organization_id=self.organization.id,
+                item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                now=now,
+            )
+
+        meta = mock_table_rpc.call_args[0][0][0].meta
+        assert meta.end_timestamp.seconds - meta.start_timestamp.seconds == 15 * 60
+
+
+@mock.patch("sentry.ingestion_delay.query.measure_ingestion_delay")
+class GetIngestionDelayMeasurementCacheTest(TestCase):
+    item_type = TraceItemType.TRACE_ITEM_TYPE_SPAN
+    now = datetime(2020, 1, 1, 12, 0, tzinfo=UTC)
+    measurement = IngestionDelayMeasurement(
+        delay_seconds=42.5, last_ingested_at=now - timedelta(seconds=30)
+    )
+
+    def setUp(self) -> None:
+        super().setUp()
+        cache.delete(_measurement_cache_key(self.organization.id, self.item_type))
+
+    def _get(self, item_type: TraceItemType.ValueType | None = None) -> IngestionDelayMeasurement:
+        return get_ingestion_delay_measurement(
+            self.organization.id, item_type or self.item_type, self.now
+        )
+
+    @mock.patch("sentry.ingestion_delay.query.metrics.incr")
+    def test_second_call_is_served_from_cache(
+        self, mock_incr: mock.MagicMock, mock_measure: mock.MagicMock
+    ) -> None:
+        mock_measure.return_value = self.measurement
+
+        assert self._get(TraceItemType.TRACE_ITEM_TYPE_SPAN) == self.measurement
+        assert self._get(TraceItemType.TRACE_ITEM_TYPE_SPAN) == self.measurement
+        assert self._get(TraceItemType.TRACE_ITEM_TYPE_LOG) == self.measurement
+        assert self._get(TraceItemType.TRACE_ITEM_TYPE_LOG) == self.measurement
+        assert mock_measure.call_count == 2
+        assert mock_incr.call_args_list == [
+            mock.call("ingestion_delay.measurement_cache", tags={"result": result})
+            for result in ("miss", "hit", "miss", "hit")
+        ]
+
+    def test_failed_measurement_is_not_cached(self, mock_measure: mock.MagicMock) -> None:
+        mock_measure.side_effect = [FAILED_MEASUREMENT, self.measurement]
+
+        assert self._get() == FAILED_MEASUREMENT
+        assert self._get() == self.measurement
+        assert mock_measure.call_count == 2

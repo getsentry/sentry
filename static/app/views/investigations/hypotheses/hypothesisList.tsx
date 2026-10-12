@@ -1,7 +1,9 @@
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Grid} from '@sentry/scraps/layout';
 
+import {t} from 'sentry/locale';
 import {HypothesisCard} from 'sentry/views/investigations/hypotheses/hypothesisCard';
+import {HypothesisCardPlaceholder} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
 
 /**
@@ -10,6 +12,18 @@ import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
  * being scannable.
  */
 const MIN_CARD_WIDTH = '260px';
+
+/** Hold space with a single card rather than guessing how many a run will produce. */
+const PLACEHOLDER_CARD_COUNT = 1;
+
+/** The grid props shared by the real row and its placeholder. */
+const ROW_LAYOUT = {
+  as: 'ul',
+  columns: `repeat(auto-fit, minmax(${MIN_CARD_WIDTH}, 1fr))`,
+  gap: 'xl',
+  align: 'start',
+  padding: '0',
+} as const;
 
 type HypothesisListProps = {
   hypotheses: InvestigationHypothesis[];
@@ -22,6 +36,34 @@ type HypothesisListProps = {
   /** `report.primaryHypothesisId` from the projection, if the report has one. */
   primaryHypothesisId?: string | null;
 };
+
+/**
+ * The hypothesis row before the agent has written any hypotheses. Uses the
+ * row's own column sizing, but `auto-fill` keeps the empty tracks so a lone
+ * card stays one column wide instead of stretching across the row.
+ */
+export function HypothesisListPlaceholder({
+  cards = PLACEHOLDER_CARD_COUNT,
+  className,
+}: {
+  cards?: number;
+  className?: string;
+}) {
+  return (
+    <Grid
+      {...ROW_LAYOUT}
+      columns={`repeat(auto-fill, minmax(${MIN_CARD_WIDTH}, 1fr))`}
+      className={className}
+      aria-busy
+      aria-label={t('Loading possible causes')}
+      data-test-id="investigation-hypotheses-placeholder"
+    >
+      {Array.from({length: cards}, (_, index) => (
+        <HypothesisCardPlaceholder key={index} />
+      ))}
+    </Grid>
+  );
+}
 
 /**
  * The hypotheses an agentic investigation is weighing, side by side.
@@ -45,15 +87,7 @@ export function HypothesisList({
   const ordered = [...hypotheses].sort((a, b) => a.order - b.order);
 
   return (
-    <Grid
-      as="ul"
-      className={className}
-      columns={`repeat(auto-fit, minmax(${MIN_CARD_WIDTH}, 1fr))`}
-      gap="xl"
-      align="start"
-      padding="0"
-      data-test-id="investigation-hypotheses"
-    >
+    <Grid {...ROW_LAYOUT} className={className} data-test-id="investigation-hypotheses">
       {ordered.map(hypothesis => (
         <HypothesisCard
           key={hypothesis.id}

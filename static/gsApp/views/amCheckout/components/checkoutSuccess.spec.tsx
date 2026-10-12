@@ -33,7 +33,7 @@ describe('CheckoutSuccess', () => {
       await screen.findByText('Pleasure doing business with you')
     ).toBeInTheDocument();
     expect(screen.getByTestId('receipt')).toBeInTheDocument();
-    expect(screen.queryByTestId('scheduled-changes')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: /^From /})).not.toBeInTheDocument();
   });
 
   it('renders for scheduled changes', async () => {
@@ -48,7 +48,7 @@ describe('CheckoutSuccess', () => {
     );
 
     expect(await screen.findByText('Consider it done (soon)')).toBeInTheDocument();
-    expect(screen.getByTestId('scheduled-changes')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /^From /})).toBeInTheDocument();
     expect(screen.queryByTestId('receipt')).not.toBeInTheDocument();
   });
 
@@ -64,7 +64,7 @@ describe('CheckoutSuccess', () => {
     );
 
     expect(await screen.findByText('Consider it done')).toBeInTheDocument();
-    expect(screen.queryByTestId('scheduled-changes')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: /^From /})).not.toBeInTheDocument();
     expect(screen.queryByTestId('receipt')).not.toBeInTheDocument();
   });
 

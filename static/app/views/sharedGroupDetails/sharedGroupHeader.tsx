@@ -39,7 +39,7 @@ export function SharedGroupHeader({group}: Props) {
                 <Tooltip
                   showUnderline
                   title={<EventCreatedTooltip event={event} />}
-                  overlayStyle={{maxWidth: 300}}
+                  maxWidth={300}
                 >
                   <DateTime date={date} />
                 </Tooltip>

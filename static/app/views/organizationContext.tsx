@@ -120,8 +120,19 @@ export function OrganizationContextProvider({children}: Props) {
     }
 
     if (user?.isSuperuser && error.status === 403) {
+      const detail: unknown = error.responseJSON?.detail;
+      const extra: unknown =
+        typeof detail === 'object' && detail !== null
+          ? (detail as Record<string, unknown>).extra
+          : undefined;
+      const targetOrgSlug: unknown =
+        typeof extra === 'object' && extra !== null
+          ? (extra as Record<string, unknown>).orgSlug
+          : undefined;
+
       openSudo({
         isSuperuser: true,
+        orgSlug: typeof targetOrgSlug === 'string' ? targetOrgSlug : undefined,
         needsReload: true,
         closeEvents: 'none',
         closeButton: false,

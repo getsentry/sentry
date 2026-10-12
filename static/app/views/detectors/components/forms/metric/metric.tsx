@@ -1,6 +1,7 @@
 import {Fragment, useContext, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -16,12 +17,15 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  Detector,
+  MetricDetector,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -102,7 +106,11 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
   );
 }
 
-export function NewMetricDetectorForm() {
+export function NewMetricDetectorForm({
+  duplicateDetector,
+}: {
+  duplicateDetector?: MetricDetector;
+}) {
   const initialMetricFormData = useInitialMetricDetectorFormData();
 
   return (
@@ -110,7 +118,11 @@ export function NewMetricDetectorForm() {
       detectorType="metric_issue"
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
-      initialFormData={initialMetricFormData}
+      initialFormData={
+        duplicateDetector
+          ? metricSavedDetectorToFormData(duplicateDetector)
+          : initialMetricFormData
+      }
       mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
@@ -236,6 +248,7 @@ function useRevalidateMediumThreshold() {
 
   useEffect(() => {
     formContext.form?.validateField(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [highThreshold, formContext.form]);
 }
 
@@ -387,6 +400,7 @@ function IntervalPicker() {
         intervalChoices[0]![0]
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [intervalChoices, formContext.form, interval, dataset]);
 
   return (

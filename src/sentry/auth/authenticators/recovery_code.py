@@ -7,6 +7,7 @@ from hashlib import sha1
 from os import urandom
 from typing import TYPE_CHECKING, Any
 
+from django.utils.crypto import constant_time_compare
 from django.utils.translation import gettext_lazy as _
 
 from .base import AuthenticatorInterface
@@ -61,7 +62,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         mask = self.config["used"]
         code = otp.strip().replace("-", "").upper()
         for idx, ref_code in enumerate(self.get_codes()):
-            if code == ref_code:
+            if constant_time_compare(code, ref_code):
                 if mask & (1 << idx):
                     break
                 self.config["used"] = mask | (1 << idx)

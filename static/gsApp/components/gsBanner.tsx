@@ -22,6 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {showIntercom} from 'sentry/utils/intercom';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -441,6 +442,12 @@ class GSBanner extends Component<Props, State> {
         ),
       });
     } catch (error) {
+      // A RequestError without a status means the fetch itself failed (offline,
+      // blocked request, page unload). That's not actionable, so let the check
+      // fail silently.
+      if (error instanceof RequestError && error.status === undefined) {
+        return;
+      }
       // let check fail but capture exception
       Sentry.captureException(error);
     }

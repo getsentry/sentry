@@ -10,7 +10,13 @@ from requests import Request
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.client import MsTeamsClient, OAuthMsTeamsClient
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiHostError,
+    ApiInvalidRequestError,
+    IntegrationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
@@ -143,6 +149,80 @@ class MsTeamsClientTest(TestCase):
             ),
         ]
         assert self.metrics.incr.mock_calls == calls
+
+    @responses.activate
+    def test_invalid_request_records_failure(self) -> None:
+        lifecycle = mock.MagicMock()
+
+        record_lifecycle_termination_level(lifecycle, ApiInvalidRequestError("Invalid request"))
+
+        lifecycle.record_failure.assert_called_once()
+        lifecycle.record_halt.assert_not_called()
+
+    @responses.activate
+    def test_bad_syntax_records_halt(self) -> None:
+        lifecycle = mock.MagicMock()
+        error = ApiInvalidRequestError(
+            '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'
+        )
+
+        record_lifecycle_termination_level(lifecycle, error)
+
+        lifecycle.record_halt.assert_called_once()
+        lifecycle.record_failure.assert_not_called()
+
+    @responses.activate
+    def test_integration_error_records_failure(self) -> None:
+        lifecycle = mock.MagicMock()
+
+        record_lifecycle_termination_level(lifecycle, IntegrationError("nope"))
+
+        lifecycle.record_failure.assert_called_once()
+        lifecycle.record_halt.assert_not_called()
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_conversation_not_found_is_invalid_request(self, mock_request: mock.MagicMock) -> None:
+        mock_request.side_effect = ApiError(
+            '{"error":{"code":"ConversationNotFound","message":"Conversation not found."}}',
+            code=404,
+        )
+
+        with pytest.raises(ApiInvalidRequestError):
+            self.msteams_client.get_channel_list("foobar")
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_bad_syntax_is_invalid_request(self, mock_request: mock.MagicMock) -> None:
+        mock_request.side_effect = ApiError(
+            '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}',
+            code=400,
+        )
+
+        with pytest.raises(ApiInvalidRequestError):
+            self.msteams_client.get_channel_list("foobar")
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_unknown_api_error_is_integration_error(self, mock_request: mock.MagicMock) -> None:
+        mock_request.side_effect = ApiError(
+            '{"error":{"code":"SomeOtherError","message":"nope"}}',
+            code=500,
+        )
+
+        with pytest.raises(IntegrationError):
+            self.msteams_client.get_channel_list("foobar")
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_raw_response_preserves_transport_error(self, mock_request: mock.MagicMock) -> None:
+        error = ApiHostError("Unable to reach host")
+        mock_request.side_effect = error
+
+        with pytest.raises(ApiHostError) as exc_info:
+            self.msteams_client.request("GET", "/", raw_response=True)
+
+        assert exc_info.value is error
 
     @responses.activate
     def test_api_client_from_integration_installation(self) -> None:

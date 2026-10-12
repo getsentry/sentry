@@ -5,14 +5,13 @@ import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AuthenticatorIconCarousel} from 'sentry/components/webAuthn/authenticatorIconCarousel';
 import {handleSign} from 'sentry/components/webAuthn/handlers';
 import {t} from 'sentry/locale';
 import {
   type WebAuthnResponse,
   useSecondFactorChallenge,
 } from 'sentry/views/authV2/authLogin/hooks/useSecondFactorAuth';
-
-import {AuthenticatorIconCarousel} from './authenticatorIconCarousel';
 
 interface WebAuthn2FAMethodProps {
   isActive: boolean;
@@ -106,6 +105,7 @@ export function WebAuthn2FAMethod({
     return () => {
       cancelled = true;
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [attempt, challenge.result, isActive]);
 
   const errorMessage = challenge.errorMessage

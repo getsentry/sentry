@@ -1,7 +1,9 @@
+import {IconSettings} from '@sentry/icons/settings';
+
 import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 
 import {SpanEvidenceTraceView} from 'sentry/components/events/interfaces/performance/spanEvidenceTraceView';
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {
@@ -83,14 +85,16 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
       organization={organization}
       projectSlug={projectSlug}
     >
-      <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
-      {traceId && (
-        <SpanEvidenceTraceView
-          event={event}
-          organization={organization}
-          traceId={traceId}
-        />
-      )}
+      <Stack gap="lg">
+        <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
+        {traceId && (
+          <SpanEvidenceTraceView
+            event={event}
+            organization={organization}
+            traceId={traceId}
+          />
+        )}
+      </Stack>
     </SpanEvidenceFoldSection>
   );
 }

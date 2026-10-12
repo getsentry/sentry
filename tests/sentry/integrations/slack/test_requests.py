@@ -208,6 +208,19 @@ class SlackEventRequestTest(TestCase):
 
             self.slack_request.validate()
 
+    def test_rejects_non_string_verification_token(self) -> None:
+        with override_options({"slack.signing-secret": None, "slack.verification-token": "12345"}):
+            self.request.data = {
+                "token": 12345,
+                "challenge": "abc123",
+                "type": "url_verification",
+            }
+            self.request.body = orjson.dumps(self.request.data)
+
+            with pytest.raises(SlackRequestError) as e:
+                self.slack_request.validate()
+            assert e.value.status == 401
+
     def test_is_seer_agent_request(self) -> None:
         self.request.data["event"] = {"type": "app_mention"}
         assert SlackEventRequest(self.request).is_seer_agent_request is True

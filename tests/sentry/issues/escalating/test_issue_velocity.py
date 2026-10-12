@@ -1,4 +1,5 @@
 import math
+import uuid
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -19,6 +20,7 @@ from sentry.issues.escalating.issue_velocity import (
 from sentry.tasks.post_process import locks
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.redis import use_redis_cluster
 
 WEEK_IN_HOURS = 7 * 24
 
@@ -338,3 +340,64 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
 
         assert redis_client.ttl("threshold-key") == FALLBACK_TTL
         assert redis_client.ttl("date-key") == FALLBACK_TTL
+
+    def test_fallback_to_zero_when_stale_has_no_expiry(self) -> None:
+        """
+        Tests that we return 0 and store it in Redis for the next ten minutes as a fallback if our
+        stale threshold has no TTL.
+        """
+        redis_client = get_redis_client()
+        redis_client.set("threshold-key", 0.5)
+
+        assert fallback_to_stale_or_zero("threshold-key", "date-key", 0.5) == 0
+        assert redis_client.get("threshold-key") == "0"
+        assert redis_client.ttl("threshold-key") == FALLBACK_TTL
+        assert redis_client.ttl("date-key") == FALLBACK_TTL
+
+
+@freeze_time()
+@use_redis_cluster(
+    cluster_id="cluster",
+    with_settings={"SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER": "cluster"},
+)
+def test_fallback_to_stale_on_redis_cluster() -> None:
+    """
+    Tests that the fallback keeps the stale threshold on a Redis Cluster, where a pipeline does not
+    support WATCH or MULTI.
+    """
+    threshold_key = f"threshold-key:{uuid.uuid4().hex}"
+    date_key = f"date-key:{uuid.uuid4().hex}"
+    redis_client = get_redis_client()
+    redis_client.set(threshold_key, 0.5, ex=86400)
+
+    assert fallback_to_stale_or_zero(threshold_key, date_key, 0.5) == 0.5
+    assert redis_client.get(threshold_key) == "0.5"
+    stored_date = redis_client.get(date_key)
+    assert isinstance(stored_date, str)
+    assert datetime.fromisoformat(stored_date) == (
+        datetime.utcnow()
+        - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
+        + timedelta(seconds=FALLBACK_TTL)
+    )
+    assert redis_client.ttl(threshold_key) == 86400
+    assert redis_client.ttl(date_key) == 86400
+
+
+@freeze_time()
+@use_redis_cluster(
+    cluster_id="cluster",
+    with_settings={"SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER": "cluster"},
+)
+def test_fallback_to_zero_on_redis_cluster() -> None:
+    """
+    Tests that the fallback saves a threshold of 0 on a Redis Cluster when there is no stale
+    threshold.
+    """
+    threshold_key = f"threshold-key:{uuid.uuid4().hex}"
+    date_key = f"date-key:{uuid.uuid4().hex}"
+    redis_client = get_redis_client()
+
+    assert fallback_to_stale_or_zero(threshold_key, date_key, None) == 0
+    assert redis_client.get(threshold_key) == "0"
+    assert redis_client.ttl(threshold_key) == FALLBACK_TTL
+    assert redis_client.ttl(date_key) == FALLBACK_TTL

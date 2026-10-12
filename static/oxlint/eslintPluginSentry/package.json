@@ -7,10 +7,10 @@
     ".": "./index.ts"
   },
   "dependencies": {
-    "@oxlint/plugins": "1.83.0",
+    "@oxlint/plugins": "1.85.0",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "devDependencies": {
-    "oxlint": "1.83.0"
+    "oxlint": "1.85.0"
   }
 }

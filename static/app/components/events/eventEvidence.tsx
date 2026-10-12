@@ -1,5 +1,5 @@
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -51,14 +51,11 @@ export function EventEvidence({
       title={config.title}
       disableCollapsePersistence={disableCollapsePersistence}
     >
-      <KeyValueTableDataList
-        margin
-        data={evidenceDisplay.map(item => ({
-          subject: item.name,
-          key: item.name,
-          value: item.value,
+      <KeyValueTableCard
+        variant="label"
+        contentItems={evidenceDisplay.map(item => ({
+          item: {subject: item.name, key: item.name, value: item.value},
         }))}
-        shouldSort={false}
       />
     </FoldSection>
   );

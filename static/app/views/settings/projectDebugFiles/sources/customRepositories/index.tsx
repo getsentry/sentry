@@ -2,6 +2,7 @@ import {useCallback, useEffect} from 'react';
 import type {Location} from 'history';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
@@ -12,7 +13,8 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
+import type {CustomRepo} from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
@@ -102,6 +104,7 @@ export function CustomRepositories({
 
   useEffect(() => {
     openDebugFileSourceDialog();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.query, openDebugFileSourceDialog]);
 
   function handleAddRepository(repoType: CustomRepoType) {
@@ -148,12 +151,21 @@ export function CustomRepositories({
                   >
                     <DropdownMenu
                       usePortal
-                      triggerLabel={t('Add Repository')}
-                      triggerProps={{size: 'xs'}}
-                      items={dropDownItems.map(item => ({
-                        ...item,
-                        onAction: () => handleAddRepository(item.key),
-                      }))}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.Button {...triggerProps} size="xs">
+                          {t('Add Repository')}
+                        </OverlayTrigger.Button>
+                      )}
+                      items={dropDownItems
+                        .filter(
+                          item =>
+                            item.key !== CustomRepoType.AZURE ||
+                            organization.features.includes('azure-symbol-sources')
+                        )
+                        .map(item => ({
+                          ...item,
+                          onAction: () => handleAddRepository(item.key),
+                        }))}
                       isDisabled={addRepositoryButtonDisabled}
                       position="bottom-end"
                     />

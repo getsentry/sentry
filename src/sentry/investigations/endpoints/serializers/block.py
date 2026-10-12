@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from collections.abc import Set as AbstractSet
 from datetime import datetime
 from typing import Any, TypedDict, override
 
@@ -13,7 +12,6 @@ from sentry.api.serializers import Serializer
 from sentry.investigations.models import (
     InvestigationBlock,
     InvestigationBlockDependency,
-    InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
     InvestigationBlockKind,
     InvestigationBlockParameter,
@@ -54,17 +52,6 @@ class InvestigationBlockSerializerResponse(TypedDict):
 
 
 class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerResponse]):
-    """
-    Serializes a block, hiding output the viewer may not see.
-
-    ``accessible_project_ids`` is the set of projects the viewer can read. A
-    block's persisted output is withheld unless every project that contributed
-    to it is in that set, so it must be supplied by the caller.
-    """
-
-    def __init__(self, accessible_project_ids: AbstractSet[int]) -> None:
-        self.accessible_project_ids = accessible_project_ids
-
     @override
     def get_attrs(
         self,
@@ -92,9 +79,8 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
 
         prefetch_related_objects(
             item_list,
-            "current_execution__data_projects",
-            "content_execution__data_projects",
-            "result_execution__data_projects",
+            "current_execution",
+            "result_execution",
         )
 
         return {
@@ -113,57 +99,29 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationBlockSerializerResponse:
-        def is_accessible(execution: InvestigationBlockExecution | None) -> bool:
-            if execution is None:
-                return True
-            return {project.id for project in execution.data_projects.all()}.issubset(
-                self.accessible_project_ids
-            )
-
         execution = obj.current_execution
-        execution_accessible = is_accessible(execution)
-        result_execution = obj.result_execution
-        content_execution = obj.content_execution
-        content_restricted = bool(
-            obj.kind == InvestigationBlockKind.TEXT
-            and content_execution is not None
-            and not is_accessible(content_execution)
-        )
         if execution is None:
             output = None
             output_status = "notRun"
         else:
             visible_execution = (
-                result_execution if obj.kind == InvestigationBlockKind.QUERY else execution
+                obj.result_execution if obj.kind == InvestigationBlockKind.QUERY else execution
             )
-            if not is_accessible(visible_execution):
-                output = None
-                output_status = "restricted"
-            else:
-                output = visible_execution.result if visible_execution is not None else None
-                output_status = (
-                    "available"
-                    if execution.status == InvestigationBlockExecutionStatus.COMPLETED
-                    else execution.status
-                )
-        if content_restricted:
-            output = None
-            output_status = "restricted"
-
-        content = obj.content
-        generated_content = obj.generated_content
-        if content_restricted:
-            content = ""
-            generated_content = ""
+            output = visible_execution.result if visible_execution is not None else None
+            output_status = (
+                "available"
+                if execution.status == InvestigationBlockExecutionStatus.COMPLETED
+                else execution.status
+            )
 
         return {
             "id": str(obj.id),
             "position": obj.position,
             "kind": obj.kind,
             "title": obj.title,
-            "content": content,
+            "content": obj.content,
             "generationPrompt": obj.prompt,
-            "generatedContent": generated_content,
+            "generatedContent": obj.generated_content,
             "output": output,
             "outputStatus": output_status,
             "currentExecution": (
@@ -174,7 +132,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
                     "schemaVersion": execution.result_schema_version,
                     "startedAt": execution.started_at,
                     "completedAt": execution.completed_at,
-                    "error": execution.error if execution_accessible else None,
+                    "error": execution.error,
                 }
                 if execution is not None
                 else None

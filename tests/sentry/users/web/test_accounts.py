@@ -38,6 +38,40 @@ class TestAccounts(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/account/recover/index.html")
 
+    def test_recovery_confirm_renders_react(self) -> None:
+        response = self.client.get(self.password_recover_path(self.user.id, "token"))
+
+        assert response.status_code == 200
+        self.assertTemplateUsed("sentry/base-react.html")
+        assert response["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+    def test_recovery_confirm_cookie_disables_react(self) -> None:
+        self.client.cookies["sentry_react_auth"] = "0"
+        password_hash = LostPasswordHash.for_user(self.user)
+
+        response = self.client.get(self.password_recover_path(self.user.id, password_hash.hash))
+
+        assert response.status_code == 200
+        self.assertTemplateUsed("sentry/account/recover/confirm.html")
+
+    def test_relocation_confirm_renders_legacy(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+
+        response = self.client.get(self.relocation_recover_path(self.user.id, password_hash.hash))
+
+        assert response.status_code == 200
+        self.assertTemplateUsed("sentry/account/relocate/confirm.html")
+
+    def test_set_password_confirm_renders_legacy(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+
+        response = self.client.get(
+            reverse("sentry-account-set-password-confirm", args=[self.user.id, password_hash.hash])
+        )
+
+        assert response.status_code == 200
+        self.assertTemplateUsed("sentry/account/set_password/confirm.html")
+
     def test_post_unknown_user(self) -> None:
         resp = self.client.post(self.path, {"user": "nobody"})
         assert resp.status_code == 200

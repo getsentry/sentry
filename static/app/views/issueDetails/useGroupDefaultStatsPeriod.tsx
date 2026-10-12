@@ -39,7 +39,7 @@ export function useGroupDefaultStatsPeriod(
 ): UseGroupDefaultStatsPeriodResult {
   const useGetMaxRetentionDays =
     getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
-  const maxRetentionDays = useGetMaxRetentionDays();
+  const maxRetentionDays = useGetMaxRetentionDays(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   let isMaxRetention = false;
 
   if (!group) {

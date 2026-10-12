@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist, SuperuserRequired
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.projects import (
     ParsedProjectIdOrSlugParams,
@@ -120,6 +120,16 @@ class OrganizationPermission(DemoSafePermission):
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         self.determine_access(request, organization)
+
+        org_slug = getattr(request, "_superuser_needs_org_auth", None)
+        if org_slug:
+            has_staff_perm = any(
+                isinstance(perm, StaffPermissionMixin) for perm in view.get_permissions()
+            )
+            delattr(request, "_superuser_needs_org_auth")
+            if not has_staff_perm:
+                raise SuperuserRequired(orgSlug=org_slug)
+
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 

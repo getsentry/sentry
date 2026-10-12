@@ -10,5 +10,6 @@ export function useDisableRouteAnalytics(disabled = true) {
   const {setDisableRouteAnalytics, previousUrl} = useContext(RouteAnalyticsContext);
   useEffect(() => {
     setDisableRouteAnalytics(disabled);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [setDisableRouteAnalytics, previousUrl, disabled]);
 }

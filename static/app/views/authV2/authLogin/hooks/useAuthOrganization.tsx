@@ -6,7 +6,7 @@ export type AuthOrganization = {
   authenticated: boolean;
   canRegister: boolean;
   joinRequestUrl: string | null;
-  loginMethod: 'password' | 'sso';
+  loginMethod: 'demo' | 'password' | 'sso';
   memberAuthenticated: boolean;
   organization: {
     avatarUrl: string | null;

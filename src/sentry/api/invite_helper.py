@@ -22,7 +22,10 @@ from sentry.utils.audit import create_audit_entry
 
 
 def add_invite_details_to_session(
-    request: HttpRequest, member_id: int, token: str, organization_id: int
+    request: HttpRequest,
+    member_id: int,
+    token: str,
+    organization_id: int,
 ) -> None:
     """Add member ID and token to the request session"""
     request.session["invite_token"] = token

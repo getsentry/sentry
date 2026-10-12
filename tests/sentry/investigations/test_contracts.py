@@ -225,13 +225,73 @@ def test_relaxed_serializer_passes_unknown_fields_through() -> None:
     assert result["seerAddedThisLater"] == {"nested": [1, 2, 3]}
 
 
-def test_relaxed_serializer_passes_unknown_nested_fields_through() -> None:
-    result = validated(
-        OrchestrationProjectionSerializer,
-        projection(broadScan={"status": "running", "seerAddedThisLater": "kept"}),
+def test_projection_preserves_nested_fields_and_adaptive_checks() -> None:
+    completed_step = {
+        "id": "step-1",
+        "order": 0,
+        "title": "Compare releases",
+        "objective": "Identify the affected release",
+        "method": "Compare errors by release",
+        "status": "completed",
+        "result": "Errors are concentrated in the latest release.",
+        "evidence": [
+            {
+                "id": "evidence-1",
+                "title": "Error in the latest release",
+                "kind": "event",
+                "projectIds": [1],
+            }
+        ],
+    }
+    pending_step = {
+        "id": "step-2",
+        "order": 1,
+        "title": "Compare regions",
+        "objective": "Identify regional differences",
+        "method": "Compare errors by region",
+        "status": "not_started",
+    }
+    payload = projection(
+        phase="investigating",
+        broadScan={"status": "completed", "seerAddedThisLater": "kept"},
+        hypotheses=[
+            hypothesis_with(
+                status="running",
+                effectiveStatus="investigating",
+                decisionSource="none",
+                verificationSteps=[completed_step, pending_step],
+            )
+        ],
     )
+    result = validated(OrchestrationProjectionSerializer, payload)
 
+    assert result["hypotheses"][0]["verificationSteps"] == [completed_step, pending_step]
     assert result["broadScan"]["seerAddedThisLater"] == "kept"
+
+    follow_up = {
+        "id": "step-3",
+        "order": 1,
+        "title": "Inspect the new errors",
+        "objective": "Identify the failure introduced by the release",
+        "method": "Inspect events from the affected release",
+        "status": "queued",
+        "parentStepId": "step-1",
+    }
+    skipped_step = {
+        **pending_step,
+        "order": 2,
+        "status": "skipped",
+        "skipReason": "Follow the release-specific evidence first.",
+    }
+    payload["hypotheses"][0]["verificationSteps"] = [completed_step, follow_up, skipped_step]
+
+    result = validated(OrchestrationProjectionSerializer, payload)
+
+    assert result["hypotheses"][0]["verificationSteps"] == [
+        completed_step,
+        follow_up,
+        skipped_step,
+    ]
 
 
 def test_projection_is_bounded_by_its_serialized_size() -> None:
@@ -243,6 +303,30 @@ def test_projection_is_bounded_by_its_serialized_size() -> None:
 def test_projection_phase_and_status_must_be_known_values() -> None:
     rejects(OrchestrationProjectionSerializer, projection(phase="not_a_phase"))
     rejects(OrchestrationProjectionSerializer, projection(status="not_a_status"))
+
+
+@pytest.mark.parametrize("field", ["startedAt", "finishedAt", "activeSince"])
+@pytest.mark.parametrize("value", ["bad", "2025-01-01T00:00:00", "2025-02-30T00:00:00Z", 123])
+def test_projection_rejects_invalid_timing_timestamps(field: str, value: Any) -> None:
+    rejects(OrchestrationProjectionSerializer, projection(**{field: value}))
+
+
+@pytest.mark.parametrize("value", [-1, "10", True])
+def test_projection_rejects_invalid_active_duration(value: Any) -> None:
+    rejects(OrchestrationProjectionSerializer, projection(activeTimeElapsedSeconds=value))
+
+
+def test_projection_accepts_missing_and_null_timing_from_older_seer() -> None:
+    result = validated(OrchestrationProjectionSerializer, projection())
+    assert "startedAt" not in result
+    assert "activeTimeElapsedSeconds" not in result
+    result = validated(
+        OrchestrationProjectionSerializer,
+        projection(
+            startedAt=None, finishedAt=None, activeSince=None, activeTimeElapsedSeconds=None
+        ),
+    )
+    assert result["activeTimeElapsedSeconds"] is None
 
 
 def test_projection_integers_stay_within_their_database_columns() -> None:

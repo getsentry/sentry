@@ -48,7 +48,17 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("browser.version"),
         simple_sentry_field("environment"),
         simple_sentry_field("release"),
-        simple_sentry_field("replay_id"),
+        ResolvedAttribute(
+            public_alias="replay_id",
+            internal_name="sentry.replay_id",
+            search_type="string",
+            secondary_alias=True,
+        ),
+        ResolvedAttribute(
+            public_alias="replay.id",
+            internal_name="sentry.replay_id",
+            search_type="string",
+        ),
         simple_sentry_field("trace.parent_span_id"),
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),

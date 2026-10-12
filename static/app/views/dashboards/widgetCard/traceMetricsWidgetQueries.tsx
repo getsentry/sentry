@@ -3,7 +3,6 @@ import {useCallback, useState} from 'react';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
-import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
@@ -123,14 +122,11 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     yBuckets,
   });
 
-  return getDynamicText({
-    value: children({
-      ...props,
-      dataScanned,
-      confidence,
-      sampleCount,
-      isSampled,
-    }),
-    fixed: <div />,
+  return children({
+    ...props,
+    dataScanned,
+    confidence,
+    sampleCount,
+    isSampled,
   });
 }
