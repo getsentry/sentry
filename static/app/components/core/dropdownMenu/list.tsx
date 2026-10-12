@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
+import {Fragment, useContext, useMemo, useRef} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -12,31 +12,13 @@ import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type {useOverlay} from 'sentry/utils/useOverlay';
 
+import {DropdownMenuContext} from './context';
 import type {MenuItemProps} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
 import {DropdownSubmenu} from './submenu';
 import {useSafetyTriangle} from './useSafetyTriangle';
-
-type OverlayState = ReturnType<typeof useOverlay>['state'];
-
-interface DropdownMenuContextValue {
-  /**
-   * Menu state (from @react-aria's useTreeState) of the parent menu. To be used to
-   * close the current submenu.
-   */
-  parentMenuState?: TreeState<MenuItemProps>;
-  /**
-   * Overlay state manager (from useOverlay) for the root (top-most) menu. To be used to
-   * close the entire menu system.
-   */
-  rootOverlayState?: OverlayState;
-  safetyTriangle?: ReturnType<typeof useSafetyTriangle>;
-}
-
-export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
 
 export interface DropdownMenuListProps
   extends

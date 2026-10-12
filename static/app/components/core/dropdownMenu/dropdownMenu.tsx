@@ -12,8 +12,8 @@ import {useOverlay} from 'sentry/utils/useOverlay';
 import {DropdownMenuContent} from './content';
 import {DropdownButton} from './dropdownButton';
 import type {MenuItemProps} from './item';
+import {DropdownMenuContext} from './context';
 import type {DropdownMenuListProps} from './list';
-import {DropdownMenuContext} from './list';
 
 export type {MenuItemProps};
 
