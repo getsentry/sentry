@@ -12,7 +12,7 @@ def make_stats(
     span_name: str = "generate_content generate_structured",
     model: str = "model-x",
     call_count: int = 10_000,
-    avg_input_tokens: float = 2_000,
+    avg_input_tokens: float = 5_000,
     hit_rate: float = 0.0,
     write_read_ratio: float = 0.0,
     sampled_call_count: int | None = None,
