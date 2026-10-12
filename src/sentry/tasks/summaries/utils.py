@@ -220,7 +220,7 @@ def org_key_error_issues(
     per_project_limit: int = 5,
 ) -> dict[int, list[dict[str, Any]]]:
     op = "weekly_reports.org_key_error_issues"
-    with traces.start_span(name=op, attributes=({"sentry.op": op} if op is not None else {})):
+    with traces.start_span(name=op, attributes=({"sentry.op": op})):
         if not project_ids:
             return {}
 
@@ -239,7 +239,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
 
     op = "weekly_reports.project_key_performance_issues"
 
-    with traces.start_span(name=op, attributes=({"sentry.op": op} if op is not None else {})):
+    with traces.start_span(name=op, attributes=({"sentry.op": op})):
         # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
         # Then, we use this to join with snuba, hoping that the top 3 issue by volume counted in snuba would be within this list.
         # We do this to limit the number of group_ids snuba has to join with.
