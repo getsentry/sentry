@@ -2504,7 +2504,7 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "project_root": "/usr/src",
     "in_app_include": ["sentry"],
     "debug": True,
-    "send_default_pii": True,
+    "data_collection": {},
     "auto_enabling_integrations": False,
     "enable_db_query_source": True,
     # Keep alive is enabled to help avoid losing events due to network

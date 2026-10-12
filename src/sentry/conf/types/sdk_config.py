@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 from sentry_sdk.types import Event, Hint, Log
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import DataCollectionUserOptions
 
 
 class SdkConfig(TypedDict):
@@ -12,7 +15,7 @@ class SdkConfig(TypedDict):
     project_root: str
     in_app_include: list[str]
     debug: bool
-    send_default_pii: bool
+    data_collection: DataCollectionUserOptions
     auto_enabling_integrations: bool
     keep_alive: NotRequired[bool]
     spotlight: NotRequired[str | bool | None]
