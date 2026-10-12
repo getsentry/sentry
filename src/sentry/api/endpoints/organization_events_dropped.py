@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -25,7 +26,6 @@ from sentry.apidocs.parameters import GlobalParams, OrganizationParams, Visibili
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.snuba.utils import DATASET_LABELS
-from sentry.utils.tracing import start_span
 
 _ENDPOINT = "events-dropped"
 
@@ -158,7 +158,12 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
 
             dropped_events: list[DroppedEventsBucket] = []
             accepted_events: list[DroppedEventsBucket] = []
-            with start_span(op="dropped_events.serve", name=_ENDPOINT):
+            with traces.start_span(
+                name=_ENDPOINT,
+                attributes={
+                    "sentry.op": "dropped_events.serve",
+                },
+            ):
                 try:
                     dropped_raw, accepted_raw = get_dropped_data_annotations(
                         dataset, snuba_params, rollup, outcome=outcome, reason=reason

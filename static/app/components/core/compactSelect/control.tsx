@@ -350,9 +350,14 @@ export function Control<Value extends SelectKey>({
   });
 
   const overflowBoundaryId = useBoundaryContext();
-  const overflowBoundary = overflowBoundaryId
-    ? document.getElementById(overflowBoundaryId)
-    : null;
+  const getOverflowBoundary = useCallback(
+    () =>
+      (overflowBoundaryId ? document.getElementById(overflowBoundaryId) : null) ??
+      document.querySelector('main') ??
+      document.getElementById('main') ??
+      undefined,
+    [overflowBoundaryId]
+  );
 
   // Manage overlay position
   const {
@@ -373,15 +378,8 @@ export function Control<Value extends SelectKey>({
     onInteractOutside,
     shouldCloseOnInteractOutside,
     shouldCloseOnBlur,
-    preventOverflowOptions: {
-      ...preventOverflowOptions,
-      boundary:
-        preventOverflowOptions?.boundary ??
-        overflowBoundary ??
-        document.querySelector('main') ??
-        document.getElementById('main') ??
-        undefined,
-    },
+    preventOverflowOptions,
+    getOverflowBoundary,
     flipOptions,
     strategy,
     onOpenChange: open => {

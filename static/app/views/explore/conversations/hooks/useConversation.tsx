@@ -95,6 +95,8 @@ export interface ConversationModelUsage {
 }
 
 export interface ConversationStats {
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
   endTimestamp: number;
   errorToolNames: string[];
   errors: number;
@@ -102,6 +104,7 @@ export interface ConversationStats {
   inputTokens: number;
   llmCalls: number;
   outputTokens: number;
+  reasoningTokens: number;
   startTimestamp: number;
   toolCalls: number;
   toolErrors: number;

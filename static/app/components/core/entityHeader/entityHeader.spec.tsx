@@ -404,10 +404,10 @@ describe('EntityHeader', () => {
           metadata={{
             label: 'Replay properties',
             items: [
-              {label: 'Browser', values: ['Chrome 144']},
+              {label: 'Browser', type: 'text', value: 'Chrome 144'},
               isVideoReplay
                 ? null
-                : {label: 'Operating system', values: ['Windows >=10']},
+                : {label: 'Operating system', type: 'text', value: 'Windows >=10'},
             ],
           }}
         />
@@ -529,7 +529,14 @@ describe('EntityHeader', () => {
           title={{label: 'Replay user', value: 'Session'}}
           metadata={{
             label: 'Replay properties',
-            items: [{label: 'Browser', values: ['Chrome', '144']}],
+            items: [
+              {
+                label: 'Browser',
+                type: 'text',
+                value: 'Chrome',
+                secondary: {label: 'version', value: '144'},
+              },
+            ],
           }}
           stats={{
             label: 'Replay stats',
@@ -612,6 +619,31 @@ describe('EntityHeader', () => {
       expect(screen.queryByText(/Viewed by/)).not.toBeInTheDocument();
     });
 
+    it('names a metadata link from its key and its value', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Release', value: 'javascript-sdk'}}
+          metadata={{
+            label: 'Release properties',
+            items: [
+              {label: 'Version', type: 'link', value: '8.42.0', to: '/releases/8.42.0/'},
+            ],
+          }}
+        />
+      );
+
+      // A links list showing "8.42.0" says nothing about what it leads to.
+      // The mirror of a stat, where the label links and carries the count.
+      expect(screen.getByRole('link', {name: 'Version 8.42.0'})).toHaveAttribute(
+        'href',
+        '/releases/8.42.0/'
+      );
+
+      // And the key is not repeated beside it — the link already speaks it.
+      const item = screen.getByRole('listitem');
+      expect(item).toHaveTextContent(/^8\.42\.0$/);
+    });
+
     it('names each metadata item, and the row they belong to', () => {
       render(
         <EntityHeader
@@ -619,66 +651,91 @@ describe('EntityHeader', () => {
           metadata={{
             label: 'Replay properties',
             items: [
-              {label: 'Browser', values: ['Chrome', '144.0.0']},
-              {label: 'Operating system', values: ['Windows', '>=10']},
+              {
+                label: 'Browser',
+                type: 'text',
+                value: 'Chrome',
+                secondary: {label: 'version', value: '144.0.0'},
+              },
+              {
+                label: 'Operating system',
+                type: 'text',
+                value: 'Windows',
+                secondary: {label: 'version', value: '>=10'},
+              },
             ],
           }}
         />
       );
 
       // The row says what these strings have to do with each other, and each
-      // item says what it is — otherwise a screen reader meets "Chrome 144.0.0"
-      // with nothing to tie it to a browser, or to the replay.
+      // value says what it is — otherwise a screen reader meets "144.0.0" with
+      // nothing to tie it to a browser version, or to the replay.
       const row = screen.getByRole('list', {name: 'Replay properties'});
       const items = within(row).getAllByRole('listitem');
-
-      // A listitem takes no name from its content — a screen reader reads the
-      // content as it traverses — so the label has to be text inside it, and it
-      // has to come first.
       expect(items).toHaveLength(2);
 
-      const readsLabelFirst = (item: HTMLElement, label: string, values: string) => {
-        const labelNode = within(item).getByText(label);
-        const valueNode = within(item).getByText(values);
-        return Boolean(
-          labelNode.compareDocumentPosition(valueNode) & Node.DOCUMENT_POSITION_FOLLOWING
-        );
-      };
-
-      expect(readsLabelFirst(items[0]!, 'Browser', 'Chrome 144.0.0')).toBe(true);
-      expect(readsLabelFirst(items[1]!, 'Operating system', 'Windows >=10')).toBe(true);
+      // A listitem takes no name from its content — a screen reader reads the
+      // content as it traverses — so each key is text inside it, ahead of the
+      // value it names. The child key is composed with the parent.
+      expect(items[0]).toHaveTextContent(/^BrowserChromeBrowser version144\.0\.0$/);
+      expect(items[1]).toHaveTextContent(
+        /^Operating systemWindowsOperating system version>=10$/
+      );
     });
 
-    it('renders several values as one run, and hides the label unless asked', () => {
+    it('labels each value, and hides the keys unless asked', () => {
       const {rerender} = render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
           metadata={{
             label: 'Replay properties',
-            items: [{label: 'Browser', values: ['Chrome', '144.0.0']}],
+            items: [
+              {
+                label: 'Browser',
+                type: 'text',
+                value: 'Chrome',
+                secondary: {label: 'version', value: '144.0.0'},
+              },
+            ],
           }}
         />
       );
 
-      expect(screen.getByText('Chrome 144.0.0')).toBeVisible();
-      // Present for a screen reader, clipped out of the visual layout.
+      expect(screen.getByText('Chrome')).toBeVisible();
+      expect(screen.getByText('144.0.0')).toBeVisible();
+      // Both keys are present for a screen reader, clipped out of the layout.
       expect(screen.getByText('Browser')).toHaveStyle({clipPath: 'inset(50%)'});
+      expect(screen.getByText('Browser version')).toHaveStyle({
+        clipPath: 'inset(50%)',
+      });
 
       rerender(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
           metadata={{
             label: 'Replay properties',
-            items: [{label: 'Browser', values: ['Chrome', '144.0.0'], mode: 'full'}],
+            items: [
+              {
+                label: 'Browser',
+                type: 'text',
+                value: 'Chrome',
+                secondary: {label: 'version', value: '144.0.0'},
+                mode: 'full',
+              },
+            ],
           }}
         />
       );
 
-      // Showing it is a question of visibility only — what is read is unchanged.
+      // Showing the parent key is a question of visibility only — what is read
+      // is unchanged, and the child key stays hidden either way.
       const item = screen.getByRole('listitem');
       expect(screen.getByText('Browser')).not.toHaveStyle({clipPath: 'inset(50%)'});
-      expect(within(item).getByText('Browser')).toBeInTheDocument();
-      expect(within(item).getByText('Chrome 144.0.0')).toBeInTheDocument();
+      expect(screen.getByText('Browser version')).toHaveStyle({
+        clipPath: 'inset(50%)',
+      });
+      expect(item).toHaveTextContent(/^BrowserChromeBrowser version144\.0\.0$/);
     });
 
     it('never hides a focusable element on a link stat', () => {
@@ -718,7 +775,14 @@ describe('EntityHeader', () => {
           title={{label: 'Replay user', value: 'Session'}}
           metadata={{
             label: 'Page properties',
-            items: [{label: 'Metric', values: ['TTFB'], tooltip: 'Time to First Byte'}],
+            items: [
+              {
+                label: 'Metric',
+                type: 'text',
+                value: 'TTFB',
+                tooltip: 'Time to First Byte',
+              },
+            ],
           }}
         />
       );
@@ -745,8 +809,8 @@ describe('EntityHeader', () => {
           metadata={{
             label: 'Replay properties',
             items: [
-              {label: 'Browser', values: ['Chrome 144']},
-              {label: 'Operating system', values: ['Windows >=10']},
+              {label: 'Browser', type: 'text', value: 'Chrome 144'},
+              {label: 'Operating system', type: 'text', value: 'Windows >=10'},
             ],
           }}
         />
@@ -778,8 +842,8 @@ describe('EntityHeader', () => {
         metadata: {
           label: 'Replay properties',
           items: [
-            hasData ? {label: 'Started at', values: ['2h ago']} : null,
-            hasData ? {label: 'Browser', values: ['Chrome']} : null,
+            hasData ? {label: 'Started at', type: 'text', value: '2h ago'} : null,
+            hasData ? {label: 'Browser', type: 'text', value: 'Chrome'} : null,
           ],
         },
         stats: {
@@ -895,7 +959,12 @@ describe('EntityHeader', () => {
           metadata={{
             label: 'Replay properties',
             items: [
-              {label: 'Browser', values: ['Chrome 144'], tooltip: 'The browser used'},
+              {
+                label: 'Browser',
+                type: 'text',
+                value: 'Chrome 144',
+                tooltip: 'The browser used',
+              },
             ],
           }}
         />
@@ -926,7 +995,7 @@ describe('EntityHeader', () => {
           }}
           metadata={{
             label: 'Replay properties',
-            items: [{label: 'Browser', values: ['Chrome 144']}],
+            items: [{label: 'Browser', type: 'text', value: 'Chrome 144'}],
           }}
         />
       );
@@ -949,7 +1018,7 @@ describe('EntityHeader', () => {
           }}
           metadata={{
             label: 'Replay properties',
-            items: [{label: 'Browser', values: ['Chrome 144']}],
+            items: [{label: 'Browser', type: 'text', value: 'Chrome 144'}],
           }}
         />
       );

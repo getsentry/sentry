@@ -438,27 +438,16 @@ function getNumberAttrByConvention(
 function getTokenBreakdowns(
   usageByModel: ConversationModelUsage[]
 ): TokenBreakdownDetails[] {
-  return usageByModel.map(usage => {
-    const breakdown = getTokenBreakdown({
-      inputTokens: usage.inputTokens,
-      cachedTokens: usage.cacheReadTokens,
-      cacheWriteTokens: usage.cacheWriteTokens,
-      outputTokens: usage.outputTokens,
-      reasoningTokens: usage.reasoningTokens,
-      totalTokens: usage.totalTokens,
-    });
-
-    return {
-      cacheRead: breakdown.cached,
-      cacheWrite: breakdown.cacheWrite,
-      input: breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite,
-      isComplete: true,
-      output: breakdown.output,
-      reasoning: usage.reasoningTokens,
-      total: usage.totalTokens,
-      model: usage.model ?? t('Unknown model'),
-    };
-  });
+  return usageByModel.map(usage => ({
+    cacheRead: usage.cacheReadTokens,
+    cacheWrite: usage.cacheWriteTokens,
+    input: usage.inputTokens,
+    isComplete: true,
+    output: usage.outputTokens,
+    reasoning: usage.reasoningTokens,
+    total: usage.totalTokens,
+    model: usage.model ?? t('Unknown model'),
+  }));
 }
 
 function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {

@@ -1,54 +1,14 @@
 import styled from '@emotion/styled';
 
-const Root = styled('div')`
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  position: relative;
-`;
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
-const HeaderViewport = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  min-width: 100%;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-`;
-
-const HeaderRow = styled('div')`
-  display: grid;
-`;
-
-const BodyScrollContainer = styled('div')`
-  bottom: 0;
-  inset-inline: 0;
-  min-height: 0;
-  min-width: 0;
-  overflow: auto;
-  position: absolute;
+const Table = styled(SimpleTable)`
+  border: 0;
+  border-radius: 0;
   overscroll-behavior: contain;
-  top: 0;
 `;
 
-const Content = styled('div')`
-  position: relative;
-`;
-
-const NoRowsContainer = styled('div')`
-  min-height: 100%;
-`;
-
-const Offset = styled('div')<{offset: number}>`
-  left: 0;
-  position: absolute;
-  top: 0;
-  transform: translateY(${p => p.offset}px);
-`;
-
-const BodyRow = styled('div')<{useTransparentBorders?: boolean}>`
-  display: grid;
-  position: relative;
-
+const BodyRow = styled(SimpleTable.Row)<{useTransparentBorders?: boolean}>`
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid
       ${p =>
@@ -102,12 +62,4 @@ const BodyRow = styled('div')<{useTransparentBorders?: boolean}>`
   }
 `;
 
-export const VirtualTable = Object.assign(Root, {
-  HeaderViewport,
-  HeaderRow,
-  BodyScrollContainer,
-  NoRowsContainer,
-  Content,
-  Offset,
-  BodyRow,
-});
+export const VirtualTable = {BodyRow, Table};

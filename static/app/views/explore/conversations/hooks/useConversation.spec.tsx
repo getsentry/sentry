@@ -22,6 +22,8 @@ const BASE_SPAN = {
 };
 
 const STATS: ConversationStats = {
+  cacheReadTokens: 0,
+  cacheWriteTokens: 0,
   endTimestamp: 1_000_500,
   errors: 0,
   errorToolNames: [],
@@ -44,6 +46,7 @@ const STATS: ConversationStats = {
     },
   ],
   outputTokens: 30,
+  reasoningTokens: 0,
   startTimestamp: 1_000_000,
   toolCalls: 0,
   toolErrors: 0,

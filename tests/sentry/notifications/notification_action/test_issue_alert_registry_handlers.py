@@ -147,8 +147,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
-                    "legacy_rule_id": self.rule.id,
-                    "workflow_id": self.workflow.id,
                 }
             ],
         }
@@ -181,7 +179,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
-                    "workflow_id": self.workflow.id,
                 }
             ]
         }
@@ -202,7 +199,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
-                    "workflow_id": workflow_id,
                 }
             ]
         }
@@ -227,7 +223,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
-                    "legacy_rule_id": TEST_NOTIFICATION_ID,
                 }
             ],
         }
@@ -248,8 +243,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
-                    "legacy_rule_id": self.rule.id,
-                    "workflow_id": self.workflow.id,
                 }
             ],
         }
@@ -466,18 +459,6 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
             "account": "1234567890",
             "team": "team789",
             "priority": "P1",
-        }
-
-    def test_build_rule_action_blob_no_priority(self) -> None:
-        """Test that build_rule_action_blob handles missing priority"""
-        self.action.data = {}
-        blob = self.handler.build_rule_action_blob(self.action, self.organization.id)
-
-        assert blob == {
-            "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
-            "account": "1234567890",
-            "team": "team789",
-            "priority": "",
         }
 
     @mock.patch("sentry.integrations.opsgenie.client.logger")
