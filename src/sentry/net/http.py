@@ -169,7 +169,7 @@ class BlacklistAdapter(HTTPAdapter):
             max_retries = 0
 
         self.is_ipaddress_permitted = is_ipaddress_permitted
-        super().__init__(max_retries=max_retries if max_retries is not None else 0)
+        super().__init__(max_retries=max_retries)
 
     def init_poolmanager(
         self, connections: int, maxsize: int, block: bool = DEFAULT_POOLBLOCK, **pool_kwargs: Any
