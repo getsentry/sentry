@@ -12,6 +12,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
+import {makeSnapshotsListUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -64,7 +65,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
     items.push({
       type: 'link',
       label: appId,
-      to: `/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`,
+      to: makeSnapshotsListUrl(organization.slug, {query: `app_id:${appId}`}),
       leadingGraphic: <IconCode size="xs" />,
     });
   }

@@ -370,7 +370,7 @@ describe('desktop navigation', () => {
       async function assertNavStructureAndActiveLinksForRoute(
         pathname: string,
         activePrimaryLink: string,
-        activeSecondaryLink: string,
+        activeSecondaryLink: string | RegExp,
         route?: string
       ) {
         const {unmount} = render(
@@ -417,7 +417,7 @@ describe('desktop navigation', () => {
       }
 
       // [pathname, primary nav label, secondary nav label, route?]
-      type RouteCase = [string, string, string, string?];
+      type RouteCase = [string, string, string | RegExp, string?];
 
       it('non-customer domain', async () => {
         const ORG = '/organizations/org-slug';
@@ -438,6 +438,7 @@ describe('desktop navigation', () => {
           [`${ORG}/explore/profiles/`, 'Explore', 'Profiles'],
           [`${ORG}/explore/replays/`, 'Explore', 'Replays'],
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
+          [`${ORG}/explore/snapshots/`, 'Explore', /^Snapshots/],
           [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],
           // Dashboards
           [`${ORG}/dashboards/`, 'Dashboards', 'All Dashboards'],

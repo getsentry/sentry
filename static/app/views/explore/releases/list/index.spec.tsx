@@ -16,6 +16,7 @@ import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDispl
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import * as analytics from 'sentry/utils/analytics';
 import ReleasesList from 'sentry/views/explore/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import {ReleasesStatusOption} from 'sentry/views/explore/releases/list/releasesStatusOptions';
@@ -649,6 +650,21 @@ describe('ReleasesList', () => {
     expect(endpointMock).not.toHaveBeenCalled();
   });
 
+  it('tracks list metadata with the mobile builds page source in snapshot display', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    renderMobileBuildsTab({display: PreprodBuildsDisplay.SNAPSHOT});
+
+    await waitFor(() =>
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'preprod.builds.list.metadata',
+        expect.objectContaining({
+          display: PreprodBuildsDisplay.SNAPSHOT,
+          page_source: 'releases_mobile_builds_tab',
+        })
+      )
+    );
+  });
+
   it('toggles display mode in the mobile-builds tab and injects installable:true', async () => {
     const {router} = renderMobileBuildsTab();
 
@@ -865,6 +881,50 @@ describe('ReleasesList', () => {
     );
 
     expect(router.location.query.tab).toBeUndefined();
+  });
+
+  it('redirects the legacy snapshots tab to the snapshots page', async () => {
+    const {router} = render(<ReleasesList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/releases/`,
+          query: {
+            tab: 'snapshots',
+            query: 'app_id:com.example.app',
+            project: '1',
+            statsPeriod: '7d',
+            cursor: '0:25:0',
+          },
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/explore/snapshots/`
+      )
+    );
+    expect(router.location.query).toEqual(
+      expect.objectContaining({query: 'app_id:com.example.app', statsPeriod: '7d'})
+    );
+    expect(router.location.query).not.toHaveProperty('tab');
+    expect(router.location.query).not.toHaveProperty('cursor');
+  });
+
+  it('does not render a snapshots tab', async () => {
+    render(<ReleasesList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/releases/`,
+          query: {},
+        },
+      },
+    });
+
+    expect(await screen.findByRole('tab', {name: 'Releases'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: /Snapshots/})).not.toBeInTheDocument();
   });
 
   it('autocompletes semver search tag', async () => {

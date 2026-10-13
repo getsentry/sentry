@@ -241,3 +241,34 @@ describe('SnapshotHeaderActions force approve', () => {
     expect(screen.queryByText('Force Approve')).not.toBeInTheDocument();
   });
 });
+
+describe('SnapshotHeaderActions delete', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
+  it('navigates to the snapshots list after deleting', async () => {
+    const deleteMock = MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'DELETE',
+      body: {},
+    });
+
+    const {router} = renderActions();
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    await userEvent.click(await screen.findByText('Delete Snapshots'));
+    await userEvent.type(await screen.findByPlaceholderText('delete'), 'delete');
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    await waitFor(() => expect(deleteMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        `/organizations/${ORG_SLUG}/explore/snapshots/`
+      )
+    );
+    expect(router.location.query).toEqual({project: '456'});
+  });
+});

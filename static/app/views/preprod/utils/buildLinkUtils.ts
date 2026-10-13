@@ -1,3 +1,5 @@
+import * as qs from 'query-string';
+
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 interface BuildLinkParams {
@@ -79,4 +81,21 @@ export function getSnapshotPath(params: {
   snapshotId: string;
 }): string {
   return `/organizations/${params.organizationSlug}/preprod/snapshots/${params.snapshotId}/`;
+}
+
+type SnapshotsListUrlParams = {
+  end?: string;
+  project?: string | string[];
+  query?: string;
+  start?: string;
+  statsPeriod?: string;
+  utc?: string;
+};
+
+export function makeSnapshotsListUrl(
+  organizationSlug: string,
+  params: SnapshotsListUrlParams = {}
+): string {
+  const search = qs.stringify(params, {skipEmptyString: true});
+  return `/organizations/${organizationSlug}/explore/snapshots/${search ? `?${search}` : ''}`;
 }

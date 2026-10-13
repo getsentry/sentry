@@ -61,6 +61,7 @@ function ExploreSecondaryNavigationImpl() {
     navItems.push({label: 'Replays', to: `${baseUrl}/replays/`});
   }
   navItems.push({label: 'Releases', to: `${baseUrl}/releases/`});
+  navItems.push({label: 'Snapshots', to: `${baseUrl}/snapshots/`, badge: 'beta'});
   if (organization.features.includes('gen-ai-conversations')) {
     navItems.push({
       label: 'Agents',
@@ -187,11 +188,25 @@ function ExploreSecondaryNavigationImpl() {
                 to={`${baseUrl}/releases/`}
                 activeTo={[
                   `${baseUrl}/releases/`,
-                  `/organizations/${organization.slug}/preprod/`,
+                  `/organizations/${organization.slug}/preprod/size/`,
+                  `/organizations/${organization.slug}/preprod/install/`,
                 ]}
                 analyticsItemName="explore_releases"
               >
                 {t('Releases')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/snapshots/`}
+                activeTo={[
+                  `${baseUrl}/snapshots/`,
+                  `/organizations/${organization.slug}/preprod/snapshots/`,
+                ]}
+                analyticsItemName="explore_snapshots"
+                trailingItems={<FeatureBadge type="beta" />}
+              >
+                {t('Snapshots')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             <Feature features="gen-ai-conversations">
