@@ -163,11 +163,11 @@ class BlacklistAdapter(HTTPAdapter):
         is_ipaddress_permitted: IsIpAddressPermitted = None,
         max_retries: Retry | None | int = DEFAULT_RETRIES,
     ) -> None:
-        # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
-        # `urllib3.connectionpool.ConnectionPool` instances managed by `SafePoolManager`.
         if options.get("sentry.net.http.retries.coerce_null") and max_retries is None:
             max_retries = 0
 
+        # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
+        # `urllib3.connectionpool.ConnectionPool` instances managed by `SafePoolManager`.
         self.is_ipaddress_permitted = is_ipaddress_permitted
         super().__init__(max_retries=max_retries)
 
