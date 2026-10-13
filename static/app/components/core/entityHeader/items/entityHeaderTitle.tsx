@@ -209,7 +209,7 @@ export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: b
           {containerProps => (
             // Named like the heading, so a links list reads "Replay user,
             // anonymous@example.com" rather than a bare address.
-            <Link to={props.to} aria-label={accessibleName} {...styleProps}>
+            <Link to={props.to} aria-label={accessibleName} {...containerProps}>
               {heading}
             </Link>
           )}
