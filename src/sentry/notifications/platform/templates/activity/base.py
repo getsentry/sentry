@@ -136,6 +136,15 @@ class AssignedNotificationData(ActivityNotificationData):
     is_automated: bool = False
 
 
+def build_subject_prefix(data: ActivityNotificationData) -> NotificationTextBlock:
+    if data.issue_title and data.issue_short_id:
+        return PlainTextBlock(text=f"{data.issue_short_id} - {data.issue_title}")
+    elif data.issue_short_id:
+        return PlainTextBlock(text=data.issue_short_id)
+    else:
+        return PlainTextBlock(text="An Issue")
+
+
 def build_footer(data: ActivityNotificationData) -> list[NotificationTextBlock]:
     blocks: list[NotificationTextBlock] = [
         PlainTextBlock(text="Project:"),
