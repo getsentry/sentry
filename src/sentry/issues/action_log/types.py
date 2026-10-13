@@ -141,6 +141,7 @@ class ActionSource(StrEnum):
     MSTEAMS = "msteams"
     GITHUB = "github"
     GITHUB_ENTERPRISE = "github_enterprise"
+    CURSOR_ORIGIN = "cursor_origin"
     GITLAB = "gitlab"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
