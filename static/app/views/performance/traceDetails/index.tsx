@@ -110,6 +110,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     timestamp: queryParams.timestamp,
     additionalAttributes: [
       'thread.id',
+      'transaction.span_id',
       'tags[browser.performance.time_origin,number]',
       'tags[performance.timeOrigin,number]',
       'gen_ai.operation.type',
