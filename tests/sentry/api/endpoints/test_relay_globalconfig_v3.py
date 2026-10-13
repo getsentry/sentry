@@ -53,7 +53,8 @@ def call_endpoint(client, relay, private_key):
             "transactions": "base64",
         },
         "relay.attachment-inline.limit": 123,
-        "relay.upload-chunk.size": 123,
+        "relay.upload-min-chunk.size": 123,
+        "relay.upload-max-chunk.size": 123,
     }
 )
 def test_global_config() -> None:
