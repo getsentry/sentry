@@ -1,18 +1,6 @@
 import {setWindowLocation} from 'sentry-test/utils';
 
-import {extractSlug} from 'sentry/utils/extractSlug';
-
-const mockDeployPreviewConfig = jest.fn();
-
-jest.mock('sentry/constants', () => {
-  const sentryConstants = jest.requireActual('sentry/constants');
-  return {
-    ...sentryConstants,
-    get DEPLOY_PREVIEW_CONFIG() {
-      return mockDeployPreviewConfig();
-    },
-  };
-});
+import {extractSlug, getDevUiOrganizationSlug} from 'sentry/utils/extractSlug';
 
 describe('extractSlug', () => {
   it.each([
@@ -86,48 +74,48 @@ describe('extractSlug', () => {
 
 describe('getDevUiOrganizationSlug', () => {
   let devUi: boolean | undefined;
-
-  // Test setup imports this module before the constants mock is installed.
-  async function getDevUiOrganizationSlug() {
-    jest.resetModules();
-    const module = await import('sentry/utils/extractSlug');
-    return module.getDevUiOrganizationSlug();
-  }
+  let deployPreviewConfig: string | undefined;
 
   beforeEach(() => {
     devUi = window.__SENTRY_DEV_UI;
+    deployPreviewConfig = process.env.DEPLOY_PREVIEW_CONFIG;
     window.__SENTRY_DEV_UI = true;
-    mockDeployPreviewConfig.mockReturnValue(undefined);
+    delete process.env.DEPLOY_PREVIEW_CONFIG;
   });
 
   afterEach(() => {
     window.__SENTRY_DEV_UI = devUi;
+    if (deployPreviewConfig === undefined) {
+      delete process.env.DEPLOY_PREVIEW_CONFIG;
+    } else {
+      process.env.DEPLOY_PREVIEW_CONFIG = deployPreviewConfig;
+    }
   });
 
-  it('returns the organization from a dev-ui organization domain', async () => {
+  it('returns the organization from a dev-ui organization domain', () => {
     setWindowLocation('https://acme.dev.getsentry.net:7999/issues/');
-    expect(await getDevUiOrganizationSlug()).toBe('acme');
+    expect(getDevUiOrganizationSlug()).toBe('acme');
   });
 
-  it('returns null without an organization subdomain', async () => {
+  it('returns null without an organization subdomain', () => {
     setWindowLocation('https://dev.getsentry.net:7999/issues/');
-    expect(await getDevUiOrganizationSlug()).toBeNull();
+    expect(getDevUiOrganizationSlug()).toBeNull();
   });
 
-  it('returns null outside dev-ui', async () => {
+  it('returns null outside dev-ui', () => {
     window.__SENTRY_DEV_UI = undefined;
     setWindowLocation('https://acme.dev.getsentry.net:7999/issues/');
-    expect(await getDevUiOrganizationSlug()).toBeNull();
+    expect(getDevUiOrganizationSlug()).toBeNull();
   });
 
-  it('ignores the deployment host on deploy previews', async () => {
-    mockDeployPreviewConfig.mockReturnValue({
+  it('ignores the deployment host on deploy previews', () => {
+    process.env.DEPLOY_PREVIEW_CONFIG = JSON.stringify({
       branch: 'test',
       commitSha: 'abc123',
       githubOrg: 'getsentry',
       githubRepo: 'sentry',
     });
     setWindowLocation('https://sentry-abc123.sentry.dev/issues/');
-    expect(await getDevUiOrganizationSlug()).toBeNull();
+    expect(getDevUiOrganizationSlug()).toBeNull();
   });
 });
