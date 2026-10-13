@@ -1,6 +1,6 @@
 import {controlsiloUrlPatterns} from 'sentry/data/controlsiloUrlPatterns';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {extractSlug} from 'sentry/utils/extractSlug';
+import {getDevUiOrganizationSlug} from 'sentry/utils/extractSlug';
 
 export function resolveHostname(path: string, hostname?: string): string {
   const configLinks = ConfigStore.get('links');
@@ -16,8 +16,7 @@ export function resolveHostname(path: string, hostname?: string): string {
     // bit of latency.
     const isAdmin = window.location.pathname.startsWith('/_admin/');
     const isControlSilo = detectControlSiloPath(path);
-    const isDevUiOrgDomain =
-      window.__SENTRY_DEV_UI && Boolean(extractSlug(window.location.host)?.slug);
+    const isDevUiOrgDomain = Boolean(getDevUiOrganizationSlug());
     if (!isAdmin && !isControlSilo && configLinks.regionUrl && !isDevUiOrgDomain) {
       hostname = configLinks.regionUrl;
     }

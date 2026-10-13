@@ -1,3 +1,5 @@
+import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
+
 type ExtractedSlug = {
   domain: string;
   slug: string;
@@ -27,4 +29,18 @@ export function extractSlug(hostname: string): ExtractedSlug | null {
   const domain = domainParts.concat(matchedDomain!).join('.');
 
   return {slug: slug!, domain};
+}
+
+/**
+ * Organization slug from the current dev-ui organization domain, such as
+ * `acme.dev.getsentry.net`. Returns null outside dev-ui and on deploy
+ * previews: previews are served from a single deployment host such as
+ * `sentry-abc123.sentry.dev`, so its first label is not an organization.
+ */
+export function getDevUiOrganizationSlug(): string | null {
+  if (!window.__SENTRY_DEV_UI || DEPLOY_PREVIEW_CONFIG) {
+    return null;
+  }
+
+  return extractSlug(window.location.host)?.slug || null;
 }
