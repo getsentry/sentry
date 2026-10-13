@@ -1639,6 +1639,24 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.backend.add.call_count == 1
 
+    @mock.patch("sentry.mail.adapter.digests")
+    @mock.patch("sentry.mail.adapter.logger")
+    def test_digest_skips_rule_without_workflow_id(
+        self, mock_logger: MagicMock, digests: MagicMock
+    ) -> None:
+        digests.backend.enabled.return_value = True
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = self.create_project_rule(project=self.project, include_workflow_id=False)
+        future = RuleFuture(NotificationActionContext.from_legacy_rule(rule), {})
+
+        self.adapter.rule_notify(event, [future], ActionTargetType.ISSUE_OWNERS)
+
+        digests.backend.add.assert_not_called()
+        mock_logger.warning.assert_called_once_with(
+            "mail.adapter.notification.missing_workflow_id",
+            extra={"rule_id": rule.id, "project_id": self.project.id},
+        )
+
     def test_notify_includes_uuid(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(name="my rule")

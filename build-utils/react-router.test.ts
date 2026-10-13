@@ -64,6 +64,10 @@ for (const [name, env, version] of cases) {
       resolve: {alias: routerConfig.alias},
       module: {
         rules: [
+          {
+            include: input,
+            resolve: {modules: [path.join(root, 'static/app/node_modules')]},
+          },
           ...routerConfig.rules,
           {
             test: /\.ts$/,

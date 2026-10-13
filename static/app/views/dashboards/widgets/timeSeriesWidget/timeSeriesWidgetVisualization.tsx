@@ -22,11 +22,11 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
-} from 'sentry/components/droppedData/useDroppedDataBand';
+} from 'sentry/components/droppedData/band/useDroppedDataBand';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {

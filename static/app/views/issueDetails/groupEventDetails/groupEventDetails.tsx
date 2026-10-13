@@ -9,7 +9,7 @@ import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group
 import {IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {isRetryableRequestError} from 'sentry/utils/queryClient';
+import {isRetryableRequestError} from 'sentry/utils/queryClientConfig';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';

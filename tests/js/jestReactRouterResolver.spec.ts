@@ -42,7 +42,9 @@ describe.each(['6', '8'])('React Router v%s import resolution', version => {
     ]).get(request);
     expect(defaultResolver).toHaveBeenCalledWith(
       version === '8' && v8Alias ? v8Alias : expected,
-      version === '8' && v8Alias ? {...options, basedir: root} : options
+      version === '8' && v8Alias
+        ? {...options, basedir: root}
+        : expect.objectContaining(options)
     );
   });
 });

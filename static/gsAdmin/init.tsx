@@ -11,7 +11,7 @@ import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
 import {initializeSdk} from 'sentry/bootstrap/initializeSdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import type {Config} from 'sentry/types/system';
-import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 import {createReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 import {routes} from 'admin/routes';

@@ -12,7 +12,7 @@ import {
   isComponentCategory,
   type ComponentCategory,
 } from 'sentry/stories/componentCategories';
-import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
+import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
 import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

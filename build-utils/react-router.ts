@@ -16,9 +16,9 @@ export function getReactRouterConfig(env: NodeJS.ProcessEnv = process.env) {
   const compatibilityDirectory = path.join(root, 'static/app/utils/reactRouterV6');
   const alias: NonNullable<Configuration['resolve']>['alias'] = useV8
     ? {
-        'react-router$': 'react-router-v8',
-        'react-router/dom$': 'react-router-v8/dom',
-        'react-router-dom$': 'react-router-v8',
+        'react-router$': require.resolve('react-router-v8'),
+        'react-router/dom$': require.resolve('react-router-v8/dom'),
+        'react-router-dom$': require.resolve('react-router-v8'),
         'nuqs/adapters/react-router/v6$':
           require.resolve('nuqs/adapters/react-router/v8'),
       }

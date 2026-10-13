@@ -3,6 +3,10 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const compatibilityDirectory = path.join(root, 'static/app/utils/reactRouterV6');
 const sourceDirectories = [path.join(root, 'static'), path.join(root, 'tests/js')];
+const workspaceDirectories = ['app', 'gsApp', 'gsAdmin'].map(directory =>
+  path.join(root, 'static', directory)
+);
+
 const v8Aliases = new Map([
   ['react-router', 'react-router-v8'],
   ['react-router/dom', 'react-router-v8/dom'],
@@ -18,6 +22,19 @@ module.exports = function resolveReactRouter(request, options) {
       return options.defaultResolver(alias, {...options, basedir: root});
     }
   }
+  const workspaceDirectory = workspaceDirectories.find(
+    directory =>
+      options.basedir === directory ||
+      options.basedir.startsWith(`${directory}${path.sep}`)
+  );
+  if (workspaceDirectory && !options.basedir.split(path.sep).includes('node_modules')) {
+    options = {
+      ...options,
+      moduleDirectory: [path.join(workspaceDirectory, 'node_modules')],
+      paths: [],
+    };
+  }
+
   // V6 dependencies must resolve their own core package to share router contexts.
   const isSource = sourceDirectories.some(
     directory =>

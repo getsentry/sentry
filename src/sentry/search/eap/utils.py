@@ -569,6 +569,7 @@ def parse_formula(
 ) -> str:
     # Create a dict of param name -> the arg the user passed
     variables = {}
+    saved_columns = []
     for saved_arg, arg in zip(saved_args, arguments):
         if saved_arg.param_type == ParamItemTypes.NUMBER:
             # Ensure that the user arg is a valid number
@@ -588,6 +589,7 @@ def parse_formula(
                     f"{saved_arg.name} resolved to {arg}, which is outside the supported number range"
                 )
         elif saved_arg.param_type == ParamItemTypes.COLUMN:
+            saved_columns.append(saved_arg.name)
             try:
                 resolver.resolve_column(arg)
             except InvalidSearchQuery:
@@ -601,8 +603,14 @@ def parse_formula(
     for calculation in saved_calculations:
         value = calculation.value
         for param_name, user_arg in variables.items():
+            # Don't sub columns since they aren't possible, ie. can't multiply a column if its used in a condition
+            if param_name in saved_columns:
+                continue
             value = value.replace(f"{{{param_name}}}", user_arg)
         if unmatched := re.findall(FORMAT_RE, value):
+            for field in unmatched:
+                if field in saved_columns:
+                    raise InvalidSearchQuery("Columns cannot be used in calculations")
             raise InvalidSearchQuery(
                 f"Missing parameters for {calculation.name}; {', '.join(unmatched)}"
             )
