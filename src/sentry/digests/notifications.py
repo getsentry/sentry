@@ -75,7 +75,6 @@ def event_to_record(
     event: Event | GroupEvent,
     rules: Sequence[NotificationOrigin],
     notification_uuid: str | None = None,
-    identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)
@@ -85,14 +84,11 @@ def event_to_record(
     assert event.group is not None
     rule_ids = []
     for origin in rules:
-        rule_id = (
-            origin.legacy_rule_id if identifier_key == IdentifierKey.RULE else origin.workflow_id
-        )
-        assert rule_id is not None
-        rule_ids.append(rule_id)
+        assert origin.workflow_id is not None
+        rule_ids.append(origin.workflow_id)
     return Record(
         event.event_id,
-        Notification(event, rule_ids, notification_uuid, identifier_key),
+        Notification(event, rule_ids, notification_uuid, IdentifierKey.WORKFLOW),
         event.datetime.timestamp(),
     )
 

@@ -775,7 +775,7 @@ export function ResultGrid({
    * which ones have matches for the current query. Runs only after the active
    * region returns no results, so there is no cost on the common path.
    */
-  const probeOtherRegions = (
+  const probeOtherRegions = async (
     baseParams: Record<string, any>,
     currentCell: Cell | undefined
   ) => {
@@ -793,34 +793,30 @@ export function ResultGrid({
     // how many. The admin customers endpoint doesn't return an X-Hits total, so
     // we deliberately surface presence only rather than an unreliable count.
     const probeParams = {...baseParams, cursor: '', per_page: 1};
-    const matches: Cell[] = [];
-    let remaining = otherCells.length;
 
-    const finalize = () => {
-      remaining -= 1;
-      // Ignore results from a probe that has since been superseded.
-      if (remaining > 0 || token !== probeTokenRef.current) {
-        return;
-      }
-      matches.sort((a, b) => a.name.localeCompare(b.name));
-      setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
-    };
+    // A failed probe is treated as "no match" for that region.
+    const probeResults = await Promise.allSettled(
+      otherCells.map(async probedCell => {
+        const data = await api.requestPromise(cellEndpoint(probedCell), {
+          method,
+          host: probedCell.locality_url,
+          data: probeParams,
+        });
+        const rows = rowsFromData?.(data, probedCell) ?? data;
+        return Array.isArray(rows) && rows.length > 0 ? probedCell : null;
+      })
+    );
 
-    otherCells.forEach(probedCell => {
-      api.request(cellEndpoint(probedCell), {
-        method,
-        host: probedCell.locality_url,
-        data: probeParams,
-        success: data => {
-          const rows = rowsFromData?.(data, probedCell) ?? data;
-          if (Array.isArray(rows) && rows.length > 0) {
-            matches.push(probedCell);
-          }
-          finalize();
-        },
-        error: () => finalize(),
-      });
-    });
+    // Ignore results from a probe that has since been superseded.
+    if (token !== probeTokenRef.current) {
+      return;
+    }
+
+    const matches = probeResults
+      .map(result => (result.status === 'fulfilled' ? result.value : null))
+      .filter((matchedCell): matchedCell is Cell => matchedCell !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
   };
 
   // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
@@ -1017,11 +1013,20 @@ export function ResultGrid({
     const activeCell = cell;
     const token = fetchTokenRef.current;
 
-    const activeRequest = api.request(cellEndpoint(activeCell), {
-      method,
-      host: activeCell ? activeCell.locality_url : undefined,
-      data: queryParams,
-      success: (data, _, resp) => {
+    const fetchActiveCell = async () => {
+      try {
+        const [data, , resp] = await api.requestPromise(cellEndpoint(activeCell), {
+          method,
+          host: activeCell ? activeCell.locality_url : undefined,
+          data: queryParams,
+          includeAllArgs: true,
+        });
+
+        // A newer fetch superseded this one while it was in flight.
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
+
         const rows = rowsFromData?.(data, activeCell) ?? data;
         const rowsArray = Array.isArray(rows) ? rows : [];
 
@@ -1066,25 +1071,21 @@ export function ResultGrid({
         // when the active region has results or no search is active. This flags
         // that the same subject (e.g. a user) also has records elsewhere.
         if (missingExactMatch || probeAllRegions) {
-          probeOtherRegions({...queryParams, query}, activeCell);
+          void probeOtherRegions({...queryParams, query}, activeCell);
         }
-      },
-      error: res => {
+      } catch (err) {
+        // requestPromise rejects on error responses and on failed fetches (a
+        // blocked request, a network failure). Requests aborted by api.clear()
+        // never settle, and a superseded fetch is ignored via the token.
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
         setResults(prev => ({...prev, loading: false, error: true}));
-        onError?.(res);
-      },
-    });
-
-    // The API client swallows a rejection of the fetch itself (a blocked
-    // request, a network failure) without running either callback, which would
-    // leave the grid stuck on its loading state. Surface it as an error here.
-    // An abort from api.clear() also lands here, but the fetch token was
-    // already bumped by then, so a superseded request is ignored.
-    activeRequest?.requestPromise?.catch(() => {
-      if (token === fetchTokenRef.current) {
-        setResults(prev => ({...prev, loading: false, error: true}));
+        onError?.(err);
       }
-    });
+    };
+
+    void fetchActiveCell();
   });
 
   // A fetch is driven by the URL when `useQueryString` is on, and by the local

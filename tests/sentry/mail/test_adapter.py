@@ -202,7 +202,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule: Rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -264,7 +264,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -286,7 +286,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule", environment_id=environment.id)
         ProjectOwnership.objects.create(project_id=self.project.id)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -313,7 +313,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
@@ -330,7 +330,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.snooze_rule(owner_id=self.user.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
@@ -348,7 +348,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.snooze_rule(user_id=user2.id, owner_id=user2.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -372,7 +372,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.snooze_rule(owner_id=user2.id, rule=rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
@@ -412,7 +412,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -468,7 +468,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -488,7 +488,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -568,7 +568,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(project=self.project)
         with self.tasks():
             AlertRuleNotification(
-                Notification(event=event, rules=[rule]),
+                Notification(event=event, rules=[NotificationOrigin.from_legacy_rule(rule)]),
                 ActionTargetType.ISSUE_OWNERS,
                 fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
             ).send()
@@ -1358,7 +1358,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -1638,6 +1638,24 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         futures = [RuleFuture(NotificationActionContext.from_legacy_rule(rule), {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.backend.add.call_count == 1
+
+    @mock.patch("sentry.mail.adapter.digests")
+    @mock.patch("sentry.mail.adapter.logger")
+    def test_digest_skips_rule_without_workflow_id(
+        self, mock_logger: MagicMock, digests: MagicMock
+    ) -> None:
+        digests.backend.enabled.return_value = True
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = self.create_project_rule(project=self.project, include_workflow_id=False)
+        future = RuleFuture(NotificationActionContext.from_legacy_rule(rule), {})
+
+        self.adapter.rule_notify(event, [future], ActionTargetType.ISSUE_OWNERS)
+
+        digests.backend.add.assert_not_called()
+        mock_logger.warning.assert_called_once_with(
+            "mail.adapter.notification.missing_workflow_id",
+            extra={"rule_id": rule.id, "project_id": self.project.id},
+        )
 
     def test_notify_includes_uuid(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
