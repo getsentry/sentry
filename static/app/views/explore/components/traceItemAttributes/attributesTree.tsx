@@ -1,8 +1,8 @@
-import {Fragment, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
+import {IconPin} from '@sentry/icons/pin';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
@@ -11,20 +11,18 @@ import {
   KeyValueTreeRowActions,
   visitExternalLinkAction,
 } from 'sentry/components/keyValueTree/keyValueTreeRowActions';
-import {TreeColumn as KeyValueTreeColumn} from 'sentry/components/keyValueTree/styles';
 import {
   buildKeyValueTree,
   getKeyValueTreeColumns,
   type KeyValueTreeContent,
   type KeyValueTreeRowConfig,
 } from 'sentry/components/keyValueTree/utils';
-import {IconPin} from 'sentry/icons';
+import {KeyValueColumns} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {GetFieldDefinitionType} from 'sentry/utils/fields';
-import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -82,12 +80,6 @@ interface AttributesTreeProps<
   pinnedAttribute?: string | null;
 }
 
-interface AttributesTreeColumnsProps<
-  RendererExtra extends RenderFunctionBaggage,
-> extends AttributesTreeProps<RendererExtra> {
-  columnCount: number;
-}
-
 interface AttributesTreeRowConfig extends KeyValueTreeRowConfig {
   /**
    * When provided, hovering an attribute key describes the attribute, reading
@@ -109,11 +101,7 @@ interface AttributesTreeRowProps<
   spacerCount?: number;
 }
 
-/**
- * Component to render proportional columns for attributes. The columns will not separate
- * branch attributes from their roots, and attempt to be as evenly distributed as possible.
- */
-function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
+export function AttributesTree<RendererExtra extends RenderFunctionBaggage>({
   attributes,
   columnCount,
   renderers = {},
@@ -122,70 +110,52 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   getCustomActions,
   getAdjustedAttributeKey,
   pinnedAttribute,
-}: AttributesTreeColumnsProps<RendererExtra>) {
-  const assembledColumns = useMemo(() => {
-    if (!attributes) {
-      return [];
-    }
+}: AttributesTreeProps<RendererExtra>) {
+  const attributesTree = useMemo(
+    () =>
+      buildKeyValueTree(
+        attributes.flatMap(attribute => {
+          const shaped = getAttribute(attribute, getAdjustedAttributeKey);
+          return shaped
+            ? [
+                {
+                  key: shaped.attribute_key,
+                  value: shaped.attribute_value,
+                  original: shaped,
+                },
+              ]
+            : [];
+        })
+      ),
+    [attributes, getAdjustedAttributeKey]
+  );
 
-    const attributesTree = buildKeyValueTree(
-      attributes.flatMap(attribute => {
-        const shaped = getAttribute(attribute, getAdjustedAttributeKey);
-        return shaped
-          ? [{key: shaped.attribute_key, value: shaped.attribute_value, original: shaped}]
-          : [];
-      })
-    );
-
-    return getKeyValueTreeColumns(attributesTree, columnCount).map((rows, index) => (
-      <TreeColumn key={index} data-test-id="attribute-tree-column">
-        {rows.map(row => (
-          <AttributesTreeRow
-            key={row.uniqueKey}
-            attributeKey={row.treeKey}
-            content={row.content}
-            spacerCount={row.spacerCount}
-            hasStem={row.hasStem}
-            data-test-id="attribute-tree-row"
-            renderers={renderers}
-            rendererExtra={renderExtra}
-            config={config}
-            getCustomActions={getCustomActions}
-            pinnedAttribute={pinnedAttribute}
-          />
-        ))}
-      </TreeColumn>
-    ));
-  }, [
-    attributes,
-    columnCount,
-    renderers,
-    renderExtra,
-    config,
-    getCustomActions,
-    getAdjustedAttributeKey,
-    pinnedAttribute,
-  ]);
-
-  return <Fragment>{assembledColumns}</Fragment>;
-}
-
-export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
-  props: AttributesTreeProps<RendererExtra>
-) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widthBasedColumnCount = useContainerColumnCount(containerRef);
-  const columnCount = props.columnCount ?? widthBasedColumnCount;
   return (
-    <Grid
-      align="start"
-      columns={`repeat(${columnCount}, 1fr)`}
-      whiteSpace="normal"
-      ref={containerRef}
+    <KeyValueColumns
+      columnCount={columnCount}
+      columnTestId="attribute-tree-column"
       data-test-id="fields-tree"
     >
-      <AttributesTreeColumns {...props} columnCount={columnCount} />
-    </Grid>
+      {resolvedColumnCount =>
+        getKeyValueTreeColumns(attributesTree, resolvedColumnCount).map(rows =>
+          rows.map(row => (
+            <AttributesTreeRow
+              key={row.uniqueKey}
+              attributeKey={row.treeKey}
+              content={row.content}
+              spacerCount={row.spacerCount}
+              hasStem={row.hasStem}
+              data-test-id="attribute-tree-row"
+              renderers={renderers}
+              rendererExtra={renderExtra}
+              config={config}
+              getCustomActions={getCustomActions}
+              pinnedAttribute={pinnedAttribute}
+            />
+          ))
+        )
+      }
+    </KeyValueColumns>
   );
 }
 
@@ -323,7 +293,3 @@ function getAttribute(
     type: attribute.type,
   };
 }
-
-const TreeColumn = styled(KeyValueTreeColumn)`
-  grid-template-columns: minmax(min-content, max-content) auto;
-`;

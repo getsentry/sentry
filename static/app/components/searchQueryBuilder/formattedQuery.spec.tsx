@@ -20,6 +20,7 @@ let mockAllowRegexOperators = false;
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
   useSearchQueryBuilderConfig: () => ({
     allowRegexOperators: mockAllowRegexOperators,
+    filterKeys: {},
     getFieldDefinition: () => null,
   }),
   useSearchQueryBuilderLayout: () => ({

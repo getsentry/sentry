@@ -15,6 +15,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -197,9 +198,17 @@ describe('Onboarding', () => {
           }
         );
 
+        renderGlobalModal();
         await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}), {
           delay: null,
         });
+        const dialog = within(screen.getByRole('dialog'));
+        await userEvent.click(
+          dialog.getByRole('button', {
+            name: "I'll read the docs myself",
+          }),
+          {delay: null}
+        );
 
         expect(trackAnalytics).toHaveBeenCalledWith(
           'onboarding.scm_header_skip_clicked',
@@ -807,6 +816,7 @@ describe('Onboarding', () => {
 
       const buttons = screen.getAllByRole('button', {name: 'Skip setup'});
       expect(buttons).toHaveLength(1);
+      renderGlobalModal();
       await userEvent.click(buttons[0]!);
 
       expect(trackAnalytics).toHaveBeenCalledWith(
@@ -972,9 +982,22 @@ describe('Onboarding', () => {
       // Render the provider bare, like production does, so it hydrates from
       // sessionStorage. Seeding `initialContext` instead makes a session clear
       // restore that value rather than empty the context.
-      renderTreatmentOnboarding('scm-messaging');
+      const {router} = renderTreatmentOnboarding('scm-messaging');
 
+      renderGlobalModal();
       await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}));
+
+      expect(sessionStorage.getItem('onboarding')).not.toBeNull();
+      await userEvent.keyboard('{Escape}');
+      expect(router.location.pathname).toBe('/onboarding/org-slug/scm-messaging/');
+      expect(sessionStorage.getItem('onboarding')).not.toBeNull();
+      await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}));
+      const dialog = within(screen.getByRole('dialog'));
+      await userEvent.click(
+        dialog.getByRole('button', {
+          name: "I'll read the docs myself",
+        })
+      );
 
       expect(createRequest).not.toHaveBeenCalled();
       expect(sessionStorage.getItem('onboarding')).toBeNull();
@@ -1008,7 +1031,14 @@ describe('Onboarding', () => {
 
           const {router} = renderOnboarding(step);
 
+          renderGlobalModal();
           await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}));
+          const dialog = within(screen.getByRole('dialog'));
+          await userEvent.click(
+            dialog.getByRole('button', {
+              name: "I'll read the docs myself",
+            })
+          );
 
           await waitFor(() => {
             expect(router.location.pathname).toBe(
@@ -1027,7 +1057,14 @@ describe('Onboarding', () => {
 
         const {router} = renderTreatmentOnboarding('scm-messaging');
 
+        renderGlobalModal();
         await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}));
+        const dialog = within(screen.getByRole('dialog'));
+        await userEvent.click(
+          dialog.getByRole('button', {
+            name: "I'll read the docs myself",
+          })
+        );
 
         await waitFor(() => {
           expect(router.location.pathname).toBe(
@@ -1078,7 +1115,14 @@ describe('Onboarding', () => {
 
         const {router} = renderOnboarding('setup-docs');
 
+        renderGlobalModal();
         await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}));
+        const dialog = within(screen.getByRole('dialog'));
+        await userEvent.click(
+          dialog.getByRole('button', {
+            name: "I'll read the docs myself",
+          })
+        );
 
         await waitFor(() => {
           expect(router.location.pathname).toBe(

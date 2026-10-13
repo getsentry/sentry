@@ -55,7 +55,7 @@ export type PromoCode = {
   newOnly: boolean;
   numClaims: number;
   status: 'active' | 'inactive' | 'expired';
-  trialDays: number;
+  trialDays: number | null;
   userEmail: string | null;
   userId: number;
 };

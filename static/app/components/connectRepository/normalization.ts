@@ -11,10 +11,13 @@ export const sanitizeBranch = (value: string) =>
 export const resolveBranch = (branch: string, fallback: string = DEFAULT_BRANCH) =>
   sanitizeBranch(branch).replace(/[./]+$/, '') || fallback;
 
-// Only guarantees a trailing slash. Repeated slashes are left intact because
-// stack prefixes legitimately contain URI schemes like app:/// and webpack:///.
-export const normalizeRoot = (root: string) =>
-  root === '' || root.endsWith('/') ? root : `${root}/`;
+// Mirrors the backend rule: Windows-only roots (no /) get \, everything else gets /.
+export const normalizeRoot = (root: string): string => {
+  if (root === '' || root.endsWith('/') || root.endsWith('\\')) {
+    return root;
+  }
+  return root.includes('\\') && !root.includes('/') ? `${root}\\` : `${root}/`;
+};
 
 export function normalizePathMapping(
   value: PathMappingValue,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.seer.agent.on_completion_hook import OnCompletionHookDefinition
 from sentry.seer.autofix.steps import AutofixStep
@@ -54,6 +54,18 @@ class CodeChangesStepArgs(BaseModel):
     should_run_repo_checks: bool = False
 
 
+class PrIterationStepArgs(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    iteration_index: int
+    iteration_id: int | None = None
+    feedback: str | None = None
+    commit_author: str | None = None
+    # Seer could read these from its own run state; passed in to avoid a new run_state reader.
+    pr_urls: dict[str, str] = Field(default_factory=dict)
+
+
 class AutofixFeaturePayload(BaseModel):
     class Config:
         extra = "ignore"
@@ -67,7 +79,7 @@ class AutofixFeaturePayload(BaseModel):
     culprit: str
     on_completion_hook: OnCompletionHookDefinition
     step: AutofixStep
-    step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs
+    step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs | PrIterationStepArgs
     existing_run_id: int | None = None
     insert_index: int | None = None
     # Not to be confused with user_org_context, this is free-form context added by the user.

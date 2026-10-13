@@ -6,6 +6,7 @@ from sentry.ai_monitoring.utils import timestamp_to_float
 
 class AIConversationAggregates(TypedDict):
     endTimestamp: int
+    errors: int
     generationDuration: float
     inputTokens: int
     llmCalls: int
@@ -20,6 +21,7 @@ class AIConversationAggregates(TypedDict):
 
 CONVERSATION_AGGREGATE_DEFINITIONS = {
     "endTimestamp": ("max(timestamp)", "end_timestamp"),
+    "errors": ("failure_count()", "errors"),
     "generationDuration": (
         "sum_if(span.duration,gen_ai.operation.type,equals,ai_client)",
         "generation_duration",
@@ -58,6 +60,7 @@ CONVERSATION_AGGREGATE_COLUMNS = [
 def parse_conversation_aggregates(row: Mapping[str, Any]) -> AIConversationAggregates:
     return {
         "endTimestamp": int(timestamp_to_float(row.get("end_timestamp")) * 1000),
+        "errors": int(row.get("errors") or 0),
         "generationDuration": float(row.get("generation_duration") or 0),
         "inputTokens": int(row.get("input_tokens") or 0),
         "llmCalls": int(row.get("llm_calls") or 0),

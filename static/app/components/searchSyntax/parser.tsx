@@ -680,6 +680,10 @@ export class TokenConverter {
     key: ReturnType<TokenConverter['tokenKeySimple']>
   ) => ({
     ...this.defaultTokenFields,
+    // The `[*]` membership operator is consumed by the array-includes rule around
+    // this token, so derive `text` from the key instead of the raw match to keep
+    // the tag identity operator-free (`tags[name,array]`).
+    text: `${prefix}[${key.text},array]`,
     type: Token.KEY_EXPLICIT_ARRAY_TAG as const,
     prefix,
     key,

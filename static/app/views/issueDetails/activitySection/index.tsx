@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
@@ -7,7 +9,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconChat, IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';

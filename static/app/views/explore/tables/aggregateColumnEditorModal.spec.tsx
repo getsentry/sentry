@@ -1,5 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -12,7 +10,6 @@ import {
 
 import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -424,20 +421,14 @@ describe('AggregateColumnEditorModal', () => {
   describe('conditional aggregates', () => {
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
 
-    const organizationWithConditionalAggregates = OrganizationFixture({
-      features: ['explore-conditional-aggregates'],
-    });
-
     function renderModal({
       columns,
       onColumnsChange = jest.fn(),
-      organization,
     }: {
       columns: AggregateField[];
       onColumnsChange?: (columns: WritableAggregateField[]) => void;
-      organization?: Organization;
     }) {
-      renderGlobalModal({organization});
+      renderGlobalModal();
 
       act(() => {
         openModal(
@@ -456,15 +447,6 @@ describe('AggregateColumnEditorModal', () => {
       });
     }
 
-    it('hides the series filter without the feature', async () => {
-      renderModal({columns: [new VisualizeFunction('count(span.duration)')]});
-
-      expect(await screen.findByTestId('editor-visualize-function')).toBeInTheDocument();
-      expect(
-        screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
-      ).not.toBeInTheDocument();
-    });
-
     it('turns a series filter into an _if aggregate', async () => {
       const onColumnsChange = jest.fn();
 
@@ -474,7 +456,6 @@ describe('AggregateColumnEditorModal', () => {
           new VisualizeFunction('count(span.duration)'),
         ],
         onColumnsChange,
-        organization: organizationWithConditionalAggregates,
       });
 
       const filterInput = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
@@ -492,7 +473,6 @@ describe('AggregateColumnEditorModal', () => {
     it('renders an existing _if aggregate as its base aggregate and filter', async () => {
       renderModal({
         columns: [new VisualizeFunction('avg_if(`span.op:db`,span.duration)')],
-        organization: organizationWithConditionalAggregates,
       });
 
       const row = await screen.findByTestId('editor-row');
@@ -512,7 +492,6 @@ describe('AggregateColumnEditorModal', () => {
       renderModal({
         columns: [new VisualizeFunction('avg_if(`span.op:db`,span.duration)')],
         onColumnsChange,
-        organization: organizationWithConditionalAggregates,
       });
 
       const argument = await screen.findByTestId('editor-visualize-argument');
@@ -531,7 +510,6 @@ describe('AggregateColumnEditorModal', () => {
       renderModal({
         columns: [new VisualizeFunction('avg_if(`span.op:db`,span.duration)')],
         onColumnsChange,
-        organization: organizationWithConditionalAggregates,
       });
 
       const func = await screen.findByTestId('editor-visualize-function');
@@ -548,21 +526,9 @@ describe('AggregateColumnEditorModal', () => {
       expect(onColumnsChange).toHaveBeenCalledWith([{yAxes: ['epm()']}]);
     });
 
-    it('does not offer EAP-only _if aggregates in equations without the feature', async () => {
-      renderModal({columns: [new VisualizeEquation('equation|')]});
-
-      const input = await screen.findByRole('combobox', {name: 'Add a term'});
-      await userEvent.click(input);
-      // Discover already ships avg_if/count_if; sum_if is EAP-only behind the flag.
-      await userEvent.type(input, 'sum_if');
-
-      expect(screen.queryByRole('option', {name: 'sum_if'})).not.toBeInTheDocument();
-    });
-
-    it('offers EAP _if aggregates in equations with the feature', async () => {
+    it('offers EAP _if aggregates in equations', async () => {
       renderModal({
         columns: [new VisualizeEquation('equation|')],
-        organization: organizationWithConditionalAggregates,
       });
 
       const input = await screen.findByRole('combobox', {name: 'Add a term'});

@@ -252,7 +252,7 @@ function SortableMetricPanelSection({
                 setTraceMetric={metricQuery.setTraceMetric}
                 removeMetric={metricQuery.removeMetric}
               >
-                <AiQueryProvider>
+                <AiQueryProvider strategy="Metrics">
                   <SortableMetricPanel
                     referencedMetricLabels={referencedMetricLabels}
                     onEquationLabelsChange={onEquationLabelsChange}

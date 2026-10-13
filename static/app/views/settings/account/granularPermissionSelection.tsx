@@ -5,14 +5,21 @@ import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {
-  GRANULAR_SENTRY_APP_PERMISSIONS,
-  type GranularPermissionLevel,
-} from 'sentry/constants';
+import {GRANULAR_SENTRY_APP_PERMISSIONS, GranularPermissionLevel} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {capitalize} from 'sentry/utils/string/capitalize';
 
 const NO_ACCESS = 'no-access';
+
+const LEVEL_LABELS: Record<GranularPermissionLevel, string> = {
+  [GranularPermissionLevel.READ]: t('Read'),
+  [GranularPermissionLevel.CREATE]: t('Create'),
+  [GranularPermissionLevel.WRITE]: t('Write'),
+  [GranularPermissionLevel.DELETE]: t('Delete'),
+  [GranularPermissionLevel.ADMIN]: t('Admin'),
+  [GranularPermissionLevel.RELEASES]: t('Releases'),
+  [GranularPermissionLevel.INVITE]: t('Invite'),
+  [GranularPermissionLevel.BILLING]: t('Billing'),
+};
 
 /**
  * Selected level per row, keyed by row label. A missing row has no access.
@@ -57,7 +64,7 @@ export function GranularPermissionSelection({permissions, onChange}: Props) {
             value={permissions[label] ?? NO_ACCESS}
             options={[
               {value: NO_ACCESS, label: t('No Access')},
-              ...levels.map(level => ({value: level, label: capitalize(level)})),
+              ...levels.map(level => ({value: level, label: LEVEL_LABELS[level]})),
             ]}
             onChange={({value}: {value: GranularPermissionLevel | typeof NO_ACCESS}) =>
               onChange({...permissions, [label]: value === NO_ACCESS ? undefined : value})

@@ -159,8 +159,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   // Ordered by how often people need them, most important first.
   {
     resource: 'issue',
-    label: 'Issues',
-    help: 'Issues and their workflow statuses',
+    label: t('Issues'),
+    help: t('Issues and their workflow statuses'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -170,8 +170,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'monitors',
-    label: 'Monitors',
-    help: 'Monitors and the alerts they trigger',
+    label: t('Monitors'),
+    help: t('Monitors and the alerts they trigger'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -180,8 +180,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'dashboard',
-    label: 'Dashboards',
-    help: 'Dashboards and their widgets',
+    label: t('Dashboards'),
+    help: t('Dashboards and their widgets'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.CREATE,
@@ -192,8 +192,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'event',
-    label: 'Events',
-    help: 'Events sent to your projects',
+    label: t('Events'),
+    help: t('Events sent to your projects'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -202,8 +202,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'project_v2',
-    label: 'Projects',
-    help: 'Projects, tags, debug files, and feedback',
+    label: t('Projects'),
+    help: t('Projects, tags, debug files, and feedback'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.CREATE,
@@ -214,14 +214,14 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   // Not a level above admin, so it gets its own row.
   {
     resource: 'project_v2',
-    label: 'Project Releases',
-    help: 'Releases, commits, and related files within projects',
+    label: t('Project Releases'),
+    help: t('Releases, commits, and related files within projects'),
     levels: [GranularPermissionLevel.RELEASES],
   },
   {
     resource: 'team_v2',
-    label: 'Teams',
-    help: 'Teams and team membership',
+    label: t('Teams'),
+    help: t('Teams and team membership'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -231,8 +231,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'member',
-    label: 'Members',
-    help: 'Organization members and their roles',
+    label: t('Members'),
+    help: t('Organization members and their roles'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -242,14 +242,14 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   // Not a level above admin, so it gets its own row.
   {
     resource: 'member',
-    label: 'Member Invites',
-    help: 'Invite new members to the organization',
+    label: t('Member Invites'),
+    help: t('Invite new members to the organization'),
     levels: [GranularPermissionLevel.INVITE],
   },
   {
     resource: 'org_v2',
-    label: 'Organization',
-    help: 'Organization details and settings',
+    label: t('Organization'),
+    help: t('Organization details and settings'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -259,14 +259,14 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   // Not a level above admin, so it gets its own row.
   {
     resource: 'org_v2',
-    label: 'Billing',
-    help: 'Subscription, usage, and billing details',
+    label: t('Billing'),
+    help: t('Subscription, usage, and billing details'),
     levels: [GranularPermissionLevel.BILLING],
   },
   {
     resource: 'issueview',
-    label: 'Issue Views',
-    help: 'Saved views of the issue stream',
+    label: t('Issue Views'),
+    help: t('Saved views of the issue stream'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -276,8 +276,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'savedquery',
-    label: 'Saved Queries',
-    help: 'Saved Discover and Explore queries',
+    label: t('Saved Queries'),
+    help: t('Saved Discover and Explore queries'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -287,8 +287,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'telemetry',
-    label: 'Telemetry',
-    help: 'Telemetry data such as spans, logs, and metrics',
+    label: t('Telemetry'),
+    help: t('Telemetry data such as spans, logs, and metrics'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -297,15 +297,15 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'user_preferences',
-    label: 'User Preferences',
-    help: 'Your personal settings and preferences',
+    label: t('User Preferences'),
+    help: t('Your personal settings and preferences'),
     levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
   },
   // CI and integrations
   {
     resource: 'releases',
-    label: 'Releases',
-    help: 'Create and manage releases, typically from CI',
+    label: t('Releases'),
+    help: t('Read, update, and delete releases, typically from CI'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -314,8 +314,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'source_maps',
-    label: 'Source Maps',
-    help: 'Upload and manage source maps',
+    label: t('Source Maps'),
+    help: t('Upload and manage source maps'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -324,8 +324,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'repositories',
-    label: 'Repositories',
-    help: 'Connected code repositories',
+    label: t('Repositories'),
+    help: t('Connected code repositories'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,
@@ -334,8 +334,8 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   },
   {
     resource: 'integration',
-    label: 'Integrations',
-    help: 'Installed integrations and their configuration',
+    label: t('Integrations'),
+    help: t('Installed integrations and their configuration'),
     levels: [
       GranularPermissionLevel.READ,
       GranularPermissionLevel.WRITE,

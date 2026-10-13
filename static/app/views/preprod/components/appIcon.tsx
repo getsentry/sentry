@@ -7,9 +7,10 @@ interface AppIconProps {
   appName: string;
   appIconId?: string | null;
   projectId?: string | null;
+  size?: number;
 }
 
-export function AppIcon({appName, appIconId, projectId}: AppIconProps) {
+export function AppIcon({appName, appIconId, projectId, size = 24}: AppIconProps) {
   const organization = useOrganization();
   const [imageError, setImageError] = useState(false);
 
@@ -24,13 +25,15 @@ export function AppIcon({appName, appIconId, projectId}: AppIconProps) {
         <AppIconImg
           src={iconUrl}
           alt="App Icon"
-          width={24}
-          height={24}
+          width={size}
+          height={size}
           onError={() => setImageError(true)}
         />
       )}
       {(!iconUrl || imageError) && (
-        <AppIconPlaceholder>{appName.charAt(0)}</AppIconPlaceholder>
+        <AppIconPlaceholder style={{width: size, height: size}}>
+          {appName.charAt(0)}
+        </AppIconPlaceholder>
       )}
     </Fragment>
   );

@@ -1,5 +1,6 @@
 import {type ComponentType, Fragment, type ReactNode, useId} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -8,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 
