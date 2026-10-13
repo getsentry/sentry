@@ -1,29 +1,38 @@
 import logging
+from typing import Any
 
 import sentry_sdk
 
 from sentry import features, options
-from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
+from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT, METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import NotificationContext
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_detector_serializer,
 )
-from sentry.notifications.notification_action.utils import metric_alert_notification_data_factory
+from sentry.notifications.notification_action.utils import (
+    issue_notification_data_factory,
+    metric_alert_notification_data_factory,
+)
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.target import IntegrationNotificationTarget
-from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.threading import ThreadingOptions, ThreadKey
 from sentry.notifications.platform.types import (
     SHADOW_PROVIDERS,
+    NotificationData,
     NotificationProviderKey,
     NotificationSource,
     NotificationTargetResourceType,
 )
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
+from sentry.notifications.utils.open_period import open_period_start_for_group
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
@@ -60,13 +69,12 @@ def get_platform_provider(
     return provider
 
 
-def send_metric_alert(context: IssueNotificationContext, provider: NotificationProviderKey) -> None:
-    organization = context.organization
-    notification_context = context.notification_context
-    metric_issue_context = context.metric_issue_context
-    open_period_context = context.open_period_context
-
-    # Match the legacy send: skip actions whose channel or integration is gone, rather than
+def _build_target(
+    provider: NotificationProviderKey,
+    organization: Organization,
+    notification_context: NotificationContext,
+) -> IntegrationNotificationTarget | None:
+    # Match the legacy sends: skip actions whose channel or integration is gone, rather than
     # raising and retrying on every alert.
     if (
         notification_context.integration_id is None
@@ -81,7 +89,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
                 "provider": str(provider),
             },
         )
-        return
+        return None
     integration_context = integration_service.organization_context(
         organization_id=organization.id, integration_id=notification_context.integration_id
     )
@@ -103,15 +111,58 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
                 "integration_status": integration_status,
             },
         )
-        return
+        return None
 
-    target = IntegrationNotificationTarget(
+    return IntegrationNotificationTarget(
         provider_key=provider,
         resource_type=NotificationTargetResourceType.CHANNEL,
         resource_id=notification_context.target_identifier,
         integration_id=notification_context.integration_id,
         organization_id=organization.id,
     )
+
+
+def _should_thread(
+    provider: NotificationProviderKey, organization: Organization, key: str, default: bool
+) -> bool:
+    # for notifications that have threads (just slack)
+    return provider in (
+        NotificationProviderKey.SLACK,
+        NotificationProviderKey.SLACK_STAGING,
+    ) and OrganizationOption.objects.get_value(organization=organization, key=key, default=default)
+
+
+def _send(
+    data: NotificationData,
+    target: IntegrationNotificationTarget,
+    threading_options: ThreadingOptions | None,
+    action_id: int,
+    group_id: int,
+) -> None:
+    errors = NotificationService(data=data).notify_sync(
+        targets=[target], threading_options=threading_options
+    )
+    for failure in errors.get(target.provider_key, []):
+        logger.warning(
+            "notification_action.platform_dispatch.send_failed",
+            extra={
+                "action_id": action_id,
+                "group_id": group_id,
+                "provider": target.provider_key,
+                "status": failure.status.value,
+            },
+        )
+
+
+def send_metric_alert(context: IssueNotificationContext, provider: NotificationProviderKey) -> None:
+    organization = context.organization
+    notification_context = context.notification_context
+    metric_issue_context = context.metric_issue_context
+    open_period_context = context.open_period_context
+
+    target = _build_target(provider, organization, notification_context)
+    if target is None:
+        return
 
     # for notifications that include a chart
     chart_url = None
@@ -141,15 +192,9 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
         chart_url=chart_url,
     )
 
-    # for notifications that have threads (just slack)
     threading_options = None
-    if provider in (
-        NotificationProviderKey.SLACK,
-        NotificationProviderKey.SLACK_STAGING,
-    ) and OrganizationOption.objects.get_value(
-        organization=organization,
-        key="sentry:metric_alerts_thread_flag",
-        default=METRIC_ALERTS_THREAD_DEFAULT,
+    if _should_thread(
+        provider, organization, "sentry:metric_alerts_thread_flag", METRIC_ALERTS_THREAD_DEFAULT
     ):
         threading_options = ThreadingOptions(
             thread_key=ThreadKey(
@@ -163,16 +208,40 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
             reply_broadcast=(metric_issue_context.new_status == IncidentStatus.CRITICAL),
         )
 
-    errors = NotificationService[MetricAlertNotificationData](data=data).notify_sync(
-        targets=[target], threading_options=threading_options
+    _send(data, target, threading_options, notification_context.id, metric_issue_context.id)
+
+
+def send_issue_alert(invocation: ActionInvocation, provider: NotificationProviderKey) -> None:
+    group = invocation.event_data.group
+    organization = group.project.organization
+
+    target = _build_target(
+        provider, organization, NotificationContext.from_action_model(invocation.action)
     )
-    for failure in errors.get(provider, []):
-        logger.warning(
-            "notification_action.platform_dispatch.send_failed",
-            extra={
-                "action_id": notification_context.id,
-                "group_id": metric_issue_context.id,
-                "provider": provider,
-                "status": failure.status.value,
-            },
+    if target is None:
+        return
+
+    # Same thread as the legacy send: one per action and issue, plus the open period for uptime
+    # and metric issues.
+    threading_options = None
+    if _should_thread(
+        provider, organization, "sentry:issue_alerts_thread_flag", ISSUE_ALERTS_THREAD_DEFAULT
+    ):
+        key_data: dict[str, Any] = {"action_id": invocation.action.id, "group_id": group.id}
+        if group.issue_type.type_id in (UptimeDomainCheckFailure.type_id, MetricIssue.type_id):
+            open_period_start = open_period_start_for_group(group)
+            key_data["open_period_start"] = (
+                open_period_start.isoformat() if open_period_start else None
+            )
+        threading_options = ThreadingOptions(
+            thread_key=ThreadKey(key_type=NotificationSource.ISSUE, key_data=key_data),
+            reply_broadcast=True,
         )
+
+    _send(
+        issue_notification_data_factory(invocation),
+        target,
+        threading_options,
+        invocation.action.id,
+        group.id,
+    )

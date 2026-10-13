@@ -23,7 +23,9 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
     MetricAlertHandlerBase,
 )
 
+
 PLATFORM_DISPATCH_PATH = "sentry.notifications.notification_action.platform_dispatch"
+SLACK_ISSUE_LEGACY_CLIENT = "sentry.integrations.slack.actions.notification.SlackSdkClient"
 SLACK_HANDLER_PATH = "sentry.notifications.notification_action.metric_alert_registry.handlers.slack_metric_alert_handler"
 
 
