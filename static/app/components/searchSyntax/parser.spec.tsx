@@ -250,11 +250,9 @@ describe('searchSyntax/parser', () => {
       'tags[foo:bar]:baz browser.name-1:"Fire \\"fox\\"" device.family: count_if(user.email,equals,"I, got \\"quotes\\""):>100 firstSeen:+7d'
     );
 
-    expect(result).not.toBeNull();
-    const filters =
-      result?.filter(
-        (token): token is TokenResult<Token.FILTER> => token.type === Token.FILTER
-      ) ?? [];
+    const filters = result!.filter(
+      (token): token is TokenResult<Token.FILTER> => token.type === Token.FILTER
+    );
     expect(filters).toHaveLength(5);
 
     expect(filters[0]).toMatchObject({
