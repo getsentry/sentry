@@ -14,12 +14,17 @@ import {
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {
+  getAgentRunsFilter,
+  getAiClientSpansFilter,
+  getToolSpansFilter,
+} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const AGENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:agent`;
-const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
-const AGENT_AND_AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:[agent, ai_client]`;
-const TOOL_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:tool`;
+const AGENT_FILTER = getAgentRunsFilter();
+const AI_CLIENT_FILTER = getAiClientSpansFilter();
+const AGENT_AND_AI_CLIENT_FILTER = `(${getAgentRunsFilter()} OR ${getAiClientSpansFilter()})`;
+const TOOL_FILTER = getToolSpansFilter();
 
 const DEFAULT_GLOBAL_FILTERS = [
   {

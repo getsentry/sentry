@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {useInfiniteQuery, useQuery, useQueryClient} from '@tanstack/react-query';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
@@ -26,7 +27,6 @@ import {orgCodeMappingsInfiniteOptions} from 'sentry/components/connectRepositor
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   Integration,
