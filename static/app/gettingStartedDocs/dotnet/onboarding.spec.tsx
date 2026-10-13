@@ -65,7 +65,10 @@ describe('dotnet onboarding docs', () => {
     });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/options.EnableLogs/))
+      await screen.findByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
+    ).not.toBeInTheDocument();
   });
 });

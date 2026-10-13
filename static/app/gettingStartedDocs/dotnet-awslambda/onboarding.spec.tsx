@@ -48,5 +48,11 @@ describe('awslambda onboarding docs', () => {
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Logger\.Log/))
+    ).not.toBeInTheDocument();
   });
 });

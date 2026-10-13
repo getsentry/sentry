@@ -31,6 +31,31 @@ SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
   ],
 });
 
+export const loggerLogsVerify = (
+  params: DocsParams,
+  logger = 'logger'
+): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isLogsSelected,
+  content: [
+    {
+      type: 'text',
+      text: tct(
+        'Send a test log through [code:ILogger] from your app, then refresh this page to verify it arrived in Sentry.',
+        {
+          code: <code />,
+        }
+      ),
+    },
+    {
+      type: 'code',
+      language: 'csharp',
+      code: `${logger}.LogInformation("A simple log message");
+${logger}.LogError("A {Parameter} log message", "formatted");`,
+    },
+  ],
+});
+
 export const logs: OnboardingConfig = {
   install: params => [
     {
@@ -70,7 +95,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'To enable logging, you need to initialize the SDK with the [code:EnableLogs] option set to [code:true].',
+            'Logs are enabled by default, so initializing the SDK is all you need to send logs with [code:SentrySdk.Logger]:',
             {
               code: <code />,
             }
@@ -82,9 +107,16 @@ export const logs: OnboardingConfig = {
           code: `SentrySdk.Init(options =>
 {
     options.Dsn = "${params.dsn.public}";
-    // Enable logs to be sent to Sentry
-    options.EnableLogs = true;
 });`,
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If you use [code:Sentry.AspNetCore] or [code:Sentry.Maui], also set [code:EnableLogs] to [code:true] in the [code:UseSentry] options to forward [code:ILogger] output to Sentry Logs.',
+            {
+              code: <code />,
+            }
+          ),
         },
         {
           type: 'text',

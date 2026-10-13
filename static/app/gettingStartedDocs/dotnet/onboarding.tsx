@@ -80,12 +80,6 @@ SentrySdk.Init(options =>
     ));`
     }`
         : ''
-    }${
-      params.isLogsSelected
-        ? `
-    // Enable logs to be sent to Sentry
-    options.EnableLogs = true;`
-        : ''
     }
 });`;
 

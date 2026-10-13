@@ -39,12 +39,6 @@ public partial class App : Application
             // We recommend adjusting this value in production.
             o.TracesSampleRate = 1.0;`
                 : ''
-            }${
-              params.isLogsSelected
-                ? `
-            // Enable logs to be sent to Sentry
-            o.EnableLogs = true;`
-                : ''
             }
         });
     }

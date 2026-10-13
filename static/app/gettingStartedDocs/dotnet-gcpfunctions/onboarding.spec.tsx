@@ -46,7 +46,13 @@ describe('gcpfunctions onboarding docs', () => {
     });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/EnableLogs/))
+      await screen.findByText(textWithMarkupMatcher(/"EnableLogs": true/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Logger\.Log/))
+    ).not.toBeInTheDocument();
   });
 });

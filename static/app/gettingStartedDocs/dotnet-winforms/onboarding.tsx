@@ -40,12 +40,6 @@ static class Program
             // We recommend adjusting this value in production.
             o.TracesSampleRate = 1.0;`
                 : ''
-            }${
-              params.isLogsSelected
-                ? `
-            // Enable logs to be sent to Sentry
-            o.EnableLogs = true;`
-                : ''
             }
         });
         // Configure WinForms to throw exceptions so Sentry can capture them.

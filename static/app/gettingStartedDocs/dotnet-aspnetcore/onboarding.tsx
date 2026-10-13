@@ -6,7 +6,7 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {loggerLogsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
 import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -46,7 +46,7 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
               }${
                 params.isLogsSelected
                   ? `
-              // Enable logs to be sent to Sentry
+              // Forward ILogger output to Sentry Logs. This has no effect on SentrySdk.Logger.
               o.EnableLogs = true;`
                   : ''
               }
@@ -155,7 +155,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        logsVerify(params),
+        loggerLogsVerify(params, 'app.Logger'),
         metricsVerify(params),
       ],
     },

@@ -53,7 +53,10 @@ describe('winforms onboarding docs', () => {
     });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
+      await screen.findByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/EnableLogs/))
+    ).not.toBeInTheDocument();
   });
 });

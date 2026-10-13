@@ -5,7 +5,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {loggerLogsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
 import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -64,7 +64,7 @@ const getConfigureJsonSnippet = (params: DocsParams) => `
     }${
       params.isLogsSelected
         ? `,
-    // Enable logs to be sent to Sentry
+    // Forward ILogger output to Sentry Logs. This has no effect on SentrySdk.Logger.
     "EnableLogs": true`
         : ''
     }
@@ -168,7 +168,7 @@ export const onboarding: OnboardingConfig = {
           language: 'csharp',
           code: getVerifySnippet(),
         },
-        logsVerify(params),
+        loggerLogsVerify(params),
         metricsVerify(params),
       ],
     },
