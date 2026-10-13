@@ -1,5 +1,6 @@
 import {type CSSProperties, Fragment, useId} from 'react';
 import styled from '@emotion/styled';
+import {IconMail} from '@sentry/icons/mail';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -7,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {selectText} from 'sentry/utils/selectText';

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconSliders} from '@sentry/icons/sliders';
 import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {z} from 'zod';
@@ -13,7 +14,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';

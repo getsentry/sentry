@@ -1,5 +1,6 @@
+import {IconIssues} from '@sentry/icons/issues';
+
 import {ActionLink} from 'sentry/components/actions/actionLink';
-import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 

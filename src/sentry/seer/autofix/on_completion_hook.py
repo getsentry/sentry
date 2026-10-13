@@ -26,7 +26,6 @@ from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     fetch_run_group,
     get_current_step,
-    get_latest_iteration_index,
     resolve_run_group_id,
     should_open_autofix_pr_as_draft,
     trigger_autofix_agent,
@@ -47,6 +46,7 @@ from sentry.seer.autofix.pr_iteration.completion import (
     record_failed_tool_calls,
 )
 from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
+from sentry.seer.autofix.pr_iteration.iterations import get_latest_iteration_index
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,

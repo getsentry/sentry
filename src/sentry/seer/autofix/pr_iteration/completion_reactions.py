@@ -5,13 +5,13 @@ from collections import Counter
 from typing import TYPE_CHECKING
 
 from scm.manager import SourceCodeManager
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
-from sentry.seer.autofix.autofix_agent import get_iterations, iteration_repos
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
@@ -19,6 +19,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
+from sentry.seer.autofix.pr_iteration.iterations import get_iterations, iteration_repos
 from sentry.tasks.seer.pr_iteration import (
     _add_comment_reaction,
     _add_review_reaction,
@@ -26,7 +27,6 @@ from sentry.tasks.seer.pr_iteration import (
     _delete_own_review_eyes_reaction,
 )
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
@@ -70,7 +70,7 @@ def _repo_name_for_feedback(
     return None
 
 
-@trace
+@traces.trace
 def react_to_completed_iteration(
     organization: Organization,
     run_id: int,

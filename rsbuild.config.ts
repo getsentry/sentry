@@ -258,6 +258,14 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
  * Main Webpack config for Sentry React SPA.
  */
 
+// Resolve workspace imports from the importing package's declared dependencies.
+const workspaceResolutionRules = ['app', 'gsApp', 'gsAdmin'].map(directory => ({
+  include: path.join(staticPrefix, directory),
+  resolve: {
+    modules: [path.join(staticPrefix, directory, 'node_modules')],
+  },
+}));
+
 const appConfig: Configuration = {
   name: 'app',
   mode: WEBPACK_MODE,
@@ -318,6 +326,7 @@ const appConfig: Configuration = {
      * Please remember to test it.
      */
     rules: [
+      ...workspaceResolutionRules,
       {
         // Only first-party imports use V8 paths. Leave dependencies and the
         // compatibility implementation on the original V6 package resolution.
@@ -507,7 +516,6 @@ const appConfig: Configuration = {
 
   resolve: {
     alias: {
-      sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
@@ -525,10 +533,8 @@ const appConfig: Configuration = {
         path.join(staticPrefix, 'app', 'components', 'core'),
       ],
 
-      getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
       'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
-      admin: path.join(staticPrefix, 'gsAdmin'),
 
       'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
@@ -609,6 +615,7 @@ const workerConfig: Configuration = {
   lazyCompilation: appConfig.lazyCompilation,
   module: {
     rules: [
+      ...workspaceResolutionRules,
       {
         test: /\.ts$/,
         // core-js: Avoids recompiling core-js based on usage imports

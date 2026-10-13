@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useReducer, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
@@ -13,7 +14,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
 import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';

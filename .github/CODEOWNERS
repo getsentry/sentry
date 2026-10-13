@@ -189,7 +189,7 @@ vercel.json                                              @getsentry/owners-js-bu
 /.github/file-filters.yml                                @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 oxlint.config.ts                                         @getsentry/owners-js-build
-oxlint-suppressions.json                                 @getsentry/owners-js-build
+oxlint-suppressions.json                                 @getsentry/design-engineering
 /scripts/custom-oxlint.ts                                @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
@@ -356,6 +356,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/ingestion_delay/                                         @getsentry/data-browsing
 /tests/sentry/ingestion_delay/                                       @getsentry/data-browsing
 /src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
+
+/src/sentry/api/helpers/timeseries_processing.py                     @getsentry/app-backend @getsentry/data-browsing
+/tests/sentry/api/helpers/test_timeseries_processing.py              @getsentry/app-backend @getsentry/data-browsing
 
 
 /src/sentry/api/endpoints/organization_explore_formulas.py                          @getsentry/data-browsing
@@ -720,7 +723,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/auto_source_code_config.py                @getsentry/agent-interfaces-sentry-backend
 /src/sentry/tasks/check_new_issue_threshold_met.py          @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_resolutions.py              @getsentry/issue-detection-backend
-/src/sentry/tasks/clear_expired_rulesnoozes.py              @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issue-detection-backend
 /src/sentry/tasks/codeowners/                               @getsentry/agent-interfaces-sentry-backend
 /src/sentry/tasks/commits.py                                @getsentry/agent-interfaces-sentry-backend
@@ -765,7 +767,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_console_platform_cleanup.py        @getsentry/gdx
 /tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issue-detection-backend
-/tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_snoozes.py           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_code_owners.py                     @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/tasks/test_commit_context.py                  @getsentry/agent-interfaces-sentry-backend

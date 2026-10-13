@@ -8,7 +8,7 @@ resources:
 ---
 
 import {useEffect, useState} from 'react';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {ThinkingBlock} from '@sentry/scraps/chat';
 import {Text} from '@sentry/scraps/text';
 
@@ -100,6 +100,33 @@ export function CompletedDemo() {
   …
 </ThinkingBlock>
 ```
+
+## Duration formats
+
+Under a minute the timer shows tenths of a second ("5.3s"). From a minute on it
+shows whole seconds ("1m 30s"), and adds hours past an hour ("1h 2m 3s").
+
+export const DURATION_EXAMPLES_MS = [5_300, 59_900, 60_000, 90_000, 725_000, 3_723_000];
+
+export function DurationFormatsDemo() {
+  const [end] = useState(() => new Date());
+  return (
+    <Stack gap="md">
+      {DURATION_EXAMPLES_MS.map(ms => (
+        <ThinkingBlock
+          key={ms}
+          title="Done"
+          startTime={new Date(end.getTime() - ms)}
+          endTime={end}
+        />
+      ))}
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <DurationFormatsDemo />
+</Storybook.Demo>
 
 ## Transition
 

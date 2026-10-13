@@ -171,6 +171,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Extract variables from native crash debug info (DWARF/PDB)
     manager.add("organizations:native-variable-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mcp-issue-view-attribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Use Seer search agent translation for natural-language queries in the MCP search_events tool. Read by the MCP server, so it must be exposed.
+    manager.add("organizations:mcp-search-events-seer-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics
     manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
@@ -293,6 +295,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-agent-source-code-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable code mode tools (sentry_api_search/execute) in Seer Agent
     manager.add("organizations:seer-explorer-code-mode-tools", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable LLM-generated suggestions in the Seer Agent chat empty state
+    manager.add("organizations:seer-chat-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Gate Seer agent writes behind short-lived, scope-bound capability tokens + user-approved grants
     manager.add("organizations:seer-agent-token-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable code mode tools for Slack-initiated Explorer sessions
@@ -379,6 +383,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-stream-recommended-sort-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Enable settings v3 - new experience
+    manager.add("organizations:settings-v3", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable SAML2 Single-logout
     manager.add("organizations:sso-saml2-slo", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable visibility and access to insight modules
@@ -442,8 +448,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable high date range options on new explore page
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
-    # Enable per-series `_if` filters on Explore / compare / dashboard visualize aggregates
-    manager.add("organizations:explore-conditional-aggregates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable saving reusable formulas in Explore and referencing them in visualizations
     manager.add("organizations:explore-saved-formulas", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
@@ -452,6 +456,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Show top spans chart in weekly email reports
     manager.add("organizations:weekly-report-spans-chart", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
+    # Gate sending evaluation artifacts from workflow_engine to EAP
+    manager.add("organizations:workflow-engine-evaluation-artifacts-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging to debug workflow engine process workflows
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show historical examples of when an alert would have fired while building a workflow.
@@ -460,7 +466,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:workflow-engine-metric-issue-disable-issue-detector-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Rotate detector state's activation_id to the current epoch time in ms on each OK --> non-OK transition
     # This is used for creating a unique fingerprint for each open period
-    manager.add("organizations:workflow-engine-rotate-activation-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:workflow-engine-rotate-activation-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable metric detector limits by plan type
     manager.add("organizations:workflow-engine-metric-detector-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product (known internally as ourlogs) in UI and backend
@@ -479,8 +485,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:relay-automatic-json-expansion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing expansion config (and expanded variables) in the UI
     manager.add("organizations:explore-automatic-json-expansion-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable trace metrics multi-metric selection in dashboards
-    manager.add("organizations:tracemetrics-multi-metric-selection-in-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics units in trace view UI
     manager.add("organizations:tracemetrics-units-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics showing stats bytes

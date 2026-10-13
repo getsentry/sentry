@@ -1,6 +1,8 @@
+import {IconAdd} from '@sentry/icons/add';
+import {IconSettings} from '@sentry/icons/settings';
+
 import {Access} from 'sentry/components/acl/access';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
