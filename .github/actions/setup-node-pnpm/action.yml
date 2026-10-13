@@ -13,8 +13,16 @@ runs:
       uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: nodemodulescache
       with:
-        path: '**/node_modules'
-        key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', '.node-version') }}
+        # Limit globs to workspace roots so they do not follow pnpm dependency symlinks.
+        path: |
+          node_modules
+          api-docs/node_modules
+          static/app/node_modules
+          static/gsApp/node_modules
+          static/gsAdmin/node_modules
+          static/packages/*/node_modules
+          static/oxlint/*/node_modules
+        key: ${{ runner.os }}-${{ runner.arch }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'package.json', '.node-version') }}
 
     - name: Install Javascript Dependencies
       if: steps.nodemodulescache.outputs.cache-hit != 'true'
