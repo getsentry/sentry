@@ -35,6 +35,7 @@ export function useRefetchOutdatedTimeseries() {
 
     const fetchStartedAt = new WeakMap<Query, number>();
     const dataRequestedAt = new WeakMap<Query, number>();
+    let alignedBucketStart = 0;
 
     return queryClient.getQueryCache().subscribe(event => {
       if (event.type !== 'updated' || !matchQuery(timeseriesFilters, event.query)) {
@@ -43,8 +44,17 @@ export function useRefetchOutdatedTimeseries() {
 
       if (event.action.type === 'success') {
         const startedAt = fetchStartedAt.get(event.query);
-        if (startedAt !== undefined) {
-          dataRequestedAt.set(event.query, startedAt);
+        if (startedAt === undefined) {
+          return;
+        }
+
+        dataRequestedAt.set(event.query, startedAt);
+
+        if (startedAt < alignedBucketStart) {
+          queryClient.refetchQueries(
+            {queryKey: event.query.queryKey, exact: true, type: 'active'},
+            {cancelRefetch: false}
+          );
         }
         return;
       }
@@ -60,6 +70,7 @@ export function useRefetchOutdatedTimeseries() {
       }
 
       const bucketStart = Math.floor(Date.now() / intervalMs) * intervalMs;
+      alignedBucketStart = bucketStart;
 
       queryClient.refetchQueries(
         {
