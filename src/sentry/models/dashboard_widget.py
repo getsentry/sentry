@@ -262,6 +262,9 @@ class DashboardWidgetQuery(Model):
     is_hidden = models.BooleanField(default=False, db_default=False)
     # Used by Big Number to select aggregate displayed
     selected_aggregate = models.IntegerField(null=True)
+    transformations: models.Field[dict[str, list[str]] | None, dict[str, list[str]] | None] = (
+        models.JSONField(null=True)
+    )
 
     class Meta:
         app_label = "sentry"

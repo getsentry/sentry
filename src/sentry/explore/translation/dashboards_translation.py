@@ -1,3 +1,4 @@
+from collections import defaultdict, deque
 from typing import Any
 
 from django.db import router
@@ -47,7 +48,13 @@ def translate_dashboard_widget_queries(
     field_aliases,
     is_hidden,
     selected_aggregate,
+    transformations: dict[str, list[str]] | None = None,
 ):
+    transformations = transformations or {}
+    aggregate_indexes: dict[str, deque[int]] = defaultdict(deque)
+    for index, aggregate in enumerate(original_aggregates):
+        aggregate_indexes[aggregate].append(index)
+
     original_fields_length = len(original_fields)
     # some widgets have fields that are not columns + aggregates.
     # we want to combine all of these into a single list but still preserve order the way we would in the frontend.
@@ -84,6 +91,7 @@ def translate_dashboard_widget_queries(
     new_fields = []
     new_columns = []
     new_aggregates = []
+    new_transformations: dict[str, list[str]] = {}
     new_aliases = []
     new_selected_aggregate = None
     selected_aggregate_field = (
@@ -95,6 +103,8 @@ def translate_dashboard_widget_queries(
     field_index = 0
     equation_index = 0
     for old_index, field in enumerate(all_fields):
+        matching_indexes = aggregate_indexes.get(field)
+        original_aggregate_index = matching_indexes.popleft() if matching_indexes else None
         is_selected_aggregate = selected_aggregate_field == field
         if field in dropped_cols or field in dropped_equations:
             if is_selected_aggregate:
@@ -122,6 +132,11 @@ def translate_dashboard_widget_queries(
             new_columns.append(eap_query_parts["selected_columns"][field_index])
             field_index += 1
 
+        if (is_equation_field or is_function_field) and original_aggregate_index is not None:
+            key = str(original_aggregate_index)
+            if key in transformations:
+                new_transformations[str(len(new_aggregates) - 1)] = transformations[key]
+
         if is_selected_aggregate:
             new_selected_aggregate = len(new_fields) - 1
 
@@ -142,6 +157,7 @@ def translate_dashboard_widget_queries(
             orderby=new_orderby,
             is_hidden=is_hidden,
             selected_aggregate=new_selected_aggregate,
+            transformations=new_transformations,
         ),
         dropped_fields,
     )
@@ -179,6 +195,7 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
             field_aliases,
             is_hidden,
             selected_aggregate,
+            transformations=query.get("transformations"),
         )
 
         new_widget_queries.append(new_widget_query)
@@ -236,6 +253,7 @@ def restore_transaction_widget(widget):
                 orderby=orderby,
                 is_hidden=is_hidden,
                 selected_aggregate=selected_aggregate,
+                transformations=query_snapshot.get("transformations", {}),
             )
         )
 

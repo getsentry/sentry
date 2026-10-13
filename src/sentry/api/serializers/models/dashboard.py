@@ -63,6 +63,7 @@ class DashboardWidgetQueryResponse(TypedDict):
     onDemand: list[OnDemandResponse]
     isHidden: bool
     selectedAggregate: int | None
+    transformations: dict[str, list[str]]
     linkedDashboards: list[LinkedDashboardResponse]
 
 
@@ -436,6 +437,7 @@ class DashboardWidgetQuerySerializer(Serializer[DashboardWidgetQueryResponse]):
             "onDemand": attrs["onDemand"],
             "isHidden": obj.is_hidden,
             "selectedAggregate": obj.selected_aggregate,
+            "transformations": obj.transformations or {},
             "linkedDashboards": attrs["linkedDashboards"],
         }
 
