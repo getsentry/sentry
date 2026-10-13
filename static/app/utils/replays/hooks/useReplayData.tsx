@@ -14,7 +14,7 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiFetch, useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {createConcurrencyLimiter} from 'sentry/utils/api/concurrency/createConcurrencyLimiter';
+import {useConcurrencyLimiter} from 'sentry/utils/api/concurrency/useConcurrencyLimiter';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -24,6 +24,7 @@ import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RawReplayError} from 'sentry/utils/replays/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function replayRecordApiOptions({
@@ -48,21 +49,18 @@ export function replayRecordApiOptions({
  * and re-running this one yields a fresh object every time: `ReplayRecord`
  * holds `Date` and `Duration` values, which structural sharing cannot dedupe.
  */
-function selectReplayRecord(data: ApiResponse<{data: unknown}>) {
-  return data.json.data ? mapResponseToReplayRecord(data.json.data) : undefined;
-}
-
 /**
  * Long replays can have thousands of segments, loaded as one request per page
  * of segments. Firing them all at once trips the API's concurrent and
  * per-second rate limits, and the CORS preflights for those requests get
- * limited too. Stay well under the concurrent limit, because other requests on
- * the page share that budget.
+ * limited too. The org-level limit is shared with dashboard widget queries;
+ * the fallback matches theirs for orgs without the option.
  */
-const limitReplaySegmentsRequest = createConcurrencyLimiter({
-  concurrency: 10,
-  key: 'replay-segments',
-});
+const FALLBACK_SEGMENTS_CONCURRENCY = 5;
+
+function selectReplayRecord(data: ApiResponse<{data: unknown}>) {
+  return data.json.data ? mapResponseToReplayRecord(data.json.data) : undefined;
+}
 
 export function replayAttachmentsApiOptions({
   organizationIdOrSlug,
@@ -75,7 +73,7 @@ export function replayAttachmentsApiOptions({
   replayId: string;
   query?: {cursor: string; download: boolean; per_page: number};
 }) {
-  const options = apiOptions.as<unknown>()(
+  return apiOptions.as<unknown>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
     {
       path: {
@@ -87,11 +85,6 @@ export function replayAttachmentsApiOptions({
       staleTime: Infinity,
     }
   );
-  return queryOptions({
-    ...options,
-    queryFn: context =>
-      limitReplaySegmentsRequest(() => apiFetch(context), context.signal),
-  });
 }
 
 type Options = {
@@ -183,15 +176,25 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
   );
   const isResolvingProjectSlug = !!replayRecord && !projectSlug && isFetchingProjects;
 
+  const organization = useOrganization({allowNull: true});
+  const limitSegmentsRequest = useConcurrencyLimiter({
+    concurrency:
+      organization?.dashboardsAsyncQueueParallelLimit ?? FALLBACK_SEGMENTS_CONCURRENCY,
+    key: 'replay-segments',
+  });
+
   const getAttachmentsQueryOptions = useCallback(
     ({cursor, per_page}: {cursor: string; per_page: number}) =>
-      replayAttachmentsApiOptions({
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug!,
-        replayId: replayId!,
-        query: {download: true, per_page, cursor},
+      queryOptions({
+        ...replayAttachmentsApiOptions({
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug!,
+          replayId: replayId!,
+          query: {download: true, per_page, cursor},
+        }),
+        queryFn: context => limitSegmentsRequest(() => apiFetch(context), context.signal),
       }),
-    [orgSlug, projectSlug, replayId]
+    [orgSlug, projectSlug, replayId, limitSegmentsRequest]
   );
 
   const enableAttachments =

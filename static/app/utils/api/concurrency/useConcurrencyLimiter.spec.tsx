@@ -1,16 +1,23 @@
-import {waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {createConcurrencyLimiter} from 'sentry/utils/api/concurrency/createConcurrencyLimiter';
+import {useConcurrencyLimiter} from 'sentry/utils/api/concurrency/useConcurrencyLimiter';
 
-describe('createConcurrencyLimiter', () => {
+function renderLimiter(concurrency: number) {
+  return renderHook(useConcurrencyLimiter, {
+    initialProps: {concurrency, key: 'test'},
+  });
+}
+
+describe('useConcurrencyLimiter', () => {
   it('runs at most `concurrency` requests at a time and resolves all of them', async () => {
-    const enqueue = createConcurrencyLimiter({concurrency: 3, key: 'test'});
+    const {result} = renderLimiter(3);
+    const limit = result.current;
     const started: Array<PromiseWithResolvers<void>> = [];
     let inFlight = 0;
     let maxInFlight = 0;
 
     const results = Array.from({length: 10}, (_, i) =>
-      enqueue(async () => {
+      limit(async () => {
         inFlight++;
         maxInFlight = Math.max(maxInFlight, inFlight);
         const deferred = Promise.withResolvers<void>();
@@ -33,30 +40,50 @@ describe('createConcurrencyLimiter', () => {
     expect(maxInFlight).toBe(3);
   });
 
+  it('returns the same limiter across renders', () => {
+    const {result, rerender} = renderLimiter(3);
+    const first = result.current;
+    rerender({concurrency: 3, key: 'test'});
+    expect(result.current).toBe(first);
+  });
+
   it('rejects with the request error without blocking the queue', async () => {
-    const enqueue = createConcurrencyLimiter({concurrency: 1, key: 'test'});
+    const {result} = renderLimiter(1);
     const error = new Error('429');
 
-    const failed = enqueue(() => Promise.reject(error));
-    const succeeded = enqueue(() => Promise.resolve('ok'));
+    const failed = result.current(() => Promise.reject(error));
+    const succeeded = result.current(() => Promise.resolve('ok'));
 
     await expect(failed).rejects.toBe(error);
     await expect(succeeded).resolves.toBe('ok');
   });
 
   it('skips requests whose signal aborted while they were waiting', async () => {
-    const enqueue = createConcurrencyLimiter({concurrency: 1, key: 'test'});
+    const {result} = renderLimiter(1);
     const blocker = Promise.withResolvers<void>();
     const controller = new AbortController();
     const skippedRequest = jest.fn(() => Promise.resolve('never'));
 
-    const first = enqueue(() => blocker.promise);
-    const skipped = enqueue(skippedRequest, controller.signal);
+    const first = result.current(() => blocker.promise);
+    const skipped = result.current(skippedRequest, controller.signal);
     controller.abort();
     blocker.resolve();
 
     await first;
     await expect(skipped).rejects.toBe(controller.signal.reason);
     expect(skippedRequest).not.toHaveBeenCalled();
+  });
+
+  it('keeps running queued requests after unmount', async () => {
+    const {result, unmount} = renderLimiter(1);
+    const blocker = Promise.withResolvers<void>();
+
+    const first = result.current(() => blocker.promise);
+    const queued = result.current(() => Promise.resolve('ok'));
+    unmount();
+    blocker.resolve();
+
+    await first;
+    await expect(queued).resolves.toBe('ok');
   });
 });
