@@ -273,10 +273,11 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: [
             tct(
-              'You can find an example ASP.NET MVC 5 app with Sentry integrated [link:on this GitHub repository].',
+              'You can find an example console app with Sentry integrated [link:in the [code:sentry-dotnet] repository].',
               {
+                code: <code />,
                 link: (
-                  <ExternalLink href="https://github.com/getsentry/examples/tree/master/dotnet/AspNetMvc5Ef6" />
+                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples/Sentry.Samples.Console.Basic" />
                 ),
               }
             ),

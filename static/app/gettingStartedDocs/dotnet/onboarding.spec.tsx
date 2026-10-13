@@ -68,4 +68,17 @@ describe('dotnet onboarding docs', () => {
       await screen.findByText(textWithMarkupMatcher(/options.EnableLogs/))
     ).toBeInTheDocument();
   });
+
+  it('links to the console sample in the sentry-dotnet repository', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      await screen.findByRole('link', {name: 'in the sentry-dotnet repository'})
+    ).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry-dotnet/tree/main/samples/Sentry.Samples.Console.Basic'
+    );
+  });
 });

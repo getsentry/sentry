@@ -55,4 +55,16 @@ describe('maui onboarding docs', () => {
       await screen.findByText(textWithMarkupMatcher(/options.EnableLogs/))
     ).toBeInTheDocument();
   });
+
+  it('ends the UseSentry call with a semicolon', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/\}\);\s*\/\/ \.\.\. the remainder of your MAUI app setup/)
+      )
+    ).toBeInTheDocument();
+  });
 });

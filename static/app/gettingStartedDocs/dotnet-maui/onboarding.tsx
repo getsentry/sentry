@@ -58,7 +58,7 @@ public static MauiApp CreateMauiApp()
       }
 
       // Other Sentry options can be set here.
-  })
+  });
 
   // ... the remainder of your MAUI app setup
 

@@ -56,4 +56,14 @@ describe('wpf onboarding docs', () => {
       await screen.findByText(textWithMarkupMatcher(/o.EnableLogs/))
     ).toBeInTheDocument();
   });
+
+  it('closes the App class in the configure snippet', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/e\.Handled = true;\s*\}\s*\}\s*$/))
+    ).toBeInTheDocument();
+  });
 });

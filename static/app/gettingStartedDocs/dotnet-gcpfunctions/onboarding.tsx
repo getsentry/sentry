@@ -34,6 +34,11 @@ const getInstallSnippetManual = (params: DocsParams) => `
 </ItemGroup>`;
 
 const getConfigureCSharpSnippet = () => `
+using System.Threading.Tasks;
+using Google.Cloud.Functions.Framework;
+using Google.Cloud.Functions.Hosting;
+using Microsoft.AspNetCore.Http;
+
 // Add the following line:
 [assembly: FunctionsStartup(typeof(SentryStartup))]
 
@@ -42,6 +47,7 @@ public class Function : IHttpFunction
     public Task HandleAsync(HttpContext context)
     {
         // Your function code here.
+        return Task.CompletedTask;
     }
 }`;
 
@@ -79,6 +85,7 @@ using Sentry;
 public Task HandleAsync(HttpContext context)
 {
     SentrySdk.CaptureMessage("Hello Sentry");
+    return Task.CompletedTask;
 }`;
 
 export const onboarding: OnboardingConfig = {

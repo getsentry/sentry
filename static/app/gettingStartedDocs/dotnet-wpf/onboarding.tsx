@@ -55,7 +55,8 @@ public partial class App : Application
 
         // If you want to avoid the application from crashing:
         e.Handled = true;
-    }`;
+    }
+}`;
 
 const getPerformanceInstrumentationSnippet = () => `
 // Transaction can be started by providing, at minimum, the name and the operation

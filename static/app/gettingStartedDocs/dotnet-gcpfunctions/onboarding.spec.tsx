@@ -49,4 +49,19 @@ describe('gcpfunctions onboarding docs', () => {
       await screen.findByText(textWithMarkupMatcher(/EnableLogs/))
     ).toBeInTheDocument();
   });
+
+  it('renders HandleAsync snippets that return a Task', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/using Google\.Cloud\.Functions\.Hosting;/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(textWithMarkupMatcher(/return Task\.CompletedTask;/))
+    ).toHaveLength(2);
+  });
 });
