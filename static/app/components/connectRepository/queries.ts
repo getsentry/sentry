@@ -272,7 +272,7 @@ export function projectCodeMappingsOptions({
   );
 }
 
-const STACK_PREFIXES_STALE_TIME_MS = 60_000;
+const PREFIXES_STALE_TIME_MS = 60_000;
 
 export function stackCodeMappingPrefixesOptions({
   orgSlug,
@@ -287,7 +287,24 @@ export function stackCodeMappingPrefixesOptions({
       path: projectSlug
         ? {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug}
         : skipToken,
-      staleTime: STACK_PREFIXES_STALE_TIME_MS,
+      staleTime: PREFIXES_STALE_TIME_MS,
+    }
+  );
+}
+
+export function repoCodeMappingPrefixesOptions({
+  orgSlug,
+  repositoryId,
+}: {
+  orgSlug: string;
+  repositoryId: string | undefined;
+}) {
+  return apiOptions.as<CodeMappingPrefixesResponse>()(
+    '/organizations/$organizationIdOrSlug/code-mapping-prefixes/repo/',
+    {
+      path: repositoryId ? {organizationIdOrSlug: orgSlug} : skipToken,
+      query: {repositoryId},
+      staleTime: PREFIXES_STALE_TIME_MS,
     }
   );
 }

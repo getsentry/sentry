@@ -136,6 +136,10 @@ describe('ConnectRepositoryModal', () => {
       url: `/projects/${organization.slug}/${project.slug}/code-mapping-prefixes/stack/`,
       body: {prefixes: []},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
+      body: {prefixes: []},
+    });
   });
 
   it('renders initial modal state', async () => {
@@ -241,6 +245,7 @@ describe('ConnectRepositoryModal', () => {
     );
 
     // Add a second mapping: src/app/ → dist/  (prefix overlap — Save still enabled)
+    // Clicking the button blurs the repo prefix field, committing 'app/'.
     await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
@@ -250,6 +255,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /repository prefix/i}),
       'dist/'
     );
+    await userEvent.tab();
     expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
 
     // Change second stack root to src/ — same stack, different source root (sameStack warning)
@@ -259,6 +265,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
       'src/'
     );
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
 
     // Now make source roots identical too → exact duplicate → Save disabled
@@ -267,6 +274,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /repository prefix/i}),
       'app/'
     );
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
   });
 
@@ -471,6 +479,46 @@ describe('ConnectRepositoryModal', () => {
       await userEvent.tab();
 
       expect(screen.getAllByText('fallback/')).not.toHaveLength(0);
+    });
+  });
+
+  describe('repository prefix autocomplete', () => {
+    it('picks a repo suggestion and persists it as sourceRoot on save', async () => {
+      const closeModal = jest.fn();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
+        match: [MockApiClient.matchQuery({repositoryId: '10'})],
+        body: {prefixes: [{path: 'src/'}, {path: 'src/app/'}]},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/repo/`,
+        method: 'POST',
+        body: {id: '99', projectId: project.id, repositoryId: '10', created: true},
+      });
+      const postMapping = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'POST',
+        body: {},
+      });
+
+      renderModal(closeModal);
+      await selectRepository('getsentry/sentry');
+
+      await userEvent.click(screen.getByRole('textbox', {name: /repository prefix/i}));
+      await userEvent.click(await screen.findByText('src/app/'));
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(postMapping).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/code-mappings/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({sourceRoot: 'src/app/'}),
+          })
+        );
+      });
+      expect(closeModal).toHaveBeenCalled();
     });
   });
 
@@ -890,6 +938,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /repository prefix/i}),
       'app/'
     );
+    await userEvent.tab();
 
     expect(await screen.findByText(/getsentry\/relay/)).toBeInTheDocument();
     expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
@@ -928,6 +977,7 @@ describe('ConnectRepositoryModal', () => {
       screen.getByRole('textbox', {name: /repository prefix/i}),
       'app/'
     );
+    await userEvent.tab();
 
     expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();

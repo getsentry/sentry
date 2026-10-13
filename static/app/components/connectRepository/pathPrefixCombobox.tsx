@@ -40,6 +40,7 @@ export interface PathPrefixComboboxProps {
   disabled?: boolean;
   isLoading?: boolean;
   maxMenuHeight?: number;
+  menuAlign?: 'start' | 'end';
   menuWidth?: string;
   placeholder?: string;
 }
@@ -56,6 +57,7 @@ export function PathPrefixCombobox({
   disabled,
   isLoading,
   maxMenuHeight,
+  menuAlign = 'start',
   menuWidth,
   placeholder,
 }: PathPrefixComboboxProps) {
@@ -137,7 +139,17 @@ export function PathPrefixCombobox({
       formatCreateLabel={(input: string) => tct('Use "[path]"', {path: input})}
       components={{MenuList: ScmVirtualizedMenuList}}
       maxMenuHeight={maxMenuHeight}
-      styles={menuWidth ? {menu: base => ({...base, width: menuWidth})} : undefined}
+      styles={
+        menuWidth
+          ? {
+              menu: base => ({
+                ...base,
+                width: menuWidth,
+                ...(menuAlign === 'end' ? {right: 0, left: 'auto'} : {}),
+              }),
+            }
+          : undefined
+      }
     />
   );
 }

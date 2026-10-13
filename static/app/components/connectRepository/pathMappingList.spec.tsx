@@ -286,6 +286,7 @@ describe('PathMappingList', () => {
         screen.getByRole('textbox', {name: /repository prefix/i}),
         'app/'
       );
+      await userEvent.tab();
 
       expect(
         screen.getByText(
@@ -320,6 +321,7 @@ describe('PathMappingList', () => {
         screen.getByRole('textbox', {name: /repository prefix/i}),
         'app/'
       );
+      await userEvent.tab();
 
       expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
       expect(screen.queryByText(/stack trace prefix is empty/)).not.toBeInTheDocument();

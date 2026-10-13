@@ -23,10 +23,10 @@ import {PathMappingDeleteButton} from './pathMappingDeleteButton';
 import {PathMappingPreview} from './pathMappingPreview';
 import {PathMappingWarningAlert} from './pathMappingWarningAlert';
 import {PathPrefixCombobox} from './pathPrefixCombobox';
-import {stackCodeMappingPrefixesOptions} from './queries';
+import {repoCodeMappingPrefixesOptions, stackCodeMappingPrefixesOptions} from './queries';
 import type {PathMappingWarning} from './warnings';
 
-const PREFIX_MENU_MAX_HEIGHT = 250;
+const PREFIX_MENU_PROPS = {menuWidth: '100cqi', maxMenuHeight: 250} as const;
 
 export const PathMappingEdit = withFieldGroup({
   defaultValues: {stackRoot: '', sourceRoot: '', branch: ''},
@@ -36,6 +36,7 @@ export const PathMappingEdit = withFieldGroup({
     onDelete?: () => void;
     projectSlug?: string;
     providerKey?: string;
+    repositoryId?: string;
     warning?: PathMappingWarning;
   },
   render: function PathMappingEditRender({
@@ -45,11 +46,15 @@ export const PathMappingEdit = withFieldGroup({
     onDelete,
     projectSlug,
     providerKey,
+    repositoryId,
     warning,
   }) {
     const organization = useOrganization();
     const stackPrefixes = useQuery(
       stackCodeMappingPrefixesOptions({orgSlug: organization.slug, projectSlug})
+    );
+    const repoPrefixes = useQuery(
+      repoCodeMappingPrefixesOptions({orgSlug: organization.slug, repositoryId})
     );
 
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
@@ -108,8 +113,7 @@ export const PathMappingEdit = withFieldGroup({
                     isLoading={stackPrefixes.isLoading}
                     placeholder={STACK_ROOT_PLACEHOLDER}
                     disabled={hasCodeOwner}
-                    menuWidth="100cqi"
-                    maxMenuHeight={PREFIX_MENU_MAX_HEIGHT}
+                    {...PREFIX_MENU_PROPS}
                   />
                 </field.Layout.Stack>
               )}
@@ -123,13 +127,7 @@ export const PathMappingEdit = withFieldGroup({
               <IconArrow direction="right" size="sm" />
             </Flex>
 
-            <group.AppField
-              name="sourceRoot"
-              listeners={{
-                onBlur: ({value}) =>
-                  group.setFieldValue('sourceRoot', normalizeRoot(value)),
-              }}
-            >
+            <group.AppField name="sourceRoot">
               {field => (
                 <field.Layout.Stack
                   label={
@@ -143,11 +141,16 @@ export const PathMappingEdit = withFieldGroup({
                     'What to replace it with, so the path points to your repo.'
                   )}
                 >
-                  <field.Input
+                  <PathPrefixCombobox
+                    aria-label={t('Repository prefix')}
                     value={field.state.value}
                     onChange={field.handleChange}
+                    options={repoPrefixes.data?.prefixes ?? []}
+                    isLoading={repoPrefixes.isLoading}
                     placeholder={SOURCE_ROOT_PLACEHOLDER}
                     disabled={hasCodeOwner}
+                    menuAlign="end"
+                    {...PREFIX_MENU_PROPS}
                   />
                 </field.Layout.Stack>
               )}
