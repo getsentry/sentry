@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useDebouncedValue} from '@tanstack/react-pacer';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
-import {debounce, parseAsString, useQueryStates} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -38,10 +38,6 @@ function OrganizationProjects() {
     query: parseAsString.withDefault(''),
     cursor: parseAsString,
   });
-  // nuqs only debounces the URL write, the state updates on every keystroke
-  const [debouncedQuery] = useDebouncedValue(query, {wait: DEFAULT_DEBOUNCE_DURATION});
-  // Search clears the cursor right away, hold the fetch until the query settles
-  const isTyping = query !== debouncedQuery;
 
   const {
     data: projectListResponse,
@@ -53,7 +49,7 @@ function OrganizationProjects() {
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
-          query: debouncedQuery,
+          query,
           cursor: cursor ?? undefined,
           per_page: ITEMS_PER_PAGE,
           statsPeriod: '24h',
@@ -63,7 +59,6 @@ function OrganizationProjects() {
       }
     ),
     select: selectJsonWithHeaders,
-    enabled: !isTyping,
     placeholderData: keepPreviousData,
   });
 
@@ -71,11 +66,10 @@ function OrganizationProjects() {
   const projectListPageLinks = projectListResponse?.headers.Link;
   const action = <CreateProjectButton />;
 
-  const onSearch = (searchQuery: string) =>
-    setSearchParams(
-      {query: searchQuery, cursor: null},
-      {limitUrlUpdates: debounce(DEFAULT_DEBOUNCE_DURATION)}
-    );
+  const onSearch = useDebouncedCallback(
+    (searchQuery: string) => setSearchParams({query: searchQuery, cursor: null}),
+    {wait: DEFAULT_DEBOUNCE_DURATION}
+  );
 
   return (
     <Fragment>
