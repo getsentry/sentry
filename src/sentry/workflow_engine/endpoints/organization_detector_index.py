@@ -11,7 +11,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -51,10 +51,14 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.models import get_cron_monitor
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.organization_detector_details import (
+    get_detector_validator as get_detector_validator_for_update,
+)
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
@@ -128,6 +132,8 @@ DETECTOR_TYPE_ALIASES = {
     "uptime": UptimeDomainCheckFailure.slug,
     "cron": MonitorIncidentType.slug,
 }
+
+SEAT_DETECTOR_TYPES = (MonitorIncidentType.slug, UptimeDomainCheckFailure.slug)
 
 
 def get_detector_validator(
@@ -435,10 +441,43 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not can_edit_detectors(queryset, request):
             raise PermissionDenied
 
+        seat_detectors = [
+            detector
+            for detector in queryset
+            if detector.type in SEAT_DETECTOR_TYPES and detector.enabled != enabled
+        ]
+        if enabled:
+            monitors = [
+                get_cron_monitor(detector)
+                for detector in seat_detectors
+                if detector.type == MonitorIncidentType.slug
+            ]
+            uptime_detectors = [
+                detector
+                for detector in seat_detectors
+                if detector.type == UptimeDomainCheckFailure.slug
+            ]
+            for seat_objects in (monitors, uptime_detectors):
+                if not seat_objects:
+                    continue
+                assign_result = quotas.backend.check_assign_seats(seat_objects=seat_objects)
+                if not assign_result.assignable:
+                    return Response(
+                        {"detail": assign_result.reason}, status=status.HTTP_400_BAD_REQUEST
+                    )
+
+        for detector in seat_detectors:
+            detector_validator = get_detector_validator_for_update(
+                request, detector.linked_project, detector.type, detector, partial=True
+            )
+            detector_validator.is_valid(raise_exception=True)
+            detector_validator.save()
+
         # We update detectors individually to ensure post_save signals are called
         with transaction.atomic(router.db_for_write(Detector)):
             for detector in queryset:
-                detector.update(enabled=enabled)
+                if detector.type not in SEAT_DETECTOR_TYPES:
+                    detector.update(enabled=enabled)
 
         return self.paginate(
             request=request,

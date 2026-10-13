@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from datetime import timedelta
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db.models import Q
@@ -15,6 +16,8 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.utils import ensure_cron_detector
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.search.utils import _HACKY_INVALID_USER
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -26,9 +29,12 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
+from sentry.uptime.subscriptions.subscriptions import disable_uptime_detector
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
 )
+from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
@@ -1348,6 +1354,118 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         self.detector.refresh_from_db()
         assert self.issue_stream_detector.enabled is False
         assert self.detector.enabled is True
+
+    @patch("sentry.quotas.backend.disable_seat")
+    def test_update_detectors_disable_cron(self, mock_disable_seat: MagicMock) -> None:
+        monitor = self.create_monitor(project=self.project)
+        detector = ensure_cron_detector(monitor)
+        assert detector is not None
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(detector.id)},
+            enabled=False,
+            status_code=200,
+        )
+
+        monitor.refresh_from_db()
+        detector.refresh_from_db()
+        assert monitor.status == ObjectStatus.DISABLED
+        assert detector.enabled is False
+        mock_disable_seat.assert_called_once_with(seat_object=monitor)
+
+    @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    @patch(
+        "sentry.quotas.backend.check_assign_seat",
+        return_value=SeatAssignmentResult(assignable=True),
+    )
+    @patch(
+        "sentry.quotas.backend.check_assign_seats",
+        return_value=SeatAssignmentResult(assignable=True),
+    )
+    def test_update_detectors_enable_cron(
+        self,
+        mock_check_assign_seats: MagicMock,
+        mock_check_assign_seat: MagicMock,
+        mock_assign_seat: MagicMock,
+    ) -> None:
+        monitor = self.create_monitor(project=self.project, status=ObjectStatus.DISABLED)
+        detector = ensure_cron_detector(monitor)
+        assert detector is not None
+        detector.update(enabled=False)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(detector.id)},
+            enabled=True,
+            status_code=200,
+        )
+
+        monitor.refresh_from_db()
+        detector.refresh_from_db()
+        assert monitor.status == ObjectStatus.ACTIVE
+        assert detector.enabled is True
+        mock_check_assign_seats.assert_called_once_with(seat_objects=[monitor])
+        mock_assign_seat.assert_called_once_with(seat_object=monitor)
+
+    @patch("sentry.quotas.backend.assign_seat")
+    @patch(
+        "sentry.quotas.backend.check_assign_seats",
+        return_value=SeatAssignmentResult(assignable=False, reason="Over quota"),
+    )
+    def test_update_detectors_enable_cron_no_seats(
+        self, mock_check_assign_seats: MagicMock, mock_assign_seat: MagicMock
+    ) -> None:
+        monitor = self.create_monitor(project=self.project, status=ObjectStatus.DISABLED)
+        detector = ensure_cron_detector(monitor)
+        assert detector is not None
+        detector.update(enabled=False)
+        self.detector.update(enabled=False)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params=[("id", str(detector.id)), ("id", str(self.detector.id))],
+            enabled=True,
+            status_code=400,
+        )
+
+        assert response.data["detail"] == "Over quota"
+        monitor.refresh_from_db()
+        detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert monitor.status == ObjectStatus.DISABLED
+        assert detector.enabled is False
+        assert self.detector.enabled is False
+        assert not mock_assign_seat.called
+
+    def test_update_detectors_disable_uptime(self) -> None:
+        detector = self.create_uptime_detector()
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(detector.id)},
+            enabled=False,
+            status_code=200,
+        )
+
+        detector.refresh_from_db()
+        assert detector.enabled is False
+        assert get_uptime_subscription(detector).status == UptimeSubscription.Status.DISABLED.value
+
+    def test_update_detectors_enable_uptime(self) -> None:
+        detector = self.create_uptime_detector()
+        disable_uptime_detector(detector)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(detector.id)},
+            enabled=True,
+            status_code=200,
+        )
+
+        detector.refresh_from_db()
+        assert detector.enabled is True
+        assert get_uptime_subscription(detector).status == UptimeSubscription.Status.CREATING.value
 
 
 @cell_silo_test
