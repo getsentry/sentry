@@ -33,7 +33,7 @@ from sentry.search.eap.types import (
 )
 from sentry.search.eap.utils import (
     can_expose_attribute_to_api,
-    get_deprecated_source_internal_names,
+    get_non_backfill_deprecated_source_internal_names,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
     translate_search_type_for_internal_column,
@@ -173,7 +173,12 @@ def convert_rpc_attribute_to_json(
         if external_name and is_sentry_convention_replacement_attribute(
             external_name, trace_item_type
         ):
-            deprecated_names = get_deprecated_source_internal_names(external_name, trace_item_type)
+            # Hide the replacement only if a deprecated source that it supersedes is
+            # present. Backfilled sources are stored alongside their replacement, and
+            # consumers read the replacement name, so it must stay visible.
+            deprecated_names = get_non_backfill_deprecated_source_internal_names(
+                external_name, trace_item_type
+            )
             if not deprecated_names.isdisjoint(all_internal_names):
                 continue
 
