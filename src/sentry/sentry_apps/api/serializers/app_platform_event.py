@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from enum import StrEnum
 from functools import cached_property
+from hashlib import sha256
 from time import time
 from typing import Any, TypedDict
 from uuid import uuid4
@@ -8,7 +9,12 @@ from uuid import uuid4
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.utils.headers import mask_header_values, parse_custom_headers
-from sentry.sentry_apps.utils.webhooks import SentryAppActionType, SentryAppResourceType
+from sentry.sentry_apps.utils.webhooks import (
+    ErrorActionType,
+    IssueActionType,
+    SentryAppActionType,
+    SentryAppResourceType,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
@@ -107,6 +113,22 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
             return json.dumps({**body, "text": self.get_text_summary()})
         return json.dumps(body)
 
+    @property
+    def idempotency_key(self) -> str | None:
+        """A stable key for issue/error creation webhooks, including retries."""
+        subject_id = None
+
+        if self.resource == SentryAppResourceType.ISSUE and self.action == IssueActionType.CREATED:
+            subject_id = get_path(self.data, "issue", "id")
+        elif self.resource == SentryAppResourceType.ERROR and self.action == ErrorActionType.CREATED:
+            subject_id = get_path(self.data, "error", "event_id")
+
+        if subject_id is None:
+            return None
+
+        value = f"{self.resource}.{self.action}:{subject_id}"
+        return sha256(value.encode("utf-8")).hexdigest()[:32]
+
     @cached_property
     def sentry_headers(self) -> dict[str, str]:
         """Headers Sentry sets on every webhook request.
@@ -116,13 +138,19 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         """
         request_uuid = uuid4().hex
 
-        return {
+        headers = {
             "Content-Type": "application/json",
             "Request-ID": request_uuid,
             "Sentry-Hook-Resource": self.resource,
             "Sentry-Hook-Timestamp": str(int(time())),
             "Sentry-Hook-Signature": self.install.sentry_app.build_signature(self.body),
         }
+
+        idempotency_key = self.idempotency_key
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+
+        return headers
 
     @property
     def custom_headers(self) -> dict[str, str]:
