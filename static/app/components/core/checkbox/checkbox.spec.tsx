@@ -78,6 +78,25 @@ describe('Checkbox', () => {
     expect(checkbox).not.toHaveAttribute('aria-disabled');
   });
 
+  it('preserves keyboard interaction when a checkbox with a tooltip is enabled', async () => {
+    const onChange = jest.fn();
+    const onKeyDown = jest.fn();
+    render(
+      <Checkbox
+        aria-label="Enable feature"
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        tooltipProps={{title: 'Enable this feature'}}
+      />
+    );
+
+    await userEvent.tab();
+    await userEvent.keyboard(' ');
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
+  });
+
   it('uses native disabled when the tooltip is disabled', () => {
     render(
       <Checkbox

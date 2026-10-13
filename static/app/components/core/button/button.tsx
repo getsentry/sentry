@@ -4,7 +4,7 @@ import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Tooltip, useDisabledTooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {
@@ -13,18 +13,6 @@ import {
 } from './styles';
 import type {DO_NOT_USE_ButtonProps as ButtonProps, ButtonSize} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
-
-function preventDisabledKeyboardActivation(
-  e: React.KeyboardEvent,
-  consumer?: React.KeyboardEventHandler
-) {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    e.stopPropagation();
-    return;
-  }
-  consumer?.(e);
-}
 
 export type {ButtonProps};
 
@@ -47,30 +35,25 @@ export function Button({
   const {hasChildren, accessibleLabel} = useButtonFunctionality(buttonProps);
   const {handleClick} = useClickTracking(buttonProps, 'button');
 
-  // When a tooltip is present, use aria-disabled instead of native disabled
-  // so the button stays focusable and the tooltip can open on keyboard focus.
-  const disabledWithTooltip = Boolean(
-    disabled && tooltipProps?.title && !tooltipProps.disabled
-  );
+  const disabledProps = useDisabledTooltip<HTMLButtonElement>({
+    disabled,
+    tooltipProps,
+    onKeyDown: props.onKeyDown,
+    'aria-disabled': props['aria-disabled'],
+  });
 
   return (
     <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
       <StyledButton
         aria-label={accessibleLabel}
         aria-busy={busy}
-        disabled={disabledWithTooltip ? undefined : disabled}
         size={size}
         type={type}
         busy={busy}
         {...props}
-        aria-disabled={disabledWithTooltip || props['aria-disabled']}
+        {...disabledProps}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
-        onKeyDown={
-          disabledWithTooltip
-            ? e => preventDisabledKeyboardActivation(e, props.onKeyDown)
-            : props.onKeyDown
-        }
         role="button"
       >
         <Flex

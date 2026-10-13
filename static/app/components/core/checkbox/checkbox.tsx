@@ -4,7 +4,11 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Tooltip, type ControlTooltipProps} from '@sentry/scraps/tooltip';
+import {
+  Tooltip,
+  useDisabledTooltip,
+  type ControlTooltipProps,
+} from '@sentry/scraps/tooltip';
 
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -104,9 +108,7 @@ export function Checkbox({
   tooltipProps,
   ...props
 }: CheckboxProps) {
-  const disabledWithTooltip = Boolean(
-    props.disabled && tooltipProps?.title && !tooltipProps.disabled
-  );
+  const disabledProps = useDisabledTooltip<HTMLInputElement>({...props, tooltipProps});
 
   const nativeCheckBoxRef = useCallback(
     (node: HTMLInputElement | null) => {
@@ -127,7 +129,7 @@ export function Checkbox({
       size={size}
       disabled={props.disabled}
       readOnly={props.readOnly}
-      onClickCapture={disabledWithTooltip ? preventDisabledInteraction : undefined}
+      onClickCapture={props.disabled ? preventDisabledInteraction : undefined}
       {...wrapperProps}
     >
       <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
@@ -136,22 +138,10 @@ export function Checkbox({
           checked={checked !== 'indeterminate' && checked}
           type="checkbox"
           {...props}
-          disabled={disabledWithTooltip ? undefined : props.disabled}
-          aria-disabled={disabledWithTooltip || props['aria-disabled']}
-          name={disabledWithTooltip ? undefined : props.name}
-          required={disabledWithTooltip ? undefined : props.required}
-          onChange={disabledWithTooltip ? preventDisabledInteraction : props.onChange}
-          onKeyDown={
-            disabledWithTooltip
-              ? event => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    preventDisabledInteraction(event);
-                    return;
-                  }
-                  props.onKeyDown?.(event);
-                }
-              : props.onKeyDown
-          }
+          {...disabledProps}
+          name={props.disabled ? undefined : props.name}
+          required={props.disabled ? undefined : props.required}
+          onChange={props.disabled ? preventDisabledInteraction : props.onChange}
         />
       </Tooltip>
 
