@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 
 from sentry import tagstore
@@ -19,7 +20,6 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     build_footer,
     get_color,
-    get_title_link,
     get_title_link_workflow_engine_ui,
 )
 from sentry.integrations.types import ExternalProviders
@@ -28,10 +28,11 @@ from sentry.models.project import Project
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.types import NotificationOrigin
-from sentry.notifications.utils.rules import RuleIdType, get_rule_or_workflow_id
 from sentry.services.eventstore.models import GroupEvent
 
 from ..message_builder.base.component import DiscordComponentCustomIds as CustomIds
+
+logger = logging.getLogger(__name__)
 
 
 class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
@@ -62,39 +63,30 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
             max(self.group.last_seen, self.event.datetime) if self.event else self.group.last_seen
         )
         obj: Group | GroupEvent = self.event if self.event is not None else self.group
-        rule_id = None
-        rule_environment_id = None
-        key: RuleIdType = "legacy_rule_id"
-        if self.rules:
-            rule_environment_id = self.rules[0].environment_id
-            key, rule_id = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
-
         url = None
-        match key:
-            case "workflow_id":
-                url = get_title_link_workflow_engine_ui(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.DISCORD,
-                    int(rule_id) if rule_id else None,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                )
-            case "legacy_rule_id":
-                url = get_title_link(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.DISCORD,
-                    int(rule_id) if rule_id else None,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                )
+        origin = self.rules[0] if self.rules else None
+        if origin is not None and origin.workflow_id is not None:
+            url = get_title_link_workflow_engine_ui(
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                ExternalProviders.DISCORD,
+                origin.workflow_id,
+                origin.environment_id,
+                notification_uuid=notification_uuid,
+            )
+        else:
+            logger.error(
+                "discord.issue_alert.missing_workflow_id",
+                extra={
+                    "legacy_rule_id": origin.legacy_rule_id if origin is not None else None,
+                    "group_id": self.group.id,
+                    "project_id": self.group.project_id,
+                    "organization_id": project.organization_id,
+                },
+            )
         if url is not None and self.link_decorator is not None:
             url = self.link_decorator.decorate_url(url)
 

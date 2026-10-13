@@ -15,10 +15,9 @@ from sentry.integrations.discord.message_builder.base.component import DiscordCo
 from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     build_footer,
-    get_title_link,
 )
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
@@ -140,15 +139,6 @@ class DiscordIssueAlertTest(RuleTestCase):
         embed = data["embeds"][0]
         assert embed == {
             "title": build_attachment_title(self.event.group),
-            "url": get_title_link(
-                self.event.group,
-                self.event,
-                False,
-                False,
-                None,
-                ExternalProviders.DISCORD,
-                notification_uuid=notification_uuid,
-            ),
             "color": LEVEL_TO_COLOR["error"],
             "footer": {"text": build_footer(self.event.group, self.event.project, "{text}", None)},
             "fields": [],

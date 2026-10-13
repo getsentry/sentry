@@ -18,7 +18,6 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     format_actor_option_slack,
     format_actor_options_slack,
-    get_title_link,
     get_title_link_workflow_engine_ui,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
@@ -58,7 +57,6 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.notifications.utils.rules import RuleIdType
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -607,19 +605,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         rule_id = None
         workflow_id = self.workflow_id
-        rule_environment_id = None
-        link_key: RuleIdType = "legacy_rule_id"
-        link_id = None
+        environment_id = None
         if self.rules:
             origin = self.rules[0]
             rule_id = origin.legacy_rule_id
-            workflow_id = origin.workflow_id or workflow_id
-            rule_environment_id = origin.environment_id
-            if origin.workflow_id is not None:
-                link_key = "workflow_id"
-                link_id = origin.workflow_id
-            elif origin.legacy_rule_id is not None:
-                link_id = origin.legacy_rule_id
+            workflow_id = origin.workflow_id if origin.workflow_id is not None else workflow_id
+            environment_id = origin.environment_id
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -627,32 +618,17 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_text = get_action_text(self.actions, self.identity)
             has_action = True
 
-        title_link = None
-        match link_key:
-            case "workflow_id":
-                title_link = get_title_link_workflow_engine_ui(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.SLACK,
-                    link_id,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                )
-            case "legacy_rule_id":
-                title_link = get_title_link(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.SLACK,
-                    link_id,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                )
+        title_link = get_title_link_workflow_engine_ui(
+            self.group,
+            self.event,
+            self.link_to_event,
+            self.issue_details,
+            self.notification,
+            ExternalProviders.SLACK,
+            workflow_id,
+            environment_id,
+            notification_uuid=notification_uuid,
+        )
         if title_link is not None and self.link_decorator is not None:
             title_link = self.link_decorator.decorate_url(title_link)
 

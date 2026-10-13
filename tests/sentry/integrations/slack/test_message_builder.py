@@ -86,10 +86,6 @@ def build_test_message_blocks(
     if rule:
         if workflow_id:
             title_link += f"&workflow_id={workflow_id}&alert_type=issue"
-        elif legacy_rule_id:
-            title_link += f"&alert_rule_id={legacy_rule_id}&alert_type=issue"
-        else:
-            title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
 
     title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
 
