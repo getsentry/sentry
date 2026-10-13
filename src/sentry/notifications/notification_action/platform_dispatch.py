@@ -52,9 +52,8 @@ def get_platform_provider(
         or invocation.workflow_id == TEST_NOTIFICATION_ID
         or invocation.action.id == TEST_NOTIFICATION_ID
         or provider not in options.get(ALERT_PROVIDERS_OPTION).get(source, [])
-        or not features.has(
-            "organizations:notification-platform.alerts",
-            invocation.detector.linked_project.organization,
+        or not NotificationService.has_access(
+            invocation.detector.linked_project.organization, source
         )
     ):
         return None
