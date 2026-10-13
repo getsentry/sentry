@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import type {TooltipPropsWithOptionalTitle} from './tooltip';
 
-function preventDisabledInteraction(event: React.SyntheticEvent): void {
+function preventInteraction(event: React.SyntheticEvent): void {
   event.preventDefault();
   event.stopPropagation();
 }
@@ -34,7 +34,7 @@ export function useDisabledTooltip<Element extends HTMLElement>({
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<Element>) => {
       if (disabledWithTooltip && (event.key === 'Enter' || event.key === ' ')) {
-        preventDisabledInteraction(event);
+        preventInteraction(event);
         return;
       }
       onKeyDown?.(event);
@@ -46,7 +46,7 @@ export function useDisabledTooltip<Element extends HTMLElement>({
     disabled: disabledWithTooltip ? undefined : disabled,
     'aria-disabled': disabledWithTooltip || ariaDisabled,
     onKeyDown: handleKeyDown,
-    onClickCapture: disabled ? preventDisabledInteraction : onClickCapture,
-    onChange: disabled ? preventDisabledInteraction : onChange,
+    onClickCapture: disabled ? preventInteraction : onClickCapture,
+    onChange: disabled ? preventInteraction : onChange,
   };
 }
