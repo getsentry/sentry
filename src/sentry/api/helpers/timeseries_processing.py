@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Final, Literal
+from typing import Final, Literal, overload
 
 FILL_MODE_LOCF: Final = "locf"
 FILL_MODE_ZERO: Final = "zero"
@@ -78,6 +78,27 @@ def fill_timeseries(
         return FilledTimeseries(values=filled_values, filled=filled)
     else:
         raise ValueError(f"Unsupported fill mode: {mode}")
+
+
+@overload
+def smooth_timeseries(
+    timestamps: Sequence[float],
+    values: Sequence[float | None],
+    *,
+    mode: Literal["sma"],
+    window_size: int = 3,
+) -> list[float | None]: ...
+
+
+@overload
+def smooth_timeseries(
+    timestamps: Sequence[float],
+    values: Sequence[float | None],
+    *,
+    mode: Literal["ema"],
+    window_size: int = 3,
+    smoothing_factor: float | None = None,
+) -> list[float | None]: ...
 
 
 def smooth_timeseries(
