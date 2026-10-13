@@ -977,6 +977,11 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
       body: fixProposedGroup,
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      match: [MockApiClient.matchQuery({environment: ['production']})],
+      body: {...fixProposedGroup, firstSeen: null, lastSeen: null},
+    });
     const pullRequestsRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
       match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
@@ -1014,6 +1019,14 @@ describe('InboxPage', () => {
       await within(preview).findByRole('heading', {name: 'Fix proposed issue'})
     ).toBeInTheDocument();
     expect(within(preview).getByText('Fix proposed message')).toBeInTheDocument();
+    expect(within(preview).getByRole('time', {name: 'First Seen'})).toHaveAttribute(
+      'datetime',
+      '2026-07-18T12:00:00.000Z'
+    );
+    expect(within(preview).getByRole('time', {name: 'Last Seen'})).toHaveAttribute(
+      'datetime',
+      '2026-07-19T12:00:00.000Z'
+    );
     expect(groupRequest).toHaveBeenCalledTimes(1);
     expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
     expect(autofixSetupRequest).toHaveBeenCalledTimes(1);

@@ -713,9 +713,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Desired chunk size for TUS uploads.
+# Desired chunk max size for TUS uploads.
 register(
-    "relay.upload-chunk.size",
+    "relay.upload-max-chunk.size",
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
