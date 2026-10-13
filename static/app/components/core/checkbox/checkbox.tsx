@@ -96,7 +96,7 @@ export interface CheckboxProps extends Omit<
    * The size of the checkbox. Defaults to 'sm'.
    */
   size?: FormSize;
-  /** Explains why a disabled checkbox cannot be changed. */
+  /** Tooltip shown on hover or focus. */
   tooltipProps?: TooltipPropsWithOptionalTitle;
 }
 
@@ -117,9 +117,7 @@ export function Checkbox({
   const isDisabled = Boolean(disabled);
   const resolvedTooltipProps = {
     ...tooltipProps,
-    title: isDisabled
-      ? (tooltipProps?.title ?? (typeof disabled === 'string' ? disabled : undefined))
-      : undefined,
+    title: tooltipProps?.title ?? (typeof disabled === 'string' ? disabled : undefined),
   };
   const {isFocusableDisabled, disabledProps} = useDisabledTooltip({
     disabled: isDisabled,

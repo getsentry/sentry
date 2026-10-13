@@ -82,7 +82,7 @@ describe('Checkbox', () => {
     expect(checkbox).not.toHaveAttribute('aria-disabled');
   });
 
-  it('does not show a disabled reason when the checkbox is enabled', async () => {
+  it('shows a tooltip without disabling an enabled checkbox', async () => {
     const onChange = jest.fn();
     const onKeyDown = jest.fn();
     render(
@@ -96,9 +96,8 @@ describe('Checkbox', () => {
 
     const checkbox = screen.getByRole('checkbox', {name: 'Enable feature'});
     await userEvent.tab();
-    await userEvent.hover(checkbox);
-    expect(screen.queryByText('Enable this feature')).not.toBeInTheDocument();
-    expect(checkbox).not.toHaveAccessibleDescription();
+    expect(await screen.findByText('Enable this feature')).toBeInTheDocument();
+    expect(checkbox).toHaveAccessibleDescription('Enable this feature');
     await userEvent.keyboard(' ');
 
     expect(onChange).toHaveBeenCalledTimes(1);
