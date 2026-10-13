@@ -1,31 +1,14 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import type {Release} from 'sentry/types/release';
-import {escapeDoubleQuotes} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
-import {
-  DEFAULT_TABLE_LIMIT,
-  DisplayType,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
-import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -54,25 +37,6 @@ interface ReleaseWidgetQueriesProps {
 
 export function derivedMetricsToField(field: string): string {
   return METRICS_EXPRESSION_TO_FIELD[field] ?? field;
-}
-
-function getReleasesQuery(releases: Release[]): {
-  releaseQueryString: string;
-  releasesUsed: string[];
-} {
-  const releasesArray: string[] = [];
-  releasesArray.push(releases[0]!.version);
-  for (let i = 1; i < releases.length; i++) {
-    releasesArray.push(releases[i]!.version);
-  }
-  const releaseCondition = `release:[${releasesArray.map(v => (new RegExp(TAG_VALUE_ESCAPE_PATTERN, 'g').test(v) ? `"${escapeDoubleQuotes(v)}"` : v))}]`;
-  if (releases.length < 10) {
-    return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
-  }
-  if (releases.length > 10 && releaseCondition.length > 1500) {
-    return getReleasesQuery(releases.slice(0, -10));
-  }
-  return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
 }
 
 /**
@@ -157,196 +121,21 @@ export function ReleaseWidgetQueries({
   limit,
   onDataFetched,
   onDataFetchStart,
-  selection: propsSelection,
+  selection,
   children,
   widgetInterval,
 }: ReleaseWidgetQueriesProps) {
-  const config = ReleasesConfig;
-
-  const mounted = useRef(false);
-  const allProjects = useProjects();
-  const api = useApi();
-  const organization = useOrganization();
-  const hookPageFilters = usePageFilters();
-
-  // Use override selection if provided (for modal zoom), otherwise use hook
-  const selection = propsSelection ?? hookPageFilters.selection;
-
-  const [requestErrorMessage, setRequestErrorMessage] = useState<string | undefined>(
-    undefined
-  );
-  const [releases, setReleases] = useState<Release[] | undefined>(undefined);
-
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-
-  const fetchReleases = useCallback(async () => {
-    setRequestErrorMessage(undefined);
-
-    try {
-      const releaseResponse = await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET',
-          data: {
-            sort: 'date',
-            project: selection.projects,
-            per_page: 50,
-            environment: selection.environments,
-            // Propagate release filters
-            query: dashboardFilters
-              ? dashboardFiltersToString(dashboardFilters, WidgetType.RELEASE)
-              : undefined,
-          },
-        }
-      );
-      if (!mounted.current) {
-        return;
-      }
-      setReleases(releaseResponse);
-    } catch (error: any) {
-      if (!mounted.current) {
-        return;
-      }
-
-      const message = error.responseJSON
-        ? error.responseJSON.error
-        : t('Error sorting by releases');
-      setRequestErrorMessage(message);
-      addErrorMessage(message);
-    }
-  }, [
-    api,
-    dashboardFilters,
-    organization.slug,
-    selection.environments,
-    selection.projects,
-  ]);
-
-  const fetchReleasesForCustomSorting =
-    widget.queries[0] && requiresCustomReleaseSorting(widget.queries[0]);
-  useEffect(() => {
-    if (fetchReleasesForCustomSorting) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      fetchReleases();
-    }
-  }, [fetchReleasesForCustomSorting, fetchReleases]);
-
-  const transformWidget = useCallback(
-    (initialWidget: Widget): Widget => {
-      const transformedWidget = cloneDeep(initialWidget);
-
-      const isCustomReleaseSorting = requiresCustomReleaseSorting(
-        transformedWidget.queries[0]!
-      );
-      const isDescending = transformedWidget.queries[0]!.orderby.startsWith('-');
-      const useSessionAPI =
-        transformedWidget.queries[0]!.columns.includes('session.status');
-
-      let releaseCondition = '';
-      const releasesArray: string[] = [];
-      if (isCustomReleaseSorting) {
-        if (releases?.length === 1) {
-          releaseCondition += `release:${releases[0]!.version}`;
-          releasesArray.push(releases[0]!.version);
-        }
-        if (releases && releases.length > 1) {
-          const {releaseQueryString, releasesUsed} = getReleasesQuery(releases);
-          releaseCondition += releaseQueryString;
-          releasesArray.push(...releasesUsed);
-
-          if (!isDescending) {
-            releasesArray.reverse();
-          }
-        }
-      }
-
-      if (!useSessionAPI) {
-        transformedWidget.queries.forEach(query => {
-          query.conditions =
-            query.conditions + (releaseCondition === '' ? '' : ` ${releaseCondition}`);
-        });
-      }
-
-      return transformedWidget;
-    },
-    [releases]
-  );
-
-  const afterFetchData = useCallback(
-    (data: SessionApiResponse) => {
-      const isDescending = widget.queries[0]!.orderby.startsWith('-');
-
-      const releasesArray: string[] = [];
-      if (requiresCustomReleaseSorting(widget.queries[0]!)) {
-        if (releases?.length === 1) {
-          releasesArray.push(releases[0]!.version);
-        }
-        if (releases && releases.length > 1) {
-          const {releasesUsed} = getReleasesQuery(releases);
-          releasesArray.push(...releasesUsed);
-
-          if (!isDescending) {
-            releasesArray.reverse();
-          }
-        }
-      }
-
-      if (releasesArray.length) {
-        data.groups.sort((group1, group2) => {
-          const release1 = group1.by.release;
-          const release2 = group2.by.release;
-          // @ts-expect-error TS(2345): Argument of type 'string | number | undefined' is ... Remove this comment to see the full error message
-          return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
-        });
-        data.groups = data.groups.slice(0, getLimit(widget.displayType, limit));
-      }
-
-      data.groups.forEach(group => {
-        // Convert the project ID in the grouping results to the project slug
-        // for a more human readable display
-        if (group.by.project) {
-          const project = allProjects.projects.find(
-            p => p.id === String(group.by.project)
-          );
-          group.by.project = project?.slug ?? group.by.project;
-        }
-      });
-    },
-    [allProjects.projects, limit, releases, widget.displayType, widget.queries]
-  );
-
-  const transformedWidget = useMemo(
-    () => transformWidget(widget),
-    [transformWidget, widget]
-  );
-
-  const {errorMessage, ...rest} = useGenericWidgetQueries<
-    SessionApiResponse,
-    SessionApiResponse
-  >({
-    config,
-    widget: transformedWidget,
+  const props = useGenericWidgetQueries<SessionApiResponse, SessionApiResponse>({
+    config: ReleasesConfig,
+    widget,
     dashboardFilters,
     cursor,
     limit: getLimit(widget.displayType, limit),
     onDataFetched,
     onDataFetchStart,
     selection,
-    loading: requiresCustomReleaseSorting(widget.queries[0]!) ? !releases : undefined,
-    afterFetchTableData: afterFetchData,
-    afterFetchSeriesData: afterFetchData,
     widgetInterval,
   });
 
-  return children({
-    errorMessage: requestErrorMessage ?? errorMessage,
-    ...rest,
-  });
+  return children(props);
 }

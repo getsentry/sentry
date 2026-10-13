@@ -147,7 +147,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     expect(mockRelease).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
-        data: {
+        query: {
           environment: ['prod'],
           per_page: 50,
           project: [1],

@@ -34,7 +34,6 @@ type Results = {
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
-  totalIssuesCount?: string;
 };
 
 type Props = {
@@ -51,7 +50,6 @@ type Props = {
       | 'timeseriesResults'
       | 'timeseriesResultsTypes'
       | 'timeseriesResultsUnits'
-      | 'totalIssuesCount'
       | 'confidence'
       | 'dataScanned'
       | 'isSampled'
