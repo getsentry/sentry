@@ -11,7 +11,7 @@ see the [upstream README](https://github.com/getsentry/sentry-refactor-tasks/blo
 .sentry-refactor-tasks/
 └── conventions/
     ├── <name>.yaml           # one rule each
-    ├── <name>.detect.sh      # optional sidecar detector for a rule
+    ├── <name>.detect.{sh,py} # optional sidecar detector for a rule
     └── oxlint-json-runner.ts # shared helper for oxlint-backed detectors
 ```
 
@@ -24,9 +24,10 @@ and runs it through `oxlint-json-runner.ts` — copy it when adding another
 repo's own `oxlint.config.ts` does not enforce it; once lint blocks new
 violations, the scanner has nothing left to find.
 
-All rules target the frontend (`static/`). To add a Python rule, point a new
-convention's `include`/`prefilter` at `src/sentry/**/*.py` instead — the scanner
-is language-agnostic, so each file sets its own scope.
+Most rules target the frontend (`static/`). The scanner is language-agnostic, so
+each file sets its own scope: `no-naive-utc-datetime` is the Python example, a
+lint-path rule whose `.detect.py` walks the AST of `src/` and `tests/` using only
+the standard library.
 
 ## Running it
 
