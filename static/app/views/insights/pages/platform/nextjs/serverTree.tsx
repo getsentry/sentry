@@ -9,7 +9,7 @@ import {IconProject} from '@sentry/icons/project';
 import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
@@ -275,10 +275,9 @@ function TreeNodeRenderer({
 
   if (item.type === 'component') {
     return (
-      <SimpleTable.Row>
+      <TreeRow>
         <SimpleTable.RowCell>
           <Flex align="center" gap="xs" minWidth={0} style={{paddingLeft: indent * 18}}>
-            <Container flexShrink={0} width="24px" height="24px" />
             <IconCode variant="muted" size="xs" />
             <TextOverflow>
               {exploreLink ? <Link to={exploreLink}>{item.name}</Link> : item.name}
@@ -297,18 +296,18 @@ function TreeNodeRenderer({
             thresholds={getP95Threshold(item['avg(span.duration)'])}
           />
         </SimpleTable.RowCell>
-      </SimpleTable.Row>
+      </TreeRow>
     );
   }
 
   return (
     <Fragment>
-      <SimpleTable.Row>
+      <TreeRow>
         <SimpleTable.RowCell>
           <Flex align="center" gap="xs" minWidth={0} style={{paddingLeft: indent * 18}}>
             <Button
               size="zero"
-              variant="transparent"
+              variant="link"
               aria-expanded={!isCollapsed}
               aria-label={
                 isCollapsed
@@ -369,7 +368,7 @@ function TreeNodeRenderer({
         <SimpleTable.RowCell />
         <SimpleTable.RowCell />
         <SimpleTable.RowCell />
-      </SimpleTable.Row>
+      </TreeRow>
       {!isCollapsed &&
         'children' in item &&
         item.children
@@ -393,6 +392,13 @@ const FlushTable = styled(SimpleTable)`
 
   > thead > tr {
     border-radius: 0;
+  }
+`;
+
+const TreeRow = styled(SimpleTable.Row)`
+  [role='cell'] {
+    min-height: 28px;
+    padding-block: ${p => p.theme.space.xs};
   }
 `;
 
