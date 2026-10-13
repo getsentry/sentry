@@ -149,9 +149,14 @@ describe('ThinkingBlock', () => {
     expect(screen.queryByText('Querying spans')).not.toBeInTheDocument();
   });
 
-  it('formats minutes for long durations', () => {
+  it.each([
+    ['00:00:59.900', '59.9s'],
+    ['00:01:00.000', '1m 0s'],
+    ['00:01:30.000', '1m 30s'],
+    ['01:02:03.000', '1h 2m 3s'],
+  ])('formats a frozen duration of %s as %s', (endOffset, expected) => {
     const start = new Date('2025-01-01T00:00:00Z');
-    const end = new Date('2025-01-01T00:01:30.000Z');
+    const end = new Date(`2025-01-01T${endOffset}Z`);
 
     render(
       <ThinkingBlock title="Done" startTime={start} endTime={end}>
@@ -159,6 +164,6 @@ describe('ThinkingBlock', () => {
       </ThinkingBlock>
     );
 
-    expect(screen.getByText('1.5min')).toBeInTheDocument();
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 });

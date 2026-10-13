@@ -1,10 +1,12 @@
 /** Various shared components for diff tables */
 
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconFix} from '@sentry/icons/fix';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 

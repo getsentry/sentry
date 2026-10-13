@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconFix} from '@sentry/icons/fix';
 
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
@@ -14,7 +15,6 @@ import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

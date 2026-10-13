@@ -1,4 +1,10 @@
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGroup} from '@sentry/icons/group';
+import {IconInput} from '@sentry/icons/input';
+import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -23,14 +29,6 @@ import {
   type GridColumnSort,
 } from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconCopy,
-  IconDelete,
-  IconEllipsis,
-  IconGroup,
-  IconInput,
-  IconStar,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';

@@ -77,6 +77,8 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^api/0/auth-details/$'),
   new RegExp('^api/0/_admin/instance-level-oauth/$'),
   new RegExp('^api/0/_admin/instance-level-oauth/[^/]+/$'),
+  new RegExp('^api/0/_admin/users/[^/]+/email-activity/$'),
+  new RegExp('^api/0/_admin/users/[^/]+/email-bounces/$'),
   new RegExp('^api/0/_admin/users/[^/]+/suspend/$'),
   new RegExp('^_admin/'),
   new RegExp('^debug/mail/relocate-account/$'),

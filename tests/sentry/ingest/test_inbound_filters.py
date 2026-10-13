@@ -669,6 +669,11 @@ def test_custom_inbound_filters_stop_at_the_project_cap(default_project, factori
             id="generic_ip_filter_needs_no_plan_feature",
         ),
         pytest.param(
+            InboundFilterFeatures(custom_inbound_filters_v2=True),
+            [],
+            id="custom_inbound_filters_v2_need_plan_feature",
+        ),
+        pytest.param(
             InboundFilterFeatures(True, True, True, True, True),
             ["ip-address", "log-message", "trace-metric-name", "cif"],
             id="every_feature",
