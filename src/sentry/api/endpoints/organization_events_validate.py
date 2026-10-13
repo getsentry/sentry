@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
@@ -197,6 +197,10 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             response["projects"].append(
                 Validation(valid=False, error="At least one valid project is required to query")
             )
+            return self.serialize_response(response)
+        except PermissionDenied:
+            response["valid"] = False
+            response["projects"].append(Validation(valid=False, error="Invalid project"))
             return self.serialize_response(response)
         except UnknownEnvironments as error:
             response["valid"] = False

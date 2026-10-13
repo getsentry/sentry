@@ -15,22 +15,16 @@ from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.client_kind import get_client_kind
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
     INGESTION_DELAY,
-    Annotation,
     BucketBoundaries,
     Row,
     SeriesMeta,
     StatsMeta,
     StatsResponse,
     TimeSeries,
-)
-from sentry.api.helpers.data_annotations import (
-    get_dropped_data_annotations,
-    record_dropped_events_telemetry,
 )
 from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
@@ -278,13 +272,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         logger.warning("Failed to fetch ingestion delay status", exc_info=True)
             finally:
                 pool.shutdown(wait=False)
-            include_annotations = request.GET.get(
-                "includeAnnotations"
-            ) is not None and features.has(
-                "organizations:explore-data-fidelity-annotations",
-                organization,
-                actor=request.user,
-            )
             return Response(
                 self.serialize_stats_data(
                     events_stats,
@@ -293,9 +280,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     dataset,
                     organization,
-                    include_annotations,
                     ingestion_delay_status,
-                    request=request,
                 ),
                 status=200,
             )
@@ -478,9 +463,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         dataset,
         organization: Organization,
-        include_annotations: bool = False,
         ingestion_delay_status: IngestionDelayStatus | None = None,
-        request: Request | None = None,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
         now = datetime.now().timestamp()
@@ -501,26 +484,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         debug_info[key] = keyed_result.data["meta"]["debug_info"]
             # ignore typing here cause we don't want the openapi docs to include debug_info
             stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
-        if include_annotations:
-            dropped_annotations: list[Annotation] = []
-            accepted_annotations: list[Annotation] = []
-            try:
-                dropped_annotations, accepted_annotations = get_dropped_data_annotations(
-                    dataset, snuba_params, rollup
-                )
-            except Exception:
-                sentry_sdk.capture_exception()
-            stats_meta["droppedAnnotations"] = dropped_annotations
-            stats_meta["acceptedAnnotations"] = accepted_annotations
-
-            record_dropped_events_telemetry(
-                endpoint="events-timeseries",
-                client_kind=get_client_kind(request).value if request is not None else "unknown",
-                dataset_label=DATASET_LABELS[dataset],
-                dropped_count=len(dropped_annotations),
-                accepted_count=len(accepted_annotations),
-            )
-
         if ingestion_delay_status is not None:
             stats_meta["ingestion"] = serialize_ingestion_status(ingestion_delay_status)
             if ingestion_delay_status.complete_through is not None:
