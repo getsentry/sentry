@@ -97,7 +97,9 @@ function approvalTag(data: SnapshotDetailsApiResponse) {
 
 function buildTitle(data: SnapshotDetailsApiResponse): EntityHeaderTitleProps {
   const branch = data.vcs_info.head_ref;
-  const branchUrl = getBranchUrl(data.vcs_info, branch);
+  // The pull request is where the branch is being reviewed, so it is the more
+  // useful of the two. The branch itself stands in when there is no PR.
+  const titleUrl = getPrUrl(data.vcs_info) ?? getBranchUrl(data.vcs_info, branch);
   const tags = [approvalTag(data)];
 
   if (!branch) {
@@ -113,26 +115,24 @@ function buildTitle(data: SnapshotDetailsApiResponse): EntityHeaderTitleProps {
 
   const title = {label: t('Branch'), value: branch, tags};
 
-  return branchUrl
-    ? {...title, type: 'link', externalHref: branchUrl}
+  return titleUrl
+    ? {...title, type: 'link', externalHref: titleUrl}
     : {...title, type: 'text'};
 }
 
 function buildMetadata(data: SnapshotDetailsApiResponse): EntityHeaderProps['metadata'] {
   const {vcs_info: vcsInfo} = data;
-  const prUrl = getPrUrl(vcsInfo);
   const shaUrl = getShaUrl(vcsInfo, vcsInfo.head_sha);
   const shortSha = vcsInfo.head_sha?.slice(0, 7);
 
   return {
     label: t('Snapshot build'),
     items: [
-      vcsInfo.pr_number && prUrl
+      vcsInfo.pr_number
         ? {
-            type: 'link',
+            type: 'text',
             label: t('Pull request'),
             value: `#${vcsInfo.pr_number}`,
-            externalHref: prUrl,
             leadingGraphic: <IconPullRequest size="md" />,
           }
         : null,

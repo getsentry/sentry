@@ -29,18 +29,34 @@ function renderHeader(overrides: Partial<SnapshotDetailsApiResponse> = {}) {
 }
 
 describe('SnapshotEntityHeader title', () => {
-  it('links the branch out to the repository', () => {
+  it('links the branch out to its pull request', () => {
     renderHeader();
 
     const link = screen.getByRole('link', {name: 'Branch, seer/spans-table'});
     expect(link).toHaveAttribute(
       'href',
-      'https://github.com/getsentry/sentry/tree/seer/spans-table'
+      'https://github.com/getsentry/sentry/pull/125782'
     );
     expect(link).toHaveAttribute('target', '_blank');
     expect(
       within(link).getByRole('heading', {level: 2, name: 'Branch, seer/spans-table'})
     ).toBeVisible();
+  });
+
+  it('falls back to the branch itself when there is no pull request', () => {
+    renderHeader({
+      vcs_info: {
+        provider: 'github',
+        head_repo_name: 'getsentry/sentry',
+        head_ref: 'seer/spans-table',
+        head_sha: '169d99deadbeef',
+      },
+    });
+
+    expect(screen.getByRole('link', {name: 'Branch, seer/spans-table'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/tree/seer/spans-table'
+    );
   });
 
   it('renders the branch as text when the repository is unknown', () => {
@@ -79,12 +95,31 @@ describe('SnapshotEntityHeader title', () => {
 });
 
 describe('SnapshotEntityHeader metadata', () => {
-  it('renders the pull request then the commit, both linked out', () => {
+  it('renders the pull request then the commit', () => {
     renderHeader();
 
-    const pr = screen.getByRole('link', {name: 'Pull request #125782'});
-    expect(pr).toHaveAttribute('href', 'https://github.com/getsentry/sentry/pull/125782');
-    expect(pr).toHaveAttribute('target', '_blank');
+    const items = screen.getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('#125782');
+    expect(items[1]).toHaveTextContent('169d99d');
+  });
+
+  it('leaves the pull request as text, so the title is the only way to it', () => {
+    renderHeader();
+
+    const [prItem] = screen.getAllByRole('listitem');
+    expect(prItem).toHaveTextContent('#125782');
+    expect(within(prItem!).queryByRole('link')).not.toBeInTheDocument();
+
+    const prLinks = screen
+      .getAllByRole('link')
+      .filter(link => link.getAttribute('href')?.includes('/pull/125782'));
+    expect(prLinks).toHaveLength(1);
+    expect(prLinks[0]).toHaveAccessibleName('Branch, seer/spans-table');
+  });
+
+  it('links the commit out to the repository', () => {
+    renderHeader();
 
     const commit = screen.getByRole('link', {name: 'Commit 169d99d'});
     expect(commit).toHaveAttribute(
@@ -92,11 +127,6 @@ describe('SnapshotEntityHeader metadata', () => {
       'https://github.com/getsentry/sentry/commit/169d99deadbeef'
     );
     expect(commit).toHaveAttribute('target', '_blank');
-
-    const items = screen.getAllByRole('listitem');
-    expect(items).toHaveLength(2);
-    expect(items[0]).toHaveTextContent('#125782');
-    expect(items[1]).toHaveTextContent('169d99d');
   });
 
   it('drops the pull request when the build has none', () => {
