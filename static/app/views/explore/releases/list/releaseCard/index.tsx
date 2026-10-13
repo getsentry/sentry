@@ -394,14 +394,32 @@ const AdoptionHeaderCell = styled(Table.HeadCell)`
 
 function getProjectColumns(showReleaseAdoptionStages: boolean): TableColumnConfig[] {
   return [
-    {key: 'project', width: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`},
+    {key: 'project', width: `minmax(${COL_WIDTH_MINIMUM}px, 1.1fr)`},
     ...(showReleaseAdoptionStages
-      ? [{key: 'adoptionStage', visible: {'5xl': true}}]
+      ? [{key: 'adoptionStage', visible: {'5xl': true}, width: atLeastContent('0.7fr')}]
       : []),
-    {key: 'adoption', visible: {xl: true}, width: '1fr'},
-    {key: 'crashFreeRate'},
-    {key: 'crashes', visible: {xl: true}},
-    {key: 'newIssues'},
-    {key: 'view'},
+    {key: 'adoption', visible: {xl: true}, width: '1.1fr'},
+    {
+      key: 'crashFreeRate',
+      width: {zero: atLeastContent('1.4fr'), xl: atLeastContent('1fr')},
+    },
+    {
+      key: 'crashes',
+      visible: {xl: true},
+      width: {xl: atLeastContent('0.5fr'), '5xl': atLeastContent('0.7fr')},
+    },
+    {
+      key: 'newIssues',
+      width: {
+        zero: atLeastContent('0.6fr'),
+        xl: atLeastContent('0.5fr'),
+        '5xl': atLeastContent('0.7fr'),
+      },
+    },
+    {key: 'view', width: {zero: '0.7fr', xl: '0.5fr'}},
   ];
+}
+
+function atLeastContent(fraction: string) {
+  return `minmax(max-content, ${fraction})`;
 }
