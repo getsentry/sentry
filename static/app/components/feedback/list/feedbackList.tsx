@@ -98,7 +98,7 @@ export function FeedbackList({onItemSelect}: Props) {
         <InfiniteListState
           queryResult={queryResult}
           backgroundUpdatingMessage={() => null}
-          errorMessage={error => (
+          errorMessage={({error}) => (
             <FeedbackListError error={error} onRetry={() => queryResult.refetch()} />
           )}
           loadingMessage={() => <LoadingIndicator />}
