@@ -207,7 +207,13 @@ describe('EventNavigation', () => {
       expect(within(openPeriodsTab).getByText('3')).toBeInTheDocument();
     });
 
-    it('labels the first tab Details without a count when each firing opens its own metric issue', () => {
+    it('shows the open period count on the first tab when each firing opens its own metric issue', () => {
+      const issueDetailsContext = jest.mocked(useIssueDetails)();
+
+      jest
+        .mocked(useIssueDetails)
+        .mockReturnValue({...issueDetailsContext, eventCount: 3});
+
       renderMetricNav(
         OrganizationFixture({
           features: [
@@ -219,11 +225,9 @@ describe('EventNavigation', () => {
         })
       );
 
-      const detailsTab = screen.getByRole('tab', {name: /Details/});
+      const openPeriodsTab = screen.getByRole('tab', {name: /Open Periods/});
 
-      expect(within(detailsTab).queryByText(/^\d+$/)).not.toBeInTheDocument();
-
-      expect(screen.queryByRole('tab', {name: /Open Periods/})).not.toBeInTheDocument();
+      expect(within(openPeriodsTab).getByText('3')).toBeInTheDocument();
     });
 
     it('links to the open periods list for metric issues', () => {

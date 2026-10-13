@@ -112,7 +112,6 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   // In this case, we need to hide the button to avoid confusion
   // This must live in this file as long as we use a feature flag so we know the organization
   // Once we remove the feature flag, we can move this logic to the issue type configs
-  // and remove the ternaries in this file
   const isIssueOpenedPerOpenPeriod =
     ISSUE_TYPES_OPENED_PER_OPEN_PERIOD.has(group.issueType) &&
     detectorsOpenIssuePerOpenPeriod(organization);
@@ -149,9 +148,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     attachmentPagination.next?.results || attachmentPagination.previous?.results;
 
   const TabName: Partial<Record<Tab, string>> = {
-    [Tab.DETAILS]: isIssueOpenedPerOpenPeriod
-      ? t('Details')
-      : issueTypeConfig.customCopy.eventUnits,
+    [Tab.DETAILS]: issueTypeConfig.customCopy.eventUnits,
     [Tab.EVENTS]: issueTypeConfig.customCopy.eventUnits,
     [Tab.REPLAYS]: t('Replays'),
     [Tab.ATTACHMENTS]: t('Attachments'),
@@ -163,7 +160,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     {
       key: Tab.DETAILS,
       name: TabName[Tab.DETAILS]!,
-      count: isIssueOpenedPerOpenPeriod ? null : <Count value={eventCount ?? 0} />,
+      count: <Count value={eventCount ?? 0} />,
       hidden: false,
     },
     {
