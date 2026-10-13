@@ -11,6 +11,7 @@ from requests import PreparedRequest, Request, Response
 from requests.adapters import RetryError
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.net.http import SafeSession
@@ -186,7 +187,8 @@ class BaseApiClient:
         """
         Generates a safe Requests session for the API client to use.
         """
-        return build_session(max_retries=0)
+        max_retries = 0 if options.get("integrations.client.disable_retries") else None
+        return build_session(max_retries=max_retries)
 
     @staticmethod
     def _normalize_cert_setting(cert_setting: object) -> str | tuple[str, str] | None:
