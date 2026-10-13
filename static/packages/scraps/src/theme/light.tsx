@@ -880,6 +880,34 @@ const dataviz = {
      */
     other: color.neutral.light.opaque400,
   },
+  sequential: {
+    magma: {
+      series5: [
+        color.yellow.light.opaque300,
+        color.categorical.light.yellow,
+        color.categorical.light.orange,
+        color.categorical.light.pink,
+        color.categorical.light.blurple,
+      ] as const,
+      series6: [
+        color.yellow.light.opaque300,
+        color.categorical.light.yellow,
+        color.categorical.light.salmon,
+        color.pink.light.opaque1000,
+        color.categorical.light.plum,
+        color.categorical.light.indigo,
+      ] as const,
+      series7: [
+        color.yellow.light.opaque300,
+        color.categorical.light.yellow,
+        color.categorical.light.orange,
+        color.red.light.opaque800,
+        color.pink.light.opaque1000,
+        color.categorical.light.plum,
+        color.categorical.light.indigo,
+      ] as const,
+    },
+  },
 };
 
 const elevation = {
@@ -1870,22 +1898,134 @@ const syntax = {
    */
   variable: content.primary,
   ansi: {
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzNFM0I0NSIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.black` `#3E3B45`
+     *
+     */
     black: color.neutral.light.opaque1400,
-    red: color.red.light.opaque1100,
-    green: color.green.light.opaque1100,
-    yellow: color.yellow.light.opaque1100,
-    blue: color.blue.light.opaque1100,
-    magenta: color.pink.light.opaque1100,
-    cyan: color.blue.light.opaque1000,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzU4MjdENiIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.blue` `#5827D6`
+     *
+     */
+    blue: color.blue.light.opaque1200,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzRDNDk1NCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightBlack` `#4C4954`
+     *
+     */
+    brightBlack: color.neutral.light.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzRDMEZDMCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightBlue` `#4C0FC0`
+     *
+     */
+    brightBlue: color.blue.light.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwNGU0ZSIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightCyan` `#004e4e`
+     *
+     */
+    brightCyan: '#004e4e',
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwNTYwMCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightGreen` `#005600`
+     *
+     */
+    brightGreen: color.green.light.opaque1400,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzg4MDA0RiIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightMagenta` `#88004F`
+     *
+     */
+    brightMagenta: color.pink.light.opaque1400,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzkyMDAwMCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightRed` `#920000`
+     *
+     */
+    brightRed: color.red.light.opaque1400,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzMwMkUzNiIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightWhite` `#302E36`
+     *
+     */
+    brightWhite: color.neutral.light.opaque1500,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzVmNGIwMCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.brightYellow` `#5f4b00`
+     *
+     */
+    brightYellow: '#5f4b00',
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwNTk1OSIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.cyan` `#005959`
+     *
+     */
+    cyan: '#005959',
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzAwNjcwMCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.green` `#006700`
+     *
+     */
+    green: color.green.light.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzlGMDA1RiIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.magenta` `#9F005F`
+     *
+     */
+    magenta: color.pink.light.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0FCMDAwMCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.red` `#AB0000`
+     *
+     */
+    red: color.red.light.opaque1300,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzNFM0I0NSIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.white` `#3E3B45`
+     *
+     */
     white: color.neutral.light.opaque1400,
-    brightBlack: color.neutral.light.opaque1100,
-    brightRed: color.red.light.opaque1200,
-    brightGreen: color.green.light.opaque1200,
-    brightYellow: color.yellow.light.opaque1200,
-    brightBlue: color.blue.light.opaque1200,
-    brightMagenta: color.pink.light.opaque1200,
-    brightCyan: color.blue.light.opaque1000,
-    brightWhite: color.neutral.light.opaque1400,
+    /**
+     *
+     * ![color visualization](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOTQiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCAyOTQgODAiPgogICAgPHJlY3Qgd2lkdGg9IjI5NCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzZiNTUwMCIvPgogIDwvc3ZnPg==)
+     *
+     * `ansi.yellow` `#6b5500`
+     *
+     */
+    yellow: '#6b5500',
   },
 };
 

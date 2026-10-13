@@ -1,3 +1,7 @@
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconClose} from '@sentry/icons/close';
+
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -6,7 +10,6 @@ import {
   type EmbedOutput,
 } from 'sentry/components/seer/markdown/embeds/utils';
 import {API_ACCESS_SCOPE_DETAILS, type ApiAccessScope} from 'sentry/constants/scopes';
-import {IconCheckmark, IconClock, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type AgentWriteApprovalStatus = EmbedOutput<'agentWriteApproval'>['status'];

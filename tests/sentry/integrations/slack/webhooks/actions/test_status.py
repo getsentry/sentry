@@ -923,9 +923,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         status_action = self.get_archive_status_action()
         original_message = self.get_original_message(self.group.id)
         workflow_id = self.rule.data["actions"][0]["workflow_id"]
-        callback_id = orjson.dumps(
-            {"issue": self.group.id, "rule": self.rule.id, "workflow": workflow_id}
-        ).decode()
+        callback_id = orjson.dumps({"issue": self.group.id, "workflow": workflow_id}).decode()
 
         resp = self.post_webhook_block_kit(
             action_data=[status_action],
@@ -1236,10 +1234,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert "alert_rule_id" not in blocks[0]["text"]["text"]
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
-    def test_rule_from_same_organization_is_used(self, mock_tags: MagicMock) -> None:
-        """
-        Ensure scoping the rule lookup by organization does not break the same-org case
-        """
+    def test_rule_from_same_organization_resolves_workflow(self, mock_tags: MagicMock) -> None:
         status_action = self.get_mark_ongoing_action()
         original_message = self.get_original_message(self.group.id)
         callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
@@ -1252,7 +1247,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
-        assert f"alert_rule_id={self.rule.id}" in blocks[0]["text"]["text"]
+        workflow_id = int(self.rule.data["actions"][0]["workflow_id"])
+        assert f"workflow_id={workflow_id}" in blocks[0]["text"]["text"]
 
     @patch("sentry.utils.metrics.backend.inner.incr")
     def test_rule_lookup_metric_without_rule(self, metrics_incr: MagicMock) -> None:

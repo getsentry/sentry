@@ -1,4 +1,5 @@
 import {useMemo, useState, type ReactNode} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -21,7 +22,6 @@ import {
   STEP_LABELS,
 } from 'sentry/components/seer/markdown/embeds/components/autofix';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconArrow} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';

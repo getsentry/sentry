@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconLink} from '@sentry/icons/link';
 import type {LocationDescriptor} from 'history';
 
 import {
@@ -22,7 +23,6 @@ import {
   RESOURCE_KIND_ICON,
   type ResourceKind,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,6 +37,7 @@ import {
   visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
 import {
+  getValidToolLinks,
   resolveLink,
   subjectFromCallRecord,
   subjectFromToolLink,
@@ -48,10 +49,7 @@ import type {
   ToolLink,
   ToolResult,
 } from 'sentry/views/seerExplorer/types';
-import {
-  getToolsStringFromBlock,
-  getValidToolLinks,
-} from 'sentry/views/seerExplorer/utils';
+import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import type {ToolUseBlockProps} from './shared';
 import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';

@@ -1,9 +1,9 @@
-import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 
-import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -17,61 +17,35 @@ type Props = React.PropsWithChildren<{
 export function PerformanceNewProjectPrompt({organization}: Props) {
   return (
     <Alert.Container>
-      <StyledAlert variant="info">
-        <Container>
-          {t(
-            "Performance is available for your platform, but your organization's plan does not include performance monitoring."
-          )}
-          <StyledButton
-            size="sm"
-            variant="primary"
-            icon={<IconBusiness />}
-            onClick={() =>
-              openUpsellModal({
-                organization,
-                source: 'feature.performance_new_project',
-              })
-            }
+      <Container marginTop="2xl">
+        <Alert variant="info">
+          <Flex
+            align={{zero: 'start', '4xl': 'center'}}
+            justify="between"
+            direction={{zero: 'column', '4xl': 'row'}}
+            gap="md"
           >
-            {t('Learn More')}
-          </StyledButton>
-        </Container>
-      </StyledAlert>
+            {t(
+              "Performance is available for your platform, but your organization's plan does not include performance monitoring."
+            )}
+            <Container flexShrink={0}>
+              <Button
+                size="sm"
+                variant="primary"
+                icon={<IconBusiness />}
+                onClick={() =>
+                  openUpsellModal({
+                    organization,
+                    source: 'feature.performance_new_project',
+                  })
+                }
+              >
+                {t('Learn More')}
+              </Button>
+            </Container>
+          </Flex>
+        </Alert>
+      </Container>
     </Alert.Container>
   );
 }
-
-const Container = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-`;
-
-const StyledButton = styled(Button)`
-  margin-left: ${p => p.theme.space.md};
-  flex-shrink: 0;
-
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    margin-left: 0;
-    margin-top: ${p => p.theme.space.md};
-  }
-`;
-
-const StyledAlert = styled(Alert)`
-  align-items: center;
-  margin-top: ${p => p.theme.space['2xl']};
-
-  button svg,
-  a svg {
-    color: ${p => p.theme.colors.white};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    align-items: flex-start;
-  }
-`;

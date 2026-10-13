@@ -1,9 +1,11 @@
 from datetime import timedelta
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
+import orjson
 import pytest
 from django.test import override_settings
 from django.utils import timezone
+from urllib3.response import HTTPResponse
 
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.exceptions import IssueSummaryUnavailable
@@ -37,7 +39,12 @@ from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 
 class TestGenerateIssueSummaryOnly(SentryTestCase):
@@ -243,7 +250,7 @@ class TestSummarizeIssue(SentryTestCase):
         side_effect=IssueSummaryUnavailable,
     )
     def test_summary_unavailable(self, mock_summary: MagicMock) -> None:
-        summarize_issue(self.group.id)
+        summarize_issue(self.group.id, source=SeerAutomationSource.ISSUE_DETAILS.value)
 
         mock_summary.assert_called_once_with(
             group=self.group, source=SeerAutomationSource.ISSUE_DETAILS
@@ -323,10 +330,11 @@ class TestAutofixIssueDataJudge(SentryTestCase):
             )
             assert response.verdict == verdict
 
-    @patch("sentry.tasks.seer.autofix_issue_data.make_llm_generate_request")
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
     def test_judges_blinded_issue_data_and_records_verdict(
         self,
-        mock_request: MagicMock,
+        mock_urlopen: MagicMock,
     ) -> None:
         verdict = "not_fixable"
         event_id = "b" * 32
@@ -341,33 +349,31 @@ class TestAutofixIssueDataJudge(SentryTestCase):
                 "reason": "hidden",
             },
         )
-        response = Mock(status=200)
-        response.json.return_value = {
-            "content": json.dumps({"verdict": verdict, "confidence": "high", "reason": "Evidence"}),
-            "model": "claude-opus-4-8@default",
-        }
-        observed_contexts: list[ViewerContext | None] = []
-
-        def record_viewer_context(*_args: object, **_kwargs: object) -> Mock:
-            observed_contexts.append(get_viewer_context())
-            return response
-
-        mock_request.side_effect = record_viewer_context
+        mock_urlopen.return_value = HTTPResponse(
+            orjson.dumps(
+                {
+                    "content": json.dumps(
+                        {"verdict": verdict, "confidence": "high", "reason": "Evidence"}
+                    ),
+                    "model": "claude-opus-4-8@default",
+                }
+            ),
+            status=200,
+        )
 
         with self.feature(FEATURE_FLAG):
             judge_issue_data([(issue_data.id, event_id)])
 
-        assert observed_contexts == [
-            ViewerContext(
-                organization_id=self.organization.id,
-                actor_type=ActorType.SYSTEM,
-            )
-        ]
-        assert mock_request.call_args.kwargs["viewer_context"] == {
-            "organization_id": self.organization.id
-        }
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
+            actor_type=ActorType.SYSTEM,
+        )
         assert get_viewer_context() is None
-        prompt = json.loads(mock_request.call_args.args[0]["prompt"])
+        prompt = json.loads(orjson.loads(mock_urlopen.call_args.kwargs["body"])["prompt"])
         assert prompt == {
             "event_id": event_id,
             "event": {"entries": []},

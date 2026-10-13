@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
+import {IconWarning} from '@sentry/icons/warning';
 import {useQuery} from '@tanstack/react-query';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';

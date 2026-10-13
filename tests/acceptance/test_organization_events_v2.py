@@ -389,8 +389,9 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.result_path + "?" + urlencode(query, doseq=True))
             self.wait_until_loaded()
 
-            # Open the save as drawer
+            # Open the save as menu and choose to save a new query
             self.browser.element('[aria-label="Save as"]').click()
+            self.browser.element('[data-test-id="save-query"]').click()
 
             # Fill out name and submit form.
             self.browser.element('input[placeholder="Enter a name for your new query"]').send_keys(

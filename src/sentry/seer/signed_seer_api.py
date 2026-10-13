@@ -7,11 +7,11 @@ from urllib.parse import urlparse
 
 import orjson
 from django.conf import settings
+from sentry_sdk import traces
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 from sentry.viewer_context import (
     ViewerContext,
     encode_viewer_context,
@@ -137,7 +137,7 @@ def _resolve_viewer_context(
     return replace(vc, organization_id=org_id, user_id=user_id)
 
 
-@trace
+@traces.trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,
@@ -529,13 +529,6 @@ class SearchAgentStateRequest(TypedDict):
     organization_id: int
 
 
-class TranslateQueryRequest(TypedDict):
-    org_id: int
-    org_slug: str
-    project_ids: list[int]
-    natural_language_query: str
-
-
 class SearchAgentStartRequest(TypedDict):
     org_id: int
     org_slug: str
@@ -557,11 +550,6 @@ class TranslateAgenticRequest(TypedDict):
     user_email: NotRequired[str]
     timezone: NotRequired[str]
     options: NotRequired[dict[str, Any]]
-
-
-class CreateCacheRequest(TypedDict):
-    org_id: int
-    project_ids: list[int]
 
 
 class CompareDistributionsRequest(TypedDict):
@@ -685,20 +673,6 @@ def make_search_agent_state_request(
     )
 
 
-def make_translate_query_request(
-    body: TranslateQueryRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/assisted-query/translate",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
 def make_search_agent_start_request(
     body: SearchAgentStartRequest,
     timeout: int | float | None = None,
@@ -721,20 +695,6 @@ def make_translate_agentic_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/assisted-query/translate-agentic",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_create_cache_request(
-    body: CreateCacheRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/assisted-query/create-cache",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

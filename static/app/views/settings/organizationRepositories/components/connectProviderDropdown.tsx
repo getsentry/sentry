@@ -1,3 +1,5 @@
+import {IconSeer} from '@sentry/icons/seer';
+
 import {Tag} from '@sentry/scraps/badge';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -6,7 +8,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
-import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';

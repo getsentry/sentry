@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export function FeatureFlagSettingsButton({orgSlug}: {orgSlug: string}) {

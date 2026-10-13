@@ -20,6 +20,7 @@ const mockPause = jest.fn();
 const mockPlay = jest.fn();
 const mockVideoPause = jest.fn();
 const mockVideoPlay = jest.fn();
+const mockGetCurrentTime = jest.fn(() => 0);
 const mockReplayerHandlers = new Map<string, (arg: any) => void>();
 
 jest.mock('@sentry/rrweb', () => {
@@ -34,7 +35,7 @@ jest.mock('@sentry/rrweb', () => {
         return {
           config: {skipInactive: false, speed: 1},
           destroy: jest.fn(),
-          getCurrentTime: () => 0,
+          getCurrentTime: mockGetCurrentTime,
           getMirror: () => null,
           iframe: document.createElement('iframe'),
           on: jest.fn((event: string, handler: (arg: any) => void) => {
@@ -59,7 +60,7 @@ jest.mock('sentry/components/replays/videoReplayerWithInteractions', () => ({
   VideoReplayerWithInteractions: jest.fn().mockImplementation(() => ({
     config: {skipInactive: false, speed: 1},
     destroy: jest.fn(),
-    getCurrentTime: () => 0,
+    getCurrentTime: mockGetCurrentTime,
     pause: mockVideoPause,
     play: mockVideoPlay,
     setConfig: jest.fn(),
@@ -69,13 +70,14 @@ jest.mock('sentry/components/replays/videoReplayerWithInteractions', () => ({
 const startedAt = new Date('2023-12-25T00:00:00');
 
 function TestPlayer() {
-  const {fastForwardSpeed, setRoot, togglePlayPause} = useReplayContext();
+  const {currentTime, fastForwardSpeed, setRoot, togglePlayPause} = useReplayContext();
 
   return (
     <div ref={setRoot}>
       <button onClick={() => togglePlayPause(true)}>Play</button>
       <button onClick={() => togglePlayPause(false)}>Pause</button>
       <span>Fast forward: {fastForwardSpeed}</span>
+      <span>Current time: {currentTime}</span>
     </div>
   );
 }
@@ -148,7 +150,42 @@ function setVisibility(visibilityState: 'hidden' | 'visible') {
 }
 
 describe('replayContext', () => {
+  it.each([false, true])(
+    'keeps polling the player after an unchanged timestamp (video: %s)',
+    video => {
+      jest.useFakeTimers();
+      const replay = makeReader({
+        attachments: video
+          ? [VideoFrameEventFixture()]
+          : RRWebInitFrameEventsFixture({timestamp: startedAt}),
+      });
+      const {unmount} = render(
+        <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
+          <TestPlayer />
+        </ReplayContextProvider>
+      );
+
+      act(() => jest.advanceTimersToNextFrame());
+      mockGetCurrentTime.mockReturnValue(1_000);
+      act(() => jest.advanceTimersToNextFrame());
+      expect(screen.getByText('Current time: 1000')).toBeInTheDocument();
+
+      // Polling must also survive an unchanged clock after a React render.
+      act(() => jest.advanceTimersToNextFrame());
+      mockGetCurrentTime.mockReturnValue(2_000);
+      act(() => jest.advanceTimersToNextFrame());
+      expect(screen.getByText('Current time: 2000')).toBeInTheDocument();
+
+      unmount();
+      mockGetCurrentTime.mockClear();
+      act(() => jest.advanceTimersToNextFrame());
+      expect(mockGetCurrentTime).not.toHaveBeenCalled();
+    }
+  );
+
   afterEach(() => {
+    mockGetCurrentTime.mockReturnValue(0);
+    jest.useRealTimers();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       value: 'visible',

@@ -399,10 +399,7 @@ describe('IntegrationDetailedView', () => {
       organization,
     });
     await waitFor(() => {
-      expect(screen.getByRole('button', {name: 'Uninstall'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      expect(screen.getByRole('button', {name: 'Uninstall'})).toBeDisabled();
     });
   });
 
