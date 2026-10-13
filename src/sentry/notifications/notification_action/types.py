@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
-from typing import Any, ClassVar, NotRequired, Protocol, TypedDict
+from typing import Any, ClassVar, Protocol, TypedDict
 
 from django.core.exceptions import ValidationError
 from taskbroker_client.retry import RetryTaskError
@@ -61,7 +61,6 @@ FutureCallback = Callable[[GroupEvent, Sequence[RuleFuture]], Any]
 
 class RuleData(TypedDict):
     actions: list[dict[str, Any]]
-    legacy_rule_id: NotRequired[int]
 
 
 class LegacyRegistryHandler(ABC):
@@ -229,14 +228,6 @@ class BaseIssueAlertHandler(ABC):
         origin: NotificationOrigin,
     ) -> RuleData:
         action_blob = cls.build_rule_action_blob(action, detector.linked_project.organization.id)
-
-        if origin.is_test_notification():
-            action_blob["legacy_rule_id"] = TEST_NOTIFICATION_ID
-        else:
-            assert origin.workflow_id is not None
-            action_blob["workflow_id"] = origin.workflow_id
-            if origin.legacy_rule_id is not None:
-                action_blob["legacy_rule_id"] = origin.legacy_rule_id
 
         if origin.is_test_notification() and action.type == Action.Type.EMAIL:
             action_blob["skipDigests"] = True

@@ -6,6 +6,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from sentry_sdk import traces
+from taskbroker_client.constants import CompressionType
 
 from sentry.ingest.event_payload import load_event_payload, prepare_submit
 from sentry.killswitches import killswitch_matches_context
@@ -271,6 +272,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         namespace=symbolication_tasks,
         processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
         silo_mode=SiloMode.CELL,
+        compression_type=CompressionType.ZSTD,
     )
     def symbolication_fn(
         cache_key: str | None = None,

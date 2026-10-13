@@ -517,6 +517,30 @@ class AutofixPrWebhookTest(APITestCase):
         assert_not_analytics_event(mock_analytics_record, AiAutofixPrOpenedEvent)
         assert not PullRequestAttribution.objects.exists()
 
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
+    @patch("sentry.seer.autofix.webhooks.sentry_sdk.capture_exception")
+    @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    def test_run_without_group_is_skipped(
+        self, mock_analytics_record, mock_get_agent_state_from_pr_id, mock_capture_exception
+    ):
+        mock_get_agent_state_from_pr_id.return_value = SeerRunState(
+            run_id=1, blocks=[], status="completed", updated_at="2025-01-15T10:30:00Z", metadata={}
+        )
+
+        with self.feature("organizations:pr-metrics"):
+            handle_github_pr_webhook_for_autofix(
+                self.organization,
+                "opened",
+                {"id": 1, "number": 42, "merged": False, "created_at": "2025-01-15T10:30:00Z"},
+                {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
+                self.repo.id,
+            )
+
+        mock_capture_exception.assert_not_called()
+        mock_analytics_record.assert_not_called()
+        assert not PullRequest.objects.exists()
+
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID=None)
     @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")

@@ -3525,21 +3525,6 @@
       "count": 1
     }
   },
-  "static/app/views/settings/organizationMembers/inviteRequestRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 4
-    }
-  },
-  "static/app/views/settings/organizationMembers/organizationMemberRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
-  "static/app/views/settings/organizationMembers/organizationMembersList.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/organizationRelay/list/cardHeader.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3940,11 +3925,6 @@
       "count": 1
     }
   },
-  "static/gsApp/overrides/memberListHeader.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/gsApp/overrides/orgStatsBanner.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -3993,11 +3973,6 @@
   "static/gsApp/views/amCheckout/steps/productSelect.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/gsApp/views/cancelSubscription.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
     }
   },
   "static/gsApp/views/invoiceDetails/index.tsx": {

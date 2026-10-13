@@ -14,8 +14,19 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.keys import OriginSigningKey
 from sentry.integrations.cursor_origin.webhook import has_already_processed
 from sentry.integrations.models.integration import Integration
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, get_action_context
+from sentry.issues.action_log.types import (
+    PullRequestClosedAction,
+    PullRequestMergedAction,
+    PullRequestReopenedAction,
+)
+from sentry.models.grouplink import GroupLink
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.silo import cell_silo_test, control_silo_test
+
+from .test_pull_request import REPO_EXTERNAL_ID, _payload
 
 KEYS = "sentry.integrations.cursor_origin.webhook.signing_keys_for"
 APP_ID = "app_01example"
@@ -239,6 +250,108 @@ class CursorOriginWebhookTest(APITestCase):
     def test_an_empty_body_is_refused(self) -> None:
         response = self.client.post(path=self.url, data=b"", content_type="application/json")
         assert response.status_code == 400
+
+
+@cell_silo_test
+class CursorOriginPullRequestWebhookTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.private, self.public = _signing_key()
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="example",
+            external_id=INSTALLATION_ID,
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name="example/repo",
+            provider="integrations:cursor_origin",
+            integration_id=integration.id,
+            external_id=REPO_EXTERNAL_ID,
+        )
+        self.group = self.create_group(project=self.project)
+        self.pull_request = self.create_pull_request(
+            organization_id=self.organization.id, repository_id=repo.id, key="17"
+        )
+        PullRequest.objects.filter(id=self.pull_request.id).update(
+            state=PullRequestLifecycleState.OPEN
+        )
+        self.create_group_link(
+            group=self.group,
+            linked_id=self.pull_request.id,
+            linked_type=GroupLink.LinkedType.pull_request,
+        )
+
+    def _post_pull_request(self, event_type: str, payload: dict[str, Any]) -> None:
+        envelope = orjson.loads(_envelope(event_type=event_type))
+        envelope["event"]["payload"] = payload
+        body = orjson.dumps(envelope)
+        timestamp = str(int(time.time()))
+        with (
+            self.options({"cursor-origin-app.id": APP_ID}),
+            mock.patch(KEYS, return_value=[self.public]),
+        ):
+            response = self.client.post(
+                path="/extensions/cursor_origin/webhook/",
+                data=body,
+                content_type="application/json",
+                headers={
+                    "webhook-id": DELIVERY_ID,
+                    "webhook-timestamp": timestamp,
+                    "webhook-signature": _signature(self.private, DELIVERY_ID, timestamp, body),
+                    "webhook-event-type": event_type,
+                },
+            )
+        assert response.status_code == 204
+
+    def test_close_attributes_linked_issue_activity(self) -> None:
+        # Close activity is emitted even without the pr-lifecycle-activity flag.
+        with capture_action_log() as action_log:
+            self._post_pull_request("pull_request.closed", _payload(state="closed"))
+
+        action_log.assert_logged(
+            PullRequestClosedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            source=ActionSource.CURSOR_ORIGIN,
+            actor=SYSTEM_ACTOR,
+        )
+        assert get_action_context() is None
+
+    def test_merge_attributes_linked_issue_activity(self) -> None:
+        with (
+            self.feature("organizations:pr-lifecycle-activity"),
+            capture_action_log() as action_log,
+        ):
+            self._post_pull_request("pull_request.merged", _payload(state="closed", merged=True))
+
+        action_log.assert_logged(
+            PullRequestMergedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            source=ActionSource.CURSOR_ORIGIN,
+            actor=SYSTEM_ACTOR,
+        )
+
+    def test_reopen_attributes_linked_issue_activity(self) -> None:
+        PullRequest.objects.filter(id=self.pull_request.id).update(
+            state=PullRequestLifecycleState.CLOSED
+        )
+
+        with (
+            self.feature("organizations:pr-lifecycle-activity"),
+            capture_action_log() as action_log,
+        ):
+            self._post_pull_request("pull_request.reopened", _payload())
+
+        action_log.assert_logged(
+            PullRequestReopenedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            source=ActionSource.CURSOR_ORIGIN,
+            actor=SYSTEM_ACTOR,
+        )
 
 
 @cell_silo_test
