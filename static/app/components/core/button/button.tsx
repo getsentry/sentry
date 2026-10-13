@@ -20,6 +20,8 @@ export function Button({
   disabled,
   type = 'button',
   tooltipProps,
+  onKeyDown,
+  'aria-disabled': ariaDisabled,
   busy,
   size: explicitSize,
   ...props
@@ -38,8 +40,8 @@ export function Button({
   const disabledProps = useDisabledTooltip({
     disabled,
     tooltipProps,
-    onKeyDown: props.onKeyDown,
-    'aria-disabled': props['aria-disabled'],
+    onKeyDown,
+    'aria-disabled': ariaDisabled,
   });
 
   return (
