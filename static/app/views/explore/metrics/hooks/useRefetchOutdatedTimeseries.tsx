@@ -16,7 +16,6 @@ export function useRefetchOutdatedTimeseries() {
   const [interval] = useChartInterval();
   const isRelativeRange = Boolean(selection.datetime.period);
 
-  // A layout effect subscribes before the charts' passive effects start their first fetches.
   useLayoutEffect(() => {
     const intervalMs = intervalToMilliseconds(interval);
     if (!isRelativeRange || !intervalMs) {
@@ -24,7 +23,6 @@ export function useRefetchOutdatedTimeseries() {
     }
 
     const queryKeyPrefix = makeEventsTimeSeriesQueryKeyPrefix(organization.slug);
-    // Not filtered by sampling mode: charts that escalated to high accuracy display that tier's data.
     const timeseriesFilters = {
       queryKey: [...queryKeyPrefix, {query: {referrer: METRIC_TIMESERIES_REFERRER}}],
     };
@@ -35,8 +33,6 @@ export function useRefetchOutdatedTimeseries() {
       ],
     };
 
-    // The server resolves the relative range when the request arrives, which can be
-    // an interval earlier than dataUpdatedAt for responses that span a boundary.
     const fetchStartedAt = new WeakMap<Query, number>();
     const dataRequestedAt = new WeakMap<Query, number>();
 
