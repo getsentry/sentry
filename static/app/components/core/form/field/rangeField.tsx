@@ -5,7 +5,8 @@ import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
 
-import {BaseField, useLabelId, type BaseFieldProps} from './baseField';
+import {BaseField, type BaseFieldProps} from './baseField';
+import {useLabelId} from './fieldIds';
 
 export function RangeField({
   onChange,
