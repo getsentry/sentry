@@ -15,7 +15,7 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import type {Organization, SavedQuery} from 'sentry/types/organization';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -51,6 +51,94 @@ type Props = {
   savedQuerySearchQuery: string;
 };
 
+type SavedQueryActions = ReturnType<typeof useSavedQueryActions>;
+
+function getTimelineSubtitle(eventView: EventView) {
+  if (eventView.statsPeriod) {
+    return t('Last ') + eventView.statsPeriod;
+  }
+  return (
+    moment(eventView.start).format('MMM D, YYYY h:mm A') +
+    ' - ' +
+    moment(eventView.end).format('MMM D, YYYY h:mm A')
+  );
+}
+
+function isDeprecatedTransactionQuery(
+  organization: Organization,
+  queryDataset: SavedQueryDatasets | undefined
+) {
+  return (
+    organization.features.includes('discover-saved-queries-deprecation') &&
+    queryDataset === SavedQueryDatasets.TRANSACTIONS
+  );
+}
+
+function getWidgetType(
+  organization: Organization,
+  location: Location,
+  query: SavedQuery | NewQuery
+) {
+  return hasDatasetSelector(organization)
+    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+        getSavedQueryDataset(organization, location, query)
+      ]
+    : undefined;
+}
+
+function useSavedQueryActions({
+  isLastQueryOnPage,
+  location,
+  organization,
+  refetchSavedQueries,
+}: {
+  isLastQueryOnPage: boolean;
+  location: Location;
+  organization: Organization;
+  refetchSavedQueries: () => void;
+}) {
+  const api = useApi();
+  const navigate = useNavigate();
+
+  const deleteQuery = (eventView: EventView) => {
+    handleDeleteQuery(api, organization, eventView).then(() => {
+      refetchSavedQueries();
+      // Deleting the only query on a later page would leave the user on an empty page
+      if (isLastQueryOnPage && location.query.cursor) {
+        navigate({
+          pathname: location.pathname,
+          query: {...location.query, cursor: undefined},
+        });
+      }
+    });
+  };
+
+  const duplicateQuery = (eventView: EventView, yAxis: string[]) => {
+    const copy = eventView.clone();
+    copy.name = `${copy.name} copy`;
+
+    handleCreateQuery(api, organization, copy, yAxis).then(() => {
+      refetchSavedQueries();
+      navigate({
+        pathname: location.pathname,
+        query: {},
+      });
+    });
+  };
+
+  const setAsDefault = (eventView: EventView, type: 'prebuilt-query' | 'saved-query') => {
+    handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+    trackAnalytics('discover_v2.set_as_default', {
+      organization,
+      source: 'context-menu',
+      type,
+    });
+  };
+
+  return {deleteQuery, duplicateQuery, setAsDefault};
+}
+
 function HamburgerDropdown({items}: {items: MenuItemProps[]}) {
   return (
     <DropdownMenu
@@ -77,6 +165,165 @@ function HamburgerDropdown({items}: {items: MenuItemProps[]}) {
   );
 }
 
+function PrebuiltQueryCard({
+  actions,
+  location,
+  organization,
+  view,
+}: {
+  actions: SavedQueryActions;
+  location: Location;
+  organization: Organization;
+  view: NewQuery;
+}) {
+  const newQuery = getSavedQueryWithDataset(view)!;
+  const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
+
+  const to = eventView.getResultsViewUrlTarget(
+    organization,
+    false,
+    hasDatasetSelector(organization) ? view.queryDataset : undefined
+  );
+
+  const menuItems: MenuItemProps[] = [
+    {
+      key: 'add-to-dashboard',
+      label: t('Add to Dashboard'),
+      onAction: () =>
+        handleAddQueryToDashboard({
+          eventView,
+          location,
+          query: view,
+          organization,
+          yAxis: view?.yAxis,
+          widgetType: getWidgetType(organization, location, newQuery),
+          source: DashboardWidgetSource.DISCOVERV2,
+        }),
+      disabled: isDeprecatedTransactionQuery(organization, view.queryDataset),
+    },
+    {
+      key: 'set-as-default',
+      label: t('Set as Default'),
+      onAction: () => actions.setAsDefault(eventView, 'prebuilt-query'),
+    },
+  ];
+
+  return (
+    <QueryCard
+      to={to}
+      title={eventView.name}
+      subtitle={getTimelineSubtitle(eventView)}
+      queryDetail={eventView.query}
+      createdBy={eventView.createdBy}
+      renderGraph={() => (
+        <MiniGraph
+          location={location}
+          eventView={eventView}
+          organization={organization}
+          referrer="api.discover.homepage.prebuilt"
+        />
+      )}
+      onEventClick={() => {
+        trackAnalytics('discover_v2.prebuilt_query_click', {
+          organization,
+          query_name: eventView.name,
+        });
+      }}
+      renderContextMenu={() => (
+        <Feature organization={organization} features="dashboards-edit">
+          {({hasFeature}) => hasFeature && <HamburgerDropdown items={menuItems} />}
+        </Feature>
+      )}
+    />
+  );
+}
+
+function SavedQueryCard({
+  actions,
+  location,
+  organization,
+  query,
+}: {
+  actions: SavedQueryActions;
+  location: Location;
+  organization: Organization;
+  query: SavedQuery;
+}) {
+  const savedQuery = getSavedQueryWithDataset(query)!;
+  const eventView = EventView.fromSavedQuery(savedQuery);
+  const deprecateTransactionQuery = isDeprecatedTransactionQuery(
+    organization,
+    savedQuery.queryDataset
+  );
+
+  const menuItems = (canAddToDashboard: boolean): MenuItemProps[] => [
+    ...(canAddToDashboard
+      ? [
+          {
+            key: 'add-to-dashboard',
+            label: t('Add to Dashboard'),
+            onAction: () =>
+              handleAddQueryToDashboard({
+                eventView,
+                location,
+                query: savedQuery,
+                organization,
+                yAxis: savedQuery?.yAxis ?? eventView.yAxis,
+                widgetType: getWidgetType(organization, location, savedQuery),
+                source: DashboardWidgetSource.DISCOVERV2,
+              }),
+            disabled: deprecateTransactionQuery,
+          },
+        ]
+      : []),
+    {
+      key: 'set-as-default',
+      label: t('Set as Default'),
+      onAction: () => actions.setAsDefault(eventView, 'saved-query'),
+    },
+    {
+      key: 'duplicate',
+      label: t('Duplicate Query'),
+      onAction: () => actions.duplicateQuery(eventView, decodeList(savedQuery.yAxis)),
+      disabled: deprecateTransactionQuery,
+    },
+    {
+      key: 'delete',
+      label: t('Delete Query'),
+      priority: 'danger',
+      onAction: () => actions.deleteQuery(eventView),
+    },
+  ];
+
+  return (
+    <QueryCard
+      to={eventView.getResultsViewShortUrlTarget(organization)}
+      title={eventView.name}
+      subtitle={getTimelineSubtitle(eventView)}
+      queryDetail={eventView.query}
+      createdBy={eventView.createdBy}
+      dateStatus={<TimeSince date={savedQuery.dateUpdated} />}
+      onEventClick={() => {
+        trackAnalytics('discover_v2.saved_query_click', {organization});
+      }}
+      renderGraph={() => (
+        <MiniGraph
+          location={location}
+          eventView={eventView}
+          organization={organization}
+          referrer={`api.discover.${eventView.getDisplayMode()}-chart`}
+          yAxis={savedQuery.yAxis?.length ? savedQuery.yAxis : ['count()']}
+        />
+      )}
+      renderContextMenu={() => (
+        <Feature organization={organization} features="dashboards-edit">
+          {({hasFeature}) => <HamburgerDropdown items={menuItems(hasFeature)} />}
+        </Feature>
+      )}
+    />
+  );
+}
+
 export function QueryList({
   location,
   organization,
@@ -86,8 +333,13 @@ export function QueryList({
   savedQueries,
   savedQuerySearchQuery,
 }: Props) {
-  const api = useApi();
   const navigate = useNavigate();
+  const actions = useSavedQueryActions({
+    isLastQueryOnPage: savedQueries.length === 1,
+    location,
+    organization,
+    refetchSavedQueries,
+  });
 
   useEffect(() => {
     /**
@@ -97,262 +349,16 @@ export function QueryList({
     resetPageFilters();
   }, []);
 
-  const onDeleteQuery = (eventView: EventView) => {
-    handleDeleteQuery(api, organization, eventView).then(() => {
-      refetchSavedQueries();
-      if (savedQueries.length === 1 && location.query.cursor) {
-        navigate({
-          pathname: location.pathname,
-          query: {...location.query, cursor: undefined},
-        });
-      }
-    });
-  };
-
-  const onDuplicateQuery = (eventView: EventView, yAxis: string[]) => {
-    eventView = eventView.clone();
-    eventView.name = `${eventView.name} copy`;
-
-    handleCreateQuery(api, organization, eventView, yAxis).then(() => {
-      refetchSavedQueries();
-      navigate({
-        pathname: location.pathname,
-        query: {},
-      });
-    });
-  };
-
-  const renderPrebuiltQueries = () => {
-    const views = getPrebuiltQueries(organization);
-
-    const hasSearchQuery =
-      typeof savedQuerySearchQuery === 'string' && savedQuerySearchQuery.length > 0;
-    const needleSearch = hasSearchQuery ? savedQuerySearchQuery.toLowerCase() : '';
-
-    return views.map((view, index) => {
-      const newQuery = getSavedQueryWithDataset(view)!;
-      const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
-
-      // if a search is performed on the list of queries, we filter
-      // on the pre-built queries
-      if (
-        hasSearchQuery &&
-        eventView.name &&
-        !eventView.name.toLowerCase().includes(needleSearch)
-      ) {
-        return null;
-      }
-
-      const recentTimeline = t('Last ') + eventView.statsPeriod;
-      const customTimeline =
-        moment(eventView.start).format('MMM D, YYYY h:mm A') +
-        ' - ' +
-        moment(eventView.end).format('MMM D, YYYY h:mm A');
-
-      const to = eventView.getResultsViewUrlTarget(
-        organization,
-        false,
-        hasDatasetSelector(organization) ? view.queryDataset : undefined
-      );
-
-      const deprecateTransactionQuery =
-        organization.features.includes('discover-saved-queries-deprecation') &&
-        view.queryDataset === SavedQueryDatasets.TRANSACTIONS;
-
-      const menuItems: MenuItemProps[] = [
-        {
-          key: 'add-to-dashboard',
-          label: t('Add to Dashboard'),
-          onAction: () =>
-            handleAddQueryToDashboard({
-              eventView,
-              location,
-              query: view,
-              organization,
-              yAxis: view?.yAxis,
-              widgetType: hasDatasetSelector(organization)
-                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
-                    getSavedQueryDataset(organization, location, newQuery)
-                  ]
-                : undefined,
-              source: DashboardWidgetSource.DISCOVERV2,
-            }),
-          disabled: deprecateTransactionQuery,
-        },
-        {
-          key: 'set-as-default',
-          label: t('Set as Default'),
-          onAction: () => {
-            handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
-            trackAnalytics('discover_v2.set_as_default', {
-              organization,
-              source: 'context-menu',
-              type: 'prebuilt-query',
-            });
-          },
-        },
-      ];
-
-      return (
-        <QueryCard
-          key={`${index}-${eventView.name}`}
-          to={to}
-          title={eventView.name}
-          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
-          queryDetail={eventView.query}
-          createdBy={eventView.createdBy}
-          renderGraph={() => (
-            <MiniGraph
-              location={location}
-              eventView={eventView}
-              organization={organization}
-              referrer="api.discover.homepage.prebuilt"
-            />
-          )}
-          onEventClick={() => {
-            trackAnalytics('discover_v2.prebuilt_query_click', {
-              organization,
-              query_name: eventView.name,
-            });
-          }}
-          renderContextMenu={() => (
-            <Feature organization={organization} features="dashboards-edit">
-              {({hasFeature}) => {
-                return hasFeature && <HamburgerDropdown items={menuItems} />;
-              }}
-            </Feature>
-          )}
-        />
-      );
-    });
-  };
-
-  const renderSavedQueries = () => {
-    if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
-      return [];
-    }
-
-    return savedQueries.map((query, index) => {
-      const savedQuery = getSavedQueryWithDataset(query)!;
-      const eventView = EventView.fromSavedQuery(savedQuery);
-      const recentTimeline = t('Last ') + eventView.statsPeriod;
-      const customTimeline =
-        moment(eventView.start).format('MMM D, YYYY h:mm A') +
-        ' - ' +
-        moment(eventView.end).format('MMM D, YYYY h:mm A');
-
-      const to = eventView.getResultsViewShortUrlTarget(organization);
-      const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
-      const referrer = `api.discover.${eventView.getDisplayMode()}-chart`;
-
-      const deprecateTransactionQuery =
-        organization.features.includes('discover-saved-queries-deprecation') &&
-        savedQuery.queryDataset === SavedQueryDatasets.TRANSACTIONS;
-
-      const menuItems = (canAddToDashboard: boolean): MenuItemProps[] => [
-        ...(canAddToDashboard
-          ? [
-              {
-                key: 'add-to-dashboard',
-                label: t('Add to Dashboard'),
-                onAction: () =>
-                  handleAddQueryToDashboard({
-                    eventView,
-                    location,
-                    query: savedQuery,
-                    organization,
-                    yAxis: savedQuery?.yAxis ?? eventView.yAxis,
-                    widgetType: hasDatasetSelector(organization)
-                      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
-                          getSavedQueryDataset(organization, location, savedQuery)
-                        ]
-                      : undefined,
-                    source: DashboardWidgetSource.DISCOVERV2,
-                  }),
-                disabled: deprecateTransactionQuery,
-              },
-            ]
-          : []),
-        {
-          key: 'set-as-default',
-          label: t('Set as Default'),
-          onAction: () => {
-            handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
-            trackAnalytics('discover_v2.set_as_default', {
-              organization,
-              source: 'context-menu',
-              type: 'saved-query',
-            });
-          },
-        },
-        {
-          key: 'duplicate',
-          label: t('Duplicate Query'),
-          onAction: () => onDuplicateQuery(eventView, decodeList(savedQuery.yAxis)),
-          disabled: deprecateTransactionQuery,
-        },
-        {
-          key: 'delete',
-          label: t('Delete Query'),
-          priority: 'danger',
-          onAction: () => onDeleteQuery(eventView),
-        },
-      ];
-
-      return (
-        <QueryCard
-          key={`${index}-${eventView.id}`}
-          to={to}
-          title={eventView.name}
-          subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
-          queryDetail={eventView.query}
-          createdBy={eventView.createdBy}
-          dateStatus={dateStatus}
-          onEventClick={() => {
-            trackAnalytics('discover_v2.saved_query_click', {organization});
-          }}
-          renderGraph={() => (
-            <MiniGraph
-              location={location}
-              eventView={eventView}
-              organization={organization}
-              referrer={referrer}
-              yAxis={savedQuery.yAxis?.length ? savedQuery.yAxis : ['count()']}
-            />
-          )}
-          renderContextMenu={() => (
-            <Feature organization={organization} features="dashboards-edit">
-              {({hasFeature}) => <HamburgerDropdown items={menuItems(hasFeature)} />}
-            </Feature>
-          )}
-        />
-      );
-    });
-  };
-
-  const renderQueries = () => {
-    const links = parseLinkHeader(pageLinks || '');
-    let cards: React.ReactNode[] = [];
-
-    // If we're on the first page (no-previous page exists)
-    // include the pre-built queries.
-    if (renderPrebuilt && (!links.previous || links.previous.results === false)) {
-      cards = cards.concat(renderPrebuiltQueries());
-    }
-    cards = cards.concat(renderSavedQueries());
-
-    if (!cards.some(Boolean)) {
-      return (
-        <StyledEmptyStateWarning>
-          <p>{t('No saved queries match that filter')}</p>
-        </StyledEmptyStateWarning>
-      );
-    }
-
-    return cards;
-  };
+  // Pre-built queries are only shown on the first page of results
+  const links = parseLinkHeader(pageLinks || '');
+  const isFirstPage = !links.previous || links.previous.results === false;
+  const needleSearch = savedQuerySearchQuery.toLowerCase();
+  const prebuiltViews =
+    renderPrebuilt && isFirstPage
+      ? getPrebuiltQueries(organization).filter(
+          view => !view.name || view.name.toLowerCase().includes(needleSearch)
+        )
+      : [];
 
   return (
     <Fragment>
@@ -364,7 +370,32 @@ export function QueryList({
         }}
         gap="xl"
       >
-        {renderQueries()}
+        {prebuiltViews.length === 0 && savedQueries.length === 0 ? (
+          <StyledEmptyStateWarning>
+            <p>{t('No saved queries match that filter')}</p>
+          </StyledEmptyStateWarning>
+        ) : (
+          <Fragment>
+            {prebuiltViews.map((view, index) => (
+              <PrebuiltQueryCard
+                key={`${index}-${view.name}`}
+                actions={actions}
+                location={location}
+                organization={organization}
+                view={view}
+              />
+            ))}
+            {savedQueries.map((query, index) => (
+              <SavedQueryCard
+                key={`${index}-${query.id}`}
+                actions={actions}
+                location={location}
+                organization={organization}
+                query={query}
+              />
+            ))}
+          </Fragment>
+        )}
       </Grid>
       <PaginationRow
         pageLinks={pageLinks}
