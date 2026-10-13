@@ -52,6 +52,26 @@ function fileFixture(
 }
 
 describe('CodeChanges', () => {
+  it('opens a file in its repository without toggling its diff', async () => {
+    const codeUrl = 'https://github.com/getsentry/sentry/blob/abc123/src/foo.py';
+    render(<CodeChanges codeChanges={[{...fileFixture(), codeUrl}]} />);
+
+    const button = screen.getByRole('button', {name: 'Open file in repository'});
+    expect(button).toHaveAttribute('href', codeUrl);
+
+    await userEvent.click(button);
+
+    expect(screen.queryByText('new')).not.toBeInTheDocument();
+  });
+
+  it('shows no open-file button without a code URL', () => {
+    render(<CodeChanges codeChanges={[fileFixture()]} />);
+
+    expect(
+      screen.queryByRole('button', {name: 'Open file in repository'})
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the generated files and expands to a diff', async () => {
     render(<CodeChanges codeChanges={[fileFixture()]} />);
 

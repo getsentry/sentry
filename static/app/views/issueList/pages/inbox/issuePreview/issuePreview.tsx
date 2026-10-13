@@ -43,6 +43,7 @@ import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts'
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
@@ -58,6 +59,7 @@ import {
   IssuePreviewSeerProvider,
   useIssuePreviewSeer,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
+import {IssuePreviewStackTrace} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewStackTrace';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
 
@@ -177,6 +179,11 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
+  const {data: event, isLoading: isEventLoading} = useGroupEvent({
+    groupId: group.id,
+    eventId: 'recommended',
+    options: {enabled: !disableActions},
+  });
   const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
 
   const issueDetailsUrl = normalizeUrl(
@@ -276,7 +283,9 @@ function IssuePreviewContent() {
         </Flex>
       </Flex>
       {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
-      {previewSeer.state === 'loading' || linkedPullRequests.isPending ? (
+      {previewSeer.state === 'loading' ||
+      linkedPullRequests.isPending ||
+      isEventLoading ? (
         <LoadingIndicator />
       ) : (
         <Dividers>
@@ -298,6 +307,17 @@ function IssuePreviewContent() {
             project={project}
             previewSeer={previewSeer}
           />
+          {event && (
+            <Container key={event.id}>
+              <ErrorBoundary mini>
+                <IssuePreviewStackTrace
+                  event={event}
+                  group={group}
+                  projectSlug={project.slug}
+                />
+              </ErrorBoundary>
+            </Container>
+          )}
           <Container>
             <ErrorBoundary mini>
               <FoldSection

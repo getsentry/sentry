@@ -81,7 +81,7 @@ class AIConversationResponse(AIConversationData):
 
 # Matches a query that is exactly a single gen_ai.conversation.id filter, e.g.
 # `gen_ai.conversation.id:abc` or `gen_ai.conversation.id:"slack:1234"`.
-_CONVERSATION_ID_LOOKUP_RE = re.compile(r'^gen_ai\.conversation\.id:(?:"[^"]+"|\S+)$')
+_CONVERSATION_ID_LOOKUP_RE = re.compile(r'^gen_ai\.conversation\.id:(?:"[^"]+"|(?![!<>=\[\]])\S+)$')
 
 AI_CONVERSATIONS_QUERY_PARAM = OpenApiParameter(
     name="query",
