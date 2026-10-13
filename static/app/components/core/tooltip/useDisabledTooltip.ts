@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import type {ControlTooltipProps} from './tooltip';
+import type {TooltipPropsWithOptionalTitle} from './tooltip';
 
 export function preventDisabledInteraction(event: React.SyntheticEvent): void {
   event.preventDefault();
@@ -12,7 +12,7 @@ interface DisabledTooltipOptions<Element extends HTMLElement> extends Pick<
   'aria-disabled' | 'onKeyDown'
 > {
   disabled?: boolean;
-  tooltipProps?: ControlTooltipProps;
+  tooltipProps?: TooltipPropsWithOptionalTitle;
 }
 
 /**

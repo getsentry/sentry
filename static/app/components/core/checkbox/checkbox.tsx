@@ -8,7 +8,7 @@ import {
   preventDisabledInteraction,
   Tooltip,
   useDisabledTooltip,
-  type ControlTooltipProps,
+  type TooltipPropsWithOptionalTitle,
 } from '@sentry/scraps/tooltip';
 
 import type {FormSize} from 'sentry/utils/theme';
@@ -96,7 +96,7 @@ export interface CheckboxProps extends Omit<
    */
   size?: FormSize;
   /** Explains why a disabled checkbox cannot be changed. */
-  tooltipProps?: ControlTooltipProps;
+  tooltipProps?: TooltipPropsWithOptionalTitle;
 }
 
 export function Checkbox({
@@ -131,6 +131,7 @@ export function Checkbox({
       onClickCapture={props.disabled ? preventDisabledInteraction : undefined}
       {...wrapperProps}
     >
+      {/* aria-disabled inputs still submit and validate; omit name and required below. */}
       <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
         <NativeHiddenCheckbox
           ref={mergeRefs(nativeCheckBoxRef, ref)}

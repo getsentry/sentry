@@ -46,7 +46,7 @@ export interface TooltipProps extends UseHoverOverlayProps {
   maxWidth?: number | 'none';
 }
 
-export interface ControlTooltipProps extends Omit<
+export interface TooltipPropsWithOptionalTitle extends Omit<
   TooltipProps,
   'children' | 'skipWrapper' | 'title'
 > {

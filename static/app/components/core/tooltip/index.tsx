@@ -1,7 +1,7 @@
 export {
   Tooltip,
   TooltipContext,
-  type ControlTooltipProps,
   type TooltipProps,
+  type TooltipPropsWithOptionalTitle,
 } from './tooltip';
 export {preventDisabledInteraction, useDisabledTooltip} from './useDisabledTooltip';
