@@ -13,18 +13,23 @@ _JAVA_CLASS_IN_TEXT_RE = re.compile(
     #  - a.b$c (inner class)
     #  - a.b.c$D$1
     #  - kotlin.Unit or androidx.core.View
-    #  - 'o' or "o" (quoted single-segment obfuscated class names)
+    #  - subclass 'o' or scope of "o" (quoted single-segment obfuscated class names)
     # Heuristics:
     #  - Either at least two identifiers separated by '.'
-    #  - Or a single identifier wrapped in quotes (to avoid matching random words)
+    #  - Or a single identifier wrapped in quotes that the text introduces as a
+    #    class. Quotes alone are not enough: R8 hands out names like `en`, `no`
+    #    or `ok`, which messages also quote as plain values (e.g. got 'en').
     #  - Identifiers may include letters, digits, '_' and '$'
-    (
+    (?P<qualified>
         (?:[A-Za-z_$][\w$]*\.){1,}[A-Za-z_$][\w$]*(?:\$[A-Za-z_$][\w$]*)*
-        |
-        ['"][A-Za-z_$][\w$]*['"]
     )
+    |
+    (?<![\w$])
+    (?:class|subclass|superclass|interface|enum|type|serial\ name|scope\ of|instance\ of)
+    \s+
+    (?P<quoted>['"][A-Za-z_$][\w$]*['"])
     """,
-    re.X,
+    re.X | re.I,
 )
 
 # R8 can flatten packages, leaving class names without one. Those are only
@@ -50,7 +55,10 @@ class Exceptions:
                 if match := _CLASS_CAST_MESSAGE_RE.fullmatch(value):
                     class_matches = list(match.group("from_class", "to_class"))
                 else:
-                    class_matches = _JAVA_CLASS_IN_TEXT_RE.findall(value)
+                    class_matches = [
+                        found["qualified"] or found["quoted"]
+                        for found in _JAVA_CLASS_IN_TEXT_RE.finditer(value)
+                    ]
                 if class_matches:
                     self._processable_exceptions_with_values.append((exc, class_matches))
 
