@@ -139,6 +139,8 @@ export function Checkbox({
           type="checkbox"
           {...props}
           {...disabledProps}
+          name={usesAriaDisabled ? undefined : props.name}
+          required={usesAriaDisabled ? undefined : props.required}
           {...(usesAriaDisabled && {
             onChange: preventDisabledInteraction,
           })}

@@ -69,6 +69,29 @@ describe('Checkbox', () => {
     expect(screen.getByRole('checkbox', {name: 'Enable feature'})).toBeDisabled();
   });
 
+  it('excludes a disabled checkbox with a tooltip from form data and validation', () => {
+    render(
+      <form aria-label="Settings">
+        <Checkbox
+          checked
+          disabled
+          name="enabled"
+          tooltipProps={{title: 'Requires admin access'}}
+        />
+        <Checkbox
+          disabled
+          name="requiredChoice"
+          required
+          tooltipProps={{title: 'Requires admin access'}}
+        />
+      </form>
+    );
+
+    const form = screen.getByRole<HTMLFormElement>('form', {name: 'Settings'});
+    expect(new FormData(form).has('enabled')).toBe(false);
+    expect(form.checkValidity()).toBe(true);
+  });
+
   describe('controlled checkbox', () => {
     it('toggles on click', async () => {
       render(<ControlledCheckbox />);
