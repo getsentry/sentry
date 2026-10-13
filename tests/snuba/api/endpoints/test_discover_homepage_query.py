@@ -3,6 +3,7 @@ from django.urls import reverse
 
 from sentry.api.serializers import serialize
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.testutils.helpers.options import override_options
 from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
 FEATURES = ("organizations:discover-query",)
@@ -27,6 +28,57 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
 
         assert response.status_code == 204, response.content
         assert response.data is None
+
+    def test_demo_user_can_read_homepage_query(self) -> None:
+        demo_user = self.create_user()
+        self.create_member(organization=self.org, user=demo_user, role="member")
+        saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=demo_user.id,
+            name="Test query",
+            query=self.query,
+            is_homepage=True,
+        )
+        self.login_as(user=demo_user)
+
+        with (
+            override_options(
+                {
+                    "demo-mode.enabled": True,
+                    "demo-mode.users": [demo_user.id],
+                    "demo-mode.orgs": [self.org.id],
+                }
+            ),
+            self.feature(FEATURES),
+        ):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200, response.content
+        assert response.data == serialize(saved_query)
+
+    def test_demo_user_cannot_write_homepage_query(self) -> None:
+        demo_user = self.create_user()
+        self.create_member(organization=self.org, user=demo_user, role="member")
+        self.login_as(user=demo_user)
+
+        with (
+            override_options(
+                {
+                    "demo-mode.enabled": True,
+                    "demo-mode.users": [demo_user.id],
+                    "demo-mode.orgs": [self.org.id],
+                }
+            ),
+            self.feature(FEATURES),
+        ):
+            response = self.client.put(
+                self.url,
+                {"projects": self.project_ids, "fields": ["field1"], "range": "24h"},
+            )
+            assert response.status_code == 403, response.content
+
+            response = self.client.delete(self.url)
+            assert response.status_code == 403, response.content
 
     def test_returns_serialized_saved_query_if_homepage_is_set(self) -> None:
         saved_query = DiscoverSavedQuery.objects.create(
