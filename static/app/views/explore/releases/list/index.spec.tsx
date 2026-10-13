@@ -16,6 +16,7 @@ import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDispl
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import * as analytics from 'sentry/utils/analytics';
 import ReleasesList from 'sentry/views/explore/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import {ReleasesStatusOption} from 'sentry/views/explore/releases/list/releasesStatusOptions';
@@ -647,6 +648,21 @@ describe('ReleasesList', () => {
 
     expect(await screen.findByTestId('query-builder-input')).toBeInTheDocument();
     expect(endpointMock).not.toHaveBeenCalled();
+  });
+
+  it('tracks list metadata with the mobile builds page source in snapshot display', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    renderMobileBuildsTab({display: PreprodBuildsDisplay.SNAPSHOT});
+
+    await waitFor(() =>
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'preprod.builds.list.metadata',
+        expect.objectContaining({
+          display: PreprodBuildsDisplay.SNAPSHOT,
+          page_source: 'releases_mobile_builds_tab',
+        })
+      )
+    );
   });
 
   it('toggles display mode in the mobile-builds tab and injects installable:true', async () => {

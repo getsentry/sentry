@@ -85,6 +85,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/explore/releases/',
   '/explore/replays/',
   '/explore/replays/:replaySlug/',
+  '/explore/snapshots/',
   '/explore/traces/',
   '/explore/traces/trace/:traceSlug/',
   '/issues/',

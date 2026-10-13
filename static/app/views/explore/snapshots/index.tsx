@@ -90,6 +90,7 @@ function SnapshotsListPage() {
             <ExploreContentSection gap="xl">
               <MobileBuilds
                 organization={organization}
+                pageSource="snapshots_list"
                 selectedProjectIds={selectedProjectIds}
                 defaultDisplay={PreprodBuildsDisplay.SNAPSHOT}
                 hideDisplayToggle

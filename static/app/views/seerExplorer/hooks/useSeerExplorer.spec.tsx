@@ -175,6 +175,7 @@ describe('useSeerExplorer', () => {
       '/explore/logs/trace/:traceSlug/',
       '/explore/replays/',
       '/explore/replays/:replaySlug/',
+      '/explore/snapshots/',
       '/monitors/',
       '/monitors/:detectorId/',
       '/monitors/:detectorId/edit/',

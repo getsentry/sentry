@@ -521,6 +521,7 @@ function ReleasesListInnerPage() {
               {selectedTab === 'mobile-builds' && (
                 <MobileBuilds
                   organization={organization}
+                  pageSource="releases_mobile_builds_tab"
                   selectedProjectIds={selectedProjectIds}
                 />
               )}
@@ -659,6 +660,7 @@ export default function ReleasesList() {
   const organization = useOrganization();
   const location = useLocation();
 
+  // TODO: Remove this redirect once old ?tab=snapshots links have aged out.
   if (decodeScalar(location.query.tab) === 'snapshots') {
     const {statsPeriod, start, end, utc} = location.query;
     return (

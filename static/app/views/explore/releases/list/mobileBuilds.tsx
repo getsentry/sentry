@@ -18,6 +18,7 @@ import {PreprodOnboardingPanel} from 'sentry/components/preprod/preprodOnboardin
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {BuildListPageSource} from 'sentry/utils/analytics/preprodBuildAnalyticsEvents';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -32,6 +33,7 @@ import {MobileBuildsChart} from './mobileBuildsChart';
 
 type Props = {
   organization: Organization;
+  pageSource: BuildListPageSource;
   selectedProjectIds: string[];
   defaultDisplay?: PreprodBuildsDisplay;
   hideDisplayToggle?: boolean;
@@ -49,6 +51,7 @@ export function getSelectedBuildProjectIds(selectionProjects: number[]): string[
 
 export function MobileBuilds({
   organization,
+  pageSource,
   selectedProjectIds,
   defaultDisplay,
   hideDisplayToggle,
@@ -160,10 +163,7 @@ export function MobileBuilds({
     enabled: selectedProjectIds.length > 0,
     error: !!buildsError,
     isLoading: isLoadingBuilds,
-    pageSource:
-      activeDisplay === PreprodBuildsDisplay.SNAPSHOT
-        ? 'snapshots_list'
-        : 'releases_mobile_builds_tab',
+    pageSource,
     projectCount: selectedProjectIds.length,
     searchQuery,
   });
