@@ -5,7 +5,6 @@ import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {
-  preventDisabledInteraction,
   Tooltip,
   useDisabledTooltip,
   type TooltipPropsWithOptionalTitle,
@@ -128,7 +127,6 @@ export function Checkbox({
       size={size}
       disabled={props.disabled}
       readOnly={props.readOnly}
-      onClickCapture={props.disabled ? preventDisabledInteraction : undefined}
       {...wrapperProps}
     >
       {/*
@@ -145,7 +143,6 @@ export function Checkbox({
           {...disabledProps}
           name={props.disabled ? undefined : props.name}
           required={props.disabled ? undefined : props.required}
-          onChange={props.disabled ? preventDisabledInteraction : props.onChange}
         />
       </Tooltip>
 

@@ -37,6 +37,7 @@ describe('Checkbox', () => {
   it('shows a disabled reason on keyboard focus without allowing changes', async () => {
     const onChange = jest.fn();
     const onClick = jest.fn();
+    const onClickCapture = jest.fn();
     const onKeyDown = jest.fn();
     render(
       <label>
@@ -44,6 +45,7 @@ describe('Checkbox', () => {
           disabled
           onChange={onChange}
           onClick={onClick}
+          onClickCapture={onClickCapture}
           onKeyDown={onKeyDown}
           tooltipProps={{title: 'Requires admin access'}}
         />
@@ -66,6 +68,7 @@ describe('Checkbox', () => {
     expect(checkbox).not.toBeChecked();
     expect(onChange).not.toHaveBeenCalled();
     expect(onClick).not.toHaveBeenCalled();
+    expect(onClickCapture).not.toHaveBeenCalled();
     expect(onKeyDown).not.toHaveBeenCalled();
   });
 
@@ -79,11 +82,13 @@ describe('Checkbox', () => {
 
   it('preserves keyboard interaction when a checkbox with a tooltip is enabled', async () => {
     const onChange = jest.fn();
+    const onClickCapture = jest.fn();
     const onKeyDown = jest.fn();
     render(
       <Checkbox
         aria-label="Enable feature"
         onChange={onChange}
+        onClickCapture={onClickCapture}
         onKeyDown={onKeyDown}
         tooltipProps={{title: 'Enable this feature'}}
       />
@@ -93,6 +98,7 @@ describe('Checkbox', () => {
     await userEvent.keyboard(' ');
 
     expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onClickCapture).toHaveBeenCalledTimes(1);
     expect(onKeyDown).toHaveBeenCalledTimes(1);
   });
 

@@ -38,6 +38,7 @@ export function Button({
   const {handleClick} = useClickTracking(buttonProps, 'button');
 
   const disabledProps = useDisabledTooltip({
+    ...props,
     disabled,
     tooltipProps,
     onKeyDown,

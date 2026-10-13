@@ -25,8 +25,14 @@ describe('Button', () => {
 
   it('uses aria-disabled instead of disabled when a tooltip is present', async () => {
     const onClick = jest.fn();
+    const onClickCapture = jest.fn();
     render(
-      <Button disabled onClick={onClick} tooltipProps={{title: 'Not available'}}>
+      <Button
+        disabled
+        onClick={onClick}
+        onClickCapture={onClickCapture}
+        tooltipProps={{title: 'Not available'}}
+      >
         Save
       </Button>
     );
@@ -39,6 +45,30 @@ describe('Button', () => {
 
     await userEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
+    expect(onClickCapture).not.toHaveBeenCalled();
+  });
+
+  it('preserves consumer handlers when a button with a tooltip is enabled', async () => {
+    const onClick = jest.fn();
+    const onClickCapture = jest.fn();
+    const onKeyDown = jest.fn();
+    render(
+      <Button
+        onClick={onClick}
+        onClickCapture={onClickCapture}
+        onKeyDown={onKeyDown}
+        tooltipProps={{title: 'Save changes'}}
+      >
+        Save
+      </Button>
+    );
+
+    await userEvent.tab();
+    await userEvent.keyboard('{Enter}');
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onClickCapture).toHaveBeenCalledTimes(1);
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
   });
 
   it('prevents keyboard activation when aria-disabled with tooltip', async () => {
