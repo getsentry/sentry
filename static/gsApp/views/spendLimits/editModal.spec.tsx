@@ -27,19 +27,16 @@ describe('SpendLimitsEditModal', () => {
     },
   });
 
-  function renderModal(closeModal = jest.fn()) {
-    render(
-      <SpendLimitsEditModal
-        organization={organization}
-        subscription={subscription}
-        closeModal={closeModal}
-        Body={ModalBody}
-        CloseButton={makeCloseButton(jest.fn())}
-        Header={makeClosableHeader(jest.fn())}
-        Footer={ModalFooter}
-      />,
-      {organization}
-    );
+  function makeProps() {
+    return {
+      organization,
+      subscription,
+      closeModal: jest.fn(),
+      Body: ModalBody,
+      CloseButton: makeCloseButton(jest.fn()),
+      Header: makeClosableHeader(jest.fn()),
+      Footer: ModalFooter,
+    };
   }
 
   beforeEach(() => {
@@ -51,14 +48,14 @@ describe('SpendLimitsEditModal', () => {
   });
 
   it('saves the budget and closes the modal', async () => {
-    const closeModal = jest.fn();
+    const props = makeProps();
     const request = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
       body: {},
     });
 
-    renderModal(closeModal);
+    render(<SpendLimitsEditModal {...props} />, {organization});
     await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     expect(request).toHaveBeenCalledWith(
@@ -68,11 +65,11 @@ describe('SpendLimitsEditModal', () => {
         data: {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 5000},
       })
     );
-    expect(closeModal).toHaveBeenCalled();
+    expect(props.closeModal).toHaveBeenCalled();
   });
 
   it('shows field errors from the response and stays open', async () => {
-    const closeModal = jest.fn();
+    const props = makeProps();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -80,10 +77,10 @@ describe('SpendLimitsEditModal', () => {
       body: {sharedMaxBudget: ['Budget is too high.']},
     });
 
-    renderModal(closeModal);
+    render(<SpendLimitsEditModal {...props} />, {organization});
     await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     expect(await screen.findByText('Budget is too high.')).toBeInTheDocument();
-    expect(closeModal).not.toHaveBeenCalled();
+    expect(props.closeModal).not.toHaveBeenCalled();
   });
 });
