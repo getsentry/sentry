@@ -34,7 +34,7 @@ _UNREAL_FIELDS: dict[str, str] = {
     "IsAssert": "is_assert",
 }
 _UNREAL_BOOL_KEYS = {"is_ensure", "is_stall", "is_assert"}
-_UNREAL_INT_KEYS = {"total_ram_gb", "seconds_since_start"}
+_UNREAL_NUMERIC_KEYS = {"total_ram_gb", "seconds_since_start"}
 
 
 def apply_gpu_crash_symbolication(
@@ -183,12 +183,21 @@ def _decode_data_chunk(node: Any) -> str | None:
 
 
 def _last_gpu_operation(response: Mapping[str, Any]) -> str | None:
+    fallback = None
     for marker in response.get("markers") or []:
-        if isinstance(marker, dict) and marker.get("kind") == "aftermath":
-            text = _decode_data_chunk(marker.get("data"))
-            if text:
-                return text
-    return None
+        if not isinstance(marker, dict) or marker.get("kind") != "aftermath":
+            continue
+        data = marker.get("data")
+        text = _decode_data_chunk(data)
+        if not text:
+            continue
+        event = data.get("Event") if isinstance(data, dict) else None
+        status = event.get("Status") if isinstance(event, dict) else None
+        if status == "Executing":
+            return text
+        if status is None and fallback is None:
+            fallback = text
+    return fallback
 
 
 def _marker_callstack(marker_data: Any) -> list[str] | None:
@@ -289,11 +298,22 @@ def _unreal_context(sections: Mapping[str, Any]) -> dict[str, Any]:
             continue
         if key in _UNREAL_BOOL_KEYS:
             out[key] = value.lower() == "true"
-        elif key in _UNREAL_INT_KEYS and value.isdigit():
-            out[key] = int(value)
+        elif key in _UNREAL_NUMERIC_KEYS:
+            out[key] = _to_number(value)
         else:
             out[key] = value
     return out
+
+
+def _to_number(value: str) -> int | float | str:
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        return float(value)
+    except ValueError:
+        return value
 
 
 def _build_gpu_crash_context(response: Mapping[str, Any]) -> dict[str, Any]:

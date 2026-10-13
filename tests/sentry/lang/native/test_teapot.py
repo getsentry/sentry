@@ -393,6 +393,62 @@ def test_apply_marker_with_non_dict_event_still_decodes() -> None:
     assert marker["data"] is None
 
 
+def _aftermath_marker(text: str, status: str | None) -> dict[str, Any]:
+    event: dict[str, Any] = {"Library": {"Data": {"Data chunk": [*text.encode(), 0]}}}
+    if status is not None:
+        event["Status"] = status
+    return {"kind": "aftermath", "label": "CommandQueue", "data": {"Event": event}}
+
+
+def test_apply_last_gpu_operation_prefers_executing_marker() -> None:
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(
+            markers=[
+                _aftermath_marker("Setup", "Finished"),
+                _aftermath_marker("Untagged", None),
+                _aftermath_marker("Draw Triangle", "Executing"),
+                _aftermath_marker("Present", "Not Started"),
+            ]
+        ),
+    )
+    assert data["contexts"]["gpu_crash"]["last_gpu_operation"] == "Draw Triangle"
+    assert "during Draw Triangle" in data["exception"]["values"][0]["value"]
+
+
+def test_apply_last_gpu_operation_ignores_finished_and_pending_markers() -> None:
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(
+            markers=[
+                _aftermath_marker("Setup", "Finished"),
+                _aftermath_marker("Present", "Not Started"),
+            ]
+        ),
+    )
+    assert "last_gpu_operation" not in data["contexts"]["gpu_crash"]
+    assert "during" not in data["exception"]["values"][0]["value"]
+
+
+def test_apply_unreal_numeric_fields_accept_fractions() -> None:
+    xml = (
+        "<FGenericCrashContext><RuntimeProperties>"
+        "<SecondsSinceStart>39.5</SecondsSinceStart>"
+        "<MemoryStats.TotalPhysicalGB>64</MemoryStats.TotalPhysicalGB>"
+        "</RuntimeProperties></FGenericCrashContext>"
+    )
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(shader_context={"active_shaders": [], "raw": [{"UserDefined+0": xml}]}),
+    )
+    unreal = data["contexts"]["unreal"]
+    assert unreal["seconds_since_start"] == 39.5
+    assert unreal["total_ram_gb"] == 64
+
+
 def test_apply_marker_callstack_is_flattened() -> None:
     data = _relay_gpu_event()
     apply_gpu_crash_symbolication(
