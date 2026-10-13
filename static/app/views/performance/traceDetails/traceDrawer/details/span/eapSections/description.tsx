@@ -210,7 +210,6 @@ export function SpanDescription({
             size="zero"
             aria-label={t('Copy span URL to clipboard')}
             text={spanURL}
-            tooltipProps={{disabled: true}}
           />
         </Flex>
         {codeFilepath && (
@@ -241,7 +240,6 @@ export function SpanDescription({
           size="zero"
           text={span.name}
           aria-label={t('Copy span name to clipboard')}
-          tooltipProps={{disabled: true}}
         />
       </DescriptionWrapper>
     ) : (
@@ -257,7 +255,6 @@ export function SpanDescription({
               size="zero"
               text={formattedDescription}
               aria-label={t('Copy formatted description to clipboard')}
-              tooltipProps={{disabled: true}}
             />
           </Fragment>
         ) : (

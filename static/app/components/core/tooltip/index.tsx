@@ -1,7 +1,2 @@
-export {
-  Tooltip,
-  TooltipContext,
-  type TooltipProps,
-  type TooltipPropsWithOptionalTitle,
-} from './tooltip';
+export {Tooltip, TooltipContext, type TooltipProps} from './tooltip';
 export {useDisabledTooltip} from './useDisabledTooltip';

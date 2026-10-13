@@ -1,13 +1,13 @@
 import {useCallback} from 'react';
 
-import type {TooltipPropsWithOptionalTitle} from './tooltip';
+import type {TooltipProps} from './tooltip';
 
 interface DisabledTooltipOptions<Element extends HTMLElement> extends Pick<
   React.HTMLAttributes<Element>,
   'aria-disabled' | 'onKeyDown'
 > {
   disabled?: boolean;
-  tooltipProps?: TooltipPropsWithOptionalTitle;
+  tooltipProps?: Pick<TooltipProps, 'title' | 'disabled'>;
 }
 
 /**
