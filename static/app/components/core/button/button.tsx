@@ -35,7 +35,7 @@ export function Button({
   const {hasChildren, accessibleLabel} = useButtonFunctionality(buttonProps);
   const {handleClick} = useClickTracking(buttonProps, 'button');
 
-  const disabledProps = useDisabledTooltip<HTMLButtonElement>({
+  const disabledProps = useDisabledTooltip({
     disabled,
     tooltipProps,
     onKeyDown: props.onKeyDown,

@@ -107,7 +107,7 @@ export function Checkbox({
   tooltipProps,
   ...props
 }: CheckboxProps) {
-  const disabledProps = useDisabledTooltip<HTMLInputElement>({...props, tooltipProps});
+  const disabledProps = useDisabledTooltip({...props, tooltipProps});
 
   const nativeCheckBoxRef = useCallback(
     (node: HTMLInputElement | null) => {
