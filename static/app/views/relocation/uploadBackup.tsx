@@ -1,5 +1,8 @@
 import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconFile} from '@sentry/icons/file';
+import {IconUpload} from '@sentry/icons/upload';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,7 +10,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {IconDelete, IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getLocalities} from 'sentry/utils/cells';
 import {useApi} from 'sentry/utils/useApi';

@@ -24,7 +24,7 @@ from sentry.web import api
 from sentry.web.frontend import csrf_failure, generic
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
-from sentry.web.frontend.auth_login import AuthLoginView
+from sentry.web.frontend.auth_login import AuthPageView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
@@ -54,7 +54,6 @@ from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.signup_verification_pending import SignupVerificationPendingView
 from sentry.web.frontend.sso_signup_verification import SSOSignupVerificationView
-from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 
@@ -261,7 +260,7 @@ urlpatterns += [
             [
                 re_path(
                     r"^login/$",
-                    AuthLoginView.as_view(),
+                    AuthPageView.as_view(),
                     name="sentry-login",
                 ),
                 re_path(
@@ -306,7 +305,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^register/$",
-                    AuthLoginView.as_view(),
+                    AuthPageView.as_view(),
                     name="sentry-register",
                 ),
                 re_path(
@@ -337,11 +336,6 @@ urlpatterns += [
         r"^account/",
         include(
             [
-                re_path(
-                    r"^sudo/$",
-                    SudoView.as_view(),
-                    name="sentry-sudo",
-                ),
                 re_path(
                     r"^confirm-email/$",
                     accounts.start_confirm_email,
@@ -1374,10 +1368,6 @@ urlpatterns += [
                 re_path(
                     r"^bitbucket-server/",
                     include("sentry.integrations.bitbucket_server.urls"),
-                ),
-                re_path(
-                    r"^vercel/",
-                    include("sentry.integrations.vercel.urls"),
                 ),
                 re_path(
                     r"^msteams/",

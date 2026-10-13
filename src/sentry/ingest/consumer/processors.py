@@ -9,6 +9,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from sentry_sdk import traces
+from sentry_sdk.scope import Scope
 from usageaccountant import UsageUnit
 
 from sentry import features, nodestore
@@ -17,6 +18,7 @@ from sentry.constants import DataCategory
 from sentry.event_manager import save_attachment
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
+from sentry.ingest.event_payload import get_event_payload_transport
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
@@ -36,7 +38,6 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.snuba import RateLimitExceeded
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ class Retriable(Exception):
     pass
 
 
-def trace_func(**span_kwargs):
+def trace_func(name: str):
     def wrapper(f):
         @functools.wraps(f)
         def inner(*args, **kwargs):
@@ -62,12 +63,20 @@ def trace_func(**span_kwargs):
                     default=getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0),
                 )
             )
+            traces.new_trace()
             # New behavior is to add a custom `sample_rate` that is picked up by `traces_sampler`
-            span_kwargs.setdefault(
-                "custom_sampling_context",
-                {"sample_rate": sample_rate},
-            )
-            with start_span(transaction=True, **span_kwargs):
+            propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+            prev_sampling_context = propagation_context.custom_sampling_context
+            Scope.set_custom_sampling_context({"sample_rate": sample_rate})
+            try:
+                span = traces.start_span(name=name, parent_span=None)
+            finally:
+                propagation_context = (
+                    sentry_sdk.get_current_scope().get_active_propagation_context()
+                )
+                propagation_context.custom_sampling_context = prev_sampling_context
+
+            with span:
                 return f(*args, **kwargs)
 
         return inner
@@ -217,10 +226,11 @@ def process_event(
         # for them. Storing would orphan the payload in Redis until its TTL
         # expires, since nothing on the feedback path deletes it.
         cache_key = None
-        if data.get("type") != "feedback":
+        transport = get_event_payload_transport(data["event_id"])
+        if data.get("type") != "feedback" and transport.cache:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
-        if consumer_type == ConsumerType.Transactions:
+        if consumer_type == ConsumerType.Transactions and cache_key:
             track_sampled_event(
                 data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
             )
@@ -236,7 +246,7 @@ def process_event(
             else:
                 app_feature = None
 
-            if app_feature is not None:
+            if app_feature is not None and cache_key:
                 record(settings.EVENT_PROCESSING_STORE, app_feature, len(payload), UsageUnit.BYTES)
         except Exception:
             pass
@@ -255,12 +265,11 @@ def process_event(
             )
             return
         if data.get("type") == "transaction":
-            assert cache_key is not None
             # No need for preprocess/process for transactions thus submit
             # directly transaction specific save_event task.
             save_transaction_kwargs: dict[str, Any] = {
                 "cache_key": cache_key,
-                "data": None,
+                "data": data if transport.inline else None,
                 "start_time": start_time,
                 "event_id": event_id,
                 "project_id": project_id,
@@ -304,7 +313,7 @@ def process_event(
                 attributes={"sentry.op": "ingest_consumer.process_event.preprocess_event"},
             ):
                 preprocess_kwargs: dict[str, Any] = {
-                    "cache_key": cache_key or "",
+                    "cache_key": cache_key,
                     "data": data,
                     "start_time": start_time,
                     "event_id": event_id,

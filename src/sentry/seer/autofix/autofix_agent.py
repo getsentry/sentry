@@ -3,13 +3,12 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-import sentry_sdk
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
+from sentry_sdk import traces
 
 from sentry import features, quotas
 from sentry.analytics.events.autofix_events import (
@@ -57,6 +56,11 @@ from sentry.seer.autofix.pr_iteration.constants import (
     REVIEW_REQUEST_FLAG,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.iterations import (
+    PrIterationNoPullRequestException,
+    get_iteration_for_insert_index,
+    get_open_iteration_index,
+)
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
     code_changes_prompt,
@@ -85,21 +89,15 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import json, metrics
-from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
 
     from sentry.models.organization import Organization
-    from sentry.seer.agent.client_models import MemoryBlock
     from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
-
-
-class PrIterationNoPullRequestException(Exception):
-    pass
 
 
 class StepConfig:
@@ -317,78 +315,6 @@ def _handle_step_started_events(
     )
 
 
-@dataclass(frozen=True)
-class Iteration:
-    index: int
-    start_index: int
-    blocks: list[MemoryBlock]
-
-
-def get_iterations(state: SeerRunState) -> list[Iteration]:
-    """PR iterations in order, each holding its own blocks. A PR_ITERATION block
-    opens an iteration; every following block belongs to it until the next
-    PR_ITERATION block."""
-    iterations: list[Iteration] = []
-    for i, block in enumerate(state.blocks):
-        metadata = block.message.metadata or {}
-
-        if metadata.get("step") == AutofixStep.PR_ITERATION.value:
-            iter_idx = metadata.get("iteration_index")
-            assert iter_idx is not None, "PR_ITERATION block missing iteration_index"
-
-            # PR_ITERATION is always started with feedback today (UI + consume
-            # queue). Missing metadata is unexpected; report but keep going.
-            raw_feedback = metadata.get("feedback")
-            if not raw_feedback or (isinstance(raw_feedback, str) and not raw_feedback.strip()):
-                sentry_sdk.capture_message(
-                    "PR_ITERATION block missing feedback metadata",
-                    level="warning",
-                    extras={
-                        "run_id": state.run_id,
-                        "block_index": i,
-                        "iteration_index": iter_idx,
-                        "block_id": block.id,
-                    },
-                )
-
-            iterations.append(Iteration(index=int(iter_idx), start_index=i, blocks=[block]))
-        elif iterations:
-            iterations[-1].blocks.append(block)
-
-    return iterations
-
-
-def iteration_repos(iteration: Iteration) -> set[str]:
-    """The repositories this iteration changed."""
-    return {
-        patch.repo_name for block in iteration.blocks for patch in (block.merged_file_patches or [])
-    }
-
-
-def get_latest_iteration_index(state: SeerRunState) -> int:
-    try:
-        iterations = get_iterations(state)
-    except Exception:
-        logger.exception("autofix.get_latest_iteration_index.failed")
-        return 0
-    return iterations[-1].index if iterations else 0
-
-
-def get_open_iteration_index(state: SeerRunState) -> int:
-    """The index of the iteration a drain has claimed but not started yet.
-
-    Its row stores no index, and the run state only gains the iteration once
-    the agent starts it, so the index is one past the last one the state holds.
-    """
-    return get_latest_iteration_index(state) + 1
-
-
-def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
-    block = state.blocks[insert_index]
-    metadata = block.message.metadata or {}
-    return int(metadata["iteration_index"])
-
-
 def get_current_step(
     state: SeerRunState,
 ) -> tuple[AutofixStep, AutofixReferrer | None] | tuple[None, None]:
@@ -540,27 +466,6 @@ def _resolve_default_branch(
     return None
 
 
-def _build_pr_iteration_step_args(
-    group: Group,
-    *,
-    run_id: int | None,
-    feedback: Sequence[Feedback] | None,
-    commit_author: SeerCommitAuthor | None,
-    iteration_id: int | None,
-) -> PrIterationStepArgs:
-    run_state = get_autofix_run_state(group, run_id) if run_id is not None else None
-    if run_state is None or not run_state.repo_pr_states:
-        raise PrIterationNoPullRequestException()
-
-    return PrIterationStepArgs(
-        iteration_index=get_open_iteration_index(run_state),
-        iteration_id=iteration_id,
-        feedback=serialize_feedback(feedback) if feedback else None,
-        commit_author=json.dumps(commit_author) if commit_author is not None else None,
-        pr_urls={pr.repo_name: pr.pr_url for pr in run_state.repo_pr_states.values() if pr.pr_url},
-    )
-
-
 def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None:
     preference = read_preference_from_sentry_db(group.project)
     # Imported lazily to avoid a circular import: sentry.scm pulls in the
@@ -611,7 +516,7 @@ def _assert_existing_run_belongs_to_group(group: Group, run_id: int) -> None:
         raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
 
-@trace
+@traces.trace
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
@@ -690,12 +595,22 @@ def trigger_autofix_agent(
             elif step == AutofixStep.CODE_CHANGES:
                 step_args = CodeChangesStepArgs(should_run_repo_checks=enable_bash_mode)
             elif step == AutofixStep.PR_ITERATION:
-                step_args = _build_pr_iteration_step_args(
-                    group,
-                    run_id=run_id,
-                    feedback=feedback,
-                    commit_author=commit_author,
+                iteration_run_state = (
+                    get_autofix_run_state(group, run_id) if run_id is not None else None
+                )
+                if iteration_run_state is None or not iteration_run_state.repo_pr_states:
+                    raise PrIterationNoPullRequestException()
+
+                step_args = PrIterationStepArgs(
+                    iteration_index=get_open_iteration_index(iteration_run_state),
                     iteration_id=iteration_id,
+                    feedback=serialize_feedback(feedback) if feedback else None,
+                    commit_author=json.dumps(commit_author) if commit_author is not None else None,
+                    pr_urls={
+                        pr.repo_name: pr.pr_url
+                        for pr in iteration_run_state.repo_pr_states.values()
+                        if pr.pr_url
+                    },
                 )
                 feature_iteration_index = step_args.iteration_index
             else:

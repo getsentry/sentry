@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import moment from 'moment-timezone';
 
@@ -8,7 +9,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SeerExplorerDebugMenu} from 'sentry/views/seerExplorer/components/seerExplorerDebugMenu';
 import {

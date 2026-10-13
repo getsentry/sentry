@@ -1,4 +1,9 @@
 import type {ReactNode} from 'react';
+import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
+import {IconCircleDashed} from '@sentry/icons/circleDashed';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {
   getToolCallStatusLabel,
@@ -10,13 +15,6 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  IconCircleCheckmark,
-  IconCircleDashed,
-  IconFatal,
-  IconSeer,
-  IconWarning,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InvestigationToolActivity} from 'sentry/views/investigations/types';
 

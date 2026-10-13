@@ -1,31 +1,22 @@
 import binascii
-import itertools
-import logging
-import uuid
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
 from hashlib import md5
-from typing import Any, ContextManager, Generic, TypeVar
+from typing import Any
 
-import rb
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 
+from sentry.exceptions import InvalidConfiguration
 from sentry.tsdb.base import (
     BaseTSDB,
     IncrMultiOptions,
-    SnubaCondition,
     TSDBKey,
     TSDBModel,
 )
 from sentry.utils.dates import to_datetime
-from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
-from sentry.utils.versioning import Version
-
-logger = logging.getLogger(__name__)
-
-T = TypeVar("T")
+from sentry.utils.redis import redis_clusters
 
 
 def _crc32(data: bytes) -> int:
@@ -34,42 +25,11 @@ def _crc32(data: bytes) -> int:
     return rv - ((rv & 0x80000000) << 1)
 
 
-class SuppressionWrapper(Generic[T]):
-    """\
-    Wraps a context manager and prevents any exceptions raised either during
-    the managed block or the exiting of the wrapped manager from propagating.
-
-    You probably shouldn't use this.
-    """
-
-    def __init__(self, wrapped: ContextManager[T]):
-        self.wrapped = wrapped
-
-    def __enter__(self) -> T:
-        return self.wrapped.__enter__()
-
-    def __exit__(self, *args) -> bool:
-        try:
-            # allow the wrapped manager to perform any cleanup tasks regardless
-            # of whether or not we are suppressing an exception raised within
-            # the managed block
-            self.wrapped.__exit__(*args)
-        except Exception:
-            pass
-
-        return True
-
-
 class RedisTSDB(BaseTSDB):
     """
     A time series storage backend for Redis.
 
-    The time series API supports three data types:
-
-        * simple counters
-        * distinct counters (number of unique elements seen)
-
-    The backend also supports virtual nodes (``vnodes``) which controls shard
+    The backend supports virtual nodes (``vnodes``) which controls shard
     distribution. This value should be set to the anticipated maximum number of
     physical hosts and not modified after data has been written.
 
@@ -86,70 +46,24 @@ class RedisTSDB(BaseTSDB):
             },
             ...
         }
-
-    Distinct counters are stored using HyperLogLog, which provides a
-    cardinality estimate with a standard error of 0.8%. The data layout looks
-    something like this::
-
-        {
-            "<model>:<epoch>:<key>": value,
-            ...
-        }
     """
 
     def __init__(self, prefix: str = "ts:", vnodes: int = 64, **options: Any):
-        cluster, options = get_cluster_from_options("SENTRY_TSDB_OPTIONS", options)
-        self.cluster = cluster
+        if "hosts" in options:
+            raise InvalidConfiguration(
+                'The TSDB "hosts" option is no longer supported; define the hosts in the '
+                '"redis.clusters" option and set the TSDB "cluster" option instead.'
+            )
+        self.cluster = redis_clusters.get_binary(options.pop("cluster", "default"))
         self.prefix = prefix
         self.vnodes = vnodes
         super().__init__(**options)
-
-    def validate(self) -> None:
-        logger.debug("Validating Redis version...")
-        version = Version((2, 8, 9))
-        check_cluster_versions(self.cluster, version, recommended=Version((2, 8, 18)), label="TSDB")
-
-    def get_cluster(self, environment_id: int | None) -> tuple[rb.Cluster, bool]:
-        """\
-        Returns a 2-tuple of the form ``(cluster, durable)``.
-
-        When a cluster is marked as "durable", any exception raised while
-        attempting to write data to the cluster is propagated. When the cluster
-        is *not* marked as "durable", exceptions raised while attempting to
-        write data to the cluster are *not* propagated. This flag does not have
-        an effect on read operations.
-        """
-        return self.cluster, True
-
-    def get_cluster_groups(
-        self, environment_ids: Iterable[int | None]
-    ) -> list[tuple[tuple[rb.Cluster, bool], list[int | None]]]:
-        results: dict[tuple[rb.Cluster, bool], list[int | None]] = defaultdict(list)
-        for environment_id in environment_ids:
-            results[self.get_cluster(environment_id)].append(environment_id)
-        return list(results.items())
 
     def add_environment_parameter(self, key: str | int, environment_id: int | None) -> str | int:
         if environment_id is not None:
             return f"{key}?e={environment_id}"
         else:
             return key
-
-    def make_key(
-        self,
-        model: TSDBModel,
-        rollup: int,
-        timestamp: float,
-        key: int | str,
-        environment_id: int | None,
-    ) -> str | int:
-        """
-        Make a key that is used for distinct counter values.
-        """
-        return self.add_environment_parameter(
-            f"{self.prefix}{model.value}:{self.normalize_ts_to_rollup(timestamp, rollup)}:{self.get_model_key(key)}",
-            environment_id,
-        )
 
     def make_counter_key(
         self,
@@ -229,47 +143,43 @@ class RedisTSDB(BaseTSDB):
         if default_timestamp is None:
             default_timestamp = timezone.now()
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
-            manager = cluster.map()
-            if not durable:
-                manager = SuppressionWrapper(manager)
+        # (hash_key, hash_field) -> count
+        key_operations: dict[tuple[str, str | int], int] = defaultdict(int)
+        # (hash_key) -> "max expiration encountered"
+        key_expiries: dict[str, float] = defaultdict(float)
 
-            with manager as client:
-                # (hash_key, hash_field) -> count
-                key_operations: dict[tuple[str, str | int], int] = defaultdict(int)
-                # (hash_key) -> "max expiration encountered"
-                key_expiries: dict[str, float] = defaultdict(float)
+        for rollup, max_values in self.rollups.items():
+            for item in items:
+                if len(item) == 2:
+                    model, key = item
+                    options: IncrMultiOptions = {
+                        "timestamp": default_timestamp,
+                        "count": default_count,
+                    }
+                else:
+                    model, key, options = item
 
-                for rollup, max_values in self.rollups.items():
-                    for item in items:
-                        if len(item) == 2:
-                            model, key = item
-                            options: IncrMultiOptions = {
-                                "timestamp": default_timestamp,
-                                "count": default_count,
-                            }
-                        else:
-                            model, key, options = item
+                count = options.get("count", default_count)
+                _timestamp = options.get("timestamp", default_timestamp)
 
-                        count = options.get("count", default_count)
-                        _timestamp = options.get("timestamp", default_timestamp)
+                expiry = self.calculate_expiry(rollup, max_values, _timestamp)
 
-                        expiry = self.calculate_expiry(rollup, max_values, _timestamp)
+                for _environment_id in {None, environment_id}:
+                    hash_key, hash_field = self.make_counter_key(
+                        model, rollup, _timestamp, key, _environment_id
+                    )
 
-                        for _environment_id in environment_ids:
-                            hash_key, hash_field = self.make_counter_key(
-                                model, rollup, _timestamp, key, _environment_id
-                            )
+                    if key_expiries[hash_key] < expiry:
+                        key_expiries[hash_key] = expiry
 
-                            if key_expiries[hash_key] < expiry:
-                                key_expiries[hash_key] = expiry
+                    key_operations[(hash_key, hash_field)] += count
 
-                            key_operations[(hash_key, hash_field)] += count
-
-                for (hash_key, hash_field), count in key_operations.items():
-                    client.hincrby(hash_key, hash_field, count)
-                    if key_expiries.get(hash_key):
-                        client.expireat(hash_key, key_expiries.pop(hash_key))
+        pipe = self.cluster.pipeline(transaction=False)
+        for (hash_key, hash_field), count in key_operations.items():
+            pipe.hincrby(hash_key, str(hash_field), count)
+            if key_expiries.get(hash_key):
+                pipe.expireat(hash_key, key_expiries.pop(hash_key))
+        pipe.execute()
 
     def get_range(
         self,
@@ -306,338 +216,21 @@ class RedisTSDB(BaseTSDB):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
         _series = [to_datetime(item) for item in series]
 
-        results = []
-        cluster, _ = self.get_cluster(environment_id)
-        with cluster.map() as client:
-            for key in keys:
-                for timestamp in _series:
-                    hash_key, hash_field = self.make_counter_key(
-                        model, rollup, timestamp, key, environment_id
-                    )
-                    results.append(
-                        (int(timestamp.timestamp()), key, client.hget(hash_key, hash_field))
-                    )
+        pipe = self.cluster.pipeline(transaction=False)
+        requests: list[tuple[int, TSDBKey]] = []
+        for key in keys:
+            for timestamp in _series:
+                hash_key, hash_field = self.make_counter_key(
+                    model, rollup, timestamp, key, environment_id
+                )
+                pipe.hget(hash_key, str(hash_field))
+                requests.append((int(timestamp.timestamp()), key))
 
         results_by_key: dict[TSDBKey, dict[int, int]] = defaultdict(dict)
-        for epoch, key, count in results:
-            results_by_key[key][epoch] = int(count.value or 0)
+        for (epoch, key), count in zip(requests, pipe.execute()):
+            results_by_key[key][epoch] = int(count or 0)
 
         output = {}
         for key, points in results_by_key.items():
             output[key] = sorted(points.items())
         return output
-
-    def merge(
-        self,
-        model: TSDBModel,
-        destination: int,
-        sources: list[int],
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
-
-        self.validate_arguments([model], ids)
-
-        rollups = self.get_active_series(timestamp=timestamp)
-
-        for (cluster, durable), _environment_ids in self.get_cluster_groups(ids):
-            manager = cluster.map()
-            if not durable:
-                manager = SuppressionWrapper(manager)
-
-            with manager as client:
-                data: dict[int, dict[datetime, dict[int | None, list[rb.Promise]]]] = {}
-                for rollup, series in rollups.items():
-                    data[rollup] = {}
-                    for _timestamp in series:
-                        results = data[rollup][_timestamp] = defaultdict(list)
-                        for source in sources:
-                            for environment_id in _environment_ids:
-                                source_hash_key, source_hash_field = self.make_counter_key(
-                                    model, rollup, _timestamp, source, environment_id
-                                )
-                                results[environment_id].append(
-                                    client.hget(source_hash_key, source_hash_field)
-                                )
-                                client.hdel(source_hash_key, source_hash_field)
-
-            with cluster.map() as client:
-                for rollup, _series in data.items():
-                    for _timestamp, _results in _series.items():
-                        for environment_id, promises in _results.items():
-                            total = sum(int(p.value) for p in promises if p.value)
-                            if total:
-                                (
-                                    destination_hash_key,
-                                    destination_hash_field,
-                                ) = self.make_counter_key(
-                                    model, rollup, _timestamp, destination, environment_id
-                                )
-                                client.hincrby(destination_hash_key, destination_hash_field, total)
-                                client.expireat(
-                                    destination_hash_key,
-                                    self.calculate_expiry(rollup, self.rollups[rollup], _timestamp),
-                                )
-
-    def delete(
-        self,
-        models: list[Any],
-        keys: list[int],
-        start: datetime | None = None,
-        end: datetime | None = None,
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int | None] | None = None,
-    ) -> None:
-        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
-
-        self.validate_arguments(models, ids)
-
-        rollups = self.get_active_series(start, end, timestamp)
-
-        for (cluster, durable), _ids in self.get_cluster_groups(ids):
-            manager = cluster.map()
-            if not durable:
-                manager = SuppressionWrapper(manager)
-
-            with manager as client:
-                for rollup, series in rollups.items():
-                    for _timestamp in series:
-                        for model in models:
-                            for key in keys:
-                                for environment_id in _ids:
-                                    hash_key, hash_field = self.make_counter_key(
-                                        model, rollup, _timestamp, key, environment_id
-                                    )
-
-                                    client.hdel(hash_key, hash_field)
-
-    def record(
-        self,
-        model: TSDBModel,
-        key: int,
-        values: Iterable[str],
-        timestamp: datetime | None = None,
-        environment_id: int | None = None,
-    ) -> None:
-        self.validate_arguments([model], [environment_id])
-
-        self.record_multi(((model, key, values),), timestamp, environment_id)
-
-    def record_multi(
-        self,
-        items: Iterable[tuple[TSDBModel, int, Iterable[str]]],
-        timestamp: datetime | None = None,
-        environment_id: int | None = None,
-    ) -> None:
-        """
-        Record an occurrence of an item in a distinct counter.
-        """
-        self.validate_arguments([model for model, key, values in items], [environment_id])
-
-        if timestamp is None:
-            timestamp = timezone.now()
-
-        ts = int(timestamp.timestamp())  # ``timestamp`` is not actually a timestamp :(
-
-        for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
-            manager = cluster.fanout()
-            if not durable:
-                manager = SuppressionWrapper(manager)
-
-            with manager as client:
-                for model, key, values in items:
-                    c = client.target_key(key)
-                    for rollup, max_values in self.rollups.items():
-                        for _environment_id in environment_ids:
-                            k = self.make_key(model, rollup, ts, key, _environment_id)
-                            c.pfadd(k, *values)
-                            c.expireat(k, self.calculate_expiry(rollup, max_values, timestamp))
-
-    def get_distinct_counts_series(
-        self,
-        model: TSDBModel,
-        keys: Sequence[int],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-        project_ids: Sequence[int] | None = None,
-    ) -> dict[int, list[tuple[int, Any]]]:
-        """
-        Fetch counts of distinct items for each rollup interval within the range.
-        """
-        self.validate_arguments([model], [environment_id])
-
-        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-
-        responses: dict[int, list[tuple[int, Any]]] = {}
-        cluster, _ = self.get_cluster(environment_id)
-        with cluster.fanout() as client:
-            for key in keys:
-                c = client.target_key(key)
-                r = responses[key] = []
-                for timestamp in series:
-                    r.append(
-                        (
-                            timestamp,
-                            c.pfcount(self.make_key(model, rollup, timestamp, key, environment_id)),
-                        )
-                    )
-
-        return {
-            key: [(timestamp, promise.value) for timestamp, promise in value]
-            for key, value in responses.items()
-        }
-
-    def get_distinct_counts_totals(
-        self,
-        model: TSDBModel,
-        keys: Sequence[TSDBKey],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        use_cache: bool = False,
-        jitter_value: int | None = None,
-        tenant_ids: dict[str, int | str] | None = None,
-        referrer_suffix: str | None = None,
-        conditions: list[SnubaCondition] | None = None,
-        group_on_time: bool = False,
-        project_ids: Sequence[int] | None = None,
-    ) -> Mapping[TSDBKey, int]:
-        """
-        Count distinct items during a time range.
-        """
-        self.validate_arguments([model], [environment_id])
-
-        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-
-        responses = {}
-        cluster, _ = self.get_cluster(environment_id)
-        with cluster.fanout() as client:
-            for key in keys:
-                # XXX: The current versions of the Redis driver don't implement
-                # ``PFCOUNT`` correctly (although this is fixed in the Git
-                # master, so should be available in the next release) and only
-                # supports a single key argument -- not the variadic signature
-                # supported by the protocol -- so we have to call the command
-                # directly here instead.
-                ks = []
-                for timestamp in series:
-                    ks.append(self.make_key(model, rollup, timestamp, key, environment_id))
-
-                responses[key] = client.target_key(key).execute_command("PFCOUNT", *ks)
-
-        return {key: value.value for key, value in responses.items()}
-
-    def merge_distinct_counts(
-        self,
-        model: TSDBModel,
-        destination: int,
-        sources: list[int],
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
-
-        self.validate_arguments([model], ids)
-
-        rollups = self.get_active_series(timestamp=timestamp)
-
-        for (cluster, durable), _ids in self.get_cluster_groups(ids):
-            wrapper: Callable[[ContextManager[T]], ContextManager[T]]
-            if not durable:
-                wrapper = SuppressionWrapper
-            else:
-                wrapper = lambda value: value
-
-            temporary_id = uuid.uuid1().hex
-
-            def make_temporary_key(key: str | int) -> str:
-                return f"{self.prefix}{temporary_id}:{key}"
-
-            data: dict[int, dict[datetime, dict[int | None, list[rb.Promise]]]] = {}
-            for rollup, rollup_series in rollups.items():
-                data[rollup] = {_timestamp: {e: [] for e in _ids} for _timestamp in rollup_series}
-
-            with wrapper(cluster.fanout()) as client:
-                for source in sources:
-                    c = client.target_key(source)
-                    for rollup, series in data.items():
-                        for _timestamp, results in series.items():
-                            for environment_id in _ids:
-                                key = self.make_key(
-                                    model, rollup, _timestamp.timestamp(), source, environment_id
-                                )
-                                results[environment_id].append(c.get(key))
-                                c.delete(key)
-
-            with wrapper(cluster.fanout()) as client:
-                c = client.target_key(destination)
-
-                temporary_key_sequence = itertools.count()
-
-                for rollup, _series in data.items():
-                    for _timestamp, results in _series.items():
-                        for environment_id, promises in results.items():
-                            values = {}
-                            for promise in promises:
-                                if promise.value is None:
-                                    continue
-                                k = make_temporary_key(next(temporary_key_sequence))
-                                values[k] = promise.value
-
-                            if values:
-                                key = self.make_key(
-                                    model,
-                                    rollup,
-                                    _timestamp.timestamp(),
-                                    destination,
-                                    environment_id,
-                                )
-                                c.mset(values)
-                                c.pfmerge(key, key, *values.keys())
-                                c.delete(*values.keys())
-                                c.expireat(
-                                    key,
-                                    self.calculate_expiry(rollup, self.rollups[rollup], _timestamp),
-                                )
-
-    def delete_distinct_counts(
-        self,
-        models: list[TSDBModel],
-        keys: list[int],
-        start: datetime | None = None,
-        end: datetime | None = None,
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
-
-        self.validate_arguments(models, ids)
-
-        rollups = self.get_active_series(start, end, timestamp)
-
-        for (cluster, durable), _ids in self.get_cluster_groups(ids):
-            manager = cluster.fanout()
-            if not durable:
-                manager = SuppressionWrapper(manager)
-
-            with manager as client:
-                for rollup, series in rollups.items():
-                    for _timestamp in series:
-                        for model in models:
-                            for key in keys:
-                                c = client.target_key(key)
-                                for environment_id in _ids:
-                                    c.delete(
-                                        self.make_key(
-                                            model,
-                                            rollup,
-                                            _timestamp.timestamp(),
-                                            key,
-                                            environment_id,
-                                        )
-                                    )

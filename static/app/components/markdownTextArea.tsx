@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconMarkdown} from '@sentry/icons/markdown';
 
 import {Container} from '@sentry/scraps/layout';
 import type {TextAreaProps} from '@sentry/scraps/textarea';
 import {TextArea} from '@sentry/scraps/textarea';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 interface MarkdownTextAreaProps extends TextAreaProps {
   className?: string;

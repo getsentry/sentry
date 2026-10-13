@@ -31,12 +31,25 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def path(self) -> str:
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 
+    def test_link_identity_resumes_react_auth(self) -> None:
+        path = reverse("sentry-auth-link-identity", args=[self.organization.slug])
+
+        response = self.client.get(f"{path}?next=%2Fsettings%2Faccount%2F")
+
+        assert response.status_code == 302
+        assert response["Location"] == f"{self.path}?next=%2Fsettings%2Faccount%2F"
+
+    def test_unsupported_method(self) -> None:
+        response = self.client.delete(self.path)
+
+        assert response.status_code == 405
+        assert response["Allow"] == "GET, POST"
+
     def test_renders_react_template_by_default(self) -> None:
         response = self.client.get(self.path)
 
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
-        self.assertTemplateNotUsed(response, "sentry/organization-login.html")
 
     @with_feature("system:multi-region")
     def test_customer_domain_login_redirects_to_primary_domain(self) -> None:
@@ -289,20 +302,15 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
-    def test_basic_auth_flow_as_user_with_confirmed_membership(self) -> None:
-        user = self.create_user("foor@example.com")
-        self.create_member(organization=self.organization, user_id=user.id)
-
-        self.session["_next"] = reverse(
-            "sentry-organization-settings", args=[self.organization.slug]
-        )
+    def test_password_login_post_resumes_react_auth(self) -> None:
+        self.session["_next"] = "/settings/account/"
         self.save_session()
-        resp = self.client.post(
-            self.path, {"username": user.username, "password": "admin", "op": "login"}, follow=True
-        )
-        assert resp.redirect_chain == [
-            (reverse("sentry-organization-settings", args=[self.organization.slug]), 302),
-        ]
+
+        response = self.client.post(self.path, {"op": "login"})
+
+        assert response.status_code == 302
+        assert response["Location"] == self.path
+        assert self.client.session["_next"] == "/settings/account/"
 
     def test_multiorg_login_correct_redirect_sso(self) -> None:
         user = self.create_user("bar@example.com")

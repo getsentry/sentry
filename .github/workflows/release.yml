@@ -2,8 +2,16 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      workspace:
+        description: Workspace to release
+        type: choice
+        required: true
+        default: sentry
+        options:
+          - sentry
+          - static/packages/scraps
       version:
-        description: Version to release (or "auto")
+        description: Exact version, bump type (major, minor, patch), or auto; leave blank for the workspace policy
         required: false
       force:
         description: Force a release even when there are release-blockers (optional)
@@ -27,14 +35,24 @@ jobs:
         with:
           app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
           private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+          owner: getsentry
+          repositories: |
+            sentry
+            publish
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           token: ${{ steps.token.outputs.token }}
           fetch-depth: 0
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        if: inputs.workspace == 'static/packages/scraps'
+        with:
+          node-version-file: '.node-version'
       - name: Prepare release
-        uses: getsentry/craft@5cabbe7d6ae3730788393284d5071969d9309753 # v2
+        uses: getsentry/craft@7fe142107c12ea31eaaba10e4985674490bf808b # v2.33.1
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
+          workspace: ${{ inputs.workspace || 'sentry' }}
           version: ${{ github.event.inputs.version }}
           force: ${{ github.event.inputs.force }}
+          publish_repo: getsentry/publish

@@ -73,7 +73,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         self,
         group: Group,
         event: Event | GroupEvent | None,
-        rules: Sequence[Rule],
+        rules: Sequence[Rule | NotificationOrigin],
         integration: RpcIntegration,
         workflow_ids: Sequence[int] = (),
     ):
@@ -91,7 +91,11 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 "actionType": action_type,
                 "groupId": self.group.id,
                 "eventId": self.event.event_id if self.event else None,
-                "rules": [rule.id for rule in self.rules],
+                "rules": [
+                    rule.legacy_rule_id if isinstance(rule, NotificationOrigin) else rule.id
+                    for rule in self.rules
+                    if not isinstance(rule, NotificationOrigin) or rule.legacy_rule_id is not None
+                ],
                 "workflows": list(dict.fromkeys([*workflow_ids, *self.workflow_ids])),
                 "integrationId": self.integration.id,
             }
@@ -112,8 +116,9 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         )
 
     def build_group_descr(self) -> TextBlock | None:
-        # TODO: implement with event as well
-        text = build_attachment_text(self.group)
+        # Webhook rebuilds pass a nodestore Event without its occurrence, which yields no text
+        # for occurrence-backed issues.
+        text = build_attachment_text(self.group, self.event) or build_attachment_text(self.group)
         if text:
             return create_text_block(
                 text,

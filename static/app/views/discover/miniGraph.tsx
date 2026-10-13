@@ -1,6 +1,7 @@
 import {memo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -13,7 +14,6 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconWarning} from 'sentry/icons';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';

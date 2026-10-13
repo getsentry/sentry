@@ -95,6 +95,7 @@ class AgentFilePatch(BaseModel):
     repo_name: str
     patch: FilePatch
     diff: str = ""
+    code_url: str | None = None
 
     class Config:
         extra = "ignore"

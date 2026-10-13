@@ -17,7 +17,6 @@ from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsResponse
 
-from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
 from sentry.api.client_kind import ClientKind, get_client_kind
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
@@ -127,10 +126,7 @@ class TestSeerRpc(APITestCase):
 
         path = self._get_path("get_organization_features")
         data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
-        with (
-            self.feature(CLIENT_KIND_FEATURE_FLAG),
-            patch.dict(seer_method_registry, {"get_organization_features": fake_method}),
-        ):
+        with patch.dict(seer_method_registry, {"get_organization_features": fake_method}):
             response = self.client.post(
                 path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
             )
@@ -142,16 +138,15 @@ class TestSeerRpc(APITestCase):
         org = self.create_organization()
         path = self._get_path("get_organization_features")
         data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
-        with self.feature(CLIENT_KIND_FEATURE_FLAG):
-            response = self.client.post(
-                path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-            )
-            assert response.status_code == 200
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
 
-            nested = Request(APIRequestFactory().get("/"))
-            nested.user = AnonymousUser()
-            nested.auth = None
-            assert get_client_kind(nested) == ClientKind.UNKNOWN
+        nested = Request(APIRequestFactory().get("/"))
+        nested.user = AnonymousUser()
+        nested.auth = None
+        assert get_client_kind(nested) == ClientKind.UNKNOWN
 
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""
