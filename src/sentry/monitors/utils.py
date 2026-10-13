@@ -10,7 +10,6 @@ from rest_framework.request import Request
 from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.middleware import is_frontend_request
 from sentry.models.group import Group
 from sentry.models.project import Project

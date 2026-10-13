@@ -252,12 +252,19 @@ class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectSettingPermission,)
 
-    def has_feature(self, request: Request, project: Project) -> bool:
+    def require_inbound_filters_v2(self, request: Request, project: Project) -> None:
         if not features.has(
             "organizations:inbound-filters-v2", project.organization, actor=request.user
         ):
             raise ResourceDoesNotExist
 
+    def has_feature(self, request: Request, project: Project) -> bool:
+        """
+        Whether the project may change its filters. Reads do not need the plan feature:
+        Relay stops applying the filters without it, but an organization that left the
+        plan still sees what it has, and gets it back on upgrade.
+        """
+        self.require_inbound_filters_v2(request, project)
         return features.has("projects:custom-inbound-filters", project, actor=request.user)
 
     def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
@@ -317,8 +324,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         """
         List the custom inbound filters configured for a project.
         """
-        if not self.has_feature(request, project):
-            return Response({"detail": "You do not have that feature enabled"}, status=400)
+        self.require_inbound_filters_v2(request, project)
 
         filters = _user_filters(project)
         return self.paginate(
@@ -419,8 +425,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         """
         Retrieve a single custom inbound filter.
         """
-        if not self.has_feature(request, project):
-            return Response({"detail": "You do not have that feature enabled"}, status=400)
+        self.require_inbound_filters_v2(request, project)
 
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
         return Response(serialize_custom_inbound_filter(custom_filter))
