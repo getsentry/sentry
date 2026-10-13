@@ -13,6 +13,7 @@ function runTests(command, args, env = process.env) {
 }
 
 // A child process lets the package tests run even when Jest uses --forceExit.
+// Once production and previews use V8, remove the version selection and run app tests once.
 const selectedVersion = process.env.SENTRY_REACT_ROUTER_VERSION;
 if (selectedVersion !== undefined && !['6', '8'].includes(selectedVersion)) {
   throw new Error(`Unsupported SENTRY_REACT_ROUTER_VERSION: ${selectedVersion}`);
@@ -32,6 +33,7 @@ for (const version of versions) {
 let packageStatus = 0;
 let routerBuildStatus = 0;
 // Only one CI shard runs package tests. Local runs always include them.
+// After removing the router matrix, drop the V6 condition but keep the shard-0 guard.
 if (
   (!process.env.CI || versions.includes('6')) &&
   (!process.env.CI ||
@@ -58,6 +60,7 @@ if (
       '--maxWorkers=2',
       '--watchman=false',
     ],
+    // Once V6 support is removed, drop this package-test router override.
     {...process.env, SENTRY_REACT_ROUTER_VERSION: '6'}
   );
 }
