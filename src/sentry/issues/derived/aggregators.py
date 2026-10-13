@@ -2,6 +2,7 @@ from sentry.issues.action_log.types import (
     ArchiveAction,
     AssignAction,
     AutofixCodingCompleteAction,
+    ImpactAssessmentAction,
     PullRequestClosedAction,
     PullRequestMergedAction,
     PullRequestReopenedAction,
@@ -33,6 +34,7 @@ from sentry.issues.derived.features import (
     FIRST_ASSIGNMENT_ACTION_ID,
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
+    IMPACT,
     IS_ASSIGNED,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
@@ -50,6 +52,7 @@ from sentry.issues.derived.framework import (
     aggregator,
     emit,
 )
+from sentry.issues.impact.types import ImpactCitationData, ImpactDerivedData, ImpactLevel
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.progress_state import IssueProgressState
 from sentry.types.group import IssueAutofixStep, IssueBlocker
@@ -210,6 +213,48 @@ def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> Aggregat
     return None
 
 
+def _impact_level(score: float | None) -> ImpactLevel | None:
+    if score is None:
+        return None
+    if score < 20:
+        return "super_low"
+    if score < 40:
+        return "low"
+    if score < 60:
+        return "moderate"
+    if score < 80:
+        return "high"
+    return "super_high"
+
+
+@aggregator((IMPACT,), scope=(ImpactAssessmentAction,))
+def track_impact(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    # Ignore impact assessments pre-merge, if this is a merged group
+    if entry.original_group_id is not None:
+        return None
+
+    action = entry.action
+    if not isinstance(action, ImpactAssessmentAction):
+        return None
+    citations: list[ImpactCitationData] = []
+    for citation in action.citations:
+        citation_data = ImpactCitationData(
+            reference=citation.reference,
+            claim=citation.claim,
+            source=citation.source,
+        )
+        citations.append(citation_data)
+    impact = ImpactDerivedData(
+        score=action.score,
+        level=_impact_level(action.score),
+        description=action.description,
+        citations=citations,
+        sourceEventId=action.source_event_id,
+    )
+
+    return emit(IMPACT.value(impact))
+
+
 @aggregator(
     (PROGRESS, LAST_PROGRESSED_AT),
     deps=(STATUS, IS_ASSIGNED, HAS_ROOT_CAUSE, HAS_OPEN_FIX_PR),
@@ -328,6 +373,7 @@ AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
     track_first_assignment,
     track_root_cause,
     track_open_fix_prs,
+    track_impact,
     track_progress,
     track_last_completed_autofix_step,
     track_blocker,
