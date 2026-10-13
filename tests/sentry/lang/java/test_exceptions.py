@@ -188,7 +188,7 @@ def test_deobfuscate_value_ignores_quoted_values_matching_class_names() -> None:
 
     excs = Exceptions(data)
 
-    classes = {"en": "com.example.AccountsListFragmentKt$$ExternalSyntheticLambda19"}
+    classes = {"en": "com.example.ScreenKt$$ExternalSyntheticLambda0"}
 
     excs.deobfuscate_and_save(classes, mapped_exceptions=[])
 
