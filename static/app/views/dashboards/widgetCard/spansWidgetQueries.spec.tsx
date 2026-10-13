@@ -296,9 +296,7 @@ describe('spansWidgetQueries', () => {
         )}
       </SpansWidgetQueries>,
       {
-        organization: OrganizationFixture({
-          features: ['explore-conditional-aggregates'],
-        }),
+        organization: OrganizationFixture(),
       }
     );
 

@@ -1,3 +1,4 @@
+import kebabCase from 'lodash/kebabCase';
 import {EntryRequestFixture} from 'sentry-fixture/eventEntry';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -15,10 +16,7 @@ import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 import {extractQueryParameters, extractSpanURLString} from './spanMetrics';
 
 function getValueCell(label: string) {
-  const row = screen.getByRole('row', {
-    name: accessibleName => accessibleName.startsWith(label),
-  });
-  return within(row).getAllByRole('cell')[1]!;
+  return screen.getByTestId(`span-evidence-key-value-list.${kebabCase(label)}`);
 }
 
 describe('SpanEvidenceKeyValueList', () => {
@@ -114,13 +112,13 @@ describe('SpanEvidenceKeyValueList', () => {
       );
 
       // These belong to N+1 API Calls, and shouldn't show up for a DB issue
-      expect(screen.queryByRole('cell', {name: 'Parameter'})).not.toBeInTheDocument();
+      expect(screen.queryByText('Parameter')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('cell', {name: 'Problem Parameters'})
       ).not.toBeInTheDocument();
 
       // Only MN+1 issues have a pattern
-      expect(screen.queryByRole('cell', {name: 'Pattern Size'})).not.toBeInTheDocument();
+      expect(screen.queryByText('Pattern Size')).not.toBeInTheDocument();
     });
 
     it('renders the pattern size for MN+1 issues', () => {
@@ -175,7 +173,9 @@ describe('SpanEvidenceKeyValueList', () => {
       ];
       const event = buildEvent([...pattern, ...pattern], {patternSize: 4});
 
-      render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
+      const {container} = render(
+        <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
+      );
 
       expect(getValueCell('Repeating Spans (6)')).toHaveTextContent(
         'SELECT * FROM dogs WHERE id = 1121'
@@ -184,7 +184,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(getValueCell('Pattern Size')).toHaveTextContent('4');
 
       // Only the db spans get rows, so the cache span isn't rendered at all
-      expect(screen.getByRole('table')).not.toHaveTextContent('dog_leaderboard');
+      expect(container).not.toHaveTextContent('dog_leaderboard');
     });
 
     it.each([
@@ -214,7 +214,9 @@ describe('SpanEvidenceKeyValueList', () => {
           },
         ]);
 
-        render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
+        const {container} = render(
+          <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
+        );
 
         // Only the first row is labelled, and the number it carries is the total count of offending
         // spans - not the number of rows, and not the number of times the first row's query ran.
@@ -228,9 +230,7 @@ describe('SpanEvidenceKeyValueList', () => {
         ).toBeInTheDocument();
 
         // The second `dogs` query shares a hash with the first, so it gets no row of its own
-        expect(screen.getByRole('table')).not.toHaveTextContent(
-          'SELECT * FROM dogs WHERE id = 1231'
-        );
+        expect(container).not.toHaveTextContent('SELECT * FROM dogs WHERE id = 1231');
       }
     );
   });
@@ -299,9 +299,7 @@ describe('SpanEvidenceKeyValueList', () => {
         'SELECT * FROM USERS LIMIT 100'
       );
 
-      expect(screen.queryAllByRole('cell', {name: 'Parallelizable Spans'})).toHaveLength(
-        1
-      );
+      expect(screen.queryAllByText('Parallelizable Spans')).toHaveLength(1);
       const parallelizableSpanKeyValue = getValueCell('Parallelizable Spans');
 
       expect(parallelizableSpanKeyValue).toHaveTextContent('SELECT COUNT(*) FROM USERS');
@@ -605,7 +603,7 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(slowDbQuery).toHaveTextContent(
         '/app/pokedex/queries.py in fetchPokemon at line 42'
       );
-      expect(screen.getByRole('cell', {name: 'Duration Impact'})).toBeInTheDocument();
+      expect(screen.getByText('Duration Impact')).toBeInTheDocument();
 
       expect(screen.getByRole('link', {name: 'More Samples'})).toBeInTheDocument();
     });

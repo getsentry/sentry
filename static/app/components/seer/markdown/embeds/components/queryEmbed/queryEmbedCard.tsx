@@ -1,12 +1,12 @@
 import type {ComponentType, ReactNode} from 'react';
 import styled from '@emotion/styled';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
 interface QueryEmbedCardProps {

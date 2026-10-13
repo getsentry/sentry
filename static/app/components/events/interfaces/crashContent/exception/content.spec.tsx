@@ -309,6 +309,42 @@ describe('Exception Content', () => {
     expect(screen.queryByRole('button', {name: 'View Section'})).not.toBeInTheDocument();
   });
 
+  it('renders colored text without escape codes when given an ANSI exception value', () => {
+    const event = EventFixture({
+      projectID: project.id,
+      entries: [
+        {
+          type: EntryType.EXCEPTION,
+          data: {
+            values: [
+              {
+                type: 'ValueError',
+                value: '\x1B[31mfailed\x1B[0m to connect',
+                stacktrace: {frames: [EventStacktraceFrameFixture()]},
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(
+      <Content
+        type={StackType.ORIGINAL}
+        stackView={StackView.APP}
+        event={event}
+        values={event.entries[0]!.data.values}
+        projectSlug={project.slug}
+        newestFirst
+      />
+    );
+
+    expect(screen.getByText('failed').style.color).toContain('color-mix(in srgb,');
+    expect(screen.getByText('failed').closest('pre')).toHaveTextContent(
+      /^failed to connect$/
+    );
+  });
+
   describe('exception groups', () => {
     const event = EventFixture({
       entries: [EventEntryExceptionGroupFixture()],

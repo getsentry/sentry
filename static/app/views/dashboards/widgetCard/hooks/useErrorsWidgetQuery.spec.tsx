@@ -65,10 +65,42 @@ describe('useErrorsSeriesQuery', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: DiscoverDatasets.ERRORS,
+            partial: '1',
           }),
         })
       );
     });
+  });
+
+  it('excludes the Other series for grouped widgets with multiple aggregates', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: [],
+          aggregates: ['count()', 'count_unique(user)'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+
+    renderHookWithProviders(() =>
+      useErrorsSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({query: expect.objectContaining({excludeOther: '1'})})
+      )
+    );
   });
 
   it('makes a request to the events-timeseries endpoint when enabled', async () => {
@@ -291,6 +323,39 @@ describe('useErrorsSeriesQuery', () => {
     });
     expect(mockRequest2).toHaveBeenCalled();
   });
+
+  it('keeps rawData referentially stable across rerenders', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: [[1, [{count: 100}]]]},
+    });
+
+    const {result, rerender} = renderHookWithProviders(useErrorsSeriesQuery, {
+      initialProps: {widget, organization, pageFilters, enabled: true},
+    });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const {rawData} = result.current;
+    expect(rawData).toHaveLength(1);
+
+    rerender({widget: {...widget}, organization, pageFilters, enabled: true});
+
+    expect(result.current.rawData).toBe(rawData);
+  });
 });
 
 describe('useErrorsTableQuery', () => {
@@ -479,5 +544,38 @@ describe('useErrorsTableQuery', () => {
         })
       );
     });
+  });
+
+  it('keeps rawData referentially stable across rerenders', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count()': 100}], meta: {fields: {'count()': 'integer'}}},
+    });
+
+    const {result, rerender} = renderHookWithProviders(useErrorsTableQuery, {
+      initialProps: {widget, organization, pageFilters, enabled: true},
+    });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const {rawData} = result.current;
+    expect(rawData).toHaveLength(1);
+
+    rerender({widget: {...widget}, organization, pageFilters, enabled: true});
+
+    expect(result.current.rawData).toBe(rawData);
   });
 });

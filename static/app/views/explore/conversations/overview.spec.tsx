@@ -13,10 +13,6 @@ import {AI_AGENTS_GETTING_STARTED_DOCS_LINK} from 'sentry/views/insights/pages/a
 import ConversationsOverviewPage from './overview';
 
 const organization = OrganizationFixture({
-  features: ['gen-ai-agents-overview', 'gen-ai-conversations'],
-});
-
-const organizationWithoutAgentsOverview = OrganizationFixture({
   features: ['gen-ai-conversations'],
 });
 
@@ -116,30 +112,6 @@ describe('ConversationsOverviewPage', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows the existing conversations overview when the agents overview is disabled', async () => {
-    render(<ConversationsOverviewPage />, {
-      organization: organizationWithoutAgentsOverview,
-    });
-
-    expect(
-      await screen.findByRole('button', {name: 'Conversation Count'})
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
-    expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
-  });
-
-  it('shows conversation onboarding when the agents overview is disabled without conversation data', async () => {
-    localStorage.clear();
-    render(<ConversationsOverviewPage />, {
-      organization: organizationWithoutAgentsOverview,
-    });
-
-    expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
-  });
-
   it('defaults to conversations when conversation data is known', async () => {
     render(<ConversationsOverviewPage />, {organization});
 
@@ -147,9 +119,9 @@ describe('ConversationsOverviewPage', () => {
       'aria-selected',
       'true'
     );
-    const agentRunsChartTitle = await screen.findByText('Agent runs');
+    const agentRunsChartTitle = await screen.findByText('Agent Runs');
     const estimatedCostChartTitle = screen.getByText('Estimated Cost');
-    expect(screen.getByText('Tool calls')).toBeInTheDocument();
+    expect(screen.getByText('Tool Calls')).toBeInTheDocument();
     expect(
       estimatedCostChartTitle.compareDocumentPosition(agentRunsChartTitle) &
         Node.DOCUMENT_POSITION_FOLLOWING
@@ -164,6 +136,44 @@ describe('ConversationsOverviewPage', () => {
     expect(
       tabList.compareDocumentPosition(tableSearch) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+  });
+
+  it('only fetches conversations on the Conversations tab', async () => {
+    const conversationsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+    });
+    render(<ConversationsOverviewPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/agents/`,
+          query: {table: 'traces'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by trace ID, operation, service, or user'
+      )
+    ).toBeInTheDocument();
+    expect(conversationsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by model, provider, tokens, or operation'
+      )
+    ).toBeInTheDocument();
+    expect(conversationsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
+    await waitFor(() => expect(conversationsRequest).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(conversationsRequest).toHaveBeenCalledTimes(1);
   });
 
   it('tailors the search placeholder to the selected table', async () => {
@@ -217,9 +227,9 @@ describe('ConversationsOverviewPage', () => {
     expect(
       await screen.findByRole('button', {name: /^Chart interval:/})
     ).toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
     expect(screen.queryByText('Estimated Cost')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tool calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tool Calls')).not.toBeInTheDocument();
 
     finishAgentOrToolRequest();
 
@@ -229,8 +239,8 @@ describe('ConversationsOverviewPage', () => {
       'href',
       AI_AGENTS_GETTING_STARTED_DOCS_LINK
     );
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tool calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tool Calls')).not.toBeInTheDocument();
     expect(
       banner.compareDocumentPosition(costChartTitle) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -249,8 +259,8 @@ describe('ConversationsOverviewPage', () => {
     render(<ConversationsOverviewPage />, {organization});
 
     expect(await screen.findByText('Estimated Cost')).toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tool calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tool Calls')).not.toBeInTheDocument();
     expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
   });
 
@@ -271,7 +281,7 @@ describe('ConversationsOverviewPage', () => {
       },
     });
 
-    expect(await screen.findByText('Agent runs')).toBeInTheDocument();
+    expect(await screen.findByText('Agent Runs')).toBeInTheDocument();
     await waitFor(() => expect(chartRequest).toHaveBeenCalled());
     const chartQueries = chartRequest.mock.calls.map(([, options]) =>
       JSON.stringify(options.query)
@@ -304,28 +314,26 @@ describe('ConversationsOverviewPage', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
 
-    expect(screen.getByRole('tab', {name: 'Conversations'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(
+      await screen.findByRole('tab', {name: 'Conversations', selected: true})
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('combobox', {name: 'Add a search term'})
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Agent runs')).toBeInTheDocument();
+    expect(screen.getByText('Agent Runs')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
   });
 
-  it('opens a pasted conversation ID from the traces tab', async () => {
+  it('only opens a pasted conversation ID after selecting the Conversations tab', async () => {
     const {router} = render(<ConversationsOverviewPage />, {organization});
 
     await userEvent.click(await screen.findByRole('tab', {name: 'Traces'}));
 
-    MockApiClient.addMockResponse({
+    const conversationsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
         {
           conversationId: 'abcdef12',
-          duration: 1000,
           endTimestamp: 2000,
           errors: 0,
           firstInput: null,
@@ -336,6 +344,7 @@ describe('ConversationsOverviewPage', () => {
           outputTokens: 0,
           projectId: null,
           startTimestamp: 1000,
+          timeSpan: 1000,
           toolCalls: 0,
           toolErrors: 0,
           toolNames: [],
@@ -352,6 +361,11 @@ describe('ConversationsOverviewPage', () => {
     await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
     await userEvent.keyboard('abcdef12{Enter}');
 
+    await waitFor(() => expect(router.location.query.query).toBe('abcdef12'));
+    expect(router.location.pathname).not.toContain('/conversations/abcdef12/');
+    expect(conversationsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
     await waitFor(() => {
       expect(router.location.pathname).toBe(
         `/organizations/${organization.slug}/explore/agents/conversations/abcdef12/`
@@ -371,7 +385,7 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Traces'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'LLM Calls'})).not.toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
   });
 
   it('shows agentic spans in the LLM Calls tab', async () => {
@@ -386,19 +400,19 @@ describe('ConversationsOverviewPage', () => {
     expect(await screen.findByTestId('spans-table')).toBeInTheDocument();
   });
 
-  it('keeps the missing messages alert visible across tabs', async () => {
+  it('only shows the missing messages alert on the Conversations tab', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
         {
           conversationId: 'conversation-id',
-          duration: 1000,
           endTimestamp: 2000,
           errors: 0,
           firstInput: null,
           lastOutput: null,
           llmCalls: 1,
           startTimestamp: 1000,
+          timeSpan: 1000,
           toolCalls: 0,
           toolErrors: 0,
           toolNames: [],
@@ -418,12 +432,17 @@ describe('ConversationsOverviewPage', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
     expect(
-      screen.getByText(/These conversations' inputs and outputs weren't captured/)
-    ).toBeInTheDocument();
+      screen.queryByText(/These conversations' inputs and outputs weren't captured/)
+    ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
     expect(
-      screen.getByText(/These conversations' inputs and outputs weren't captured/)
+      screen.queryByText(/These conversations' inputs and outputs weren't captured/)
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
+    expect(
+      await screen.findByText(/These conversations' inputs and outputs weren't captured/)
     ).toBeInTheDocument();
   });
 
@@ -486,7 +505,7 @@ describe('ConversationsOverviewPage', () => {
 
     const aliases = [
       'conversation.age',
-      'conversation.duration',
+      'conversation.timeSpan',
       'conversation.generationDuration',
       'conversation.errors',
       'conversation.messages',

@@ -194,7 +194,12 @@ function QuestionOptions({question}: {question: EvaluationQuestion}) {
     return null;
   }
   return (
-    <Grid columns="fit-content(40%) minmax(0, 1fr)" gap="xs md" paddingTop="xs">
+    <Grid
+      columns="fit-content(40%) minmax(0, 1fr)"
+      gap="xs md"
+      align="baseline"
+      paddingTop="xs"
+    >
       {options.map(([label, description]) => [
         <Container key={`${label}:label`} minWidth="0">
           <TruncatedTag>{label}</TruncatedTag>

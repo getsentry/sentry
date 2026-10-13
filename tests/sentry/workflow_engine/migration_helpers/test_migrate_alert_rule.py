@@ -22,7 +22,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -504,28 +503,6 @@ class DualWriteAlertRuleTest(APITestCase):
         detector_state = aci_objects[4]
         detector_state.refresh_from_db()
         assert detector_state.priority_level == DetectorPriorityLevel.HIGH
-
-    def test_rule_snooze_updates_detector(self) -> None:
-        aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
-        rule_snooze = RuleSnooze.objects.create(alert_rule=self.metric_alert)
-
-        metric_detector = aci_objects[3]
-        metric_detector.refresh_from_db()
-
-        assert metric_detector.enabled is False
-
-        rule_snooze.delete()
-
-        metric_detector.refresh_from_db()
-        assert metric_detector.enabled is True
-
-    def test_ignores_per_user_rule_snooze(self) -> None:
-        aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
-        RuleSnooze.objects.create(alert_rule=self.metric_alert, user_id=self.user.id)
-
-        metric_detector = aci_objects[3]
-        metric_detector.refresh_from_db()
-        assert metric_detector.enabled is True
 
 
 class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):

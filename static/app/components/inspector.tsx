@@ -2,6 +2,11 @@ import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css, useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconLink} from '@sentry/icons/link';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Tag} from '@sentry/scraps/badge';
 import {useHotkeys} from '@sentry/scraps/hotkey';
@@ -18,10 +23,9 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 // eslint-disable-next-line boundaries/dependencies
-import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
+import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -440,13 +444,13 @@ export function SentryComponentInspector() {
             background-color: ${theme.tokens.border.success.muted} !important;
           }
 
-          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) {
+          [data-sentry-component-trace]:is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]):not([data-inspector-skip]) {
             box-shadow: 0 0 0 1px ${theme.tokens.border.accent.vibrant} !important;
             background-color: ${theme.tokens.border.accent.muted} !important;
           }
 
-          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) [data-sentry-source-path*="app/components/core"],
-          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) [data-sentry-source-path] {
+          [data-sentry-component-trace]:is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]):not([data-inspector-skip]) :is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]),
+          [data-sentry-component-trace]:is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]):not([data-inspector-skip]) [data-sentry-source-path] {
             box-shadow: none !important;
           }
         `}
@@ -714,7 +718,8 @@ function getSourcePath(el: unknown): string {
   if (!isTraceElement(el)) {
     return 'unknown path';
   }
-  return el.dataset.sentrySourcePath?.split(/static\//)[1] || 'unknown path';
+  const sourcePath = el.dataset.sentrySourcePath;
+  return sourcePath?.split(/static\//)[1] ?? 'unknown path';
 }
 
 const getFileName = (path: string) => {
@@ -730,7 +735,10 @@ function getComponentStorybookFile(
   el: unknown,
   stories: Record<string, string>
 ): string | null {
-  const sourcePath = getSourcePath(el);
+  const sourcePath = getSourcePath(el).replace(
+    /^packages\/scraps\/src\//,
+    'app/components/core/'
+  );
   const mdxSourcePath = sourcePath.replace(/\.tsx$/, '.mdx');
 
   if (stories[mdxSourcePath] && getFileName(mdxSourcePath) === getFileName(sourcePath)) {
@@ -782,7 +790,9 @@ function isCoreComponent(el: unknown): boolean {
   if (!isTraceElement(el)) {
     return false;
   }
-  return el.dataset.sentrySourcePath?.includes('app/components/core') ?? false;
+  return /(?:app\/components\/core|packages\/scraps\/src)\//.test(
+    el.dataset.sentrySourcePath ?? ''
+  );
 }
 
 function isViewComponent(el: unknown): boolean {

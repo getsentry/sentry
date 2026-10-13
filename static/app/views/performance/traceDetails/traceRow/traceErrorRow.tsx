@@ -1,5 +1,6 @@
 import {PlatformIcon} from 'platformicons';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
@@ -66,8 +67,10 @@ export function TraceErrorRow(props: TraceRowProps<ErrorNode>) {
             {ERROR_LEVEL_LABELS[props.node.value.level ?? 'error']}
           </span>
           <strong className="TraceEmDash"> — </strong>
-          {/* oxlint-disable-next-line react/refs */}
-          <span className="TraceDescription">{description}</span>
+          <span className="TraceDescription">
+            {/* oxlint-disable-next-line react/refs */}
+            <AnsiText>{description ?? ''}</AnsiText>
+          </span>
         </div>
       </div>
       {/* oxlint-disable-next-line react/refs -- This is a React element, not a ref. */}

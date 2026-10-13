@@ -2,11 +2,8 @@ import {useState} from 'react';
 
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {ContextBlock} from 'sentry/components/events/contexts/contextBlock';
-import {
-  getKnownData,
-  getKnownStructuredData,
-} from 'sentry/components/events/contexts/utils';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
@@ -15,7 +12,7 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
-import type {EventExtraDataType, EventExtraData as TEventExtraData} from './types';
+import {EventExtraDataType} from './types';
 
 type Props = {
   event: Event;
@@ -23,23 +20,37 @@ type Props = {
 
 export function EventExtraData({event}: Props) {
   const [raw, setRaw] = useState(false);
+  const data = event.context;
 
-  if (isEmptyObject(event.context)) {
+  if (!defined(data) || isEmptyObject(data)) {
     return null;
   }
-  let contextBlock: React.ReactNode = null;
-  if (defined(event.context)) {
-    const knownData = getKnownData<TEventExtraData, EventExtraDataType>({
-      data: event.context,
-      knownDataTypes: Object.keys(event.context),
-      meta: event._meta?.context,
-      onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
-    });
-    const formattedKnownData = raw
-      ? knownData
-      : getKnownStructuredData(knownData, event._meta?.context);
-    contextBlock = <ContextBlock data={formattedKnownData} raw={raw} />;
-  }
+
+  const meta = event._meta?.context;
+  const knownData = Object.keys(data).map(key => {
+    if (key === EventExtraDataType.CRASHED_PROCESS) {
+      return {key, ...getEventExtraDataKnownDataDetails({data, type: key})};
+    }
+
+    return {key, subject: key, value: data[key]};
+  });
+
+  const contentItems = knownData.map(item => ({
+    item: raw
+      ? item
+      : {
+          ...item,
+          value: (
+            <StructuredData
+              withAnnotatedText
+              value={item.value}
+              maxDefaultDepth={2}
+              meta={meta?.[item.key]}
+            />
+          ),
+        },
+    disableFormattedData: raw,
+  }));
 
   return (
     <FoldSection
@@ -57,7 +68,7 @@ export function EventExtraData({event}: Props) {
         </SegmentedControl>
       }
     >
-      {contextBlock}
+      <KeyValueTableCard contentItems={contentItems} sortAlphabetically variant="label" />
     </FoldSection>
   );
 }

@@ -7,7 +7,6 @@ from sentry.testutils.cases import APITestCase
 class DiscoverSavedQueryStarredTest(APITestCase):
     feature_flags = {
         "organizations:visibility-explore-view": True,
-        "organizations:discover-queries-in-all-queries": True,
     }
 
     def setUp(self) -> None:

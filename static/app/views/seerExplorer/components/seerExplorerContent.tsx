@@ -8,10 +8,13 @@ import {
   type ReactNode,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import type {ComposerValue} from '@sentry/scraps/composer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
@@ -22,7 +25,6 @@ import {
   type SendMessageOptions,
 } from 'sentry/components/seer/autofixChatContext';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
-import {IconClose, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -32,6 +34,7 @@ import {
   integrationRequiresUpgrade,
 } from 'sentry/utils/integrationUtil';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -60,6 +63,8 @@ import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
+import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
+import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/hooks/useCopySessionDataToClipboard';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {
@@ -68,6 +73,7 @@ import {
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {
   Block,
+  ChatSuggestion,
   PendingUserInput,
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
@@ -76,12 +82,13 @@ import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
   getRelativeExplorerUrl,
-  useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
+
+const EMPTY_INPUT: ComposerValue = {text: '', mentions: []};
 
 /**
  * Wraps the shared header content with the surface's chrome. The drawer passes
@@ -205,7 +212,7 @@ export function SeerExplorerContent({
   );
   const showThinking = hasCodeModeTools || showThinkingPreference;
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
@@ -213,7 +220,7 @@ export function SeerExplorerContent({
   const pendingComposerFocusRef = useRef(false);
 
   const focusInput = useCallback(() => {
-    textareaRef.current?.focus();
+    composerRef.current?.focus();
   }, []);
 
   // - Session data and mutators ----------------------------------------------
@@ -243,12 +250,21 @@ export function SeerExplorerContent({
   // Persist the input draft per-run so drawer closes / run switches
   // don't lose the user's in-progress text.
   const {
-    value: inputValue,
+    value: storedInputValue,
     setValue: setInputValue,
     reset: clearInput,
-  } = useDeferredSessionStorage(
+  } = useDeferredSessionStorage<ComposerValue | string>(
     runId === null ? null : `${INPUT_STORAGE_KEY_PREFIX}:${runId}`,
-    ''
+    EMPTY_INPUT
+  );
+
+  const inputValue = useMemo<ComposerValue>(
+    () => ({
+      text:
+        typeof storedInputValue === 'string' ? storedInputValue : storedInputValue.text,
+      mentions: [],
+    }),
+    [storedInputValue]
   );
 
   // Put a message that failed to send back in the composer, unless the user has
@@ -256,7 +272,12 @@ export function SeerExplorerContent({
   useEffect(() => {
     const failedQuery = requestError?.query;
     if (failedQuery) {
-      setInputValue(current => (current.trim() ? current : failedQuery));
+      setInputValue(current =>
+        // Backwards compatibility for drafts saved as a string in sessionStorage.
+        (typeof current === 'string' ? current : current.text).trim()
+          ? current
+          : {text: failedQuery, mentions: []}
+      );
     }
   }, [requestError, setInputValue]);
 
@@ -301,6 +322,27 @@ export function SeerExplorerContent({
   // Only when the error empty state is what's on screen. A live conversation that hits a
   // transient poll error still has its transcript and must keep its composer.
   const showLoadError = isEmptyState && (isError || hasSessionLoadError);
+
+  const suggestions = useChatSuggestions({
+    enabled: isEmptyState && !chatPrompt && !showLoadError && !isPolling && !readOnly,
+    allowStructuredContext: overrideCtxEngEnable,
+  });
+  const handleSuggestionClick = useCallback(
+    (suggestion: ChatSuggestion, position: number) => {
+      if (!suggestions.isLoading) {
+        trackAnalytics('seer.explorer.suggestion_clicked', {
+          organization,
+          referrer: getPageReferrer(),
+          source: suggestions.source,
+          position,
+          kind: suggestion.kind,
+          action_type: suggestion.action_type ?? undefined,
+        });
+      }
+      sendMessage(suggestion.text);
+    },
+    [suggestions, organization, getPageReferrer, sendMessage]
+  );
 
   // A question can't be answered in a run that won't take a reply (someone else's, or one
   // that failed to load), so it moves to a new chat instead of being lost.
@@ -518,9 +560,9 @@ export function SeerExplorerContent({
   // Menu component
   const {menu, closeMenu, openPRWidget} = useExplorerMenu({
     clearInput,
-    inputValue,
+    inputValue: inputValue.text,
     focusInput,
-    composerRef: textareaRef,
+    composerRef,
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
@@ -533,7 +575,7 @@ export function SeerExplorerContent({
         ? setOverrideCodeModeEnable
         : undefined,
     },
-    inputAnchorRef: textareaRef,
+    inputAnchorRef: composerRef,
     prWidgetAnchorRef: prWidgetButtonRef,
     prWidgetItems,
     prWidgetFooter,
@@ -544,18 +586,19 @@ export function SeerExplorerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
-  const canSendMessage = !readOnly && !showLoadError && !isPolling && !!inputValue.trim();
+  const canSendMessage =
+    !readOnly && !showLoadError && !isPolling && !!inputValue.text.trim();
   const handleSend = useCallback(() => {
     if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.trim(), blocks.length);
+    sendMessage(inputValue.text.trim(), blocks.length);
     clearInput();
     userScrolledUpRef.current = false;
   }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.nativeEvent.isComposing) {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.defaultPrevented || e.nativeEvent.isComposing) {
       return;
     }
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -567,9 +610,9 @@ export function SeerExplorerContent({
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    textareaRef.current?.focus();
+  const handleInputChange = (value: ComposerValue) => {
+    setInputValue(value);
+    composerRef.current?.focus();
   };
 
   const handleInputClick = () => {
@@ -581,7 +624,7 @@ export function SeerExplorerContent({
     startNewSession();
     if (readOnly || showLoadError) {
       // Exactly when `InputSection` renders its disabled branch - a different
-      // textarea that never takes `textareaRef` - so focusing now would be a
+      // textarea that never takes `composerRef` - so focusing now would be a
       // no-op. Ask for it once the real composer is back. Starting a chat clears
       // both conditions, so the request cannot outlive the render after it.
       pendingComposerFocusRef.current = true;
@@ -612,7 +655,7 @@ export function SeerExplorerContent({
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
       }
-      textareaRef.current?.focus();
+      composerRef.current?.focus();
     }, 100);
   }, []);
 
@@ -635,7 +678,7 @@ export function SeerExplorerContent({
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
       }
-      textareaRef.current?.focus();
+      composerRef.current?.focus();
     },
   });
   useEffect(() => {
@@ -646,13 +689,14 @@ export function SeerExplorerContent({
     revealChatPrompt();
   }, [chatPrompt, revealChatPrompt]);
 
-  // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
+  // Auto-scroll to bottom when blocks are added or the transcript resizes, unless scrolled up
+  const {height: transcriptHeight} = useDimensions({elementRef: scrollContainerRef});
   useEffect(() => {
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [blocks]);
+  }, [blocks, transcriptHeight]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -765,7 +809,8 @@ export function SeerExplorerContent({
               onStartNewChat={showLoadError ? handleStartNewChat : undefined}
               runId={runId}
               displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
-              onSuggestionClick={readOnly ? undefined : sendMessage}
+              onSuggestionClick={readOnly ? undefined : handleSuggestionClick}
+              suggestions={suggestions}
             />
           ) : (
             <Fragment>
@@ -857,7 +902,8 @@ export function SeerExplorerContent({
           onPRWidgetClick={openPRWidget}
           prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
-          textAreaRef={textareaRef}
+          runId={runId}
+          composerRef={composerRef}
           fileApprovalActions={
             isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
               ? {

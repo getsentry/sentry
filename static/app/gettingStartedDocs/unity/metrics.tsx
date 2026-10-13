@@ -23,13 +23,12 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
       language: 'csharp',
       code: `using Sentry;
 
-SentrySdk.Metrics.Increment("player_interaction",
-    tags: new Dictionary<string, string> {{"action", "jump"}, {"scene", "main_menu"}});
-SentrySdk.Metrics.Distribution("scene_load", 230,
-    unit: MeasurementUnit.Duration.Millisecond,
-    tags: new Dictionary<string, string> {{"scene", "world_1"}});
-SentrySdk.Metrics.Gauge("active_players", 42,
-    tags: new Dictionary<string, string> {{"server", "us-east-1"}});`,
+SentrySdk.Metrics.EmitCounter("player_interaction", 1,
+    new Dictionary<string, object> { ["action"] = "jump", ["scene"] = "main_menu" });
+SentrySdk.Metrics.EmitDistribution("scene_load", 230, MeasurementUnit.Duration.Millisecond,
+    new Dictionary<string, object> { ["scene"] = "world_1" });
+SentrySdk.Metrics.EmitGauge("active_players", 42, MeasurementUnit.None,
+    new Dictionary<string, object> { ["server"] = "us-east-1" });`,
     },
     {
       type: 'text',
@@ -48,7 +47,7 @@ export const metrics: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Metrics for Unity are supported in Sentry SDK version [code:4.1.0] and above.',
+            'Metrics for Unity are supported in Sentry SDK version [code:4.2.0] and above.',
             {
               code: <code />,
             }
@@ -57,50 +56,22 @@ export const metrics: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: DocsParams) => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'To enable metrics in your Unity game, you need to configure the Sentry SDK with metrics enabled.'
-          ),
-        },
-        {
-          type: 'text',
-          text: tct(
-            'Open your project settings: [strong:Tools > Sentry > Advanced > Metrics] and check the [strong:Enable Metrics] option.',
-            {
-              strong: <strong />,
-            }
-          ),
-        },
-        {
-          type: 'text',
-          text: t('Alternatively, you can enable metrics programmatically:'),
-        },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: `SentrySdk.Init(options =>
-{
-    options.Dsn = "${params.dsn.public}";
-
-    // Enable metrics to be sent to Sentry
-    options.ExperimentalMetrics = new ExperimentalMetricsOptions
-    {
-        EnableCodeLocations = true
-    };
-});`,
-        },
-      ],
-    },
-  ],
+  configure: () => [],
   verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
-      content: [metricsVerify(params)],
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Metrics are enabled by default. You can emit metrics using the [code:SentrySdk.Metrics] API.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        metricsVerify(params),
+      ],
     },
   ],
 };

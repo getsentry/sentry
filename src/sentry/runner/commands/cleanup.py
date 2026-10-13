@@ -12,20 +12,22 @@ from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import click
+import sentry_sdk
 from django.conf import settings
 from django.db import router as db_router
 from django.db.models import Exists, OuterRef, QuerySet
 from django.utils import timezone
-from sentry_sdk import capture_exception
+from sentry_sdk import capture_exception, traces
+from sentry_sdk.scope import Scope
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
 TRANSACTION_PREFIX = "cleanup"
 DELETES_BY_PROJECT_CHUNK_SIZE = 100
+_last_progress_log: dict[str, float] = {}
 
 if TYPE_CHECKING:
     from sentry.db.deletion import BulkDeleteQuery
@@ -107,10 +109,6 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
     configure()
 
-    progress_logger = logging.getLogger("sentry.cleanup.progress")
-    progress_logger.setLevel(logging.INFO)
-    last_progress_log: dict[str, float] = {}
-
     from sentry import options
     from sentry.utils import metrics
 
@@ -137,26 +135,26 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with start_span(
-                op="cleanup",
-                name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
-                transaction=True,
-                custom_sampling_context={
-                    "sample_rate": 0.05 * settings.SENTRY_BACKEND_APM_SAMPLING
-                },
-            ):
+            traces.new_trace()
+            propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+            prev_sampling_context = propagation_context.custom_sampling_context
+            Scope.set_custom_sampling_context(
+                {"sample_rate": 0.01 * settings.SENTRY_BACKEND_APM_SAMPLING}
+            )
+            try:
+                span = traces.start_span(
+                    name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
+                    attributes={"sentry.op": "cleanup"},
+                    parent_span=None,
+                )
+            finally:
+                propagation_context = (
+                    sentry_sdk.get_current_scope().get_active_propagation_context()
+                )
+                propagation_context.custom_sampling_context = prev_sampling_context
+
+            with span:
                 task_execution(model_name, chunk, project_id, deferred_filter)
-                if chunk:
-                    now = time.monotonic()
-                    if (
-                        model_name not in last_progress_log
-                        or now - last_progress_log[model_name] >= 300  # 5 min
-                    ):
-                        progress_logger.info(
-                            "cleanup.progress",
-                            extra={"model": model_name, "last_id": chunk[-1]},
-                        )
-                        last_progress_log[model_name] = now
         except Exception:
             metrics.incr(
                 "cleanup.error",
@@ -381,7 +379,10 @@ def _cleanup(
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
-    with start_span(op="cleanup", name=f"{TRANSACTION_PREFIX}.main", transaction=True) as span:
+    traces.new_trace()
+    with traces.start_span(
+        name=f"{TRANSACTION_PREFIX}.main", attributes={"sentry.op": "cleanup"}, parent_span=None
+    ) as span:
         try:
             # Check if cleanup should be aborted before starting
             if options.get("cleanup.abort_execution"):
@@ -418,9 +419,9 @@ def _cleanup(
                 project, organization, days, deletes, bulk_query_deletes
             )
             if organization_id is not None:
-                set_span_tag(span, "organization_id", organization_id)
+                span.set_attribute("organization_id", organization_id)
             if project_id is not None:
-                set_span_tag(span, "project_id", project_id)
+                span.set_attribute("project_id", project_id)
 
             run_bulk_query_deletes(
                 bulk_query_deletes,
@@ -908,11 +909,34 @@ def _schedule_bulk_delete_chunks(
     Returns:
         Tuple of (chunk_count, total_objects)
     """
+    progress_logger = logging.getLogger("sentry.cleanup.progress")
+    progress_logger.setLevel(logging.INFO)
+
     imp = ".".join((model_tp.__module__, model_tp.__name__))
     chunk_count = 0
     total_objects = 0
 
     for chunk in q.iterator(chunk_size=DELETES_BY_PROJECT_CHUNK_SIZE):
+        now = time.monotonic()
+        if imp not in _last_progress_log or now - _last_progress_log[imp] >= 300:  # 5 min
+            last_timestamp = None
+            if q.dtfield is not None:
+                last_timestamp = (
+                    q.model.objects.using(q.using)
+                    .filter(pk=chunk[-1])
+                    .values_list(q.dtfield, flat=True)
+                    .first()
+                )
+            progress_logger.info(
+                "cleanup.scan_progress",
+                extra={
+                    "model": imp,
+                    "last_id": chunk[-1],
+                    "date_field": q.dtfield,
+                    "last_timestamp": last_timestamp.timestamp() if last_timestamp else None,
+                },
+            )
+            _last_progress_log[imp] = time.monotonic()
         task_queue.put((imp, chunk, project_id, q.deferred_filter))
         chunk_count += 1
         total_objects += len(chunk)

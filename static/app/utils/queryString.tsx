@@ -152,6 +152,20 @@ export function decodeSorts(value: QueryValue, fallback?: string): Sort[] {
   );
 }
 
+export function encodeSort(sort: Sort): string {
+  switch (sort.kind) {
+    case 'desc': {
+      return `-${sort.field}`;
+    }
+    case 'asc': {
+      return String(sort.field);
+    }
+    default: {
+      throw new Error('Unexpected sort type');
+    }
+  }
+}
+
 export function decodeBoolean(value: QueryValue): boolean | undefined;
 export function decodeBoolean(value: QueryValue, fallback: boolean): boolean;
 export function decodeBoolean(

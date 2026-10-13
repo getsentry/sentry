@@ -2,10 +2,8 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from rest_framework import serializers
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from sentry.api.serializers.rest_framework.rule import validate_actions
 from sentry.integrations.github_enterprise import client
 from sentry.integrations.github_enterprise.actions.create_ticket import (
     GitHubEnterpriseCreateTicketAction,
@@ -14,6 +12,7 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
+from sentry.notifications.types import NotificationActionContext
 from sentry.rules import rules
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
@@ -78,11 +77,12 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
 
     def trigger(self, event, rule_object):
         action = rule_object.data.get("actions", ())[0]
-        action_inst = self.get_rule(data=action, rule=rule_object)
+        context = NotificationActionContext.from_legacy_rule(rule_object)
+        action_inst = self.get_rule(data=action, context=context)
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
-        rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(context=context, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent):
@@ -186,24 +186,3 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
             ).count()
             == 1
         )
-
-    @responses.activate()
-    def test_fails_validation(self) -> None:
-        """
-        Test that the absence of dynamic_form_fields in the action fails validation
-        """
-        with pytest.raises(serializers.ValidationError) as excinfo:
-            validate_actions(
-                {
-                    "actions": [
-                        {
-                            "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                            "integration": self.integration.id,
-                            "repo": self.repo,
-                            "assignee": self.assignee,
-                            "labels": self.labels,
-                        }
-                    ]
-                }
-            )
-        assert excinfo.value.detail == {"actions": "Must configure issue link settings."}

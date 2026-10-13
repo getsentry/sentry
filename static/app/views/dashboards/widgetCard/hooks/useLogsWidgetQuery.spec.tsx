@@ -68,6 +68,40 @@ describe('useLogsSeriesQuery', () => {
     });
   });
 
+  it('excludes the Other series for grouped widgets with multiple aggregates', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: ['severity', 'count()', 'count_unique(message)'],
+          aggregates: ['count()', 'count_unique(message)'],
+          columns: ['severity'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+
+    renderHookWithProviders(() =>
+      useLogsSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() => {
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({excludeOther: '1'}),
+        })
+      );
+    });
+  });
+
   it('makes a request to the events-timeseries endpoint when enabled', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,

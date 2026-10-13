@@ -3,8 +3,8 @@ import {motion} from 'framer-motion';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/components/onboarding/consts';
 import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
-import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 interface ScmStepHeaderProps {
   heading: string;

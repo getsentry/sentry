@@ -64,8 +64,8 @@ One packet can produce:
 - Multiple results keyed by `DetectorGroupKey`
 
 A handler returns a mapping of group keys to `DetectorEvaluation` objects. An evaluation
-can contain an `IssueOccurrence`, a `StatusChangeMessage`, or `None`;
-`process_detectors` publishes only non-null results.
+can contain an `IssueOccurrence`, a `StatusChangeMessage`, or `None`. `process_detectors`
+routes non-null results according to the handler's `outcome`.
 
 ### 4. Detector orchestration
 
@@ -142,12 +142,18 @@ Detectors that need a different flow inherit `DetectorHandler` and override `eva
 but then they own this orchestration. `BaseDetectorHandler` is only the abstract
 interface and is not a base for new detectors.
 
-### 5. Publish to Issue Platform
+### 5. Produce detector output
 
-`process_detectors` passes detector results to
-`create_issue_platform_payload` and
-[`produce_occurrence_to_kafka`](../../issues/producer.py). The payload type distinguishes
-occurrences from status changes.
+`process_detectors` invokes the detector handler's `on_complete` lifecycle callback with
+the detector and each evaluation. The default callback is
+`DetectorOutcome.ISSUE_PLATFORM.dispatch`; it resolves the registered outcome handler,
+whose `handle` method ignores evaluations without a result and passes the others to Issue
+Platform via [`produce_occurrence_to_kafka`](../../issues/producer.py). A detector can
+assign another supported outcome dispatcher or override `on_complete` for custom processing.
+
+Supported outcome implementations register their `DetectorOutcomeHandler` class with
+`@detector_outcome_registry.add(DetectorOutcome.<KEY>)`. The closed, typed set of keys
+lives in `supported_outcomes.py`; the registry maps each key to its handler implementation.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a
@@ -410,9 +416,21 @@ The engine emits metrics for detector lookup/evaluation, condition evaluation, w
 processing, delayed scheduling, caches, and actions. Logging helpers in
 [`utils/log_context.py`](../utils/log_context.py) attach workflow and event context.
 
-[`GroupedWorkflowEvaluationResult`](../processors/evaluations/workflow.py) can produce a
-structured snapshot of workflow evaluations. Runtime options and feature flags control
-sampling and direct logging.
+[`emit_evaluations`](../processors/evaluations/tracking.py) records detector and workflow
+evaluations. Runtime options and feature flags control sampling and direct logging.
+
+When `organizations:workflow-engine-evaluation-artifacts-eap` is enabled,
+[`emit_evaluation_to_eap`](../processors/evaluations/eap.py) publishes artifacts to
+`SNUBA_ITEMS` as `TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION` trace items. These are not
+log trace items and do not include log body or severity attributes.
+
+Delivery is best-effort: the producer does not track futures for task completion or apply
+backpressure. Serialization and delivery failures are logged without retrying workflow
+tasks. Artifacts can be dropped when Kafka is unavailable or its producer queue is full.
+
+The sanitized `trigger_evaluation`, `filter_evaluations`, and `delayed` attributes are
+JSON strings because EAP ingestion discards nested protobuf key/value lists. Scalar
+attributes and primitive arrays, such as `triggered_action_ids`, retain their native types.
 
 When tracing a missing action, check the boundaries in order:
 

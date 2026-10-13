@@ -28,7 +28,7 @@ export function GroupEventAttachmentsFilter({
     EventAttachmentFilter.ALL;
 
   return (
-    <Flex justify="end">
+    <Flex maxWidth="100%">
       <SegmentedControl
         aria-label={t('Attachment Filter')}
         size="sm"

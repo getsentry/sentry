@@ -1,0 +1,36 @@
+diff --git a/build/index.js b/build/index.js
+index aec90cfb55b89af17b10a840c7c1fd301f798db1..8fd1bebcc371471bb4404bcbdcbf659dd05ba062 100644
+--- a/build/index.js
++++ b/build/index.js
+@@ -685,6 +685,7 @@ class Resolver {
+     this._moduleNameCache = new Map();
+     this._modulePathCache = new Map();
+     this._isCoreModuleCache = new Map();
++    this._stubModuleNameCache = new Map();
+     const configuredExtensions = this._options.extensions ?? [];
+     const extensions = [...configuredExtensions];
+     if (this._supportsNativePlatform) {
+@@ -1205,7 +1206,23 @@ class Resolver {
+   async _isModuleResolvedAsync(from, moduleName, options) {
+     return !!(this.getModule(moduleName) || (await this.getMockModuleAsync(from, moduleName, options)));
+   }
++  // `jest-runtime` asks for a manual mock before every `require()`, and that
++  // runs every `moduleNameMapper` pattern plus a filesystem resolve. The
++  // registry is reset per test file, so the same lookups repeat for each file
++  // the worker runs. The answer only depends on the directory, the specifier
++  // and the resolve options, so memoize it for the life of the resolver.
++  // Errors are not cached, so an unresolvable mapping still throws every time.
+   resolveStubModuleName(from, moduleName, options) {
++    const cacheKey = path().dirname(from) + path().delimiter + moduleName + path().delimiter + stringifyOptions(options);
++    const cached = this._stubModuleNameCache.get(cacheKey);
++    if (cached !== undefined) {
++      return cached;
++    }
++    const result = this._resolveStubModuleNameUncached(from, moduleName, options);
++    this._stubModuleNameCache.set(cacheKey, result);
++    return result;
++  }
++  _resolveStubModuleNameUncached(from, moduleName, options) {
+     const moduleNameMapper = this._options.moduleNameMapper;
+     if (moduleNameMapper == null || moduleNameMapper.length === 0) {
+       return null;

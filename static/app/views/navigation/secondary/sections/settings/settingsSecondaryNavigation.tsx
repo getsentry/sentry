@@ -13,7 +13,13 @@ export function SettingsSecondaryNavigation() {
   const {activeGroup} = usePrimaryNavigation();
 
   if (!organization) {
-    return <SettingsNavigation navigationObjects={getUserNavigationConfiguration()} />;
+    return (
+      <SettingsNavigation
+        navigationObjects={getUserNavigationConfiguration()}
+        hookConfigs={[]}
+        hooks={[]}
+      />
+    );
   }
 
   // Show project settings when user is on /settings/:orgId/projects/:projectId

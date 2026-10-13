@@ -165,7 +165,7 @@ export function getHighlightTagData({
       tagMap[tagKey] && Object.hasOwn(tagMap[tagKey], 'value')
         ? tagMap[tagKey]?.value
         : EMPTY_HIGHLIGHT_DEFAULT,
-    originalTag: tagMap[tagKey] ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
+    original: tagMap[tagKey] ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
   }));
 }
 

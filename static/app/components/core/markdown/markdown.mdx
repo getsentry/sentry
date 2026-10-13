@@ -227,7 +227,7 @@ By default, `Tag` renders nothing. Provide a `Tag` component override to handle 
 >
 ```
 
-During streaming, partial tag syntax (e.g. `{% ref type="issue"` before the closing `/%}` arrives) is automatically suppressed to avoid flashing raw source text.
+With `variant="streaming"`, partial tag syntax (e.g. `{% ref type="issue"` before the closing `/%}` arrives) is automatically suppressed to avoid flashing raw source text. Static content renders unclosed tag syntax as written.
 
 ## Security
 
