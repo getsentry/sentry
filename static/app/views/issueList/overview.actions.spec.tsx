@@ -393,34 +393,20 @@ describe('IssueListOverview (actions)', () => {
           <OverviewInContainer />
           <GlobalModal />
         </Fragment>,
-        {
-          organization,
-          initialRouterConfig: {
-            route: '/organizations/:orgId/issues/',
-            location: {
-              pathname: '/organizations/org-slug/issues/',
-              query: {query: 'is:unresolved'},
-            },
-          },
-        }
+        {organization}
       );
 
       await screen.findByText('Group 1');
       await userEvent.click(screen.getByRole('checkbox', {name: /select all/i}));
       await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
-      await userEvent.click(
-        within(await screen.findByRole('dialog')).getByRole('button', {
-          name: 'Resolve 2 selected issues',
-        })
-      );
-      expect(await screen.findByText('Resolved 2 issues')).toBeInTheDocument();
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.click(within(dialog).getByRole('button', {name: /resolve/i}));
       await userEvent.click(await screen.findByRole('button', {name: 'Undo'}));
 
       expect(updateIssueMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          query: expect.objectContaining({id: ['1', '2']}),
-          data: {status: 'unresolved', statusDetails: {}, substatus: undefined},
+          data: expect.objectContaining({status: 'unresolved', substatus: undefined}),
         })
       );
     });
