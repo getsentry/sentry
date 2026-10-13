@@ -5,7 +5,6 @@ from typing import Any
 from sentry import digests
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import DigestInfo, event_to_record, unsplit_key
-from sentry.digests.types import IdentifierKey
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.options.project_option import ProjectOption
@@ -101,7 +100,6 @@ class MailAdapter:
                         event,
                         workflow_rules,
                         notification_uuid=notification_uuid,
-                        identifier_key=IdentifierKey.WORKFLOW,
                     ),
                     increment_delay=get_digest_option("increment_delay"),
                     maximum_delay=get_digest_option("maximum_delay"),
