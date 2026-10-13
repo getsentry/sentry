@@ -36,6 +36,22 @@ describe('aspnetcore onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders the WebApplication configuration by default', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/builder\.WebHost\.UseSentry\(/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/var app = builder\.Build\(\);/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/CreateHostBuilder/))
+    ).not.toBeInTheDocument();
+  });
+
   it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
@@ -44,6 +60,14 @@ describe('aspnetcore onboarding docs', () => {
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.TracesSampleRate/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/app\.MapGet\("\/person\/\{id\}", \(string id, IHub hub\)/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Startup\.cs/))
+    ).not.toBeInTheDocument();
   });
 
   it('renders logs onboarding docs correctly', async () => {

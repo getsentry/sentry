@@ -15,47 +15,78 @@ const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.AspNetCore -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  '4.3.0'
+  '6.12.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.AspNetCore -v ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  '4.3.0'
+  '6.12.0'
 )}`;
 
-const getConfigureSnippet = (params: DocsParams) => `
+const getSentryOptions = (params: DocsParams, indent: string) =>
+  `
+o.Dsn = "${params.dsn.public}";
+// When configuring for the first time, to see what the SDK is doing:
+o.Debug = true;${
+    params.isPerformanceSelected
+      ? `
+// Set TracesSampleRate to 1.0 to capture 100%
+// of transactions for tracing.
+// We recommend adjusting this value in production
+o.TracesSampleRate = 1.0;`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+// Enable logs to be sent to Sentry
+o.EnableLogs = true;`
+      : ''
+  }`.replaceAll('\n', `\n${indent}`);
+
+const getConfigureWebApplicationSnippet = (params: DocsParams) => `
+var builder = WebApplication.CreateBuilder(args);
+
+// Add the following line:
+builder.WebHost.UseSentry(o =>
+{${getSentryOptions(params, '    ')}
+});
+
+var app = builder.Build();`;
+
+const getConfigureHostBuilderSnippet = (params: DocsParams) => `
 public static IHostBuilder CreateHostBuilder(string[] args) =>
   Host.CreateDefaultBuilder(args)
       .ConfigureWebHostDefaults(webBuilder =>
       {
+          webBuilder.UseStartup<Startup>();
           // Add the following line:
           webBuilder.UseSentry(o =>
-          {
-              o.Dsn = "${params.dsn.public}";
-              // When configuring for the first time, to see what the SDK is doing:
-              o.Debug = true;${
-                params.isPerformanceSelected
-                  ? `
-              // Set TracesSampleRate to 1.0 to capture 100%
-              // of transactions for tracing.
-              // We recommend adjusting this value in production
-              o.TracesSampleRate = 1.0;`
-                  : ''
-              }${
-                params.isLogsSelected
-                  ? `
-              // Enable logs to be sent to Sentry
-              o.EnableLogs = true;`
-                  : ''
-              }
+          {${getSentryOptions(params, '              ')}
           });
       });`;
 
-const getPerformanceSpansSnippet = () => `
+const getPerformanceSpansMinimalApiSnippet = () => `
+app.MapGet("/person/{id}", (string id, IHub hub) =>
+{
+    var childSpan = hub.GetSpan()?.StartChild("additional-work");
+    try
+    {
+        // Do the work that gets measured.
+
+        childSpan?.Finish(SpanStatus.Ok);
+        return Results.Ok();
+    }
+    catch (Exception e)
+    {
+        childSpan?.Finish(e);
+        throw;
+    }
+});`;
+
+const getPerformanceSpansControllerSnippet = () => `
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Sentry;
 
 public class HomeController : Controller
@@ -73,6 +104,7 @@ public class HomeController : Controller
             // Do the work that gets measured.
 
             childSpan?.Finish(SpanStatus.Ok);
+            return Ok();
         }
         catch (Exception e)
         {
@@ -118,14 +150,24 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Add Sentry to [code:Program.cs] through the [code:WebHostBuilder]:',
+            'Add Sentry to [code:Program.cs] by calling [code:UseSentry] on the web host builder:',
             {code: <code />}
           ),
         },
         {
           type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippet(params),
+          tabs: [
+            {
+              label: 'WebApplication',
+              language: 'csharp',
+              code: getConfigureWebApplicationSnippet(params),
+            },
+            {
+              label: 'IHostBuilder',
+              language: 'csharp',
+              code: getConfigureHostBuilderSnippet(params),
+            },
+          ],
         },
       ],
     },
@@ -146,12 +188,9 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            "If you don't want to depend on the static class, the SDK registers a client in the DI container. In this case, you can [link:take [code:IHub] as a dependency].",
+            "If you don't want to depend on the static class, the SDK also registers [code:IHub] in the dependency injection container. Take it as a parameter of a minimal API endpoint or of a controller's constructor, and call [code:CaptureMessage] on it instead.",
             {
               code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/unit-testing/" />
-              ),
             }
           ),
         },
@@ -167,7 +206,7 @@ export const onboarding: OnboardingConfig = {
               {
                 type: 'text',
                 text: tct(
-                  'You can measure the performance of your endpoints by adding a middleware to [code:Startup.cs]:',
+                  '[code:UseSentry] registers the Sentry middleware, and setting [code:TracesSampleRate] turns on transactions, so the performance of your endpoints is measured without any further setup.',
                   {
                     code: <code />,
                   }
@@ -175,14 +214,27 @@ export const onboarding: OnboardingConfig = {
               },
               {
                 type: 'text',
-                text: t(
-                  "You'll be able to monitor the performance of your actions automatically. To add additional spans to it, you can use the API:"
+                text: tct(
+                  'To add additional spans to the transaction of a request, take [code:IHub] as a dependency and use the API:',
+                  {
+                    code: <code />,
+                  }
                 ),
               },
               {
                 type: 'code',
-                language: 'csharp',
-                code: getPerformanceSpansSnippet(),
+                tabs: [
+                  {
+                    label: 'Minimal API',
+                    language: 'csharp',
+                    code: getPerformanceSpansMinimalApiSnippet(),
+                  },
+                  {
+                    label: 'MVC Controller',
+                    language: 'csharp',
+                    code: getPerformanceSpansControllerSnippet(),
+                  },
+                ],
               },
             ],
           },
@@ -210,14 +262,6 @@ export const onboarding: OnboardingConfig = {
                 strong: <strong />,
               }
             ),
-            tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            }),
-            tct('[link:Giraffe F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/giraffe" />,
-              strong: <strong />,
-            }),
           ],
         },
       ],

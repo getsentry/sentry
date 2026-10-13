@@ -14,14 +14,14 @@ const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.AspNetCore -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  '3.34.0'
+  '6.12.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.AspNetCore -v ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  '3.34.0'
+  '6.12.0'
 )}`;
 
 const getConfigureSnippet = (params: DocsParams) => `

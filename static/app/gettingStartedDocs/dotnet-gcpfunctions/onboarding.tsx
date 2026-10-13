@@ -14,14 +14,14 @@ const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Google.Cloud.Functions -Version ${getPackageVersion(
   params,
   'sentry.dotnet.google-cloud-function',
-  '3.34.0'
+  '6.12.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Google.Cloud.Functions -v ${getPackageVersion(
   params,
   'sentry.dotnet.google-cloud-function',
-  '3.34.0'
+  '6.12.0'
 )}`;
 
 const getInstallSnippetManual = (params: DocsParams) => `
@@ -29,7 +29,7 @@ const getInstallSnippetManual = (params: DocsParams) => `
   <PackageReference Include="Sentry.Google.Cloud.Functions" Version="${getPackageVersion(
     params,
     'sentry.dotnet.google-cloud-function',
-    '3.34.0'
+    '6.12.0'
   )}"/>
 </ItemGroup>`;
 
@@ -199,10 +199,6 @@ export const onboarding: OnboardingConfig = {
                 code: <code />,
               }
             ),
-            tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            }),
           ],
         },
       ],

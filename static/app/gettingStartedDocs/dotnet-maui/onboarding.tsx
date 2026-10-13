@@ -15,14 +15,14 @@ const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Maui -Version ${getPackageVersion(
   params,
   'sentry.dotnet.maui',
-  '4.3.0'
+  '6.12.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Maui -v ${getPackageVersion(
   params,
   'sentry.dotnet.maui',
-  '4.3.0'
+  '6.12.0'
 )}`;
 
 const getConfigureSnippet = (params: DocsParams) => `

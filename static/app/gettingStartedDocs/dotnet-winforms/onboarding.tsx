@@ -12,10 +12,10 @@ import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 const getInstallSnippetPackageManager = (params: DocsParams) => `
-Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
+Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '6.12.0')}`;
 
 const getInstallSnippetCoreCli = (params: DocsParams) => `
-dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
+dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '6.12.0')}`;
 
 const getConfigureSnippet = (params: DocsParams) => `
 using System;
@@ -210,10 +210,6 @@ export const onboarding: OnboardingConfig = {
                 strong: <strong />,
               }
             ),
-            tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            }),
           ],
         },
       ],

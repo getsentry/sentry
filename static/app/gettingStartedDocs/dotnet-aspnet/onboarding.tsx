@@ -14,14 +14,14 @@ const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.AspNet -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnet',
-  '3.34.0'
+  '6.12.0'
 )}`;
 
 const getInstallSnippetEntityFramework = (params: DocsParams) => `
 Install-Package Sentry.EntityFramework -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnet',
-  '3.34.0'
+  '6.12.0'
 )}`;
 
 const getConfigureSnippet = (params: DocsParams) => `
@@ -186,10 +186,6 @@ export const onboarding: OnboardingConfig = {
                 strong: <strong />,
               }
             ),
-            tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            }),
           ],
         },
       ],

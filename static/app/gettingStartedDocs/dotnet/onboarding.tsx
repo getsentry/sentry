@@ -17,14 +17,14 @@ const getInstallProfilingSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '6.0.0'
+  '6.12.0'
 )}`;
 
 const getInstallProfilingSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Profiling -v ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
-  '6.0.0'
+  '6.12.0'
 )}`;
 
 enum DotNetPlatform {
@@ -298,10 +298,6 @@ export const onboarding: OnboardingConfig = {
                 strong: <strong />,
               }
             ),
-            tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            }),
           ],
         },
       ],
