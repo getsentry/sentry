@@ -57,8 +57,7 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
   [AgentIntegration.LITELLM]: 'litellm',
   [AgentIntegration.FLUE]: 'astro',
   [AgentIntegration.MASTRA]: 'mastra',
-  // There is no Pi Durable platform icon yet.
-  [AgentIntegration.PI_DURABLE]: 'default',
+  [AgentIntegration.PI_DURABLE]: 'pi',
   [AgentIntegration.PYDANTIC_AI]: 'pydantic-ai',
   [AgentIntegration.VERCEL_AI]: 'vercel',
   // Eve is a Vercel framework, so it reuses the Vercel icon.
