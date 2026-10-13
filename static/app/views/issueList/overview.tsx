@@ -752,9 +752,6 @@ function IssueListOverviewInner({
     data: IssueUpdateData;
     groupItems: BaseGroup[];
   }) => {
-    if (groupItems.length === 0) {
-      return;
-    }
     const projectIds = selection?.projects?.map(p => p.toString());
     const endpoint = `/organizations/${organization.slug}/issues/`;
 

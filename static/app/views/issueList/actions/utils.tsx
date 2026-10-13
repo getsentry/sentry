@@ -240,53 +240,47 @@ function getBulkActionMessages(
   data: IssueUpdateData | Record<string, unknown>,
   itemIds: string[] | undefined
 ) {
-  const count = itemIds?.length;
+  const allInQuery = itemIds === undefined;
   const target =
     itemIds?.length === 1
       ? (GroupStore.get(itemIds[0]!)?.shortId ?? t('1 issue'))
-      : tn('%s issue', '%s issues', count ?? 0);
+      : tn('%s issue', '%s issues', itemIds?.length ?? 0);
+  const status = 'status' in data ? data.status : undefined;
 
-  if ('status' in data && data.status === GroupStatus.RESOLVED) {
+  if (status === GroupStatus.RESOLVED) {
     return {
       loading: t('Resolving issues…'),
-      success:
-        count === undefined ? t('Selected issues resolved') : t('Resolved %s', target),
+      success: allInQuery ? t('Selected issues resolved') : t('Resolved %s', target),
       error: t('Unable to resolve issues'),
     };
   }
-  if ('status' in data && data.status === GroupStatus.IGNORED) {
+  if (status === GroupStatus.IGNORED) {
     return {
       loading: t('Archiving issues…'),
-      success:
-        count === undefined ? t('Selected issues archived') : t('Archived %s', target),
+      success: allInQuery ? t('Selected issues archived') : t('Archived %s', target),
       error: t('Unable to archive issues'),
     };
   }
-  if ('status' in data && data.status === GroupStatus.UNRESOLVED) {
+  if (status === GroupStatus.UNRESOLVED) {
     return {
       loading: t('Unresolving issues…'),
-      success:
-        count === undefined
-          ? t('Selected issues unresolved')
-          : t('Unresolved %s', target),
+      success: allInQuery ? t('Selected issues unresolved') : t('Unresolved %s', target),
       error: t('Unable to unresolve issues'),
     };
   }
   if ('inbox' in data && !data.inbox) {
     return {
       loading: t('Marking issues reviewed…'),
-      success:
-        count === undefined ? t('Selected issues reviewed') : t('Reviewed %s', target),
+      success: allInQuery ? t('Selected issues reviewed') : t('Reviewed %s', target),
       error: t('Unable to mark issues reviewed'),
     };
   }
   if ('priority' in data) {
     return {
       loading: t('Updating issue priority…'),
-      success:
-        count === undefined
-          ? t('Selected issues reprioritized')
-          : t('Reprioritized %s', target),
+      success: allInQuery
+        ? t('Selected issues reprioritized')
+        : t('Reprioritized %s', target),
       error: t('Unable to update issue priority'),
     };
   }
