@@ -65,7 +65,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         obj: Group | GroupEvent = self.event if self.event is not None else self.group
         url = None
         origin = self.rules[0] if self.rules else None
-        if origin is not None and origin.workflow_id is not None:
+        if origin is not None and (origin.workflow_id is not None or origin.is_test_notification()):
             url = get_title_link(
                 self.group,
                 self.event,
@@ -73,7 +73,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                 self.issue_details,
                 self.notification,
                 ExternalProviders.DISCORD,
-                origin.workflow_id,
+                None if origin.is_test_notification() else origin.workflow_id,
                 origin.environment_id,
                 notification_uuid=notification_uuid,
             )
