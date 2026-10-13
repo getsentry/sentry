@@ -26,6 +26,18 @@ describe('seerEmbedsToJsonSchemas', () => {
     expect(spansQuery?.body.required).toBeUndefined();
   });
 
+  it('rejects invalid date strings for the timestamp embed value', () => {
+    // The timestamp embed previously used z.string() which allowed any value,
+    // including non-parseable dates that would cause RangeError in toISOString().
+    // It now uses isoTimestampSchema to validate the value at parse time.
+    expect(() =>
+      SEER_EMBED_SCHEMAS.timestamp.schema.parse({value: 'not-a-date'})
+    ).toThrow();
+    expect(() =>
+      SEER_EMBED_SCHEMAS.timestamp.schema.parse({value: '2025-07-15T14:30:00Z'})
+    ).not.toThrow();
+  });
+
   it('exports chart axis restrictions to the agent contract', () => {
     const chart = seerEmbedsToJsonSchemas().find(widget => widget.name === 'chart');
 
