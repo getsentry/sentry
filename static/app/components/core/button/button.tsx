@@ -4,7 +4,7 @@ import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
-import {Tooltip, useDisabledTooltip} from '@sentry/scraps/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {
@@ -13,6 +13,18 @@ import {
 } from './styles';
 import type {DO_NOT_USE_ButtonProps as ButtonProps, ButtonSize} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
+
+function preventKeyboardSubmit(
+  e: React.KeyboardEvent,
+  consumer?: React.KeyboardEventHandler
+) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+  consumer?.(e);
+}
 
 export type {ButtonProps};
 
@@ -37,11 +49,8 @@ export function Button({
 
   // When a tooltip is present, use aria-disabled instead of native disabled
   // so the button stays focusable and the tooltip can open on keyboard focus.
-  const {disabledProps} = useDisabledTooltip({
-    disabled,
-    onKeyDown: props.onKeyDown,
-    tooltipTitle: tooltipProps?.title,
-  });
+  const hasTooltip = !!tooltipProps?.title;
+  const useAriaDisabled = disabled && hasTooltip;
 
   return (
     <Tooltip
@@ -53,13 +62,18 @@ export function Button({
       <StyledButton
         aria-label={accessibleLabel}
         aria-busy={busy}
+        disabled={useAriaDisabled ? undefined : disabled}
         size={size}
         type={type}
         busy={busy}
         {...props}
-        {...disabledProps}
+        {...(useAriaDisabled && {'aria-disabled': true})}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
+        {...(useAriaDisabled && {
+          onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) =>
+            preventKeyboardSubmit(e, props.onKeyDown),
+        })}
         role="button"
       >
         <Flex

@@ -34,13 +34,15 @@ describe('Checkbox', () => {
     expect(screen.getByRole<HTMLInputElement>('checkbox').indeterminate).toBe(true);
   });
 
-  it('uses aria-disabled when a disabled checkbox has a tooltip', async () => {
+  it('shows a disabled reason on keyboard focus without allowing changes', async () => {
     const onChange = jest.fn();
+    const onKeyDown = jest.fn();
     render(
       <label>
         <Checkbox
           disabled
           onChange={onChange}
+          onKeyDown={onKeyDown}
           tooltipProps={{title: 'Requires admin access'}}
         />
         Enable feature
@@ -57,16 +59,19 @@ describe('Checkbox', () => {
     expect(checkbox).toHaveAccessibleDescription('Requires admin access');
 
     await userEvent.keyboard(' ');
-    expect(checkbox).not.toBeChecked();
+    await userEvent.keyboard('{Enter}');
     await userEvent.click(checkbox);
     expect(checkbox).not.toBeChecked();
     expect(onChange).not.toHaveBeenCalled();
+    expect(onKeyDown).not.toHaveBeenCalled();
   });
 
-  it('uses native disabled when a disabled checkbox has no tooltip', () => {
+  it('uses native disabled when no tooltip is present', () => {
     render(<Checkbox disabled aria-label="Enable feature" />);
 
-    expect(screen.getByRole('checkbox', {name: 'Enable feature'})).toBeDisabled();
+    const checkbox = screen.getByRole('checkbox', {name: 'Enable feature'});
+    expect(checkbox).toBeDisabled();
+    expect(checkbox).not.toHaveAttribute('aria-disabled');
   });
 
   it('excludes a disabled checkbox with a tooltip from form data and validation', () => {

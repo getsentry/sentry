@@ -48,6 +48,10 @@ Checkboxes can be in different states: unchecked (default), checked, and indeter
       Disabled <Checkbox disabled />
     </label>
     <label>
+      Disabled with tooltip{' '}
+      <Checkbox disabled tooltipProps={{title: 'Requires admin access'}} />
+    </label>
+    <label>
       Disabled Checked <Checkbox disabled checked />
     </label>
     <label>
@@ -61,6 +65,7 @@ Checkboxes can be in different states: unchecked (default), checked, and indeter
 <Checkbox checked />
 <Checkbox checked="indeterminate" />
 <Checkbox disabled />
+<Checkbox disabled tooltipProps={{title: 'Requires admin access'}} />
 <Checkbox disabled checked />
 <Checkbox checked="indeterminate" disabled />
 ```

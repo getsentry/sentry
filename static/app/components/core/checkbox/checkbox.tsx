@@ -4,12 +4,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {
-  preventDisabledInteraction,
-  Tooltip,
-  useDisabledTooltip,
-  type WithControlTooltipProps,
-} from '@sentry/scraps/tooltip';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -73,22 +68,27 @@ const checkboxSizeMap: Record<NonNullable<CheckboxProps['size']>, CheckboxConfig
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-export type CheckboxProps = WithControlTooltipProps<
-  Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> & {
-    /**
-     * Is the checkbox active? Supports 'indeterminate'
-     */
-    checked?: React.InputHTMLAttributes<HTMLInputElement>['checked'] | 'indeterminate';
-    /**
-     * Ref to the native checkbox input element.
-     */
-    ref?: React.Ref<HTMLInputElement>;
-    /**
-     * The size of the checkbox. Defaults to 'sm'.
-     */
-    size?: FormSize;
-  }
->;
+export interface CheckboxProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'checked' | 'size'
+> {
+  /**
+   * Is the checkbox active? Supports 'indeterminate'
+   */
+  checked?: React.InputHTMLAttributes<HTMLInputElement>['checked'] | 'indeterminate';
+  /**
+   * Ref to the native checkbox input element.
+   */
+  ref?: React.Ref<HTMLInputElement>;
+  /**
+   * The size of the checkbox. Defaults to 'sm'.
+   */
+  size?: FormSize;
+  /** Explains why a disabled checkbox cannot be changed. */
+  tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper' | 'title'> & {
+    title?: TooltipProps['title'];
+  };
+}
 
 export function Checkbox({
   checked = false,
@@ -99,6 +99,13 @@ export function Checkbox({
   tooltipProps,
   ...props
 }: CheckboxProps) {
+  const disabledWithTooltip = Boolean(disabled && tooltipProps?.title);
+
+  function preventDisabledInteraction(event: React.SyntheticEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   const nativeCheckBoxRef = useCallback(
     (node: HTMLInputElement | null) => {
       if (node) {
@@ -113,37 +120,36 @@ export function Checkbox({
     style: props.style,
   };
 
-  const {disabledProps, usesAriaDisabled} = useDisabledTooltip({
-    disabled,
-    onKeyDown: props.onKeyDown,
-    tooltipTitle: tooltipProps?.title,
-  });
-
   return (
     <CheckboxWrapper
       size={size}
       disabled={disabled}
       readOnly={props.readOnly}
-      onClickCapture={usesAriaDisabled ? preventDisabledInteraction : undefined}
+      onClickCapture={disabledWithTooltip ? preventDisabledInteraction : undefined}
       {...wrapperProps}
     >
-      <Tooltip
-        skipWrapper
-        {...tooltipProps}
-        title={tooltipProps?.title}
-        disabled={!tooltipProps?.title}
-      >
+      <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
         <NativeHiddenCheckbox
           ref={mergeRefs(nativeCheckBoxRef, ref)}
           checked={checked !== 'indeterminate' && checked}
           type="checkbox"
           {...props}
-          {...disabledProps}
-          name={usesAriaDisabled ? undefined : props.name}
-          required={usesAriaDisabled ? undefined : props.required}
-          {...(usesAriaDisabled && {
-            onChange: preventDisabledInteraction,
-          })}
+          disabled={disabledWithTooltip ? undefined : disabled}
+          {...(disabledWithTooltip && {'aria-disabled': true})}
+          name={disabledWithTooltip ? undefined : props.name}
+          required={disabledWithTooltip ? undefined : props.required}
+          onChange={disabledWithTooltip ? preventDisabledInteraction : props.onChange}
+          onKeyDown={
+            disabledWithTooltip
+              ? event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    preventDisabledInteraction(event);
+                    return;
+                  }
+                  props.onKeyDown?.(event);
+                }
+              : props.onKeyDown
+          }
         />
       </Tooltip>
 

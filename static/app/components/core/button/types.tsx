@@ -1,7 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
 import type {Responsive} from '@sentry/scraps/layout';
-import type {WithControlTooltipProps} from '@sentry/scraps/tooltip';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
 import type {AnalyticsProps} from '@sentry/scraps/trackingContext';
 
 export type ButtonVariant =
@@ -15,29 +15,38 @@ export type ButtonVariant =
 export type ButtonSize = 'zero' | 'xs' | 'sm' | 'md';
 
 // eslint-disable-next-line @sentry/naming-convention
-export type DO_NOT_USE_CommonButtonProps = WithControlTooltipProps<
-  AnalyticsProps & {
-    /**
-     * Indicates that the button is "doing" something.
-     */
-    busy?: boolean;
-    /**
-     * The icon to render inside of the button. The size will be set
-     * appropriately based on the size of the button.
-     */
-    icon?: React.ReactNode;
-    /**
-     * The size of the button
-     */
-    size?: Responsive<ButtonSize>;
-    /**
-     * The semantic "variant" of the button. Use `primary` when the action is
-     * contextually the primary action, `danger` if the button will do something
-     * destructive, `link` for visual similarity to a link.
-     */
-    variant?: ButtonVariant;
-  }
->;
+export interface DO_NOT_USE_CommonButtonProps extends AnalyticsProps {
+  /**
+   * Indicates that the button is "doing" something.
+   */
+  busy?: boolean;
+  /**
+   * The icon to render inside of the button. The size will be set
+   * appropriately based on the size of the button.
+   */
+  icon?: React.ReactNode;
+  /**
+   * The size of the button
+   */
+  size?: Responsive<ButtonSize>;
+  /**
+   * Button Tooltip Props
+   */
+  tooltipProps?: ButtonTooltipProps;
+  /**
+   * The semantic "variant" of the button. Use `primary` when the action is
+   * contextually the primary action, `danger` if the button will do something
+   * destructive, `link` for visual similarity to a link.
+   */
+  variant?: ButtonVariant;
+}
+
+interface ButtonTooltipProps extends Omit<
+  TooltipProps,
+  'children' | 'skipWrapper' | 'title'
+> {
+  title?: TooltipProps['title'];
+}
 
 type ButtonElementProps = Omit<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
