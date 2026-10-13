@@ -90,6 +90,11 @@ export interface CheckboxProps extends Omit<
   };
 }
 
+function preventDisabledInteraction(event: React.SyntheticEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 export function Checkbox({
   checked = false,
   size = 'sm',
@@ -99,11 +104,6 @@ export function Checkbox({
   ...props
 }: CheckboxProps) {
   const disabledWithTooltip = Boolean(props.disabled && tooltipProps?.title);
-
-  function preventDisabledInteraction(event: React.SyntheticEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
 
   const nativeCheckBoxRef = useCallback(
     (node: HTMLInputElement | null) => {
