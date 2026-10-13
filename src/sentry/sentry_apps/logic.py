@@ -125,6 +125,8 @@ class SentryAppUpdater:
             operation_type=SentryAppInteractionType.MANAGEMENT,
             event_type=SentryAppEventType.APP_UPDATE,
         ).capture():
+            previous_webhook_url = self.sentry_app.webhook_url
+            previous_events = set(self.sentry_app.events or [])
             with transaction.atomic(router.db_for_write(User)):
                 self._update_name()
                 self._update_author()
@@ -143,7 +145,8 @@ class SentryAppUpdater:
                 new_schema_elements = self._update_schema()
                 self._update_popularity(user=user)
                 self.sentry_app.save()
-            self._update_service_hooks()
+            if self._service_hooks_need_update(previous_webhook_url, previous_events):
+                self._update_service_hooks()
             self.record_analytics(user, new_schema_elements)
             return self.sentry_app
 
@@ -214,6 +217,14 @@ class SentryAppUpdater:
 
             self.sentry_app.events = expand_events(self.events)
 
+    def _service_hooks_need_update(
+        self, previous_webhook_url: str | None, previous_events: set[str]
+    ) -> bool:
+        # We should only update hooks if a change to webhook_url or events is detected.
+        return (self.sentry_app.webhook_url or None) != (previous_webhook_url or None) or set(
+            self.sentry_app.events or []
+        ) != previous_events
+
     def _update_service_hooks(self) -> None:
         self._update_service_hooks_via_outbox()
 
@@ -240,7 +251,7 @@ class SentryAppUpdater:
 
                     ControlOutbox(
                         shard_scope=OutboxScope.APP_SCOPE,
-                        shard_identifier=self.sentry_app.id,
+                        shard_identifier=installation.id,
                         object_identifier=installation.id,
                         category=OutboxCategory.SERVICE_HOOK_UPDATE,
                         cell_name=installation_org_id_to_cell_name[installation.organization_id],
