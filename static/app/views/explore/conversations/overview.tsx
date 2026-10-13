@@ -216,9 +216,6 @@ function ConversationsOverviewPage() {
       disableRecentSearches: isConversationsTab,
       ...(isConversationsTab
         ? {
-            // The conversations API cannot express negation, so hide negation
-            // operators and add direct-ID matching for conversation searches.
-            disallowNegation: true,
             replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
             matchKeySuggestions: [
               {

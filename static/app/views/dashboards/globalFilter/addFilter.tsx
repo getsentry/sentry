@@ -1,4 +1,6 @@
 import {useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconArrow} from '@sentry/icons/arrow';
 import pick from 'lodash/pick';
 
 import {Tag as TagBadge} from '@sentry/scraps/badge';
@@ -13,7 +15,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ValueType} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
-import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {

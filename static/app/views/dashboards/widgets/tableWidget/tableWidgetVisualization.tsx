@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStar} from '@sentry/icons/star';
 
 import {Flex} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
@@ -7,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
-import {IconStar} from 'sentry/icons';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';

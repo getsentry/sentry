@@ -1,5 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconContract} from '@sentry/icons/contract';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -7,12 +12,11 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
+import {hasDroppedData} from 'sentry/components/droppedData/buckets';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
-import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconClock, IconContract, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

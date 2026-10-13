@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
 
-import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {
