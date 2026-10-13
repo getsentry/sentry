@@ -924,9 +924,7 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             if not entrypoint_cls.has_access(organization):
                 continue
 
-            from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload
-
-            cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            cache_payload = SeerOperatorInvestigationCache[dict[str, Any]].get(
                 entrypoint_key=str(entrypoint_key),
                 investigation_id=investigation_id,
             )
