@@ -93,7 +93,7 @@ describe('AgentsTable', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             field: expect.arrayContaining(LLM_CALLS_SAVED_QUERY.fields),
-            query: 'gen_ai.operation.type:ai_client',
+            query: LLM_CALLS_SAVED_QUERY.query,
           }),
         })
       )
