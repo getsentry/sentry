@@ -37,7 +37,7 @@ fix: |
 
   Verify the fix by re-running oxlint on the changed file (type information is
   required, so run from the repo root):
-    pnpm oxlint -D typescript/no-deprecated <file>
+    SENTRY_OXLINT_TYPEAWARE=true node .sentry-refactor-tasks/conventions/oxlint-json-runner.ts . typescript/no-deprecated <file>
 
   Gotchas:
     1. Update the import when the replacement lives in a different module.
@@ -56,4 +56,4 @@ examples:
     - 'const organization = useOrganization();'
     - '<Button onClick={handleClick} />'
 
-detect_command: 'bash {convention_dir}/no-deprecated-callsite.detect.sh {repo_path}'
+detect_command: 'SENTRY_OXLINT_TYPEAWARE=true bash {convention_dir}/no-deprecated-callsite.detect.sh {repo_path} typescript/no-deprecated'

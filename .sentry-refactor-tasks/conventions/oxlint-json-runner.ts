@@ -1,170 +1,217 @@
 #!/usr/bin/env node
 
+import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {resolve} from 'node:path';
+import {mkdtempSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
+import {tmpdir} from 'node:os';
+import {basename, dirname, isAbsolute, join, relative, resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
 
 import fg from 'fast-glob';
+import type {OxlintConfig} from 'oxlint';
+import {z} from 'zod';
 
-// Generic oxlint-as-detector. The caller supplies an oxlint config (which is
-// where any repo-/plugin-specific setup lives) plus the rule id to report on.
-// This script just resolves the file set, runs oxlint with that config, and
-// emits the matching violations in the eslint JSON shape the scanner parses.
-// It contains nothing specific to any one repo or plugin.
-//
-// Failure policy: never print an empty result for a run that did not actually
-// complete. Every unexpected condition exits non-zero with an explanation on
-// stderr and writes nothing to stdout, so the scanner reports "produced no
-// output" instead of "Found 0 violations".
-function die(message: string): never {
-  console.error(`oxlint-json-runner: ${message}`);
-  process.exit(1);
-}
-
-const repoPath = process.argv[2];
-const rule = process.argv[3];
-const configPath = process.argv[4];
-const scanPaths = process.argv.slice(5);
-
-if (!repoPath || !rule || !configPath || scanPaths.length === 0) {
-  die('usage: oxlint-json-runner <repo-path> <rule-id> <config-path> <path...>');
-}
-
-// Config rule ids are `plugin/rule`; oxlint reports them as `plugin(rule)`.
-const slash = rule.lastIndexOf('/');
-const diagnosticCode =
-  slash === -1 ? rule : `${rule.slice(0, slash)}(${rule.slice(slash + 1)})`;
-
-const patterns = scanPaths.map(p => (p.includes('*') ? p : `${p}/**/*.{ts,tsx}`));
-
-// Pass explicit file paths rather than a directory: oxlint applies .gitignore to
-// directory arguments, which silently skips everything when the checkout itself
-// sits under an ignored path (e.g. a worktree in .claude/worktrees).
-const files = fg.sync(patterns, {
-  cwd: repoPath,
-  ignore: ['**/__fixtures__/**', '**/__mocks__/**', '**/*.spec.*', '**/*.test.*'],
-  absolute: false,
+const baselineSchema = z.record(
+  z.string(),
+  z.record(z.string(), z.object({count: z.number().int().positive()}))
+);
+const outputSchema = z.object({
+  number_of_files: z.number().int().nonnegative(),
+  diagnostics: z.array(
+    z.object({
+      filename: z.string(),
+      labels: z.array(z.object({span: z.object({line: z.number().int().positive()})})),
+      message: z.string(),
+      code: z.string().optional(),
+    })
+  ),
 });
 
-// Matching nothing means the glob or the checkout is wrong, not that the repo
-// is clean — every convention here targets paths that are known to exist.
-if (files.length === 0) {
-  die(`no files matched ${JSON.stringify(patterns)} under ${repoPath}`);
+export function baselineFiles(data: unknown, rule: string, repoPath: string) {
+  return Object.entries(baselineSchema.parse(data))
+    .filter(([, rules]) => rules[rule])
+    .map(([file]) => {
+      const path = relative(repoPath, resolve(repoPath, file));
+      assert(
+        !file.includes('\\') &&
+          !file.includes('\0') &&
+          file.split('/').every(part => part !== '' && part !== '.' && part !== '..') &&
+          !isAbsolute(file) &&
+          path !== '..' &&
+          !path.startsWith('../') &&
+          path !== '',
+        `baseline path is outside the repository: ${file}`
+      );
+      return file;
+    });
 }
 
-// The scanner kills a detect command after 300s and keeps whatever it captured,
-// so a run that creeps past that budget silently becomes an empty result. Time
-// the oxlint call and report it, to make the remaining headroom observable.
-const startedAt = Date.now();
+export function singleRuleConfig(config: OxlintConfig, rule: string): OxlintConfig {
+  const select = (rules: OxlintConfig['rules']) =>
+    Object.fromEntries(Object.entries(rules ?? {}).filter(([name]) => name === rule));
+  return {
+    ...config,
+    categories: Object.fromEntries(
+      [
+        'correctness',
+        'suspicious',
+        'pedantic',
+        'perf',
+        'style',
+        'restriction',
+        'nursery',
+      ].map(category => [category, 'off'])
+    ),
+    options: {...config.options, reportUnusedDisableDirectives: 'off'},
+    rules: {[rule]: 'error', ...select(config.rules)},
+    overrides: config.overrides?.map(override => ({
+      ...override,
+      rules: select(override.rules),
+    })),
+  };
+}
 
-// --disable-nested-config keeps detection independent of the repo's own oxlint
-// setup. Inline disable directives are still honored, so findings match the
-// repo's own lint.
-const result = spawnSync(
-  'pnpm',
-  [
-    'exec',
-    'oxlint',
-    '--config',
-    configPath,
-    '--disable-nested-config',
-    '--format',
-    'json',
-    ...files,
-  ],
-  {
-    cwd: repoPath,
-    maxBuffer: 100 * 1024 * 1024,
-    encoding: 'utf-8',
+export function formatOutput(
+  data: unknown,
+  rule: string,
+  repoPath: string,
+  count: number
+) {
+  const parsed = outputSchema.parse(data);
+  assert.equal(parsed.number_of_files, count, 'oxlint did not lint every selected file');
+  const fatals = parsed.diagnostics.filter(d => !d.code);
+  assert.equal(
+    fatals.length,
+    0,
+    `oxlint reported parse errors: ${fatals
+      .slice(0, 5)
+      .map(d => `${d.filename}: ${d.message}`)
+      .join('\n')}`
+  );
+  const slash = rule.lastIndexOf('/');
+  const code =
+    slash === -1
+      ? `eslint(${rule})`
+      : `${rule.slice(0, slash)}(${rule.slice(slash + 1)})`;
+  const byFile = new Map<
+    string,
+    Array<{line: number; message: string; ruleId: string}>
+  >();
+  for (const diagnostic of parsed.diagnostics) {
+    if (
+      diagnostic.code !== code ||
+      (rule === 'typescript/no-deprecated' &&
+        !/is deprecated\.\s*\S/.test(diagnostic.message))
+    ) {
+      continue;
+    }
+    const filePath = resolve(repoPath, diagnostic.filename);
+    const messages = byFile.get(filePath) ?? [];
+    messages.push({
+      ruleId: rule,
+      message: diagnostic.message,
+      line: diagnostic.labels[0]?.span.line ?? 1,
+    });
+    byFile.set(filePath, messages);
   }
-);
+  return [...byFile].map(([filePath, messages]) => ({filePath, messages}));
+}
 
-const stderr = String(result.stderr ?? '').trim();
-const failure = (reason: string) =>
-  `${reason}\n` +
-  `command: pnpm exec oxlint --config ${configPath} ... (${files.length} files)\n` +
-  `stderr:\n${stderr || '(empty)'}`;
-
-// oxlint exits 0 when clean and 1 when it reports problems; both are real runs
-// whose JSON is on stdout. Anything else — a spawn error, an overflowing
-// maxBuffer, a signal from an OOM kill — means we never got a trustworthy
-// result.
-if (result.error || (result.status !== 0 && result.status !== 1)) {
-  die(
-    failure(
-      `oxlint did not run to completion (exit=${result.status ?? 'n/a'} signal=${
-        result.signal ?? 'n/a'
-      } error=${result.error?.message ?? 'n/a'}).`
-    )
+async function main() {
+  const [repo, rule, ...scanPaths] = process.argv.slice(2);
+  assert(
+    repo && rule,
+    'usage: oxlint-json-runner <repo-path> <rule-id> [--baseline | path...]'
   );
-}
-
-// The type-aware backend (tsgolint) can panic while oxlint still exits 0 with
-// whatever it gathered before the crash.
-if (/panic:|Error running tsgolint/.test(stderr)) {
-  die(failure('the type-aware backend (tsgolint) crashed, so the run is incomplete.'));
-}
-
-interface OxlintOutput {
-  diagnostics: Array<{
-    filename: string;
-    labels: Array<{span: {line: number}}>;
-    message: string;
-    code?: string;
-  }>;
-  number_of_files: number;
-}
-
-let parsed: OxlintOutput;
-try {
-  parsed = JSON.parse(result.stdout);
-} catch {
-  die(
-    failure(
-      `oxlint output was not valid JSON. First 500 chars:\n${result.stdout.slice(0, 500)}`
-    )
+  const repoPath = resolve(repo);
+  const baseline = scanPaths.includes('--baseline');
+  assert(!baseline || scanPaths.length === 1, '--baseline cannot be combined with paths');
+  const patterns = (scanPaths.length ? scanPaths : ['static']).map(p =>
+    p.includes('*') || statSync(resolve(repoPath, p), {throwIfNoEntry: false})?.isFile()
+      ? p
+      : `${p}/**/*.{ts,tsx}`
   );
-}
-
-// Any file oxlint skipped (ignore rules, unreadable) silently drops out of the
-// result set, so treat a short count as an incomplete run.
-if (parsed.number_of_files !== files.length) {
-  die(failure(`oxlint linted ${parsed.number_of_files} of ${files.length} files.`));
-}
-
-// A diagnostic without a code is a parse error, so oxlint never evaluated the
-// rule for that file. Report the run as failed rather than under-reporting.
-const fatals = parsed.diagnostics.filter(d => !d.code);
-if (fatals.length > 0) {
-  die(
-    `oxlint reported ${fatals.length} parse error(s), so the run is incomplete. First 5:\n` +
-      fatals
-        .slice(0, 5)
-        .map(d => `  ${d.filename}: ${d.message}`)
-        .join('\n')
+  const {default: config} = await import(
+    pathToFileURL(join(repoPath, 'oxlint.config.ts')).href
   );
-}
-
-// The scanner reads each filePath and makes it repo-relative itself, so it
-// expects absolute paths like eslint's output.
-const byFile = new Map<string, Array<{line: number; message: string; ruleId: string}>>();
-for (const d of parsed.diagnostics) {
-  if (d.code !== diagnosticCode) {
-    continue;
+  const files = baseline
+    ? baselineFiles(
+        JSON.parse(readFileSync(join(repoPath, 'oxlint-suppressions.json'), 'utf8')),
+        rule,
+        repoPath
+      )
+    : fg.sync(patterns, {
+        cwd: repoPath,
+        ignore: [
+          ...(config.ignorePatterns ?? []),
+          '**/__fixtures__/**',
+          '**/__mocks__/**',
+          '**/*.spec.*',
+          '**/*.test.*',
+        ],
+      });
+  if (baseline && files.length === 0) {
+    console.error(`oxlint-json-runner: ${rule} has no baseline files`);
+    console.log('[]');
+    return;
   }
-  const filePath = resolve(repoPath, d.filename);
-  const messages = byFile.get(filePath) ?? [];
-  messages.push({ruleId: rule, message: d.message, line: d.labels[0]?.span.line ?? 1});
-  byFile.set(filePath, messages);
+  assert(
+    files.length > 0,
+    `no files matched ${JSON.stringify(patterns)} under ${repoPath}`
+  );
+  const require = createRequire(join(repoPath, 'package.json'));
+  const cli = join(dirname(require.resolve('oxlint')), 'cli.js');
+  const cwd = mkdtempSync(join(tmpdir(), 'refactor-oxlint-'));
+  const configPath = join(repoPath, `${basename(cwd)}.json`);
+  try {
+    writeFileSync(configPath, JSON.stringify(singleRuleConfig(config, rule)), {
+      flag: 'wx',
+    });
+    const startedAt = Date.now();
+    // Native suppressions are discovered from cwd. Keep the committed baseline intact.
+    const result = spawnSync(
+      process.execPath,
+      [
+        cli,
+        '--config',
+        configPath,
+        '--disable-nested-config',
+        '--format',
+        'json',
+        ...files.map(file => resolve(repoPath, file)),
+      ],
+      {cwd, timeout: 240_000, maxBuffer: 100 * 1024 * 1024, encoding: 'utf8'}
+    );
+    const stderr = String(result.stderr ?? '').trim();
+    assert(
+      !result.error && (result.status === 0 || result.status === 1),
+      `oxlint did not run to completion (exit=${result.status} signal=${result.signal} error=${result.error?.message})\n${stderr}`
+    );
+    assert(!/panic:|Error running tsgolint/.test(stderr), `tsgolint crashed\n${stderr}`);
+    let data: unknown;
+    try {
+      data = JSON.parse(result.stdout);
+    } catch {
+      throw new Error(
+        `oxlint output was not valid JSON: ${result.stdout.slice(0, 500)}\n${stderr}`
+      );
+    }
+    const findings = formatOutput(data, rule, repoPath, files.length);
+    const violations = findings.reduce((sum, file) => sum + file.messages.length, 0);
+    console.error(
+      `oxlint-json-runner: linted ${files.length} files in ${Math.round((Date.now() - startedAt) / 1000)}s (scanner limit 300s), ${rule} matched ${violations} violations in ${findings.length} files`
+    );
+    console.log(JSON.stringify(findings));
+  } finally {
+    rmSync(configPath, {force: true});
+    rmSync(cwd, {recursive: true, force: true});
+  }
 }
-const withViolations = [...byFile].map(([filePath, messages]) => ({filePath, messages}));
 
-const violationCount = withViolations.reduce((sum, f) => sum + f.messages.length, 0);
-console.error(
-  `oxlint-json-runner: linted ${files.length} files in ${Math.round(
-    (Date.now() - startedAt) / 1000
-  )}s ` +
-    `(scanner kills the detect command at 300s), ` +
-    `${rule} matched ${violationCount} violations in ${withViolations.length} files`
-);
-
-console.log(JSON.stringify(withViolations));
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch(error => {
+    console.error(`oxlint-json-runner: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

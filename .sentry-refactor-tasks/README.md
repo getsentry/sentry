@@ -15,20 +15,47 @@ see the [upstream README](https://github.com/getsentry/sentry-refactor-tasks/blo
     └── oxlint-json-runner.ts # shared helper for oxlint-backed detectors
 ```
 
-Run `pnpm dlx @sentry/refactor-tasks list` to see the rules currently
-configured. They mostly use the LLM path (`detect` + `prefilter`); a couple use
-the lint path (`detect_command`). `no-deprecated-callsite` is the worked example
-for the lint path: its `.detect.sh` writes a temporary single-rule oxlint config
-and runs it through `oxlint-json-runner.ts` — copy it when adding another
-`detect_command`-based rule. A lint-path rule only earns its place while the
-repo's own `oxlint.config.ts` does not enforce it; once lint blocks new
-violations, the scanner has nothing left to find.
+Run `pnpm dlx @sentry/refactor-tasks list` to see the configured conventions.
+Most use the LLM path (`detect` + `prefilter`). Oxlint conventions have one YAML
+per lint rule and share `no-deprecated-callsite.detect.sh` and
+`oxlint-json-runner.ts`. Add a YAML with the rule ID and an explicit
+`SENTRY_OXLINT_TYPEAWARE` setting instead of copying a detector script.
+
+The shared runner imports the repository's oxlint config and writes a unique,
+temporary single-rule config. It preserves rule options and override contexts,
+including explicit `off` overrides. It disables unrelated rule categories and
+unused-disable reporting. Type-aware rules such as `typescript/no-deprecated`
+need `SENTRY_OXLINT_TYPEAWARE=true`; the Scraps rule uses `false`.
+
+Lint enforcement can coexist with migration debt. `--baseline` selects files
+from `oxlint-suppressions.json` for the selected rule, including tests. The
+counts select files only. Live oxlint diagnostics supply each finding's line
+and message. The runner invokes the repository's native oxlint CLI from a
+temporary working directory so native suppressions do not hide findings; it
+never edits the baseline. Inline disables and configured overrides still apply.
+An empty selection reports no findings. Invalid baseline data or incomplete
+lint runs fail the scan.
+
+Without `--baseline`, the runner scans production TypeScript under `static/`,
+excluding tests, fixtures, mocks, and configured ignores. The deprecated rule
+reports only messages with a migration instruction after "is deprecated."
+The scanner retains its default issue grouping.
+
+Run the shared detector checks with:
+
+```bash
+node --test .sentry-refactor-tasks/conventions/oxlint-json-runner.test.ts
+```
 
 All rules target the frontend (`static/`). To add a Python rule, point a new
 convention's `include`/`prefilter` at `src/sentry/**/*.py` instead — the scanner
 is language-agnostic, so each file sets its own scope.
 
 ## Running it
+
+Install the repository dependencies with `pnpm install --frozen-lockfile` first.
+The scheduled workflow installs them before scanning; detectors do not install
+or change dependencies.
 
 Against this repo, from the root:
 
