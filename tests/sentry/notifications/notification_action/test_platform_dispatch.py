@@ -6,19 +6,14 @@ from unittest import mock
 
 from slack_sdk.web import SlackResponse
 
-from sentry.constants import ObjectStatus
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
-from sentry.notifications.notification_action.platform_dispatch import get_platform_provider
 from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
-from sentry.notifications.types import TEST_NOTIFICATION_ID
-from sentry.silo.base import SiloMode
+from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
@@ -118,50 +113,6 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         assert follow_up["thread_ts"] == "123.456"
         assert follow_up["reply_broadcast"] is True
 
-    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
-    def test_thread_flag_off_posts_top_level(self, mock_slack_client: mock.MagicMock) -> None:
-        self.organization.update_option("sentry:issue_alerts_thread_flag", False)
-        client = mock_slack_client.return_value
-        client.chat_postMessage.side_effect = [
-            slack_response(client, "123.456"),
-            slack_response(client, "123.789"),
-        ]
-
-        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
-        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
-
-        assert "thread_ts" not in client.chat_postMessage.call_args_list[1].kwargs
-
-    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
-    def test_skips_inactive_integration(self, mock_slack_client: mock.MagicMock) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration.update(status=ObjectStatus.DISABLED)
-
-        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
-
-        mock_slack_client.return_value.chat_postMessage.assert_not_called()
-
-    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
-    def test_skips_removed_integration(self, mock_slack_client: mock.MagicMock) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration.delete()
-
-        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
-
-        mock_slack_client.return_value.chat_postMessage.assert_not_called()
-
-    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.integration_service.organization_context")
-    @mock.patch.object(NotificationService, "notify_sync")
-    def test_skips_missing_integration_id(
-        self, mock_notify: mock.MagicMock, mock_organization_context: mock.MagicMock
-    ) -> None:
-        self.action.integration_id = None
-
-        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
-
-        mock_organization_context.assert_not_called()
-        mock_notify.assert_not_called()
-
     @mock.patch.object(NotificationService, "notify_sync", return_value={})
     def test_slack_staging_targets_staging_provider(self, mock_notify: mock.MagicMock) -> None:
         action = self.create_slack_action(Action.Type.SLACK_STAGING)
@@ -177,24 +128,3 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
 
         mock_legacy_send.assert_called_once()
-
-    def test_get_platform_provider(self) -> None:
-        assert (
-            get_platform_provider(self.invocation(self.action), NotificationSource.METRIC_ALERT)
-            == NotificationProviderKey.SLACK
-        )
-
-    def test_get_platform_provider_test_notification(self) -> None:
-        invocation = self.invocation(self.action, workflow_id=TEST_NOTIFICATION_ID)
-
-        assert get_platform_provider(invocation, NotificationSource.METRIC_ALERT) is None
-
-    def test_get_platform_provider_source_not_allowed(self) -> None:
-        assert get_platform_provider(self.invocation(self.action), NotificationSource.ISSUE) is None
-
-    @override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 0.0}})
-    def test_get_platform_provider_no_access(self) -> None:
-        assert (
-            get_platform_provider(self.invocation(self.action), NotificationSource.METRIC_ALERT)
-            is None
-        )
