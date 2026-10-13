@@ -96,11 +96,11 @@ function IssueOpenPeriodsList() {
       return {
         openPeriod: activity.type === 'opened' ? `#${period.id}` : undefined,
         eventId: activity.eventId ? (
-          <Link
+          <EventIdLink
             to={`/organizations/${organization.slug}/issues/${params.groupId}/events/${activity.eventId}/`}
           >
             {getShortEventId(activity.eventId)}
-          </Link>
+          </EventIdLink>
         ) : (
           '—'
         ),
@@ -183,6 +183,19 @@ function IssueOpenPeriodsList() {
 const AlignLeft = styled('span')`
   text-align: left;
   width: 100%;
+`;
+
+// The EventListTable hides link styling if they aren't in the first column
+// so we have to style it manually
+const EventIdLink = styled(Link)`
+  &&& {
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    text-decoration: none;
+
+    &:hover {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+    }
+  }
 `;
 
 export default IssueOpenPeriodsList;
