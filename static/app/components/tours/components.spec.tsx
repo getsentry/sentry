@@ -345,12 +345,34 @@ describe('Tour Components', () => {
       expect(screen.getByRole('button', {name: 'Test Action'})).toBeInTheDocument();
       expect(screen.getByText('50/100')).toBeInTheDocument();
       expect(screen.getByText('Child Element')).toBeInTheDocument();
-      expect(mockScrollIntoView).toHaveBeenCalledWith({
-        block: 'center',
-        behavior: 'smooth',
-      });
       await userEvent.click(screen.getByRole('button', {name: 'Close'}));
       expect(mockHandleDismiss).toHaveBeenCalled();
+    });
+
+    it('scrolls the highlighted element into view and pins the guide to the viewport', async () => {
+      const scrolledElements: Element[] = [];
+      Element.prototype.scrollIntoView = jest.fn(function (this: Element) {
+        scrolledElements.push(this);
+      });
+
+      render(
+        <TourGuide isOpen title="Test Title" description="Test Description">
+          {props => <div {...props}>Child Element</div>}
+        </TourGuide>
+      );
+
+      const guide = await screen.findByText('Test Title');
+      // The highlighted element, not the guide, is scrolled so that nested scroll
+      // containers holding it are scrolled too
+      expect(scrolledElements).toEqual([screen.getByText('Child Element')]);
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+      // Fixed positioning keeps the guide from extending the document's height
+      expect(guide.closest<HTMLElement>('[style*="position"]')).toHaveStyle({
+        position: 'fixed',
+      });
     });
   });
 });

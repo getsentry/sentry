@@ -18,6 +18,7 @@ const DISPATCHES = [
 ];
 
 const RETRY_DELAYS_MS = [5000, 15000, 30000, 60000];
+const MAX_WORKFLOW_DISPATCH_INPUTS_LENGTH = 65_535;
 
 async function dispatchWithRetry({github, core, workflow, inputs}) {
   const maxAttempts = RETRY_DELAYS_MS.length + 1;
@@ -83,6 +84,16 @@ export async function dispatch({
         'sentry-changed-files': sentryChangedFiles || '',
         'sentry-previous-filenames': sentryPreviousFilenames || '',
       };
+
+      if (JSON.stringify(inputs).length > MAX_WORKFLOW_DISPATCH_INPUTS_LENGTH) {
+        core.warning(
+          `Inputs for '${workflow}' exceed GitHub's ` +
+            `${MAX_WORKFLOW_DISPATCH_INPUTS_LENGTH}-character limit. ` +
+            'Clearing changed-file lists so getsentry runs the full suite.'
+        );
+        inputs['sentry-changed-files'] = '';
+        inputs['sentry-previous-filenames'] = '';
+      }
 
       core.info(
         `Sending dispatch for '${workflow}':\n${JSON.stringify(inputs, null, 2)}`

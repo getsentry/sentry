@@ -18,6 +18,7 @@ from sentry.notifications.platform.registry import (
 )
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.utils import metrics
 from sentry.utils.payload_comparison import ParityChecker, describe_value
 from sentry.workflow_engine.types import ActionInvocation
@@ -171,6 +172,44 @@ def _invocation_log_extra(invocation: ActionInvocation) -> dict[str, Any]:
     }
 
 
+def _render_traits(
+    invocation: ActionInvocation, source: NotificationSource, legacy_render: LegacyRender
+) -> dict[str, bool]:
+    """
+    Flags which optional branches the legacy render took, so coverage of branches the variant
+    doesn't name can be read from the logs. Slack issue alert flags are read from the payload
+    itself, since their inputs are expensive to recompute.
+    """
+    traits = {
+        "has_releases": bool(invocation.detector.linked_project.flags.has_releases),
+        "has_chart": legacy_render.chart_url is not None,
+    }
+    if source == NotificationSource.ISSUE and legacy_render.provider in (
+        NotificationProviderKey.SLACK,
+        NotificationProviderKey.SLACK_STAGING,
+    ):
+        blocks = _normalize(legacy_render.provider, legacy_render.payload)["blocks"]
+        context_texts = [
+            element.get("text", "")
+            for block in blocks
+            if block.get("type") == "context"
+            for element in block.get("elements", [])
+        ]
+        buttons = [
+            element
+            for block in blocks
+            if block.get("type") == "actions"
+            for element in block.get("elements", [])
+        ]
+        traits["has_chart"] |= any(block.get("type") == "image" for block in blocks)
+        traits["has_suggested_assignees"] = any("Suggested: " in text for text in context_texts)
+        traits["has_replay_link"] = any("View Replays" in text for text in context_texts)
+        traits["has_autofix_button"] = any(
+            button.get("value") == AutofixStoppingPoint.ROOT_CAUSE for button in buttons
+        )
+    return traits
+
+
 def report(
     invocation: ActionInvocation,
     source: NotificationSource,
@@ -180,8 +219,8 @@ def report(
     build_data: BuildPlatformData,
 ) -> None:
     """
-    Compares the legacy render with the platform's and records the outcome as metrics, logging
-    the diff on a mismatch and the invocation when no legacy render was captured. Never raises.
+    Compares the legacy render with the platform's and records the outcome as a metric and a log
+    line, which also carries the diff on a mismatch. Never raises.
     """
     log_extra: dict[str, Any] = {
         "source": source.value,
@@ -205,24 +244,21 @@ def report(
             sample_rate=1.0,
         )
 
+        result_extra: dict[str, Any] = {
+            **log_extra,
+            **_invocation_log_extra(invocation),
+            "outcome": result.outcome.value,
+        }
         if result.outcome == ShadowOutcome.MISMATCH:
-            logger.info(
-                "notifications.platform.shadow.mismatch",
-                extra={
-                    **log_extra,
-                    **_invocation_log_extra(invocation),
-                    "diff_count": len(result.diff),
-                    "diff": result.diff,
-                },
-            )
+            result_extra["diff_count"] = len(result.diff)
+            result_extra["diff"] = result.diff
         elif result.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED:
-            logger.info(
-                "notifications.platform.shadow.legacy_not_captured",
-                extra={
-                    **log_extra,
-                    **_invocation_log_extra(invocation),
-                    "integration_id": invocation.action.integration_id,
-                },
-            )
+            result_extra["integration_id"] = invocation.action.integration_id
+        if legacy_render is not None:
+            try:
+                result_extra.update(_render_traits(invocation, source, legacy_render))
+            except Exception:
+                logger.exception("notifications.platform.shadow.traits_failed", extra=log_extra)
+        logger.info("notifications.platform.shadow.result", extra=result_extra)
     except Exception:
         logger.exception("notifications.platform.shadow.report_failed", extra=log_extra)

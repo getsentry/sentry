@@ -1,14 +1,14 @@
 import binascii
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from datetime import datetime
 from hashlib import md5
-from typing import Any, ContextManager, Generic, TypeVar
+from typing import Any
 
-import rb
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 
+from sentry.exceptions import InvalidConfiguration
 from sentry.tsdb.base import (
     BaseTSDB,
     IncrMultiOptions,
@@ -16,41 +16,13 @@ from sentry.tsdb.base import (
     TSDBModel,
 )
 from sentry.utils.dates import to_datetime
-from sentry.utils.redis import get_cluster_from_options
-
-T = TypeVar("T")
+from sentry.utils.redis import redis_clusters
 
 
 def _crc32(data: bytes) -> int:
     # python 2 equivalent crc32 to return signed
     rv = binascii.crc32(data)
     return rv - ((rv & 0x80000000) << 1)
-
-
-class SuppressionWrapper(Generic[T]):
-    """\
-    Wraps a context manager and prevents any exceptions raised either during
-    the managed block or the exiting of the wrapped manager from propagating.
-
-    You probably shouldn't use this.
-    """
-
-    def __init__(self, wrapped: ContextManager[T]):
-        self.wrapped = wrapped
-
-    def __enter__(self) -> T:
-        return self.wrapped.__enter__()
-
-    def __exit__(self, *args) -> bool:
-        try:
-            # allow the wrapped manager to perform any cleanup tasks regardless
-            # of whether or not we are suppressing an exception raised within
-            # the managed block
-            self.wrapped.__exit__(*args)
-        except Exception:
-            pass
-
-        return True
 
 
 class RedisTSDB(BaseTSDB):
@@ -77,31 +49,15 @@ class RedisTSDB(BaseTSDB):
     """
 
     def __init__(self, prefix: str = "ts:", vnodes: int = 64, **options: Any):
-        cluster, options = get_cluster_from_options("SENTRY_TSDB_OPTIONS", options)
-        self.cluster = cluster
+        if "hosts" in options:
+            raise InvalidConfiguration(
+                'The TSDB "hosts" option is no longer supported; define the hosts in the '
+                '"redis.clusters" option and set the TSDB "cluster" option instead.'
+            )
+        self.cluster = redis_clusters.get_binary(options.pop("cluster", "default"))
         self.prefix = prefix
         self.vnodes = vnodes
         super().__init__(**options)
-
-    def get_cluster(self, environment_id: int | None) -> tuple[rb.Cluster, bool]:
-        """\
-        Returns a 2-tuple of the form ``(cluster, durable)``.
-
-        When a cluster is marked as "durable", any exception raised while
-        attempting to write data to the cluster is propagated. When the cluster
-        is *not* marked as "durable", exceptions raised while attempting to
-        write data to the cluster are *not* propagated. This flag does not have
-        an effect on read operations.
-        """
-        return self.cluster, True
-
-    def get_cluster_groups(
-        self, environment_ids: Iterable[int | None]
-    ) -> list[tuple[tuple[rb.Cluster, bool], list[int | None]]]:
-        results: dict[tuple[rb.Cluster, bool], list[int | None]] = defaultdict(list)
-        for environment_id in environment_ids:
-            results[self.get_cluster(environment_id)].append(environment_id)
-        return list(results.items())
 
     def add_environment_parameter(self, key: str | int, environment_id: int | None) -> str | int:
         if environment_id is not None:
@@ -187,47 +143,43 @@ class RedisTSDB(BaseTSDB):
         if default_timestamp is None:
             default_timestamp = timezone.now()
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
-            manager = cluster.map()
-            if not durable:
-                manager = SuppressionWrapper(manager)
+        # (hash_key, hash_field) -> count
+        key_operations: dict[tuple[str, str | int], int] = defaultdict(int)
+        # (hash_key) -> "max expiration encountered"
+        key_expiries: dict[str, float] = defaultdict(float)
 
-            with manager as client:
-                # (hash_key, hash_field) -> count
-                key_operations: dict[tuple[str, str | int], int] = defaultdict(int)
-                # (hash_key) -> "max expiration encountered"
-                key_expiries: dict[str, float] = defaultdict(float)
+        for rollup, max_values in self.rollups.items():
+            for item in items:
+                if len(item) == 2:
+                    model, key = item
+                    options: IncrMultiOptions = {
+                        "timestamp": default_timestamp,
+                        "count": default_count,
+                    }
+                else:
+                    model, key, options = item
 
-                for rollup, max_values in self.rollups.items():
-                    for item in items:
-                        if len(item) == 2:
-                            model, key = item
-                            options: IncrMultiOptions = {
-                                "timestamp": default_timestamp,
-                                "count": default_count,
-                            }
-                        else:
-                            model, key, options = item
+                count = options.get("count", default_count)
+                _timestamp = options.get("timestamp", default_timestamp)
 
-                        count = options.get("count", default_count)
-                        _timestamp = options.get("timestamp", default_timestamp)
+                expiry = self.calculate_expiry(rollup, max_values, _timestamp)
 
-                        expiry = self.calculate_expiry(rollup, max_values, _timestamp)
+                for _environment_id in {None, environment_id}:
+                    hash_key, hash_field = self.make_counter_key(
+                        model, rollup, _timestamp, key, _environment_id
+                    )
 
-                        for _environment_id in environment_ids:
-                            hash_key, hash_field = self.make_counter_key(
-                                model, rollup, _timestamp, key, _environment_id
-                            )
+                    if key_expiries[hash_key] < expiry:
+                        key_expiries[hash_key] = expiry
 
-                            if key_expiries[hash_key] < expiry:
-                                key_expiries[hash_key] = expiry
+                    key_operations[(hash_key, hash_field)] += count
 
-                            key_operations[(hash_key, hash_field)] += count
-
-                for (hash_key, hash_field), count in key_operations.items():
-                    client.hincrby(hash_key, hash_field, count)
-                    if key_expiries.get(hash_key):
-                        client.expireat(hash_key, key_expiries.pop(hash_key))
+        pipe = self.cluster.pipeline(transaction=False)
+        for (hash_key, hash_field), count in key_operations.items():
+            pipe.hincrby(hash_key, str(hash_field), count)
+            if key_expiries.get(hash_key):
+                pipe.expireat(hash_key, key_expiries.pop(hash_key))
+        pipe.execute()
 
     def get_range(
         self,
@@ -264,21 +216,19 @@ class RedisTSDB(BaseTSDB):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
         _series = [to_datetime(item) for item in series]
 
-        results = []
-        cluster, _ = self.get_cluster(environment_id)
-        with cluster.map() as client:
-            for key in keys:
-                for timestamp in _series:
-                    hash_key, hash_field = self.make_counter_key(
-                        model, rollup, timestamp, key, environment_id
-                    )
-                    results.append(
-                        (int(timestamp.timestamp()), key, client.hget(hash_key, hash_field))
-                    )
+        pipe = self.cluster.pipeline(transaction=False)
+        requests: list[tuple[int, TSDBKey]] = []
+        for key in keys:
+            for timestamp in _series:
+                hash_key, hash_field = self.make_counter_key(
+                    model, rollup, timestamp, key, environment_id
+                )
+                pipe.hget(hash_key, str(hash_field))
+                requests.append((int(timestamp.timestamp()), key))
 
         results_by_key: dict[TSDBKey, dict[int, int]] = defaultdict(dict)
-        for epoch, key, count in results:
-            results_by_key[key][epoch] = int(count.value or 0)
+        for (epoch, key), count in zip(requests, pipe.execute()):
+            results_by_key[key][epoch] = int(count or 0)
 
         output = {}
         for key, points in results_by_key.items():

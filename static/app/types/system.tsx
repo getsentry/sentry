@@ -15,7 +15,6 @@ export interface PreloadRequestResult {
 
 export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
-  WEB_AUTHN_ASSSERT = 'WebAuthnAssert',
   SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 

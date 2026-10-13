@@ -1,12 +1,16 @@
 from unittest import mock
 
+import orjson
 import pytest
+from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.seer.agent.context_engine_utils import ProjectEventCounts
 from sentry.tasks.seer.context_engine_index import (
     get_allowed_org_ids_context_engine_indexing,
     index_org_project_knowledge,
     index_repos,
+    index_sentry_knowledge,
     schedule_context_engine_indexing_tasks,
 )
 from sentry.testutils.cases import TestCase
@@ -14,7 +18,12 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.hashlib import md5_text
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 
 @django_db_all
@@ -48,15 +57,10 @@ class TestIndexOrgProjectKnowledge(TestCase):
                     index_org_project_knowledge(self.org.id)
                     mock_request.assert_not_called()
 
-    @mock.patch("sentry.tasks.seer.context_engine_index.make_org_project_knowledge_index_request")
-    def test_calls_seer_endpoint_with_correct_payload(self, mock_request):
-        observed_contexts: list[ViewerContext | None] = []
-
-        def make_request(*args: object, **kwargs: object) -> mock.Mock:
-            observed_contexts.append(get_viewer_context())
-            return mock.Mock(status=200)
-
-        mock_request.side_effect = make_request
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @mock.patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_calls_seer_endpoint_with_correct_payload(self, mock_urlopen):
+        mock_urlopen.return_value = HTTPResponse(b"", status=200)
 
         event_counts = {
             self.project.id: ProjectEventCounts(error_count=5000, transaction_count=2000)
@@ -81,8 +85,9 @@ class TestIndexOrgProjectKnowledge(TestCase):
                         ):
                             index_org_project_knowledge(self.org.id)
 
-        mock_request.assert_called_once()
-        body = mock_request.call_args[0][0]
+        mock_urlopen.assert_called_once()
+        request = mock_urlopen.call_args
+        body = orjson.loads(request.kwargs["body"])
         assert body["org_id"] == self.org.id
         assert len(body["projects"]) == 1
 
@@ -95,10 +100,15 @@ class TestIndexOrgProjectKnowledge(TestCase):
         assert "transactions" in project_payload["instrumentation"]
         assert "profiles" in project_payload["instrumentation"]
         assert project_payload["top_transactions"] == ["GET /api/0/projects/"]
-        assert project_payload["top_span_operations"] == [("db", "SELECT * FROM table")]
-        assert observed_contexts == [
-            ViewerContext(organization_id=self.org.id, actor_type=ActorType.SYSTEM)
-        ]
+        assert project_payload["top_span_operations"] == [["db", "SELECT * FROM table"]]
+        viewer_context = decode_viewer_context(
+            request.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.org.id,
+            actor_type=ActorType.SYSTEM,
+        )
         assert get_viewer_context() is None
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_project_knowledge_index_request")
@@ -477,6 +487,20 @@ class TestIndexRepos(TestCase):
 
 @django_db_all
 class TestScheduleContextEngineIndexingTasks(TestCase):
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @mock.patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_global_knowledge_index_sends_system_viewer_context(self, mock_urlopen) -> None:
+        mock_urlopen.return_value = HTTPResponse(b"", status=200)
+
+        index_sentry_knowledge()
+
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(actor_type=ActorType.SYSTEM)
+        assert get_viewer_context() is None
+
     @mock.patch("sentry.tasks.seer.context_engine_index.index_repos.apply_async")
     @mock.patch("sentry.tasks.seer.context_engine_index.build_service_map.apply_async")
     @mock.patch("sentry.tasks.seer.context_engine_index.index_org_project_knowledge.apply_async")

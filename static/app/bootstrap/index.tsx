@@ -1,6 +1,6 @@
 import type {ApiResult, ResponseMeta} from 'sentry/types/api';
 import type {Config, PreloadRequestName, PreloadRequestResult} from 'sentry/types/system';
-import {extractSlug} from 'sentry/utils/extractSlug';
+import {extractSlug, getDevUiOrganizationSlug} from 'sentry/utils/extractSlug';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 
 const BOOTSTRAP_URL = '/api/client-config/';
@@ -20,6 +20,13 @@ const bootApplication = (data: Config) => {
 async function bootWithHydration() {
   const response = await fetch(BOOTSTRAP_URL);
   const data: Config = await response.json();
+
+  const devUiOrgSlug = getDevUiOrganizationSlug();
+  if (devUiOrgSlug) {
+    // The last organization in client-config can belong to another region.
+    // On an organization subdomain, bootstrap that organization instead.
+    data.lastOrganization = devUiOrgSlug;
+  }
 
   // Shim up the initialData payload to quack like it came from
   // a customer-domains initial request. Because our initial call to BOOTSTRAP_URL
@@ -99,10 +106,15 @@ function preloadOrganizationData(config: Config) {
   // When running in 'dev-ui' mode we need to use /region/$region instead of
   // subdomains so that webpack/vercel can proxy requests.
   if (host && window.__SENTRY_DEV_UI) {
-    const domainpattern = /https?:\/\/([^.]*)\.sentry.io/;
-    const domainmatch = host.match(domainpattern);
-    if (domainmatch) {
-      host = `/region/${domainmatch[1]}`;
+    if (getDevUiOrganizationSlug()) {
+      // The dev-ui proxy routes organization-domain requests to that organization.
+      host = '';
+    } else {
+      const domainpattern = /https?:\/\/([^.]*)\.sentry.io/;
+      const domainmatch = host.match(domainpattern);
+      if (domainmatch) {
+        host = `/region/${domainmatch[1]}`;
+      }
     }
   }
 

@@ -136,6 +136,26 @@ describe('Performance > Transaction Summary Header', () => {
     ).toBeInTheDocument();
   });
 
+  it('hides the threshold action for EAP organizations', async () => {
+    const overrideRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      body: {threshold: '800', metric: 'lcp'},
+    });
+    renderHeader(initializeData({features: ['insights-modules-use-eap']}));
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Transaction Actions'})
+    );
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Star for Team'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Transaction Settings'})
+    ).not.toBeInTheDocument();
+    expect(overrideRequest).not.toHaveBeenCalled();
+  });
+
   it('disables the star action until the viewer teams have finished loading', async () => {
     const data = initializeData();
     // TeamStore is global and already holds teams here, but `hasMore` leaves
