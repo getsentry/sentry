@@ -381,7 +381,9 @@ def _markers_to_breadcrumbs(markers: list[Any]) -> list[dict[str, Any]]:
 
         text = _decode_data_chunk(data) if isinstance(data, dict) else None
         if text:
-            event = data.get("Event") or {} if isinstance(data, dict) else {}
+            event = data.get("Event") if isinstance(data, dict) else None
+            if not isinstance(event, dict):
+                event = {}
             info = {k: event.get(k) for k in ("Pipe", "Status", "Type") if event.get(k)}
             out.append(
                 {

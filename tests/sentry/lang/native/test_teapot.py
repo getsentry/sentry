@@ -370,6 +370,29 @@ def test_apply_enriches_from_raw_sections_and_unreal() -> None:
     assert not any("FGenericCrashContext" in str(c.get("message")) for c in crumbs)
 
 
+def test_apply_marker_with_non_dict_event_still_decodes() -> None:
+    data = _relay_gpu_event()
+    out = apply_gpu_crash_symbolication(
+        data,
+        _completed_response(
+            markers=[
+                {
+                    "kind": "aftermath",
+                    "label": "CommandQueue",
+                    "data": {
+                        "Event": ["unexpected"],
+                        "Library": {"Data": {"Data chunk": [68, 114, 97, 119, 0]}},
+                    },
+                }
+            ],
+        ),
+    )
+    assert out is data
+    marker = data["breadcrumbs"]["values"][0]
+    assert marker["message"] == "Draw"
+    assert marker["data"] is None
+
+
 def test_apply_marker_callstack_is_flattened() -> None:
     data = _relay_gpu_event()
     apply_gpu_crash_symbolication(
