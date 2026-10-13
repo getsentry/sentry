@@ -1,4 +1,4 @@
-import type {ComponentType} from 'react';
+import {useMemo, type ComponentType} from 'react';
 
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
@@ -29,6 +29,10 @@ export function StackTraceFrameList({
   ...props
 }: StackTraceFrameListProps) {
   const platform = props.platform ?? getStacktracePlatform(props.event, props.stacktrace);
+  const rowPolicy = useMemo(
+    () => createStackTraceRowPolicy({groupingCurrentLevel}),
+    [groupingCurrentLevel]
+  );
 
   if (isNativePlatform(platform)) {
     return (
@@ -47,11 +51,7 @@ export function StackTraceFrameList({
   }
 
   return (
-    <StackTraceProvider
-      {...props}
-      platform={platform}
-      rowPolicy={createStackTraceRowPolicy({groupingCurrentLevel})}
-    >
+    <StackTraceProvider {...props} platform={platform} rowPolicy={rowPolicy}>
       <StackTraceFrames
         borderless={borderless}
         frameActionsComponent={frameActionsComponent}
