@@ -35,13 +35,7 @@ function dismissOtherVariants(variant: ToastVariant, toastIdToUpdate?: ToastId) 
 function show(variant: ToastVariant, message: ReactNode, options: ToastOptions = {}) {
   const {action, duration, id, onDismiss} = options;
 
-  if (id === undefined) {
-    dismissOtherVariants(variant, id);
-  } else {
-    for (const activeVariant of activeToastIds.keys()) {
-      removeActiveToast(activeVariant, id);
-    }
-  }
+  dismissOtherVariants(variant, id);
 
   const toastId = sonnerToast.custom(
     renderedToastId => (
@@ -66,11 +60,9 @@ function show(variant: ToastVariant, message: ReactNode, options: ToastOptions =
     }
   );
 
-  if (id === undefined) {
-    const ids = activeToastIds.get(variant) ?? new Set<ToastId>();
-    ids.add(toastId);
-    activeToastIds.set(variant, ids);
-  }
+  const ids = activeToastIds.get(variant) ?? new Set<ToastId>();
+  ids.add(toastId);
+  activeToastIds.set(variant, ids);
 
   return toastId;
 }
