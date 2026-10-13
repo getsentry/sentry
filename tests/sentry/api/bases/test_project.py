@@ -1,11 +1,15 @@
+from unittest.mock import patch
+
 from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory
 from rest_framework.views import APIView
 
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectEndpoint, ProjectPermission
-from sentry.auth.access import from_request
+from sentry.auth.access import SystemAccess, from_request
+from sentry.auth.system import SystemToken
 from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
+from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.requests import drf_request_from_request
@@ -72,6 +76,17 @@ class ProjectPermissionTest(ProjectPermissionBase):
         assert self.has_object_perm("POST", self.project, user=user, is_superuser=True)
         assert self.has_object_perm("PUT", self.project, user=user, is_superuser=True)
         assert self.has_object_perm("DELETE", self.project, user=user, is_superuser=True)
+
+    def test_system_token_skips_organization_context(self) -> None:
+        perm = ProjectPermission()
+        request = drf_request_from_request(self.make_request(auth=SystemToken(), method="DELETE"))
+
+        with patch.object(organization_service, "get_organization_by_id") as get_organization:
+            assert perm.has_permission(request, APIView())
+            assert perm.has_object_permission(request, APIView(), self.project)
+
+        assert isinstance(request.access, SystemAccess)
+        get_organization.assert_not_called()
 
     def test_member_without_team_membership(self) -> None:
         team = self.create_team(organization=self.organization)
