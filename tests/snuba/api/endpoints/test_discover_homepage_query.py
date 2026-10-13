@@ -36,6 +36,16 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
 
         assert response.status_code == 401, response.content
 
+    def test_member_of_other_org_is_rejected(self) -> None:
+        other_user = self.create_user()
+        self.create_organization(owner=other_user)
+        self.login_as(user=other_user)
+
+        with self.feature(FEATURES):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 403, response.content
+
     def test_demo_user_can_read_homepage_query(self) -> None:
         demo_user = self.create_user()
         self.create_member(organization=self.org, user=demo_user, role="member")
