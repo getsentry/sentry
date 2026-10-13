@@ -1,87 +1,124 @@
-import {IconCode} from '@sentry/icons/code';
-import {IconCommit} from '@sentry/icons/commit';
-import {IconPullRequest} from '@sentry/icons/pullRequest';
-import {IconStack} from '@sentry/icons/stack';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
-import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
+import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 
-import {DocumentationHint} from 'sentry/components/documentationHint';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {SnapshotApproveButton} from 'sentry/views/preprod/snapshots/header/snapshotApproveButton';
+import {useSnapshotActions} from 'sentry/views/preprod/snapshots/header/useSnapshotActions';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
-import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
-import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-interface SnapshotHeaderContentProps {
-  data: SnapshotDetailsApiResponse;
+type PageTitleItem = Extract<BreadcrumbTitleItem, {type: 'page-title'}>;
+
+interface SnapshotBreadcrumbsProps {
+  snapshotId: string;
+  projectId?: string;
+  trailingActions?: PageTitleItem['trailingActions'];
 }
 
-export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
+function SnapshotBreadcrumbs({
+  projectId,
+  snapshotId,
+  trailingActions,
+}: SnapshotBreadcrumbsProps) {
   const organization = useOrganization();
-  const {vcs_info, app_id: appId} = data;
-  const shortSha = vcs_info.head_sha?.slice(0, 7);
-  const project = ProjectsStore.getById(data.project_id);
-  const shaUrl = getShaUrl(vcs_info, vcs_info.head_sha);
-  const prUrl = getPrUrl(vcs_info);
-  const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
-  const items: BreadcrumbListProps['items'] = [];
-
-  if (project) {
-    items.push({
-      type: 'link',
-      label: project.slug,
-      to: `${makeProjectsPathname({path: `/${project.slug}/`, organization})}?project=${project.id}`,
-      leadingGraphic: <ProjectAvatar project={project} size={16} />,
-    });
-  }
-  if (shortSha && shaUrl) {
-    items.push({
-      type: 'link',
-      label: shortSha,
-      externalHref: shaUrl,
-      leadingGraphic: <IconCommit size="xs" />,
-    });
-  }
-  if (vcs_info.pr_number && prUrl) {
-    items.push({
-      type: 'link',
-      label: `#${vcs_info.pr_number}${vcs_info.head_ref ? ` (${vcs_info.head_ref})` : ''}`,
-      externalHref: prUrl,
-      leadingGraphic: <IconPullRequest size="xs" />,
-    });
-  } else if (vcs_info.head_ref && branchUrl) {
-    items.push({
-      type: 'link',
-      label: vcs_info.head_ref,
-      externalHref: branchUrl,
-      leadingGraphic: <IconStack size="xs" />,
-    });
-  }
-  if (appId) {
-    items.push({
-      type: 'link',
-      label: appId,
-      to: `/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`,
-      leadingGraphic: <IconCode size="xs" />,
-    });
-  }
+  const project = useProjectFromId({project_id: projectId});
 
   return (
     <TopBar.Slot
       name="breadcrumbs"
-      items={items}
+      items={[
+        {
+          type: 'link',
+          label: t('Snapshots'),
+          to: {
+            pathname: makeReleasesPathname({path: '/', organization}),
+            query: {tab: 'snapshots', project: project?.id},
+          },
+        },
+      ]}
       title={{
         type: 'page-title',
-        label: t('Snapshots'),
-        labelTooltip: (
-          <DocumentationHint docsUrl="https://docs.sentry.io/product/snapshots/">
-            {t('Catch visual regressions before they reach users.')}
-          </DocumentationHint>
+        label: snapshotId,
+        leadingGraphic: project ? (
+          <ProjectBadge
+            disableLink
+            hideName
+            project={project}
+            avatarSize={16}
+            avatarProps={{hasTooltip: true, tooltip: project.slug}}
+          />
+        ) : (
+          <Placeholder width="16px" height="16px" />
         ),
+        trailingActions,
       }}
     />
   );
+}
+
+interface SnapshotHeaderContentProps {
+  apiUrl: ReturnType<typeof getApiUrl>;
+  organizationSlug: string;
+  snapshotId: string;
+  data?: SnapshotDetailsApiResponse;
+}
+
+function SnapshotBreadcrumbsWithActions({
+  apiUrl,
+  data,
+  organizationSlug,
+  snapshotId,
+}: SnapshotHeaderContentProps & {data: SnapshotDetailsApiResponse}) {
+  const actions = useSnapshotActions({apiUrl, data, organizationSlug});
+
+  return (
+    <ConfirmDelete {...actions.confirmDeleteProps}>
+      {({open}) => (
+        <SnapshotBreadcrumbs
+          snapshotId={snapshotId}
+          projectId={data.project_id}
+          trailingActions={[
+            {
+              type: 'menu',
+              triggerLabel: t('More actions'),
+              triggerIcon: <IconEllipsis />,
+              items: actions.buildMenuItems(open),
+            },
+            actions.canApprove
+              ? {
+                  type: 'button',
+                  element: (
+                    <SnapshotApproveButton
+                      onApprove={actions.onApprove}
+                      disabled={actions.isApproving}
+                    />
+                  ),
+                }
+              : null,
+          ]}
+        />
+      )}
+    </ConfirmDelete>
+  );
+}
+
+/**
+ * The snapshot id is the artifact id and comes straight from the route, so the
+ * page title is there before the request resolves. The actions are not — they
+ * need the response — so they arrive with it.
+ */
+export function SnapshotHeaderContent(props: SnapshotHeaderContentProps) {
+  if (!props.data) {
+    return <SnapshotBreadcrumbs snapshotId={props.snapshotId} />;
+  }
+
+  return <SnapshotBreadcrumbsWithActions {...props} data={props.data} />;
 }

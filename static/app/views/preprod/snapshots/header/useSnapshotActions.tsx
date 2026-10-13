@@ -1,33 +1,19 @@
-import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconDownload} from '@sentry/icons/download';
-import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {IconInfo} from '@sentry/icons/info';
 import {IconOpen} from '@sentry/icons/open';
 import {IconReceipt} from '@sentry/icons/receipt';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconThumb} from '@sentry/icons/thumb';
-import {IconTimer} from '@sentry/icons/timer';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {AvatarList} from '@sentry/scraps/avatar';
-import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {ConfirmDelete} from 'sentry/components/confirmDelete';
-import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {t} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -38,6 +24,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {openBuildDebugInfoModal} from 'sentry/views/preprod/snapshots/header/buildDebugInfoModal';
 import {
   isForceApprovableSnapshotState,
@@ -47,10 +34,26 @@ import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapsh
 import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
-interface SnapshotHeaderActionsProps {
+interface UseSnapshotActionsParams {
   apiUrl: ReturnType<typeof getApiUrl>;
   data: SnapshotDetailsApiResponse;
   organizationSlug: string;
+}
+
+export interface SnapshotActions {
+  /**
+   * Takes the `open` supplied by `ConfirmDelete`'s render prop, because the
+   * delete item has to trigger a modal the caller owns.
+   */
+  buildMenuItems: (openDeleteModal: () => void) => MenuItemProps[];
+  canApprove: boolean;
+  confirmDeleteProps: {
+    confirmInput: string;
+    message: string;
+    onConfirm: () => void;
+  };
+  isApproving: boolean;
+  onApprove: () => void;
 }
 
 function handleRequestError(error: RequestError, message: string) {
@@ -61,40 +64,21 @@ function handleRequestError(error: RequestError, message: string) {
   }
 }
 
-export function SnapshotHeaderActions({
+export function useSnapshotActions({
+  apiUrl,
   data,
   organizationSlug,
-  apiUrl,
-}: SnapshotHeaderActionsProps) {
+}: UseSnapshotActionsParams): SnapshotActions {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const approveButtonSize = useResponsivePropValue<'xs' | 'sm'>({
-    zero: 'xs',
-    sm: 'sm',
-  });
   const isSentryEmployee = useIsSentryEmployee();
-  const project = ProjectsStore.getById(data.project_id);
+  const project = useProjectFromId({project_id: data.project_id});
 
   const comparisonState = data.comparison_state;
   const approvalStatus = data.approval_status;
   const isApproved = isSnapshotApproved(approvalStatus);
-  const isAutoApproved = approvalStatus === 'auto_approved';
   const canForceApprove = isForceApprovableSnapshotState(comparisonState) && !isApproved;
-  const approvers: AvatarUser[] = (data.approvers ?? []).map((a, i) => ({
-    id: a.id ?? `approver-${i}`,
-    name: a.name ?? '',
-    email: a.email ?? '',
-    username: a.username ?? '',
-    ip_address: '',
-    avatar: a.avatar_url
-      ? {
-          avatarType: 'upload' as const,
-          avatarUuid: '',
-          avatarUrl: a.avatar_url,
-        }
-      : undefined,
-  }));
 
   const {mutate: submitApproval, isPending: isApproving} = useMutation<
     unknown,
@@ -195,10 +179,7 @@ export function SnapshotHeaderActions({
     onError: error => handleRequestError(error, t('Failed to re-run comparison')),
   });
 
-  const {mutate: deleteSnapshot, isPending: isDeleting} = useMutation<
-    unknown,
-    RequestError
-  >({
+  const {mutate: deleteSnapshot} = useMutation<unknown, RequestError>({
     mutationFn: () => fetchMutation({url: apiUrl, method: 'DELETE'}),
     onSuccess: () => {
       addSuccessMessage(t('Snapshot deleted'));
@@ -268,228 +249,160 @@ export function SnapshotHeaderActions({
   });
   const isExporting = isCheckingArchive || isBuildingArchive;
 
-  const approverAvatars =
-    approvers.length > 0 ? (
-      <Container display={{zero: 'none', '3xl': 'flex'}}>
-        <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
-      </Container>
-    ) : null;
+  const buildMenuItems = (openDeleteModal: () => void): MenuItemProps[] => {
+    const menuItems: MenuItemProps[] = [];
 
-  return (
-    <Flex align="center" gap="md">
-      {comparisonState === 'success' ? (
-        isApproved ? (
-          <Flex align="center" gap="xl">
-            <Flex align="center" gap="xs">
-              <Tag variant="success" icon={<IconCheckmark />}>
-                {isAutoApproved ? t('Auto-approved') : t('Approved')}
-              </Tag>
-              {isAutoApproved && (
-                <Tooltip
-                  title={t(
-                    'Automatically approved because the changes match a previously approved build on this PR.'
-                  )}
-                >
-                  <Flex align="center">
-                    <IconInfo size="sm" />
-                  </Flex>
-                </Tooltip>
-              )}
-            </Flex>
-            {approverAvatars}
-          </Flex>
-        ) : approvalStatus === 'requires_approval' ? (
-          <Flex align="center" gap="sm">
-            <Container display={{zero: 'none', '4xl': 'block'}}>
-              <Tag variant="warning" icon={<IconTimer />}>
-                {t('Needs approval')}
-              </Tag>
-            </Container>
-            <Button
-              size={approveButtonSize}
-              variant="primary"
-              icon={<IconThumb />}
-              onClick={handleApprove}
-              disabled={isApproving}
-            >
-              {t('Approve')}
-            </Button>
-          </Flex>
-        ) : null
-      ) : (
-        <Flex align="center" gap="xl">
-          <SnapshotStatusBadge
-            comparisonState={comparisonState}
-            approvalStatus={approvalStatus}
-            errorMessage={data.comparison_error_message}
-          />
-          {isApproved && approverAvatars}
+    menuItems.push({
+      key: 'build-debug-info',
+      label: (
+        <Flex align="center" gap="sm">
+          <IconReceipt size="sm" />
+          {t('Build Metadata')}
         </Flex>
-      )}
+      ),
+      onAction: () => openBuildDebugInfoModal(data),
+      textValue: t('Build Metadata'),
+    });
 
-      <ConfirmDelete
-        message={t(
-          'Are you sure you want to delete this snapshot? This action cannot be undone and will permanently remove all associated files and data.'
-        )}
-        confirmInput="delete"
-        onConfirm={() => deleteSnapshot()}
-      >
-        {({open: openDeleteModal}) => {
-          const menuItems: MenuItemProps[] = [];
+    if (data.base_artifact_id) {
+      const baseBuildPath = getSnapshotPath({
+        organizationSlug,
+        snapshotId: data.base_artifact_id,
+      });
+      menuItems.push({
+        key: 'go-to-base-build',
+        label: (
+          <Flex align="center" gap="sm">
+            <IconOpen size="sm" />
+            {t('Go to Base Build')}
+          </Flex>
+        ),
+        onAction: () => navigate(baseBuildPath),
+        textValue: t('Go to Base Build'),
+      });
+    }
 
-          menuItems.push({
-            key: 'build-debug-info',
+    menuItems.push(
+      {
+        key: 'download-images',
+        label: (
+          <Flex align="center" gap="sm">
+            <IconDownload size="sm" />
+            {t('Download Images')}
+          </Flex>
+        ),
+        onAction: () => downloadImages(),
+        textValue: t('Download Images'),
+        disabled: isExporting,
+      },
+      {
+        key: 'rerun-status-checks',
+        label: (
+          <Flex align="center" gap="sm">
+            <IconRefresh size="sm" />
+            {t('Rerun Status Checks')}
+          </Flex>
+        ),
+        onAction: () => rerunStatusChecks(),
+        textValue: t('Rerun Status Checks'),
+      },
+      ...(approvalStatus === 'approved'
+        ? [
+            {
+              key: 'reapprove',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconThumb size="sm" />
+                  {t('Re-approve')}
+                </Flex>
+              ),
+              onAction: handleReapprove,
+              textValue: t('Re-approve'),
+              disabled: isApproving,
+            },
+          ]
+        : []),
+      ...(canForceApprove
+        ? [
+            {
+              key: 'force-approve',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconThumb size="sm" />
+                  {t('Force Approve')}
+                </Flex>
+              ),
+              onAction: handleForceApprove,
+              textValue: t('Force Approve'),
+              disabled: isApproving,
+            },
+          ]
+        : []),
+      ...(project
+        ? [
+            {
+              key: 'snapshot-settings',
+              label: (
+                <Flex align="center" gap="sm">
+                  <IconSettings size="sm" />
+                  {t('Snapshot Settings')}
+                </Flex>
+              ),
+              onAction: () =>
+                navigate(
+                  `/settings/${organizationSlug}/projects/${project.slug}/snapshots/`
+                ),
+              textValue: t('Snapshot Settings'),
+            },
+          ]
+        : []),
+      {
+        key: 'delete',
+        label: (
+          <Flex align="center" gap="sm">
+            <IconDelete size="sm" variant="danger" />
+            <Text variant="danger">{t('Delete Snapshots')}</Text>
+          </Flex>
+        ),
+        onAction: openDeleteModal,
+        textValue: t('Delete Snapshots'),
+      }
+    );
+
+    if (isSentryEmployee) {
+      menuItems.push({
+        key: 'admin-section',
+        label: t('Admin (Sentry Employees only)'),
+        children: [
+          {
+            key: 'rerun-comparison',
             label: (
               <Flex align="center" gap="sm">
-                <IconReceipt size="sm" />
-                {t('Build Metadata')}
+                <IconRefresh size="sm" />
+                {t('Re-run comparison')}
               </Flex>
             ),
-            onAction: () => openBuildDebugInfoModal(data),
-            textValue: t('Build Metadata'),
-          });
+            onAction: () => rerunComparison(),
+            textValue: t('Re-run comparison'),
+          },
+        ],
+      });
+    }
 
-          if (data.base_artifact_id) {
-            const baseBuildPath = getSnapshotPath({
-              organizationSlug,
-              snapshotId: data.base_artifact_id,
-            });
-            menuItems.push({
-              key: 'go-to-base-build',
-              label: (
-                <Flex align="center" gap="sm">
-                  <IconOpen size="sm" />
-                  {t('Go to Base Build')}
-                </Flex>
-              ),
-              onAction: () => navigate(baseBuildPath),
-              textValue: t('Go to Base Build'),
-            });
-          }
+    return menuItems;
+  };
 
-          menuItems.push(
-            {
-              key: 'download-images',
-              label: (
-                <Flex align="center" gap="sm">
-                  <IconDownload size="sm" />
-                  {t('Download Images')}
-                </Flex>
-              ),
-              onAction: () => downloadImages(),
-              textValue: t('Download Images'),
-              disabled: isExporting,
-            },
-            {
-              key: 'rerun-status-checks',
-              label: (
-                <Flex align="center" gap="sm">
-                  <IconRefresh size="sm" />
-                  {t('Rerun Status Checks')}
-                </Flex>
-              ),
-              onAction: () => rerunStatusChecks(),
-              textValue: t('Rerun Status Checks'),
-            },
-            ...(approvalStatus === 'approved'
-              ? [
-                  {
-                    key: 'reapprove',
-                    label: (
-                      <Flex align="center" gap="sm">
-                        <IconThumb size="sm" />
-                        {t('Re-approve')}
-                      </Flex>
-                    ),
-                    onAction: handleReapprove,
-                    textValue: t('Re-approve'),
-                    disabled: isApproving,
-                  },
-                ]
-              : []),
-            ...(canForceApprove
-              ? [
-                  {
-                    key: 'force-approve',
-                    label: (
-                      <Flex align="center" gap="sm">
-                        <IconThumb size="sm" />
-                        {t('Force Approve')}
-                      </Flex>
-                    ),
-                    onAction: handleForceApprove,
-                    textValue: t('Force Approve'),
-                    disabled: isApproving,
-                  },
-                ]
-              : []),
-            ...(project
-              ? [
-                  {
-                    key: 'snapshot-settings',
-                    label: (
-                      <Flex align="center" gap="sm">
-                        <IconSettings size="sm" />
-                        {t('Snapshot Settings')}
-                      </Flex>
-                    ),
-                    onAction: () =>
-                      navigate(
-                        `/settings/${organizationSlug}/projects/${project.slug}/snapshots/`
-                      ),
-                    textValue: t('Snapshot Settings'),
-                  },
-                ]
-              : []),
-            {
-              key: 'delete',
-              label: (
-                <Flex align="center" gap="sm">
-                  <IconDelete size="sm" variant="danger" />
-                  <Text variant="danger">{t('Delete Snapshots')}</Text>
-                </Flex>
-              ),
-              onAction: openDeleteModal,
-              textValue: t('Delete Snapshots'),
-            }
-          );
-
-          if (isSentryEmployee) {
-            menuItems.push({
-              key: 'admin-section',
-              label: t('Admin (Sentry Employees only)'),
-              children: [
-                {
-                  key: 'rerun-comparison',
-                  label: (
-                    <Flex align="center" gap="sm">
-                      <IconRefresh size="sm" />
-                      {t('Re-run comparison')}
-                    </Flex>
-                  ),
-                  onAction: () => rerunComparison(),
-                  textValue: t('Re-run comparison'),
-                },
-              ],
-            });
-          }
-
-          return (
-            <DropdownMenu
-              items={menuItems}
-              trigger={triggerProps => (
-                <OverlayTrigger.IconButton
-                  {...triggerProps}
-                  size="sm"
-                  icon={<IconEllipsis />}
-                  aria-label={t('More actions')}
-                  disabled={isDeleting}
-                />
-              )}
-            />
-          );
-        }}
-      </ConfirmDelete>
-    </Flex>
-  );
+  return {
+    buildMenuItems,
+    canApprove: comparisonState === 'success' && approvalStatus === 'requires_approval',
+    confirmDeleteProps: {
+      message: t(
+        'Are you sure you want to delete this snapshot? This action cannot be undone and will permanently remove all associated files and data.'
+      ),
+      confirmInput: 'delete',
+      onConfirm: () => deleteSnapshot(),
+    },
+    isApproving,
+    onApprove: handleApprove,
+  };
 }

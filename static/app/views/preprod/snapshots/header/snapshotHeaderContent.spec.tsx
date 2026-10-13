@@ -12,7 +12,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 
-import {SnapshotHeaderActions} from './snapshotHeaderActions';
+import {SnapshotHeaderContent} from './snapshotHeaderContent';
 
 jest.mock('sentry/utils/downloadFromHref');
 
@@ -50,7 +50,8 @@ const data = {
 function renderActions(overrides: Partial<SnapshotDetailsApiResponse> = {}) {
   const organization = OrganizationFixture({slug: ORG_SLUG});
   return render(
-    <SnapshotHeaderActions
+    <SnapshotHeaderContent
+      snapshotId={ARTIFACT_ID}
       data={{...data, ...overrides}}
       organizationSlug={ORG_SLUG}
       apiUrl={API_URL}
@@ -64,7 +65,7 @@ async function clickDownloadImages() {
   await userEvent.click(await screen.findByText('Download Images'));
 }
 
-describe('SnapshotHeaderActions download images', () => {
+describe('SnapshotHeaderContent download images', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
@@ -147,7 +148,7 @@ describe('SnapshotHeaderActions download images', () => {
   });
 });
 
-describe('SnapshotHeaderActions re-approve', () => {
+describe('SnapshotHeaderContent re-approve', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -185,7 +186,7 @@ describe('SnapshotHeaderActions re-approve', () => {
   });
 });
 
-describe('SnapshotHeaderActions force approve', () => {
+describe('SnapshotHeaderContent force approve', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -232,12 +233,47 @@ describe('SnapshotHeaderActions force approve', () => {
     expect(screen.queryByText('Force Approve')).not.toBeInTheDocument();
   });
 
-  it('shows Approved instead of Failed once force approved', async () => {
+  it('offers re-approve but not force approve once force approved', async () => {
     renderActions({comparison_state: 'failed', approval_status: 'approved'});
-    expect(screen.getByText('Approved')).toBeInTheDocument();
-    expect(screen.queryByText('Failed')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
     expect(await screen.findByText('Re-approve')).toBeInTheDocument();
     expect(screen.queryByText('Force Approve')).not.toBeInTheDocument();
+  });
+});
+
+describe('SnapshotHeaderContent breadcrumbs', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('names the page after the artifact id, under a Snapshots crumb', () => {
+    renderActions();
+
+    expect(screen.getByRole('heading', {level: 1, name: ARTIFACT_ID})).toBeVisible();
+    expect(screen.getByRole('link', {name: 'Snapshots'})).toBeInTheDocument();
+  });
+
+  it('renders the page title before the snapshot has loaded', () => {
+    render(
+      <SnapshotHeaderContent
+        snapshotId={ARTIFACT_ID}
+        organizationSlug={ORG_SLUG}
+        apiUrl={API_URL}
+      />,
+      {organization: OrganizationFixture({slug: ORG_SLUG})}
+    );
+
+    expect(screen.getByRole('heading', {level: 1, name: ARTIFACT_ID})).toBeVisible();
+    expect(screen.queryByRole('button', {name: 'More actions'})).not.toBeInTheDocument();
+  });
+
+  it('offers Approve only while approval is required', () => {
+    renderActions({comparison_state: 'success', approval_status: 'requires_approval'});
+    expect(screen.getByRole('button', {name: 'Approve'})).toBeInTheDocument();
+  });
+
+  it('does not offer Approve once approved', () => {
+    renderActions({comparison_state: 'success', approval_status: 'approved'});
+    expect(screen.queryByRole('button', {name: 'Approve'})).not.toBeInTheDocument();
   });
 });
