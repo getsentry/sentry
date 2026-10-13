@@ -5,13 +5,6 @@ import {ContextDataSection} from 'sentry/components/events/contexts/contextDataS
 import type {Event} from 'sentry/types/event';
 import {useProjects} from 'sentry/utils/useProjects';
 
-export {
-  getOrderedContextItems,
-  getOrderedContextItemsFromContexts,
-  type ContextItem,
-  type ContextValue,
-} from './contextItems';
-
 type Props = {
   event: Event;
   disableCollapsePersistence?: boolean;

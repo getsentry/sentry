@@ -49,8 +49,6 @@ import {defined} from 'sentry/utils/defined';
 
 import {getContextKeys, getContextMeta} from './dataUtils';
 
-export {getContextMeta} from './dataUtils';
-
 /**
  * Generates the class name used for contexts
  */
