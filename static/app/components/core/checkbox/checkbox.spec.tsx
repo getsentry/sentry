@@ -42,12 +42,11 @@ describe('Checkbox', () => {
     render(
       <label>
         <Checkbox
-          disabled
+          disabled="Requires admin access"
           onChange={onChange}
           onClick={onClick}
           onClickCapture={onClickCapture}
           onKeyDown={onKeyDown}
-          tooltipProps={{title: 'Requires admin access'}}
         />
         Enable feature
       </label>
@@ -83,7 +82,7 @@ describe('Checkbox', () => {
     expect(checkbox).not.toHaveAttribute('aria-disabled');
   });
 
-  it('calls consumer handlers when a checkbox with a tooltip is enabled', async () => {
+  it('does not show a disabled reason when the checkbox is enabled', async () => {
     const onChange = jest.fn();
     const onKeyDown = jest.fn();
     render(
@@ -95,7 +94,11 @@ describe('Checkbox', () => {
       />
     );
 
+    const checkbox = screen.getByRole('checkbox', {name: 'Enable feature'});
     await userEvent.tab();
+    await userEvent.hover(checkbox);
+    expect(screen.queryByText('Enable this feature')).not.toBeInTheDocument();
+    expect(checkbox).not.toHaveAccessibleDescription();
     await userEvent.keyboard(' ');
 
     expect(onChange).toHaveBeenCalledTimes(1);
@@ -105,18 +108,8 @@ describe('Checkbox', () => {
   it('excludes a disabled checkbox with a tooltip from form data and validation', () => {
     render(
       <form aria-label="Settings">
-        <Checkbox
-          checked
-          disabled
-          name="enabled"
-          tooltipProps={{title: 'Requires admin access'}}
-        />
-        <Checkbox
-          disabled
-          name="requiredChoice"
-          required
-          tooltipProps={{title: 'Requires admin access'}}
-        />
+        <Checkbox checked disabled="Requires admin access" name="enabled" />
+        <Checkbox disabled="Requires admin access" name="requiredChoice" required />
       </form>
     );
 

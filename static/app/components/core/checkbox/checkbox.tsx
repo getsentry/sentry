@@ -80,12 +80,14 @@ const checkboxSizeMap: Record<NonNullable<CheckboxProps['size']>, CheckboxConfig
 
 export interface CheckboxProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
-  'checked' | 'size'
+  'checked' | 'disabled' | 'size'
 > {
   /**
    * Is the checkbox active? Supports 'indeterminate'
    */
   checked?: React.InputHTMLAttributes<HTMLInputElement>['checked'] | 'indeterminate';
+  /** A string disables the checkbox and explains why in a tooltip. */
+  disabled?: boolean | string;
   /**
    * Ref to the native checkbox input element.
    */
@@ -105,15 +107,23 @@ function preventInteraction(event: React.SyntheticEvent): void {
 
 export function Checkbox({
   checked = false,
+  disabled,
   size = 'sm',
   className,
   ref,
   tooltipProps,
   ...props
 }: CheckboxProps) {
+  const isDisabled = Boolean(disabled);
+  const resolvedTooltipProps = {
+    ...tooltipProps,
+    title: isDisabled
+      ? (tooltipProps?.title ?? (typeof disabled === 'string' ? disabled : undefined))
+      : undefined,
+  };
   const {isFocusableDisabled, disabledProps} = useDisabledTooltip({
-    disabled: props.disabled,
-    tooltipProps,
+    disabled: isDisabled,
+    tooltipProps: resolvedTooltipProps,
     onKeyDown: props.onKeyDown,
     'aria-disabled': props['aria-disabled'],
   });
@@ -135,11 +145,11 @@ export function Checkbox({
   return (
     <CheckboxWrapper
       size={size}
-      disabled={props.disabled}
+      disabled={isDisabled}
       readOnly={props.readOnly}
       {...wrapperProps}
     >
-      <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
+      <Tooltip skipWrapper {...resolvedTooltipProps}>
         <NativeHiddenCheckbox
           ref={mergeRefs(nativeCheckBoxRef, ref)}
           checked={checked !== 'indeterminate' && checked}
@@ -169,7 +179,7 @@ export function Checkbox({
           </CheckboxIcon>
         )}
       </FakeCheckbox>
-      {!(props.disabled || props.readOnly) && (
+      {!(isDisabled || props.readOnly) && (
         <InteractionStateLayer
           higherOpacity={checked === true || checked === 'indeterminate'}
         />
