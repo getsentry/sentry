@@ -1,89 +1,9 @@
-// oxlint-disable-next-line import/no-nodejs-modules -- CSS parsing runs in oxlint's Node plugin host.
-import {createRequire} from 'node:module';
+import {defineRule, type ESTree, type Variable} from '@oxlint/plugins';
 
-import {defineRule, type ESTree, type Scope, type Variable} from '@oxlint/plugins';
-
+import {parseCssTemplate} from '../ast/extractor/css.ts';
+import {createImportTracker} from '../ast/tracker/imports.ts';
 import {normalizePropertyName} from '../ast/utils/normalizePropertyName.ts';
-
-type CssNode = {
-  type: string;
-  important?: boolean;
-  nodes?: CssNode[];
-  prop?: string;
-  raws?: {between?: string};
-  source?: {end?: {offset?: number}; start?: {offset?: number}};
-  value?: string;
-};
-type CssDocument = {nodes: CssNode[]};
-type CssParser = {parse: (source: string, options: {from: string}) => CssDocument};
-type CssDeclaration = {
-  important: boolean;
-  interpolations: ESTree.Expression[];
-  name: string;
-  value: string;
-};
-
-const styledSyntax: CssParser = createRequire(import.meta.url)('postcss-styled-syntax');
-const CSS_PREFIX = 'styled.div';
-
-function valueStart(node: CssNode, source: string): number | undefined {
-  const start = node.source?.start?.offset;
-  if (start === undefined || node.prop === undefined) {
-    return undefined;
-  }
-  const propertyEnd = start + node.prop.length;
-  if (node.raws?.between) {
-    return propertyEnd + node.raws.between.length;
-  }
-  const colon = source.indexOf(':', propertyEnd);
-  return colon === -1 ? undefined : colon + 1;
-}
-
-function parseCss(source: string): CssDocument | null {
-  try {
-    return styledSyntax.parse(source, {from: 'style.tsx'});
-  } catch (error) {
-    if (error instanceof Error && error.name === 'CssSyntaxError') {
-      return null;
-    }
-    throw error;
-  }
-}
-
-function parseCssTemplate(
-  template: ESTree.TemplateLiteral,
-  source: string
-): CssDeclaration[] | null {
-  const parsedSource = `${CSS_PREFIX}${source}`;
-  const root = parseCss(parsedSource)?.nodes[0];
-  if (!root) {
-    return null;
-  }
-
-  const offset = (position: number) => position - template.range[0] + CSS_PREFIX.length;
-  return (root.nodes ?? []).flatMap(node => {
-    if (node.type !== 'decl' || node.prop === undefined || node.value === undefined) {
-      return [];
-    }
-    const start = valueStart(node, parsedSource);
-    const end = node.source?.end?.offset;
-    return [
-      {
-        important: node.important ?? false,
-        interpolations:
-          start === undefined || end === undefined
-            ? []
-            : template.expressions.filter(
-                expression =>
-                  start <= offset(expression.range[0]) &&
-                  end >= offset(expression.range[1])
-              ),
-        name: normalizePropertyName(node.prop),
-        value: node.value,
-      },
-    ];
-  });
-}
+import {getStyledCallInfo} from '../ast/utils/styled.ts';
 
 const CONTAINER_PROPERTIES = new Set([
   'padding',
@@ -150,10 +70,6 @@ function isIntrinsic(name: string): boolean {
   return /^[a-z]/.test(name);
 }
 
-function elementName(name: string): string | null {
-  return !name.includes('.') && isIntrinsic(name) ? name : null;
-}
-
 function isTypeWrapper(
   node: ESTree.Node
 ): node is
@@ -173,10 +89,6 @@ function outermostTypeWrapper(node: ESTree.Node): ESTree.Node {
   return node.parent && isTypeWrapper(node.parent)
     ? outermostTypeWrapper(node.parent)
     : node;
-}
-
-function findVariable(scope: Scope | null, name: string): Variable | undefined {
-  return scope ? (scope.set.get(name) ?? findVariable(scope.upper, name)) : undefined;
 }
 
 function isStyleAttribute(
@@ -310,99 +222,14 @@ export const preferPrimitives = defineRule({
     },
   },
   create(context) {
+    const importTracker = createImportTracker(context);
     const styles = new Map<
       ESTree.Node,
       {declarations: Declarations; elements: Set<string>}
     >();
 
-    function resolveVariable(node: ESTree.Node): Variable | undefined {
-      return node.type === 'Identifier'
-        ? findVariable(context.sourceCode.getScope(node), node.name)
-        : undefined;
-    }
-
-    function imported(node: ESTree.Node, source: string, name: string): boolean {
-      if (
-        node.type === 'MemberExpression' &&
-        !node.computed &&
-        node.property.type === 'Identifier' &&
-        node.property.name === name
-      ) {
-        return imported(node.object, source, '*');
-      }
-      const definition = resolveVariable(node)?.defs[0];
-      if (
-        definition?.type !== 'ImportBinding' ||
-        definition.parent?.type !== 'ImportDeclaration' ||
-        definition.parent.importKind === 'type' ||
-        (definition.node.type === 'ImportSpecifier' &&
-          definition.node.importKind === 'type') ||
-        definition.parent.source.value !== source
-      ) {
-        return false;
-      }
-      const specifier = definition.node;
-      if (specifier.type === 'ImportDefaultSpecifier') {
-        return name === 'default';
-      }
-      if (specifier.type === 'ImportNamespaceSpecifier') {
-        return name === '*';
-      }
-      return (
-        specifier.type === 'ImportSpecifier' &&
-        (specifier.imported.type === 'Identifier'
-          ? specifier.imported.name
-          : specifier.imported.value) === name
-      );
-    }
-
     function isCss(node: ESTree.Node): boolean {
-      return imported(node, '@emotion/react', 'css');
-    }
-
-    function styledArgument(arg: ESTree.Argument | undefined): string | null {
-      if (arg?.type === 'Literal' && typeof arg.value === 'string') {
-        return elementName(arg.value);
-      }
-      return arg?.type === 'Identifier' ? elementName(arg.name) : null;
-    }
-
-    function styledElement(node: ESTree.Node): string | null {
-      if (
-        node.type === 'MemberExpression' &&
-        imported(node.object, '@emotion/styled', 'default') &&
-        node.property.type === 'Identifier'
-      ) {
-        return elementName(node.property.name);
-      }
-      if (
-        node.type === 'CallExpression' &&
-        imported(node.callee, '@emotion/styled', 'default')
-      ) {
-        return styledArgument(node.arguments[0]);
-      }
-      return null;
-    }
-
-    function styleKind(
-      node: ESTree.TaggedTemplateExpression | ESTree.CallExpression
-    ): {kind: 'css'} | {kind: 'element'; name: string} | null {
-      if (node.type === 'CallExpression') {
-        const {parent} = node;
-        if (
-          (parent?.type === 'TaggedTemplateExpression' && parent.tag === node) ||
-          (parent?.type === 'CallExpression' && parent.callee === node) ||
-          (parent?.type === 'MemberExpression' && parent.object === node)
-        ) {
-          return null;
-        }
-      }
-      const tag = node.type === 'TaggedTemplateExpression' ? node.tag : node.callee;
-      if (isCss(tag)) {
-        return {kind: 'css'};
-      }
-      const name = styledElement(tag) ?? styledElement(node);
-      return name ? {kind: 'element', name} : null;
+      return importTracker.is(node, '@emotion/react', 'css');
     }
 
     function report(node: ESTree.Node, primitive: Primitive, element?: string) {
@@ -422,14 +249,16 @@ export const preferPrimitives = defineRule({
       const declarations = parseCssTemplate(
         template,
         context.sourceCode.getText(template)
-      );
+      )?.filter(declaration => declaration.root);
       if (
         !declarations ||
         declarations.some(declaration => declaration.important) ||
         template.expressions.some(
           expression =>
             !declarations.some(declaration =>
-              declaration.interpolations.includes(expression)
+              declaration.interpolations.some(
+                interpolation => interpolation.expression === expression
+              )
             )
         )
       ) {
@@ -479,7 +308,7 @@ export const preferPrimitives = defineRule({
           parent.init === node &&
           parent.id.type === 'Identifier'
         ) {
-          const alias = resolveVariable(parent.id);
+          const alias = importTracker.resolveVariable(parent.id);
           return alias !== undefined && safeBinding(alias, seen);
         }
         if (
@@ -487,7 +316,8 @@ export const preferPrimitives = defineRule({
           parent.arguments.length === 1 &&
           parent.arguments[0] === node
         ) {
-          return styleKind(parent) !== null;
+          const kind = getStyledCallInfo(parent, importTracker)?.kind;
+          return kind === 'css' || kind === 'element';
         }
         if (
           parent?.type === 'JSXExpressionContainer' &&
@@ -516,7 +346,7 @@ export const preferPrimitives = defineRule({
         return;
       }
       if (node.type === 'Identifier') {
-        const binding = resolveVariable(node);
+        const binding = importTracker.resolveVariable(node);
         const definition = binding?.defs[0];
         if (
           binding &&
@@ -561,7 +391,7 @@ export const preferPrimitives = defineRule({
       node: ESTree.TaggedTemplateExpression | ESTree.CallExpression,
       style: ESTree.Node | undefined
     ) {
-      const styled = styleKind(node);
+      const styled = getStyledCallInfo(node, importTracker);
       if (styled?.kind !== 'element') {
         return;
       }
@@ -574,6 +404,7 @@ export const preferPrimitives = defineRule({
     }
 
     return {
+      ...importTracker.visitors,
       TaggedTemplateExpression(node) {
         checkStyled(node, node.quasi);
       },

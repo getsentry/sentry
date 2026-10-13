@@ -1,4 +1,6 @@
 import {css, useTheme} from '@emotion/react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -14,7 +16,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';

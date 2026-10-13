@@ -35,7 +35,7 @@ class ReactAuthTest(AcceptanceTestCase):
         ):
             self.browser.get("/auth/login/")
             self.browser.click_when_visible(xpath="//a[normalize-space(.)='Create an account']")
-            self.browser.wait_until('input[name="name"]')
+            self.browser.wait_until_clickable('input[name="name"]')
             self.browser.element('input[name="name"]').send_keys("New User")
             self.browser.element('input[name="email"]').send_keys("new.user@example.com")
             self.browser.element('input[name="password"]').send_keys(PASSWORD)
@@ -51,7 +51,7 @@ class ReactAuthTest(AcceptanceTestCase):
         return path
 
     def submit_new_password(self, password: str) -> None:
-        self.browser.wait_until('input[autocomplete="new-password"]')
+        self.browser.wait_until_clickable('input[autocomplete="new-password"]')
         password_input = self.browser.element('input[autocomplete="new-password"]')
         password_input.send_keys(
             Keys.END,
@@ -193,7 +193,7 @@ class ReactAuthTest(AcceptanceTestCase):
     def open_login(self, organization_slug: str | None = None) -> None:
         login_path = f"/auth/login/{organization_slug}/" if organization_slug else "/auth/login/"
         self.browser.get(login_path)
-        self.browser.wait_until('[aria-label="Email"]')
+        self.browser.wait_until_clickable('[aria-label="Email"]')
 
     def submit_credentials(
         self, email: str, password: str, organization_slug: str | None = None
@@ -202,6 +202,7 @@ class ReactAuthTest(AcceptanceTestCase):
         self.submit_visible_credentials(email, password)
 
     def submit_visible_credentials(self, email: str, password: str) -> None:
+        self.browser.wait_until_clickable('[aria-label="Email"]')
         self.browser.element('[aria-label="Email"]').send_keys(email)
         self.browser.element('[aria-label="Password"]').send_keys(password)
         self.browser.click_when_visible(xpath="//button[normalize-space(.)='Log in to Sentry']")

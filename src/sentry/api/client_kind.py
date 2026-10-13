@@ -19,6 +19,7 @@ from enum import StrEnum
 import sentry_sdk
 from rest_framework.request import Request
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
+from sentry_sdk import traces
 
 from sentry.api.caller_scopes import has_deprecated_scopes, has_granular_scopes
 from sentry.auth.services.auth import AuthenticatedToken
@@ -28,9 +29,6 @@ from sentry.seer.agent_token import is_agent_auth
 from sentry.utils import metrics
 from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
 from sentry.utils.sdk import get_transaction_name_from_request
-from sentry.utils.tracing import set_span_data, start_span
-
-FEATURE_FLAG = "organizations:api-client-kind-check"
 
 ATTRIBUTION_SPAN_OP = "api.attribution"
 
@@ -105,11 +103,6 @@ def get_client_kind(request: Request) -> ClientKind:
     """Classify the caller of an API request.
 
     Never raises; unrecognized callers fall back to ``UNKNOWN``.
-
-    Says nothing about whether the caller's organization opted in -- ``FEATURE_FLAG``
-    is checked by the caller, which is what holds the organization. Callers must
-    check it before reaching here, or a ``client_kind_scope`` declaration becomes a
-    way around the opt-in.
     """
     declared = _client_kind_override.get()
     if declared is not None:
@@ -187,9 +180,9 @@ def get_client_kind(request: Request) -> ClientKind:
 def set_client_kind_attributes(request: Request) -> None:
     """Record who called the endpoint, on a span and on the enclosing transaction.
 
-    Called once from ``Endpoint.dispatch``, behind the opt-in check it makes for
-    whichever organization ``Endpoint.client_kind_organization`` resolves, so every
-    endpoint reports the same set of attributes without hand-wiring them per handler.
+    Called once from ``Endpoint.dispatch`` for every endpoint that resolves an
+    organization, so each one reports the same set of attributes without
+    hand-wiring them per handler.
     """
     client_kind = get_client_kind(request)
 
@@ -226,13 +219,20 @@ def _record_attribution_span(
     route it served rather than its caller's.
     """
     route = get_transaction_name_from_request(request)
-    with start_span(op=ATTRIBUTION_SPAN_OP, name=route) as span:
-        set_span_data(span, ATTRIBUTE_NAMES.HTTP_ROUTE, route)
-        set_span_data(span, "client_kind", client_kind.value)
+    with traces.start_span(
+        name=route,
+        attributes=(
+            {
+                "sentry.op": ATTRIBUTION_SPAN_OP,
+                ATTRIBUTE_NAMES.HTTP_ROUTE: route,
+                "client_kind": client_kind.value,
+            }
+        ),
+    ) as span:
         if client_host is not None:
-            set_span_data(span, "client_host", client_host)
+            span.set_attribute("client_host", client_host)
         if user_agent is not None:
-            set_span_data(span, ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
+            span.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 
     # A token's own scopes; otherwise the access resolved for the request. Not every
     # `request.auth` is a token: HMAC signature authentication sets it to a string.

@@ -81,7 +81,7 @@ const SelectableCard = styled(ScmCardButton)`
      the border color rather than a surface one. */
   &::before {
     border-radius: ${p => p.theme.radius.lg};
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
   }
 

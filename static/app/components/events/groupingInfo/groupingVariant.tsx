@@ -1,4 +1,6 @@
 import {isValidElement} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
 
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -8,7 +10,6 @@ import {getSpanHash} from 'sentry/components/events/interfaces/performance/utils
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
-import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   EntrySpans,

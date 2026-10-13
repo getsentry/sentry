@@ -1,9 +1,11 @@
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Table} from '@sentry/scraps/table';
 
-import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
