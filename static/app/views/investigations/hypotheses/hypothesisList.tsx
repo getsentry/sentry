@@ -22,7 +22,6 @@ const ROW_LAYOUT = {
   columns: `repeat(auto-fit, minmax(${MIN_CARD_WIDTH}, 1fr))`,
   gap: 'xl',
   align: 'start',
-  // Undo the global `ul` margin and indent.
   margin: '0',
   padding: '0',
 } as const;
