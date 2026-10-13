@@ -59,6 +59,7 @@ DASHBOARD_OBJECT = {
                     ],
                     "isHidden": False,
                     "selectedAggregate": None,
+                    "transformations": {},
                     "linkedDashboards": [],
                 }
             ],
