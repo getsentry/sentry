@@ -28,13 +28,13 @@ class TransformationsSerializer(serializers.Serializer):
         None,
     ],
 )
-def test_invalid_transformation_shape(transformations) -> None:
+def test_invalid_transformation_shape(transformations: object) -> None:
     with pytest.raises(ValidationError):
         TransformationsField().run_validation(transformations)
 
 
 class TransformationsFieldTest(TestCase):
-    def assert_rejected(self, transformations) -> None:
+    def assert_rejected(self, transformations: object) -> None:
         field = TransformationsSerializer(context={"organization": self.organization}).fields[
             "transformations"
         ]
