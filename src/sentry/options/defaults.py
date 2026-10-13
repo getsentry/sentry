@@ -4665,3 +4665,10 @@ register(
     default=30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "integrations.client.disable_retries",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
