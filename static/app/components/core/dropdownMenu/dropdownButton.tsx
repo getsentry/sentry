@@ -1,11 +1,10 @@
+import {IconChevron} from '@sentry/icons/chevron';
 import * as stylex from '@stylexjs/stylex';
 import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {fontWeight, space} from '@sentry/scraps/theme/constants.stylex';
-
-import {IconChevron} from 'sentry/icons';
 
 export type DropdownButtonProps = DistributedOmit<
   ButtonProps,

@@ -1,5 +1,7 @@
 import type {ReactEventHandler} from 'react';
 import {useState} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -16,7 +18,6 @@ import {
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';

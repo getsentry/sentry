@@ -63,6 +63,7 @@ class UserResponse(TypedDict):
 
 class AIConversationData(AIConversationAggregates):
     conversationId: str
+    timeSpan: float
     title: str | None
     projectId: int | None
     flow: list[str]
@@ -186,8 +187,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
           `conversation.toolErrors`.
         - Usage: `conversation.inputTokens`, `conversation.outputTokens`,
           `conversation.totalTokens`, and `conversation.totalCost`.
-        - Duration: `conversation.duration` sums AI spans;
-          `conversation.generationDuration` sums LLM calls.
+        - Timespan: `conversation.timeSpan` measures elapsed time between first and last AI spans;
+          `conversation.generationDuration` sums LLM call durations. Both use milliseconds.
 
         Use numeric comparisons such as `conversation.toolCalls:>2`. Queries return
         conversations, not spans. Each `AND` condition may match a different span.
@@ -213,7 +214,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         with handle_query_errors():
             resolver = Spans.get_resolver(
                 snuba_params,
-                SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
+                SearchResolverConfig(
+                    auto_fields=True,
+                    disable_aggregate_extrapolation=True,
+                    fields_acl=FieldsACL(functions={"elapsed_if"}),
+                ),
             )
             query_string = compile_conversation_query(user_query, resolver)
 
@@ -322,7 +327,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
-            config=SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
+            config=SearchResolverConfig(
+                auto_fields=True,
+                disable_aggregate_extrapolation=True,
+                fields_acl=FieldsACL(functions={"elapsed_if"}),
+            ),
             sampling_mode=sampling_mode,
         )
 
@@ -331,6 +340,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         self, snuba_params: SnubaParams, conversation_ids: list[str]
     ) -> list[AIConversationData]:
         operation_filter = "has:gen_ai.operation.type"
+        time_span_expression, _ = AI_CONVERSATIONS_FIELDS["conversation.timeSpan"]
         ai_client_filter = "gen_ai.operation.type:ai_client"
         # Some SDKs put messages on the agent span instead of its generation spans.
         agent_filter = "gen_ai.operation.type:agent"
@@ -340,6 +350,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             selected_columns=[
                 "gen_ai.conversation.id",
                 *CONVERSATION_AGGREGATE_COLUMNS,
+                f"{time_span_expression} as time_span",
                 f"collect_unique_if(`{operation_filter}`, trace) as trace_ids",
                 f"collect_unique_if(`{operation_filter}`, project.id) as project_ids",
                 "collect_unique_if(`gen_ai.operation.type:agent`, gen_ai.agent.name) as flow",
@@ -365,7 +376,14 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             config=SearchResolverConfig(
                 auto_fields=True,
                 disable_aggregate_extrapolation=True,
-                fields_acl=FieldsACL(functions={"collect_unique_if", "first_if", "last_if"}),
+                fields_acl=FieldsACL(
+                    functions={
+                        "collect_unique_if",
+                        "first_if",
+                        "last_if",
+                        "elapsed_if",
+                    }
+                ),
             ),
             sampling_mode="HIGHEST_ACCURACY",
         )
@@ -382,6 +400,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             trace_ids = sorted(row.get("trace_ids") or [])
             conversations_map[conversation_id] = {
                 "conversationId": conversation_id,
+                # elapsed_if returns seconds; API timespans use milliseconds.
+                "timeSpan": float(row.get("time_span") or 0) * 1000,
                 "title": None,
                 "projectId": min(project_ids, default=None),
                 "flow": row.get("flow") or [],

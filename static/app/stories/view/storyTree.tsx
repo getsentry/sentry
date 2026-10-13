@@ -1,11 +1,11 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
-import {IconChevron} from 'sentry/icons';
 import {
   COMPONENT_CATEGORY_CONFIG,
   COMPONENT_CATEGORY_ORDER,

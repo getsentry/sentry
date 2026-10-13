@@ -12,7 +12,7 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     OrganizationAIConversationsEndpoint,
 )
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers import parse_link_header
@@ -26,13 +26,15 @@ from .test_organization_ai_conversations_base import (
     BaseAIConversationsTestCase,
 )
 
+_TIME_SPAN_EXPRESSION = AI_CONVERSATIONS_FIELDS["conversation.timeSpan"][0]
+
 
 class TestConversationSortSerializer:
     @pytest.mark.parametrize(
         "sort",
         [
             "conversation.age",
-            "conversation.duration",
+            "conversation.timeSpan",
             "conversation.generationDuration",
             "conversation.errors",
             "conversation.llmCalls",
@@ -94,6 +96,7 @@ def test_hydration_uses_one_aggregate_query(run_table_query: MagicMock) -> None:
     assert query["config"].disable_aggregate_extrapolation is True
     assert "min(timestamp) as start_timestamp" in query["selected_columns"]
     assert "max(timestamp) as end_timestamp" in query["selected_columns"]
+    assert f"{_TIME_SPAN_EXPRESSION} as time_span" in query["selected_columns"]
     assert query["orderby"] is None
     assert query["limit"] == 1
 
@@ -159,7 +162,7 @@ def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
 @pytest.mark.parametrize(
     "alias",
     [
-        "conversation.duration",
+        "conversation.timeSpan",
         "conversation.generationDuration",
         "conversation.errors",
         "conversation.llmCalls",
@@ -172,10 +175,22 @@ def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
     ],
 )
 def test_alias_filter(alias: str) -> None:
-    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    resolver = Spans.get_resolver(
+        SnubaParams(), SearchResolverConfig(fields_acl=FieldsACL(functions={"elapsed_if"}))
+    )
     compiled = compile_conversation_query(f"{alias}:>0", resolver)
     _, having, _ = resolver.resolve_query(compiled)
     assert having is not None
+
+
+def test_time_span_alias_uses_millisecond_units() -> None:
+    resolver = Spans.get_resolver(
+        SnubaParams(), SearchResolverConfig(fields_acl=FieldsACL(functions={"elapsed_if"}))
+    )
+    compiled = compile_conversation_query("conversation.timeSpan:>5s", resolver)
+    _, having, _ = resolver.resolve_query(compiled)
+    assert having is not None
+    assert having.comparison_filter.val == 5
 
 
 def test_messages_alias_matches_llm_calls() -> None:
@@ -323,6 +338,22 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
         return_value={"data": []},
     )
+    def test_sorting_time_span_candidate_query(self, run_table_query: MagicMock) -> None:
+        response = self.do_request({"project": [self.project.id], "sort": "-conversation.timeSpan"})
+
+        assert response.status_code == 200, response.data
+        query = run_table_query.call_args.kwargs
+        assert query["selected_columns"] == [
+            "gen_ai.conversation.id",
+            "max(timestamp)",
+            f"{_TIME_SPAN_EXPRESSION} as time_span",
+        ]
+        assert query["orderby"] == ["-time_span", "gen_ai.conversation.id"]
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
     def test_sorting_conversation_id_candidate_query(self, run_table_query: MagicMock) -> None:
         response = self.do_request(
             {"project": [self.project.id], "sort": "-conversation.conversationId"}
@@ -367,6 +398,44 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
             assert response.status_code == 200, (sort, response.data)
             assert [row["conversationId"] for row in response.data] == ["conversation-a"], sort
+
+    def test_sorting_time_span_uses_elapsed_time(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        for conversation_id, elapsed_seconds in [
+            ("conversation-a", 10),
+            ("conversation-b", 5),
+        ]:
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                operation_type="ai_client",
+            )
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now + timedelta(seconds=elapsed_seconds),
+                operation_type="ai_client",
+            )
+        self.store_ai_span(
+            conversation_id="conversation-b",
+            timestamp=now + timedelta(seconds=2),
+            operation_type="ai_client",
+        )
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+                "sort": "-conversation.timeSpan",
+            }
+        )
+
+        assert response.status_code == 200, response.data
+        assert [row["conversationId"] for row in response.data] == [
+            "conversation-a",
+            "conversation-b",
+        ]
+        assert [row["timeSpan"] for row in response.data] == [10000, 5000]
 
     def test_sorting_cost_pagination(self) -> None:
         now = before_now(days=10).replace(microsecond=0)
@@ -465,8 +534,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             ("!conversation.totalCost:>10", ["b"]),
             ("conversation.toolCalls:>1", ["a"]),
             ("conversation.errors:0", ["b", "c"]),
-            ("conversation.duration:>5s", ["a"]),
-            ("conversation.duration:>=0", ["a", "b", "c"]),
+            ("conversation.timeSpan:>5s", ["a"]),
+            ("conversation.timeSpan:>=0", ["a", "b", "c"]),
             ("conversation.generationDuration:0", []),
             ("span.duration:>2s", ["a"]),
             ("span.duration:<=2s", ["a", "b", "c"]),
@@ -497,7 +566,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         )
         self.store_ai_span(
             conversation_id="a",
-            timestamp=now,
+            timestamp=now + timedelta(seconds=6),
             operation_type="ai_client",
             cost=6,
             tokens=20,
@@ -575,7 +644,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         for search in [
             "conversation.toolCalls:banana",
             "conversation.totalCost:NaN",
-            "conversation.duration:>oops",
+            "conversation.timeSpan:>oops",
             "conversation.totalCost:>10 OR",
             "AND conversation.toolCalls:1",
             "conversation.toolCalls:1 OR OR conversation.errors:0",
@@ -683,6 +752,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             f"/organizations/{self.organization.slug}/explore/agents/conversations/"
             f"{conversation_id}/?project={self.project.id}"
         )
+        assert conversation["timeSpan"] == 4000
         assert conversation["generationDuration"] > 0
         assert conversation["traceCount"] == 1
         assert conversation["startTimestamp"] > 0

@@ -1,12 +1,15 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/play';
+import {IconProfiling} from '@sentry/icons/profiling';
 import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Duration} from 'sentry/components/duration';
@@ -16,12 +19,7 @@ import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnHeader,
-} from 'sentry/components/tables/gridEditable';
-import {IconPlay, IconProfiling} from 'sentry/icons';
+import {DataGrid, type GridColumnHeader} from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -226,7 +224,7 @@ export function SampledEventsTable({
 
   return (
     <Fragment>
-      <GridEditable
+      <DataGrid
         isLoading={isLoading || isMaxDurationLoading}
         error={error}
         data={consolidatedData}

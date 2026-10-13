@@ -1,4 +1,6 @@
 import styled from '@emotion/styled';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconTelescope} from '@sentry/icons/telescope';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
@@ -14,8 +16,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconSettings} from 'sentry/icons';
-import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';

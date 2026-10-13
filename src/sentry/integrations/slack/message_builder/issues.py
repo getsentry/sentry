@@ -612,12 +612,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         link_key: RuleIdType = "legacy_rule_id"
         link_id = None
         if self.rules:
-            # The block id's "rule" is resolved back to a Rule by the Slack action
-            # handler, so it keeps preferring the legacy rule id.
-            _, value = get_rule_or_workflow_id(self.rules[0])
-            rule_id = int(value)
+            rule_key, value = get_rule_or_workflow_id(self.rules[0])
+            if rule_key == "legacy_rule_id":
+                rule_id = int(value)
+
             if isinstance(self.rules[0], NotificationOrigin):
                 workflow_id = self.rules[0].workflow_id or workflow_id
+                rule_environment_id = self.rules[0].environment_id
             else:
                 action = self.rules[0].data.get("actions", [{}])[0]
                 if action.get("workflow_id") is not None:
@@ -625,12 +626,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
             link_key, link_value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
             link_id = int(link_value)
-            match link_key:
-                case "workflow_id":
-                    workflow = Workflow.objects.filter(id=link_id).first()
-                    rule_environment_id = workflow.environment_id if workflow else None
-                case "legacy_rule_id":
-                    rule_environment_id = self.rules[0].environment_id
+            if not isinstance(self.rules[0], NotificationOrigin):
+                match link_key:
+                    case "workflow_id":
+                        workflow = Workflow.objects.filter(id=link_id).first()
+                        rule_environment_id = workflow.environment_id if workflow else None
+                    case "legacy_rule_id":
+                        rule_environment_id = self.rules[0].environment_id
 
         # build up actions text
         if self.actions and self.identity and not action_text:

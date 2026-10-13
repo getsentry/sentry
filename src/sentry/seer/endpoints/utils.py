@@ -7,11 +7,22 @@ from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+
+
+SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+
+class OrganizationTraceExplorerAIPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read"],
+        "POST": ["org:read"],
+    }
 
 
 class ResolvedSeerRun(NamedTuple):
