@@ -1,6 +1,6 @@
 import logging
-from collections.abc import Mapping, Sequence
-from typing import Any, Literal, TypedDict
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any, Literal, NamedTuple, TypedDict
 
 import sentry_sdk
 from django.db.models import Exists, OuterRef
@@ -242,9 +242,17 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             release_bundle_urls = get_release_bundle_urls(project, release) if abs_paths else None
             for abs_path in abs_paths:
                 path_data = ReleaseLookupData(
-                    abs_path, project, release, event, release_bundle_urls
+                    abs_path,
+                    project,
+                    release,
+                    event,
+                    release_bundle_urls.urls if release_bundle_urls is not None else None,
                 ).to_dict()
                 release_process_abs_path_data[abs_path] = path_data
+            if release_bundle_urls is not None:
+                report_unsuccessful_url_matches(
+                    project, release, release_bundle_urls, release_process_abs_path_data.values()
+                )
 
         # Get a map that maps from abs_path to scraping data
         scraping_attempt_map = get_scraping_attempt_map(event_data)
@@ -664,11 +672,20 @@ class ReleaseLookupData:
         return self.dist_matched_artifact_index_release_file
 
 
-def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set[int]] | None:
+class ReleaseBundleUrls(NamedTuple):
+    # The URLs of the files read, each mapped to the ids of the bundles that contain it.
+    urls: dict[str, set[int]]
+    # Why bundles or files may have been left out, `index_rows` or `max_bundles`, or `None`.
+    truncated_by: str | None
+    # Whether the project's own newest bundles were read as well.
+    project_fallback: bool
+
+
+def get_release_bundle_urls(project: Project, release: Release) -> ReleaseBundleUrls | None:
     """
     Returns the URLs of the files in the release's newest bundles linked to the project, of any
-    dist, each mapped to the ids of the bundles that contain it. Returns `None` to look up each
-    URL in all the release's bundles instead.
+    dist, each mapped to the ids of the bundles that contain it, and why bundles or files may have
+    been left out. Returns `None` to look up each URL in all the release's bundles instead.
 
     Looking up a URL in all the release's bundles uses the `(url, artifact_bundle_id)` index of
     `ArtifactBundleIndex`. With `sourcemaps.source-map-debug.url-match-max-index-rows` set, the
@@ -789,7 +806,54 @@ def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set
     release_bundle_urls: dict[str, set[int]] = {}
     for bundle_id, url in rows:
         release_bundle_urls.setdefault(url, set()).add(bundle_id)
-    return release_bundle_urls
+    return ReleaseBundleUrls(release_bundle_urls, truncated_by, used_project_fallback)
+
+
+def report_unsuccessful_url_matches(
+    project: Project,
+    release: Release,
+    release_bundle_urls: ReleaseBundleUrls,
+    results: Iterable[SourceMapReleaseProcessResult],
+) -> None:
+    """
+    Counts the requests where a frame's file, or the source map of a file that was found, wasn't
+    found, by whether the release's bundles were read in full. When they weren't, the file may be
+    in a bundle that was left out, so each such request is logged with its organization, project
+    and release.
+    """
+    paths = 0
+    unsuccessful_files = 0
+    unsuccessful_source_maps = 0
+    for result in results:
+        paths += 1
+        if result["source_file_lookup_result"] == "unsuccessful":
+            unsuccessful_files += 1
+        elif (
+            result["matching_source_map_name"] is not None
+            and result["source_map_lookup_result"] == "unsuccessful"
+        ):
+            unsuccessful_source_maps += 1
+    if not unsuccessful_files and not unsuccessful_source_maps:
+        return
+
+    truncated_by = release_bundle_urls.truncated_by
+    metrics.incr(
+        "source_map_debug.url_match.unsuccessful", tags={"truncated": truncated_by or "false"}
+    )
+    if truncated_by is not None:
+        logger.info(
+            "source_map_debug.url_match.unsuccessful_after_truncation",
+            extra={
+                "organization_id": project.organization_id,
+                "project_id": project.id,
+                "release": release.version,
+                "truncated_by": truncated_by,
+                "project_fallback": release_bundle_urls.project_fallback,
+                "paths": paths,
+                "unsuccessful_files": unsuccessful_files,
+                "unsuccessful_source_maps": unsuccessful_source_maps,
+            },
+        )
 
 
 def get_matching_source_map_location(source_file_path: str, source_map_reference: str) -> str:
