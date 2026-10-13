@@ -439,11 +439,13 @@ class OutboxBase(Model):
             shard_row: OutboxBase | None
             # Synchronous drains hold a control transaction open across a cross-silo RPC, so
             # the pooler can close the connection underneath us while we wait. Retry once in a
-            # fresh transaction for categories whose handlers are known to be idempotent: the
-            # source transaction has already committed, so no work is duplicated.
-            retry_on_disconnect = not flush_all and (
-                self.shard_scope == OutboxScope.API_TOKEN_SCOPE
-                or self.category == OutboxCategory.PROVISION_ORGANIZATION
+            # fresh transaction for shards whose handlers are known to be idempotent: the
+            # source transaction has already committed, so no work is duplicated. The check is
+            # per shard rather than per category because drain_shard processes every row in
+            # the shard, not just the one that triggered it.
+            retry_on_disconnect = not flush_all and self.shard_scope in (
+                OutboxScope.API_TOKEN_SCOPE,
+                OutboxScope.PROVISION_SCOPE,
             )
             while True:
                 try:

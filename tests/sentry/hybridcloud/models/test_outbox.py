@@ -296,10 +296,10 @@ class ControlOutboxDrainTest(TransactionTestCase):
         mock_process.assert_called_once()
         assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
 
-    def _save_organization_scope_outbox(self, category: OutboxCategory) -> ControlOutbox:
+    def _save_outbox(self, shard_scope: OutboxScope, category: OutboxCategory) -> ControlOutbox:
         outbox = ControlOutbox(
             cell_name="us",
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_scope=shard_scope,
             shard_identifier=42,
             category=category,
             object_identifier=42,
@@ -312,7 +312,9 @@ class ControlOutboxDrainTest(TransactionTestCase):
     def test_reconnects_after_disconnect_during_organization_provisioning(
         self, mock_send: Mock
     ) -> None:
-        outbox = self._save_organization_scope_outbox(OutboxCategory.PROVISION_ORGANIZATION)
+        outbox = self._save_outbox(
+            OutboxScope.PROVISION_SCOPE, OutboxCategory.PROVISION_ORGANIZATION
+        )
 
         def disconnect_once(**kwargs: Any) -> None:
             mock_send.side_effect = None
@@ -328,7 +330,9 @@ class ControlOutboxDrainTest(TransactionTestCase):
 
     @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
     def test_retries_organization_provisioning_disconnect_only_once(self, mock_send: Mock) -> None:
-        outbox = self._save_organization_scope_outbox(OutboxCategory.PROVISION_ORGANIZATION)
+        outbox = self._save_outbox(
+            OutboxScope.PROVISION_SCOPE, OutboxCategory.PROVISION_ORGANIZATION
+        )
         mock_send.side_effect = self.terminate_connection
 
         with pytest.raises(OutboxDatabaseError):
@@ -338,8 +342,12 @@ class ControlOutboxDrainTest(TransactionTestCase):
         assert not self.connection.in_atomic_block
         assert ControlOutbox.objects.filter(id=outbox.id).exists()
 
-    def test_does_not_retry_other_organization_scope_categories(self) -> None:
-        outbox = self._save_organization_scope_outbox(OutboxCategory.ORGANIZATION_UPDATE)
+    def test_does_not_retry_organization_scope_shards(self) -> None:
+        # POST_ORGANIZATION_PROVISION and the other org-scoped categories are not covered by
+        # the provisioning retry; only PROVISION_SCOPE shards are.
+        outbox = self._save_outbox(
+            OutboxScope.ORGANIZATION_SCOPE, OutboxCategory.ORGANIZATION_UPDATE
+        )
         disconnect_error = OperationalError("server closed the connection unexpectedly")
 
         with (
