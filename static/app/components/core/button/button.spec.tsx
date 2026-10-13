@@ -76,7 +76,7 @@ describe('Button', () => {
     expect(button).toBeDisabled();
   });
 
-  it('uses native disabled when the tooltip is disabled', () => {
+  it('keeps a disabled button natively disabled when its tooltip is hidden', () => {
     render(
       <Button disabled tooltipProps={{title: 'Not available', disabled: true}}>
         Save
