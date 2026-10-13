@@ -84,7 +84,7 @@ def _send_via_notification_platform(
         and features.has("organizations:investigations", organization)
         and features.has("organizations:investigations-slack", organization)
     ):
-        data = data.copy(update={"project_id": group.project_id, "show_investigation_button": True})
+        data = data.copy(update={"show_investigation_button": True})
 
     target = IntegrationNotificationTarget(
         provider_key=NotificationProviderKey.SLACK,
