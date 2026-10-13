@@ -891,8 +891,8 @@ importers:
         specifier: 5.0.6
         version: 5.0.6
       platformicons:
-        specifier: ^9.8.0
-        version: 9.8.0(react@19.3.0)
+        specifier: ^9.8.1
+        version: 9.8.1(react@19.3.0)
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
@@ -1081,8 +1081,8 @@ importers:
         specifier: ^5.3.2
         version: 5.3.2
       platformicons:
-        specifier: ^9.8.0
-        version: 9.8.0(react@19.3.0)
+        specifier: ^9.8.1
+        version: 9.8.1(react@19.3.0)
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -8093,8 +8093,8 @@ packages:
     resolution: {integrity: sha512-Oo/NZcSWccq8KyoG7gLE9fnltgHns+pNCjCAp/WmjsUySi+sX7y4z4Xqu4fVb42CDHzRPl33fjzT15V1wvcyhA==}
     engines: {node: '>=16.0.0'}
 
-  platformicons@9.8.0:
-    resolution: {integrity: sha512-WGZy+P0DfbWIgOUBCR9r9rp0XeIk7PiNa6hvianx1Aok1oUCT4yLbDq4t+6mNxEGQOQPlU+gadmn6dwBT0Mwbg==}
+  platformicons@9.8.1:
+    resolution: {integrity: sha512-QpBfo4MON5Wt5MXZkvlsvYFMtPVIk5FVdv/Of3d/l1kTugPm5+5d0aS2uQhCY4hzrpVy1f6guHwgRzpPtCaSuA==}
     peerDependencies:
       react: '*'
 
@@ -17100,7 +17100,7 @@ snapshots:
       pvutils: 1.2.0
       tslib: 2.8.1
 
-  platformicons@9.8.0(react@19.3.0):
+  platformicons@9.8.1(react@19.3.0):
     dependencies:
       '@types/node': 26.6.4
       '@types/react': 19.3.0
