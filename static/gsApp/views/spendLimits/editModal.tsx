@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -164,7 +164,15 @@ export function SpendLimitsEditModal({
 
   return (
     <Fragment>
-      <OffsetBody>
+      <Container
+        css={theme => css`
+          margin: -${theme.space['2xl']};
+
+          @container (min-width: ${theme.container['3xl']}) {
+            margin-inline: -${theme.space['3xl']};
+          }
+        `}
+      >
         <BudgetUpdateError error={updateError} plan={subscription.planDetails} />
         <Container padding="2xl">
           <EmbeddedSpendLimitSettings
@@ -186,7 +194,7 @@ export function SpendLimitsEditModal({
             }}
           />
         </Container>
-      </OffsetBody>
+      </Container>
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={() => closeModal()}>{t('Cancel')}</Button>
@@ -198,11 +206,3 @@ export function SpendLimitsEditModal({
     </Fragment>
   );
 }
-
-const OffsetBody = styled('div')`
-  margin: -${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${p => p.theme.space['2xl']};
-  }
-`;

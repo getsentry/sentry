@@ -4,6 +4,11 @@ import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
+import {IconAdd} from '@sentry/icons/add';
+import {IconClose} from '@sentry/icons/close';
+import {IconDivide} from '@sentry/icons/divide';
+import {IconParenthesis} from '@sentry/icons/parenthesis';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import type {
   SelectOptionWithKey,
@@ -31,11 +36,6 @@ import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconClose} from 'sentry/icons/iconClose';
-import {IconDivide} from 'sentry/icons/iconDivide';
-import {IconParenthesis} from 'sentry/icons/iconParenthesis';
-import {IconSubtract} from 'sentry/icons/iconSubtract';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 
