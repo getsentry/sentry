@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
@@ -189,6 +189,68 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         blocks = orjson.loads(client.chat_postMessage.call_args.kwargs["attachments"])[0]["blocks"]
         assert len(blocks) == 1
 
+    def _make_send_alert_kwargs_with_workflow(self) -> dict[str, Any]:
+        kwargs = self._make_send_alert_kwargs()
+        kwargs["notification_context"] = replace(
+            kwargs["notification_context"],
+            workflow_id=self.workflow.id,
+            workflow_name="Page the on-call",
+        )
+        return kwargs
+
+    @patch("sentry.integrations.slack.utils.notifications.SlackSdkClient")
+    @patch(f"{_HANDLER_PATH}.NotificationService.has_access", return_value=False)
+    def test_send_alert_includes_workflow_link(
+        self, mock_has_access: mock.MagicMock, mock_slack_client: mock.MagicMock
+    ) -> None:
+        client = mock_slack_client.return_value
+        client.chat_postMessage.return_value = {"ok": True, "ts": "123.456"}
+
+        self.handler.send_alert(**self._make_send_alert_kwargs_with_workflow())
+
+        client.chat_postMessage.assert_called_once()
+        blocks = orjson.loads(client.chat_postMessage.call_args.kwargs["attachments"])[0]["blocks"]
+        workflow_url = self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/monitors/alerts/{self.workflow.id}/"
+        )
+        assert blocks[-1] == {
+            "type": "context",
+            "elements": [
+                {"type": "mrkdwn", "text": f"Alert: <{workflow_url}|Page the on-call>"},
+            ],
+        }
+
+    @override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 1.0}})
+    @with_feature("organizations:notification-platform.internal-testing")
+    @patch("sentry.integrations.slack.integration.SlackSdkClient")
+    @freeze_time("2021-01-01 00:00:00")
+    def test_send_alert_via_np_includes_workflow_link(
+        self, mock_slack_client: mock.MagicMock
+    ) -> None:
+        mock_client_instance = mock_slack_client.return_value
+        mock_client_instance.chat_postMessage.return_value = SlackResponse(
+            client=mock_client_instance,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "123.456"},
+            headers={},
+            status_code=200,
+        )
+
+        self.handler.send_alert(**self._make_send_alert_kwargs_with_workflow())
+
+        mock_client_instance.chat_postMessage.assert_called_once()
+        blocks: list[Any] = mock_client_instance.chat_postMessage.call_args.kwargs["attachments"][
+            0
+        ]["blocks"]
+        footer = blocks[-1]
+        assert footer["type"] == "context"
+        footer_text = footer["elements"][0]["text"]
+        assert footer_text.startswith("Alert: <")
+        assert footer_text.endswith("|Page the on-call>")
+        assert f"/monitors/alerts/{self.workflow.id}/" in footer_text
+
     @patch(f"{_HANDLER_PATH}.send_incident_alert_notification")
     @freeze_time("2021-01-01 00:00:00")
     def test_send_alert_falls_back_to_legacy_when_no_access(
@@ -259,6 +321,8 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             target_display="Channel 123",
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
@@ -340,6 +404,8 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             sentry_app_config=None,
             sentry_app_id=None,
             notes="Check the runbook",
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         notification_data = metric_alert_notification_data_factory(

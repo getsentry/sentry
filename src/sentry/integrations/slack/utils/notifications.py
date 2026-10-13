@@ -132,6 +132,8 @@ def _build_notification_payload(
     detector_serialized_response: DetectorSerializerResponse | None,
     notification_uuid: str | None,
     notes: str | None = None,
+    workflow_id: int | None = None,
+    workflow_name: str | None = None,
 ) -> tuple[str, str]:
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", organization):
@@ -155,6 +157,8 @@ def _build_notification_payload(
         chart_url=chart_url,
         notification_uuid=notification_uuid,
         notes=notes,
+        workflow_id=workflow_id,
+        workflow_name=workflow_name,
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
@@ -315,6 +319,8 @@ def send_incident_alert_notification(
         notification_uuid=notification_uuid,
         detector_serialized_response=detector_serialized_response,
         notes=notification_context.notes,
+        workflow_id=notification_context.workflow_id,
+        workflow_name=notification_context.workflow_name,
     )
     return _handle_workflow_engine_notification(
         organization=organization,

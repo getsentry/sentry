@@ -2,9 +2,13 @@ from datetime import datetime
 
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import build_workflow_link, incident_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING, SlackBody
+from sentry.integrations.slack.message_builder.types import (
+    INCIDENT_COLOR_MAPPING,
+    SLACK_URL_FORMAT,
+    SlackBody,
+)
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.organization import Organization
 
@@ -17,6 +21,10 @@ def get_started_at(timestamp: datetime | None) -> str:
     )
 
 
+def get_workflow_footer(workflow_name: str, workflow_link: str) -> str:
+    return f"Alert: {SLACK_URL_FORMAT.format(text=escape_slack_text(workflow_name), url=workflow_link)}"
+
+
 class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
@@ -27,6 +35,8 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         chart_url: str | None = None,
         notification_uuid: str | None = None,
         notes: str | None = None,
+        workflow_id: int | None = None,
+        workflow_name: str | None = None,
     ) -> None:
         """
         Builds an incident attachment when a metric alert fires or is resolved.
@@ -44,6 +54,8 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self.chart_url = chart_url
         self.notification_uuid = notification_uuid
         self.notes = notes
+        self.workflow_id = workflow_id
+        self.workflow_name = workflow_name
 
     def build(self) -> SlackBody:
         data = incident_attachment_info(
@@ -64,6 +76,12 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
 
         if self.chart_url:
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
+
+        if self.workflow_id is not None and self.workflow_name:
+            workflow_link = build_workflow_link(self.organization, self.workflow_id)
+            blocks.append(
+                self.get_context_block(text=get_workflow_footer(self.workflow_name, workflow_link))
+            )
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
         fallback_text = f"<{data['title_link']}|*{escape_slack_text(data['title'])}*>"

@@ -145,6 +145,8 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
             target_type=ActionTarget.USER,
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
@@ -232,6 +234,8 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
             target_type=ActionTarget.USER,
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(

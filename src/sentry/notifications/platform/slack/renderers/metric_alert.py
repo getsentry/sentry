@@ -32,7 +32,10 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.integrations.messaging.types import LEVEL_TO_COLOR
         from sentry.integrations.metric_alerts import get_status_text
         from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-        from sentry.integrations.slack.message_builder.incidents import get_started_at
+        from sentry.integrations.slack.message_builder.incidents import (
+            get_started_at,
+            get_workflow_footer,
+        )
         from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING
         from sentry.integrations.slack.utils.escape import escape_slack_text
 
@@ -47,6 +50,14 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         if data.chart_url:
             blocks.append(
                 BlockSlackMessageBuilder.get_image_block(data.chart_url, alt="Metric Alert Chart")
+            )
+
+        if data.workflow_name and data.workflow_link:
+            workflow_link = link_decorator.decorate_url(data.workflow_link)
+            blocks.append(
+                BlockSlackMessageBuilder.get_context_block(
+                    text=get_workflow_footer(data.workflow_name, workflow_link)
+                )
             )
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))

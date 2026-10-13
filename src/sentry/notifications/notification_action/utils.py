@@ -7,7 +7,7 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import build_workflow_link, incident_attachment_info
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
@@ -197,6 +197,10 @@ def metric_alert_notification_data_factory(
         referrer=f"metric_alert_{action_type}",
     )
 
+    workflow_link = None
+    if notification_context.workflow_id is not None:
+        workflow_link = build_workflow_link(organization, notification_context.workflow_id)
+
     return MetricAlertNotificationData(
         group_id=metric_issue_context.id,
         organization_id=organization.id,
@@ -209,6 +213,8 @@ def metric_alert_notification_data_factory(
         text=attachment_info["text"],
         chart_url=chart_url,
         notes=notification_context.notes,
+        workflow_name=notification_context.workflow_name,
+        workflow_link=workflow_link,
     )
 
 

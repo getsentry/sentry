@@ -150,6 +150,22 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         assert blocks[2]["image_url"] == MOCK_CHART_URL
         assert blocks[2]["alt_text"] == "Metric Alert Chart"
 
+    def test_render_includes_workflow_footer(self) -> None:
+        workflow_link = "https://sentry.io/organizations/example/monitors/alerts/42/"
+        result = _render(
+            data=self.notification_data.copy(
+                update={"workflow_name": "Page <the> on-call", "workflow_link": workflow_link}
+            ),
+            rendered_template=self.rendered_template,
+        )
+
+        blocks: list[Any] = result["attachments"][0]["blocks"]
+        footer = blocks[-1]
+        assert footer["type"] == "context"
+        footer_text = footer["elements"][0]["text"]
+        assert footer_text.startswith(f"Alert: <{workflow_link}")
+        assert footer_text.endswith("|Page &lt;the&gt; on-call>")
+
     def test_render_without_chart_url(self) -> None:
         result = _render(
             data=self.notification_data.copy(update={"notes": ""}),
