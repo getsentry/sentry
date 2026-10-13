@@ -119,9 +119,9 @@ describe('ConversationsOverviewPage', () => {
       'aria-selected',
       'true'
     );
-    const agentRunsChartTitle = await screen.findByText('Agent runs');
+    const agentRunsChartTitle = await screen.findByText('Agent Runs');
     const estimatedCostChartTitle = screen.getByText('Estimated Cost');
-    expect(screen.getByText('Tool calls')).toBeInTheDocument();
+    expect(screen.getByText('Tool Calls')).toBeInTheDocument();
     expect(
       estimatedCostChartTitle.compareDocumentPosition(agentRunsChartTitle) &
         Node.DOCUMENT_POSITION_FOLLOWING
@@ -227,9 +227,9 @@ describe('ConversationsOverviewPage', () => {
     expect(
       await screen.findByRole('button', {name: /^Chart interval:/})
     ).toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
     expect(screen.queryByText('Estimated Cost')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tool calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tool Calls')).not.toBeInTheDocument();
 
     finishAgentOrToolRequest();
 
@@ -239,8 +239,8 @@ describe('ConversationsOverviewPage', () => {
       'href',
       AI_AGENTS_GETTING_STARTED_DOCS_LINK
     );
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tool calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tool Calls')).not.toBeInTheDocument();
     expect(
       banner.compareDocumentPosition(costChartTitle) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -259,8 +259,8 @@ describe('ConversationsOverviewPage', () => {
     render(<ConversationsOverviewPage />, {organization});
 
     expect(await screen.findByText('Estimated Cost')).toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tool calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tool Calls')).not.toBeInTheDocument();
     expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
   });
 
@@ -281,7 +281,7 @@ describe('ConversationsOverviewPage', () => {
       },
     });
 
-    expect(await screen.findByText('Agent runs')).toBeInTheDocument();
+    expect(await screen.findByText('Agent Runs')).toBeInTheDocument();
     await waitFor(() => expect(chartRequest).toHaveBeenCalled());
     const chartQueries = chartRequest.mock.calls.map(([, options]) =>
       JSON.stringify(options.query)
@@ -320,7 +320,7 @@ describe('ConversationsOverviewPage', () => {
     expect(
       screen.queryByRole('combobox', {name: 'Add a search term'})
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Agent runs')).toBeInTheDocument();
+    expect(screen.getByText('Agent Runs')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
   });
 
@@ -334,7 +334,6 @@ describe('ConversationsOverviewPage', () => {
       body: [
         {
           conversationId: 'abcdef12',
-          duration: 1000,
           endTimestamp: 2000,
           errors: 0,
           firstInput: null,
@@ -345,6 +344,7 @@ describe('ConversationsOverviewPage', () => {
           outputTokens: 0,
           projectId: null,
           startTimestamp: 1000,
+          timeSpan: 1000,
           toolCalls: 0,
           toolErrors: 0,
           toolNames: [],
@@ -385,7 +385,7 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Traces'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'LLM Calls'})).not.toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
   });
 
   it('shows agentic spans in the LLM Calls tab', async () => {
@@ -406,13 +406,13 @@ describe('ConversationsOverviewPage', () => {
       body: [
         {
           conversationId: 'conversation-id',
-          duration: 1000,
           endTimestamp: 2000,
           errors: 0,
           firstInput: null,
           lastOutput: null,
           llmCalls: 1,
           startTimestamp: 1000,
+          timeSpan: 1000,
           toolCalls: 0,
           toolErrors: 0,
           toolNames: [],
@@ -505,7 +505,7 @@ describe('ConversationsOverviewPage', () => {
 
     const aliases = [
       'conversation.age',
-      'conversation.duration',
+      'conversation.timeSpan',
       'conversation.generationDuration',
       'conversation.errors',
       'conversation.messages',

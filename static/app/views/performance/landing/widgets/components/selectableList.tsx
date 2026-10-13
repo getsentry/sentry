@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import {useProjects} from 'sentry/utils/useProjects';

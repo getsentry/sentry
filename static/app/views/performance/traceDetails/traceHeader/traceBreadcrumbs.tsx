@@ -1,6 +1,9 @@
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCopyId, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -58,6 +61,7 @@ function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
   // Both lookups run unconditionally to keep hook order stable. Without
   // attributes they resolve to a disabled query.
   const attributes = hasTraceAttributes ? rootEvent.attributes : [];
+  const links = hasTraceAttributes ? rootEvent.links : undefined;
   const currentTraceStartTimestamp = hasTraceAttributes
     ? new Date(rootEvent.timestamp).getTime() / 1000
     : 0;
@@ -65,11 +69,13 @@ function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
   const previous = useAdjacentTraceNavigation({
     direction: 'previous',
     attributes,
+    links,
     currentTraceStartTimestamp,
   });
   const next = useAdjacentTraceNavigation({
     direction: 'next',
     attributes,
+    links,
     currentTraceStartTimestamp,
   });
 
