@@ -29,12 +29,18 @@ describe('seerEmbedsToJsonSchemas', () => {
   it('rejects invalid date strings for the timestamp embed value', () => {
     // The timestamp embed previously used z.string() which allowed any value,
     // including non-parseable dates that would cause RangeError in toISOString().
-    // It now uses isoTimestampSchema to validate the value at parse time.
+    // It now uses pageFilterTimestampSchema to validate the value at parse time,
+    // which accepts both offset-bearing and offset-less ISO 8601 datetimes.
     expect(() =>
       SEER_EMBED_SCHEMAS.timestamp.schema.parse({value: 'not-a-date'})
     ).toThrow();
+    // With timezone offset (Z)
     expect(() =>
       SEER_EMBED_SCHEMAS.timestamp.schema.parse({value: '2025-07-15T14:30:00Z'})
+    ).not.toThrow();
+    // Without timezone offset (local form agents may emit)
+    expect(() =>
+      SEER_EMBED_SCHEMAS.timestamp.schema.parse({value: '2025-07-15T14:30:00'})
     ).not.toThrow();
   });
 
