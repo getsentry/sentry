@@ -250,13 +250,11 @@ describe('searchSyntax/parser', () => {
       'tags[foo:bar]:baz browser.name-1:"Fire \\"fox\\"" device.family: count_if(user.email,equals,"I, got \\"quotes\\""):>100 firstSeen:+7d'
     );
 
-    if (result === null) {
-      throw new Error('Parsed result as null');
-    }
-
-    const filters = result.filter(
-      (token): token is TokenResult<Token.FILTER> => token.type === Token.FILTER
-    );
+    expect(result).not.toBeNull();
+    const filters =
+      result?.filter(
+        (token): token is TokenResult<Token.FILTER> => token.type === Token.FILTER
+      ) ?? [];
     expect(filters).toHaveLength(5);
 
     expect(filters[0]).toMatchObject({
