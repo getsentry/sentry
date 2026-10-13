@@ -96,6 +96,7 @@ class ActivityNotificationData(NotificationData):
     user_settings_url: str | None = None
     email_headers: dict[str, str] | None = None
     email_subject_prefix: str | None = None
+    enhanced_privacy: bool = False
 
 
 def create_activity_notification_example(
@@ -137,7 +138,7 @@ class AssignedNotificationData(ActivityNotificationData):
 
 
 def build_subject_prefix(data: ActivityNotificationData) -> NotificationTextBlock:
-    if data.issue_title and data.issue_short_id:
+    if data.issue_title and data.issue_short_id and not data.enhanced_privacy:
         return PlainTextBlock(text=f"{data.issue_short_id} - {data.issue_title}")
     elif data.issue_short_id:
         return PlainTextBlock(text=data.issue_short_id)
@@ -290,6 +291,7 @@ def build_activity_notification_data(
         issue_short_id=group.qualified_short_id,
         issue_url=absolute_uri(issue_url),
         issue_title=build_attachment_title(group) or "",
+        enhanced_privacy=organization.flags.enhanced_privacy.is_set,
         issue_culprit=group.culprit,
         issue_description=build_attachment_text(group),
         project_slug=project.slug,
