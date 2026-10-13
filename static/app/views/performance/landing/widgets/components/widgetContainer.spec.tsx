@@ -605,7 +605,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
+            'has:sentry.normalized_description has:span.group span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
