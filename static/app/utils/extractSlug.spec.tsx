@@ -1,4 +1,18 @@
+import {setWindowLocation} from 'sentry-test/utils';
+
 import {extractSlug} from 'sentry/utils/extractSlug';
+
+const mockDeployPreviewConfig = jest.fn();
+
+jest.mock('sentry/constants', () => {
+  const sentryConstants = jest.requireActual('sentry/constants');
+  return {
+    ...sentryConstants,
+    get DEPLOY_PREVIEW_CONFIG() {
+      return mockDeployPreviewConfig();
+    },
+  };
+});
 
 describe('extractSlug', () => {
   it.each([
@@ -67,5 +81,53 @@ describe('extractSlug', () => {
     },
   ])('should split "$slug" & "$domain" from $hostname', ({hostname, slug, domain}) => {
     expect(extractSlug(hostname)).toStrictEqual({slug, domain});
+  });
+});
+
+describe('getDevUiOrganizationSlug', () => {
+  let devUi: boolean | undefined;
+
+  // Test setup imports this module before the constants mock is installed.
+  async function getDevUiOrganizationSlug() {
+    jest.resetModules();
+    const module = await import('sentry/utils/extractSlug');
+    return module.getDevUiOrganizationSlug();
+  }
+
+  beforeEach(() => {
+    devUi = window.__SENTRY_DEV_UI;
+    window.__SENTRY_DEV_UI = true;
+    mockDeployPreviewConfig.mockReturnValue(undefined);
+  });
+
+  afterEach(() => {
+    window.__SENTRY_DEV_UI = devUi;
+  });
+
+  it('returns the organization from a dev-ui organization domain', async () => {
+    setWindowLocation('https://acme.dev.getsentry.net:7999/issues/');
+    expect(await getDevUiOrganizationSlug()).toBe('acme');
+  });
+
+  it('returns null without an organization subdomain', async () => {
+    setWindowLocation('https://dev.getsentry.net:7999/issues/');
+    expect(await getDevUiOrganizationSlug()).toBeNull();
+  });
+
+  it('returns null outside dev-ui', async () => {
+    window.__SENTRY_DEV_UI = undefined;
+    setWindowLocation('https://acme.dev.getsentry.net:7999/issues/');
+    expect(await getDevUiOrganizationSlug()).toBeNull();
+  });
+
+  it('ignores the deployment host on deploy previews', async () => {
+    mockDeployPreviewConfig.mockReturnValue({
+      branch: 'test',
+      commitSha: 'abc123',
+      githubOrg: 'getsentry',
+      githubRepo: 'sentry',
+    });
+    setWindowLocation('https://sentry-abc123.sentry.dev/issues/');
+    expect(await getDevUiOrganizationSlug()).toBeNull();
   });
 });
