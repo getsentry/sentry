@@ -61,7 +61,10 @@ const NativeHiddenCheckbox = styled('input')`
     color: ${p => p.theme.tokens.content.onVibrant.light};
   }
 
-  &:is(:disabled, [aria-disabled='true']):is(:checked, :indeterminate) + * {
+  &:disabled:checked + *,
+  &:disabled:indeterminate + *,
+  &[aria-disabled='true']:checked + *,
+  &[aria-disabled='true']:indeterminate + * {
     background-color: ${p =>
       p.theme.tokens.interactive.chonky.debossed.accent.background};
     border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
