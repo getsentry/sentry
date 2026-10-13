@@ -64,6 +64,7 @@ export type OverrideName = keyof Overrides;
 type RouteOverrides = {
   'routes:legacy-organization-redirects': RouteObjectOverride;
   'routes:org-settings': RouteObjectOverride;
+  'routes:project-settings': RouteObjectOverride;
   'routes:root': RouteObjectOverride;
   'routes:subscription-settings': RouteObjectOverride;
 };

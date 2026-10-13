@@ -1,9 +1,13 @@
 packages:
   - api-docs
+  - static/app
+  - static/gsApp
+  - static/gsAdmin
   - static/packages/icons
   - static/packages/scraps
   - static/oxlint/eslintPluginScraps
   - static/oxlint/eslintPluginSentry
+disallowWorkspaceCycles: true
 shamefullyHoist: true
 minimumReleaseAge: 720
 minimumReleaseAgeExclude:
@@ -12,6 +16,7 @@ minimumReleaseAgeExclude:
   - solid-js@1.9.16
 overrides:
   '@isaacs/brace-expansion': 5.0.1
+  '@testing-library/jest-dom>aria-query': 5.3.0
   diff@>=4.0.0 <4.0.4: 4.0.4
   diff@>=5.0.0 <5.2.2: 5.2.2
 packageExtensions:

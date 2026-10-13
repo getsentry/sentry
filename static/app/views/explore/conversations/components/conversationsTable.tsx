@@ -21,6 +21,7 @@ import {
   type GridColumnOrder,
   type GridColumnSort,
 } from 'sentry/components/tables/dataGrid';
+import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -322,6 +323,7 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
           isLoading={isFetching}
           error={error}
           data={data}
+          emptyMessage={<TableNoDataPanel />}
           columnOrder={displayedColumns}
           stickyHeader
           // DataGrid has a default bottom margin; drop it so
