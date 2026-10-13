@@ -399,6 +399,7 @@ const StickyWeightsTable = styled(SimpleTable)`
     z-index: 1;
     align-self: stretch;
     background: inherit;
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   tr > :first-child {
