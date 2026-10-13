@@ -5,8 +5,9 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {IssueDetailsContext} from 'sentry/views/issueDetails/context';
 import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
@@ -32,6 +33,7 @@ describe('MetricIssueChart', () => {
   };
 
   beforeEach(() => {
+    PageFiltersStore.init();
     MockApiClient.clearMockResponses();
     // Open periods are used to render incident markers; return empty for simplicity
     MockApiClient.addMockResponse({
@@ -119,6 +121,48 @@ describe('MetricIssueChart', () => {
         }),
       })
     );
+  });
+
+  it('reports how many open periods overlap the selected time range', async () => {
+    const detectorDetails = getDetectorDetails({event, organization, project});
+
+    const dispatch = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/${detector.id}/`,
+      body: detector,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: EventsStatsFixture(),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/open-periods/`,
+      body: [],
+      headers: {'X-Hits': '2'},
+      match: [MockApiClient.matchQuery({statsPeriod: '24h'})],
+    });
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '24h', utc: null},
+    });
+
+    render(
+      <IssueDetailsContext
+        value={{...baseIssueDetailsContext, detectorDetails, dispatch}}
+      >
+        <MetricIssueChart group={group} event={event} />
+      </IssueDetailsContext>,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith({type: 'UPDATE_EVENT_COUNT', count: 2});
+    });
   });
 
   it('shows detector load error message when detector request fails', async () => {

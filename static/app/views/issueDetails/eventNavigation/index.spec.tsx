@@ -188,6 +188,44 @@ describe('EventNavigation', () => {
       );
     }
 
+    it('shows the open period count reported by the chart on the first tab', () => {
+      const issueDetailsContext = jest.mocked(useIssueDetails)();
+
+      jest
+        .mocked(useIssueDetails)
+        .mockReturnValue({...issueDetailsContext, eventCount: 3});
+
+      renderMetricNav(
+        OrganizationFixture({
+          features: ['discover-basic', 'autofix-page'],
+          hideAiFeatures: false,
+        })
+      );
+
+      const openPeriodsTab = screen.getByRole('tab', {name: /Open Periods/});
+
+      expect(within(openPeriodsTab).getByText('3')).toBeInTheDocument();
+    });
+
+    it('labels the first tab Details without a count when each firing opens its own metric issue', () => {
+      renderMetricNav(
+        OrganizationFixture({
+          features: [
+            'discover-basic',
+            'autofix-page',
+            'workflow-engine-rotate-activation-id',
+          ],
+          hideAiFeatures: false,
+        })
+      );
+
+      const detailsTab = screen.getByRole('tab', {name: /Details/});
+
+      expect(within(detailsTab).queryByText(/^\d+$/)).not.toBeInTheDocument();
+
+      expect(screen.queryByRole('tab', {name: /Open Periods/})).not.toBeInTheDocument();
+    });
+
     it('links to the open periods list for metric issues', () => {
       renderMetricNav(organization);
 

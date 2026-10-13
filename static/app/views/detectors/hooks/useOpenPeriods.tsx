@@ -57,6 +57,17 @@ export function useOpenPeriods(
   });
 }
 
+export function useOpenPeriodCount(
+  params: {groupId: string} & Pick<CommonParams, 'start' | 'end' | 'statsPeriod'>
+) {
+  const organization = useOrganization();
+
+  return useQuery({
+    ...openPeriodsApiOptions({organization, limit: 1, ...params}),
+    select: ({headers}) => headers['X-Hits'] ?? 0,
+  });
+}
+
 export function useEventOpenPeriod(params: {
   eventId: string | undefined;
   groupId: string;
