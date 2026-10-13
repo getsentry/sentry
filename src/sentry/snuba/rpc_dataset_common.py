@@ -6,7 +6,9 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from django.utils import timezone
 from google.protobuf.json_format import MessageToJson
+from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
@@ -118,6 +120,17 @@ class TableRequest:
     rpc_request: TraceItemTableRequest
     columns: list[ResolvedColumn]
     sort_column_aliases: set[str] = field(default_factory=set)
+
+
+def cap_end_timestamp_at_now(meta: RequestMeta) -> None:
+    now = Timestamp()
+    now.FromDatetime(timezone.now())
+    if (
+        meta.start_timestamp.ToNanoseconds()
+        < now.ToNanoseconds()
+        < meta.end_timestamp.ToNanoseconds()
+    ):
+        meta.end_timestamp.CopyFrom(now)
 
 
 def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]) -> bool:
@@ -276,6 +289,7 @@ class RPCBase:
             sampling_mode=query.sampling_mode,
             filter_project=cls.filter_project,
         )
+        cap_end_timestamp_at_now(meta)
         where, having, query_contexts = resolver.resolve_query_with_columns(
             query.query_string,
             query.selected_columns,
@@ -681,7 +695,10 @@ class RPCBase:
         ):
             # Doing this via timestamps as its the most direct and matches how its stored under the hood
             start = int(params.start.replace(tzinfo=None).timestamp())
-            end = int(params.end.replace(tzinfo=None).timestamp())
+            end = min(
+                int(params.end.replace(tzinfo=None).timestamp()),
+                int(timezone.now().replace(tzinfo=None).timestamp()),
+            )
             timeseries_definition, _ = resolver.resolve_attribute("timestamp")
             # Need timestamp as a double even though that's not how resolver does it so we can pass the timestamp in directly
             timeseries_column = AttributeKey(name=timeseries_definition.internal_name, type=DOUBLE)

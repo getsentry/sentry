@@ -23,7 +23,7 @@ from sentry.snuba.rpc_dataset_common import LimitBy, RPCBase, TableQuery, TableR
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -568,3 +568,61 @@ def test_force_sampling_mode_in_timeseries(dataset, query, mode):
     )
 
     assert rpc_request.meta.downsampled_storage_config.mode == mode
+
+
+@django_db_all
+@freeze_time()
+def test_table_caps_end_at_now_when_end_is_in_the_future() -> None:
+    organization = Factories.create_organization(owner=Factories.create_user())
+    now = datetime.now(timezone.utc)
+    snuba_params = SnubaParams(
+        start=now - timedelta(minutes=10),
+        end=now + timedelta(minutes=10),
+        organization=organization,
+    )
+    resolver = OurLogs.get_resolver(snuba_params, SearchResolverConfig())
+    table_query = TableQuery("", ["message"], None, 0, 1, "TestReferrer", None, resolver)
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query)
+
+    assert rpc_request.rpc_request.meta.end_timestamp.ToDatetime(tzinfo=timezone.utc) == now
+
+
+@django_db_all
+@freeze_time()
+def test_table_keeps_end_when_end_is_in_the_past() -> None:
+    organization = Factories.create_organization(owner=Factories.create_user())
+    end = datetime.now(timezone.utc) - timedelta(minutes=5)
+    snuba_params = SnubaParams(
+        start=end - timedelta(minutes=10),
+        end=end,
+        organization=organization,
+    )
+    resolver = OurLogs.get_resolver(snuba_params, SearchResolverConfig())
+    table_query = TableQuery("", ["message"], None, 0, 1, "TestReferrer", None, resolver)
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query)
+
+    assert rpc_request.rpc_request.meta.end_timestamp.ToDatetime(tzinfo=timezone.utc) == end
+
+
+@django_db_all
+@freeze_time(before_now(days=1).replace(minute=5, second=0, microsecond=0))
+def test_timeseries_caps_filter_end_at_now_when_end_is_in_the_future() -> None:
+    organization = Factories.create_organization(owner=Factories.create_user())
+    now = datetime.now(timezone.utc)
+    snuba_params = SnubaParams(
+        start=now - timedelta(minutes=5),
+        end=now + timedelta(minutes=5),
+        granularity_secs=3600,
+        organization=organization,
+    )
+    resolver = OurLogs.get_resolver(snuba_params, SearchResolverConfig())
+
+    timeseries_filter, params = RPCBase.update_timestamps(snuba_params, resolver)
+
+    assert timeseries_filter is not None
+    assert timeseries_filter.and_filter.filters[1].comparison_filter.value.val_int == int(
+        now.timestamp()
+    )
+    assert params.end == now.replace(minute=0, tzinfo=None) + timedelta(hours=1)
