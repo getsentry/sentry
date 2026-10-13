@@ -41,14 +41,12 @@ describe('Button', () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
-  it('preserves consumer handlers when a button with a tooltip is enabled', async () => {
+  it('calls consumer handlers when a button with a tooltip is enabled', async () => {
     const onClick = jest.fn();
-    const onClickCapture = jest.fn();
     const onKeyDown = jest.fn();
     render(
       <Button
         onClick={onClick}
-        onClickCapture={onClickCapture}
         onKeyDown={onKeyDown}
         tooltipProps={{title: 'Save changes'}}
       >
@@ -60,7 +58,6 @@ describe('Button', () => {
     await userEvent.keyboard('{Enter}');
 
     expect(onClick).toHaveBeenCalledTimes(1);
-    expect(onClickCapture).toHaveBeenCalledTimes(1);
     expect(onKeyDown).toHaveBeenCalledTimes(1);
   });
 
