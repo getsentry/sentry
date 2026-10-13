@@ -12,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 import type {ChatSuggestionsState} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
 import type {ChatSuggestion, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
-const PLACEHOLDER_COUNT = 3;
+const SUGGESTION_PLACEHOLDER_COUNT = 3;
 
 interface EmptyStateProps {
   displaySlackAgentReminder?: boolean;
@@ -81,7 +81,7 @@ export function EmptyState({
               aria-hidden={suggestions.isLoading || undefined}
             >
               {suggestions.isLoading
-                ? Array.from({length: PLACEHOLDER_COUNT}, (_, index) => (
+                ? Array.from({length: SUGGESTION_PLACEHOLDER_COUNT}, (_, index) => (
                     <Placeholder
                       key={index}
                       width="240px"
