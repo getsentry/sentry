@@ -32,6 +32,7 @@ import {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/dataGrid';
+import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -330,6 +331,7 @@ export function TracesTable({
       isLoading={tracesRequest.isPending}
       error={tracesRequest.error}
       data={tableData}
+      emptyMessage={<TableNoDataPanel />}
       stickyHeader
       columnOrder={columnOrder}
       grid={{
