@@ -394,11 +394,11 @@ const AdoptionHeaderCell = styled(Table.HeadCell)`
 
 function getProjectColumns(showReleaseAdoptionStages: boolean): TableColumnConfig[] {
   return [
-    {key: 'project', width: `minmax(${COL_WIDTH_MINIMUM}px, 1.1fr)`},
+    {key: 'project', width: `minmax(${COL_WIDTH_MINIMUM}px, 1.2fr)`},
     ...(showReleaseAdoptionStages
       ? [{key: 'adoptionStage', visible: {'5xl': true}, width: atLeastContent('0.7fr')}]
       : []),
-    {key: 'adoption', visible: {xl: true}, width: '1.1fr'},
+    {key: 'adoption', visible: {xl: true}, width: '1.2fr'},
     {
       key: 'crashFreeRate',
       width: {zero: atLeastContent('1.4fr'), xl: atLeastContent('1fr')},
