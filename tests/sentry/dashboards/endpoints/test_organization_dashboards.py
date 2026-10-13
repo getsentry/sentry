@@ -11,18 +11,26 @@ from sentry.dashboards.endpoints.organization_dashboards import (
     PREBUILT_DASHBOARDS,
     PrebuiltDashboardId,
 )
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardRevision,
+)
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -3006,3 +3014,98 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "Could not validate query: no project available."
         ]
         assert not Dashboard.objects.filter(organization=empty_org, title="No Projects").exists()
+
+
+@with_feature("organizations:granular-permission-scopes")
+class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        self.url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def _details_url(self, dashboard_id: int) -> str:
+        return reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    def test_create_scope_can_create(self) -> None:
+        self._use_token(["dashboard:read", "dashboard:create"])
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+        assert Dashboard.objects.filter(organization=self.organization, title="Created").exists()
+
+    def test_create_scope_cannot_update_own_dashboard(self) -> None:
+        self._use_token(["dashboard:read", "dashboard:create"])
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+
+        response = self.client.put(
+            self._details_url(response.data["id"]),
+            data={"title": "Renamed"},
+            format="json",
+        )
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(organization=self.organization, title="Created").exists()
+
+    def test_create_scope_cannot_delete(self) -> None:
+        self._use_token(["dashboard:read", "dashboard:create"])
+        response = self.client.delete(self._details_url(self.dashboard.id))
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    def test_create_scope_cannot_restore_revision(self) -> None:
+        revision = DashboardRevision.objects.create(
+            dashboard=self.dashboard,
+            created_by_id=self.user.id,
+            title="Old Title",
+            source="edit",
+            snapshot={"title": "Old Title", "widgets": []},
+            snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+        )
+        url = reverse(
+            "sentry-api-0-organization-dashboard-revision-restore",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+                "revision_id": revision.id,
+            },
+        )
+        self._use_token(["dashboard:read", "dashboard:create"])
+        response = self.client.post(url)
+        assert response.status_code == 403
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Dashboard 1"
+
+    def test_read_scope_cannot_create(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 403
+
+    def test_write_scope_can_create_and_update(self) -> None:
+        # Tokens issued before `dashboard:create` existed only store `dashboard:write`.
+        self._use_token(["dashboard:read", "dashboard:write"])
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+
+        response = self.client.put(
+            self._details_url(response.data["id"]),
+            data={"title": "Renamed"},
+            format="json",
+        )
+        assert response.status_code == 200, response.content

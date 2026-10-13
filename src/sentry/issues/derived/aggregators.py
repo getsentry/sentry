@@ -30,6 +30,7 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIRST_ASSIGNMENT_ACTION_ID,
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
     IS_ASSIGNED,
@@ -145,6 +146,14 @@ def track_assignment(state: StateView, entry: GroupActionLogEntry) -> Aggregator
     is_assigned = isinstance(entry.action, AssignAction)
     if is_assigned != state[IS_ASSIGNED]:
         return emit(IS_ASSIGNED.value(is_assigned))
+    return None
+
+
+@aggregator((FIRST_ASSIGNMENT_ACTION_ID,), scope=(AssignAction,))
+def track_first_assignment(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    """Record the first assignment in the issue's complete action-log history."""
+    if state[FIRST_ASSIGNMENT_ACTION_ID] is None:
+        return emit(FIRST_ASSIGNMENT_ACTION_ID.value(entry.id))
     return None
 
 
@@ -316,6 +325,7 @@ AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
     track_views,
     track_status,
     track_assignment,
+    track_first_assignment,
     track_root_cause,
     track_open_fix_prs,
     track_progress,

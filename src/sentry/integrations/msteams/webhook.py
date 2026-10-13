@@ -50,7 +50,7 @@ from sentry.issues.action_log import ActionSource, GroupActionActor, action_cont
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
-from sentry.models.rule import Rule
+from sentry.notifications.utils.rules import get_notification_origins
 from sentry.services import eventstore
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
@@ -62,6 +62,7 @@ from .card_builder.block import AdaptiveCard
 from .card_builder.help import (
     build_help_command_card,
     build_mentioned_card,
+    build_missing_installation_card,
     build_unrecognized_command_card,
 )
 from .card_builder.identity import (
@@ -347,7 +348,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         event = channel_data.get("eventType")
 
         if event == "teamMemberAdded":
-            return self._handle_team_member_added(request)
+            # Teams also sends installationUpdate/add for a team install. Handle the setup card
+            # there so one installation does not produce duplicate messages.
+            return self.respond(status=204)
         elif event == "teamMemberRemoved":
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 return self.respond(status=400)
@@ -366,6 +369,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         return verify_signature(request)
 
     def _handle_personal_member_add(self, request: Request):
+        if not options.get("msteams.personal-installation-link.enabled"):
+            return self.respond(status=204)
+
         data = request.data
         data["conversation_id"] = data["conversation"]["id"]
         tenant_id = data["conversation"]["tenantId"]
@@ -376,19 +382,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "installation_type": "tenant",
         }
         return self._handle_member_add(data, params, build_personal_installation_message)
-
-    def _handle_team_member_added(self, request: Request) -> Response:
-        data = request.data
-        team = data["channelData"]["team"]
-        data["conversation_id"] = data["conversation"]["id"]
-
-        params = {
-            "external_id": team["id"],
-            "external_name": team["name"],
-            "installation_type": "team",
-        }
-
-        return self._handle_member_add(data, params, build_team_installation_message)
 
     def _handle_member_add(
         self,
@@ -660,13 +653,19 @@ class MsTeamsWebhookEndpoint(Endpoint):
             # get the rules from the payload
             rule_ids = payload.get("rules", [])
             workflow_ids = payload.get("workflows", [])
-            rules = tuple(Rule.objects.filter(id__in=rule_ids, project_id=group.project_id))
+            origins = tuple(
+                get_notification_origins(
+                    group.project,
+                    workflow_ids=workflow_ids,
+                    legacy_rule_ids=rule_ids,
+                )
+            )
             metrics.incr(
                 "integrations.msteams.action.rule_lookup",
                 tags={
                     "has_rule": bool(rule_ids),
                     "has_workflow_ids": bool(workflow_ids),
-                    "lookup_succeeded": bool(rule_ids) and len(rules) == len(set(rule_ids)),
+                    "lookup_succeeded": bool(origins),
                 },
                 sample_rate=1.0,
             )
@@ -694,7 +693,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             card = MSTeamsIssueMessageBuilder(
                 group,
                 event,
-                rules,
+                origins,
                 integration,
                 workflow_ids=workflow_ids,
             ).build_group_card()
@@ -721,8 +720,12 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 > 0
             )
             if mentioned:
+                integration = parsing.get_integration_from_channel_data(data)
                 client = get_preinstall_client(data["serviceUrl"])
-                card = build_mentioned_card()
+                if integration is None:
+                    card = build_missing_installation_card()
+                else:
+                    card = build_mentioned_card(team_name=integration.name)
                 conversation_id = data["conversation"]["id"]
                 client.send_card(conversation_id, card)
 

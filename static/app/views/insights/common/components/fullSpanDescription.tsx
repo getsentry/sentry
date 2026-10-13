@@ -1,11 +1,11 @@
 import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
@@ -21,22 +21,15 @@ const formatter = new SQLishFormatter();
 
 interface Props {
   moduleName: ModuleName;
-  filters?: Record<string, string>;
   group?: string | null;
   shortDescription?: string;
 }
 
-export function FullSpanDescription({
-  group,
-  shortDescription,
-  filters = {},
-  moduleName,
-}: Props) {
+export function FullSpanDescription({group, shortDescription, moduleName}: Props) {
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject({
         'span.group': group ?? undefined,
-        ...filters,
       }),
       limit: 1,
       fields: [

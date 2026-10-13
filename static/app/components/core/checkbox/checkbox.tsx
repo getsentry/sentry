@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Tooltip, useDisabledTooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -23,6 +24,10 @@ const NativeHiddenCheckbox = styled('input')`
   margin: 0;
   padding: 0;
   cursor: ${p => (p.disabled || p.readOnly ? 'initial' : 'pointer')};
+
+  &[aria-disabled='true'] {
+    cursor: initial;
+  }
 
   & + * {
     background-color: ${p =>
@@ -53,7 +58,9 @@ const NativeHiddenCheckbox = styled('input')`
   }
 
   &:disabled:checked + *,
-  &:disabled:indeterminate + * {
+  &:disabled:indeterminate + *,
+  &[aria-disabled='true']:checked + *,
+  &[aria-disabled='true']:indeterminate + * {
     background-color: ${p =>
       p.theme.tokens.interactive.chonky.debossed.accent.background};
     border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
@@ -83,15 +90,31 @@ export interface CheckboxProps extends Omit<
    * The size of the checkbox. Defaults to 'sm'.
    */
   size?: FormSize;
+  /** Tooltip shown on hover or focus. Requires a title when provided. */
+  tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper'>;
+}
+
+function preventInteraction(event: React.SyntheticEvent): void {
+  event.preventDefault();
+  event.stopPropagation();
 }
 
 export function Checkbox({
   checked = false,
+  disabled,
   size = 'sm',
   className,
   ref,
+  tooltipProps,
   ...props
 }: CheckboxProps) {
+  const {isFocusableDisabled, disabledProps} = useDisabledTooltip({
+    disabled,
+    tooltipProps,
+    onKeyDown: props.onKeyDown,
+    'aria-disabled': props['aria-disabled'],
+  });
+
   const nativeCheckBoxRef = useCallback(
     (node: HTMLInputElement | null) => {
       if (node) {
@@ -109,16 +132,28 @@ export function Checkbox({
   return (
     <CheckboxWrapper
       size={size}
-      disabled={props.disabled}
+      disabled={disabled}
       readOnly={props.readOnly}
       {...wrapperProps}
     >
-      <NativeHiddenCheckbox
-        ref={mergeRefs(nativeCheckBoxRef, ref)}
-        checked={checked !== 'indeterminate' && checked}
-        type="checkbox"
-        {...props}
-      />
+      <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
+        <NativeHiddenCheckbox
+          ref={mergeRefs(nativeCheckBoxRef, ref)}
+          checked={checked !== 'indeterminate' && checked}
+          type="checkbox"
+          {...props}
+          {...disabledProps}
+          // aria-disabled keeps the checkbox focusable for its tooltip, but the browser
+          // still toggles it and includes it in form data and required validation.
+          // Block those to match native disabled behavior.
+          {...(isFocusableDisabled && {
+            onClickCapture: preventInteraction,
+            onChange: preventInteraction,
+            name: undefined,
+            required: undefined,
+          })}
+        />
+      </Tooltip>
 
       <FakeCheckbox aria-hidden size={size}>
         {(checked === true || checked === 'indeterminate') && (
@@ -131,7 +166,7 @@ export function Checkbox({
           </CheckboxIcon>
         )}
       </FakeCheckbox>
-      {!(props.disabled || props.readOnly) && (
+      {!(disabled || props.readOnly) && (
         <InteractionStateLayer
           higherOpacity={checked === true || checked === 'indeterminate'}
         />

@@ -240,6 +240,32 @@ class StatusActionTest(APITestCase):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.metrics.incr")
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rule_lookup_metric_with_workflow(
+        self, verify: MagicMock, metrics_incr: MagicMock
+    ) -> None:
+        rule = self.create_project_rule(project=self.project1)
+        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+
+        response = self.post_webhook(
+            action_type=ACTION_TYPE.ARCHIVE,
+            archive_input="-1",
+            workflow_ids=[workflow_id],
+        )
+
+        assert response.status_code == 200
+        metrics_incr.assert_any_call(
+            "integrations.msteams.action.rule_lookup",
+            tags={
+                "has_rule": False,
+                "has_workflow_ids": True,
+                "lookup_succeeded": True,
+            },
+            sample_rate=1.0,
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.metrics.incr")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_rule_lookup_metric_when_rule_is_missing(
         self, verify: MagicMock, metrics_incr: MagicMock
     ) -> None:

@@ -13,6 +13,7 @@ import {
 } from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import type {AvatarProject} from 'sentry/types/project';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 interface EditLayoutProps {
   /**
@@ -83,7 +84,7 @@ function HeaderContent({children}: RequiredChildren) {
 function Title({title, project}: {title: string; project?: AvatarProject}) {
   return (
     <Stack gap="md">
-      <Layout.Title>{title}</Layout.Title>
+      <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: title}} />
       {project && <ProjectBadge project={project} disableLink avatarSize={16} />}
     </Stack>
   );

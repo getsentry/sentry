@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +11,6 @@ import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -22,6 +22,10 @@ import {
   EvaluationInputTab,
   EvaluationOutputTab,
 } from 'sentry/views/explore/conversations/components/evaluationSpanTabs';
+import {
+  MemoryInputTab,
+  MemoryOutputTab,
+} from 'sentry/views/explore/conversations/components/memorySpanTabs';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
@@ -32,6 +36,7 @@ import {
   getNodeEvaluation,
   type Evaluation,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {getNodeMemory} from 'sentry/views/insights/pages/agents/utils/memory';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
 import {
@@ -124,7 +129,7 @@ export function ConversationSpanDetail({
     projectId: eapValue ? eapValue.project_id.toString() : '',
     traceId,
     traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details',
+    referrer: 'api.explore.span-item-details',
     timestamp: eapValue?.start_timestamp,
     enabled: Boolean(eapValue),
   });
@@ -137,11 +142,18 @@ export function ConversationSpanDetail({
   );
   useInvalidEvaluationDetection(evaluation);
 
+  const memory = useMemo(
+    () => (node && !isAttributesLoading ? getNodeMemory(node, attributes) : null),
+    [node, attributes, isAttributesLoading]
+  );
+
   if (isLoading || !node) {
     return <SpanDetailSkeleton embedded={embedded} />;
   }
 
-  const title = node.op || node.description || t('Span');
+  // Memory spans share a generic span op in the trace waterfall, so name the
+  // heading after the operation to distinguish search, create, update, etc.
+  const title = memory?.operation || node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
   const comparison = getDurationComparison(
     avgDuration,
@@ -232,7 +244,9 @@ export function ConversationSpanDetail({
               `}
             >
               <TabPanels.Item key="input">
-                {evaluation?.rawInput ? (
+                {memory ? (
+                  <MemoryInputTab memory={memory} />
+                ) : evaluation?.rawInput ? (
                   <EvaluationInputTab
                     input={evaluation.input}
                     raw={evaluation.rawInput}
@@ -242,7 +256,9 @@ export function ConversationSpanDetail({
                 )}
               </TabPanels.Item>
               <TabPanels.Item key="output">
-                {evaluation?.rawOutput ? (
+                {memory ? (
+                  <MemoryOutputTab memory={memory} />
+                ) : evaluation?.rawOutput ? (
                   <EvaluationOutputTab
                     answers={evaluation.answers}
                     questions={evaluation.input?.questions}

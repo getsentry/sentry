@@ -208,6 +208,9 @@ export function SavedQueriesTable({
         {filteredData.map((query, index) => {
           const isExplore = isExploreSavedQuery(query);
           const isPrebuilt = isExplore && Boolean(query.isPrebuilt);
+          const allowRegexOperators =
+            isExplore &&
+            getSavedQueryTraceItemDataset(query.dataset) === TraceItemDataset.LOGS;
 
           return (
             <SavedEntityTable.Row
@@ -245,6 +248,7 @@ export function SavedQueriesTable({
               <SavedEntityTable.Cell>
                 {isExplore ? (
                   <StyledExploreParams
+                    allowRegexOperators={allowRegexOperators}
                     query={query.query[0].query}
                     visualizes={query.query[0].visualize}
                     groupBys={query.query[0].groupby}

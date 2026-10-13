@@ -1,5 +1,10 @@
-import {useMemo, useRef} from 'react';
-import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
+import {useCallback, useMemo} from 'react';
+import {
+  keepPreviousData,
+  queryOptions,
+  useQueries,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 import trimStart from 'lodash/trimStart';
 
 import type {Series} from 'sentry/types/echarts';
@@ -17,7 +22,6 @@ import type {
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   getEquationAliasIndex,
@@ -26,6 +30,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {encodeSort} from 'sentry/utils/queryString';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
@@ -44,6 +49,10 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
@@ -91,13 +100,7 @@ function isOrderbyValidForAggregates(
   return false;
 }
 
-function getSkippedConditionalFilterQueryIndexes(
-  queries: Widget['queries'],
-  enabled: boolean
-): number[] {
-  if (!enabled) {
-    return [];
-  }
+function getSkippedConditionalFilterQueryIndexes(queries: Widget['queries']): number[] {
   return queries.flatMap((query, index) =>
     hasNoValidAggregatesForRequest(query.aggregates ?? []) ? [index] : []
   );
@@ -193,14 +196,6 @@ export function useSpansSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  // Cache the previous rawData array to prevent unnecessary rerenders
-  const prevRawDataRef = useRef<SpansSeriesResponse[] | undefined>(undefined);
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
-  const hasMeasuredIngestionDelayUi = organization.features.includes(
-    'measured-ingestion-delay-ui'
-  );
   const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   // Apply dashboard filters
@@ -211,12 +206,8 @@ export function useSpansSeriesQuery(
   );
 
   const skippedConditionalFilterQueryIndexes = useMemo(
-    () =>
-      getSkippedConditionalFilterQueryIndexes(
-        filteredWidget.queries,
-        hasConditionalAggregates
-      ),
-    [filteredWidget.queries, hasConditionalAggregates]
+    () => getSkippedConditionalFilterQueryIndexes(filteredWidget.queries),
+    [filteredWidget.queries]
   );
 
   const allQueriesSkippedForConditionalFilter =
@@ -225,11 +216,8 @@ export function useSpansSeriesQuery(
 
   const seriesRequests = filteredWidget.queries.map((_, queryIndex) => {
     const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
-    const skippedForInvalidConditionalFilter =
-      hasConditionalAggregates && hasNoValidAggregatesForRequest(aggregates);
-    const widgetForRequest = hasConditionalAggregates
-      ? withValidConditionalAggregates(filteredWidget, queryIndex)
-      : filteredWidget;
+    const skippedForInvalidConditionalFilter = hasNoValidAggregatesForRequest(aggregates);
+    const widgetForRequest = withValidConditionalAggregates(filteredWidget, queryIndex);
 
     const requestData = getSeriesRequestData(
       widgetForRequest,
@@ -253,7 +241,23 @@ export function useSpansSeriesQuery(
     };
   });
 
-  const queryResults = useQueries({
+  // Leave out skipped invalid-_if queries so raw data stays dense. React Query
+  // structurally shares `combine` output, so `data` keeps its reference while the
+  // responses are unchanged, even when this callback is recreated.
+  const combine = useCallback(
+    (results: Array<UseQueryResult<SpansSeriesResponse>>) => {
+      const combined = combineWidgetQueryResults(results);
+      return {
+        ...combined,
+        data: combined.data.filter(
+          (_, index) => !skippedConditionalFilterQueryIndexes.includes(index)
+        ),
+      };
+    },
+    [skippedConditionalFilterQueryIndexes]
+  );
+
+  const {results: queryResults, data: rawData} = useQueries({
     queries: seriesRequests.map(({requestData, skippedForInvalidConditionalFilter}) => {
       if (!isEventsTimeseriesEnabled) {
         // Transform requestData into proper query params
@@ -270,6 +274,7 @@ export function useSpansSeriesQuery(
           ...restParams,
           ...(period ? {statsPeriod: period} : {}),
           excludeOther: restParams.excludeOther ? '1' : undefined,
+          partial: restParams.partial ? '1' : undefined,
         };
 
         if (queryParams.start) {
@@ -313,11 +318,10 @@ export function useSpansSeriesQuery(
         pageFilters,
         queue,
         enabled: enabled && !skippedForInvalidConditionalFilter,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData, {
-          includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
-        }),
+        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
       });
     }),
+    combine,
   });
 
   useEventsTimeseriesSpotCheck({
@@ -372,7 +376,6 @@ export function useSpansSeriesQuery(
     const timeseriesResults: Series[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
-    const rawData: SpansSeriesResponse[] = [];
 
     // Iterate active queries only and append densely so skipped invalid-_if
     // queries do not leave undefined holes in series/raw arrays (charts map
@@ -385,12 +388,9 @@ export function useSpansSeriesQuery(
 
       const responseData = q.data;
 
-      rawData.push(responseData);
-
-      const queryForTransform = (
-        hasConditionalAggregates
-          ? withValidConditionalAggregates(filteredWidget, requestIndex)
-          : filteredWidget
+      const queryForTransform = withValidConditionalAggregates(
+        filteredWidget,
+        requestIndex
       ).queries[requestIndex]!;
 
       const transformedResult = SpansConfig.transformSeries!(
@@ -425,32 +425,13 @@ export function useSpansSeriesQuery(
       }
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
@@ -479,10 +460,6 @@ export function useSpansTableQuery(
 
   const {queue} = useWidgetQueryQueue();
 
-  const prevRawDataRef = useRef<SpansTableResponse[] | undefined>(undefined);
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
   const filteredWidget = useMemo(
     () =>
       applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
@@ -490,28 +467,38 @@ export function useSpansTableQuery(
   );
 
   const skippedConditionalFilterQueryIndexes = useMemo(
-    () =>
-      getSkippedConditionalFilterQueryIndexes(
-        filteredWidget.queries,
-        hasConditionalAggregates
-      ),
-    [filteredWidget.queries, hasConditionalAggregates]
+    () => getSkippedConditionalFilterQueryIndexes(filteredWidget.queries),
+    [filteredWidget.queries]
   );
 
   const allQueriesSkippedForConditionalFilter =
     filteredWidget.queries.length > 0 &&
     skippedConditionalFilterQueryIndexes.length === filteredWidget.queries.length;
 
+  // Leave out skipped invalid-_if queries so raw data stays dense. React Query
+  // structurally shares `combine` output, so `data` keeps its reference while the
+  // responses are unchanged, even when this callback is recreated.
+  const combine = useCallback(
+    (results: Array<UseQueryResult<ApiResponse<SpansTableResponse>>>) => {
+      const combined = combineWidgetJsonQueryResults(results);
+      return {
+        ...combined,
+        data: combined.data.filter(
+          (_, index) => !skippedConditionalFilterQueryIndexes.includes(index)
+        ),
+      };
+    },
+    [skippedConditionalFilterQueryIndexes]
+  );
+
   // Use native useQueries with queue-integrated queryFn
   // React Query auto-refetches when keys change, but API calls go through the queue
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
       const skippedForInvalidConditionalFilter =
-        hasConditionalAggregates && hasNoValidAggregatesForRequest(aggregates);
-      const widgetForRequest = hasConditionalAggregates
-        ? withValidConditionalAggregates(filteredWidget, queryIndex)
-        : filteredWidget;
+        hasNoValidAggregatesForRequest(aggregates);
+      const widgetForRequest = withValidConditionalAggregates(filteredWidget, queryIndex);
       const query = widgetForRequest.queries[queryIndex]!;
 
       const eventView = eventViewFromWidget('', query, pageFilters);
@@ -547,7 +534,10 @@ export function useSpansTableQuery(
 
       if (hasStarredField && !alreadySortedByStarred) {
         requestParams.sort = [
-          encodeSort({field: SpanFields.IS_STARRED_TRANSACTION, kind: 'desc'}),
+          encodeSort({
+            field: SpanFields.IS_STARRED_TRANSACTION,
+            kind: 'desc',
+          }),
           ...existingSort,
         ];
       }
@@ -596,6 +586,7 @@ export function useSpansTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
+    combine,
   });
 
   const transformedData = (() => {
@@ -632,7 +623,6 @@ export function useSpansTableQuery(
     }
 
     const tableResults: TableDataWithTitle[] = [];
-    const rawData: SpansTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
     activeQueryIndexes.forEach(i => {
@@ -642,13 +632,9 @@ export function useSpansTableQuery(
       }
 
       const responseData = q.data.json;
-      rawData.push(responseData);
-
-      const queryForTransform = (
-        hasConditionalAggregates
-          ? withValidConditionalAggregates(filteredWidget, i)
-          : filteredWidget
-      ).queries[i]!;
+      const queryForTransform = withValidConditionalAggregates(filteredWidget, i).queries[
+        i
+      ]!;
 
       const transformedDataItem: TableDataWithTitle = {
         ...SpansConfig.transformTable(
@@ -680,32 +666,12 @@ export function useSpansTableQuery(
       responsePageLinks = q.data.headers.Link;
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    // Compare each data object reference - if they're all the same, reuse previous array
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 

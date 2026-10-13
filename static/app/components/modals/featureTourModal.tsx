@@ -1,12 +1,12 @@
 import {Component, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export type TourStep = {

@@ -337,10 +337,11 @@ class Browser:
         if domain:
             cookie["domain"] = domain
 
-        # XXX(dcramer): the cookie store must be initialized via a URL
+        # Initialize the cookie origin without loading the login app, whose
+        # async auth requests can overwrite the session installed by login_as.
         if not self._has_initialized_cookie_store:
             logger.info("selenium.initialize-cookies")
-            self.get("/")
+            self.get("/robots.txt")
 
         # TODO(dcramer): this should be escaped, but idgaf
         logger.info("selenium.set-cookie.%s", name, extra={"value": value})

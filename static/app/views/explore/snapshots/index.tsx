@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -10,7 +11,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -106,15 +106,20 @@ function SnapshotsListPage() {
 function SnapshotsHeader() {
   return (
     <Fragment>
-      <TopBar.Slot name="title">
-        {t('Snapshots')}
-        <PageHeadingQuestionTooltip
-          docsUrl="https://docs.sentry.io/product/snapshots/"
-          title={t(
-            'Visual snapshots of your app uploaded from CI, compared against a base build so you can review UI changes before they ship.'
-          )}
-        />
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: t('Snapshots'),
+          labelTooltip: (
+            <DocumentationHint docsUrl="https://docs.sentry.io/product/snapshots/">
+              {t(
+                'Visual snapshots of your app uploaded from CI, compared against a base build so you can review UI changes before they ship.'
+              )}
+            </DocumentationHint>
+          ),
+        }}
+      />
       <TopBar.Slot name="feedback">
         <FeedbackButton
           feedbackOptions={snapshotsFeedbackOptions}

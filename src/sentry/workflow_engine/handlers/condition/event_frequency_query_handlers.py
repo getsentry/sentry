@@ -16,19 +16,20 @@ from sentry.issues.constants import (
     get_issue_tsdb_user_group_model,
 )
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
-from sentry.rules.conditions.event_attribute import ATTR_CHOICES
-from sentry.rules.conditions.event_frequency import (
-    MIN_SESSIONS_TO_FIRE,
-    PERCENT_INTERVALS,
-    SNUBA_LIMIT,
-    STANDARD_INTERVALS,
-)
-from sentry.rules.match import MatchType
 from sentry.tagstore.base import TAG_KEY_RE
 from sentry.tsdb.base import SnubaCondition, TSDBKey, TSDBModel
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
+from sentry.workflow_engine.handlers.condition.utils.event_attribute import ATTR_CHOICES
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import (
+    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_ID,
+    MIN_SESSIONS_TO_FIRE,
+    PERCENT_INTERVALS,
+    SNUBA_LIMIT,
+    STANDARD_INTERVALS,
+)
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
 
 logger = logging.getLogger(__name__)
@@ -421,11 +422,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 
     @classmethod
     def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
-        from sentry.rules.conditions.event_frequency import (
-            EventUniqueUserFrequencyConditionWithConditions,
-        )
-
-        if condition_data.get("id") == EventUniqueUserFrequencyConditionWithConditions.id:
+        if condition_data.get("id") == EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_ID:
             return cls.label_template_with_conditions.format(**condition_data)
         return cls.label_template.format(**condition_data)
 

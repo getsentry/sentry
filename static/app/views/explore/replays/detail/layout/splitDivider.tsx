@@ -1,7 +1,6 @@
 import type {DOMAttributes, MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
-
-import {IconGrabbable} from 'sentry/icons';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 
 type Props = {
   'data-is-held': boolean;

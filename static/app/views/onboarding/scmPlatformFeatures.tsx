@@ -118,10 +118,7 @@ export function ScmPlatformFeatures({
   }
 
   return (
-    // The onboarding flow has no page-level query container (project creation
-    // resolves against `#main`), and the flow's fixed footers preclude one
-    // higher up, so each SCM step declares its own.
-    <Stack containerType="inline-size">
+    <Stack>
       <ScmStepLayout>
         <MotionStack gap="lg" paddingBottom="2xl" {...ONBOARDING_STAGGER}>
           <MotionContainer {...ONBOARDING_ENTER}>

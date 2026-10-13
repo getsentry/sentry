@@ -1,4 +1,4 @@
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {duration} from 'moment-timezone';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -30,8 +30,8 @@ const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
   useMatches: jest.fn(),
 }));
 const mockUseMatches = jest.mocked(useMatches);

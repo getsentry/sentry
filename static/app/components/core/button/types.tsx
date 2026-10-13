@@ -32,20 +32,13 @@ export interface DO_NOT_USE_CommonButtonProps extends AnalyticsProps {
   /**
    * Button Tooltip Props
    */
-  tooltipProps?: ButtonTooltipProps;
+  tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper'>;
   /**
    * The semantic "variant" of the button. Use `primary` when the action is
    * contextually the primary action, `danger` if the button will do something
    * destructive, `link` for visual similarity to a link.
    */
   variant?: ButtonVariant;
-}
-
-interface ButtonTooltipProps extends Omit<
-  TooltipProps,
-  'children' | 'skipWrapper' | 'title'
-> {
-  title?: TooltipProps['title'];
 }
 
 type ButtonElementProps = Omit<
