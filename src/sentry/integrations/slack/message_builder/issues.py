@@ -18,7 +18,7 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     format_actor_option_slack,
     format_actor_options_slack,
-    get_title_link_workflow_engine_ui,
+    get_title_link,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
@@ -606,11 +606,22 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         rule_id = None
         workflow_id = self.workflow_id
         environment_id = None
-        if self.rules:
-            origin = self.rules[0]
+        origin = self.rules[0] if self.rules else None
+        if origin is not None:
             rule_id = origin.legacy_rule_id
             workflow_id = origin.workflow_id if origin.workflow_id is not None else workflow_id
             environment_id = origin.environment_id
+
+            if workflow_id is None and not origin.is_test_notification():
+                logger.error(
+                    "slack.issue_alert.missing_workflow_id",
+                    extra={
+                        "legacy_rule_id": origin.legacy_rule_id,
+                        "group_id": self.group.id,
+                        "project_id": self.group.project_id,
+                        "organization_id": project.organization_id,
+                    },
+                )
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -618,7 +629,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_text = get_action_text(self.actions, self.identity)
             has_action = True
 
-        title_link = get_title_link_workflow_engine_ui(
+        title_link = get_title_link(
             self.group,
             self.event,
             self.link_to_event,

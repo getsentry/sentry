@@ -105,7 +105,7 @@ def fetch_environment_name(rule_env: int) -> str | None:
         return env.name
 
 
-def get_title_link_workflow_engine_ui(
+def get_title_link(
     group: Group,
     event: Event | GroupEvent | None,
     link_to_event: bool,

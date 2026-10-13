@@ -20,7 +20,7 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     build_footer,
     get_color,
-    get_title_link_workflow_engine_ui,
+    get_title_link,
 )
 from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group, GroupStatus
@@ -66,7 +66,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         url = None
         origin = self.rules[0] if self.rules else None
         if origin is not None and origin.workflow_id is not None:
-            url = get_title_link_workflow_engine_ui(
+            url = get_title_link(
                 self.group,
                 self.event,
                 self.link_to_event,

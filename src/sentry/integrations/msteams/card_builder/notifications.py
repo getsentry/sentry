@@ -6,7 +6,7 @@ from typing import Any
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
-    get_title_link_workflow_engine_ui,
+    get_title_link,
 )
 from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
@@ -133,7 +133,7 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
 
     def create_attachment_title_block(self) -> TextBlock | None:
         title = build_attachment_title(self.group)
-        title_link = get_title_link_workflow_engine_ui(
+        title_link = get_title_link(
             self.group, None, False, True, self.notification, ExternalProviders.MSTEAMS
         )
 
