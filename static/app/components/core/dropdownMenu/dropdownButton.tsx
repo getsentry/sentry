@@ -1,6 +1,5 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeProps} from '@react-aria/utils';
 import {IconChevron} from '@sentry/icons/chevron';
 import type {DistributedOmit} from 'type-fest';
 
