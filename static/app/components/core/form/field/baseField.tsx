@@ -11,8 +11,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useFieldId, useHintTextId} from './fieldIds';
 import {FieldMeta} from './meta';
 
-export {useLabelId} from './fieldIds';
-
 export type BaseFieldProps<T extends HTMLElement> = {
   disabled?: boolean | string;
   ref?: Ref<T>;
