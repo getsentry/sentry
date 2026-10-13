@@ -15,6 +15,7 @@ describe('MetricDetectorRecentIssues', () => {
         GroupOpenPeriodFixture({
           id: '20',
           groupId: '200',
+          shortId: 'PROJ-2',
           start: '2025-06-01T12:00:00Z',
           end: null,
           isOpen: true,
@@ -22,20 +23,12 @@ describe('MetricDetectorRecentIssues', () => {
         GroupOpenPeriodFixture({
           id: '10',
           groupId: '100',
+          shortId: 'PROJ-1',
           start: '2025-06-01T10:00:00Z',
           end: '2025-06-01T11:00:00Z',
           isOpen: false,
         }),
       ],
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [
-        {id: '200', shortId: 'PROJ-2'},
-        {id: '100', shortId: 'PROJ-1'},
-      ],
-      match: [MockApiClient.matchQuery({group: ['200', '100']})],
     });
 
     render(<MetricDetectorRecentIssues detector={detector} />);

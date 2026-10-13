@@ -1,5 +1,3 @@
-import {skipToken, useQuery} from '@tanstack/react-query';
-
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -13,9 +11,8 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
-import type {Group, GroupOpenPeriod} from 'sentry/types/group';
+import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -76,7 +73,6 @@ export function MetricDetectorRecentIssues({
       <ErrorBoundary mini>
         <RecentIssuesTable
           detectorId={detector.id}
-          projectId={detector.projectId}
           dateParams={dateParams}
           intervalSeconds={intervalSeconds}
         />
@@ -119,13 +115,11 @@ function ViewAllIssuesButton({
 interface RecentIssuesTableProps {
   dateParams: DateParams;
   detectorId: string;
-  projectId: string;
   intervalSeconds?: number;
 }
 
 function RecentIssuesTable({
   detectorId,
-  projectId,
   dateParams,
   intervalSeconds,
 }: RecentIssuesTableProps) {
@@ -137,13 +131,7 @@ function RecentIssuesTable({
     ...dateParams,
   });
 
-  const groupIds = Array.from(
-    new Set(openPeriodsQuery.data?.map(openPeriod => openPeriod.groupId))
-  );
-
-  const shortIdsByGroupIdQuery = useShortIdsByGroupId({groupIds, projectId});
-
-  if (openPeriodsQuery.isPending || shortIdsByGroupIdQuery.isLoading) {
+  if (openPeriodsQuery.isPending) {
     return <RecentIssuesTableSkeleton />;
   }
 
@@ -165,38 +153,11 @@ function RecentIssuesTable({
         <RecentIssueRow
           key={openPeriod.id}
           openPeriod={openPeriod}
-          shortId={shortIdsByGroupIdQuery.data?.get(openPeriod.groupId)}
           onZoom={zoomToOpenPeriodRange}
         />
       ))}
     </SimpleTable>
   );
-}
-
-function useShortIdsByGroupId({
-  groupIds,
-  projectId,
-}: {
-  groupIds: string[];
-  projectId: string;
-}) {
-  const organization = useOrganization();
-
-  return useQuery({
-    ...apiOptions.as<Array<Pick<Group, 'id' | 'shortId'>>>()(
-      '/organizations/$organizationIdOrSlug/issues/',
-      {
-        path: groupIds.length ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {
-          group: groupIds,
-          project: projectId,
-          collapse: ['stats', 'unhandled'],
-        },
-        staleTime: 30_000,
-      }
-    ),
-    select: ({json}) => new Map(json.map(issue => [issue.id, issue.shortId])),
-  });
 }
 
 function RecentIssuesTableHeader() {
@@ -214,10 +175,9 @@ function RecentIssuesTableHeader() {
 interface RecentIssueRowProps {
   onZoom: (start: Date, end?: Date) => void;
   openPeriod: GroupOpenPeriod;
-  shortId: string | undefined;
 }
 
-function RecentIssueRow({openPeriod, shortId, onZoom}: RecentIssueRowProps) {
+function RecentIssueRow({openPeriod, onZoom}: RecentIssueRowProps) {
   const organization = useOrganization();
 
   const openPeriodStart = new Date(openPeriod.start);
@@ -231,7 +191,7 @@ function RecentIssueRow({openPeriod, shortId, onZoom}: RecentIssueRowProps) {
     <SimpleTable.Row>
       <SimpleTable.RowCell>
         <Link to={`/organizations/${organization.slug}/issues/${openPeriod.groupId}/`}>
-          {shortId ?? t('View Issue')}
+          {openPeriod.shortId ?? t('View Issue')}
         </Link>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>

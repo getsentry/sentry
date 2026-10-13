@@ -1365,6 +1365,7 @@ export interface GroupOpenPeriod {
   id: string;
   isOpen: boolean;
   lastChecked: string;
+  shortId: string | null;
   start: string;
 }
 
