@@ -140,6 +140,19 @@ def _fold_comment_mutations(
     return kept, latest_text_by_comment
 
 
+def _fold_activity_entries(
+    entries: Sequence[GroupActionLogEntry],
+) -> tuple[list[GroupActionLogEntry], dict[int, str | None]]:
+    """
+    Fold comment mutations and drop FIRST_SEEN entries, which are served separately as a
+    single first-seen item. Dropping them here lets the refetch loop count only entries
+    that will fill the page.
+    """
+    kept, latest_text_by_comment = _fold_comment_mutations(entries)
+    kept = [entry for entry in kept if entry.type != GroupActionType.FIRST_SEEN.value]
+    return kept, latest_text_by_comment
+
+
 def get_serialized_activity_items(
     group: "Group",
     user: User | RpcUser | AnonymousUser | None,
@@ -174,16 +187,16 @@ def get_serialized_activity_items(
         )
         return None
 
-    entries, latest_text_by_comment = _fold_comment_mutations(action_log)
+    entries, latest_text_by_comment = _fold_activity_entries(action_log)
     for _ in range(MAX_ACTIVITY_REFETCHES):
         if len(entries) >= limit or len(action_log) < fetch_limit:
             break
-        # A full raw window may have displaced entries with mutations that the fold
-        # drops. Refetch a larger window within the budget above.
+        # A full raw window may have displaced entries with rows that the fold drops.
+        # Refetch a larger window within the budget above.
         # Refold the entire window rather than combining rows from separate reads.
         fetch_limit *= 2
         action_log = GroupActionLogEntry.objects.get_actions_for_group(group, fetch_limit)
-        entries, latest_text_by_comment = _fold_comment_mutations(action_log)
+        entries, latest_text_by_comment = _fold_activity_entries(action_log)
 
     # Merges can carry other groups' FIRST_SEEN entries into this log. Only an entry that
     # is the oldest in the whole log represents this group; when the window doesn't reach
@@ -191,7 +204,6 @@ def get_serialized_activity_items(
     first_seen_entry = None
     if len(action_log) < fetch_limit and action_log[-1].type == GroupActionType.FIRST_SEEN.value:
         first_seen_entry = action_log[-1]
-    entries = [entry for entry in entries if entry.type != GroupActionType.FIRST_SEEN.value]
     entries = entries[:limit]
 
     items = serialize(entries, user)

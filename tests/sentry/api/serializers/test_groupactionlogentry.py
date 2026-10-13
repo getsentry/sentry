@@ -442,6 +442,22 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert [item["id"] for item in items] == [str(resolve.id), "0"]
         assert items[1]["type"] == "first_seen"
 
+    def test_dropped_first_seen_entries_do_not_shrink_the_page(self) -> None:
+        own_first_seen = self._first_seen()
+        resolve = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        unresolve = self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
+        # e.g. carried over from groups merged into this one
+        for offset in range(1, 4):
+            self._first_seen(group_id=self.group.id + offset)
+
+        items = self._activity_items(limit=2)
+
+        assert [item["id"] for item in items] == [
+            str(unresolve.id),
+            str(resolve.id),
+            str(own_first_seen.id),
+        ]
+
     def test_comment_edit_replaces_the_comment_text(self) -> None:
         comment = self._comment(123, "original")
         self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
