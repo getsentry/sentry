@@ -94,12 +94,11 @@ export function Checkbox({
   checked = false,
   size = 'sm',
   className,
-  disabled,
   ref,
   tooltipProps,
   ...props
 }: CheckboxProps) {
-  const disabledWithTooltip = Boolean(disabled && tooltipProps?.title);
+  const disabledWithTooltip = Boolean(props.disabled && tooltipProps?.title);
 
   function preventDisabledInteraction(event: React.SyntheticEvent) {
     event.preventDefault();
@@ -123,7 +122,7 @@ export function Checkbox({
   return (
     <CheckboxWrapper
       size={size}
-      disabled={disabled}
+      disabled={props.disabled}
       readOnly={props.readOnly}
       onClickCapture={disabledWithTooltip ? preventDisabledInteraction : undefined}
       {...wrapperProps}
@@ -134,7 +133,7 @@ export function Checkbox({
           checked={checked !== 'indeterminate' && checked}
           type="checkbox"
           {...props}
-          disabled={disabledWithTooltip ? undefined : disabled}
+          disabled={disabledWithTooltip ? undefined : props.disabled}
           aria-disabled={disabledWithTooltip || undefined}
           name={disabledWithTooltip ? undefined : props.name}
           required={disabledWithTooltip ? undefined : props.required}
@@ -164,7 +163,7 @@ export function Checkbox({
           </CheckboxIcon>
         )}
       </FakeCheckbox>
-      {!(disabled || props.readOnly) && (
+      {!(props.disabled || props.readOnly) && (
         <InteractionStateLayer
           higherOpacity={checked === true || checked === 'indeterminate'}
         />
