@@ -6,20 +6,26 @@ from unittest import mock
 
 from slack_sdk.web import SlackResponse
 
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.notification_action.issue_alert_registry import (
+    DiscordIssueAlertHandler,
+    SlackIssueAlertHandler,
+)
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionInvocation
+from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
-
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 PLATFORM_DISPATCH_PATH = "sentry.notifications.notification_action.platform_dispatch"
 SLACK_ISSUE_LEGACY_CLIENT = "sentry.integrations.slack.actions.notification.SlackSdkClient"
@@ -206,3 +212,98 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         assert call_args[1]["extra"]["provider"] == "slack"
         assert call_args[1]["extra"]["has_integration"] is True
         assert call_args[1]["extra"]["integration_status"] == 1
+
+
+ISSUE_PLATFORM_OPTIONS = {
+    "notifications.platform-rollout.internal-testing": {"issue": 1.0},
+    "notifications.platform.alert-providers": {"issue": ["slack", "discord"]},
+}
+
+
+@requires_snuba
+@override_options(ISSUE_PLATFORM_OPTIONS)
+@with_feature("organizations:notification-platform.internal-testing")
+class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.workflow = self.create_workflow(organization=self.organization)
+        self.detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
+        event = self.store_event(
+            data={"message": "oh no", "level": "error"}, project_id=self.project.id
+        )
+        assert event.group is not None
+        self.group = event.group
+        self.event = event.for_group(self.group)
+
+    def create_channel_action(self, action_type: str, provider: str) -> Action:
+        integration, _ = self.create_provider_integration_for(
+            provider=provider,
+            organization=self.organization,
+            user=self.user,
+            name=f"test-{provider}",
+            external_id=f"{provider}-workspace",
+        )
+        return self.create_action(
+            type=action_type,
+            integration_id=integration.id,
+            config={
+                "target_identifier": "channel123",
+                "target_display": "Channel 123",
+                "target_type": ActionTarget.SPECIFIC,
+            },
+        )
+
+    def invocation(self, action: Action) -> ActionInvocation:
+        return ActionInvocation(
+            event_data=WorkflowEventData(event=self.event, group=self.group),
+            action=action,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+
+    @mock.patch(SLACK_ISSUE_LEGACY_CLIENT)
+    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_slack_sends_to_channel(
+        self, mock_slack_client: mock.MagicMock, mock_legacy_client: mock.MagicMock
+    ) -> None:
+        action = self.create_channel_action(Action.Type.SLACK, IntegrationProviderSlug.SLACK)
+        client = mock_slack_client.return_value
+        client.chat_postMessage.return_value = slack_response(client, "123.456")
+
+        SlackIssueAlertHandler.invoke_legacy_registry(self.invocation(action))
+
+        mock_legacy_client.return_value.chat_postMessage.assert_not_called()
+        client.chat_postMessage.assert_called_once()
+        call_kwargs = client.chat_postMessage.call_args.kwargs
+        assert call_kwargs["channel"] == "channel123"
+        assert "thread_ts" not in call_kwargs
+        assert "oh no" in call_kwargs["text"]
+
+    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_slack_follow_up_replies_in_thread_and_broadcasts(
+        self, mock_slack_client: mock.MagicMock
+    ) -> None:
+        action = self.create_channel_action(Action.Type.SLACK, IntegrationProviderSlug.SLACK)
+        client = mock_slack_client.return_value
+        client.chat_postMessage.side_effect = [
+            slack_response(client, "123.456"),
+            slack_response(client, "123.789"),
+        ]
+
+        SlackIssueAlertHandler.invoke_legacy_registry(self.invocation(action))
+        SlackIssueAlertHandler.invoke_legacy_registry(self.invocation(action))
+
+        follow_up = client.chat_postMessage.call_args_list[1].kwargs
+        assert follow_up["thread_ts"] == "123.456"
+        assert follow_up["reply_broadcast"] is True
+
+    @mock.patch("sentry.integrations.discord.integration.DiscordClient")
+    def test_discord_sends_to_channel(self, mock_discord_client: mock.MagicMock) -> None:
+        action = self.create_channel_action(Action.Type.DISCORD, IntegrationProviderSlug.DISCORD)
+
+        DiscordIssueAlertHandler.invoke_legacy_registry(self.invocation(action))
+
+        send_message = mock_discord_client.return_value.send_message
+        send_message.assert_called_once()
+        assert send_message.call_args.kwargs["channel_id"] == "channel123"
