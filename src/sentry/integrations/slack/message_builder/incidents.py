@@ -22,7 +22,10 @@ def get_started_at(timestamp: datetime | None) -> str:
 
 
 def get_workflow_footer(workflow_name: str, workflow_link: str) -> str:
-    return f"Alert: {SLACK_URL_FORMAT.format(text=escape_slack_text(workflow_name), url=workflow_link)}"
+    # Slack has no escape for "|" inside <url|text>, so a pipe in the name would end the link
+    # label early. Swap it for a lookalike character instead.
+    text = escape_slack_text(workflow_name).replace("|", "\u2223")
+    return f"Alert: {SLACK_URL_FORMAT.format(text=text, url=workflow_link)}"
 
 
 class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
