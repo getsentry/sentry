@@ -678,7 +678,9 @@ def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set
     the rows read, are reported as not found.
 
     The bundles are picked from the release's newest `URL_MATCH_MAX_BUNDLES` bundles of any
-    project, so a project whose bundles in the release are all older than those has none picked.
+    project. If the project's bundles among those leave room in the budget, its bundles in the
+    release are also picked from its own newest `URL_MATCH_MAX_BUNDLES` bundles. Only a project
+    whose bundles in the release are older than both has none picked.
     """
     max_index_rows = options.get("sourcemaps.source-map-debug.url-match-max-index-rows")
     if max_index_rows <= 0:
@@ -696,13 +698,41 @@ def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set
         .order_by("-artifact_bundle_id")
         .values_list("artifact_bundle_id", flat=True)[:URL_MATCH_MAX_BUNDLES]
     )
-    newest_bundles = (
+    newest_bundles = list(
         ProjectArtifactBundle.objects.filter(
             project_id=project.id, artifact_bundle_id__in=release_bundle_ids
         )
         .values_list("artifact_bundle_id", "artifact_bundle__artifact_count")
         .order_by("-artifact_bundle_id")
     )
+    # Older bundles can only be left out once the release has `URL_MATCH_MAX_BUNDLES` links.
+    may_skip_older_bundles = len(release_bundle_ids) == URL_MATCH_MAX_BUNDLES
+    used_project_fallback = False
+    if may_skip_older_bundles and sum(dict(newest_bundles).values()) < max_index_rows:
+        # A project that shares the release with others can have all of its bundles there older
+        # than the release's newest links. Its own newest bundles come from the
+        # `(project_id, artifact_bundle_id)` index, and only those are checked against the release.
+        used_project_fallback = True
+        project_bundle_ids = list(
+            ProjectArtifactBundle.objects.filter(project_id=project.id)
+            .order_by("-artifact_bundle_id")
+            .values_list("artifact_bundle_id", flat=True)[:URL_MATCH_MAX_BUNDLES]
+        )
+        older_bundle_ids = set(
+            ReleaseArtifactBundle.objects.filter(
+                organization_id=project.organization_id,
+                release_name=release.version,
+                artifact_bundle_id__in=project_bundle_ids,
+            ).values_list("artifact_bundle_id", flat=True)
+        ).difference(bundle_id for bundle_id, _ in newest_bundles)
+        # These are all older than the bundles above, so the list stays newest first.
+        newest_bundles.extend(
+            ArtifactBundle.objects.filter(id__in=older_bundle_ids)
+            .order_by("-id")
+            .values_list("id", "artifact_count")
+        )
+        may_skip_older_bundles = len(project_bundle_ids) == URL_MATCH_MAX_BUNDLES
+
     # Using a dict to keep the order and drop bundles repeated by links to several dists.
     bundle_ids: dict[int, None] = {}
     index_rows = 0
@@ -727,12 +757,18 @@ def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set
     if len(rows) > max_index_rows:
         del rows[max_index_rows:]
         truncated_by = "index_rows"
-    if truncated_by is None and len(release_bundle_ids) == URL_MATCH_MAX_BUNDLES:
+    if truncated_by is None and may_skip_older_bundles:
         # The project may have older bundles in the release that weren't considered.
         truncated_by = "max_bundles"
 
     metrics.distribution("source_map_debug.url_match.index_rows", len(rows))
-    metrics.incr("source_map_debug.url_match", tags={"truncated": truncated_by or "false"})
+    metrics.incr(
+        "source_map_debug.url_match",
+        tags={
+            "truncated": truncated_by or "false",
+            "project_fallback": str(used_project_fallback).lower(),
+        },
+    )
     # Files left out are reported as not found. The metric can't say for which releases, and the
     # endpoint gets few enough requests to log each truncated one.
     if truncated_by is not None:
@@ -743,6 +779,7 @@ def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set
                 "project_id": project.id,
                 "release": release.version,
                 "truncated_by": truncated_by,
+                "project_fallback": used_project_fallback,
                 "max_index_rows": max_index_rows,
                 "bundles": len(bundle_ids),
                 "index_rows": len(rows),

@@ -1498,9 +1498,10 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         dist_name: str = "",
         artifact_count: int = 2,
         project_id: int | None = None,
+        release_name: str = "some-release",
     ) -> None:
         """
-        Creates a bundle of `~/bundle.min.js` and its source map in `some-release`, indexed under
+        Creates a bundle of `~/bundle.min.js` and its source map in `release_name`, indexed under
         `indexed_urls` and linked to `project_id`, by default the test's project.
         """
         compressed = BytesIO(b"SYSB")
@@ -1552,7 +1553,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
 
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
-            release_name="some-release",
+            release_name=release_name,
             dist_name=dist_name,
             artifact_bundle=artifact_bundle,
         )
@@ -1704,7 +1705,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 4}):
             get_release_bundle_urls(self.project, release)
         mock_metrics.incr.assert_called_with(
-            "source_map_debug.url_match", tags={"truncated": "false"}
+            "source_map_debug.url_match", tags={"truncated": "false", "project_fallback": "false"}
         )
         mock_metrics.distribution.assert_called_with("source_map_debug.url_match.index_rows", 4)
 
@@ -1712,7 +1713,8 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 3}):
             get_release_bundle_urls(self.project, release)
         mock_metrics.incr.assert_called_with(
-            "source_map_debug.url_match", tags={"truncated": "index_rows"}
+            "source_map_debug.url_match",
+            tags={"truncated": "index_rows", "project_fallback": "false"},
         )
         mock_metrics.distribution.assert_called_with("source_map_debug.url_match.index_rows", 2)
 
@@ -1720,7 +1722,8 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 1}):
             get_release_bundle_urls(self.project, release)
         mock_metrics.incr.assert_called_with(
-            "source_map_debug.url_match", tags={"truncated": "index_rows"}
+            "source_map_debug.url_match",
+            tags={"truncated": "index_rows", "project_fallback": "false"},
         )
         mock_metrics.distribution.assert_called_with("source_map_debug.url_match.index_rows", 1)
 
@@ -1739,21 +1742,76 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert set(release_bundle_urls) == {"~/bundle.min.js", "~/bundle.min.js.map"}
 
     @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
-    @mock.patch("sentry.api.endpoints.source_map_debug.URL_MATCH_MAX_BUNDLES", 1)
+    @mock.patch("sentry.api.endpoints.source_map_debug.URL_MATCH_MAX_BUNDLES", 2)
     @mock.patch("sentry.api.endpoints.source_map_debug.metrics")
-    def test_release_bundle_urls_picks_from_release_newest_bundles(
+    def test_release_bundle_urls_falls_back_to_project_newest_bundles(
         self, mock_metrics: mock.MagicMock
     ) -> None:
         release = self.create_release(version="some-release")
         other_project = self.create_project(organization=self.organization)
         self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
         self.create_release_artifact_bundle(["~/other.min.js"], project_id=other_project.id)
+        self.create_release_artifact_bundle(["~/other.min.js"], project_id=other_project.id)
 
-        # The release's newest bundle belongs to another project, so none of the project's
-        # bundles are picked.
+        with CaptureQueriesContext(
+            connections[router.db_for_read(ReleaseArtifactBundle)]
+        ) as queries:
+            release_bundle_urls = get_release_bundle_urls(self.project, release)
+
+        # The release's newest bundles belong to another project, so the project's bundle is
+        # found from its own newest bundles.
+        assert release_bundle_urls is not None
+        assert set(release_bundle_urls) == {"~/bundle.min.js", "~/bundle.min.js.map"}
+        mock_metrics.incr.assert_called_once_with(
+            "source_map_debug.url_match",
+            tags={"truncated": "false", "project_fallback": "true"},
+        )
+        release_queries = [
+            query["sql"]
+            for query in queries.captured_queries
+            if 'FROM "sentry_releaseartifactbundle"' in query["sql"]
+        ]
+        assert len(release_queries) == 2
+        assert all(" JOIN " not in sql for sql in release_queries)
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    @mock.patch("sentry.api.endpoints.source_map_debug.URL_MATCH_MAX_BUNDLES", 1)
+    @mock.patch("sentry.api.endpoints.source_map_debug.metrics")
+    def test_release_bundle_urls_misses_bundles_older_than_both_reads(
+        self, mock_metrics: mock.MagicMock
+    ) -> None:
+        release = self.create_release(version="some-release")
+        other_project = self.create_project(organization=self.organization)
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(["~/other.min.js"], project_id=other_project.id)
+        self.create_release_artifact_bundle(["~/next.min.js"], release_name="next-release")
+
+        # The release's newest bundle belongs to another project, and the project's newest
+        # bundle is in another release, so none of the project's bundles are picked.
         assert get_release_bundle_urls(self.project, release) == {}
         mock_metrics.incr.assert_called_once_with(
-            "source_map_debug.url_match", tags={"truncated": "max_bundles"}
+            "source_map_debug.url_match",
+            tags={"truncated": "max_bundles", "project_fallback": "true"},
+        )
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 2})
+    @mock.patch("sentry.api.endpoints.source_map_debug.URL_MATCH_MAX_BUNDLES", 1)
+    @mock.patch("sentry.api.endpoints.source_map_debug.metrics")
+    def test_release_bundle_urls_skips_fallback_when_budget_is_used(
+        self, mock_metrics: mock.MagicMock
+    ) -> None:
+        release = self.create_release(version="some-release")
+        self.create_release_artifact_bundle(["~/old.min.js", "~/old.min.js.map"])
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+
+        release_bundle_urls = get_release_bundle_urls(self.project, release)
+
+        # The newest bundle uses up the budget, so older bundles wouldn't be read anyway.
+        assert release_bundle_urls is not None
+        assert set(release_bundle_urls) == {"~/bundle.min.js", "~/bundle.min.js.map"}
+        mock_metrics.incr.assert_called_once_with(
+            "source_map_debug.url_match",
+            tags={"truncated": "max_bundles", "project_fallback": "false"},
         )
 
     @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
