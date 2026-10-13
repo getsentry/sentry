@@ -21,11 +21,11 @@ import type {
   HeatmapWidgetQueryParams,
   WidgetQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/base';
-import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {TraceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -125,7 +125,7 @@ export function useTraceMetricsSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = TraceMetricsConfig.transformSeries!(
+      const transformedResult = TraceMetricsResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -142,11 +142,11 @@ export function useTraceMetricsSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = TraceMetricsConfig.getSeriesResultType?.(
+      const resultTypes = TraceMetricsResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
-      const resultUnits = TraceMetricsConfig.getSeriesResultUnit?.(
+      const resultUnits = TraceMetricsResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -288,7 +288,7 @@ export function useTraceMetricsTableQuery(
       const responseData = q.data.json;
 
       const transformedDataItem = {
-        ...TraceMetricsConfig.transformTable(
+        ...TraceMetricsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,

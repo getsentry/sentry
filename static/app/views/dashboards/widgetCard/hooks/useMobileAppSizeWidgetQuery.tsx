@@ -11,11 +11,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {MobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/mobileAppSizeResponseTransforms';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -148,7 +148,7 @@ export function useMobileAppSizeSeriesQuery(
   });
 
   useEventsTimeseriesSpotCheck({
-    config: MobileAppSizeConfig,
+    config: MobileAppSizeResponseTransforms,
     enabled,
     statsQueryResults: queryResults,
     organization,
@@ -186,7 +186,7 @@ export function useMobileAppSizeSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = MobileAppSizeConfig.transformSeries!(
+      const transformedResult = MobileAppSizeResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -203,7 +203,7 @@ export function useMobileAppSizeSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = MobileAppSizeConfig.getSeriesResultType?.(
+      const resultTypes = MobileAppSizeResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -212,7 +212,7 @@ export function useMobileAppSizeSeriesQuery(
         Object.assign(timeseriesResultsTypes, resultTypes);
       }
 
-      const resultUnits = MobileAppSizeConfig.getSeriesResultUnit?.(
+      const resultUnits = MobileAppSizeResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );

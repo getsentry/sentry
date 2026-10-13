@@ -12,25 +12,13 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
-import {
-  serializeSorts,
-  type WidgetBuilderState,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {type WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregateIndex';
+import {serializeSorts} from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-/**
- * Resolves the selected aggregate index, defaulting to the last aggregate.
- */
-export function getSelectedAggregateIndex(
-  selectedAggregate: number | undefined,
-  aggregateCount: number
-): number {
-  if (selectedAggregate === undefined) {
-    return aggregateCount > 0 ? aggregateCount - 1 : 0;
-  }
-  return Math.min(selectedAggregate, Math.max(0, aggregateCount - 1));
-}
+export {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregateIndex';
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   if (state.displayType === DisplayType.TEXT) {

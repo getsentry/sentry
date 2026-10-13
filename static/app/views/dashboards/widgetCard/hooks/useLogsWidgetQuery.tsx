@@ -22,7 +22,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
+import {EventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
@@ -161,7 +161,7 @@ export function useLogsSeriesQuery(
   });
 
   useEventsTimeseriesSpotCheck({
-    config: LogsConfig,
+    config: EventsResponseTransforms,
     enabled,
     statsQueryResults: queryResults,
     organization,
@@ -198,7 +198,7 @@ export function useLogsSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = LogsConfig.transformSeries!(
+      const transformedResult = EventsResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -215,11 +215,11 @@ export function useLogsSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = LogsConfig.getSeriesResultType?.(
+      const resultTypes = EventsResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
-      const resultUnits = LogsConfig.getSeriesResultUnit?.(
+      const resultUnits = EventsResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -345,7 +345,7 @@ export function useLogsTableQuery(
       const responseData = q.data.json;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...LogsConfig.transformTable(
+        ...EventsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,

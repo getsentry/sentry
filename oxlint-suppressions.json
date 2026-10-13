@@ -1914,7 +1914,7 @@
   },
   "static/app/views/dashboards/widgetBuilder/components/newWidgetBuilder.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
+      "count": 1
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/queryFilterBuilder.tsx": {
@@ -1924,7 +1924,17 @@
   },
   "static/app/views/dashboards/widgetBuilder/components/visualize/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
+      "count": 1
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/components/visualize/utils.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "static/app/views/dashboards/widgetBuilder/components/widgetPreviewContainer.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/widgetTemplatesList.tsx": {
