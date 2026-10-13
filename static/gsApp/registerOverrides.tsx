@@ -1,11 +1,12 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
+import {Placeholder} from 'sentry/components/placeholder';
 import {registerOverride} from 'sentry/overrideRegistry';
 import type {Overrides} from 'sentry/types/overrides';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types';
 
-import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import {DashboardBanner} from 'getsentry/components/dashboardBanner';
@@ -114,6 +115,24 @@ function LazyEnhancedOrganizationStats(props: OrganizationStatsProps) {
   return <LazyLoad LazyComponent={EnhancedOrganizationStats} {...props} />;
 }
 
+// Renders the Seer autofix UI, which pulls in charting through the Seer markdown
+// embeds. Keep it out of the bundle every page loads.
+const AiConfigureSeerQuotaSidebar = lazy(() =>
+  import('getsentry/components/ai/aiConfigureSeerQuotaSidebar').then(module => ({
+    default: module.AiConfigureSeerQuotaSidebar,
+  }))
+);
+
+function LazyAiConfigureSeerQuotaSidebar(props: AutofixContentProps) {
+  return (
+    <LazyLoad
+      LazyComponent={AiConfigureSeerQuotaSidebar}
+      loadingFallback={<Placeholder height="160px" />}
+      {...props}
+    />
+  );
+}
+
 const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   /**
    * Additional routes to be inserted into sentrys route tree
@@ -216,7 +235,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
     <SpikeProtectionProjectSettings {...p} />
   ),
 
-  'component:ai-configure-seer-quota-sidebar': () => AiConfigureSeerQuotaSidebar,
+  'component:ai-configure-seer-quota-sidebar': () => LazyAiConfigureSeerQuotaSidebar,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
   'component:seer-trial-cta': () => SeerAutomationTrial,
   'component:continuous-profiling-billing-requirement-banner': () =>
