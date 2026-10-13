@@ -225,9 +225,9 @@ jobs:
               path: |
                 .cache/jest
                 ~/.cache/swc
-              key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-router${{ matrix.router }}-${{ matrix.index }}
+              key: jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.index }}
               restore-keys: |
-                jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-router${{ matrix.router }}-
+                jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-
                 jest-cache-${{ runner.os }}-router${{ matrix.router }}-
 
           - name: Download jest-test-files.json
