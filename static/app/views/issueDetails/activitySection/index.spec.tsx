@@ -782,7 +782,7 @@ describe('ActivitySection', () => {
     expect(screen.getAllByText('Resolved')).toHaveLength(1);
   });
 
-  it('does not count rolled-up events as hidden sidebar rows', () => {
+  it('uses displayed rows, not rolled-up events, to decide when to collapse the sidebar', () => {
     const flappingGroup = makeFlappingGroup('1350');
 
     render(
