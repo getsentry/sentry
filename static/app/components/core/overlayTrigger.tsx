@@ -1,9 +1,8 @@
 import * as React from 'react';
 import type {DistributedOmit, SetRequired} from 'type-fest';
 
-import {DropdownButton, type DropdownButtonProps} from '@sentry/scraps/dropdownMenu';
-
-import {ControlContext} from './compactSelect/control';
+import {ControlContext} from './compactSelect/controlContext';
+import {DropdownButton, type DropdownButtonProps} from './dropdownMenu/dropdownButton';
 
 type TriggerEl =
   | HTMLButtonElement
