@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {memo, useMemo} from 'react';
 
 import {InfoText} from '@sentry/scraps/info';
 
@@ -27,10 +27,23 @@ type ReorderableItem = {
 };
 
 export function ExploreSavedQueryNavigationItems({queries}: Props) {
-  const organization = useOrganization();
   const location = useLocation();
-  const id = decodeScalar(location.query.id);
 
+  return (
+    <ExploreSavedQueryList
+      queries={queries}
+      activeId={decodeScalar(location.query.id)}
+      pathname={location.pathname}
+    />
+  );
+}
+
+const ExploreSavedQueryList = memo(function ExploreSavedQueryList({
+  queries,
+  activeId,
+  pathname,
+}: Props & {activeId: string | undefined; pathname: string}) {
+  const organization = useOrganization();
   const {projects} = useProjects();
 
   const reorderStarredSavedQueries = useReorderStarredSavedQueries();
@@ -55,8 +68,7 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
       {({query}) => {
         const to = getSavedQueryTraceItemUrl({savedQuery: query, organization});
         const isActive =
-          id === query.id.toString() &&
-          location.pathname === normalizeUrl(to).split('?')[0];
+          activeId === query.id.toString() && pathname === normalizeUrl(to).split('?')[0];
 
         return (
           <SecondaryNavigation.ReorderableLink
@@ -86,4 +98,4 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
       }}
     </SecondaryNavigation.ReorderableList>
   );
-}
+});
