@@ -223,29 +223,21 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
               >
                 <DropdownMenu
                   items={saveAsItems}
-                  trigger={triggerProps => {
-                    const onClick: typeof triggerProps.onClick = e => {
-                      e.stopPropagation();
-                      e.preventDefault();
-
-                      triggerProps.onClick?.(e);
-                    };
-                    return (
-                      <Container width={{zero: '100%', sm: 'auto'}}>
-                        {buttonProps => (
-                          <OverlayTrigger.Button
-                            showChevron={false}
-                            {...buttonProps}
-                            {...{...triggerProps, onClick}}
-                            variant="primary"
-                            aria-label={t('Save as')}
-                          >
-                            {t('Save as')}
-                          </OverlayTrigger.Button>
-                        )}
-                      </Container>
-                    );
-                  }}
+                  trigger={triggerProps => (
+                    <Container width={{zero: '100%', sm: 'auto'}}>
+                      {buttonProps => (
+                        <OverlayTrigger.Button
+                          showChevron={false}
+                          {...buttonProps}
+                          {...triggerProps}
+                          variant="primary"
+                          aria-label={t('Save as')}
+                        >
+                          {t('Save as')}
+                        </OverlayTrigger.Button>
+                      )}
+                    </Container>
+                  )}
                 />
               </Flex>
             )}

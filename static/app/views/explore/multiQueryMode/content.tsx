@@ -160,24 +160,16 @@ function Content({datePageFilterProps}: ContentProps) {
                 },
               },
             ]}
-            trigger={triggerProps => {
-              const onClick: typeof triggerProps.onClick = e => {
-                e.stopPropagation();
-                e.preventDefault();
-
-                triggerProps.onClick?.(e);
-              };
-              return (
-                <OverlayTrigger.Button
-                  showChevron={false}
-                  {...{...triggerProps, onClick}}
-                  variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
-                  aria-label={t('Save')}
-                >
-                  {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
-                </OverlayTrigger.Button>
-              );
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                showChevron={false}
+                {...triggerProps}
+                variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
+                aria-label={t('Save')}
+              >
+                {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
+              </OverlayTrigger.Button>
+            )}
           />
         </Flex>
         <WidgetSyncContextProvider>

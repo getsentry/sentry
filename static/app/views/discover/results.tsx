@@ -1190,21 +1190,14 @@ function DiscoverContextMenu({
   return (
     <DropdownMenu
       items={items}
-      trigger={triggerProps => {
-        const onClick: typeof triggerProps.onClick = e => {
-          e.stopPropagation();
-          e.preventDefault();
-          triggerProps.onClick?.(e);
-        };
-        return (
-          <OverlayTrigger.IconButton
-            {...{...triggerProps, onClick}}
-            aria-label={t('Discover Context Menu')}
-            size="sm"
-            icon={<IconEllipsis />}
-          />
-        );
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Discover Context Menu')}
+          size="sm"
+          icon={<IconEllipsis />}
+        />
+      )}
       position="bottom-end"
       offset={4}
     />
@@ -1412,24 +1405,17 @@ function SaveQueryButton({
       items={items}
       position="bottom-end"
       offset={4}
-      trigger={triggerProps => {
-        const onClick: typeof triggerProps.onClick = e => {
-          e.stopPropagation();
-          e.preventDefault();
-          triggerProps.onClick?.(e);
-        };
-        return (
-          <OverlayTrigger.Button
-            {...{...triggerProps, onClick}}
-            showChevron={false}
-            size="sm"
-            variant="primary"
-            aria-label={t('Save as')}
-          >
-            {t('Save as')}
-          </OverlayTrigger.Button>
-        );
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          showChevron={false}
+          size="sm"
+          variant="primary"
+          aria-label={t('Save as')}
+        >
+          {t('Save as')}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

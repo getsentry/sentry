@@ -3,8 +3,38 @@ import {Fragment} from 'react';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Link} from '@sentry/scraps/link';
 
 describe('DropdownMenu', () => {
+  it.each(['click', '{Enter}', ' '])(
+    'opens the default trigger with %s without activating the enclosing link',
+    async activation => {
+      const onLinkClick = jest.fn();
+      const {router} = render(
+        <Link to="/queries/1/" onClick={onLinkClick}>
+          <DropdownMenu
+            items={[{key: 'duplicate', label: 'Duplicate query'}]}
+            triggerLabel="Query actions"
+          />
+        </Link>,
+        {initialRouterConfig: {location: {pathname: '/queries/'}}}
+      );
+
+      if (activation === 'click') {
+        await userEvent.click(screen.getByRole('button', {name: 'Query actions'}));
+      } else {
+        await userEvent.tab();
+        await userEvent.tab();
+        expect(screen.getByRole('button', {name: 'Query actions'})).toHaveFocus();
+        await userEvent.keyboard(activation);
+      }
+
+      expect(await screen.findByRole('menu')).toBeInTheDocument();
+      expect(onLinkClick).not.toHaveBeenCalled();
+      expect(router.location.pathname).toBe('/queries/');
+    }
+  );
+
   it('renders a basic menu', async () => {
     const onAction = jest.fn();
 

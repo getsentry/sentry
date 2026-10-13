@@ -35,24 +35,17 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
   return (
     <DropdownMenu
       items={items}
-      trigger={triggerProps => {
-        const onClick: typeof triggerProps.onClick = e => {
-          e.stopPropagation();
-          e.preventDefault();
-          triggerProps.onClick?.(e);
-        };
-        return (
-          <OverlayTrigger.Button
-            showChevron={false}
-            {...{...triggerProps, onClick}}
-            size={size}
-            variant="primary"
-            aria-label={t('Save as')}
-          >
-            {t('Save as')}
-          </OverlayTrigger.Button>
-        );
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          showChevron={false}
+          {...triggerProps}
+          size={size}
+          variant="primary"
+          aria-label={t('Save as')}
+        >
+          {t('Save as')}
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

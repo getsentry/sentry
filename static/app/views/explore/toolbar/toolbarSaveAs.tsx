@@ -292,24 +292,16 @@ export function ToolbarSaveAs() {
       <Grid flow="column" align="center" gap="md">
         <DropdownMenu
           items={items}
-          trigger={triggerProps => {
-            const onClick: typeof triggerProps.onClick = e => {
-              e.stopPropagation();
-              e.preventDefault();
-
-              triggerProps.onClick?.(e);
-            };
-            return (
-              <SaveAsButton
-                showChevron={false}
-                {...{...triggerProps, onClick}}
-                variant="primary"
-                aria-label={t('Save as')}
-              >
-                {shouldHighlightSaveButton ? t('Save') : t('Save as')}
-              </SaveAsButton>
-            );
-          }}
+          trigger={triggerProps => (
+            <SaveAsButton
+              showChevron={false}
+              {...triggerProps}
+              variant="primary"
+              aria-label={t('Save as')}
+            >
+              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+            </SaveAsButton>
+          )}
         />
 
         <WideLinkButton

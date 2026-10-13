@@ -89,26 +89,18 @@ export function SavedQueriesLandingContent() {
                 },
               },
             ]}
-            trigger={triggerProps => {
-              const onClick: typeof triggerProps.onClick = e => {
-                e.stopPropagation();
-                e.preventDefault();
-
-                triggerProps.onClick?.(e);
-              };
-              return (
-                <OverlayTrigger.Button
-                  showChevron={false}
-                  {...{...triggerProps, onClick}}
-                  variant="primary"
-                  icon={<IconAdd />}
-                  size="md"
-                  aria-label={t('Create Query')}
-                >
-                  {t('Create Query')}
-                </OverlayTrigger.Button>
-              );
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                showChevron={false}
+                {...triggerProps}
+                variant="primary"
+                icon={<IconAdd />}
+                size="md"
+                aria-label={t('Create Query')}
+              >
+                {t('Create Query')}
+              </OverlayTrigger.Button>
+            )}
           />
         ) : (
           <LinkButton

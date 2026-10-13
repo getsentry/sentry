@@ -17,14 +17,14 @@ export type TriggerProps = Omit<React.HTMLAttributes<TriggerEl>, 'children'> & {
 
 export type OverlayTriggerButtonProps = DistributedOmit<
   DropdownButtonProps,
-  'ref' | 'children'
+  'ref' | 'children' | 'onClick'
 > & {
   children: NonNullable<React.ReactNode>;
   ref?: React.Ref<TriggerEl> | React.Ref<HTMLButtonElement>;
 };
 
 export type OverlayTriggerIconButtonProps = SetRequired<
-  DistributedOmit<DropdownButtonProps, 'ref' | 'showChevron'>,
+  DistributedOmit<DropdownButtonProps, 'ref' | 'showChevron' | 'onClick'>,
   'aria-label' | 'icon'
 > & {
   ref?: React.Ref<TriggerEl> | React.Ref<HTMLButtonElement>;

@@ -121,24 +121,16 @@ class QueryList extends Component<Props> {
     return (
       <DropdownMenu
         items={items}
-        trigger={triggerProps => {
-          const onClick: typeof triggerProps.onClick = e => {
-            e.stopPropagation();
-            e.preventDefault();
-
-            triggerProps.onClick?.(e);
-          };
-          return (
-            <DropdownTrigger
-              {...{...triggerProps, onClick}}
-              aria-label={t('Query actions')}
-              size="xs"
-              variant="transparent"
-              icon={<IconEllipsis direction="down" size="sm" />}
-              data-test-id="menu-trigger"
-            />
-          );
-        }}
+        trigger={triggerProps => (
+          <DropdownTrigger
+            {...triggerProps}
+            aria-label={t('Query actions')}
+            size="xs"
+            variant="transparent"
+            icon={<IconEllipsis direction="down" size="sm" />}
+            data-test-id="menu-trigger"
+          />
+        )}
         position="bottom-end"
         offset={4}
       />
