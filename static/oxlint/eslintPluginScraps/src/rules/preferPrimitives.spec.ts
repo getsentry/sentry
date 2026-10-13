@@ -39,6 +39,10 @@ function invalid(
 
 ruleTester.run('prefer-primitives', preferPrimitives, {
   valid: [
+    {
+      name: 'nested interpolations are not root declaration evidence',
+      code: emotion + 'const C = styled.div`display:flex;&:hover {color:${color};}`;',
+    },
     ...['', 'position:absolute;'].map(extra => ({
       name: `template typography must cover a majority of declarations (${extra})`,
       code: `${emotion} const C = styled.span\`font-size:14px;color:red;width:10px;height:10px;${extra}\`;`,
@@ -199,6 +203,11 @@ ruleTester.run('prefer-primitives', preferPrimitives, {
     },
   ],
   invalid: [
+    invalid(
+      'nested important declarations do not override root styles',
+      emotion + 'const C = styled.div`display:flex;&:hover {display:block!important;}`;',
+      'Flex'
+    ),
     invalid(
       'template typography covers a majority of declarations',
       emotion + 'const C = styled.span`font-size:14px;color:red;width:10px;`;',

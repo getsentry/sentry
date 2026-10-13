@@ -775,9 +775,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBar {...defaultSearchBarProps} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -805,9 +802,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBar {...defaultSearchBarProps} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -832,9 +826,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBar {...defaultSearchBarProps} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -886,9 +877,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBarDataProviderProbe widgetQuery={defaultWidgetQuery} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -918,9 +906,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBarDataProviderProbe widgetQuery={defaultWidgetQuery} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,

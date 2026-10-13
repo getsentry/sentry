@@ -1,4 +1,7 @@
 import {Fragment, useCallback, useEffect} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconBranch} from '@sentry/icons/branch';
+import {IconDelete} from '@sentry/icons/delete';
 import {useInfiniteQuery, useQuery, type InfiniteData} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -21,9 +24,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconBranch} from 'sentry/icons/iconBranch';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages, type ApiResponse} from 'sentry/utils/api/apiFetch';

@@ -22,12 +22,21 @@ describe('findSeriesDifferences', () => {
     ).toEqual([]);
   });
 
+  it('does not report matching non-numeric values', () => {
+    expect(
+      findSeriesDifferences(
+        [makeSeries('count()', [NaN, NaN, NaN])],
+        [makeSeries('count()', [NaN, NaN, NaN])]
+      )
+    ).toEqual([]);
+  });
+
   it('reports value, length and naming differences', () => {
     expect(
       findSeriesDifferences(
         [
           makeSeries('count()', [100, 200, 300, 400]),
-          makeSeries('p50(span.duration)', [1, 2, 3]),
+          makeSeries('p50(span.duration)', [1, 2, 3, 4]),
           makeSeries('chrome : count()', [1, 2, 3]),
         ],
         [
@@ -37,10 +46,42 @@ describe('findSeriesDifferences', () => {
         ]
       )
     ).toEqual([
-      {reason: 'value'},
-      {reason: 'length'},
-      {reason: 'unmatchedSeries'},
-      {reason: 'unmatchedSeries'},
+      {reason: 'value', legacyValue: 200, timeSeriesValue: 150},
+      {reason: 'length', legacyLength: 4, timeSeriesLength: 2},
+      {reason: 'unmatchedLegacySeries'},
+      {reason: 'unmatchedTimeSeries'},
+    ]);
+  });
+
+  it('ignores one extra bucket at either end', () => {
+    const legacy = makeSeries('count()', [100, 200, 300, 400]);
+    const extraLeading = {
+      ...legacy,
+      data: [{name: T0 - 60_000, value: 50}, ...legacy.data],
+    };
+    const extraTrailing = {
+      ...legacy,
+      data: [...legacy.data, {name: T0 + 4 * 60_000, value: 50}],
+    };
+
+    expect(findSeriesDifferences([legacy], [extraLeading])).toEqual([]);
+    expect(findSeriesDifferences([legacy], [extraTrailing])).toEqual([]);
+    expect(findSeriesDifferences([extraLeading], [legacy])).toEqual([]);
+    expect(findSeriesDifferences([extraTrailing], [legacy])).toEqual([]);
+  });
+
+  it('still compares values when lengths differ by one', () => {
+    const legacy = makeSeries('count()', [100, 200, 300, 400]);
+    const shifted = {
+      ...legacy,
+      data: [
+        {name: T0 - 60_000, value: 50},
+        ...makeSeries('count()', [100, 250, 300, 400]).data,
+      ],
+    };
+
+    expect(findSeriesDifferences([legacy], [shifted])).toEqual([
+      {reason: 'value', legacyValue: 200, timeSeriesValue: 250},
     ]);
   });
 
@@ -53,7 +94,9 @@ describe('findSeriesDifferences', () => {
       ),
     };
 
-    expect(findSeriesDifferences([legacy], [shifted])).toEqual([{reason: 'timestamp'}]);
+    expect(findSeriesDifferences([legacy], [shifted])).toEqual([
+      {reason: 'timestamp', legacyTimestamp: T0, timeSeriesTimestamp: T0 + 1000},
+    ]);
   });
 
   it('falls back to a deep comparison for other differences', () => {

@@ -13,6 +13,10 @@ const CheckboxClickTarget = styled('label')`
   line-height: 0;
 `;
 
+export const ListItemCheckbox = styled(Checkbox)`
+  background-color: ${p => p.theme.tokens.background.primary};
+`;
+
 export function ListItemSelectCheckbox({
   htmlPrefix,
   value,
@@ -24,7 +28,7 @@ export function ListItemSelectCheckbox({
   const htmlId = `${htmlPrefix}-${value}`;
   return (
     <CheckboxClickTarget htmlFor={htmlId}>
-      <Checkbox
+      <ListItemCheckbox
         id={htmlId}
         disabled={isSelected(value) === 'all-selected'}
         checked={isSelected(value) !== false}

@@ -18,9 +18,6 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.autofix.autofix_agent import (
-    PrIterationNoPullRequestException,
-)
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
@@ -46,6 +43,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.pr_iteration.logs import (
     LogCtxIteration,
     PrIterationLogContext,
@@ -69,8 +67,10 @@ from sentry.tasks.seer.pr_iteration import (
     ALREADY_PAUSED_PR_ITERATION_COMMENT,
     STOP_PR_ITERATION_FAILED_COMMENT,
     STOPPED_PR_ITERATION_COMMENT,
+    _add_review_reaction,
     _build_review_feedback,
     _delete_own_comment_eyes_reaction,
+    _delete_own_review_eyes_reaction,
     _dropped_drain_reason,
     _ineligible_pr_iteration_comment_body,
     consume_queued_autofix_feedback,
@@ -81,6 +81,7 @@ from sentry.tasks.seer.pr_iteration import (
 )
 from sentry.testutils.cases import TestCase
 
+FEEDBACK_PATH = "sentry.seer.autofix.pr_iteration.feedback"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
@@ -1831,6 +1832,81 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         mock_trigger.assert_not_called()
 
+    def _human_iteration_block(self, idx: int) -> MemoryBlock:
+        return MemoryBlock(
+            id=f"iter{idx}",
+            message=Message(
+                role="assistant",
+                metadata={
+                    "step": "pr_iteration",
+                    "iteration_index": idx,
+                    "feedback": serialize_feedback([self._review_feedback(idx)]),
+                },
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_at_the_total_cap_is_dropped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # Human iterations break the streak, but the total cap still holds.
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._human_iteration_block(i) for i in range(1, 4)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with patch(f"{FEEDBACK_PATH}.MAX_TOTAL_ITERATIONS", 3):
+            self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_automated_feedback_below_the_total_cap_is_triggered(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._human_iteration_block(i) for i in range(1, 3)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with patch(f"{FEEDBACK_PATH}.MAX_TOTAL_ITERATIONS", 3):
+            self._call()
+
+        mock_trigger.assert_called_once()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_human_feedback_at_the_total_cap_is_triggered(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._human_iteration_block(i) for i in range(1, 4)]
+        )
+        review = self._review_feedback(777)
+        mock_pop.return_value = [self._queued(review)]
+
+        with patch(f"{FEEDBACK_PATH}.MAX_TOTAL_ITERATIONS", 3):
+            self._call()
+
+        mock_trigger.assert_called_once()
+        _, kwargs = mock_trigger.call_args
+        assert [f.feedback_id for f in kwargs["feedback"]] == [review.feedback_id]
+
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -2856,6 +2932,61 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
         )
 
         mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
+
+
+class _ReviewReactionScmProtocols:
+    def create_pull_request_review_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def delete_pull_request_review_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
+class ReviewReactionTest(TestCase):
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_adds_reaction_by_review_id(self, mock_scm_actions: MagicMock) -> None:
+        scm = MagicMock(spec=_ReviewReactionScmProtocols)
+
+        _add_review_reaction(scm, pr_number=7, review_id=500, reaction="eyes")
+
+        mock_scm_actions.create_pull_request_review_reaction.assert_called_once_with(
+            scm, "7", "500", "eyes"
+        )
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_add_skips_unsupported_provider(self, mock_scm_actions: MagicMock) -> None:
+        _add_review_reaction(MagicMock(spec=[]), pr_number=7, review_id=500, reaction="eyes")
+
+        mock_scm_actions.create_pull_request_review_reaction.assert_not_called()
+
+    @patch(f"{TASK_PATH}.sentry_sdk.capture_exception")
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_add_swallows_exceptions(
+        self, mock_scm_actions: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        mock_scm_actions.create_pull_request_review_reaction.side_effect = RuntimeError("boom")
+
+        _add_review_reaction(
+            MagicMock(spec=_ReviewReactionScmProtocols), pr_number=7, review_id=500, reaction="eyes"
+        )
+
+        mock_capture.assert_called_once()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_deletes_own_eyes_by_content(self, mock_scm_actions: MagicMock) -> None:
+        scm = MagicMock(spec=_ReviewReactionScmProtocols)
+
+        _delete_own_review_eyes_reaction(scm, pr_number=7, review_id=500)
+
+        mock_scm_actions.delete_pull_request_review_reaction.assert_called_once_with(
+            scm, "7", "500", "eyes"
+        )
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_delete_swallows_exceptions(self, mock_scm_actions: MagicMock) -> None:
+        mock_scm_actions.delete_pull_request_review_reaction.side_effect = RuntimeError("boom")
+
+        _delete_own_review_eyes_reaction(
+            MagicMock(spec=_ReviewReactionScmProtocols), pr_number=7, review_id=500
+        )
 
 
 class BuildReviewFeedbackTest(TestCase):

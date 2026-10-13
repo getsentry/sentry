@@ -1,14 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import SeerWorkflows from 'sentry/views/seerWorkflows';
 
@@ -34,6 +27,8 @@ describe('SeerWorkflows', () => {
   });
 
   it('clears filters when starting a scan, expands it, and polls for completion', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const scanOrganization = OrganizationFixture({
       features: ['seer-workflows-monitor-cleanup'],
     });
@@ -74,9 +69,9 @@ describe('SeerWorkflows', () => {
       extras: {status: 'running'},
     };
     MockApiClient.addMockResponse({url, body: [runningRun, previousRun]});
-    await userEvent.click(screen.getByRole('button', {name: 'Run…'}));
+    await user.click(screen.getByRole('button', {name: 'Run…'}));
     expect(startScan).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Monitor scan'}));
+    await user.click(screen.getByRole('menuitemradio', {name: 'Monitor scan'}));
 
     expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(screen.getAllByText('Scanning monitors…')).not.toHaveLength(0);
@@ -111,14 +106,13 @@ describe('SeerWorkflows', () => {
       ],
     };
     MockApiClient.addMockResponse({url, body: [completedRun, previousRun]});
-    await waitFor(
-      () =>
-        expect(screen.queryByRole('status', {name: 'Running'})).not.toBeInTheDocument(),
-      {timeout: 7000}
-    );
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(5000);
+    });
+    expect(screen.queryByRole('status', {name: 'Running'})).not.toBeInTheDocument();
     expect(screen.getAllByRole('img', {name: 'Succeeded'})).toHaveLength(2);
     expect(screen.getAllByText('No findings')).not.toHaveLength(0);
-  }, 10000);
+  });
 
   it('polls running Agentic triage workflows and keeps them visible when a background poll fails', async () => {
     jest.useFakeTimers();

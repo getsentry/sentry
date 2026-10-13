@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconAttachment} from '@sentry/icons/attachment';
 import {keepPreviousData} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {IconAttachment} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
