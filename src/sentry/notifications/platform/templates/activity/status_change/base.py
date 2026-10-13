@@ -1,8 +1,8 @@
 from sentry.notifications.platform.templates.activity.base import (
     ActivityNotificationData,
+    build_subject_issue_blocks,
 )
 from sentry.notifications.platform.types import (
-    CodeTextBlock,
     NotificationTextBlock,
     PlainTextBlock,
 )
@@ -32,8 +32,8 @@ def get_status_change_subject(data: ActivityNotificationData) -> list[Notificati
         case _:
             raise ValueError("Unsupported activity, can only be used for status changes.")
 
-    if data.issue_short_id:
-        blocks.extend([CodeTextBlock(text=data.issue_short_id), PlainTextBlock(text=action)])
+    if issue_blocks := build_subject_issue_blocks(data):
+        blocks.extend([*issue_blocks, PlainTextBlock(text=action)])
     else:
         blocks.append(PlainTextBlock(text=f"A Sentry Issue {action}"))
 

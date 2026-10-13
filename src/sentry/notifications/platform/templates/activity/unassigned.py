@@ -3,11 +3,11 @@ from sentry.notifications.platform.templates.activity.base import (
     ActivityNotificationData,
     build_footer,
     build_issue_link,
+    build_subject_issue_blocks,
     create_activity_notification_example,
     get_issue_description,
 )
 from sentry.notifications.platform.types import (
-    CodeTextBlock,
     NotificationCategory,
     NotificationRenderedTemplate,
     NotificationSource,
@@ -20,11 +20,9 @@ from sentry.types.activity import ActivityType
 
 
 def get_unassigned_subject(data: ActivityNotificationData) -> list[NotificationTextBlock]:
-    blocks: list[NotificationTextBlock] = []
-    if data.issue_short_id:
-        blocks.append(CodeTextBlock(text=data.issue_short_id))
-    else:
-        blocks.append(PlainTextBlock(text="An Issue"))
+    blocks: list[NotificationTextBlock] = build_subject_issue_blocks(data) or [
+        PlainTextBlock(text="An Issue")
+    ]
     blocks.append(PlainTextBlock(text="was unassigned"))
     if data.activity_user_name:
         blocks.append(PlainTextBlock(text=f"by {data.activity_user_name}"))

@@ -1,5 +1,8 @@
 from urllib.parse import urlencode
 
+from django.db.models import F
+
+from sentry.models.organization import Organization
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.templates.activity.assigned import get_assigned_subject
 from sentry.notifications.platform.templates.activity.base import (
@@ -15,15 +18,18 @@ from sentry.notifications.platform.templates.activity.base import (
     build_activity_notification_data,
     build_footer,
     build_issue_link,
+    build_subject_issue_blocks,
     create_activity_notification_example,
     get_issue_description,
 )
+from sentry.notifications.platform.templates.activity.note import get_note_subject
 from sentry.notifications.platform.templates.activity.seer.base import (
     get_subject,
 )
 from sentry.notifications.platform.templates.activity.status_change.base import (
     get_status_change_subject,
 )
+from sentry.notifications.platform.templates.activity.unassigned import get_unassigned_subject
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationProviderKey,
@@ -165,6 +171,54 @@ class ActivityAlertBaseTest(TestCase):
         )
         assert data.email_headers is None
         assert data.email_subject_prefix == "[Sentry] "
+        assert data.email_subject_issue_title == self.group.title
+
+    def test_build_activity_notification_data_email_subject_issue_title_enhanced_privacy(
+        self,
+    ) -> None:
+        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
+        activity = self.create_group_activity(
+            group=self.group, type=ActivityType.SET_REGRESSION.value
+        )
+        data = build_activity_notification_data(activity=activity, target=self.target)
+
+        assert data.email_subject_issue_title is None
+
+    def test_build_activity_notification_data_email_subject_issue_title_non_email(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group, type=ActivityType.SET_REGRESSION.value
+        )
+        target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="C12345",
+        )
+        data = build_activity_notification_data(activity=activity, target=target)
+
+        assert data.email_subject_issue_title is None
+
+    def test_build_subject_issue_blocks(self) -> None:
+        data = create_activity_notification_example(ActivityType.SET_REGRESSION)
+        blocks = build_subject_issue_blocks(data)
+        assert len(blocks) == 1
+        assert blocks[0].type == NotificationTextBlockType.CODE
+        assert blocks[0].text == "JAVASCRIPT-1"
+
+    def test_build_subject_issue_blocks_with_email_title(self) -> None:
+        data = create_activity_notification_example(ActivityType.SET_REGRESSION).copy(
+            update={"email_subject_issue_title": "ExampleError: something went wrong"}
+        )
+        blocks = build_subject_issue_blocks(data)
+        assert [b.text for b in blocks] == [
+            "JAVASCRIPT-1",
+            "- ExampleError: something went wrong",
+        ]
+
+    def test_build_subject_issue_blocks_no_short_id(self) -> None:
+        data = create_activity_notification_example(ActivityType.SET_REGRESSION).copy(
+            update={"issue_short_id": None, "email_subject_issue_title": "ExampleError"}
+        )
+        assert build_subject_issue_blocks(data) == []
 
     def test_build_activity_notification_data_user_settings_url_to_alerts(self) -> None:
         workflow = self.create_workflow(
@@ -306,6 +360,19 @@ class ActivitySetResolvedAlertBaseTest(TestCase):
         assert len(subject) == 1
         assert "A Sentry Issue was resolved" in subject[0].text
 
+    def test_get_status_change_subject_with_email_title(self) -> None:
+        data = create_activity_notification_example(ActivityType.SET_REGRESSION).copy(
+            update={
+                "email_subject_issue_title": "ExampleError: something went wrong",
+                "activity_user_name": None,
+            }
+        )
+        subject = get_status_change_subject(data)
+        assert (
+            " ".join(b.text for b in subject)
+            == "JAVASCRIPT-1 - ExampleError: something went wrong has regressed"
+        )
+
     def test_get_status_change_subject_with_user(self) -> None:
         data = create_activity_notification_example(ActivityType.SET_RESOLVED)
         subject = get_status_change_subject(data)
@@ -349,3 +416,36 @@ class ActivityAssignedAlertBaseTest(TestCase):
         assert "auto-assigned" in subject_text
         assert "proxy-user.sentry.io" not in subject_text
         assert "the workflows team" in subject_text
+
+    def test_assigned_subject_with_email_title(self) -> None:
+        data = AssignedNotificationData(
+            **create_activity_notification_example(ActivityType.ASSIGNED).dict(),
+            assignee_label="the workflows team",
+        ).copy(update={"email_subject_issue_title": "ExampleError: something went wrong"})
+        subject_text = " ".join(b.text for b in get_assigned_subject(data))
+        assert subject_text == (
+            "JAVASCRIPT-1 - ExampleError: something went wrong was assigned to "
+            "the workflows team by Jane Doe"
+        )
+
+
+class ActivityUnassignedAndNoteSubjectTest(TestCase):
+    def test_unassigned_subject_with_email_title(self) -> None:
+        data = create_activity_notification_example(ActivityType.UNASSIGNED).copy(
+            update={"email_subject_issue_title": "ExampleError: something went wrong"}
+        )
+        subject_text = " ".join(b.text for b in get_unassigned_subject(data))
+        assert (
+            subject_text
+            == "JAVASCRIPT-1 - ExampleError: something went wrong was unassigned by Jane Doe"
+        )
+
+    def test_note_subject_with_email_title(self) -> None:
+        data = create_activity_notification_example(ActivityType.NOTE).copy(
+            update={"email_subject_issue_title": "ExampleError: something went wrong"}
+        )
+        subject_text = " ".join(b.text for b in get_note_subject(data))
+        assert (
+            subject_text
+            == "New comment on JAVASCRIPT-1 - ExampleError: something went wrong by Jane Doe"
+        )

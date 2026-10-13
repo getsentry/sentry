@@ -3,12 +3,12 @@ from sentry.notifications.platform.templates.activity.base import (
     ActivityNotificationData,
     build_footer,
     build_issue_link,
+    build_subject_issue_blocks,
     create_activity_notification_example,
     get_issue_description,
 )
 from sentry.notifications.platform.types import (
     BlockQuoteSection,
-    CodeTextBlock,
     NotificationCategory,
     NotificationRenderedTemplate,
     NotificationSection,
@@ -24,10 +24,7 @@ from sentry.types.activity import ActivityType
 def get_note_subject(data: ActivityNotificationData) -> list[NotificationTextBlock]:
     blocks: list[NotificationTextBlock] = []
     blocks.append(PlainTextBlock(text="New comment on"))
-    if data.issue_short_id:
-        blocks.append(CodeTextBlock(text=data.issue_short_id))
-    else:
-        blocks.append(PlainTextBlock(text="a Sentry Issue"))
+    blocks.extend(build_subject_issue_blocks(data) or [PlainTextBlock(text="a Sentry Issue")])
     if data.activity_user_name:
         blocks.append(PlainTextBlock(text=f"by {data.activity_user_name}"))
     return blocks

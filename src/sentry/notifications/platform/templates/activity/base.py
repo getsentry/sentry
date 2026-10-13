@@ -96,6 +96,9 @@ class ActivityNotificationData(NotificationData):
     user_settings_url: str | None = None
     email_headers: dict[str, str] | None = None
     email_subject_prefix: str | None = None
+    # Only set for email targets, where the subject is the main signal recipients use to triage
+    # their inbox. Other providers already render the issue title in the body.
+    email_subject_issue_title: str | None = None
 
 
 def create_activity_notification_example(
@@ -154,6 +157,15 @@ def build_footer(data: ActivityNotificationData) -> list[NotificationTextBlock]:
 def build_issue_link(issue_short_id: str | None, issue_url: str) -> LinkTextBlock:
     label = issue_short_id or "This issue"
     return LinkTextBlock(text=label, url=issue_url)
+
+
+def build_subject_issue_blocks(data: ActivityNotificationData) -> list[NotificationTextBlock]:
+    if not data.issue_short_id:
+        return []
+    blocks: list[NotificationTextBlock] = [CodeTextBlock(text=data.issue_short_id)]
+    if data.email_subject_issue_title:
+        blocks.append(PlainTextBlock(text=f"- {data.email_subject_issue_title}"))
+    return blocks
 
 
 def get_issue_description(data: ActivityNotificationData) -> list[NotificationSection]:
@@ -244,10 +256,11 @@ def build_activity_notification_data(
         organization=organization,
         target=target,
     )
-    email_subject_prefix = (
-        f"{build_subject_prefix(project).rstrip()} "
-        if target.provider_key == NotificationProviderKey.EMAIL
-        else None
+    is_email_target = target.provider_key == NotificationProviderKey.EMAIL
+    email_subject_prefix = f"{build_subject_prefix(project).rstrip()} " if is_email_target else None
+    # Matches legacy activity emails, which omit the title for enhanced privacy organizations.
+    email_subject_issue_title = (
+        group.title if is_email_target and not organization.flags.enhanced_privacy else None
     )
 
     workflow: Workflow | None = None
@@ -292,6 +305,7 @@ def build_activity_notification_data(
         activity_user_name=None,
         email_headers=email_headers,
         email_subject_prefix=email_subject_prefix,
+        email_subject_issue_title=email_subject_issue_title,
     )
 
     if workflow:
