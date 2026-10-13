@@ -59,13 +59,6 @@ import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metric
 import {SpanFields} from 'sentry/views/insights/types';
 
 export {
-  serializeFields,
-  serializeLinkedDashboards,
-  serializeSorts,
-  serializeThresholds,
-} from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
-
-export {
   MAX_NUM_Y_AXES,
   WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP,
   BuilderStateAction,

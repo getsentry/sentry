@@ -52,7 +52,6 @@ import {
   withBaseConditionalAggregateField,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
-export {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,

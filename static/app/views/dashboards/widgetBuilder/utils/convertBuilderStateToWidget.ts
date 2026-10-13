@@ -18,8 +18,6 @@ import {serializeSorts} from 'sentry/views/dashboards/widgetBuilder/utils/serial
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-export {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregateIndex';
-
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   if (state.displayType === DisplayType.TEXT) {
     return {
