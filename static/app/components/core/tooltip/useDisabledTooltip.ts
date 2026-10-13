@@ -2,29 +2,22 @@ import {useCallback} from 'react';
 
 import type {TooltipPropsWithOptionalTitle} from './tooltip';
 
-function preventInteraction(event: React.SyntheticEvent): void {
-  event.preventDefault();
-  event.stopPropagation();
-}
-
 interface DisabledTooltipOptions<Element extends HTMLElement> extends Pick<
   React.HTMLAttributes<Element>,
-  'aria-disabled' | 'onKeyDown' | 'onClickCapture' | 'onChange'
+  'aria-disabled' | 'onKeyDown'
 > {
   disabled?: boolean;
   tooltipProps?: TooltipPropsWithOptionalTitle;
 }
 
 /**
- * Keeps disabled controls focusable when they have a tooltip and prevents activation.
- * Callers still handle exclusion from form submission and validation.
+ * Keeps disabled controls focusable when they have a tooltip and prevents keyboard activation.
+ * Callers still handle click and change events, form submission, and validation.
  */
 export function useDisabledTooltip<Element extends HTMLElement>({
   disabled,
   tooltipProps,
   onKeyDown,
-  onClickCapture,
-  onChange,
   'aria-disabled': ariaDisabled,
 }: DisabledTooltipOptions<Element>) {
   const disabledWithTooltip = Boolean(
@@ -34,7 +27,8 @@ export function useDisabledTooltip<Element extends HTMLElement>({
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<Element>) => {
       if (disabledWithTooltip && (event.key === 'Enter' || event.key === ' ')) {
-        preventInteraction(event);
+        event.preventDefault();
+        event.stopPropagation();
         return;
       }
       onKeyDown?.(event);
@@ -46,7 +40,5 @@ export function useDisabledTooltip<Element extends HTMLElement>({
     disabled: disabledWithTooltip ? undefined : disabled,
     'aria-disabled': disabledWithTooltip || ariaDisabled,
     onKeyDown: handleKeyDown,
-    onClickCapture: disabled ? preventInteraction : onClickCapture,
-    onChange: disabled ? preventInteraction : onChange,
   };
 }

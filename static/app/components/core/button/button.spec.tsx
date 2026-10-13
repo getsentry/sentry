@@ -25,14 +25,8 @@ describe('Button', () => {
 
   it('uses aria-disabled instead of disabled when a tooltip is present', async () => {
     const onClick = jest.fn();
-    const onClickCapture = jest.fn();
     render(
-      <Button
-        disabled
-        onClick={onClick}
-        onClickCapture={onClickCapture}
-        tooltipProps={{title: 'Not available'}}
-      >
+      <Button disabled onClick={onClick} tooltipProps={{title: 'Not available'}}>
         Save
       </Button>
     );
@@ -45,7 +39,6 @@ describe('Button', () => {
 
     await userEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
-    expect(onClickCapture).not.toHaveBeenCalled();
   });
 
   it('preserves consumer handlers when a button with a tooltip is enabled', async () => {

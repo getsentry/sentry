@@ -98,6 +98,11 @@ export interface CheckboxProps extends Omit<
   tooltipProps?: TooltipPropsWithOptionalTitle;
 }
 
+function preventInteraction(event: React.SyntheticEvent): void {
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 export function Checkbox({
   checked = false,
   size = 'sm',
@@ -141,6 +146,8 @@ export function Checkbox({
           type="checkbox"
           {...props}
           {...disabledProps}
+          onClickCapture={props.disabled ? preventInteraction : props.onClickCapture}
+          onChange={props.disabled ? preventInteraction : props.onChange}
           name={props.disabled ? undefined : props.name}
           required={props.disabled ? undefined : props.required}
         />
