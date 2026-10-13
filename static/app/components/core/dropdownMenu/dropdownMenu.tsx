@@ -75,6 +75,8 @@ interface BaseDropdownMenuProps
   renderWrapAs?: React.ElementType;
   /**
    * Affects the size of the trigger button and menu items.
+   * When omitted, custom triggers inherit their surrounding size, while the
+   * default trigger and menu items use md.
    */
   size?: DropdownMenuListProps['size'];
   /**
@@ -115,7 +117,7 @@ function DropdownMenu({
   isDisabled: disabledProp,
   isOpen: isOpenProp,
   renderWrapAs = 'div',
-  size = 'md',
+  size: explicitSize,
   className,
 
   // Overlay props
@@ -137,6 +139,7 @@ function DropdownMenu({
   strategy,
   ...props
 }: DropdownMenuProps) {
+  const size = explicitSize ?? 'md';
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
   const {rootOverlayState} = useContext(DropdownMenuContext);
@@ -213,11 +216,11 @@ function DropdownMenu({
     () => ({
       overlayIsOpen: isOpen,
       disabled: isDisabled,
-      size,
+      size: explicitSize,
       search: '',
       searchable: false,
     }),
-    [isOpen, size, isDisabled]
+    [isOpen, explicitSize, isDisabled]
   );
 
   return (
