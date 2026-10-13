@@ -3,7 +3,7 @@ from typing import Any, NotRequired, TypedDict
 
 from sentry import features, options
 from sentry.constants import DataCategory
-from sentry.investigations.models import Investigation
+from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.telemetry import record_investigation_started
@@ -881,6 +881,65 @@ def process_autofix_updates(
                         event_payload=event_payload,
                         cache_payload=cache_result["payload"],
                     )
+                except Exception as e:
+                    ept_lifecycle.record_failure(failure_reason=e)
+
+
+@instrumented_task(
+    name="sentry.seer.entrypoints.operator.process_investigation_updates",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+    retry=None,
+)
+def process_investigation_updates(*, investigation_id: int) -> None:
+    """
+    Sends the latest orchestration run of an investigation to each entrypoint that has a cache for it.
+    """
+    with SeerOperatorEventLifecycleMetric(
+        interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_INVESTIGATION_UPDATE
+    ).capture() as lifecycle:
+        lifecycle.add_extra("investigation_id", investigation_id)
+
+        run = (
+            InvestigationOrchestrationRun.objects.select_related("investigation")
+            .filter(investigation_id=investigation_id)
+            .first()
+        )
+        if run is None:
+            lifecycle.record_halt(halt_reason="run_not_found")
+            return
+
+        organization = Organization.objects.get_from_cache(id=run.investigation.organization_id)
+        lifecycle.add_extra("organization_id", organization.id)
+
+        for (
+            entrypoint_key,
+            entrypoint_cls,
+        ) in investigation_entrypoint_registry.registrations.items():
+            if not SeerInvestigationOperator.has_access(
+                organization=organization, entrypoint_key=entrypoint_key
+            ):
+                continue
+
+            from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload
+
+            cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+                entrypoint_key=str(entrypoint_key),
+                investigation_id=investigation_id,
+            )
+            if not cache_payload:
+                continue
+
+            if cache_payload.get("organization_id") != organization.id:
+                lifecycle.record_failure(failure_reason="org_mismatch")
+                return
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_INVESTIGATION_UPDATE,
+                entrypoint_key=str(entrypoint_key),
+            ).capture() as ept_lifecycle:
+                try:
+                    entrypoint_cls.on_investigation_update(cache_payload=cache_payload, run=run)
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
 

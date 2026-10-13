@@ -891,6 +891,126 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.phase == "planning"
         assert self.orchestration_run.last_event_sequence == 0
 
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_workflow_update_schedules_investigation_updates_on_commit(self, mock_delay) -> None:
+        with self.capture_on_commit_callbacks(execute=True):
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_terminal_snapshot_fast_forward_schedules_investigation_updates(
+        self, mock_delay
+    ) -> None:
+        with self.capture_on_commit_callbacks(execute=True):
+            receipt = self.deliver(
+                self.event(
+                    3,
+                    "state_snapshot",
+                    {
+                        "terminal": True,
+                        "full": True,
+                        "projection": self.projection(
+                            workflow_version=2, phase="completed", status="completed"
+                        ),
+                        "blocks": [],
+                    },
+                )
+            )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_stale_event_does_not_schedule_investigation_updates(self, mock_delay) -> None:
+        self.deliver(
+            self.event(
+                1,
+                "workflow_updated",
+                {"projection": self.projection(workflow_version=2, generation=2)},
+                generation=2,
+            )
+        )
+        mock_delay.reset_mock()
+
+        with self.capture_on_commit_callbacks(execute=True):
+            receipt = self.deliver(
+                self.event(2, "workflow_updated", {"projection": self.projection()}, generation=1)
+            )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_notebook_event_does_not_schedule_investigation_updates(self, mock_delay) -> None:
+        with self.capture_on_commit_callbacks(execute=True):
+            self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+            self.deliver(
+                self.event(
+                    2,
+                    "report_block_started",
+                    {
+                        "reportRevision": 1,
+                        "stableAgentKey": "summary",
+                        "position": 0,
+                        "kind": "text",
+                        "title": "Summary",
+                        "collapsed": False,
+                        "projectIds": [self.project.id],
+                    },
+                )
+            )
+            receipt = self.deliver(
+                self.event(
+                    3,
+                    "report_text_delta",
+                    {"reportRevision": 1, "stableAgentKey": "summary", "delta": "text"},
+                )
+            )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_synchronize_projection_schedules_investigation_updates(self, mock_delay) -> None:
+        with self.capture_on_commit_callbacks(execute=True):
+            synchronize_orchestration_projection(
+                orchestration_run_id=self.orchestration_run.id,
+                seer_run_id=self.seer_run_id,
+                projection=self.projection(workflow_version=2, phase="planning"),
+            )
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_synchronize_stale_projection_does_not_schedule_investigation_updates(
+        self, mock_delay
+    ) -> None:
+        self.deliver(
+            self.event(
+                1,
+                "workflow_updated",
+                {"projection": self.projection(workflow_version=3, generation=2)},
+                generation=2,
+            )
+        )
+        mock_delay.reset_mock()
+
+        with self.capture_on_commit_callbacks(execute=True):
+            synchronize_orchestration_projection(
+                orchestration_run_id=self.orchestration_run.id,
+                seer_run_id=self.seer_run_id,
+                projection=self.projection(workflow_version=2),
+            )
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 3
+        mock_delay.assert_not_called()
+
     def test_synchronize_projection_rejects_invalid_seer_run_ids(self) -> None:
         for seer_run_id in (True, 0, I64_MAX + 1):
             with pytest.raises(serializers.ValidationError):
