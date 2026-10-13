@@ -39,18 +39,33 @@ def test_get_rule_or_workflow_id_falls_back_to_rule_id() -> None:
 
 def test_get_workflow_url() -> None:
     assert (
-        get_workflow_url(_rule({"legacy_rule_id": "1", "workflow_id": "2"}), "org-slug")
+        get_workflow_url(
+            NotificationOrigin(
+                label="alert",
+                environment_id=None,
+                workflow_id=2,
+                legacy_rule_id=1,
+            ),
+            "org-slug",
+        )
         == "http://testserver/organizations/org-slug/monitors/alerts/2/"
     )
 
 
 def test_get_workflow_url_warns_when_workflow_id_is_missing() -> None:
+    origin = NotificationOrigin(
+        label="alert",
+        environment_id=None,
+        workflow_id=None,
+        legacy_rule_id=1,
+    )
+
     with patch("sentry.notifications.utils.rules.logger") as logger:
-        assert get_workflow_url(_rule({"legacy_rule_id": "1"}), "org-slug") is None
+        assert get_workflow_url(origin, "org-slug") is None
 
     logger.warning.assert_called_once_with(
         "notifications.workflow_url.missing_workflow_id",
-        extra={"legacy_rule_id": "1"},
+        extra={"legacy_rule_id": 1},
     )
 
 

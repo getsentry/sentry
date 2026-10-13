@@ -9,7 +9,6 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -254,14 +253,15 @@ def build_footer(
     group: Group,
     project: Project,
     url_format: str,
-    rules: Sequence[Rule | NotificationOrigin] | None = None,
+    rules: Sequence[NotificationOrigin] | None = None,
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
+        origin = rules[0]
         # If this notification is triggered via the "Send Test Notification"
         # button then the label is not defined.
-        text = rules[0].label if rules[0].label else "Test Alert"
-        workflow_url = get_workflow_url(rules[0], group.organization.slug)
+        text = origin.label if origin.label else "Test Alert"
+        workflow_url = get_workflow_url(origin, group.organization.slug)
         linked_text = url_format.format(text=text, url=workflow_url) if workflow_url else text
         footer += f" via {linked_text}"
 

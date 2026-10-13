@@ -122,18 +122,12 @@ def get_rule_or_workflow_id(
     raise AssertionError("Notification origin requires a workflow or legacy rule ID")
 
 
-def get_workflow_url(rule: Rule | NotificationOrigin, organization_slug: str) -> str | None:
-    try:
-        key, value = get_rule_or_workflow_id(rule, prefer="workflow_id")
-    except AssertionError:
-        legacy_rule_id = None
-    else:
-        if key == "workflow_id":
-            return absolute_uri(create_link_to_workflow(organization_slug, value))
-        legacy_rule_id = value
+def get_workflow_url(origin: NotificationOrigin, organization_slug: str) -> str | None:
+    if origin.workflow_id is not None:
+        return absolute_uri(create_link_to_workflow(organization_slug, str(origin.workflow_id)))
 
     logger.warning(
         "notifications.workflow_url.missing_workflow_id",
-        extra={"legacy_rule_id": legacy_rule_id},
+        extra={"legacy_rule_id": origin.legacy_rule_id},
     )
     return None
