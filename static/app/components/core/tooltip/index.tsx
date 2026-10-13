@@ -4,4 +4,4 @@ export {
   type ControlTooltipProps,
   type TooltipProps,
 } from './tooltip';
-export {useDisabledTooltip} from './useDisabledTooltip';
+export {preventDisabledInteraction, useDisabledTooltip} from './useDisabledTooltip';

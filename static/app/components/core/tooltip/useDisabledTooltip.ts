@@ -2,6 +2,11 @@ import {useCallback} from 'react';
 
 import type {ControlTooltipProps} from './tooltip';
 
+export function preventDisabledInteraction(event: React.SyntheticEvent): void {
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 interface DisabledTooltipOptions<Element extends HTMLElement> extends Pick<
   React.HTMLAttributes<Element>,
   'aria-disabled' | 'onKeyDown'
@@ -27,8 +32,7 @@ export function useDisabledTooltip<Element extends HTMLElement>({
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<Element>) => {
       if (disabledWithTooltip && (event.key === 'Enter' || event.key === ' ')) {
-        event.preventDefault();
-        event.stopPropagation();
+        preventDisabledInteraction(event);
         return;
       }
       onKeyDown?.(event);

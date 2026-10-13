@@ -5,6 +5,7 @@ import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {
+  preventDisabledInteraction,
   Tooltip,
   useDisabledTooltip,
   type ControlTooltipProps,
@@ -96,11 +97,6 @@ export interface CheckboxProps extends Omit<
   size?: FormSize;
   /** Explains why a disabled checkbox cannot be changed. */
   tooltipProps?: ControlTooltipProps;
-}
-
-function preventDisabledInteraction(event: React.SyntheticEvent) {
-  event.preventDefault();
-  event.stopPropagation();
 }
 
 export function Checkbox({
