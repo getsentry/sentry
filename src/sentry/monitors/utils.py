@@ -479,15 +479,3 @@ def ensure_cron_detector_deletion(monitor: Monitor):
         data_source.delete()
         if detector:
             detector.delete()
-
-
-def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
-    try:
-        with in_test_hide_transaction_boundary():
-            return Detector.objects.get(
-                datasource__type=DATA_SOURCE_CRON_MONITOR,
-                datasource__source_id=str(monitor.id),
-                datasource__organization_id=monitor.organization_id,
-            )
-    except Detector.DoesNotExist:
-        return None

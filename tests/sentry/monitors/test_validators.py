@@ -20,7 +20,8 @@ from sentry.monitors.models import (
     is_monitor_muted,
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
-from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
+from sentry.monitors.models import get_detector_for_monitor
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.monitors.validators import (
     MonitorDataSourceValidator,
     MonitorIncidentDetectorValidator,

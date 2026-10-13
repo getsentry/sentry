@@ -14,7 +14,8 @@ from sentry.constants import ObjectStatus
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, is_monitor_muted
-from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
+from sentry.monitors.models import get_detector_for_monitor
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import MonitorTestCase
