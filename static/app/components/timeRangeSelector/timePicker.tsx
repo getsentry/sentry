@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -23,66 +23,57 @@ function TimePickerImpl({
   hasStartErrors,
   hasEndErrors,
 }: Props) {
-  const startInputRef = useRef<HTMLInputElement>(null);
-  const endInputRef = useRef<HTMLInputElement>(null);
-  // Track focus in a ref so we know whether to apply incoming prop changes
-  const focusedRef = useRef(false);
+  const startRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLInputElement>(null);
 
-  // When start/end props change externally (i.e. not because the user is
-  // currently typing), reset the input values imperatively. We use a DOM ref
-  // rather than React state to avoid the derived-state anti-pattern while
-  // still preventing the re-key/remount that caused focus loss in the old
-  // class-component implementation.
-  useEffect(() => {
-    if (!focusedRef.current) {
-      if (startInputRef.current) {
-        startInputRef.current.value = start ?? '';
-      }
-      if (endInputRef.current) {
-        endInputRef.current.value = end ?? '';
-      }
-    }
-  }, [start, end]);
-
-  const handleFocus = useCallback(() => {
-    focusedRef.current = true;
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    focusedRef.current = false;
-  }, []);
+  useSyncUnfocusedValue(startRef, start);
+  useSyncUnfocusedValue(endRef, end);
 
   return (
     <div className={classNames(className, 'rdrDateDisplay')}>
       <div>
         <Input
-          ref={startInputRef}
+          ref={startRef}
           type="time"
           defaultValue={start}
           className="rdrDateDisplayItem"
           data-test-id="startTime"
           aria-invalid={hasStartErrors}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
           onChange={onChangeStart}
         />
       </div>
 
       <div>
         <Input
-          ref={endInputRef}
+          ref={endRef}
           type="time"
           defaultValue={end}
           className="rdrDateDisplayItem"
           data-test-id="endTime"
           aria-invalid={hasEndErrors}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
           onChange={onChangeEnd}
         />
       </div>
     </div>
   );
+}
+
+/**
+ * The parent ignores partial or invalid times and keeps its last valid value,
+ * so the inputs stay uncontrolled to hold what the user is typing. New values
+ * are only written to an input that doesn't have focus, otherwise the parent
+ * echoing a keystroke back would overwrite the in-progress edit.
+ */
+function useSyncUnfocusedValue(
+  ref: React.RefObject<HTMLInputElement | null>,
+  value: string | undefined
+) {
+  useEffect(() => {
+    const input = ref.current;
+    if (input && input !== document.activeElement) {
+      input.value = value ?? '';
+    }
+  }, [ref, value]);
 }
 
 export const TimePicker = styled(TimePickerImpl)`
