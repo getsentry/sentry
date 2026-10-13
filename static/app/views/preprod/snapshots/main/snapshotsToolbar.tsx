@@ -3,6 +3,13 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconHide} from '@sentry/icons/hide';
+import {IconInput} from '@sentry/icons/input';
+import {IconList} from '@sentry/icons/list';
+import {IconPause} from '@sentry/icons/pause';
+import {IconShow} from '@sentry/icons/show';
+import {IconStack} from '@sentry/icons/stack';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -13,15 +20,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressBar} from 'sentry/components/progressBar';
-import {
-  IconExpand,
-  IconHide,
-  IconInput,
-  IconList,
-  IconPause,
-  IconShow,
-  IconStack,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';

@@ -1,5 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconMute} from '@sentry/icons/mute';
+import {IconNot} from '@sentry/icons/not';
+import {IconUser} from '@sentry/icons/user';
 import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
@@ -7,7 +11,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {IconWrapper} from 'sentry/components/sidebarSection';
-import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Group} from 'sentry/types/group';

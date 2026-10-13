@@ -75,7 +75,7 @@ def send_thread_update(
         )
         provider = provider_registry.get(NotificationProviderKey.SLACK)
         template_cls = template_registry.get(data.source)
-        renderable = NotificationService.render_template(
+        renderable, _ = NotificationService.render_template(
             data=data, template=template_cls(), provider=provider
         )
         try:

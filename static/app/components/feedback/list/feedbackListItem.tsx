@@ -1,4 +1,7 @@
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconPlay} from '@sentry/icons/play';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
@@ -12,7 +15,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
-import {IconChat, IconFatal, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';

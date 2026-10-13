@@ -426,7 +426,7 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "GitHub")]')
 
             # Step 1: OAuth Login — the modal shows "Authorize GitHub".
-            self.browser.wait_until(xpath='//button[contains(., "Authorize GitHub")]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Authorize GitHub")]')
             self.browser.click(xpath='//button[contains(., "Authorize GitHub")]')
 
             # The OAuth popup was intercepted. Extract the state parameter from
