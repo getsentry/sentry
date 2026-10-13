@@ -8,15 +8,21 @@ from dataclasses import dataclass, replace
 from enum import StrEnum
 
 from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
+    CACHE_TTL_MINUTES,
     AgentLabelSource,
     CallSiteStats,
+    CallSiteWarmth,
     DetectionWindow,
+    WarmthBucket,
 )
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams, SnubaRow
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.snuba import SnubaTSResult
 
 # ai_client is derived from span op at ingestion. It covers LLM calls from all
 # SDKs while excluding agent spans with reaggregated token totals.
@@ -38,6 +44,7 @@ OPERATION_NAME = AgentLabelSource.OPERATION_NAME.value
 # Deprecated SDK aliases are backfilled onto these attributes at ingestion.
 CACHE_READ_TOKENS = "gen_ai.usage.cache_read.input_tokens"
 CACHE_CREATION_TOKENS = "gen_ai.usage.cache_creation.input_tokens"
+CACHE_TOKEN_ATTRIBUTES = (CACHE_READ_TOKENS, CACHE_CREATION_TOKENS)
 
 SUM_INPUT_TOKENS = f"sum({INPUT_TOKENS})"
 AVG_INPUT_TOKENS = f"avg({INPUT_TOKENS})"
@@ -66,6 +73,22 @@ class CallSiteQueryResult:
     call_sites: list[CallSiteStats]
     dropped_calls: Counter[DroppedRowReason]
     truncated: bool
+
+
+def _build_group_filter(stats: CallSiteStats) -> str | None:
+    """Build an exact-match filter for a call site, if its values are expressible."""
+    agent_attribute = (
+        AGENT_NAME if stats.agent_label_source is AgentLabelSource.AGENT_NAME else OPERATION_NAME
+    )
+    try:
+        agent_term = build_escaped_term_filter(agent_attribute, [stats.agent_label])
+        span_term = build_escaped_term_filter(SPAN_NAME, [stats.span_name])
+        model_term = build_escaped_term_filter(MODEL, [stats.model])
+    except InvalidSearchQuery:
+        return None
+    if stats.agent_label_source is AgentLabelSource.OPERATION_NAME:
+        agent_term = f"!has:{AGENT_NAME} {agent_term}"
+    return f"{GEN_AI_CALL_FILTER} {agent_term} {span_term} {model_term}"
 
 
 def _run_spans_query(
@@ -191,3 +214,65 @@ def fetch_call_site_stats(project: Project, window: DetectionWindow) -> CallSite
         dropped_calls=dropped_calls,
         truncated=len(rows) >= CALL_SITE_GROUPS_LIMIT,
     )
+
+
+def fetch_call_site_warmth(
+    project: Project, stats: CallSiteStats, window: DetectionWindow
+) -> CallSiteWarmth | None:
+    """Count calls per cache-TTL bucket, or return None for an invalid filter."""
+    group_filter = _build_group_filter(stats)
+    if group_filter is None:
+        return None
+    result = Spans.run_timeseries_query(
+        params=SnubaParams(
+            start=window.start,
+            end=window.end,
+            projects=[project],
+            organization=project.organization,
+            granularity_secs=CACHE_TTL_MINUTES * 60,
+        ),
+        query_string=group_filter,
+        y_axes=[COUNT],
+        referrer=Referrer.ISSUES_LLM_CACHE_DETECTION.value,
+        config=SearchResolverConfig(auto_fields=True),
+        sampling_mode="NORMAL",
+    )
+    return CallSiteWarmth.from_buckets(_warmth_buckets(result))
+
+
+def _warmth_buckets(result: SnubaTSResult) -> list[WarmthBucket]:
+    """Pair extrapolated calls with stored-span counts in each time bucket."""
+    processed = result.data.get("processed_timeseries")
+    if processed is None:
+        return []
+    sample_counts = processed.sample_count
+    return [
+        WarmthBucket(
+            start=int(point["time"]),
+            call_count=float(point.get(COUNT) or 0),
+            sample_count=(
+                float(sample_counts[index].get(COUNT) or 0) if index < len(sample_counts) else 0.0
+            ),
+        )
+        for index, point in enumerate(processed.timeseries)
+    ]
+
+
+def count_spans_with_cache_attributes(
+    project: Project, stats: CallSiteStats, window: DetectionWindow
+) -> int | None:
+    """Count call-site spans carrying a cache attribute, if the filter is valid."""
+    group_filter = _build_group_filter(stats)
+    if group_filter is None:
+        return None
+    cache_attribute_filter = " OR ".join(f"has:{attribute}" for attribute in CACHE_TOKEN_ATTRIBUTES)
+    result = _run_spans_query(
+        project,
+        window,
+        query_string=f"{group_filter} ({cache_attribute_filter})",
+        selected_columns=[COUNT],
+        orderby=None,
+        limit=1,
+    )
+    data = result.get("data", [])
+    return int(data[0].get(COUNT) or 0) if data else 0
