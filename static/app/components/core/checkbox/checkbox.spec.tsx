@@ -42,11 +42,12 @@ describe('Checkbox', () => {
     render(
       <label>
         <Checkbox
-          disabled="Requires admin access"
+          disabled
           onChange={onChange}
           onClick={onClick}
           onClickCapture={onClickCapture}
           onKeyDown={onKeyDown}
+          tooltipProps={{title: 'Requires admin access'}}
         />
         Enable feature
       </label>
@@ -107,8 +108,18 @@ describe('Checkbox', () => {
   it('excludes a disabled checkbox with a tooltip from form data and validation', () => {
     render(
       <form aria-label="Settings">
-        <Checkbox checked disabled="Requires admin access" name="enabled" />
-        <Checkbox disabled="Requires admin access" name="requiredChoice" required />
+        <Checkbox
+          checked
+          disabled
+          name="enabled"
+          tooltipProps={{title: 'Requires admin access'}}
+        />
+        <Checkbox
+          disabled
+          name="requiredChoice"
+          required
+          tooltipProps={{title: 'Requires admin access'}}
+        />
       </form>
     );
 

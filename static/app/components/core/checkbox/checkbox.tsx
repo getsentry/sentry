@@ -76,14 +76,12 @@ const checkboxSizeMap: Record<NonNullable<CheckboxProps['size']>, CheckboxConfig
 
 export interface CheckboxProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
-  'checked' | 'disabled' | 'size'
+  'checked' | 'size'
 > {
   /**
    * Is the checkbox active? Supports 'indeterminate'
    */
   checked?: React.InputHTMLAttributes<HTMLInputElement>['checked'] | 'indeterminate';
-  /** A string disables the checkbox and explains why in a tooltip. */
-  disabled?: boolean | string;
   /**
    * Ref to the native checkbox input element.
    */
@@ -110,14 +108,9 @@ export function Checkbox({
   tooltipProps,
   ...props
 }: CheckboxProps) {
-  const isDisabled = Boolean(disabled);
-  const resolvedTooltipProps = {
-    ...tooltipProps,
-    title: tooltipProps?.title ?? (typeof disabled === 'string' ? disabled : undefined),
-  };
   const {isFocusableDisabled, disabledProps} = useDisabledTooltip({
-    disabled: isDisabled,
-    tooltipProps: resolvedTooltipProps,
+    disabled,
+    tooltipProps,
     onKeyDown: props.onKeyDown,
     'aria-disabled': props['aria-disabled'],
   });
@@ -139,11 +132,11 @@ export function Checkbox({
   return (
     <CheckboxWrapper
       size={size}
-      disabled={isDisabled}
+      disabled={disabled}
       readOnly={props.readOnly}
       {...wrapperProps}
     >
-      <Tooltip skipWrapper {...resolvedTooltipProps}>
+      <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
         <NativeHiddenCheckbox
           ref={mergeRefs(nativeCheckBoxRef, ref)}
           checked={checked !== 'indeterminate' && checked}
@@ -173,7 +166,7 @@ export function Checkbox({
           </CheckboxIcon>
         )}
       </FakeCheckbox>
-      {!(isDisabled || props.readOnly) && (
+      {!(disabled || props.readOnly) && (
         <InteractionStateLayer
           higherOpacity={checked === true || checked === 'indeterminate'}
         />
