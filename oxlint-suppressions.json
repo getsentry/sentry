@@ -212,11 +212,6 @@
       "count": 1
     }
   },
-  "static/app/components/droppedData/useDroppedDataDrawer.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/components/editableText.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4054,11 +4049,6 @@
   "static/gsApp/views/amCheckout/steps/productSelect.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/gsApp/views/cancelSubscription.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
     }
   },
   "static/gsApp/views/invoiceDetails/index.tsx": {
