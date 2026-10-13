@@ -131,7 +131,11 @@ export function Checkbox({
       onClickCapture={props.disabled ? preventDisabledInteraction : undefined}
       {...wrapperProps}
     >
-      {/* aria-disabled inputs still submit and validate; omit name and required below. */}
+      {/*
+        aria-disabled keeps the checkbox focusable so keyboard users can read its tooltip,
+        but the browser still includes it in form submission and required field validation.
+        Remove name and required when disabled to preserve native disabled form behavior.
+      */}
       <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
         <NativeHiddenCheckbox
           ref={mergeRefs(nativeCheckBoxRef, ref)}
