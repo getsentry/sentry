@@ -196,7 +196,9 @@ class NotificationService[T: NotificationData]:
         if renderer is provider.default_renderer:
             # We aren't using a custom renderer (which decorates its own links), so we need to decorate the default renderer.
             rendered_template = link_decorator.decorate_rendered_template(rendered_template)
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = renderer.render(
+            data=data, rendered_template=rendered_template, link_decorator=link_decorator
+        )
         return renderable, link_decorator.links
 
     @staticmethod
