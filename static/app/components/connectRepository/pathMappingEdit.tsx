@@ -26,7 +26,8 @@ import {PathPrefixCombobox} from './pathPrefixCombobox';
 import {repoCodeMappingPrefixesOptions, stackCodeMappingPrefixesOptions} from './queries';
 import type {PathMappingWarning} from './warnings';
 
-const PREFIX_MENU_PROPS = {menuWidth: '100cqi', maxMenuHeight: 250} as const;
+const PREFIX_MENU_WIDTH = '100cqi';
+const PREFIX_MENU_MAX_HEIGHT = 250;
 
 export const PathMappingEdit = withFieldGroup({
   defaultValues: {stackRoot: '', sourceRoot: '', branch: ''},
@@ -113,7 +114,8 @@ export const PathMappingEdit = withFieldGroup({
                     isLoading={stackPrefixes.isLoading}
                     placeholder={STACK_ROOT_PLACEHOLDER}
                     disabled={hasCodeOwner}
-                    {...PREFIX_MENU_PROPS}
+                    menuWidth={PREFIX_MENU_WIDTH}
+                    maxMenuHeight={PREFIX_MENU_MAX_HEIGHT}
                   />
                 </field.Layout.Stack>
               )}
@@ -150,7 +152,8 @@ export const PathMappingEdit = withFieldGroup({
                     placeholder={SOURCE_ROOT_PLACEHOLDER}
                     disabled={hasCodeOwner}
                     menuAlign="end"
-                    {...PREFIX_MENU_PROPS}
+                    menuWidth={PREFIX_MENU_WIDTH}
+                    maxMenuHeight={PREFIX_MENU_MAX_HEIGHT}
                   />
                 </field.Layout.Stack>
               )}
