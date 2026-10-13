@@ -1,10 +1,10 @@
 import type {MouseEvent, ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 
 import {Stacked} from 'sentry/components/container/stacked';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {SplitDivider} from 'sentry/views/explore/replays/detail/layout/splitDivider';

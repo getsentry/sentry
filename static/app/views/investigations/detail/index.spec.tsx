@@ -1104,7 +1104,7 @@ describe('Investigation detail', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('uses compact breadcrumbs and renders text and table results without prompt data', async () => {
+  it('renders breadcrumbs, the page title, and text and table results without prompt data', async () => {
     const investigation = investigationWithQueryResult();
     investigation.blocks = [
       {
@@ -1144,9 +1144,12 @@ describe('Investigation detail', () => {
     expect(screen.getByText('820ms')).toBeInTheDocument();
     expect(screen.queryByText('Secret text-generation prompt')).not.toBeInTheDocument();
     expect(screen.queryByText('Secret query-generation prompt')).not.toBeInTheDocument();
-    expect(screen.getByTestId('investigation-breadcrumbs')).toHaveAttribute(
-      'data-text-size',
-      'md'
+    expect(screen.getByRole('link', {name: 'Investigations'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/investigations/'
+    );
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
+      investigation.title
     );
 
     const toggle = screen.getByRole('button', {name: 'Database latency'});
@@ -2258,7 +2261,7 @@ describe('Investigation detail', () => {
     );
 
     expect(await within(header).findByText('Completed')).toBeInTheDocument();
-    expect(within(header).getByRole('timer')).toHaveTextContent('35.0 s');
+    expect(within(header).getByRole('timer')).toHaveTextContent('35.0s');
     expect(within(header).queryByText('Synthesizing…')).not.toBeInTheDocument();
     // The header badge carries a finished run; the block above the hypotheses
     // only shows while there is something still in flight or needing attention.

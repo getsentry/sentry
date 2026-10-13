@@ -1,8 +1,11 @@
+from unittest.mock import Mock
+
 import pytest
+from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest
 
 from sentry import audit_log
-from sentry.api.invite_helper import ApiInviteHelper
+from sentry.api.invite_helper import ApiInviteHelper, add_invite_details_to_session
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
@@ -20,6 +23,7 @@ class ApiInviteHelperTest(TestCase):
         self.member = self.create_member(
             user=None,
             email="bar@example.com",
+            token="pendingtoken",
             organization=self.org,
             teams=[self.team],
         )
@@ -27,6 +31,54 @@ class ApiInviteHelperTest(TestCase):
         # Needed for audit logs
         self.request.META["REMOTE_ADDR"] = "127.0.0.1"
         self.request.user = self.user
+
+    def test_from_session_with_deleted_member(self) -> None:
+        self.request.session = SessionBase()
+        add_invite_details_to_session(self.request, self.member.id, self.member.token, self.org.id)
+        self.member.delete()
+        logger = Mock()
+
+        helper = ApiInviteHelper.from_session(self.request, logger=logger)
+
+        assert helper is None
+        logger.exception.assert_called_once_with("Invalid pending invite cookie")
+
+    def test_from_session_with_rotated_token(self) -> None:
+        self.request.session = SessionBase()
+        add_invite_details_to_session(self.request, self.member.id, self.member.token, self.org.id)
+        self.member.update(token="rotatedtoken")
+
+        helper = ApiInviteHelper.from_session(self.request)
+
+        assert helper is not None
+        assert not helper.valid_token
+        assert not helper.valid_request
+        self.member.refresh_from_db()
+        assert self.member.is_pending
+
+    def test_from_session_with_existing_member(self) -> None:
+        self.request.session = SessionBase()
+        add_invite_details_to_session(self.request, self.member.id, self.member.token, self.org.id)
+        existing_member = self.create_member(user=self.user, organization=self.org)
+        logger = Mock()
+
+        helper = ApiInviteHelper.from_session(self.request, logger=logger)
+
+        assert helper is not None
+        assert helper.member_already_exists
+        assert helper.invite_context.member is not None
+        assert helper.invite_context.member.id == existing_member.id
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert helper.accept_invite(self.user) is None
+
+        logger.info.assert_called_once_with(
+            "Pending org invite not accepted - User already org member",
+            extra={"organization_id": self.org.id, "user_id": self.user.id},
+        )
+        existing_member.refresh_from_db()
+        assert existing_member.user_id == self.user.id
+        assert not OrganizationMember.objects.filter(id=self.member.id).exists()
 
     def _get_om_from_accepting_invite(self) -> OrganizationMember:
         """

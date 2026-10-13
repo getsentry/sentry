@@ -30,7 +30,13 @@
 ### Routing
 
 - Routes defined in `static/app/routes.tsx`
-- Use React Router v6 patterns
+- The app still runs React Router V6; follow V6 routing patterns and behavior.
+- Use V8 import paths: import router APIs and types from `react-router`, and
+  `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
+  runtime through `static/app/utils/reactRouterV6`.
+- Only the compatibility modules may import `react-router-dom` or
+  `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
+  Nuqs adapters and Sentry tracing integrations remain V6.
 - Lazy load route components when possible
 
 ### Frontend API Calls
@@ -93,7 +99,7 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 
 - **Avatars**: use `<UserAvatar/>`/`<TeamAvatar/>`/`<ProjectAvatar/>`/etc. from `static/app/components/core/avatar` (and `<AvatarList>` for lists) — never raw `<img>`.
 - **Disclosure**: use the core `<Disclosure>` component — don't hand-roll expand/collapse.
-- **Icons**: import from `sentry/icons`; keep icons in `static/app/icons`, never inline SVGs. Optimize with svgo/svgomg.
+- **Icons**: import SVG icons from explicit `@sentry/icons` subpaths (for example, `@sentry/icons/add`). Keep SvgIcon-based icons in `static/packages/icons/src`; keep app asset wrappers in `static/app/icons`. The icons package must not depend on scraps or app code. Never inline SVGs. Optimize with svgo/svgomg.
 - **Images**: import via the `sentry-images` alias (webpack loader); keep them in `static/app/images`, never reference by static path.
 
 For worked examples of all of the above, use the **`design-system`** skill.

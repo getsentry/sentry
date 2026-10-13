@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
+import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
@@ -8,6 +9,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {AggregationKey} from 'sentry/utils/fields';
+import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -46,6 +48,12 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  applyConditionalFilter,
+  buildConditionalAggregate,
+  parseConditionalAggregate,
+  supportsConditionalAggregateFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {
   mergeValidatedGroupByTags,
   shouldHideGroupByForValidation,
@@ -233,14 +241,19 @@ function VisualizeDropdown({
     });
   }, [firstNumberKey]);
 
-  const aggregateFunction = visualize.parsedFunction?.name ?? '';
-  const aggregateParam = visualize.parsedFunction?.arguments?.[0] ?? '';
+  // Dropdowns operate on the base aggregate; strip the `_if` combinator and filter.
+  const parsedFunction = useMemo(
+    () => parseConditionalAggregate(visualize.yAxis),
+    [visualize.yAxis]
+  );
+
+  const filter = parsedFunction?.filter ?? '';
 
   const fieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
-    parsedFunction: visualize.parsedFunction,
+    parsedFunction,
     traceItemType: TraceItemDataset.LOGS,
   });
 
@@ -249,24 +262,65 @@ function VisualizeDropdown({
       if (typeof option.value === 'string') {
         const yAxis = updateVisualizeAggregate({
           newAggregate: option.value,
-          oldAggregate: aggregateFunction,
-          oldArgument: aggregateParam,
+          oldAggregate: parsedFunction?.name ?? '',
+          oldArgument: parsedFunction?.arguments?.[0] ?? '',
           firstNumberKey,
         });
-        onReplace(visualize.replace({yAxis}));
+        onReplace(
+          visualize.replace({
+            yAxis: supportsConditionalAggregateFilter(option.value)
+              ? applyConditionalFilter(yAxis, filter)
+              : yAxis,
+          })
+        );
       }
     },
-    [onReplace, visualize, aggregateFunction, aggregateParam, firstNumberKey]
+    [filter, firstNumberKey, onReplace, parsedFunction, visualize]
   );
 
   const onChangeArgument = useCallback(
-    (_index: number, option: SelectOption<SelectKey>) => {
+    (index: number, option: SelectOption<SelectKey>) => {
       if (typeof option.value === 'string') {
-        const yAxis = `${aggregateFunction}(${option.value})`;
-        onReplace(visualize.replace({yAxis}));
+        let args = cloneDeep(parsedFunction?.arguments);
+        if (args) {
+          args[index] = option.value;
+        } else {
+          args = [option.value];
+        }
+        onReplace(
+          visualize.replace({
+            yAxis: buildConditionalAggregate({
+              name: parsedFunction?.name ?? '',
+              arguments: args,
+              filter,
+            }),
+          })
+        );
       }
     },
-    [onReplace, aggregateFunction, visualize]
+    [filter, onReplace, parsedFunction, visualize]
+  );
+
+  const onFilterSearch = useCallback(
+    (newFilter: string) => {
+      if (!parsedFunction) {
+        return;
+      }
+      onReplace(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction.name,
+            arguments: parsedFunction.arguments,
+            filter: newFilter,
+          }),
+        })
+      );
+    },
+    [onReplace, parsedFunction, visualize]
+  );
+
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
   );
 
   return (
@@ -276,11 +330,22 @@ function VisualizeDropdown({
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
-      parsedFunction={visualize.parsedFunction}
+      parsedFunction={parsedFunction}
       onClose={onClose}
       onSearch={onSearch}
       loading={loading}
       fieldDefinitionType="log"
+      filterSearchBar={
+        showFilterSearchBar ? (
+          <ConditionalAggregateFilterBar
+            itemType={TraceItemDataset.LOGS}
+            menuPresentation="panel"
+            initialQuery={filter}
+            onSearch={onFilterSearch}
+            searchSource="explore-logs-conditional-aggregate"
+          />
+        ) : undefined
+      }
     />
   );
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,6 +11,7 @@ from django.db import OperationalError
 from django.http import HttpRequest
 from rest_framework.request import Request
 from sentry_sdk import Scope
+from sentry_sdk.types import Log
 
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
@@ -57,6 +59,25 @@ def test_ai_conversation_routes_are_fully_sampled(path: str) -> None:
         )
         == 1.0
     )
+
+
+@pytest.mark.parametrize(
+    "attributes",
+    [
+        {"sentry.message.template": "New partitions assigned: %r"},
+        {"sentry.message.template": {"type": "string", "value": "New partitions assigned: %r"}},
+    ],
+)
+def test_before_send_log_filters_partition_assignments(attributes: dict[str, Any]) -> None:
+    log = cast(Log, {"attributes": attributes})
+    with patch("sentry.utils.sdk.in_random_rollout", return_value=True):
+        assert sdk.before_send_log(log, {}) is None
+
+
+def test_before_send_log_keeps_other_messages() -> None:
+    log = cast(Log, {"attributes": {"sentry.message.template": "Request processed"}})
+    with patch("sentry.utils.sdk.in_random_rollout", return_value=True):
+        assert sdk.before_send_log(log, {}) is log
 
 
 class SDKUtilsTest(TestCase):

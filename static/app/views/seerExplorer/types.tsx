@@ -20,6 +20,7 @@ function zLooseEnum<T extends string>(values: readonly [T, ...T[]]) {
 // Schemas used by runtime type guards
 
 const explorerFilePatchSchema = z.object({
+  code_url: z.string().nullish(),
   diff: z.string(),
   patch: z.custom<FilePatch>(isFilePatch),
   repo_name: z.string(),

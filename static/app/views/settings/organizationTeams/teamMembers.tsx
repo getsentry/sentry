@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconUser} from '@sentry/icons/user';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {
   keepPreviousData,
@@ -31,7 +32,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
-import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -40,6 +40,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import {
@@ -326,7 +327,12 @@ export default function TeamMembers() {
   });
 
   if (isTeamMembersError) {
-    return <LoadingError onRetry={refetchTeamMembers} />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Members')} />
+        <LoadingError onRetry={refetchTeamMembers} />
+      </Fragment>
+    );
   }
 
   const renderPageTextBlock = () => {
@@ -375,6 +381,7 @@ export default function TeamMembers() {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Members')} />
       <TextBlock>{renderPageTextBlock()}</TextBlock>
 
       <ProjectPermissionAlert

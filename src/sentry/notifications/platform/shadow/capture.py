@@ -12,6 +12,7 @@ from sentry.incidents.models.incident import INCIDENT_STATUS
 from sentry.incidents.typings.metric_detector import MetricIssueContext
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.notifications.platform.shadow.compare import report
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -23,7 +24,7 @@ from sentry.notifications.utils.issue_notification_context import IssueNotificat
 from sentry.ratelimits import backend as ratelimiter
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.group import GroupSubStatus
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models import Action, AlertRuleWorkflow
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
@@ -66,13 +67,17 @@ def _variant(
 ) -> str:
     """
     Names the combination of source, provider, and the invocation attributes the legacy renderers
-    branch on, e.g. `issue:slack:error:event:tags:no_notes:unresolved:new:no_env`.
+    branch on, e.g. `issue:slack:error:event:tags:no_notes:unresolved:new:no_env:rule:unassigned`.
+    Runs before every shadowable send, so each part must stay cheap to compute.
     """
     group = invocation.event_data.group
     event = invocation.event_data.event
     notes = "notes" if invocation.action.data.get("notes") else "no_notes"
     if source == NotificationSource.ISSUE:
         has_occurrence = isinstance(event, GroupEvent) and event.occurrence_id is not None
+        has_legacy_rule = AlertRuleWorkflow.objects.filter(
+            workflow_id=invocation.workflow_id, rule_id__isnull=False
+        ).exists()
         parts = [
             group.issue_type.slug,
             "occurrence" if has_occurrence else "event",
@@ -83,6 +88,10 @@ def _variant(
             ),
             "new" if group.substatus == GroupSubStatus.NEW else "not_new",
             "env" if invocation.event_data.workflow_env is not None else "no_env",
+            "rule" if has_legacy_rule else "workflow",
+            "assigned"
+            if GroupAssignee.objects.filter(group_id=group.id).exists()
+            else "unassigned",
         ]
     else:
         _, priority = IssueNotificationContext(invocation).evidence_data_and_priority

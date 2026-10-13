@@ -610,6 +610,10 @@ _CONDITION_MATCHERS: Mapping[
         DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
     },
     ConditionType.IP_ADDRESS: _client_ip_matcher,
+    # Relay fills the geo from the client IP before filtering, unless the SDK sent one.
+    ConditionType.GEO_COUNTRY_CODE: {
+        DataType.ERROR: _field_matcher("event.user.geo.country_code"),
+    },
 }
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}

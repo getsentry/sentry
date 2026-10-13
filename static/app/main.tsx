@@ -1,5 +1,6 @@
 import {lazy, Suspense, useEffect, useState} from 'react';
-import {createBrowserRouter, RouterProvider} from 'react-router-dom';
+import {createBrowserRouter} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import {MotionConfig} from 'framer-motion';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';

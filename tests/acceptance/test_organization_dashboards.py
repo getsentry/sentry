@@ -138,7 +138,10 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="delete-widget"]').click()
             self.browser.element('[data-test-id="confirm-button"]').click()
 
+            # The widget disappears optimistically, before the save finishes.
+            self.browser.wait_until(xpath="//*[@role='status'][contains(., 'Dashboard updated')]")
             self.page.wait_until_loaded()
+            assert not DashboardWidget.objects.filter(id=existing_widget.id).exists()
 
     def test_deleting_stacked_widgets_by_context_menu_does_not_trigger_confirm_on_edit_cancel(
         self,

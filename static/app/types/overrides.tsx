@@ -1,4 +1,4 @@
-import type {UIMatch} from 'react-router-dom';
+import type {UIMatch} from 'react-router';
 import type {Location} from 'history';
 
 import type {TrackingProps} from '@sentry/scraps/trackingContext';
@@ -109,6 +109,11 @@ type CronsBillingBannerProps = {
   organization: Organization;
 };
 
+type ExploreQuotaExceededAlertProps = {
+  referrer: string;
+  traceItemDataset: 'logs' | 'spans';
+};
+
 type OrganizationHeaderProps = {
   organization: Organization;
 };
@@ -192,6 +197,7 @@ type ComponentOverrides = {
   'component:disabled-member': () => React.ComponentType;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
+  'component:explore-quota-exceeded-alert': () => React.ComponentType<ExploreQuotaExceededAlertProps>;
   'component:feedback-init': React.ComponentType;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;

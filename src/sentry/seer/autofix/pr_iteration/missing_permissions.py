@@ -31,12 +31,13 @@ accepted (at which point the check passes and no marker is consulted).
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 from django.utils import timezone
 from scm import actions as scm_actions
 from scm.types import CreatePullRequestCommentProtocol
+from sentry_sdk import traces
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
@@ -46,7 +47,7 @@ from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER,
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.scm.factory import new as make_scm
-from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.agent.client_models import MemoryBlock, SeerRunState, ToolCall
 from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
     get_missing_permissions_by_repo,
@@ -56,7 +57,6 @@ from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 
 MISSING_PERMISSIONS_EXTRA = "missing_permissions"
 
@@ -131,6 +131,37 @@ def repos_missing_permissions(
         for repo_name, pr_state in state.repo_pr_states.items()
         if pr_state.pr_number is not None
     ]
+    return get_missing_permissions_by_repo(organization, repo_names)
+
+
+def get_blocked_pr_iteration_permissions(
+    organization: Organization, state: SeerRunState, *, has_actionable_feedback: bool
+) -> dict[str, MissingGithubPermissions]:
+    """Repos whose open PR we are refusing to iterate on for missing permissions.
+
+    Deliberately narrow, because the warning tells the user we wanted to fix
+    their CI and could not:
+
+    * ``has_actionable_feedback`` — feedback we would have consumed is sitting
+      in the run's queue. Without it there is nothing we were going to do, so a
+      missing permission is not yet costing the user anything.
+    * a repo only counts once its PR exists (``pr_number``); before that there
+      is no CI for us to have failed to fix.
+
+    Mirrors what ``block_iteration_for_missing_permissions`` gates on, so the
+    warning appears exactly when an iteration is actually blocked.
+    """
+    if not has_actionable_feedback:
+        return {}
+
+    repo_names = [
+        repo_name
+        for repo_name, pr_state in state.repo_pr_states.items()
+        if pr_state.pr_number is not None
+    ]
+    if not repo_names:
+        return {}
+
     return get_missing_permissions_by_repo(organization, repo_names)
 
 
@@ -249,7 +280,7 @@ def _skip(log_ctx: PrIterationLogContext, reason: str, **log_fields: Any) -> Non
     log_ctx.info("autofix.pr_iteration.missing_permissions.skipped", reason=reason, **log_fields)
 
 
-@trace
+@traces.trace
 def block_iteration_for_missing_permissions(
     *,
     organization: Organization,
@@ -417,3 +448,37 @@ def post_missing_permissions_comment(
         missing_tiers=[tier.key for tier in info.missing_tiers],
         **log_fields,
     )
+
+
+# Key set in a tool result's ToolLink.params when the tool call errored (mirrors
+# seer's ERROR_KEY in seer.automation.explorer.models).
+_TOOL_ERROR_KEY = "is_error"
+
+
+def _failed_tool_calls(block: MemoryBlock) -> Iterator[ToolCall]:
+    """The ToolCalls in `block` whose execution errored.
+
+    tool_links is index-aligned with tool_results (see seer's explorer_agent),
+    and each tool_result carries the id of the tool_call it answered, so a failed
+    link at index j maps back to its originating tool_call.
+    """
+    links = block.tool_links or []
+    results = block.tool_results or []
+    calls_by_id = {call.id: call for call in (block.message.tool_calls or []) if call.id}
+    for i, link in enumerate(links):
+        if link is None or link.params.get(_TOOL_ERROR_KEY) is not True:
+            continue
+        result = results[i] if i < len(results) else None
+        if result is None:
+            continue
+        call = calls_by_id.get(result.tool_call_id)
+        if call is not None:
+            yield call
+
+
+def failed_tool_calls(blocks: Iterable[MemoryBlock]) -> list[ToolCall]:
+    """Tool calls in ``blocks`` whose matching tool link is marked ``is_error``."""
+    calls: list[ToolCall] = []
+    for block in blocks:
+        calls.extend(_failed_tool_calls(block))
+    return calls
