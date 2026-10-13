@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClose} from '@sentry/icons/close';
 import {IconFlag} from '@sentry/icons/flag';
@@ -8,13 +7,14 @@ import {IconSubtract} from '@sentry/icons/subtract';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
-import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
@@ -47,10 +47,10 @@ function MemberRole({member}: {member: Member}) {
   }
   if (isPending) {
     return (
-      <InvitedRole>
+      <Flex align="center" gap="md">
         <IconMail size="md" />
         {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
-      </InvitedRole>
+      </Flex>
     );
   }
   return <Fragment>{capitalize(member.orgRole)}</Fragment>;
@@ -122,33 +122,31 @@ export function OrganizationMemberRow({
   const showResendButton = pending || needsSso;
 
   return (
-    <StyledPanelItem data-test-id={email}>
-      <MemberHeading>
+    <SimpleTable.Row data-test-id={email}>
+      <SimpleTable.RowCell gap="md">
         <UserAvatar
           size={32}
           user={user ?? {email, id: email, name: email, type: 'user'}}
         />
-        <MemberDescription to={detailsUrl}>
-          <h5 style={{margin: '0 0 3px'}}>
-            <UserName>{name}</UserName>
-          </h5>
-          <Email>{email}</Email>
-        </MemberDescription>
-      </MemberHeading>
+        <Stack minWidth={0}>
+          <Text wordBreak="break-word">
+            <Link to={detailsUrl}>{name}</Link>
+          </Text>
+          <Text variant="muted" size="sm" wordBreak="break-word">
+            {email}
+          </Text>
+        </Stack>
+      </SimpleTable.RowCell>
 
-      <div data-test-id="member-role">
+      <SimpleTable.RowCell data-test-id="member-role">
         <MemberRole member={member} />
-      </div>
+      </SimpleTable.RowCell>
 
-      <div data-test-id="member-status">
+      <SimpleTable.RowCell data-test-id="member-status">
         {showResendButton ? (
           <Fragment>
-            {isInviting && (
-              <LoadingContainer>
-                <LoadingIndicator mini />
-              </LoadingContainer>
-            )}
-            {isInviteSuccessful && <span>{t('Sent!')}</span>}
+            {isInviting && <LoadingIndicator mini />}
+            {isInviteSuccessful && t('Sent!')}
             {!isInviting && !isInviteSuccessful && (
               <Button
                 disabled={!canAddMembers && !canEditInvite}
@@ -161,130 +159,82 @@ export function OrganizationMemberRow({
             )}
           </Fragment>
         ) : (
-          <AuthStatus>
+          <Flex align="center" gap="md">
             {has2fa ? <IconCheckmark variant="success" /> : <IconFlag variant="danger" />}
             {has2fa ? t('2FA Enabled') : t('2FA Not Enabled')}
-          </AuthStatus>
+          </Flex>
         )}
-      </div>
+      </SimpleTable.RowCell>
 
-      {showRemoveButton || showLeaveButton ? (
-        <Flex justify="end">
-          {showRemoveButton && canRemoveMember && (
-            <Confirm
-              message={tct('Are you sure you want to remove [name] from [orgName]?', {
-                name,
-                orgName: organization.slug,
-              })}
-              onConfirm={handleRemove}
-            >
-              <Button data-test-id="remove" icon={<IconSubtract />} size="sm" busy={busy}>
-                {t('Remove')}
-              </Button>
-            </Confirm>
-          )}
-
-          {showRemoveButton && !canRemoveMember && (
-            <Button
-              disabled
-              size="sm"
-              tooltipProps={{
-                title: isIdpProvisioned
-                  ? t(
-                      "This user is managed through your organization's identity provider."
-                    )
-                  : isPartnershipUser
-                    ? t('You cannot make changes to this partner-provisioned user.')
-                    : // only show this message if member can remove invites but invite was not sent by them
-                      pending && canInvite && !isInviteFromCurrentUser
-                      ? t('You cannot modify this invite.')
-                      : t('You do not have access to remove members'),
-              }}
-              icon={<IconSubtract />}
-            >
+      <SimpleTable.RowCell justify="end">
+        {showRemoveButton && canRemoveMember && (
+          <Confirm
+            message={tct('Are you sure you want to remove [name] from [orgName]?', {
+              name,
+              orgName: organization.slug,
+            })}
+            onConfirm={handleRemove}
+          >
+            <Button data-test-id="remove" icon={<IconSubtract />} size="sm" busy={busy}>
               {t('Remove')}
             </Button>
-          )}
+          </Confirm>
+        )}
 
-          {showLeaveButton && memberCanLeave && (
-            <Confirm
-              message={tct('Are you sure you want to leave [orgName]?', {
-                orgName: organization.slug,
-              })}
-              onConfirm={handleLeave}
-            >
-              <Button variant="danger" size="sm" icon={<IconClose />}>
-                {t('Leave')}
-              </Button>
-            </Confirm>
-          )}
+        {showRemoveButton && !canRemoveMember && (
+          <Button
+            disabled
+            size="sm"
+            tooltipProps={{
+              title: isIdpProvisioned
+                ? t("This user is managed through your organization's identity provider.")
+                : isPartnershipUser
+                  ? t('You cannot make changes to this partner-provisioned user.')
+                  : // only show this message if member can remove invites but invite was not sent by them
+                    pending && canInvite && !isInviteFromCurrentUser
+                    ? t('You cannot modify this invite.')
+                    : t('You do not have access to remove members'),
+            }}
+            icon={<IconSubtract />}
+          >
+            {t('Remove')}
+          </Button>
+        )}
 
-          {showLeaveButton && !memberCanLeave && (
-            <Button
-              size="sm"
-              icon={<IconClose />}
-              disabled
-              tooltipProps={{
-                title: isIdpProvisioned
-                  ? t(
-                      "Your account is managed through your organization's identity provider."
-                    )
-                  : isPartnershipUser
-                    ? t('You cannot make changes as a partner-provisioned user.')
-                    : t(
-                        'You cannot leave this organization as you are the only organization owner.'
-                      ),
-              }}
-            >
+        {showLeaveButton && memberCanLeave && (
+          <Confirm
+            message={tct('Are you sure you want to leave [orgName]?', {
+              orgName: organization.slug,
+            })}
+            onConfirm={handleLeave}
+          >
+            <Button variant="danger" size="sm" icon={<IconClose />}>
               {t('Leave')}
             </Button>
-          )}
-        </Flex>
-      ) : null}
-    </StyledPanelItem>
+          </Confirm>
+        )}
+
+        {showLeaveButton && !memberCanLeave && (
+          <Button
+            size="sm"
+            icon={<IconClose />}
+            disabled
+            tooltipProps={{
+              title: isIdpProvisioned
+                ? t(
+                    "Your account is managed through your organization's identity provider."
+                  )
+                : isPartnershipUser
+                  ? t('You cannot make changes as a partner-provisioned user.')
+                  : t(
+                      'You cannot leave this organization as you are the only organization owner.'
+                    ),
+            }}
+          >
+            {t('Leave')}
+          </Button>
+        )}
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
-
-const StyledPanelItem = styled(PanelItem)`
-  display: grid;
-  grid-template-columns: minmax(150px, 4fr) minmax(90px, 2fr) minmax(120px, 2fr) minmax(
-      100px,
-      1fr
-    );
-  gap: ${p => p.theme.space.xl};
-  align-items: center;
-`;
-// Force action button at the end to align to right
-const Section = styled('div')`
-  display: inline-grid;
-  grid-template-columns: max-content auto;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
-const MemberHeading = styled(Section)``;
-const MemberDescription = styled(Link)`
-  overflow: hidden;
-`;
-
-const UserName = styled('div')`
-  display: block;
-  overflow: hidden;
-  font-size: ${p => p.theme.font.size.md};
-  text-overflow: ellipsis;
-`;
-
-const Email = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const InvitedRole = styled(Section)``;
-const LoadingContainer = styled('div')`
-  margin-top: 0;
-  margin-bottom: ${p => p.theme.space.lg};
-`;
-
-const AuthStatus = styled(Section)``;

@@ -519,7 +519,8 @@ def check_attribute_names_exist(
     return found
 
 
-FORMAT_RE = r"\{((?:\w|\.)+)\}"
+FORMULA_FORMAT_RE = r"\{((?:\w|\.)+)\}"
+FORMULA_EMPTY_FORMAT_RE = r"\{\}"
 
 
 class FormulaParam(Protocol):
@@ -559,6 +560,20 @@ def resolve_and_parse_formula(
     )
 
 
+def check_unmatched(label: str, value: str, saved_columns: list[str] | None = None) -> None:
+    """Raises an error if the formula value has any unmatched format strings"""
+    if unmatched := re.findall(FORMULA_FORMAT_RE, value):
+        if saved_columns is not None:
+            for field in unmatched:
+                if field in saved_columns:
+                    raise InvalidSearchQuery("Columns cannot be used in calculations")
+        raise InvalidSearchQuery(f"Missing parameters for {label}; {', '.join(unmatched)}")
+    elif re.findall(FORMULA_EMPTY_FORMAT_RE, value):
+        raise InvalidSearchQuery(
+            "Formula either has empty format strings or resolved to empty format strings"
+        )
+
+
 def parse_formula(
     formula_definition: str,
     arguments: list[str],
@@ -569,6 +584,7 @@ def parse_formula(
 ) -> str:
     # Create a dict of param name -> the arg the user passed
     variables = {}
+    saved_columns = []
     for saved_arg, arg in zip(saved_args, arguments):
         if saved_arg.param_type == ParamItemTypes.NUMBER:
             # Ensure that the user arg is a valid number
@@ -588,6 +604,7 @@ def parse_formula(
                     f"{saved_arg.name} resolved to {arg}, which is outside the supported number range"
                 )
         elif saved_arg.param_type == ParamItemTypes.COLUMN:
+            saved_columns.append(saved_arg.name)
             try:
                 resolver.resolve_column(arg)
             except InvalidSearchQuery:
@@ -601,11 +618,11 @@ def parse_formula(
     for calculation in saved_calculations:
         value = calculation.value
         for param_name, user_arg in variables.items():
+            # Don't sub columns since they aren't possible, ie. can't multiply a column if its used in a condition
+            if param_name in saved_columns:
+                continue
             value = value.replace(f"{{{param_name}}}", user_arg)
-        if unmatched := re.findall(FORMAT_RE, value):
-            raise InvalidSearchQuery(
-                f"Missing parameters for {calculation.name}; {', '.join(unmatched)}"
-            )
+        check_unmatched(calculation.name, value, saved_columns=saved_columns)
         try:
             parsed, _, _ = parse_arithmetic(value, definitions=resolver.definitions)
         except ArithmeticError as e:
@@ -620,18 +637,14 @@ def parse_formula(
         value = reference.value
         for param_name, user_arg in variables.items():
             value = value.replace(f"{{{param_name}}}", str(user_arg))
-        if unmatched := re.findall(FORMAT_RE, value):
-            raise InvalidSearchQuery(
-                f"Missing parameters for {reference.name}; {', '.join(unmatched)}"
-            )
+        check_unmatched(reference.name, value)
         references[reference.name] = value
     variables.update(references)
 
     final_equation = formula_definition[:]
     for param_name, user_arg in variables.items():
         final_equation = final_equation.replace(f"{{{param_name}}}", str(user_arg))
-    if unmatched := re.findall(FORMAT_RE, final_equation):
-        raise InvalidSearchQuery(f"Missing parameters for formula; {', '.join(unmatched)}")
+    check_unmatched("formula", final_equation)
     try:
         _, _, _ = parse_arithmetic(final_equation, definitions=resolver.definitions)
     except ArithmeticError as e:

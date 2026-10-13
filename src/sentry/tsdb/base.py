@@ -24,8 +24,6 @@ class IncrMultiOptions(TypedDict):
 
 
 class TSDBModel(Enum):
-    internal = 0
-
     # number of events seen specific to grouping
     project = 1
     group = 4

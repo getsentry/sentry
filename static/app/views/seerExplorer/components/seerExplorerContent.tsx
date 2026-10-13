@@ -34,6 +34,7 @@ import {
   integrationRequiresUpgrade,
 } from 'sentry/utils/integrationUtil';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -62,6 +63,7 @@ import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
+import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/hooks/useCopySessionDataToClipboard';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {
@@ -78,7 +80,6 @@ import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
   getRelativeExplorerUrl,
-  useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
@@ -665,13 +666,14 @@ export function SeerExplorerContent({
     revealChatPrompt();
   }, [chatPrompt, revealChatPrompt]);
 
-  // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
+  // Auto-scroll to bottom when blocks are added or the transcript resizes, unless scrolled up
+  const {height: transcriptHeight} = useDimensions({elementRef: scrollContainerRef});
   useEffect(() => {
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [blocks]);
+  }, [blocks, transcriptHeight]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -876,6 +878,7 @@ export function SeerExplorerContent({
           onPRWidgetClick={openPRWidget}
           prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
+          runId={runId}
           composerRef={composerRef}
           fileApprovalActions={
             isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches

@@ -55,6 +55,8 @@ export function generateTargetQuery({
       }
     } else if (typeof value === 'number') {
       search.setFilterValues(groupBy, [String(value)]);
+    } else if (typeof value === 'boolean') {
+      search.setFilterValues(groupBy, [value ? 'true' : 'false']);
     } else if (!defined(value)) {
       search.addFilterValue('!has', groupBy);
     }
