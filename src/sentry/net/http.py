@@ -220,7 +220,7 @@ class SafeSession(Session):
     def __init__(
         self,
         is_ipaddress_permitted: IsIpAddressPermitted = None,
-        max_retries: Retry | int | None = DEFAULT_RETRIES,
+        max_retries: Retry | int | None = None,
     ) -> None:
         Session.__init__(self)
         self.headers.update({"User-Agent": USER_AGENT})
