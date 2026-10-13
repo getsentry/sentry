@@ -5,11 +5,11 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {MenuListItem} from '@sentry/scraps/menuListItem';
-import {CheckWrap} from '@sentry/scraps/select';
 
 import {defined} from 'sentry/utils/defined';
 
 import type {components as selectComponents} from './reactSelectWrapper';
+import {CheckWrap} from './styles';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
