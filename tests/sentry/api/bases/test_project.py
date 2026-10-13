@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectEndpoint, ProjectPermission
 from sentry.auth.access import SystemAccess, from_request
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
@@ -77,9 +78,11 @@ class ProjectPermissionTest(ProjectPermissionBase):
         assert self.has_object_perm("PUT", self.project, user=user, is_superuser=True)
         assert self.has_object_perm("DELETE", self.project, user=user, is_superuser=True)
 
-    def test_system_token_skips_organization_context(self) -> None:
+    def assert_system_auth_skips_organization_context(
+        self, auth: SystemToken | AuthenticatedToken | None
+    ) -> None:
         perm = ProjectPermission()
-        request = drf_request_from_request(self.make_request(auth=SystemToken(), method="DELETE"))
+        request = drf_request_from_request(self.make_request(auth=auth, method="DELETE"))
 
         with patch.object(organization_service, "get_organization_by_id") as get_organization:
             assert perm.has_permission(request, APIView())
@@ -87,6 +90,14 @@ class ProjectPermissionTest(ProjectPermissionBase):
 
         assert isinstance(request.access, SystemAccess)
         get_organization.assert_not_called()
+
+    def test_system_token_skips_organization_context(self) -> None:
+        self.assert_system_auth_skips_organization_context(SystemToken())
+
+    def test_authenticated_system_token_skips_organization_context(self) -> None:
+        self.assert_system_auth_skips_organization_context(
+            AuthenticatedToken.from_token(SystemToken())
+        )
 
     def test_member_without_team_membership(self) -> None:
         team = self.create_team(organization=self.organization)
