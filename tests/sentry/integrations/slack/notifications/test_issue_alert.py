@@ -682,7 +682,12 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         key = f"mail:p:{self.project.id}"
         origin = NotificationOrigin.from_legacy_rule(rule)
-        backend.add(key, event_to_record(event, [origin]), increment_delay=0, maximum_delay=0)
+        backend.add(
+            key,
+            event_to_record(event.for_group(event.groups[0]), [origin]),
+            increment_delay=0,
+            maximum_delay=0,
+        )
 
         with self.tasks():
             deliver_digest(key)
@@ -990,7 +995,12 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         origin = NotificationOrigin.from_legacy_rule(rule)
-        backend.add(key, event_to_record(event, [origin]), increment_delay=0, maximum_delay=0)
+        backend.add(
+            key,
+            event_to_record(event.for_group(event.groups[0]), [origin]),
+            increment_delay=0,
+            maximum_delay=0,
+        )
 
         with self.tasks():
             deliver_digest(key)

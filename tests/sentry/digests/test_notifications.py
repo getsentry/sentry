@@ -22,10 +22,15 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
+
+
+def as_group_event(event: Event) -> GroupEvent:
+    return event.for_group(event.groups[0])
 
 
 class BindRecordsTestCase(TestCase):
@@ -38,7 +43,7 @@ class BindRecordsTestCase(TestCase):
 
     @cached_property
     def record(self) -> Record:
-        return event_to_record(self.event, (self.origin,), self.notification_uuid)
+        return event_to_record(as_group_event(self.event), (self.origin,), self.notification_uuid)
 
     @cached_property
     def origin(self) -> NotificationOrigin:
