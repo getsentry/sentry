@@ -13,7 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTemplate,
 )
-from sentry.notifications.types import NotificationOrigin
+from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 
 
 class SerializableRuleProxy(BaseModel):
@@ -58,6 +58,20 @@ class SerializableRuleProxy(BaseModel):
             project_id=project_id,
             workflow_id=origin.workflow_id,
             legacy_rule_id=origin.legacy_rule_id,
+        )
+
+    @classmethod
+    def from_action_context(
+        cls,
+        context: NotificationActionContext,
+        *,
+        data: dict[str, Any],
+    ) -> SerializableRuleProxy:
+        return cls.from_origin(
+            context.origin,
+            action_id=context.action_id,
+            data=data,
+            project_id=context.project.id,
         )
 
     def to_notification_origin(self) -> NotificationOrigin:

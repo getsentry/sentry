@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.constants import ObjectStatus
 from sentry.models.promptsactivity import PromptsActivity
@@ -16,7 +17,7 @@ from sentry.tasks.seer.explorer_index import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, decode_viewer_context, get_viewer_context
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -390,40 +391,32 @@ class TestRunExplorerIndexForProjects(TestCase):
                 run_explorer_index_for_projects([(1, 100)], "2024-01-15T12:00:00+00:00")
                 mock_request.assert_not_called()
 
-    @patch("sentry.tasks.seer.explorer_index.make_agent_index_request")
-    def test_sets_viewer_context_for_single_org_batch(self, mock_request):
-        mock_request.return_value.status = 200
-        mock_request.return_value.json.return_value = {"scheduled_count": 2, "projects": []}
-
-        captured_vc = None
-
-        def capture_vc(*args, **kwargs):
-            nonlocal captured_vc
-            captured_vc = get_viewer_context()
-            return mock_request.return_value
-
-        mock_request.side_effect = capture_vc
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_sets_viewer_context_for_single_org_batch(self, mock_urlopen):
+        mock_urlopen.return_value = HTTPResponse(b'{"scheduled_count":2,"projects":[]}', status=200)
 
         run_explorer_index_for_projects([(1, 100), (2, 100)], "2024-01-15T12:00:00+00:00")
 
-        assert captured_vc is not None
-        assert captured_vc.organization_id == 100
-        assert captured_vc.actor_type == ActorType.SYSTEM
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context.organization_id == 100
+        assert viewer_context.actor_type == ActorType.SYSTEM
+        assert get_viewer_context() is None
 
-    @patch("sentry.tasks.seer.explorer_index.make_agent_index_request")
-    def test_no_viewer_context_org_for_multi_org_batch(self, mock_request):
-        mock_request.return_value.status = 200
-        mock_request.return_value.json.return_value = {"scheduled_count": 2, "projects": []}
-
-        captured_vc = None
-
-        def capture_vc(*args, **kwargs):
-            nonlocal captured_vc
-            captured_vc = get_viewer_context()
-            return mock_request.return_value
-
-        mock_request.side_effect = capture_vc
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_sets_system_viewer_context_without_org_for_multi_org_batch(self, mock_urlopen):
+        mock_urlopen.return_value = HTTPResponse(b'{"scheduled_count":2,"projects":[]}', status=200)
 
         run_explorer_index_for_projects([(1, 100), (2, 200)], "2024-01-15T12:00:00+00:00")
 
-        assert captured_vc is None
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context.organization_id is None
+        assert viewer_context.actor_type == ActorType.SYSTEM
+        assert get_viewer_context() is None

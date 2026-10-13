@@ -1,10 +1,11 @@
+import {IconFileBroken} from '@sentry/icons/fileBroken';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
+import {IconWarning} from '@sentry/icons/warning';
+
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/nativeStackTraceContext';
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
-import {IconFileBroken} from 'sentry/icons/iconFileBroken';
-import {IconWarning} from 'sentry/icons/iconWarning';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
 import {

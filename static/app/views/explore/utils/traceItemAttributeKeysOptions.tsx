@@ -13,7 +13,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
 
-type AttributeType = {
+export type TraceItemAttribute = {
   attributeSource: {
     source_type: 'sentry' | 'user';
   };
@@ -23,7 +23,7 @@ type AttributeType = {
   secondaryAliases?: string[];
 };
 
-type TraceItemAttributeType = 'string' | 'number' | 'boolean' | 'array';
+export type TraceItemAttributeType = 'string' | 'number' | 'boolean' | 'array';
 
 type TraceItemAttributeKeyOptions = Pick<
   ReturnType<typeof normalizeDateTimeParams>,
@@ -82,7 +82,7 @@ export function traceItemAttributeKeysOptions({
     ...(substringMatch === undefined ? {} : {substringMatch}),
   };
 
-  const baseOptions = apiOptions.as<AttributeType[]>()(
+  const baseOptions = apiOptions.as<TraceItemAttribute[]>()(
     '/organizations/$organizationIdOrSlug/trace-items/attributes/',
     {
       path: {organizationIdOrSlug: organization.slug},
@@ -117,21 +117,21 @@ type TraceItemTagCollections = {
 };
 
 export function selectTraceItemTagCollection(): (
-  data: ApiResponse<AttributeType[]>
+  data: ApiResponse<TraceItemAttribute[]>
 ) => TraceItemTagCollections;
 
 export function selectTraceItemTagCollection(
   type: TraceItemAttributeType
-): (data: ApiResponse<AttributeType[]>) => TagCollection;
+): (data: ApiResponse<TraceItemAttribute[]>) => TagCollection;
 
 export function selectTraceItemTagCollection(
   type: TraceItemAttributeType[]
-): (data: ApiResponse<AttributeType[]>) => TraceItemTagCollections;
+): (data: ApiResponse<TraceItemAttribute[]>) => TraceItemTagCollections;
 
 export function selectTraceItemTagCollection(
   type?: TraceItemAttributeKeysOptions['type']
-): (data: ApiResponse<AttributeType[]>) => TagCollection | TraceItemTagCollections {
-  return function (data: ApiResponse<AttributeType[]>) {
+): (data: ApiResponse<TraceItemAttribute[]>) => TagCollection | TraceItemTagCollections {
+  return function (data: ApiResponse<TraceItemAttribute[]>) {
     const {json} = selectJsonWithHeaders(data);
 
     if (type === undefined || Array.isArray(type)) {
@@ -143,21 +143,21 @@ export function selectTraceItemTagCollection(
 }
 
 export function getTraceItemTagCollection(
-  result: AttributeType[]
+  result: TraceItemAttribute[]
 ): TraceItemTagCollections;
 
 export function getTraceItemTagCollection(
-  result: AttributeType[],
+  result: TraceItemAttribute[],
   type: TraceItemAttributeType
 ): TagCollection;
 
 export function getTraceItemTagCollection(
-  result: AttributeType[],
+  result: TraceItemAttribute[],
   type: TraceItemAttributeType[]
 ): TraceItemTagCollections;
 
 export function getTraceItemTagCollection(
-  result: AttributeType[],
+  result: TraceItemAttribute[],
   type?: TraceItemAttributeKeysOptions['type']
 ) {
   const stringAttributes: TagCollection = {};

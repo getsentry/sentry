@@ -52,6 +52,7 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
@@ -430,6 +431,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         send_nudge: bool = False,
         has_mentions_read_scope: bool = False,
         workflow_id: int | None = None,
+        link_decorator: NotificationLinkDecorator | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -448,6 +450,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.send_nudge = send_nudge
         self.has_mentions_read_scope = has_mentions_read_scope
         self.workflow_id = workflow_id
+        self.link_decorator = link_decorator
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
@@ -612,12 +615,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         link_key: RuleIdType = "legacy_rule_id"
         link_id = None
         if self.rules:
-            # The block id's "rule" is resolved back to a Rule by the Slack action
-            # handler, so it keeps preferring the legacy rule id.
-            _, value = get_rule_or_workflow_id(self.rules[0])
-            rule_id = int(value)
+            rule_key, value = get_rule_or_workflow_id(self.rules[0])
+            if rule_key == "legacy_rule_id":
+                rule_id = int(value)
+
             if isinstance(self.rules[0], NotificationOrigin):
                 workflow_id = self.rules[0].workflow_id or workflow_id
+                rule_environment_id = self.rules[0].environment_id
             else:
                 action = self.rules[0].data.get("actions", [{}])[0]
                 if action.get("workflow_id") is not None:
@@ -625,12 +629,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
             link_key, link_value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
             link_id = int(link_value)
-            match link_key:
-                case "workflow_id":
-                    workflow = Workflow.objects.filter(id=link_id).first()
-                    rule_environment_id = workflow.environment_id if workflow else None
-                case "legacy_rule_id":
-                    rule_environment_id = self.rules[0].environment_id
+            if not isinstance(self.rules[0], NotificationOrigin):
+                match link_key:
+                    case "workflow_id":
+                        workflow = Workflow.objects.filter(id=link_id).first()
+                        rule_environment_id = workflow.environment_id if workflow else None
+                    case "legacy_rule_id":
+                        rule_environment_id = self.rules[0].environment_id
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -664,6 +669,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     rule_environment_id,
                     notification_uuid=notification_uuid,
                 )
+        if title_link is not None and self.link_decorator is not None:
+            title_link = self.link_decorator.decorate_url(title_link)
 
         blocks = [self.get_title_block(event_or_group, has_action, title_link)]
 

@@ -1,3 +1,5 @@
+import {IconChevron} from '@sentry/icons/chevron';
+
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -5,7 +7,6 @@ import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 const CHEVRON_SLOT_SIZE = '24px';

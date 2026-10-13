@@ -3,6 +3,8 @@ import {RuleTester} from 'oxlint/plugins-dev';
 import {useSemanticToken} from './useSemanticToken';
 
 const ruleTester = new RuleTester();
+const emotion =
+  "import styled from '@emotion/styled'; import {css} from '@emotion/react';\n";
 
 const validTextColorProperties = [
   'color',
@@ -46,7 +48,7 @@ const invalidInteractiveTokenPairs = [
 ];
 
 const makeValidCase = (property: string, tokenPath: string) => ({
-  code: `const Component = styled('div')\`
+  code: `${emotion}const Component = styled('div')\`
   ${property}: \${p => p.theme.tokens.${tokenPath}};
 \`;`,
 });
@@ -56,7 +58,7 @@ const makeInvalidCase = (
   property: string,
   tokenPath: string
 ): RuleTester.InvalidTestCase => ({
-  code: `const Component = styled('div')\`
+  code: `${emotion}const Component = styled('div')\`
   ${property}: \${p => p.theme.tokens.${tokenPath}};
 \`;`,
   errors: [
@@ -69,57 +71,87 @@ const makeInvalidCase = (
 
 ruleTester.run('use-semantic-token', useSemanticToken, {
   valid: [
+    ...['eslint', 'oxlint'].flatMap(prefix => [
+      {
+        name:
+          prefix + ' next-line directive supports multiline values and nested selectors',
+        code: `${emotion}const C = styled.div\`
+  &:hover {
+    /* ${prefix}-disable-next-line rule-to-test/use-semantic-token -- intentional */
+    background: \${p =>
+      p.theme.tokens.content.primary};
+  }
+\`;`,
+      },
+      {
+        name: prefix + ' block directive without rule names',
+        code: `${emotion}const C = css\`
+  /* ${prefix}-disable -- intentional */
+  background: \${p => p.theme.tokens.content.primary};
+\`;`,
+      },
+      {
+        name: prefix + ' trailing disable-line directive',
+        code: `${emotion}const C = styled.div\`
+  background: \${p => p.theme.tokens.content.primary}; /* ${prefix}-disable-line rule-to-test/use-semantic-token */
+\`;`,
+      },
+    ]),
+    {
+      name: 'unrelated styled and css bindings are ignored',
+      code: "const styled = x => y => y; const css = x => x; const C = styled('div')`background: ${theme.tokens.content.primary};`; const styles = css`background: ${theme.tokens.content.primary};`;",
+    },
     ...validTextColorProperties.map(prop => makeValidCase(prop, 'content.primary')),
     ...validInteractiveContentTokenPaths.map(tokenPath =>
       makeValidCase('color', tokenPath)
     ),
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   color: \${p => p.theme.tokens.content.primary};
   text-decoration-color: \${p => p.theme.tokens.content.secondary};
   caret-color: \${p => p.theme.tokens.content.accent};
 \`;`,
     },
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   color: \${theme.tokens.content.primary};
 \`;`,
     },
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   background: \${p => p.theme.tokens.background.primary};
 \`;`,
     },
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   border-color: \${p => p.theme.tokens.border.primary};
 \`;`,
     },
     {
-      code: `const Component = styled(Button)\`
+      code: `${emotion}const Component = styled(Button)\`
   color: \${p => p.theme.tokens.content.danger};
 \`;`,
     },
     {
-      code: `const styles = css\`
+      code: `${emotion}const styles = css\`
   color: \${p => p.theme.tokens.content.warning};
 \`;`,
     },
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   background: red;
   color: blue;
 \`;`,
     },
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   a:hover {
     color: \${p => p.theme.tokens.content.primary};
   }
 \`;`,
     },
     {
-      code: `const Component = styled.p\`
+      code: `${emotion}const Component = styled.p\`
   color: \${p =>
     ({
       none: p.theme.tokens.content.secondary,
@@ -128,7 +160,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
 \`;`,
     },
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   &:hover {
     color: \${p => p.theme.tokens.content.accent};
   }
@@ -138,14 +170,14 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
 \`;`,
     },
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   &::before {
     color: \${p => p.theme.tokens.content.secondary};
   }
 \`;`,
     },
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   @media (max-width: 768px) {
     color: \${p => p.theme.tokens.content.primary};
   }
@@ -154,6 +186,29 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
   ],
 
   invalid: [
+    ...[
+      '/* ordinary comment */',
+      '/* eslint-disable-next-line unrelated/rule */',
+      'content: "/* eslint-disable-next-line rule-to-test/use-semantic-token */";',
+      '/* eslint-disable-next-line rule-to-test/use-semantic-token */\nbackground: ${p => p.theme.tokens.content.primary};',
+      '/* eslint-disable rule-to-test/use-semantic-token */\nbackground: ${p => p.theme.tokens.content.primary};\n/* eslint-enable rule-to-test/use-semantic-token */',
+      '/* eslint-disable */\nbackground: ${p => p.theme.tokens.content.primary};\n/* eslint-enable rule-to-test/use-semantic-token */',
+    ].map(comment => ({
+      name: 'only the intended declarations are suppressed: ' + comment,
+      code:
+        emotion +
+        '\nconst C = styled.div`\n' +
+        comment +
+        '\nbackground: ${p => p.theme.tokens.content.primary};\n`;',
+      errors: [{messageId: 'invalidPropertyWithSuggestion'}],
+    })),
+    {
+      name: 'block directives stay within their template',
+      code:
+        emotion +
+        '\nconst A = styled.div`/* eslint-disable */ background: ${p => p.theme.tokens.content.primary};`;\nconst B = styled.div` background: ${p => p.theme.tokens.content.primary};`;',
+      errors: [{messageId: 'invalidPropertyWithSuggestion'}],
+    },
     ...invalidPropertyTokenPairs.map(({suggestedCategory, property, tokenPath}) =>
       makeInvalidCase(suggestedCategory, property, tokenPath)
     ),
@@ -161,7 +216,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       makeInvalidCase(suggestedCategory, property, tokenPath)
     ),
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   background: \${p => p.theme.tokens.content.primary};
   border-color: \${p => p.theme.tokens.content.accent};
 \`;`,
@@ -185,7 +240,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       ],
     },
     {
-      code: `const Component = styled(Button)\`
+      code: `${emotion}const Component = styled(Button)\`
   background: \${p => p.theme.tokens.content.primary};
 \`;`,
       errors: [
@@ -200,7 +255,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       ],
     },
     {
-      code: `const styles = css\`
+      code: `${emotion}const styles = css\`
   background: \${p => p.theme.tokens.content.accent};
 \`;`,
       errors: [
@@ -215,7 +270,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       ],
     },
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   background: \${theme.tokens.content.primary};
 \`;`,
       errors: [
@@ -230,7 +285,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
       ],
     },
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   box-shadow: 0 0 5px \${p => p.theme.tokens.content.primary};
 \`;`,
       errors: [
@@ -246,7 +301,7 @@ ruleTester.run('use-semantic-token', useSemanticToken, {
     },
     // Multiple tokens in a single expression (ternary)
     {
-      code: `const Component = styled('div')\`
+      code: `${emotion}const Component = styled('div')\`
   background: \${p => foo ? p.theme.tokens.content.primary : p.theme.tokens.content.accent};
 \`;`,
       errors: [

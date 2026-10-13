@@ -1,4 +1,10 @@
 import {Fragment} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClock} from '@sentry/icons/clock';
+import {IconInfo} from '@sentry/icons/info';
+import {IconLock} from '@sentry/icons/lock';
+import {IconPlay} from '@sentry/icons/play';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -14,14 +20,6 @@ import {
 import {Pill} from 'sentry/components/pill';
 import {Pills} from 'sentry/components/pills';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {
-  IconChevron,
-  IconClock,
-  IconInfo,
-  IconLock,
-  IconPlay,
-  IconTimer,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 

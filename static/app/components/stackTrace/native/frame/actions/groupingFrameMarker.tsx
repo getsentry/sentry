@@ -1,6 +1,7 @@
+import {IconRefresh} from '@sentry/icons/refresh';
+
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export function GroupingFrameMarker() {

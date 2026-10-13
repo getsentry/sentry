@@ -1648,7 +1648,7 @@ class MonitorConsumerTest(TestCase):
     ):
         """
         Validate the unusual casse where a seat does not already exist but a
-        monitor does exist. We should ensure assign_monitor_seat is called
+        monitor does exist. We should ensure assign_seat is called
         """
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
         assign_seat.return_value = Outcome.RATE_LIMITED
