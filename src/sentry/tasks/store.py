@@ -9,6 +9,7 @@ from typing import Any
 import orjson
 from sentry_relay.processing import StoreNormalizer
 from sentry_sdk import traces
+from taskbroker_client.constants import CompressionType
 
 from sentry import features, options, reprocessing2
 from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
@@ -470,6 +471,7 @@ def do_process_event(
     namespace=ingest_errors_tasks,
     processing_deadline_duration=65,
     silo_mode=SiloMode.CELL,
+    compression_type=CompressionType.ZSTD,
 )
 def process_event(
     cache_key: str | None = None,
@@ -508,6 +510,7 @@ def process_event(
     namespace=issues_tasks,
     processing_deadline_duration=65,
     silo_mode=SiloMode.CELL,
+    compression_type=CompressionType.ZSTD,
 )
 def process_event_from_reprocessing(
     cache_key: str | None = None,
@@ -665,6 +668,7 @@ def _do_save_event(
     namespace=ingest_errors_tasks,
     processing_deadline_duration=65,
     silo_mode=SiloMode.CELL,
+    compression_type=CompressionType.ZSTD,
 )
 def save_event(
     cache_key: str | None = None,
@@ -740,6 +744,7 @@ def save_event_feedback(
     namespace=ingest_attachments_tasks,
     processing_deadline_duration=65,
     silo_mode=SiloMode.CELL,
+    compression_type=CompressionType.ZSTD,
 )
 def save_event_attachments(
     cache_key: str | None = None,
