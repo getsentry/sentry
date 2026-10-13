@@ -1,14 +1,10 @@
 import type React from 'react';
-import {createContext, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {
-  DataConditionType,
-  type DataCondition,
-} from 'sentry/types/workflowEngine/dataConditions';
+import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
   AgeComparisonDetails,
   AgeComparisonNode,
@@ -96,26 +92,6 @@ import {
   validateTaggedEventCondition,
 } from 'sentry/views/automations/components/actionFilters/taggedEvent';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-
-interface DataConditionNodeProps {
-  condition: DataCondition;
-  condition_id: string;
-  onUpdate: (params: {comparison?: any; type?: DataConditionType}) => void;
-}
-
-export const DataConditionNodeContext = createContext<DataConditionNodeProps | null>(
-  null
-);
-
-export function useDataConditionNodeContext(): DataConditionNodeProps {
-  const context = useContext(DataConditionNodeContext);
-  if (!context) {
-    throw new Error(
-      'useDataConditionNodeContext was called outside of DataConditionNode'
-    );
-  }
-  return context;
-}
 
 type DataConditionNode = {
   label: string;

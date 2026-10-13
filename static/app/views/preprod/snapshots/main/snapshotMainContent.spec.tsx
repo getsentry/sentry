@@ -65,10 +65,10 @@ function buildProps(
   return {...defaultProps, ...props};
 }
 
-function renderSnapshotMainContent(
-  props: Partial<React.ComponentProps<typeof SnapshotMainContent>> = {}
+function ExampleSnapshotMainContent(
+  props: Partial<React.ComponentProps<typeof SnapshotMainContent>>
 ) {
-  return render(
+  return (
     <Container containerType="inline-size">
       <SnapshotMainContent {...buildProps(props)} />
     </Container>
@@ -151,7 +151,7 @@ describe('SnapshotMainContent', () => {
   it('keeps the diff/head toggle visible when viewing the head-only comparison', async () => {
     const onToggleSoloView = jest.fn();
 
-    renderSnapshotMainContent({onToggleSoloView});
+    render(<ExampleSnapshotMainContent onToggleSoloView={onToggleSoloView} />);
 
     expect(screen.getByText('Diff')).toBeInTheDocument();
     expect(screen.getByText('Head')).toBeInTheDocument();
@@ -165,31 +165,33 @@ describe('SnapshotMainContent', () => {
   it('renders focused changed snapshots with diff controls and navigation state', async () => {
     const onNavigateSingleView = jest.fn();
 
-    renderSnapshotMainContent({
-      canNavigateNext: true,
-      canNavigatePrev: false,
-      comparisonType: 'diff',
-      headBranch: 'feature/snapshot-updates',
-      isSoloView: false,
-      listItems: [
-        {
+    render(
+      <ExampleSnapshotMainContent
+        canNavigateNext
+        canNavigatePrev={false}
+        comparisonType="diff"
+        headBranch="feature/snapshot-updates"
+        isSoloView={false}
+        listItems={[
+          {
+            key: 'changed-buttons',
+            name: 'Buttons',
+            displayName: 'Buttons',
+            pairs: [changedPair],
+            type: 'changed',
+          },
+        ]}
+        onNavigateSingleView={onNavigateSingleView}
+        selectedItem={{
           key: 'changed-buttons',
           name: 'Buttons',
           displayName: 'Buttons',
           pairs: [changedPair],
           type: 'changed',
-        },
-      ],
-      onNavigateSingleView,
-      selectedItem: {
-        key: 'changed-buttons',
-        name: 'Buttons',
-        displayName: 'Buttons',
-        pairs: [changedPair],
-        type: 'changed',
-      },
-      viewMode: 'single',
-    });
+        }}
+        viewMode="single"
+      />
+    );
 
     expect(screen.getByText('Buttons')).toBeInTheDocument();
     expect(screen.getByText('Button / light')).toBeInTheDocument();
@@ -220,16 +222,18 @@ describe('SnapshotMainContent', () => {
       type: 'changed' as const,
     };
 
-    renderSnapshotMainContent({
-      comparisonType: 'diff',
-      diffMode: 'split',
-      isSoloView: false,
-      listItems: [changedItem],
-      selectedItem: changedItem,
-      onOverlayOpacityChange,
-      overlayOpacity: 100,
-      viewMode: 'single',
-    });
+    render(
+      <ExampleSnapshotMainContent
+        comparisonType="diff"
+        diffMode="split"
+        isSoloView={false}
+        listItems={[changedItem]}
+        selectedItem={changedItem}
+        onOverlayOpacityChange={onOverlayOpacityChange}
+        overlayOpacity={100}
+        viewMode="single"
+      />
+    );
 
     // Presets live inside the color picker popover, not the toolbar itself.
     expect(
@@ -258,15 +262,17 @@ describe('SnapshotMainContent', () => {
       type: 'changed' as const,
     };
 
-    renderSnapshotMainContent({
-      comparisonType: 'diff',
-      diffMode: 'split',
-      isSoloView: false,
-      listItems: [changedItem],
-      selectedItem: changedItem,
-      overlayOpacity: 50,
-      viewMode: 'single',
-    });
+    render(
+      <ExampleSnapshotMainContent
+        comparisonType="diff"
+        diffMode="split"
+        isSoloView={false}
+        listItems={[changedItem]}
+        selectedItem={changedItem}
+        overlayOpacity={50}
+        viewMode="single"
+      />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Pick overlay color'}));
 
@@ -301,16 +307,14 @@ describe('SnapshotMainContent', () => {
       viewMode: 'single' as const,
     };
 
-    const {rerender} = renderSnapshotMainContent({...props, overlayOpacity: 100});
+    const {rerender} = render(
+      <ExampleSnapshotMainContent {...props} overlayOpacity={100} />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Hide overlay'}));
     expect(onOverlayOpacityChange).toHaveBeenLastCalledWith(0);
 
-    rerender(
-      <Container containerType="inline-size">
-        <SnapshotMainContent {...buildProps({...props, overlayOpacity: 0})} />
-      </Container>
-    );
+    rerender(<ExampleSnapshotMainContent {...props} overlayOpacity={0} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Show overlay'}));
     expect(onOverlayOpacityChange).toHaveBeenLastCalledWith(100);
@@ -325,14 +329,16 @@ describe('SnapshotMainContent', () => {
       type: 'changed' as const,
     };
 
-    renderSnapshotMainContent({
-      comparisonType: 'diff',
-      diffMode: 'wipe',
-      isSoloView: false,
-      listItems: [changedItem],
-      selectedItem: changedItem,
-      viewMode: 'single',
-    });
+    render(
+      <ExampleSnapshotMainContent
+        comparisonType="diff"
+        diffMode="wipe"
+        isSoloView={false}
+        listItems={[changedItem]}
+        selectedItem={changedItem}
+        viewMode="single"
+      />
+    );
 
     expect(
       screen.queryByRole('button', {name: 'Pick overlay color'})
@@ -341,18 +347,20 @@ describe('SnapshotMainContent', () => {
   });
 
   it('renders focused errored snapshots side-by-side with a failed badge', () => {
-    renderSnapshotMainContent({
-      comparisonType: 'diff',
-      isSoloView: false,
-      selectedItem: {
-        key: 'errored-screens',
-        name: 'Screens',
-        displayName: 'Screens',
-        pairs: [erroredPair],
-        type: 'errored',
-      },
-      viewMode: 'single',
-    });
+    render(
+      <ExampleSnapshotMainContent
+        comparisonType="diff"
+        isSoloView={false}
+        selectedItem={{
+          key: 'errored-screens',
+          name: 'Screens',
+          displayName: 'Screens',
+          pairs: [erroredPair],
+          type: 'errored',
+        }}
+        viewMode="single"
+      />
+    );
 
     expect(screen.getByText('Screens')).toBeInTheDocument();
     expect(screen.getByText('Login screen')).toBeInTheDocument();
@@ -369,18 +377,20 @@ describe('SnapshotMainContent', () => {
   });
 
   it('renders focused renamed snapshots as a single image with pair metadata', async () => {
-    renderSnapshotMainContent({
-      comparisonType: 'diff',
-      isSoloView: false,
-      selectedItem: {
-        key: 'renamed-buttons',
-        name: 'Buttons',
-        displayName: 'Buttons',
-        pairs: [renamedPair],
-        type: 'renamed',
-      },
-      viewMode: 'single',
-    });
+    render(
+      <ExampleSnapshotMainContent
+        comparisonType="diff"
+        isSoloView={false}
+        selectedItem={{
+          key: 'renamed-buttons',
+          name: 'Buttons',
+          displayName: 'Buttons',
+          pairs: [renamedPair],
+          type: 'renamed',
+        }}
+        viewMode="single"
+      />
+    );
 
     expect(screen.getByText('Buttons')).toBeInTheDocument();
     expect(screen.getByText('Renamed')).toBeInTheDocument();
@@ -450,22 +460,20 @@ describe('SnapshotMainContent', () => {
 
     function renderSingleView(img: SnapshotImage) {
       const item = soloItem(img);
-      const view = renderSnapshotMainContent({
-        listItems: [item],
-        selectedItem: item,
-        viewMode: 'single',
-      });
+      const view = render(
+        <ExampleSnapshotMainContent
+          listItems={[item]}
+          selectedItem={item}
+          viewMode="single"
+        />
+      );
       const renderItem = (nextItem: SidebarItem) =>
         view.rerender(
-          <Container containerType="inline-size">
-            <SnapshotMainContent
-              {...buildProps({
-                listItems: [nextItem],
-                selectedItem: nextItem,
-                viewMode: 'single',
-              })}
-            />
-          </Container>
+          <ExampleSnapshotMainContent
+            listItems={[nextItem]}
+            selectedItem={nextItem}
+            viewMode="single"
+          />
         );
       return {
         navigateTo: (nextImg: SnapshotImage) => renderItem(soloItem(nextImg)),

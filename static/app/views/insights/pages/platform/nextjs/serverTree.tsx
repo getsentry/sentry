@@ -1,6 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconFile} from '@sentry/icons/file';
+import {IconProject} from '@sentry/icons/project';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
@@ -12,14 +18,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {
-  IconChevron,
-  IconCode,
-  IconCopy,
-  IconFile,
-  IconProject,
-  IconSearch,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

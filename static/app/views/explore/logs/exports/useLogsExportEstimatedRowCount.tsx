@@ -5,7 +5,6 @@ import {
   useProgressiveQuery,
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   DEFAULT_LOGS_TIMESERIES_Y_AXIS,
   useLogsTimeseriesRequest,
@@ -44,16 +43,19 @@ function useLogsExportEstimateTimeseries({
  * Intentionally coincidentally the same semantics as the default count(logs) chart.
  * This way, the default view requests are deduplicated.
  */
-export function useLogsExportEstimatedRowCount(tableDataLength: number) {
+export function useLogsExportEstimatedRowCount(
+  tableDataLength: number,
+  timeseriesIngestDelay: bigint
+) {
   const baseRequest = useLogsTimeseriesRequest({
     enabled: true,
-    timeseriesIngestDelay: getMaxIngestDelayTimestamp(),
+    timeseriesIngestDelay,
     yAxesOverride: [DEFAULT_LOGS_TIMESERIES_Y_AXIS],
   });
   const isTopN = !!baseRequest.topEvents;
 
   const timeseriesResult = useProgressiveQuery<typeof useLogsExportEstimateTimeseries>({
-    queryHookImplementation: useLogsExportEstimateTimeseries,
+    queryHookImplementation: useLogsExportEstimateTimeseries, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
       baseRequest,
       enabled: true,

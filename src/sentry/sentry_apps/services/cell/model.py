@@ -67,6 +67,7 @@ class RpcPlatformExternalIssue(RpcModel):
 
 
 class RpcPlatformExternalIssueResult(RpcModel):
+    changed: bool | None = None
     external_issue: RpcPlatformExternalIssue | None = None
     error: RpcSentryAppError | None = None
 

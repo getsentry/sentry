@@ -121,7 +121,7 @@ export function ChartLegend({
       usedWidth += children[i]!.getBoundingClientRect().width;
 
       const remainingItems = children.length - i - 1;
-      const reservedSpace = remainingItems > 0 ? triggerWidth + outerGap : 0;
+      const reservedSpace = outerGap + (remainingItems > 0 ? triggerWidth : 0);
 
       if (usedWidth > wrapperWidth - reservedSpace) {
         newOverflowIndex = i;
@@ -194,6 +194,7 @@ export function ChartLegend({
       align="center"
       gap={OUTER_GAP}
       wrap="nowrap"
+      contain="inline-size"
       style={{height: theme.form.xs.height}}
     >
       <Flex

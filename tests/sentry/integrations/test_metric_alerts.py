@@ -4,7 +4,6 @@ import pytest
 
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
@@ -72,7 +71,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             status=IncidentStatus.CLOSED.value,
             date_started=date_started,
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         metric_value = 123
         referrer = "metric_alert_custom"
@@ -140,7 +139,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             status=IncidentStatus.CLOSED.value,
             date_started=date_started,
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         metric_value = 123
         referrer = "metric_alert_custom"

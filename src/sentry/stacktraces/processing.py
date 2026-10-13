@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
 
 import sentry_sdk
+from sentry_sdk import traces
 
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils import metrics
+from sentry.utils.event_frames import get_crashing_thread
 from sentry.utils.safe import get_path, set_path, setdefault_path
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
@@ -178,7 +179,7 @@ def normalize_stacktraces_for_grouping(
     # the trimming produces a different function than the function we have
     # otherwise stored in `function` to not make the payload larger
     # unnecessarily.
-    with start_span(op=op, name="iterate_frames"):
+    with traces.start_span(name="iterate_frames", attributes={"sentry.op": op}):
         stripped_querystring = False
         for frames in stacktrace_frames:
             for frame in frames:
@@ -265,7 +266,10 @@ def normalize_stacktraces_for_grouping(
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
-        with start_span(op=op, name="apply_modifications_to_frame"):
+        with traces.start_span(
+            name="apply_modifications_to_frame",
+            attributes={"sentry.op": op},
+        ):
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_category_and_updated_in_app_to_frames(
@@ -317,17 +321,17 @@ def get_crash_frame_from_event_data(data, frame_filter=None):
         - there are no frames
         - all frames fail the given filter test
         - we're unable to find any frames nested in either event.exception or
-          event.stacktrace, and there's anything other than exactly one thread
-          in the data
+          event.stacktrace, and the data doesn't contain a single identifiable
+          crashing thread
     """
 
     frames = get_path(data, "exception", "values", -1, "stacktrace", "frames") or get_path(
         data, "stacktrace", "frames"
     )
     if not frames:
-        threads = get_path(data, "threads", "values")
-        if threads and len(threads) == 1:
-            frames = get_path(threads, 0, "stacktrace", "frames")
+        thread = get_crashing_thread(get_path(data, "threads", "values", filter=True))
+        if thread is not None:
+            frames = get_path(thread, "stacktrace", "frames")
 
     default = None
     for frame in reversed(frames or ()):

@@ -75,8 +75,6 @@ describe('Quick Context', () => {
 
       await userEvent.hover(screen.getByText('Text from Child'));
 
-      // Error is expected, do not fail when calling console.error
-      jest.spyOn(console, 'error').mockImplementation();
       expect(
         await screen.findByText(/Failed to load context for column./i)
       ).toBeInTheDocument();

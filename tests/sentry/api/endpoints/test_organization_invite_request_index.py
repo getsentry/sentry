@@ -116,19 +116,14 @@ class OrganizationInviteRequestCreateTest(
 
         self.assert_org_member_mapping(org_member=member)
 
-    def test_higher_role(self) -> None:
+    def test_cannot_request_higher_role(self) -> None:
         self.login_as(user=self.user)
         response = self.client.post(
             self.url, {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
         )
 
-        assert response.status_code == 201
-        assert response.data["email"] == "eric@localhost"
-
-        member = OrganizationMember.objects.get(
-            organization=self.organization, email=response.data["email"]
-        )
-        assert member.role == "owner"
+        assert response.status_code == 400
+        assert response.data["role"] == ["You do not have permission to set that org-level role"]
 
     def test_existing_member(self) -> None:
         self.login_as(user=self.user)
@@ -240,6 +235,32 @@ class OrganizationInviteRequestCreateTest(
             "member_id": member.id,
             "member_email": "eric@localhost",
         }
+
+    def test_invitations_capped_at_member_permissions(self) -> None:
+        manager_user = self.create_user("manager2@localhost")
+        self.create_member(user=manager_user, organization=self.organization, role="manager")
+        self.login_as(user=manager_user)
+
+        assert not OrganizationMember.objects.filter(inviter_id=manager_user.id).exists()
+
+        # invite owner — should be rejected
+        response = self.client.post(
+            self.url, {"email": "foo@example.com", "role": "owner", "teams": [self.team.slug]}
+        )
+        assert response.status_code == 400
+        assert response.data["role"] == ["You do not have permission to set that org-level role"]
+
+        # invite manager — allowed (same level as the inviter)
+        response = self.client.post(
+            self.url, {"email": "bar@example.com", "role": "manager", "teams": [self.team.slug]}
+        )
+        assert response.status_code == 201
+
+        # invite member — allowed (below the inviter's level)
+        response = self.client.post(
+            self.url, {"email": "baz@example.com", "role": "member", "teams": [self.team.slug]}
+        )
+        assert response.status_code == 201
 
     def test_disallow_when_sso_required(self) -> None:
         from sentry.models.authidentity import AuthIdentity

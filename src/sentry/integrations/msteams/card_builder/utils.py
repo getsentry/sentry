@@ -9,15 +9,22 @@ class HelpMessages:
     UNRECOGNIZED_COMMAND = "Sorry, I didn't understand '{command_text}'."
     AVAILABLE_COMMANDS_TEXT = "Type **help**: to see the list of available commands"
 
-    MENTIONED_TITLE = (
-        "Sentry for Microsoft Teams does not support any commands in channels, only in direct messages."
-        " To unlink your Microsoft Teams identity from your Sentry account message the personal bot."
-    )
+    MENTIONED_TITLE = "Sentry is already installed for this team."
     MENTIONED_TEXT = (
-        "Want to learn more about configuring alerts in Sentry? Check out our documentation."
+        "Microsoft Teams installs Sentry once per team. To receive alerts in this channel, add a "
+        "MS Teams action to an alert, select the '{team_name}' team and enter this channel's name."
+        "\n\n To unlink your Microsoft Teams identity from your Sentry account, message the personal bot."
     )
-    DOCS_BUTTON = "Docs"
-    DOCS_URL = "https://docs.sentry.io/product/alerts-notifications/alerts/"
+    MANAGE_BUTTON = "Installation"
+    ALERT_BUTTON = "Alerts"
+
+    MISSING_INSTALLATION_TITLE = "Sentry installation is incomplete for this team."
+    MISSING_INSTALLATION_TEXT = (
+        "We couldn't find a Sentry integration for this team. Follow the Microsoft Teams setup "
+        "guide to reconnect it."
+    )
+    MISSING_INSTALLATION_BUTTON = "View Guide"
+    MISSING_INSTALLATION_URL = "https://docs.sentry.io/integrations/notification-incidents/msteams/"
 
 
 class IdentityMessages:
@@ -100,12 +107,12 @@ class IssueConstants:
     ARCHIVE_INPUT_ID = "archiveInput"
     ARCHIVE_INPUT_TITLE = "Archive until this happens again..."
     ARCHIVE_INPUT_CHOICES = [
-        ("Archive forever", -1),
-        ("1 time", 1),
-        ("10 times", 10),
-        ("100 times", 100),
-        ("1,000 times", 1000),
-        ("10,000 times", 10000),
+        ("Archive forever", "-1"),
+        ("1 time", "1"),
+        ("10 times", "10"),
+        ("100 times", "100"),
+        ("1,000 times", "1000"),
+        ("10,000 times", "10000"),
     ]
     UNARCHIVE = "Unarchive"
 

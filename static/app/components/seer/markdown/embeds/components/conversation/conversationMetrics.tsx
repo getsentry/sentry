@@ -8,21 +8,11 @@ import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {
-  getGenAiOpType,
-  getNumberAttr,
-  hasError,
-} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {getIsAiGenerationSpan} from 'sentry/views/insights/pages/agents/utils/query';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {SpanFields} from 'sentry/views/insights/types';
 
 /**
  * The numbers a conversation embed reports. Both embeds -- the single
  * conversation block and the query block's table -- describe the same kind of
- * thing, so they report the same fields under the same labels, even though one
- * reads them off a list row and the other sums them out of the spans it
- * already loaded.
+ * thing, so they report the same fields under the same labels.
  */
 export interface ConversationMetrics {
   cost: number | null;
@@ -75,41 +65,6 @@ export const CONVERSATION_METRIC_FIELDS: ConversationMetricField[] = [
     render: metrics => <LLMCosts cost={metrics.cost} />,
   },
 ];
-
-/**
- * Derives the metrics from a conversation's spans, matching what the list
- * endpoint computes for the same conversation: a message is one generation
- * span, and the duration is those spans' summed durations.
- */
-export function getConversationMetricsFromNodes(
-  nodes: AITraceSpanNode[]
-): ConversationMetrics {
-  let messages = 0;
-  let errors = 0;
-  let generationDuration = 0;
-  let cost = 0;
-
-  for (const node of nodes) {
-    if (getIsAiGenerationSpan(getGenAiOpType(node))) {
-      messages++;
-      // `space` is [start timestamp ms, duration ms].
-      generationDuration += node.space[1];
-      cost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
-    }
-    if (hasError(node)) {
-      errors++;
-    }
-  }
-
-  // A conversation whose spans carry no cost attribute at all has no cost
-  // recorded, which `LLMCosts` renders as `—` rather than as a free call.
-  return {
-    messages,
-    errors,
-    generationDuration,
-    cost: cost === 0 ? null : cost,
-  };
-}
 
 /** Height of the `Text size="sm"` value the skeleton stands in for. */
 const VALUE_HEIGHT = '14px';

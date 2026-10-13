@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import uuid4
 
+from sentry.event_manager import EventManager, resolve_project
 from sentry.issues.grouptype import GroupCategory
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
@@ -12,6 +13,7 @@ from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 
 def get_hybrid_sdk(
@@ -47,11 +49,17 @@ def get_hybrid_sdk(
 
 class SDKCrashReporter:
     def report(self, event_data: Mapping[str, Any], event_project_id: int) -> Event:
-        from sentry.event_manager import EventManager
-
-        manager = EventManager(dict(event_data))
-        manager.normalize()
-        return manager.save(project_id=event_project_id)
+        project = resolve_project(event_project_id)
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ):
+            manager = EventManager(dict(event_data))
+            manager.normalize()
+            return manager.save(project=project)
 
 
 class SDKCrashDetection:

@@ -1,11 +1,15 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import type {LocationDescriptor} from 'history';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -34,43 +38,55 @@ export function FlagActionDropdown({
   const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <StyledDropdownMenu
-      position="bottom-end"
-      className={isVisible ? '' : 'invisible'}
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      size="xs"
-      triggerProps={{
-        'aria-label': t('Flag Details'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-        className: 'flag-button',
-      }}
-      items={[
-        {
-          key: 'open-flag-details',
-          label: t('See flag details'),
-          to: {
-            pathname: `${baseUrl}${Tab.DISTRIBUTIONS}/${flag}`,
-            query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
+    <RevealOnHover.Action visible={isVisible}>
+      <StyledDropdownMenu
+        position="bottom-end"
+        onOpenChange={isOpen => setIsVisible(isOpen)}
+        size="xs"
+        trigger={triggerProps => (
+          <Container
+            width="25px"
+            height="15px"
+            minHeight="15px"
+            marginTop="xs"
+            padding="0 sm"
+            radius="xs"
+          >
+            {containerProps => (
+              <OverlayTrigger.IconButton
+                {...mergeProps(triggerProps, containerProps)}
+                aria-label={t('Flag Details')}
+                icon={<IconEllipsis />}
+              />
+            )}
+          </Container>
+        )}
+        items={[
+          {
+            key: 'open-flag-details',
+            label: t('See flag details'),
+            to: {
+              pathname: `${baseUrl}${Tab.DISTRIBUTIONS}/${flag}`,
+              query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
+            },
           },
-        },
-        {
-          key: 'view-issues',
-          label: t('Search issues for this flag value'),
-          to: generateAction({
-            key: makeFeatureFlagSearchKey(flag),
-            value: result.toString(),
-          }),
-        },
-        {
-          key: 'copy-value',
-          label: t('Copy flag value to clipboard'),
-          onAction: () =>
-            copy(result, {successMessage: t('Flag value copied to clipboard.')}),
-        },
-      ]}
-    />
+          {
+            key: 'view-issues',
+            label: t('Search issues for this flag value'),
+            to: generateAction({
+              key: makeFeatureFlagSearchKey(flag),
+              value: result.toString(),
+            }),
+          },
+          {
+            key: 'copy-value',
+            label: t('Copy flag value to clipboard'),
+            onAction: () =>
+              copy(result, {successMessage: t('Flag value copied to clipboard.')}),
+          },
+        ]}
+      />
+    </RevealOnHover.Action>
   );
 }
 
@@ -80,15 +96,5 @@ const StyledDropdownMenu = styled(DropdownMenu)`
   /* Override monospace styling that might be applied */
   [data-test-id='menu-list-item-label'] {
     font-family: ${p => p.theme.font.family.sans};
-  }
-
-  .flag-button {
-    height: 15px;
-    min-height: 15px;
-    width: 25px;
-    margin-top: ${p => p.theme.space.xs};
-    padding: 0 ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.space.xs};
-    z-index: 0;
   }
 `;

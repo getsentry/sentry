@@ -1,11 +1,14 @@
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/dashboard';
 

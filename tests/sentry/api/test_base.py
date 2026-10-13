@@ -43,6 +43,10 @@ class DummyEndpoint(Endpoint):
         return Response({"ok": True})
 
 
+class DummyCsrfProtectedEndpoint(DummyEndpoint):
+    csrf_protect = True
+
+
 class DummyDeclaredScopePermission(AllowAny):
     scope_map = {"GET": ("org:read",), "POST": ("project:write",)}
 
@@ -134,6 +138,12 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 @all_silo_test
 class EndpointTest(APITestCase):
+    def test_csrf_protection_defaults_to_disabled(self) -> None:
+        assert DummyEndpoint.as_view().csrf_exempt is True
+
+    def test_csrf_protection_can_be_enabled(self) -> None:
+        assert DummyCsrfProtectedEndpoint.as_view().csrf_exempt is False
+
     @mock.patch("sentry.auth.scope_declaration.new_scope")
     @mock.patch("sentry.auth.scope_declaration.capture_message")
     @mock.patch("sentry.auth.scope_declaration.logger.warning")

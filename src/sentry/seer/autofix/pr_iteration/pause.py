@@ -28,6 +28,7 @@ class PauseReason(StrEnum):
     USER_STOP = "user_stop"
     RUN_ERRORED = "run_errored"
     PR_CLOSED = "pr_closed"
+    DRAIN_FAILED = "drain_failed"
 
 
 def _get_seer_run(run_id: int, organization_id: int) -> SeerRun | None:

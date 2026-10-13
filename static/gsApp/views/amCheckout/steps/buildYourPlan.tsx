@@ -92,10 +92,7 @@ function PlanSubstep({
 
   return (
     <Stack gap="xl">
-      <Grid
-        columns={{'screen:xs': '1fr', 'screen:lg': `repeat(${planOptions.length}, 1fr)`}}
-        gap="lg"
-      >
+      <Grid columns={{zero: '1fr', '4xl': `repeat(${planOptions.length}, 1fr)`}} gap="lg">
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
           const shouldShowDefaultPayAsYouGo = isNewPayingCustomer(

@@ -105,14 +105,14 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
   return (
     <Wrapper>
       <NumberAndDifferenceContainer>
-        {defined(props.thresholds?.max_values.max1) &&
+        {defined(props.thresholds?.max_values?.max1) &&
           defined(props.thresholds?.max_values.max2) && (
             <ThresholdsIndicator
               preferredPolarity={props.preferredPolarity}
               thresholds={{
                 unit: props.thresholds.unit ?? undefined,
                 max_values: {
-                  max1: props.thresholds.max_values.max1,
+                  max1: props.thresholds.max_values?.max1,
                   max2: props.thresholds.max_values.max2,
                 },
               }}

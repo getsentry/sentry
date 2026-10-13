@@ -5,7 +5,7 @@ import {Item} from '@react-stately/collections';
 import type {DistributedOmit} from 'type-fest';
 
 import {type ButtonProps} from '@sentry/scraps/button';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {ClearButton, Control} from './control';
 import type {ControlProps} from './control';

@@ -1,9 +1,11 @@
+import {IconBug} from '@sentry/icons/bug';
+
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type DebugOption = 'context-engine' | 'force-bash-mode' | 'show-thinking';
@@ -33,6 +35,7 @@ export function SeerExplorerDebugMenu({
   onShowThinkingToggle,
 }: SeerExplorerDebugMenuProps) {
   const organization = useOrganization({allowNull: true});
+  const isSentryEmployee = useIsSentryEmployee();
   const showContextEngineToggle = !!organization?.features.includes(
     'seer-explorer-context-engine-fe-override-ui-flag'
   );
@@ -67,7 +70,7 @@ export function SeerExplorerDebugMenu({
     ...(showThinkingToggle && showThinking ? (['show-thinking'] as const) : []),
   ];
 
-  if (options.length === 0) {
+  if (!isSentryEmployee || options.length === 0) {
     return null;
   }
 

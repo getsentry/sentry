@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -10,7 +11,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Access} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -34,9 +34,9 @@ type RevokeTokenQueryVariables = {
 };
 
 const TOKEN_COLUMNS: TableColumnConfig[] = [
-  {key: 'token', width: {zero: '1fr', xl: 'auto'}},
-  {key: 'created', visible: {xl: true}, width: 'auto'},
-  {key: 'lastAccess', visible: {xl: true}, width: 'auto'},
+  {key: 'token', width: 'minmax(0, 1fr)'},
+  {key: 'created', visible: {xl: true}, width: 'max-content'},
+  {key: 'lastAccess', visible: {xl: true}, width: 'minmax(0, 1fr)'},
   {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
 ];
 
@@ -202,16 +202,10 @@ function OrganizationAuthTokensIndex() {
             columns={TOKEN_COLUMNS}
             header={
               <SimpleTable.HeaderRow>
-                <SimpleTable.HeaderCell columnKey="token">
-                  {t('Token')}
-                </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell columnKey="created">
-                  {t('Created')}
-                </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell columnKey="lastAccess">
-                  {t('Last access')}
-                </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell columnKey="actions" />
+                <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Last access')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell />
               </SimpleTable.HeaderRow>
             }
           >

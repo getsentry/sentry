@@ -118,7 +118,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
         repository_input.send_keys("sentry")
         self.browser.wait_until('[data-test-id="menu-list-item-label"]')
         self.browser.click('[data-test-id="menu-list-item-label"]')
-        self.browser.wait_until(xpath='//*[contains(text(), "Auto-detected from your repository")]')
+        self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
         self.browser.wait_until(
             xpath='//*[@role="radiogroup"]//*[@role="radio" and @aria-checked="true"]'
             '[contains(., "Django")]'
@@ -194,7 +194,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
 
             self.browser.wait_until(xpath='//button[contains(., "GitHub")]')
             self.browser.click(xpath='//button[contains(., "GitHub")]')
-            self.browser.wait_until(xpath='//button[contains(., "Authorize GitHub")]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Authorize GitHub")]')
             self.browser.click(xpath='//button[contains(., "Authorize GitHub")]')
 
             oauth_url = self.browser.driver.execute_script("return window.__testOpenUrl")

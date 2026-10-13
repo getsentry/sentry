@@ -1,4 +1,4 @@
-export {Markdown, type MarkdownProps} from './markdown';
+export {Markdown, type MarkdownProps, type MarkdownTableColumn} from './markdown';
 export {
   asyncSanitizedMarked,
   isInternalHref,

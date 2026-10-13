@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconSearch} from '@sentry/icons/search';
 import type {Location} from 'history';
 
 import {Pagination} from '@sentry/scraps/pagination';
@@ -10,7 +11,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
-import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -24,6 +24,7 @@ import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releases
 import {ReleasesPromo} from 'sentry/views/explore/releases/list/releasesPromo';
 import ReleasesRequest from 'sentry/views/explore/releases/list/releasesRequest';
 import {ReleasesStatusOption} from 'sentry/views/explore/releases/list/releasesStatusOptions';
+import {useReleasesSdkVersions} from 'sentry/views/explore/releases/list/useReleasesSdkVersions';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 
 interface Props {
@@ -53,9 +54,14 @@ export function ReleaseListInner({
 }: Props) {
   const location = useLocation();
   const hasReleasesSetup = selectedProject?.features.includes('releases');
-
   const shouldShowLoadingIndicator =
     (loading && !reloading) || (loading && !releases?.length);
+  const sdkVersionsByRelease = useReleasesSdkVersions({
+    enabled: !shouldShowLoadingIndicator && !shouldShowQuickstart,
+    organization,
+    releases,
+    selection,
+  });
 
   if (shouldShowLoadingIndicator) {
     return <LoadingIndicator />;
@@ -114,6 +120,7 @@ export function ReleaseListInner({
                 location={location}
                 selection={selection}
                 reloading={reloading}
+                sdkVersions={sdkVersionsByRelease.get(release) ?? []}
                 showHealthPlaceholders={isHealthLoading}
                 isTopRelease={index === 0}
                 getHealthData={getHealthData}

@@ -1,19 +1,17 @@
+import {IconAsana} from '@sentry/icons/asana';
+import {IconBitbucket} from '@sentry/icons/bitbucket';
+import {IconCursor} from '@sentry/icons/cursor';
+import {IconGeneric} from '@sentry/icons/generic';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGitlab} from '@sentry/icons/gitlab';
+import {IconJira} from '@sentry/icons/jira';
+import {IconPerforce} from '@sentry/icons/perforce';
+import {IconSentry} from '@sentry/icons/sentry';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
+import {IconVsts} from '@sentry/icons/vsts';
 import * as qs from 'query-string';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {
-  IconAsana,
-  IconBitbucket,
-  IconCursor,
-  IconGeneric,
-  IconGithub,
-  IconGitlab,
-  IconJira,
-  IconPerforce,
-  IconSentry,
-  IconVsts,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import type {
@@ -326,23 +324,6 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
     default:
       return undefined;
   }
-};
-
-/**
- * Uses the mapping and baseEndpoint to derive the details for the mappings request.
- * @param baseEndpoint Must have a trailing slash, since the id is appended for PUT requests!
- * @param mapping The mapping or suggestion being sent to the endpoint
- * @returns An object containing the request method (apiMethod), and final endpoint (apiEndpoint)
- */
-export const getExternalActorEndpointDetails = (
-  baseEndpoint: string,
-  mapping?: ExternalActorMappingOrSuggestion
-): {apiEndpoint: string; apiMethod: 'POST' | 'PUT'} => {
-  const isValidMapping = mapping && isExternalActorMapping(mapping);
-  return {
-    apiMethod: isValidMapping ? 'PUT' : 'POST',
-    apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
-  };
 };
 
 export function getIntegrationStatus(integration: Integration) {

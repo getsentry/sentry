@@ -1,5 +1,7 @@
 from typing import NamedTuple
 
+from django.db.models import F
+
 from sentry.utils import metrics
 from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.models.detector import Detector
@@ -28,7 +30,9 @@ def get_detectors_by_data_source(source_id: str, query_type: str) -> list[Detect
         cache_key = _DetectorCacheKey(source_id, query_type)
         detectors = _detectors_by_data_source.get(cache_key)
 
-        if detectors is None:
+        if detectors is None or not all(
+            hasattr(detector, "project_organization_id") for detector in detectors
+        ):
             metrics_tags["cache_hit"] = "false"
             detectors = _query_detectors(source_id, query_type)
             _detectors_by_data_source.set(cache_key, detectors)
@@ -46,6 +50,7 @@ def _query_detectors(source_id: str, query_type: str) -> list[Detector]:
             data_sources__source_id=source_id,
             data_sources__type=query_type,
         )
+        .annotate(project_organization_id=F("project__organization_id"))
         .select_related("workflow_condition_group")
         .prefetch_related("workflow_condition_group__conditions")
         .distinct()

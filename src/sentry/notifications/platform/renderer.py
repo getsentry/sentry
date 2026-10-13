@@ -2,7 +2,6 @@ from typing import Protocol
 
 from sentry.notifications.platform.types import (
     NotificationData,
-    NotificationProviderKey,
     NotificationRenderedTemplate,
 )
 
@@ -16,8 +15,6 @@ class NotificationRenderer[RenderableT](Protocol):
     A protocol metaclass for all notification renderers.
     RenderableT is a type that matches the connected provider.
     """
-
-    provider_key: NotificationProviderKey
 
     @classmethod
     def render[DataT: NotificationData](

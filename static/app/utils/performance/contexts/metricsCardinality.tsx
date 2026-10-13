@@ -15,7 +15,7 @@ import {MetricsCompatibilitySumsQuery} from 'sentry/utils/performance/metricsEnh
 const UNPARAM_THRESHOLD = 0.01;
 const NULL_THRESHOLD = 0.01;
 
-export interface MetricDataSwitcherOutcome {
+interface MetricDataSwitcherOutcome {
   forceTransactionsOnly: boolean;
   compatibleProjects?: number[];
   shouldNotifyUnnamedTransactions?: boolean;

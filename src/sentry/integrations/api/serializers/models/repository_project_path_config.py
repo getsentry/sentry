@@ -1,14 +1,37 @@
+from typing import TypedDict
+
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
-from sentry.integrations.api.serializers.models.integration import serialize_provider
+from sentry.integrations.api.serializers.models.integration import (
+    IntegrationProviderInfo,
+    serialize_provider,
+)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.models.projectcodeowners import ProjectCodeOwners
+
+
+class RepositoryProjectPathConfigSerializerResponse(TypedDict):
+    id: str
+    projectId: str
+    projectSlug: str
+    repoId: str
+    repoName: str
+    integrationId: str | None
+    provider: IntegrationProviderInfo | None
+    stackRoot: str
+    sourceRoot: str
+    defaultBranch: str | None
+    automaticallyGenerated: bool
+    hasCodeOwner: bool
 
 
 @register(RepositoryProjectPathConfig)
-class RepositoryProjectPathConfigSerializer(Serializer):
+class RepositoryProjectPathConfigSerializer(
+    Serializer[RepositoryProjectPathConfigSerializerResponse]
+):
     def get_attrs(self, item_list, user, **kwargs):
         if not item_list:
             return {}
@@ -46,12 +69,23 @@ class RepositoryProjectPathConfigSerializer(Serializer):
                 if oi.integration_id in integration_by_id
             }
 
+        protected_ids = set(
+            ProjectCodeOwners.objects.filter(
+                repository_project_path_config_id__in=[item.id for item in item_list]
+            ).values_list("repository_project_path_config_id", flat=True)
+        )
+
         return {
-            item: {"integration": integration_by_oi_id.get(item.organization_integration_id)}
+            item: {
+                "integration": integration_by_oi_id.get(item.organization_integration_id),
+                "has_code_owner": item.id in protected_ids,
+            }
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self, obj, attrs, user, **kwargs
+    ) -> RepositoryProjectPathConfigSerializerResponse:
         integration = attrs.get("integration")
 
         provider = integration.get_provider() if integration else None
@@ -61,7 +95,7 @@ class RepositoryProjectPathConfigSerializer(Serializer):
         project = obj.project_repository.project
         repository = obj.project_repository.repository
 
-        return {
+        response: RepositoryProjectPathConfigSerializerResponse = {
             "id": str(obj.id),
             "projectId": str(project.id),
             "projectSlug": project.slug,
@@ -73,4 +107,6 @@ class RepositoryProjectPathConfigSerializer(Serializer):
             "sourceRoot": obj.source_root,
             "defaultBranch": obj.default_branch,
             "automaticallyGenerated": obj.automatically_generated,
+            "hasCodeOwner": attrs["has_code_owner"],
         }
+        return response

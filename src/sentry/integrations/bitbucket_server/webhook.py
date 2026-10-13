@@ -24,7 +24,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -122,7 +122,7 @@ class PushEventWebhook(BitbucketServerWebhook):
                     author_email = commit["author"]["emailAddress"]
 
                     # its optional, lets just throw it out for now
-                    if author_email is None or len(author_email) > 75:
+                    if author_email is None or len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                         author = None
                     elif author_email not in authors:
                         authors[author_email] = author = CommitAuthor.objects.get_or_create(

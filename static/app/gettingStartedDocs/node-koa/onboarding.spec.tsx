@@ -29,12 +29,22 @@ describe('koa onboarding docs', () => {
     });
   });
 
-  it('includes error handler', () => {
+  it('starts the app with the --import flag', () => {
     renderWithOnboardingLayout(docs);
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.setupKoaErrorHandler\(app\)/))
+      screen.getByText(
+        textWithMarkupMatcher(/node --import \.\/instrument\.js index\.js/)
+      )
     ).toBeInTheDocument();
+  });
+
+  it('does not include the deprecated koa error handler', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry\.setupKoaErrorHandler/))
+    ).not.toBeInTheDocument();
   });
 
   it('displays sample rates by default', () => {
@@ -115,7 +125,7 @@ describe('koa onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+          /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
         )
       )
     ).toBeInTheDocument();
@@ -141,7 +151,7 @@ describe('koa onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+          /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
         )
       )
     ).toBeInTheDocument();

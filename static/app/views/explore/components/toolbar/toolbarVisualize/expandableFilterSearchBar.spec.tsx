@@ -1,5 +1,9 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {SavedSearchType} from 'sentry/types/group';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 
 /**
@@ -55,6 +59,140 @@ function isExpanded(input: HTMLElement) {
 }
 
 describe('ExpandableFilterSearchBar', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('does not select a recent filter when the opening press ends over it', async () => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [{query: 'browser.name:Chrome'}],
+    });
+    render(
+      <ExpandableFilterSearchBar>
+        <SearchQueryBuilder
+          initialQuery="sdk.name:example has:sdk.name"
+          menuPresentation="panel"
+          searchSource="explore-conditional-aggregate"
+          recentSearches={SavedSearchType.SPAN}
+          filterKeySections={[
+            {value: 'tags', label: 'Tags', children: ['browser.name', 'sdk.name']},
+          ]}
+          getTagValues={() => Promise.resolve([])}
+          filterKeys={{
+            'sdk.name': {key: 'sdk.name', name: 'sdk.name'},
+            'browser.name': {key: 'browser.name', name: 'browser.name'},
+          }}
+        />
+      </ExpandableFilterSearchBar>
+    );
+
+    const user = userEvent.setup();
+    const input = screen.getByTestId('query-builder-input');
+    await user.pointer({target: input, keys: '[MouseLeft>]'});
+    await flushAnimationFrames();
+    const recentFilter = await screen.findByTestId('recent-filter-key');
+    // Widening a wrapped query moves the new menu under the opening pointer.
+    await user.pointer({target: recentFilter, keys: '[/MouseLeft]'});
+
+    expect(
+      screen.queryByRole('combobox', {name: 'Edit filter value'})
+    ).not.toBeInTheDocument();
+    expect(input).toHaveFocus();
+
+    await user.click(recentFilter);
+    expect(
+      await screen.findByRole('combobox', {name: 'Edit filter value'})
+    ).toHaveFocus();
+  });
+
+  it.each(['padding', 'gap'])(
+    'keeps the current value editor focused when clicking panel %s',
+    async target => {
+      render(
+        <ExpandableFilterSearchBar>
+          <SearchQueryBuilder
+            initialQuery="browser.name:Chrome"
+            menuPresentation="panel"
+            searchSource="explore-conditional-aggregate"
+            getTagValues={() => Promise.resolve([])}
+            filterKeys={{
+              'browser.name': {
+                key: 'browser.name',
+                name: 'browser.name',
+                predefined: true,
+                values: ['Chrome', 'Firefox'],
+              },
+            }}
+          />
+        </ExpandableFilterSearchBar>
+      );
+
+      await userEvent.click(screen.getByTestId('query-builder-input'));
+      await flushAnimationFrames();
+      await userEvent.click(screen.getByLabelText('Edit value for filter: browser.name'));
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'Fire');
+      const option = await screen.findByRole('option', {name: 'Firefox'});
+
+      const panel = screen.getByTestId('search-query-builder-panel');
+      const chrome =
+        target === 'gap' ? panel.querySelector('[data-query-builder-menu]')! : panel;
+      await userEvent.click(chrome);
+
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('Fire');
+      expect(option).toBeInTheDocument();
+      expect(isExpanded(input)).toBe(true);
+
+      await userEvent.click(document.body);
+      await flushAnimationFrames();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(isExpanded(screen.getByTestId('query-builder-input'))).toBe(false);
+    }
+  );
+
+  it.each(['padding', 'gap'])(
+    'keeps the equation editor focused when clicking panel %s',
+    async target => {
+      render(
+        <ExpandableFilterSearchBar>
+          <ArithmeticBuilder
+            aggregations={['avg', 'sum']}
+            functionArguments={[{name: 'span.duration', kind: FieldKind.MEASUREMENT}]}
+            getFieldDefinition={key => getFieldDefinition(key, 'span')}
+            expression=""
+            menuPresentation="panel"
+          />
+        </ExpandableFilterSearchBar>
+      );
+
+      const input = screen.getByTestId('arithmetic-builder-input');
+      await userEvent.click(input);
+      await flushAnimationFrames();
+      await userEvent.type(input, 'avg');
+      const option = await screen.findByRole('option', {name: 'avg'});
+
+      const panel = screen.getByTestId('arithmetic-builder-panel');
+      const chrome =
+        target === 'gap' ? panel.querySelector('[data-query-builder-menu]')! : panel;
+      await userEvent.click(chrome);
+
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('avg');
+      expect(option).toBeInTheDocument();
+      expect(isExpanded(input)).toBe(true);
+
+      await userEvent.click(document.body);
+      await flushAnimationFrames();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(isExpanded(screen.getByTestId('arithmetic-builder-input'))).toBe(false);
+    }
+  );
+
   it('expands on click and puts the caret at the end of the query', async () => {
     render(<SearchBarStub defaultValue="span.op:db" />);
 

@@ -56,7 +56,8 @@ export function isDefaultFields(location: Location): boolean {
 }
 
 export function getReadableQueryParamsFromLocation(
-  location: Location
+  location: Location,
+  fieldsOverride?: string[]
 ): ReadableQueryParams {
   const extrapolate = decodeScalar(location.query?.[SPANS_EXTRAPOLATE_KEY], '1') === '1';
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
@@ -65,7 +66,8 @@ export function getReadableQueryParamsFromLocation(
   const cursor = getCursorFromLocation(location, SPANS_CURSOR_KEY);
   const breakdownCursor = decodeScalar(location.query[SPANS_BREAKDOWN_CURSOR_KEY]);
   const breakdownQuery = decodeScalar(location.query[SPANS_BREAKDOWN_QUERY_KEY]);
-  const fields = getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();
+  const fields =
+    fieldsOverride ?? getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();
   const sortBys =
     getSortBysFromLocation(location, SPANS_SORT_KEY, fields) ?? defaultSortBys(fields);
 

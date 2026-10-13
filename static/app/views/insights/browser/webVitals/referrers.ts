@@ -8,4 +8,5 @@ export enum Referrer {
   WEB_VITAL_TRANSACTION = 'api.insights.web-vitals.transaction',
   WEB_VITAL_TRANSACTIONS_SCORES = 'api.insights.web-vitals.transactions-scores',
   WEB_VITAL_PROFILE_EXISTS = 'api.insights.web-vitals.profile-exists',
+  WEB_VITAL_NAVIGATION_TYPE_COUNTS = 'api.insights.web-vitals.navigation-type-counts',
 }

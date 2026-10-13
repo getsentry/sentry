@@ -23,7 +23,8 @@ describe('ExploreSecondaryNavigation', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/explore/saved/',
+      url: '/organizations/org-slug/explore/all-queries/',
+      body: [],
     });
 
     MockApiClient.addMockResponse({
@@ -88,7 +89,7 @@ describe('ExploreSecondaryNavigation', () => {
       'href',
       '/organizations/org-slug/explore/investigations/'
     );
-    expect(screen.getByLabelText('beta')).toBeInTheDocument();
+    expect(screen.getByLabelText('alpha')).toBeInTheDocument();
   });
 
   it('keeps Explore and Investigations active on investigation detail pages', () => {
@@ -178,7 +179,7 @@ describe('ExploreSecondaryNavigation', () => {
     );
   });
 
-  it('links Discover to homepage when discover-query is enabled', () => {
+  it('links Errors to the errors page when discover-basic is enabled', () => {
     const {organization: orgWithQuery} = initializeOrg({
       organization: {
         features: [
@@ -205,9 +206,59 @@ describe('ExploreSecondaryNavigation', () => {
       }
     );
 
-    expect(screen.getByRole('link', {name: 'Discover'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Errors'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/homepage/'
+      '/organizations/org-slug/explore/errors/'
     );
+  });
+
+  it('fetches the combined endpoint and lists both products', async () => {
+    const getQueriesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/explore/all-queries/',
+      body: [
+        {
+          id: 1,
+          queryType: 'explore',
+          name: 'Starred Explore Query',
+          dataset: 'spans',
+          projects: [],
+          starred: true,
+          position: 1,
+          query: [{query: '', fields: [], groupby: [], visualize: []}],
+        },
+        {
+          // Same id as the explore row above, from discover's own sequence.
+          id: 1,
+          queryType: 'discover',
+          name: 'Starred Discover Query',
+          queryDataset: 'error-events',
+          projects: [],
+          starred: true,
+          position: 2,
+          fields: ['title'],
+          query: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <SecondaryNavigationContextProvider>
+          <Navigation />
+          <div id="main" />
+        </SecondaryNavigationContextProvider>
+      </PrimaryNavigationContextProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
+        },
+      }
+    );
+
+    expect(await screen.findByText('Starred Explore Query')).toBeInTheDocument();
+    expect(screen.getByText('Starred Discover Query')).toBeInTheDocument();
+    expect(getQueriesMock).toHaveBeenCalled();
   });
 });

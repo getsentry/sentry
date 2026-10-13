@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework.fields import CharField, ListField
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.serializers import Serializer
+from rest_framework.serializers import Serializer, ValidationError
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -25,10 +25,11 @@ from sentry.api.serializers.rest_framework.base import (
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.gcp.client import verify_gcp_connection
+from sentry.integrations.gcp.utils import parse_customer_sa_email, validate_gcp_project_id
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,20 @@ class GcpVerifyConnectionSerializer(CamelSnakeSerializer["GcpVerifyConnectionSer
     gcp_project_ids = ListField(
         child=CharField(max_length=64), required=True, min_length=1, max_length=100
     )
+
+    def validate_customer_sa_email(self, value: str) -> str:
+        try:
+            return parse_customer_sa_email(value)
+        except IntegrationConfigurationError as e:
+            raise ValidationError(str(e))
+
+    def validate_gcp_project_ids(self, value: list[str]) -> list[str]:
+        try:
+            for project_id in value:
+                validate_gcp_project_id(project_id)
+        except IntegrationConfigurationError as e:
+            raise ValidationError(str(e))
+        return value
 
 
 class GcpVerifyConnectionServiceResultSerializer(Serializer[dict[str, object]]):

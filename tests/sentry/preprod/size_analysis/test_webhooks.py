@@ -202,6 +202,7 @@ class BuildWebhookPayloadTest(TestCase):
             organization=self.organization,
             head_sha=commit_comparison.base_sha,
             base_sha="0000000000000000000000000000000000000000",
+            head_repo_name=commit_comparison.head_repo_name,
         )
         base_artifact, base_metric = self._create_artifact_with_completed_analysis(
             commit_comparison=base_commit_comparison,
@@ -267,6 +268,7 @@ class BuildWebhookPayloadTest(TestCase):
             organization=self.organization,
             head_sha=commit_comparison.base_sha,
             base_sha="0000000000000000000000000000000000000000",
+            head_repo_name=commit_comparison.head_repo_name,
         )
         _base_artifact, base_metric = self._create_artifact_with_completed_analysis(
             commit_comparison=base_commit_comparison,
@@ -336,6 +338,7 @@ class BuildWebhookPayloadTest(TestCase):
             organization=self.organization,
             head_sha=commit_comparison.base_sha,
             base_sha="0000000000000000000000000000000000000000",
+            head_repo_name=commit_comparison.head_repo_name,
         )
         base_artifact = self.create_preprod_artifact(
             project=self.project,

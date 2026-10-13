@@ -15,17 +15,14 @@ describe('CreateSampleEventButton', () => {
   const groupID = '123';
   const createSampleText = 'Create a sample event';
 
-  function renderComponent() {
-    return render(
+  function ExampleCreateSampleEventButton() {
+    return (
       <CreateSampleEventButton
         source="test"
         project={{...project, platform: 'javascript'}}
       >
         {createSampleText}
-      </CreateSampleEventButton>,
-      {
-        organization: org,
-      }
+      </CreateSampleEventButton>
     );
   }
 
@@ -34,7 +31,7 @@ describe('CreateSampleEventButton', () => {
   });
 
   it('creates a sample event', async () => {
-    const {router} = renderComponent();
+    const {router} = render(<ExampleCreateSampleEventButton />, {organization: org});
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
       method: 'POST',
@@ -63,7 +60,7 @@ describe('CreateSampleEventButton', () => {
   });
 
   it('fires the legacy view sample event when hasScmOnboarding is not set', async () => {
-    renderComponent();
+    render(<ExampleCreateSampleEventButton />, {organization: org});
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
       method: 'POST',
@@ -129,7 +126,7 @@ describe('CreateSampleEventButton', () => {
 
   it('waits for the latest event to be processed', async () => {
     jest.useFakeTimers();
-    const {router} = renderComponent();
+    const {router} = render(<ExampleCreateSampleEventButton />, {organization: org});
     const createRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/create-sample/`,
       method: 'POST',

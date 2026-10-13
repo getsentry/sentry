@@ -49,7 +49,6 @@ describe('useProfileEvents', () => {
 
   it('handles api errors', async () => {
     const organization = OrganizationFixture();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

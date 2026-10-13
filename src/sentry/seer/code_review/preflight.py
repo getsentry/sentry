@@ -9,7 +9,6 @@ import sentry_sdk
 
 from sentry import features, options, quotas
 from sentry.constants import (
-    HIDE_AI_FEATURES_DEFAULT,
     DataCategory,
 )
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -21,6 +20,7 @@ from sentry.models.repositorysettings import (
     CodeReviewSettings,
     RepositorySettings,
 )
+from sentry.seer.seer_setup import has_seer_access
 
 
 class PreflightDenialReason(StrEnum):
@@ -78,12 +78,7 @@ class CodeReviewPreflightService:
     # -------------------------------------------------------------------------
 
     def _check_legal_ai_consent(self) -> PreflightDenialReason | None:
-        has_gen_ai_flag = features.has("organizations:gen-ai-features", self.organization)
-        has_hidden_ai = self.organization.get_option(
-            "sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT
-        )
-
-        if not has_gen_ai_flag or has_hidden_ai:
+        if not has_seer_access(self.organization):
             return PreflightDenialReason.ORG_LEGAL_AI_CONSENT_NOT_GRANTED
         return None
 

@@ -1,17 +1,14 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
 import clamp from 'lodash/clamp';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
-import {DataTable} from 'sentry/components/tables/dataTable';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconWarning} from 'sentry/icons/iconWarning';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -42,11 +39,11 @@ type Column = {
 
 const COLUMNS: Column[] = [
   {
-    label: t('function'),
+    label: t('Function'),
     value: 'name',
   },
   {
-    label: t('package'),
+    label: t('Package'),
     value: 'package',
   },
   {
@@ -66,7 +63,7 @@ const COLUMNS: Column[] = [
     value: 'p99',
   },
   {
-    label: t('examples'),
+    label: t('Examples'),
     value: 'examples',
   },
 ];
@@ -201,8 +198,6 @@ export function SuspectFunctionsTable({
     return sortedMetrics.slice(pagination.start, pagination.end);
   }, [sortedMetrics, pagination]);
 
-  const fields = COLUMNS.map(column => column.value);
-
   const baggage: RenderFunctionBaggage = {
     location,
     navigate,
@@ -230,14 +225,15 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </Flex>
-      <DataTable fields={fields}>
-        <DataTable.Head>
-          <DataTable.Row>
+      <SimpleTable
+        columns={COLUMNS.map(column => ({key: column.value}))}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
             {COLUMNS.map((column, i) => {
               return (
-                <DataTable.HeadCell
+                <SimpleTable.HeaderCell
                   key={i}
-                  isFirst={i === 0}
                   align={
                     column.value === 'package' || column.value === 'name'
                       ? 'left'
@@ -245,40 +241,31 @@ export function SuspectFunctionsTable({
                   }
                 >
                   {column.label}
-                </DataTable.HeadCell>
+                </SimpleTable.HeaderCell>
               );
             })}
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {flamegraphQuery.isPending ? (
-            <DataTable.Status>
-              <LoadingIndicator />
-            </DataTable.Status>
-          ) : flamegraphQuery.isError ? (
-            <DataTable.Status>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </DataTable.Status>
-          ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
-            metrics.map((metric, i) => (
-              <TableEntry
-                key={i}
-                analyticsPageSource={analyticsPageSource}
-                baggage={baggage}
-                metric={metric}
-                organization={organization}
-                project={project}
-              />
-            ))
-          ) : (
-            <DataTable.Status>
-              <EmptyStateWarning>
-                <p>{t('No functions found')}</p>
-              </EmptyStateWarning>
-            </DataTable.Status>
-          )}
-        </DataTable.Body>
-      </DataTable>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {flamegraphQuery.isPending ? (
+          <SimpleTable.Loading />
+        ) : flamegraphQuery.isError ? (
+          <SimpleTable.Error />
+        ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
+          metrics.map((metric, i) => (
+            <TableEntry
+              key={i}
+              analyticsPageSource={analyticsPageSource}
+              baggage={baggage}
+              metric={metric}
+              organization={organization}
+              project={project}
+            />
+          ))
+        ) : (
+          <SimpleTable.Empty>{t('No functions found')}</SimpleTable.Empty>
+        )}
+      </SimpleTable>
     </Fragment>
   );
 }
@@ -299,7 +286,7 @@ function TableEntry({
   project,
 }: TableEntryProps) {
   return (
-    <DataTable.Row>
+    <SimpleTable.Row>
       {COLUMNS.map(column => {
         if (column.value === 'examples') {
           const items = metric[column.value].map(example => {
@@ -327,9 +314,9 @@ function TableEntry({
             };
           });
           return (
-            <DataTable.Cell key={column.value}>
+            <SimpleTable.RowCell key={column.value}>
               <ArrayLinks items={items} />
-            </DataTable.Cell>
+            </SimpleTable.RowCell>
           );
         }
 
@@ -338,12 +325,12 @@ function TableEntry({
             ? FIELD_FORMATTERS.duration.renderFunc
             : FIELD_FORMATTERS.string.renderFunc;
         return (
-          <DataTable.Cell key={column.value}>
+          <SimpleTable.RowCell key={column.value}>
             {formatter(column.value, metric, baggage)}
-          </DataTable.Cell>
+          </SimpleTable.RowCell>
         );
       })}
-    </DataTable.Row>
+    </SimpleTable.Row>
   );
 }
 

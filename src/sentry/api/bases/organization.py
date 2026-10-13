@@ -12,9 +12,10 @@ from rest_framework.exceptions import ParseError, PermissionDenied, ValidationEr
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
+from sentry_sdk import traces
 
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist, SuperuserRequired
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.projects import (
     ParsedProjectIdOrSlugParams,
@@ -46,7 +47,6 @@ from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context, set_span_attribute
-from sentry.utils.tracing import set_span_data, start_span
 
 
 class NoProjects(Exception):
@@ -120,6 +120,16 @@ class OrganizationPermission(DemoSafePermission):
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         self.determine_access(request, organization)
+
+        org_slug = getattr(request, "_superuser_needs_org_auth", None)
+        if org_slug:
+            has_staff_perm = any(
+                isinstance(perm, StaffPermissionMixin) for perm in view.get_permissions()
+            )
+            delattr(request, "_superuser_needs_org_auth")
+            if not has_staff_perm:
+                raise SuperuserRequired(orgSlug=org_slug)
+
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
@@ -327,9 +337,9 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         if organization_context is None:
             raise ResourceDoesNotExist
 
-        with start_span(
-            op="check_object_permissions_on_organization",
+        with traces.start_span(
             name="check_object_permissions_on_organization",
+            attributes={"sentry.op": "check_object_permissions_on_organization"},
         ):
             self.check_object_permissions(request, organization_context)
 
@@ -443,11 +453,12 @@ class OrganizationEndpoint(Endpoint):
             qs = qs.filter(id__in=ids)
         # No project ids or slugs === `all projects I am a member of`
 
-        with start_span(
-            op="fetch_organization_projects", name="fetch_organization_projects"
+        with traces.start_span(
+            name="fetch_organization_projects",
+            attributes={"sentry.op": "fetch_organization_projects"},
         ) as span:
             projects = list(qs)
-            set_span_data(span, "Project Count", len(projects))
+            span.set_attribute("Project Count", len(projects))
 
         filter_by_membership = not bool(ids) and not bool(slugs)
         filtered_projects = self._filter_projects_by_permissions(
@@ -747,9 +758,9 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with start_span(
-            op="check_object_permissions_on_organization",
+        with traces.start_span(
             name="check_object_permissions_on_organization",
+            attributes={"sentry.op": "check_object_permissions_on_organization"},
         ):
             self.check_object_permissions(request, organization)
 

@@ -38,7 +38,6 @@ _LOGIN_URL: str | None = None
 _STATIC_LOGIN_REDIRECT_SUFFIXES = frozenset({".js", ".css", ".map"})
 
 MFA_SESSION_KEY = "mfa"
-REACT_AUTH_COOKIE = "sentry_react_auth"
 
 SUSPENDED_USER_REJECTED_METRIC = "auth.suspended_user.rejected"
 
@@ -193,9 +192,7 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
     # If there is a pending 2fa authentication bound to the session then
     # we need to go to the 2fa dialog.
     if has_pending_2fa(request):
-        if request.COOKIES.get(REACT_AUTH_COOKIE) == "1":
-            return reverse("sentry-login")
-        return reverse("sentry-2fa-dialog")
+        return reverse("sentry-login")
 
     # If we have a different URL to go after the 2fa flow we want to go to
     # that now here.

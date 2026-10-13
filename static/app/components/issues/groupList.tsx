@@ -21,7 +21,7 @@ import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
-import {isRetryableRequestError} from 'sentry/utils/queryClient';
+import {isRetryableRequestError} from 'sentry/utils/queryClientConfig';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -36,11 +36,12 @@ export type GroupListColumn =
   | 'priority'
   | 'progress'
   | 'assignee'
+  | 'assigneeAvatar'
   | 'lastTriggered'
   | 'firstSeen'
   | 'lastSeen';
 
-type Props = {
+export type GroupListProps = {
   /**
    * Number of placeholder rows to show during loading
    */
@@ -119,7 +120,7 @@ export function GroupList({
   useFilteredStats = true,
   useTintRow = true,
   withHeader = true,
-}: Props) {
+}: GroupListProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();

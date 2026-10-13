@@ -1,7 +1,7 @@
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
@@ -134,10 +134,9 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
         </Flex>
       }
     >
-      <KeyValueTableDataList
-        margin
-        shouldSort={false}
-        data={[
+      <KeyValueTableCard
+        variant="label"
+        contentItems={[
           {
             key: 'thresholdType',
             value: getMeasurementLabel(config.thresholdType),
@@ -161,15 +160,11 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
             ? [
                 {
                   key: 'condition',
-                  value: (
-                    <pre>
-                      {formatCondition({
-                        condition: triggeredCondition,
-                        thresholdType: config.thresholdType,
-                        measurementLabel,
-                      })}
-                    </pre>
-                  ),
+                  value: formatCondition({
+                    condition: triggeredCondition,
+                    thresholdType: config.thresholdType,
+                    measurementLabel,
+                  }),
                   subject: t('Condition'),
                 },
               ]
@@ -179,7 +174,7 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
             value: formatEvaluatedValue(value, config.thresholdType),
             subject: t('Evaluated Value'),
           },
-        ]}
+        ].map(item => ({item}))}
       />
     </FoldSection>
   );

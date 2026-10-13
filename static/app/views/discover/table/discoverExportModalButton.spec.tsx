@@ -91,7 +91,10 @@ describe('DiscoverExportModalButton', () => {
     renderButton({disabled: true});
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled()
+      expect(screen.getByRole('button', {name: 'Export'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      )
     );
   });
 
@@ -129,7 +132,10 @@ describe('DiscoverExportModalButton', () => {
     mockEstimatedRowCount(5000);
     renderButton();
 
-    expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Export'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
 
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Export'})).toBeEnabled()

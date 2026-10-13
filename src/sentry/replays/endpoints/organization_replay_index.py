@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects
 from sentry.api.event_search import parse_search_query
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -19,7 +20,6 @@ from sentry.models.organization import Organization
 from sentry.replays.endpoints.organization_replay_endpoint import OrganizationReplayEndpoint
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection_paginated, replay_url_parser_config
-from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.usecases.query import PREFERRED_SOURCE, QueryResponse
 from sentry.replays.validators import ReplayValidator
 from sentry.utils.cursors import Cursor, CursorResult
@@ -47,7 +47,6 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
         },
         examples=ReplayExamples.GET_REPLAYS,
     )
-    @handled_snuba_exceptions
     def get(self, request: Request, organization: Organization) -> Response[_ListReplaysResponse]:
         """
         Return a list of replays belonging to an organization.
@@ -117,16 +116,17 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
 
             return response
 
-        response = self.paginate(
-            request=request,
-            paginator=ReplayPaginator(data_fn=data_fn),
-            on_results=lambda results: {
-                "data": process_raw_response(
-                    results,
-                    fields=request.query_params.getlist("field"),
-                )
-            },
-        )
+        with handle_query_errors():
+            response = self.paginate(
+                request=request,
+                paginator=ReplayPaginator(data_fn=data_fn),
+                on_results=lambda results: {
+                    "data": process_raw_response(
+                        results,
+                        fields=request.query_params.getlist("field"),
+                    )
+                },
+            )
 
         for header, value in headers.items():
             response[header] = value

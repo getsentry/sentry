@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {t} from 'sentry/locale';
+
 type InvestigationSummaryCardProps = {
   summary: string | null;
   summaryDescription: string | null;
@@ -19,13 +21,18 @@ export function InvestigationSummaryCard({
   }
 
   return (
-    <Stack className={className} gap="xs" data-test-id="investigation-summary">
-      <SummaryTitle as="h2" size="xl" tabular>
-        {summary}
-      </SummaryTitle>
-      <Text size="md" density="comfortable" tabular>
-        {summaryDescription}
+    <Stack className={className} gap="md" data-test-id="investigation-summary">
+      <Text size="md" variant="muted" bold>
+        {t('Investigation conclusion')}
       </Text>
+      <Stack gap="xs">
+        <SummaryTitle as="h2" size="xl" tabular>
+          {summary}
+        </SummaryTitle>
+        <Text size="md" density="comfortable" tabular>
+          {summaryDescription}
+        </Text>
+      </Stack>
     </Stack>
   );
 }

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {Deploy} from 'sentry/types/release';

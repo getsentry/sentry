@@ -36,6 +36,7 @@ from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.types.cell import Cell, find_cells_for_org_mappings, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.hashlib import fnv1a_32
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -386,6 +387,14 @@ class BaseRequestParser(ABC):
         except (TypeError, ValueError):
             return None
 
+    @staticmethod
+    def hashed_bucket_key_at(data: Mapping[str, Any], *path: str) -> int | None:
+        """Return a stable bucket key for a string identifier."""
+        value = get_path(data, *path)
+        if not isinstance(value, str) or not value:
+            return None
+        return fnv1a_32(value.encode("utf-8"))
+
     def _mailbox_event_type(self, data: dict[str, Any]) -> str | None:
         """Validation lives here, not in the subclass: the discriminator comes out of
         a body control has not verified — gitlab and bitbucket resolve their handlers
@@ -494,6 +503,11 @@ class BaseRequestParser(ABC):
             )
 
             if not organization_ids:
+                metrics.incr(
+                    "integrations.webhook.no_organization_integration",
+                    tags={"provider": self.provider},
+                    sample_rate=1.0,
+                )
                 lifecycle.record_halt(
                     halt_reason=MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST
                 )

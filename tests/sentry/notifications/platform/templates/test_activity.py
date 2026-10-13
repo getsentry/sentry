@@ -1,6 +1,7 @@
 from urllib.parse import urlencode
 
 from sentry.notifications.platform.target import GenericNotificationTarget
+from sentry.notifications.platform.templates.activity.assigned import get_assigned_subject
 from sentry.notifications.platform.templates.activity.base import (
     ACTIVITY_NOTIFICATION_REFERRER,
     ACTIVITY_TYPE_TO_SOURCE,
@@ -9,6 +10,7 @@ from sentry.notifications.platform.templates.activity.base import (
     EXAMPLE_PROJECT_URL,
     EXAMPLE_USER_SETTINGS_URL,
     ActivityNotificationData,
+    AssignedNotificationData,
     SetResolvedInReleaseNotificationData,
     build_activity_notification_data,
     build_footer,
@@ -36,6 +38,13 @@ from sentry.utils.http import absolute_uri
 
 
 class ActivityAlertBaseTest(TestCase):
+    def setUp(self) -> None:
+        self.target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.EMAIL,
+            resource_type=NotificationTargetResourceType.EMAIL,
+            resource_id=str(self.user.id),
+        )
+
     def test_all_seer_activity_types_mapped(self) -> None:
         seer_types = [
             ActivityType.SEER_RCA_STARTED,
@@ -126,7 +135,9 @@ class ActivityAlertBaseTest(TestCase):
             group=self.group,
             type=ActivityType.SEER_RCA_STARTED.value,
         )
-        data = build_activity_notification_data(activity, workflow_id=workflow.id)
+        data = build_activity_notification_data(
+            activity=activity, target=self.target, workflow_id=workflow.id
+        )
 
         assert isinstance(data, ActivityNotificationData)
         assert data.source == NotificationSource.ACTIVITY_SEER_RCA_STARTED
@@ -148,9 +159,14 @@ class ActivityAlertBaseTest(TestCase):
             query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
         )
         assert data.activity_data == activity.data
-        assert data.user_settings_url is None
+        assert data.user_settings_url == self.organization.absolute_url(
+            "settings/account/notifications/alerts/",
+            query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
+        )
+        assert data.email_headers is None
+        assert data.email_subject_prefix == "[Sentry] "
 
-    def test_build_activity_notification_data_user_settings_url_email_with_workflow(self) -> None:
+    def test_build_activity_notification_data_user_settings_url_to_alerts(self) -> None:
         workflow = self.create_workflow(
             name="my_workflow",
             when_condition_group=self.create_data_condition_group(),
@@ -159,30 +175,20 @@ class ActivityAlertBaseTest(TestCase):
             group=self.group,
             type=ActivityType.SEER_RCA_STARTED.value,
         )
-        target = GenericNotificationTarget(
-            provider_key=NotificationProviderKey.EMAIL,
-            resource_type=NotificationTargetResourceType.EMAIL,
-            resource_id=str(self.user.id),
+        data = build_activity_notification_data(
+            activity=activity, target=self.target, workflow_id=workflow.id
         )
-        data = build_activity_notification_data(activity, workflow_id=workflow.id, target=target)
 
         assert data.user_settings_url is not None
         assert "notifications/alerts/" in data.user_settings_url
         assert f"referrer={ACTIVITY_NOTIFICATION_REFERRER}" in data.user_settings_url
 
-    def test_build_activity_notification_data_user_settings_url_email_without_workflow(
-        self,
-    ) -> None:
+    def test_build_activity_notification_data_user_settings_url_to_workflow(self) -> None:
         activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.SEER_RCA_STARTED.value,
         )
-        target = GenericNotificationTarget(
-            provider_key=NotificationProviderKey.EMAIL,
-            resource_type=NotificationTargetResourceType.EMAIL,
-            resource_id=str(self.user.id),
-        )
-        data = build_activity_notification_data(activity, target=target)
+        data = build_activity_notification_data(activity=activity, target=self.target)
 
         assert data.user_settings_url is not None
         assert "notifications/workflow/" in data.user_settings_url
@@ -198,7 +204,7 @@ class ActivityAlertBaseTest(TestCase):
             resource_type=NotificationTargetResourceType.DIRECT_MESSAGE,
             resource_id="U12345",
         )
-        data = build_activity_notification_data(activity, target=target)
+        data = build_activity_notification_data(activity=activity, target=target)
 
         assert data.user_settings_url is not None
         assert "notifications/workflow/" in data.user_settings_url
@@ -214,7 +220,7 @@ class ActivityAlertBaseTest(TestCase):
             resource_type=NotificationTargetResourceType.CHANNEL,
             resource_id="C12345",
         )
-        data = build_activity_notification_data(activity, target=target)
+        data = build_activity_notification_data(activity=activity, target=target)
 
         assert data.user_settings_url is None
 
@@ -223,7 +229,7 @@ class ActivityAlertBaseTest(TestCase):
         activity = self.create_group_activity(
             group=self.group, type=ActivityType.SEER_RCA_STARTED.value
         )
-        data = build_activity_notification_data(activity)
+        data = build_activity_notification_data(activity=activity, target=self.target)
 
         expected_inbox_url = self.organization.absolute_url(
             f"organizations/{self.organization.slug}/issues/inbox/",
@@ -242,7 +248,7 @@ class ActivityAlertBaseTest(TestCase):
         activity = self.create_group_activity(
             group=self.group, type=ActivityType.SET_RESOLVED.value
         )
-        data = build_activity_notification_data(activity)
+        data = build_activity_notification_data(activity=activity, target=self.target)
 
         expected_issue_url = self.group.get_absolute_url(
             params={"referrer": ACTIVITY_NOTIFICATION_REFERRER}
@@ -255,7 +261,7 @@ class ActivityAlertBaseTest(TestCase):
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             data={"version": "1.2.3"},
         )
-        data = build_activity_notification_data(activity)
+        data = build_activity_notification_data(activity=activity, target=self.target)
 
         assert isinstance(data, SetResolvedInReleaseNotificationData)
         assert data.release_url == self.organization.absolute_url(
@@ -308,3 +314,38 @@ class ActivitySetResolvedAlertBaseTest(TestCase):
             for b in subject
             if b.type == NotificationTextBlockType.PLAIN_TEXT
         )
+
+
+class ActivityAssignedAlertBaseTest(TestCase):
+    def test_automated_assignment_subject(self) -> None:
+        """Test that automated Sentry App assignments show 'auto-assigned' without proxy email"""
+        data_dict = create_activity_notification_example(
+            ActivityType.ASSIGNED,
+            activity_data={
+                "assignee": "123",
+                "assigneeEmail": "user@example.com",
+                "assigneeType": "user",
+            },
+        ).dict()
+
+        # Simulate Sentry App automated assignment
+        data_dict.update(
+            {
+                "activity_user_name": "sentry-0-issue-assigner-abc123-uuid@proxy-user.sentry.io",
+                "is_automated": True,
+            }
+        )
+
+        data = AssignedNotificationData(
+            **data_dict,
+            assignee_label="the workflows team",
+            assignee_url=None,
+        )
+
+        subject = get_assigned_subject(data)
+        subject_text = " ".join(b.text for b in subject)
+
+        # Should say "auto-assigned" not show proxy email
+        assert "auto-assigned" in subject_text
+        assert "proxy-user.sentry.io" not in subject_text
+        assert "the workflows team" in subject_text

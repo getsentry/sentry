@@ -13,7 +13,7 @@ describe('useFormTypingAnimation', () => {
   afterEach(() => jest.useRealTimers());
 
   it('animates text into the target form field', () => {
-    const {result} = renderHook(useFormTypingAnimation, {initialProps: {speed: 80}});
+    const {result} = renderHook(useFormTypingAnimation);
 
     result.current.triggerFormTypingAnimation({setValue, text: 'Hello'});
     expect(latest()).toBe('');
@@ -29,12 +29,12 @@ describe('useFormTypingAnimation', () => {
   });
 
   it('restarts animation when triggered again', () => {
-    const {result} = renderHook(useFormTypingAnimation, {initialProps: {speed: 10}});
+    const {result} = renderHook(useFormTypingAnimation);
 
     result.current.triggerFormTypingAnimation({setValue, text: 'First title'});
     jest.advanceTimersByTime(120);
 
-    result.current.triggerFormTypingAnimation({setValue, text: 'New title', speed: 120});
+    result.current.triggerFormTypingAnimation({setValue, text: 'New title'});
     jest.runAllTimers();
 
     expect(latest()).toBe('New title');

@@ -1,25 +1,26 @@
-import {useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {mergeProps} from '@react-aria/utils';
 
+import {
+  type BreadcrumbListProps,
+  BreadcrumbList,
+  type BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
-import {slot, withSlots} from '@sentry/scraps/slot';
-import {Heading} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SearchButton} from 'sentry/views/navigation/searchButton';
+import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
 import {useTopBarActionDisplay} from 'sentry/views/navigation/useTopBarActionDisplay';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {
-  getExplorerFeedbackOptions,
-  isSeerExplorerEnabled,
-} from 'sentry/views/seerExplorer/utils';
+import {getExplorerFeedbackOptions} from 'sentry/views/seerExplorer/utils';
 
 import {
   NAVIGATION_MOBILE_CONTENT_HEIGHT,
@@ -28,11 +29,41 @@ import {
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as const);
+type TopBarSlotProps =
+  | {
+      name: 'breadcrumbs';
+      title: BreadcrumbTitleItem;
+      children?: never;
+      items?: BreadcrumbListProps['items'];
+    }
+  | {
+      children: React.ReactNode;
+      name: 'search' | 'actions' | 'feedback';
+      title?: never;
+    };
+
+function TopBarSlot(props: TopBarSlotProps) {
+  if (props.name === 'breadcrumbs') {
+    return (
+      <Fragment>
+        {props.items && props.items.length > 0 && (
+          <TopBarSlots name="breadcrumbs">
+            <BreadcrumbList items={props.items} />
+          </TopBarSlots>
+        )}
+        <TopBarSlots name="title">
+          <BreadcrumbList.Title item={props.title} />
+        </TopBarSlots>
+      </Fragment>
+    );
+  }
+
+  return <TopBarSlots name={props.name}>{props.children}</TopBarSlots>;
+}
 
 function TopBarContent() {
   const theme = useTheme();
-  const {pageContentTop} = useTopOffset();
+  const {topBarTop, pageContentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
   const {isSearchInMobileRow} = useTopBarActionDisplay();
@@ -68,7 +99,7 @@ function TopBarContent() {
       padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={0}
+      top={topBarTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
@@ -76,9 +107,9 @@ function TopBarContent() {
     >
       <SizeProvider size="sm">
         {/*
-         * Breadcrumbs and the title are separate slots so the title slot always
-         * owns the page heading. BreadcrumbList.Title renders title content
-         * without a heading, while this outlet supplies the single <h1>.
+         * Breadcrumbs and the title use separate internal outlets.
+         * BreadcrumbList.Title supplies the single <h1> and keeps page-title
+         * graphics, pagination, and actions outside the heading.
          *
          * The title occupies the remaining inline space (the header is
          * justify="between", so this absorbs the empty middle; content stays
@@ -92,46 +123,42 @@ function TopBarContent() {
           flex={`1 1 ${PRIMARY_HEADER_TITLE_MIN_WIDTH}px`}
           containerType="inline-size"
         >
-          <Slot.Outlet name="breadcrumbs">
+          <TopBarSlots.Outlet name="breadcrumbs">
             {(props, hasConsumers) =>
               hasConsumers ? (
                 <Flex {...props} align="center" gap="sm" minWidth="0" flex="0 1 auto" />
               ) : null
             }
-          </Slot.Outlet>
+          </TopBarSlots.Outlet>
 
-          <Slot.Outlet name="title">
+          <TopBarSlots.Outlet name="title">
             {props => (
-              <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
-                {flexProps => (
-                  <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
-                )}
-              </Flex>
+              <Flex {...props} align="center" gap="sm" minWidth="0" flexGrow={1} />
             )}
-          </Slot.Outlet>
+          </TopBarSlots.Outlet>
         </Flex>
 
         <Flex align="center" gap="sm">
-          <Slot.Outlet name="search">
+          <TopBarSlots.Outlet name="search">
             {(props, hasConsumers) =>
               hasConsumers ? <Flex {...props} align="center" gap="sm" /> : null
             }
-          </Slot.Outlet>
+          </TopBarSlots.Outlet>
 
-          <Slot.Outlet name="actions">
+          <TopBarSlots.Outlet name="actions">
             {(props, hasConsumers) =>
               hasConsumers ? <Flex {...props} align="center" gap="sm" /> : null
             }
-          </Slot.Outlet>
+          </TopBarSlots.Outlet>
 
           {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
           {isSearchInMobileRow ? null : <SearchButton />}
 
-          <Slot.Outlet name="feedback">
+          <TopBarSlots.Outlet name="feedback">
             {props => (
               <Flex {...props}>
                 {/* If no component registers a feedback button, show the default one */}
-                <Slot.Fallback>
+                <TopBarSlots.Fallback>
                   <FeedbackButton
                     aria-label={t('Give Feedback')}
                     feedbackOptions={feedbackOptions}
@@ -139,14 +166,21 @@ function TopBarContent() {
                   >
                     {null}
                   </FeedbackButton>
-                </Slot.Fallback>
+                </TopBarSlots.Fallback>
               </Flex>
             )}
-          </Slot.Outlet>
+          </TopBarSlots.Outlet>
         </Flex>
       </SizeProvider>
     </Flex>
   );
 }
 
-export const TopBar = withSlots(TopBarContent, Slot);
+export const TopBar = Object.assign(TopBarContent, {
+  Slot: Object.assign(TopBarSlot, {
+    Provider: TopBarSlots.Provider,
+    Outlet: TopBarSlots.Outlet,
+    Fallback: TopBarSlots.Fallback,
+    useSlotOutletRef: TopBarSlots.useSlotOutletRef,
+  }),
+});

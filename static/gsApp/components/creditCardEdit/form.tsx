@@ -18,6 +18,11 @@ export interface CreditCardFormProps extends CreditCardSetupProps {
    * The amount to charge the user (for a payment intent).
    */
   amount?: number;
+  /**
+   * The invoice being paid. Required to resume a payment parked on 3D Secure,
+   * since confirming it server-side is scoped to the invoice.
+   */
+  invoiceGuid?: string;
 }
 
 export function CreditCardForm(props: CreditCardFormProps) {

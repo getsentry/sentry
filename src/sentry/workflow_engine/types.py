@@ -37,6 +37,11 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
     from sentry.workflow_engine.models.data_source import DataSource
+    from sentry.workflow_engine.preview import (
+        ActionFilterPreviewBehavior,
+        UnsupportedPreviewBehavior,
+        WorkflowTriggerPreviewBehavior,
+    )
 
 T = TypeVar("T")
 
@@ -93,6 +98,7 @@ type DetectorResult = IssueOccurrence | StatusChangeMessage | None
 
 class _WorkflowEventLocalCache(TypedDict, total=False):
     group_assignees: Sequence[GroupAssignee]
+    activity_environment: Environment | None
 
 
 @dataclass(frozen=True)
@@ -262,6 +268,16 @@ class DataConditionHandler(Generic[T]):
         Raise `rest_framework.serializers.ValidationError` to reject.
         """
         return comparison
+
+
+class WorkflowTriggerDataConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+    preview_behavior: ClassVar[WorkflowTriggerPreviewBehavior | UnsupportedPreviewBehavior]
+
+
+class ActionFilterDataConditionHandler(DataConditionHandler[T]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    preview_behavior: ClassVar[ActionFilterPreviewBehavior | UnsupportedPreviewBehavior]
 
 
 class DataConditionType(TypedDict):

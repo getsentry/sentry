@@ -1,8 +1,8 @@
 import {useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -78,7 +78,7 @@ export function SortBySelectors({
   useEffect(() => {
     const isSortingByEquation = isEquation(trimStart(values.sortBy, '-'));
     if (isSortingByEquation) {
-      // oxlint-disable-next-line react/set-state-in-effect
+      // oxlint-disable-next-line react/set-state-in-effect, react-you-might-not-need-an-effect/no-derived-state
       setCustomEquation({
         sortBy: trimStart(values.sortBy, '-'),
         sortDirection: values.sortDirection,
@@ -117,7 +117,7 @@ export function SortBySelectors({
   ]);
 
   return (
-    <Wrapper>
+    <Grid gap="md" columns={{zero: '1fr', xl: '200px 1fr'}}>
       <Tooltip
         title={disableSortReason}
         disabled={!disableSortDirection || (disableSortDirection && disableSort)}
@@ -251,7 +251,7 @@ export function SortBySelectors({
         }
       </Tooltip>
       {showCustomEquation && (
-        <ArithmeticInputWrapper>
+        <Container column="1/-1">
           {widgetType === WidgetType.SPANS ? (
             <ExploreArithmeticBuilder
               equation={getEquation(customEquation.sortBy)}
@@ -281,24 +281,11 @@ export function SortBySelectors({
               hideFieldOptions
             />
           )}
-        </ArithmeticInputWrapper>
+        </Container>
       )}
-    </Wrapper>
+    </Grid>
   );
 }
-
-const Wrapper = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 200px 1fr;
-  }
-`;
-
-const ArithmeticInputWrapper = styled('div')`
-  grid-column: 1/-1;
-`;
 
 function getTimeseriesSortFieldValue(
   sortBy: string,

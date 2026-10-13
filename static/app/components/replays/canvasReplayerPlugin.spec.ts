@@ -1,14 +1,9 @@
-import {
-  canvasMutation,
-  EventType,
-  IncrementalSource,
-  Replayer,
-} from '@sentry-internal/rrweb';
+import {canvasMutation, EventType, IncrementalSource, Replayer} from '@sentry/rrweb';
 
 import {canvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
 
 // Mock rrweb pieces used by the plugin
-jest.mock('@sentry-internal/rrweb', () => {
+jest.mock('@sentry/rrweb', () => {
   return {
     // Keep enums minimal; values only need to be comparable
     EventType: {IncrementalSnapshot: 3},

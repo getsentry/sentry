@@ -10,11 +10,11 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import {ModalStore} from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -307,7 +307,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   const rows = useMemo(() => buildRows(items, contentWidth), [items, contentWidth]);
   const getItemKey = useCallback((index: number) => rows[index]!.id, [rows]);
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: i => rows[i]!.estimatedHeight,
@@ -334,12 +334,16 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
 
   const rafId = useRef(0);
   const onVisibleGroupChangeRef = useRef(onVisibleGroupChange);
+  // oxlint-disable-next-line react/refs
   onVisibleGroupChangeRef.current = onVisibleGroupChange;
   const onScrollProgressRef = useRef(onScrollProgress);
+  // oxlint-disable-next-line react/refs
   onScrollProgressRef.current = onScrollProgress;
   const rowsRef = useRef(rows);
+  // oxlint-disable-next-line react/refs
   rowsRef.current = rows;
   const rowIndexRef = useRef(rowIndex);
+  // oxlint-disable-next-line react/refs
   rowIndexRef.current = rowIndex;
   const visibleRowIdxRef = useRef(0);
   const handleScroll = useCallback(() => {
@@ -402,6 +406,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     }
   }, [diffMode, rows, virtualizer]);
 
+  // oxlint-disable-next-line react/refs
   const initialSnapshotKey = useRef(selectedSnapshotKey ?? null).current;
   const didInitialScroll = useRef(false);
   useEffect(() => {
@@ -444,6 +449,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     onOpenSnapshot,
     virtualizer,
   });
+  // oxlint-disable-next-line react/refs
   keyNavRef.current = {
     rowIndex,
     selectedSnapshotKey,
@@ -565,8 +571,6 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const virtualItems = virtualizer.getVirtualItems();
-  const totalSize = virtualizer.getTotalSize();
   const scrollContainerPaddingTop = Number.parseFloat(theme.space.xl);
   const activeGroupThreshold = scrollTop - scrollContainerPaddingTop;
   const activeRowItem = virtualItems.find(virtualItem => {

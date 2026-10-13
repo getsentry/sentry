@@ -221,10 +221,10 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         assert response.data[0]["sentryAppSlug"] == self.internal_app.slug
         assert response.data[0]["responseCode"] == 200
 
-    def test_member_sees_owned_internal_requests(self) -> None:
-        member = self.create_user(email="member@example.com")
-        self.create_member(user=member, organization=self.org, role="member")
-        self.login_as(user=member)
+    def test_manager_sees_owned_internal_request_details(self) -> None:
+        manager = self.create_user(email="manager@example.com")
+        self.create_member(user=manager, organization=self.org, role="manager")
+        self.login_as(user=manager)
 
         buffer = SentryAppWebhookRequestsBuffer(self.internal_app)
         buffer.add_request(
@@ -233,7 +233,11 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             event="issue.assigned",
             url=self.internal_app.webhook_url,
             response=self.mock_response,
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "Sentry-Hook-Signature": "hook-signature",
+                "Sentry-App-Signature": "app-signature",
+            },
         )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.internal_app.slug])
@@ -242,10 +246,14 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["request_body"] == self.mock_request.body
-        assert response.data[0]["request_headers"] == {"Content-Type": "application/json"}
+        assert response.data[0]["request_headers"] == {
+            "Content-Type": "application/json",
+            "Sentry-Hook-Signature": "hook-signature",
+            "Sentry-App-Signature": "app-signature",
+        }
         assert response.data[0]["response_body"] == self.mock_response.content
 
-    def test_member_token_sees_owned_internal_requests(self) -> None:
+    def test_member_token_does_not_see_owned_internal_requests(self) -> None:
         member = self.create_user(email="member@example.com")
         self.create_member(user=member, organization=self.org, role="member")
         token = self.create_user_auth_token(user=member, scope_list=["org:read"])
@@ -261,8 +269,85 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.internal_app.slug])
         response = self.client.get(url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
-        assert response.status_code == 200
-        assert len(response.data) == 1
+        assert response.status_code == 403
+
+    def assert_access_to_all_app_types(self, status_code: int, authorization: str = "") -> None:
+        published_url = reverse(
+            "sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug]
+        )
+        unpublished_url = reverse(
+            "sentry-api-0-sentry-app-webhook-requests", args=[self.unpublished_app.slug]
+        )
+        internal_url = reverse(
+            "sentry-api-0-sentry-app-webhook-requests", args=[self.internal_app.slug]
+        )
+
+        assert (
+            self.client.get(
+                published_url, format="json", HTTP_AUTHORIZATION=authorization
+            ).status_code
+            == status_code
+        )
+        assert (
+            self.client.get(
+                unpublished_url, format="json", HTTP_AUTHORIZATION=authorization
+            ).status_code
+            == status_code
+        )
+        assert (
+            self.client.get(
+                internal_url, format="json", HTTP_AUTHORIZATION=authorization
+            ).status_code
+            == status_code
+        )
+
+    def test_member_cannot_read_request_logs_for_any_app_type(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.org, role="member")
+        self.login_as(user=member)
+
+        self.assert_access_to_all_app_types(403)
+
+    def test_integrations_access_cannot_read_request_logs_for_any_app_type(self) -> None:
+        admin = self.create_user()
+        self.create_member(user=admin, organization=self.org, role="admin")
+        self.login_as(user=admin)
+
+        self.assert_access_to_all_app_types(403)
+
+    def test_manager_can_read_request_logs_for_any_app_type(self) -> None:
+        manager = self.create_user()
+        self.create_member(user=manager, organization=self.org, role="manager")
+        self.login_as(user=manager)
+
+        self.assert_access_to_all_app_types(200)
+
+    def test_read_only_token_cannot_read_request_logs_for_any_app_type(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+
+        self.assert_access_to_all_app_types(403, authorization=f"Bearer {token.token}")
+
+    def test_integrations_token_cannot_read_request_logs_for_any_app_type(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:integrations"])
+
+        self.assert_access_to_all_app_types(403, authorization=f"Bearer {token.token}")
+
+    def test_write_token_can_read_request_logs_for_any_app_type(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:write"])
+
+        self.assert_access_to_all_app_types(200, authorization=f"Bearer {token.token}")
+
+    def test_admin_token_can_read_request_logs_for_any_app_type(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:admin"])
+
+        self.assert_access_to_all_app_types(200, authorization=f"Bearer {token.token}")
+
+    def test_write_token_does_not_elevate_member_access(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.org, role="member")
+        token = self.create_user_auth_token(user=member, scope_list=["org:write"])
+
+        self.assert_access_to_all_app_types(403, authorization=f"Bearer {token.token}")
 
     def test_post_owned_internal_requests_is_not_allowed(self) -> None:
         member = self.create_user(email="member@example.com")

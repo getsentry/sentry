@@ -8,6 +8,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.testutils.cases import TestCase
 
 
@@ -25,6 +26,21 @@ class TestIssueOwnersActivityAlertStrategy(TestCase):
         assert len(targets) == 1
         assert targets[0].resource_id == self.user.email
 
+    def test_assignee_user_email_preference_never_returns_no_target(self) -> None:
+        GroupAssignee.objects.assign(self.group, self.user)
+        self.create_notification_settings_provider(
+            user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            provider="email",
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value="never",
+        )
+
+        strategy = IssueOwnersActivityAlertStrategy(group=self.group)
+
+        assert strategy.get_targets() == []
+
     def test_assignee_team_resolves_to_member_emails(self) -> None:
         user_a = self.create_user(email="a@example.com")
         user_b = self.create_user(email="b@example.com")
@@ -39,6 +55,23 @@ class TestIssueOwnersActivityAlertStrategy(TestCase):
         emails = {t.resource_id for t in targets}
         assert "a@example.com" in emails
         assert "b@example.com" in emails
+
+    def test_assignee_team_respects_member_issue_alert_preference(self) -> None:
+        team_user = self.create_user(email="team-member@example.com")
+        team = self.create_team(organization=self.organization)
+        self.create_team_membership(team=team, user=team_user)
+        self.create_notification_setting_option(
+            user_id=team_user.id,
+            scope_type="user",
+            scope_identifier=team_user.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value="never",
+        )
+        GroupAssignee.objects.assign(self.group, assigned_to=team)
+
+        strategy = IssueOwnersActivityAlertStrategy(group=self.group)
+
+        assert strategy.get_targets() == []
 
     def test_assignee_takes_precedence_over_owners(self) -> None:
         other_user = self.create_user(email="owner@example.com")

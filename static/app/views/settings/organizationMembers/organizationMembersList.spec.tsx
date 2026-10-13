@@ -475,7 +475,10 @@ describe('OrganizationMembersList', () => {
       });
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Approve'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('can approve invite request and update', async () => {
@@ -771,7 +774,7 @@ describe('OrganizationMembersList', () => {
       renderGlobalModal();
 
       const leaveButton = await screen.findByRole('button', {name: 'Leave'});
-      expect(leaveButton).toBeDisabled(); // Disabled because they're the only valid owner
+      expect(leaveButton).toHaveAttribute('aria-disabled', 'true'); // Disabled because they're the only valid owner
     });
   });
 });

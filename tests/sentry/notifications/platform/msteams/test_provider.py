@@ -12,11 +12,11 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
     MSTeamsRenderable,
+    MSTeamsRenderer,
 )
 from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationProviderKey,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
@@ -32,11 +32,8 @@ class MSTeamsRendererTest(TestCase):
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
         # Verify the basic structure of the AdaptiveCard
         assert renderable["type"] == "AdaptiveCard"
@@ -108,11 +105,8 @@ class MSTeamsRendererTest(TestCase):
             footer=base_template.footer,
             chart=None,  # No chart
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
         assert len(body_blocks) == 6  # title, 3 body blocks, actions, footer (no chart)
@@ -133,11 +127,8 @@ class MSTeamsRendererTest(TestCase):
             footer=None,  # No footer
             chart=base_template.chart,
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
         assert len(body_blocks) == 6  # title, 3 body blocks, actions, chart (no footer)
@@ -162,11 +153,8 @@ class MSTeamsRendererTest(TestCase):
             footer=base_template.footer,
             chart=base_template.chart,
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
         assert len(body_blocks) == 6  # title, 3 body blocks, chart, footer (no actions)
@@ -200,11 +188,8 @@ class MSTeamsRendererTest(TestCase):
             footer=None,
             chart=None,
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
 
-        renderable = renderer.render(data=data, rendered_template=rendered_template)
+        renderable = MSTeamsRenderer.render(data=data, rendered_template=rendered_template)
 
         body_blocks = renderable["body"]
         actions_block = body_blocks[4]
@@ -320,6 +305,72 @@ class MSTeamsNotificationProviderSendTest(TestCase):
         mock_client_instance.send_card.assert_called_once_with(
             conversation_id="29:test-user-id", card=renderable
         )
+
+    @patch("sentry.integrations.msteams.integration.MsTeamsClient")
+    def test_send_adds_integration_id_to_submit_actions(self, mock_msteams_client: Mock) -> None:
+        from sentry.integrations.msteams.card_builder.block import (
+            ADAPTIVE_CARD_SCHEMA_URL,
+            CURRENT_CARD_VERSION,
+            AdaptiveCard,
+            OpenUrlAction,
+            ShowCardAction,
+            SubmitAction,
+            create_action_set_block,
+        )
+
+        mock_client_instance = mock_msteams_client.return_value
+        mock_client_instance.send_card.return_value = {"id": "1234567890"}
+
+        resolve = SubmitAction(
+            type=ActionType.SUBMIT,
+            title="Resolve",
+            data={"payload": {"actionType": "resolve", "groupId": 1}},
+        )
+        nested_card: AdaptiveCard = {
+            "type": "AdaptiveCard",
+            "body": [],
+            "actions": [resolve],
+            "version": CURRENT_CARD_VERSION,
+            "$schema": ADAPTIVE_CARD_SCHEMA_URL,
+        }
+        unassign = SubmitAction(
+            type=ActionType.SUBMIT,
+            title="Unassign",
+            data={"payload": {"actionType": "unassign", "groupId": 1}},
+        )
+        no_payload = SubmitAction(type=ActionType.SUBMIT, title="No payload", data={"foo": "bar"})
+        open_url = OpenUrlAction(type=ActionType.OPEN_URL, title="Open", url="https://sentry.io")
+        renderable: MSTeamsRenderable = {
+            "type": "AdaptiveCard",
+            "body": [
+                create_action_set_block(
+                    unassign,
+                    ShowCardAction(type=ActionType.SHOW_CARD, title="Resolve", card=nested_card),
+                    no_payload,
+                    open_url,
+                )
+            ],
+            "version": CURRENT_CARD_VERSION,
+            "$schema": ADAPTIVE_CARD_SCHEMA_URL,
+        }
+
+        MSTeamsNotificationProvider.send(target=self._create_target(), renderable=renderable)
+
+        mock_client_instance.send_card.assert_called_once_with(
+            conversation_id="19:test-channel@thread.skype", card=renderable
+        )
+        assert unassign["data"] == {
+            "payload": {
+                "actionType": "unassign",
+                "groupId": 1,
+                "integrationId": self.integration.id,
+            }
+        }
+        assert resolve["data"] == {
+            "payload": {"actionType": "resolve", "groupId": 1, "integrationId": self.integration.id}
+        }
+        assert no_payload["data"] == {"foo": "bar"}
+        assert "data" not in open_url
 
     @patch("sentry.integrations.msteams.integration.MsTeamsClient")
     def test_invalid_request_is_halt(self, mock_msteams_client: Mock) -> None:

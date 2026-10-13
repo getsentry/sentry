@@ -3,8 +3,12 @@ import {Fragment} from 'react';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 /**
  * True when `element` carries the "hide below sm" container-query toggle:
@@ -23,18 +27,54 @@ function hidesBelowSm(element: HTMLElement): boolean {
 }
 
 describe('BreadcrumbList container-query collapse', () => {
-  let consoleError: jest.SpyInstance;
-
-  beforeEach(() => {
-    // These tests assert on rendered DOM and emitted styles, where a React
-    // warning usually means a prop leaked onto a host element. Fail on any.
-    consoleError = jest.spyOn(console, 'error').mockImplementation((...args) => {
-      throw new Error(`Unexpected console.error: ${args.map(String).join(' ')}`);
-    });
+  it('keeps external parent links in a new tab, including in the overflow menu', async () => {
+    render(
+      <BreadcrumbList
+        items={[
+          {
+            type: 'link',
+            label: 'Commit abc1234',
+            externalHref: 'https://example.com/commit/abc1234',
+          },
+        ]}
+      />
+    );
+    expect(screen.getByRole('link', {name: 'Commit abc1234'})).toHaveAttribute(
+      'target',
+      '_blank'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'More breadcrumbs'}));
+    const menuItem = screen.getByRole('menuitemradio', {name: 'Commit abc1234'});
+    expect(menuItem).toHaveAttribute('href', 'https://example.com/commit/abc1234');
+    expect(menuItem).toHaveAttribute('target', '_blank');
   });
 
-  afterEach(() => {
-    consoleError.mockRestore();
+  it('shows a label tooltip and a feature badge', async () => {
+    render(
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Security',
+          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+          labelTooltip: (
+            <Stack align="start" gap="md">
+              <Text align="left">Manage authentication.</Text>
+              <ExternalLink href="https://example.com/docs/">Read the Docs</ExternalLink>
+            </Stack>
+          ),
+        }}
+      />
+    );
+
+    expect(screen.getByText('Security')).toBeInTheDocument();
+    expect(screen.getByLabelText('new')).toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'More information'})).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByText('Security'));
+    expect(await screen.findByText('Manage authentication.')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Read the Docs'})).toHaveAttribute(
+      'href',
+      'https://example.com/docs/'
+    );
   });
 
   it('emits an @container display rule for link crumbs, not an always-on @media shadow', () => {
@@ -68,7 +108,7 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(alwaysOnMediaFlex).toBe(false);
   });
 
-  it('renders title content without a heading and hides dividers from AT', () => {
+  it('renders the page-title label as a heading and hides dividers from AT', () => {
     render(
       <Fragment>
         <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />
@@ -76,9 +116,7 @@ describe('BreadcrumbList container-query collapse', () => {
       </Fragment>
     );
 
-    // TopBar owns the page heading. BreadcrumbList.Title only renders the title
-    // content so it can be placed inside that heading without nesting one.
-    expect(screen.queryByRole('heading', {name: 'General'})).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'General', level: 1})).toBeInTheDocument();
     const title = screen.getByText('General');
     expect(title).toBeInTheDocument();
     expect(
@@ -102,13 +140,13 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(dividers).toHaveLength(0);
   });
 
-  it('gives the select-projects trigger a descriptive accessible name', async () => {
+  it('gives the select trigger a descriptive accessible name', async () => {
     render(
       <BreadcrumbList
         items={[
           {type: 'link', label: 'Settings', to: '/settings/'},
           {
-            type: 'select-projects',
+            type: 'select',
             value: 'javascript',
             options: [
               {value: 'javascript', label: 'javascript'},
@@ -124,18 +162,18 @@ describe('BreadcrumbList container-query collapse', () => {
     // findBy lets CompactSelect's deferred mount-time state update flush in act.
     expect(
       await screen.findByRole('button', {
-        name: 'Selected Project: javascript',
+        name: 'Switch javascript',
       })
     ).toBeInTheDocument();
   });
 
-  it('collapses non-link parents (select-projects) below the sm breakpoint', async () => {
+  it('collapses non-link parents (select) below the sm breakpoint', async () => {
     render(
       <BreadcrumbList
         items={[
           {type: 'link', label: 'Settings', to: '/settings/'},
           {
-            type: 'select-projects',
+            type: 'select',
             value: 'javascript',
             options: [
               {value: 'javascript', label: 'javascript'},
@@ -149,11 +187,39 @@ describe('BreadcrumbList container-query collapse', () => {
 
     // The <li> wrapping the project picker hides below 512px, same as link crumbs.
     const trigger = await screen.findByRole('button', {
-      name: 'Selected Project: javascript',
+      name: 'Switch javascript',
     });
     const selectItem = trigger.closest('li');
     expect(selectItem).not.toBeNull();
     expect(hidesBelowSm(selectItem!)).toBe(true);
+  });
+
+  it('links to the current selection in the narrow breadcrumb menu', async () => {
+    render(
+      <BreadcrumbList
+        items={[
+          {type: 'link', label: 'Settings', to: '/settings/'},
+          {
+            type: 'select',
+            label: 'javascript',
+            to: '/settings/org-slug/projects/javascript/',
+            value: 'javascript',
+            options: [
+              {value: 'javascript', label: 'javascript'},
+              {value: 'python', label: 'python'},
+            ],
+            onChange: () => {},
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More breadcrumbs'}));
+    expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/projects/javascript/'
+    );
+    expect(screen.queryByRole('menuitemradio', {name: 'python'})).not.toBeInTheDocument();
   });
 
   it('gives crumbs a visible-width floor and never collapses them to 0', () => {
@@ -307,22 +373,35 @@ describe('BreadcrumbList rich page-title items', () => {
   });
 
   it('renders an editable-title as a click-to-edit field', async () => {
+    const onChange = jest.fn();
     render(
       <BreadcrumbList.Title
         item={{
           type: 'editable-title',
           value: 'My Dashboard',
-          onChange: () => {},
+          onChange,
           'aria-label': 'Edit dashboard name',
+          leadingGraphic: <span data-test-id="title-graphic">D</span>,
+          error: 'Invalid name',
         }}
       />
     );
 
-    // Shows the current title, and clicking it swaps in a labelled textbox.
-    const label = screen.getByText('My Dashboard');
-    await userEvent.click(label);
+    const heading = screen.getByRole('heading', {name: 'My Dashboard', level: 1});
+    expect([...heading.querySelectorAll('*')].every(el => el.tagName === 'SPAN')).toBe(
+      true
+    );
+    expect(heading).not.toContainElement(screen.getByTestId('title-graphic'));
+    expect(heading).not.toContainElement(screen.getByText('Invalid name'));
+
+    await userEvent.click(heading);
+    const input = screen.getByRole('textbox', {name: 'Edit dashboard name'});
+    expect(input.closest('h1')).toBeNull();
+    await userEvent.clear(input);
+    await userEvent.type(input, 'New Dashboard{Enter}');
+    expect(onChange).toHaveBeenCalledWith('New Dashboard');
     expect(
-      screen.getByRole('textbox', {name: 'Edit dashboard name'})
+      screen.getByRole('heading', {name: 'New Dashboard', level: 1})
     ).toBeInTheDocument();
   });
 });

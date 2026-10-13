@@ -1,7 +1,7 @@
+import {IconSearch} from '@sentry/icons/search';
+
 import {Container} from '@sentry/scraps/layout';
 import {components as selectComponents} from '@sentry/scraps/select';
-
-import {IconSearch} from 'sentry/icons';
 
 /**
  * Custom Control that prepends a search icon inside a Select input.
@@ -17,7 +17,7 @@ export function ScmSearchControl({children, ...props}: any) {
   return (
     <selectComponents.Control {...props}>
       <Container paddingLeft="lg" flexShrink={0}>
-        <IconSearch size="sm" variant="muted" />
+        <IconSearch size="sm" variant="muted" aria-hidden />
       </Container>
       {children}
     </selectComponents.Control>

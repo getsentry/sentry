@@ -10,7 +10,6 @@ import {
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
@@ -23,6 +22,7 @@ import {
 import {t} from 'sentry/locale';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
+import {FilterSelectorTriggerButton} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {
   BetweenFilterSelectorTrigger,
@@ -213,6 +213,7 @@ export function NumericFilterSelector({
   onRemoveFilter,
   onUpdateFilter,
   disableRemoveFilter,
+  showDatasetLabel,
 }: GenericFilterSelectorProps) {
   const globalFilterQueries = useMemo(
     () => globalFilter.value.split(FILTER_QUERY_SEPARATOR),
@@ -332,9 +333,13 @@ export function NumericFilterSelector({
       }
       trigger={triggerProps => (
         <Container maxWidth={FILTER_SELECTOR_TRIGGER_MAX_WIDTH}>
-          <OverlayTrigger.Button {...triggerProps}>
+          <FilterSelectorTriggerButton
+            {...triggerProps}
+            globalFilter={globalFilter}
+            showDatasetLabel={showDatasetLabel}
+          >
             {filter.renderSelectorTrigger()}
-          </OverlayTrigger.Button>
+          </FilterSelectorTriggerButton>
         </Container>
       )}
       menuFooter={

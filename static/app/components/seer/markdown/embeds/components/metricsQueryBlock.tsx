@@ -1,4 +1,4 @@
-import {Tag} from '@sentry/scraps/badge';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {
@@ -14,7 +14,6 @@ import {
   QueryEmbedTable,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
-import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -86,30 +85,27 @@ export default function MetricsQueryBlock({data}: {data: MetricsQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={
-        <Tag variant="muted">
-          {data.mode === 'aggregate' ? t('Aggregate') : t('Samples')}
-        </Tag>
-      }
       href={getMetricsQueryHref(data, organization)}
       icon={IconGraph}
       linkLabel={t('View Metrics')}
       query={data.query}
+      table={
+        isChartOnly ? null : (
+          <QueryEmbedTable
+            columns={eventColumns(getMetricsQueryFields(data), tableQuery.data?.meta)}
+            emptyMessage={t('No matching metric values')}
+            errorMessage={t('Unable to load metric values')}
+            isError={tableQuery.isError}
+            isPending={tableQuery.isPending}
+            rowKey={eventRowKey}
+            rows={tableQuery.data?.data ?? []}
+          />
+        )
+      }
       testId={`seer-metrics-query-${data.mode}-embed`}
       title={getMetricsQueryTitle(data)}
     >
       <MetricsQueryChart data={data} hasTable={!isChartOnly} />
-      {isChartOnly ? null : (
-        <QueryEmbedTable
-          columns={eventColumns(getMetricsQueryFields(data), tableQuery.data?.meta)}
-          emptyMessage={t('No matching metric values')}
-          errorMessage={t('Unable to load metric values')}
-          isError={tableQuery.isError}
-          isPending={tableQuery.isPending}
-          rowKey={eventRowKey}
-          rows={tableQuery.data?.data ?? []}
-        />
-      )}
     </QueryEmbedCard>
   );
 }

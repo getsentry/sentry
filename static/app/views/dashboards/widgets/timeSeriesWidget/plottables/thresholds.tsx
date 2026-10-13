@@ -63,12 +63,12 @@ export class Thresholds implements Plottable {
       this.thresholds = {
         ...thresholds,
         max_values: {
-          max1: thresholds.max_values.max1
+          max1: thresholds.max_values?.max1
             ? normalizeUnit(thresholds.max_values.max1, thresholdUnit, dataType)
-            : thresholds.max_values.max1,
-          max2: thresholds.max_values.max2
+            : thresholds.max_values?.max1,
+          max2: thresholds.max_values?.max2
             ? normalizeUnit(thresholds.max_values.max2, thresholdUnit, dataType)
-            : thresholds.max_values.max2,
+            : thresholds.max_values?.max2,
         },
       };
     } else {
@@ -76,7 +76,7 @@ export class Thresholds implements Plottable {
     }
 
     this.showLabels = options.showLabels ?? false;
-    this.isEmpty = !this.thresholds.max_values.max1 && !this.thresholds.max_values.max2;
+    this.isEmpty = !this.thresholds.max_values?.max1 && !this.thresholds.max_values?.max2;
   }
 
   toMarkArea(
@@ -95,7 +95,7 @@ export class Thresholds implements Plottable {
   }
 
   toMarkAreas(theme: Theme, maxOffset = this.maxOffset) {
-    const {max1, max2} = this.thresholds.max_values;
+    const {max1, max2} = this.thresholds.max_values ?? {};
     const isHigherBetter = this.thresholds.preferredPolarity === '+';
 
     const colorOrder = isHigherBetter
@@ -160,7 +160,7 @@ export class Thresholds implements Plottable {
   }
 
   toMarkLines(theme: Theme, maxOffset = this.maxOffset) {
-    const {max1, max2} = this.thresholds.max_values;
+    const {max1, max2} = this.thresholds.max_values ?? {};
     const isHigherBetter = this.thresholds.preferredPolarity === '+';
 
     // For '-' (lower is better): Good (green), Meh (yellow), Poor (red) bottom-to-top

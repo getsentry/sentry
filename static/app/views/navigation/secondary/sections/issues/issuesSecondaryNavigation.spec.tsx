@@ -10,9 +10,9 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextNodeSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 describe('IssuesSecondaryNavigation', () => {
-  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned,identified] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned,identified] assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
-    features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
+    features: ['issue-inbox', 'seat-based-seer-enabled'],
   });
 
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe('IssuesSecondaryNavigation', () => {
     );
   }
 
-  it('shows the inbox count for Seer progress sections assigned or suggested to the user', async () => {
+  it('shows the inbox count for Seer progress sections assigned or suggested to the user or their teams', async () => {
     const request = mockInboxCount({
       [inboxCountQuery]: 12,
     });
@@ -57,7 +57,7 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('assigned');
     expect(query).toContain('identified');
     expect(query).toContain('is:unresolved');
-    expect(query).toContain('assigned_or_suggested:me');
+    expect(query).toContain('assigned_or_suggested:[me,my_teams]');
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
@@ -73,7 +73,7 @@ describe('IssuesSecondaryNavigation', () => {
   it('does not render Inbox or request its count without the inbox feature', async () => {
     const request = mockInboxCount({});
     const organizationWithoutAutofix = OrganizationFixture({
-      features: ['gen-ai-features', 'seat-based-seer-enabled'],
+      features: ['seat-based-seer-enabled'],
     });
 
     renderNavigation(organizationWithoutAutofix);
@@ -86,12 +86,7 @@ describe('IssuesSecondaryNavigation', () => {
   it('renders the Autofix Overview link when the org has seer-night-shift-ui', async () => {
     mockInboxCount({});
     const organizationWithOverview = OrganizationFixture({
-      features: [
-        'issue-inbox',
-        'gen-ai-features',
-        'seat-based-seer-enabled',
-        'seer-night-shift-ui',
-      ],
+      features: ['issue-inbox', 'seat-based-seer-enabled', 'seer-night-shift-ui'],
     });
 
     renderNavigation(organizationWithOverview);

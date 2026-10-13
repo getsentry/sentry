@@ -36,6 +36,72 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
+
+
+@cell_silo_test
+class OrganizationProjectDetectorWorkflowAccessTest(APITestCase, ProjectAccessTestMixin):
+    endpoint = "sentry-api-0-organization-project-detector-index"
+    method = "POST"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(self.limited_user)
+        self.data = {
+            "type": MonitorIncidentType.slug,
+            "name": "Test Monitor Detector",
+            "dataSources": [
+                {
+                    "name": "Test Monitor",
+                    "config": {"schedule": "0 * * * *", "scheduleType": "crontab"},
+                }
+            ],
+        }
+
+    def test_workflow_attachment_permissions(self) -> None:
+        workflow_url = (
+            f"/api/0/organizations/{self.organization.slug}/workflows/{self.other_workflow.id}/"
+        )
+        assert self.client.get(workflow_url).status_code == 403
+        initial_detectors = Detector.objects.filter(project=self.user_project).count()
+        initial_data_sources = DataSource.objects.filter(organization=self.organization).count()
+        initial_monitors = Monitor.objects.filter(project_id=self.user_project.id).count()
+
+        self.get_error_response(
+            self.organization.slug,
+            self.user_project.slug,
+            **self.data,
+            workflowIds=[self.user_workflow.id, self.other_workflow.id],
+            status_code=403,
+        )
+
+        assert Detector.objects.filter(project=self.user_project).count() == initial_detectors
+        assert (
+            DataSource.objects.filter(organization=self.organization).count()
+            == initial_data_sources
+        )
+        assert Monitor.objects.filter(project_id=self.user_project.id).count() == initial_monitors
+        assert not DetectorWorkflow.objects.filter(
+            detector__project=self.user_project, workflow=self.other_workflow
+        ).exists()
+        assert self.client.get(workflow_url).status_code == 403
+
+        # The same member can create a detector with workflows they can edit.
+        response = self.get_success_response(
+            self.organization.slug,
+            self.user_project.slug,
+            **self.data,
+            workflowIds=[self.user_workflow.id, self.unattached_workflow.id],
+            status_code=201,
+        )
+
+        assert set(
+            DetectorWorkflow.objects.filter(detector_id=response.data["id"]).values_list(
+                "workflow_id", flat=True
+            )
+        ) == {self.user_workflow.id, self.unattached_workflow.id}
 
 
 class OrganizationProjectDetectorIndexBaseTest(APITestCase):

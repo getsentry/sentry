@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useId, useState} from 'react';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
@@ -48,6 +48,7 @@ export function CreditCardPanel({
   const [expandInitially, setExpandInitially] = useState(
     shouldExpandInitially && !subscription.paymentSource
   );
+  const headingId = useId();
 
   const handleCardUpdated = (data: Subscription) => {
     // if the card was successfully updated, reset the billing failure state
@@ -61,6 +62,7 @@ export function CreditCardPanel({
     if (expandInitially) {
       // oxlint-disable-next-line react/set-state-in-effect
       setIsEditing(true);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setExpandInitially(false);
     }
   }, [expandInitially]);
@@ -87,9 +89,12 @@ export function CreditCardPanel({
   }, [organization, referrer]);
 
   const countryName = getCountryByCode(subscription.paymentSource?.countryCode)?.name;
+  const paymentMethodLabel = t('Payment method');
 
   return (
     <Flex
+      as="section"
+      aria-labelledby={headingId}
       justify={isEditing ? 'start' : 'between'}
       align="start"
       gap="3xl"
@@ -97,12 +102,11 @@ export function CreditCardPanel({
       background="primary"
       border="primary"
       radius="md"
-      data-test-id="credit-card-panel"
       maxWidth={maxPanelWidth}
     >
       <Stack gap="lg" width="100%">
-        <Heading as="h2" size="lg">
-          {t('Payment method')}
+        <Heading as="h2" size="lg" id={headingId}>
+          {paymentMethodLabel}
         </Heading>
         {isEditing ? (
           <CreditCardSetup

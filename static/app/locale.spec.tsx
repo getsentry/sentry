@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 // eslint-disable-next-line no-restricted-imports
-import {tct} from 'sentry/locale';
+import {DEFAULT_LOCALE_DATA, pgettext, setLocale, t, tct} from 'sentry/locale';
 
 describe('locale.gettextComponentTemplate', () => {
   it('should not wrap translated text in span', () => {
@@ -93,5 +93,31 @@ describe('locale.gettextComponentTemplate', () => {
     expect(container.innerHTML).toBe(
       '<div><b>text with <a href="/link">another</a> group</b></div>'
     );
+  });
+});
+
+describe('locale.pgettext', () => {
+  afterEach(() => {
+    setLocale(DEFAULT_LOCALE_DATA);
+  });
+
+  it('should translate a msgid separately for each context', () => {
+    setLocale({
+      ...DEFAULT_LOCALE_DATA,
+      m: ['млн'],
+      'abbreviated minutes\u0004m': ['м'],
+    });
+
+    const result = [t('m'), pgettext('abbreviated minutes', 'm')];
+
+    expect(result).toEqual(['млн', 'м']);
+  });
+
+  it('should fall back to the msgid when the context has no translation', () => {
+    setLocale({...DEFAULT_LOCALE_DATA, m: ['млн']});
+
+    const result = pgettext('abbreviated minutes', 'm');
+
+    expect(result).toBe('m');
   });
 });

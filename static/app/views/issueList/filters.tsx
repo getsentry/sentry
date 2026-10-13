@@ -58,7 +58,6 @@ export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
           sort={sort}
           onSelect={onSortChange}
           triggerSize="md"
-          showIcon={false}
         />
 
         <IssueViewSaveButton query={query} sort={sort} />

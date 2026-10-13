@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DirectEnableButton} from 'sentry/views/settings/organizationIntegrations/directEnableButton';
 
@@ -42,8 +42,8 @@ describe('DirectEnableButton', () => {
     await waitFor(() => expect(mockPost).toHaveBeenCalledTimes(1));
   });
 
-  it('disables button when user does not have access', () => {
-    MockApiClient.addMockResponse({
+  it('keeps the button focusable with a tooltip when user does not have access', async () => {
+    const mockPost = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/direct-enable/github_copilot/`,
       method: 'POST',
       body: {},
@@ -53,6 +53,15 @@ describe('DirectEnableButton', () => {
       organization,
     });
 
-    expect(screen.getByRole('button', {name: 'Enable Integration'})).toBeDisabled();
+    const button = screen.getByRole('button', {name: 'Enable Integration'});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+
+    act(() => button.focus());
+    expect(
+      await screen.findByText('You do not have permission to enable this integration.')
+    ).toBeInTheDocument();
+
+    await userEvent.click(button);
+    expect(mockPost).not.toHaveBeenCalled();
   });
 });

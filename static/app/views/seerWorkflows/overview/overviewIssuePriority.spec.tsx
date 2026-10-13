@@ -149,6 +149,9 @@ describe('OverviewIssuePriority', () => {
       {organization}
     );
 
-    expect(screen.getByRole('button', {name: 'Modify issue priority'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Modify issue priority'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

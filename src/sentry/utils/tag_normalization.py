@@ -50,7 +50,7 @@ _KNOWN_TAGS = {
 
 
 _SYNONYMOUS_TAGS = {
-    "sentry.cordova": "sentery.javascript.cordova",
+    "sentry.cordova": "sentry.javascript.cordova",
     "sentry.electron": "sentry.javascript.electron",
     "sentry.javascript.angular.ivy": "sentry.javascript.angular",
     "sentry.javascript.node.experimental": "sentry.javascript.node",

@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -19,7 +20,6 @@ import {
 import {LazyRender} from 'sentry/components/lazyRender';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -151,9 +151,9 @@ export function ScreenshotCard({
               onError={() => setLoadingImage(false)}
             />
             {loadingImage && (
-              <StyledLoadingIndicator>
+              <Flex align="center" justify="center" position="absolute" inset="0">
                 <LoadingIndicator mini />
-              </StyledLoadingIndicator>
+              </Flex>
             )}
           </LazyRender>
         </StyledPanelBody>
@@ -196,12 +196,8 @@ const StyledPanelBody = styled(PanelBody)`
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const StyledLoadingIndicator = styled('div')`
-  align-self: center;
-`;
-
 const StyledImageVisualization = styled(ImageVisualization)`
   height: 100%;
-  z-index: 1;
+  object-fit: contain;
   border: 0;
 `;

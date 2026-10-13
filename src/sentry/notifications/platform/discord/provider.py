@@ -18,7 +18,6 @@ from sentry.notifications.platform.target import (
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -40,8 +39,6 @@ type DiscordRenderable = DiscordMessage
 
 
 class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
-    provider_key = NotificationProviderKey.DISCORD
-
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
@@ -151,21 +148,6 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:
         # TODO(ecosystem): Check for the integration, maybe a feature as well
         return False
-
-    @classmethod
-    def get_renderer(
-        cls, *, data: NotificationData, category: NotificationCategory
-    ) -> type[NotificationRenderer[DiscordRenderable]]:
-        from sentry.notifications.platform.discord.renderers.issue import IssueDiscordRenderer
-        from sentry.notifications.platform.discord.renderers.metric_alert import (
-            DiscordMetricAlertRenderer,
-        )
-
-        if category == NotificationCategory.ISSUE:
-            return IssueDiscordRenderer
-        if category == NotificationCategory.METRIC_ALERT:
-            return DiscordMetricAlertRenderer
-        return cls.default_renderer
 
     @classmethod
     def send(

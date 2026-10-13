@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 import {AI_DETECTED_ISSUE_TYPES, IssueTitle, IssueType} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
@@ -82,7 +81,6 @@ type DetectorSettingsOptions = {
   hasAccess: boolean;
   hasWebVitalsSeerSuggestions: boolean;
   isResetting: boolean;
-  organization: Organization;
   performanceIssueSettings: ProjectPerformanceSettings;
   projectSlug: string;
   resetVersion: number;
@@ -255,7 +253,6 @@ export function getProjectDetectorSettings({
   hasAIIssueDetection,
   hasWebVitalsSeerSuggestions,
   isResetting,
-  organization,
   performanceIssueSettings,
   projectSlug,
   resetVersion,
@@ -626,33 +623,29 @@ export function getProjectDetectorSettings({
     },
     {
       title: IssueTitle.QUERY_INJECTION_VULNERABILITY,
-      fields: organization.features.includes(
-        'issue-query-injection-vulnerability-visible'
-      )
-        ? [
-            <RangeField
-              key={DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH}
-              {...fieldSettings}
-              definition={{
-                name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
-                label: t('SQL Injection Query Value Length'),
-                defaultValue: 3,
-                help: t(
-                  'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
-                ),
-                tickValues: [0, 7],
-                showTickLabels: true,
-                allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
-                disabled: !(
-                  hasAccess &&
-                  performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
-                ),
-                formatLabel: value => value && value.toString(),
-                disabledReason,
-              }}
-            />,
-          ]
-        : [],
+      fields: [
+        <RangeField
+          key={DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
+            label: t('SQL Injection Query Value Length'),
+            defaultValue: 3,
+            help: t(
+              'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
+            ),
+            tickValues: [0, 7],
+            showTickLabels: true,
+            allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
+            ),
+            formatLabel: value => value && value.toString(),
+            disabledReason,
+          }}
+        />,
+      ],
       initiallyCollapsed: issueType !== IssueType.QUERY_INJECTION_VULNERABILITY,
     },
     {

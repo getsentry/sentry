@@ -1,5 +1,7 @@
-import {Fragment, type Ref} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconUser} from '@sentry/icons/user';
 import uniqBy from 'lodash/uniqBy';
 
 import {
@@ -31,7 +33,6 @@ import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
-import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Actor} from 'sentry/types/core';
@@ -116,10 +117,6 @@ interface AssigneeSelectorDropdownProps {
    * Show the assignee name next to the avatar.
    */
   showLabel?: boolean;
-  /**
-   * Maximum number of teams/users to display in the dropdown
-   */
-  sizeLimit?: number;
   /**
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
@@ -297,7 +294,6 @@ export function AssigneeSelectorDropdown({
   onClear,
   owners,
   showLabel = false,
-  sizeLimit = 150,
   trigger,
   additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
@@ -563,7 +559,6 @@ export function AssigneeSelectorDropdown({
 
   const makeTrigger = (props: TriggerProps) => {
     if (shouldUseNewUI) {
-      const {children: _, ref, ...triggerProps} = props;
       const suggestedActors = getSuggestedAssignees();
       const actor = group.assignedTo ?? suggestedActors[0];
       const assignee = group.assignedTo
@@ -586,7 +581,7 @@ export function AssigneeSelectorDropdown({
 
       const avatarButton = (
         <AvatarButton
-          {...triggerProps}
+          {...props}
           aria-label={t('Modify issue assignee: %s', triggerLabel)}
           avatar={
             actor
@@ -600,7 +595,6 @@ export function AssigneeSelectorDropdown({
           busy={loading}
           data-test-id="assignee-selector"
           disabled={loading}
-          ref={ref as Ref<HTMLButtonElement>}
           size="xs"
           tooltipProps={showLabel ? undefined : {maxWidth: 300, title: tooltipTitle}}
         />
@@ -612,7 +606,7 @@ export function AssigneeSelectorDropdown({
 
       return (
         <Tooltip maxWidth={300} skipWrapper title={tooltipTitle}>
-          <Flex as="label" align="center" gap="sm" htmlFor={triggerProps.id}>
+          <Flex as="label" align="center" gap="sm" htmlFor={props.id}>
             {avatarButton}
             <AssigneeLabel ellipsis>{triggerLabel}</AssigneeLabel>
           </Flex>
@@ -682,7 +676,7 @@ export function AssigneeSelectorDropdown({
             {additionalMenuFooterItems}
           </Flex>
         )}
-        sizeLimit={sizeLimit}
+        sizeLimit={150}
         sizeLimitMessage="Use search to find more users and teams..."
         strategy="fixed"
       />

@@ -1,23 +1,21 @@
 # Legacy Alert API Compatibility
 
-> This document covers compatibility between legacy alert APIs and Workflow Engine
-> models. It is not a description of current detector or workflow execution. Start with
+> This document covers remaining legacy alert ID compatibility with Workflow Engine
+> models after the legacy alert APIs were retired. Start with
 > the [Workflow Engine overview](../README.md), [data model](data-model.md), and
 > [execution guide](execution.md) for current architecture.
 
 ## Current Boundary
 
-Compatibility paths preserve legacy alert API shapes while reading or associating
-Workflow Engine models. The current implementation is mixed rather than a single
-migration state:
+The deprecated legacy alert API routes were removed in
+[sentry#121879](https://github.com/getsentry/sentry/pull/121879). Clients must use
+the detector and workflow APIs to manage alerts. The serializer and issue-alert
+POST/PUT rollout flags no longer have consumers and have been retired.
 
-- Some read and delete paths use Workflow Engine models unconditionally.
-- Some issue-alert POST and PUT paths still write legacy `Rule` records and rely on
-  dual-write associations.
-- Feature flags select Workflow Engine serialization in remaining flag-controlled paths.
-
-Verify the endpoint being changed rather than assuming all methods use the same model
-system.
+Some compatibility code remains: rule history and statistics resolve legacy rule IDs
+to workflows, lookup endpoints expose associations between legacy and Workflow Engine
+models, and notification code still uses legacy-shaped data. Endpoint retirement does
+not imply that the association tables, serializers, or ID helpers are all unused.
 
 ## Handling IDs
 
@@ -42,19 +40,10 @@ Endpoints that accept IDs as input must handle both real legacy IDs (via associa
 
 ## Compatibility Endpoints
 
-Use `@track_alert_endpoint_execution` references as the source of truth for the
-compatibility surface. The implementation spans metric alert, incident, issue alert,
-and snooze endpoints; do not maintain a second exhaustive endpoint list here.
-
-## Feature Flag Strategy
-
-Current compatibility flags are:
-
-- `organizations:workflow-engine-rule-serializers`
-- `organizations:workflow-engine-issue-alert-endpoints-post`
-- `organizations:workflow-engine-issue-alert-endpoints-put`
-
-The broad flag enables Workflow Engine serialization in remaining flag-controlled paths; it is not a universal router for every endpoint and method. Do not assume a generated per-endpoint flag exists. Register any new flag explicitly in `src/sentry/features/temporary.py` and remove it after rollout.
+Check the registered routes and their implementations when changing compatibility
+code. Rule history and statistics live in `src/sentry/rules/history/endpoints/`;
+association lookup routes live in `src/sentry/workflow_engine/endpoints/urls.py`.
+The endpoint-tracking decorator was removed with the deprecated routes.
 
 ## Unsupported legacy features
 

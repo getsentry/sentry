@@ -3,15 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {dragHandle} from 'sentry-test/dragMove';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {
-  COL_WIDTH_MINIMUM,
-  COL_WIDTH_UNDEFINED,
-} from 'sentry/components/tables/gridEditable';
+import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 
 import {
   collapseToolsColumnWhenUnused,
   ConversationsTable,
+  getConversationTimeSpan,
   getUserDisplayName,
   getVisibleToolCount,
   parseStoredColumnWidths,
@@ -31,6 +31,7 @@ const BASE_CONVERSATION = {
   llmCalls: 3,
   projectId: null,
   startTimestamp: 1000,
+  timeSpan: 1000,
   title: null,
   toolCalls: 0,
   toolErrors: 0,
@@ -53,8 +54,13 @@ function mockConversations(body: Array<Record<string, unknown>>) {
   });
 }
 
+function TestConversationsTable() {
+  const conversations = useConversations();
+  return <ConversationsTable conversations={conversations} />;
+}
+
 function renderTable() {
-  return render(<ConversationsTable />, {organization});
+  return render(<TestConversationsTable />, {organization});
 }
 
 describe('ConversationsTable', () => {
@@ -124,6 +130,22 @@ describe('ConversationsTable', () => {
     renderTable();
 
     expect(await screen.findByText('sarah@example.com')).toBeInTheDocument();
+  });
+
+  it('uses the conversation timespan', () => {
+    expect(getConversationTimeSpan({...BASE_CONVERSATION, timeSpan: 420_000})).toBe(
+      420_000
+    );
+  });
+
+  it('uses generation duration for a single span with no elapsed timespan', () => {
+    expect(
+      getConversationTimeSpan({
+        ...BASE_CONVERSATION,
+        timeSpan: 0,
+        generationDuration: 750,
+      })
+    ).toBe(750);
   });
 
   it('uses the user ID when no other identifying fields are available', () => {
@@ -279,18 +301,18 @@ describe('ConversationsTable', () => {
     expect(screen.queryByRole('button', {name: 'Conversation'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Tools'})).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Cost'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Timespan'}));
 
     await waitFor(() =>
       expect(request).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/agents/conversations/`,
         expect.objectContaining({
-          query: expect.objectContaining({sort: ['-conversation.totalCost']}),
+          query: expect.objectContaining({sort: ['-conversation.timeSpan']}),
         })
       )
     );
     await waitFor(() =>
-      expect(screen.getByRole('columnheader', {name: 'Cost'})).toHaveAttribute(
+      expect(screen.getByRole('columnheader', {name: 'Timespan'})).toHaveAttribute(
         'aria-sort',
         'descending'
       )

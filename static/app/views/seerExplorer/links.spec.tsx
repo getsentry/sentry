@@ -1,8 +1,12 @@
+import type {LocationDescriptorObject} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/logs/logsQueryParams';
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {getReadableQueryParamsFromLocation as getSpansQueryParamsFromLocation} from 'sentry/views/explore/spans/spansQueryParams';
 import {
   LINK_RULES,
   type LinkSubject,
@@ -137,6 +141,72 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
     name: 'telemetry_live_search',
     params: {dataset: 'issues', query: 'is:unresolved'},
   },
+  list_replays: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/replays/',
+    params: {},
+  },
+  list_releases: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/releases/',
+    params: {},
+  },
+  list_dashboards: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/dashboards/',
+    params: {},
+  },
+  list_detectors: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/detectors/',
+    params: {},
+  },
+  list_workflows: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/workflows/',
+    params: {},
+  },
+  list_monitors: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/monitors/',
+    params: {},
+  },
+  list_members: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/members/',
+    params: {},
+  },
+  list_teams: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/teams/',
+    params: {},
+  },
+  list_projects: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/projects/',
+    params: {},
+  },
+  get_discover_saved_query: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/discover/saved/{query_id}/',
+    params: {query_id: '42'},
+  },
+  resolve_short_id: {
+    kind: 'api',
+    method: 'GET',
+    path: '/api/0/organizations/{organization_id_or_slug}/shortids/{issue_id}/',
+    params: {issue_id: 'JAVASCRIPT-1A'},
+  },
 };
 
 describe('LINK_RULES', () => {
@@ -231,6 +301,21 @@ describe('resolveLink', () => {
     ).toBeNull();
   });
 
+  it('returns null on a provider route', () => {
+    const subject: LinkSubject = {
+      kind: 'api',
+      method: 'GET',
+      path: '/api/v2/trace/{trace_id}',
+      params: {trace_id: 'dd-trace-1'},
+      provider: 'datadog',
+    };
+
+    expect(resolveLink(subject, ctx)).toBeNull();
+
+    // The same route with no provider is Sentry's own and still links.
+    expect(resolveLink({...subject, provider: undefined}, ctx)).not.toBeNull();
+  });
+
   // `/issues/{issue_id}/events/latest/` is not a concrete event (API-only alias), so the event rule
   // declines. Longest-prefix still finds `/issues/{issue_id}/` and links the issue page instead of
   // leaving the row dead — better than a 404 event URL, and matches nested issue inheritance.
@@ -288,9 +373,9 @@ describe('resolveLink', () => {
         {
           kind: 'api',
           method: 'GET',
-          path: '/api/0/organizations/{organization_id_or_slug}/releases/',
+          path: '/api/0/organizations/{organization_id_or_slug}/relay/projectconfigs/',
           params: {organization_id_or_slug: 'org-slug'},
-          title: 'List an Organization’s Releases',
+          title: 'Retrieve Project Configs',
         },
         ctx
       )
@@ -514,25 +599,6 @@ describe('project links', () => {
 });
 
 describe('longest path prefix inheritance', () => {
-  it('still opens the waterfall for legacy events-trace routes', () => {
-    expect(
-      resolveLink(
-        {
-          kind: 'api',
-          method: 'GET',
-          path: '/api/0/organizations/{organization_id_or_slug}/events-trace/{trace_id}/',
-          params: {trace_id: 'trace1'},
-          title: 'Retrieve a Trace',
-        },
-        ctx
-      )
-    ).toEqual({
-      id: 'get_trace_waterfall',
-      label: 'Retrieve a Trace',
-      url: {pathname: '/organizations/org-slug/explore/traces/trace/trace1/', query: {}},
-    });
-  });
-
   it('links nested issue subresources to the issue page', () => {
     expect(
       resolveLink(
@@ -615,6 +681,156 @@ describe('longest path prefix inheritance', () => {
 });
 
 describe('search links', () => {
+  it('preserves replay filters and an absolute time range', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/replays/',
+        resolved_path:
+          '/api/0/organizations/org-slug/replays/?query=browser.name%3AFirefox&project=2&environment=production&start=2026-09-01T00%3A00%3A00Z&end=2026-09-02T00%3A00%3A00Z',
+      }),
+      ctx
+    );
+    expect(result?.url).toEqual(
+      expect.objectContaining({
+        query: {
+          query: 'browser.name:Firefox',
+          project: ['2'],
+          environment: ['production'],
+          start: '2026-09-01T00:00:00',
+          end: '2026-09-02T00:00:00',
+          statsPeriod: undefined,
+        },
+      })
+    );
+  });
+
+  it('does not guess an Explore saved query destination without its dataset and filters', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/explore/saved/{id}/',
+          params: {id: '42'},
+        },
+        ctx
+      )
+    ).toBeNull();
+  });
+
+  it('keeps query-string collisions out of entity path parameters', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/',
+        path_params: {issue_id: '54'},
+        resolved_path: '/api/0/organizations/org-slug/issues/54/?issue_id=99',
+      }),
+      ctx
+    );
+    expect(result?.url).toEqual(
+      expect.objectContaining({pathname: '/organizations/org-slug/issues/54/'})
+    );
+  });
+
+  it('uses the path project for a project-scoped search despite query-string collisions', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/',
+        path_params: {project_id_or_slug: 'python'},
+        resolved_path:
+          '/api/0/projects/org-slug/python/events/?project=2&project_id_or_slug=javascript',
+      }),
+      ctx
+    );
+    expect(result?.url).toEqual(
+      expect.objectContaining({
+        query: expect.objectContaining({project: ['3']}),
+      })
+    );
+  });
+
+  it('preserves multiple sorts and uses the last value for scalar API parameters', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=errors&sort=-count()&sort=timestamp&statsPeriod=7d&statsPeriod=14d',
+      }),
+      ctx
+    );
+    expect(result?.url).toEqual(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          sort: ['-count', 'timestamp'],
+          statsPeriod: '14d',
+        }),
+      })
+    );
+  });
+
+  it('reproduces a log aggregation using the Logs page query parser', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=logs&field=severity&field=count(message)&query=severity%3Aerror&sort=-count(message)',
+      }),
+      ctx
+    );
+    expect(result?.url).toEqual(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/explore/logs/',
+      })
+    );
+    const decoded = getReadableQueryParamsFromLocation(
+      LocationFixture(result?.url as LocationDescriptorObject)
+    );
+    expect(decoded.mode).toBe(Mode.AGGREGATE);
+    expect(decoded.query).toBe('severity:error');
+    expect(decoded.aggregateFields).toEqual([
+      new VisualizeFunction('count(message)'),
+      {groupBy: 'severity'},
+    ]);
+    expect(decoded.aggregateSortBys).toEqual([{field: 'count(message)', kind: 'desc'}]);
+  });
+
+  it('keeps log sample columns and sorting', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=logs&field=timestamp&field=message&sort=-timestamp',
+      }),
+      ctx
+    );
+    expect(result?.url).toEqual(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          logsFields: ['timestamp', 'message'],
+          logsSortBys: '-timestamp',
+        }),
+      })
+    );
+  });
+
   it('encodes metric query state from the metadata seer sent', () => {
     const result = resolveLink(
       subjectFromToolLink({
@@ -774,6 +990,417 @@ describe('search links', () => {
       },
     });
   });
+
+  it('deep-links an org events API call into Explore from the query string', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=logs&query=level%3Aerror&statsPeriod=24h&project=2',
+        title: 'Listing events',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        label: 'Listing events',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/explore/logs/',
+          query: expect.objectContaining({
+            statsPeriod: '24h',
+            project: ['2'],
+            logsQuery: 'level:error',
+          }),
+        }),
+      })
+    );
+  });
+
+  it('reproduces an events API span aggregation in Explore', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=spans&field=span.op&field=count()&query=span.op%3Adb&project=2&project=3&environment=production&environment=staging&statsPeriod=30d&sort=-count()',
+        title: 'Querying spans for database calls',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual({
+      id: 'telemetry_live_search',
+      label: 'Querying spans for database calls',
+      url: {
+        pathname: '/organizations/org-slug/traces/',
+        query: {
+          query: 'span.op:db',
+          project: ['2', '3'],
+          environment: ['production', 'staging'],
+          statsPeriod: '30d',
+          // Aggregate mode reads its own sort key; `sort` only orders the samples table.
+          aggregateSort: '-count()',
+          mode: 'aggregate',
+          visualize: ['"count()"'],
+          yAxes: ['"count()"'],
+          groupBy: ['span.op'],
+          aggregateField: ['{"yAxes":["count()"]}', '{"groupBy":"span.op"}'],
+        },
+      },
+    });
+  });
+
+  it('reproduces a span aggregation using the Spans page query parser', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        // Sorting on the group by, ascending: the one ordering that cannot be confused with the
+        // default, which is the first y-axis descending.
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=spans&field=span.op&field=count()&query=span.op%3Adb&sort=span.op',
+      }),
+      ctx
+    );
+
+    const decoded = getSpansQueryParamsFromLocation(
+      LocationFixture(result?.url as LocationDescriptorObject)
+    );
+    expect(decoded.mode).toBe(Mode.AGGREGATE);
+    expect(decoded.query).toBe('span.op:db');
+    expect(decoded.aggregateFields).toEqual([
+      new VisualizeFunction('count()'),
+      {groupBy: 'span.op'},
+    ]);
+    // Regression: the sort used to be written to the samples key, so the aggregate table silently
+    // fell back to its default ordering.
+    expect(decoded.aggregateSortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
+  });
+
+  it.each(['events-stats', 'events-timeseries'])(
+    'opens %s span charts in aggregate mode',
+    endpoint => {
+      const result = resolveLink(
+        subjectFromCallRecord({
+          id: 1,
+          kind: 'api',
+          method: 'GET',
+          path: `/api/0/organizations/{organization_id_or_slug}/${endpoint}/`,
+          resolved_path: `/api/0/organizations/org-slug/${endpoint}/?dataset=spans&yAxis=count()&groupBy=span.op&project=2&statsPeriod=7d`,
+        }),
+        ctx
+      );
+
+      expect(result?.url).toEqual({
+        pathname: '/organizations/org-slug/traces/',
+        query: {
+          query: '',
+          project: ['2'],
+          statsPeriod: '7d',
+          mode: 'aggregate',
+          visualize: ['"count()"'],
+          yAxes: ['"count()"'],
+          groupBy: ['span.op'],
+          aggregateField: ['{"yAxes":["count()"]}', '{"groupBy":"span.op"}'],
+        },
+      });
+    }
+  );
+
+  it.each([
+    ['replays', 'project=2&project=999', ['2', '999']],
+    ['replays', 'project=999', ['999']],
+    ['releases', 'project=2&project=999', ['2', '999']],
+    ['releases', 'project=999', ['999']],
+  ])(
+    'preserves project filters on %s links with %s',
+    (endpoint, projectQuery, projectIds) => {
+      const result = resolveLink(
+        subjectFromCallRecord({
+          id: 1,
+          kind: 'api',
+          method: 'GET',
+          path: `/api/0/organizations/{organization_id_or_slug}/${endpoint}/`,
+          resolved_path: `/api/0/organizations/org-slug/${endpoint}/?${projectQuery}`,
+        }),
+        ctx
+      );
+      expect(result?.url).toEqual(
+        expect.objectContaining({query: expect.objectContaining({project: projectIds})})
+      );
+    }
+  );
+
+  it.each(['events', 'releases'])(
+    'preserves an unloaded numeric project from the %s API path',
+    endpoint => {
+      const result = resolveLink(
+        subjectFromCallRecord({
+          id: 1,
+          kind: 'api',
+          method: 'GET',
+          path: `/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/${endpoint}/`,
+          path_params: {organization_id_or_slug: 'org-slug', project_id_or_slug: '999'},
+          resolved_path: `/api/0/projects/org-slug/999/${endpoint}/`,
+        }),
+        ctx
+      );
+      expect(result?.url).toEqual(
+        expect.objectContaining({query: expect.objectContaining({project: ['999']})})
+      );
+    }
+  );
+
+  it.each(['events', 'releases'])(
+    'falls back to the project page when a %s link cannot resolve its project slug',
+    endpoint => {
+      const result = resolveLink(
+        subjectFromCallRecord({
+          id: 1,
+          kind: 'api',
+          method: 'GET',
+          path: `/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/${endpoint}/`,
+          path_params: {
+            organization_id_or_slug: 'org-slug',
+            project_id_or_slug: 'unloaded-project',
+          },
+          resolved_path: `/api/0/projects/org-slug/unloaded-project/${endpoint}/`,
+        }),
+        ctx
+      );
+      expect(result?.url).toEqual({
+        pathname: '/organizations/org-slug/insights/projects/unloaded-project/',
+      });
+    }
+  );
+
+  it('keeps sample fields and absolute dates on a spans API link', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=spans&field=id&field=span.op&query=span.op%3Adb&project=2&start=2026-08-01T00%3A00%3A00Z&end=2026-08-02T00%3A00%3A00Z&sort=-timestamp',
+      }),
+      ctx
+    );
+
+    expect(result?.url).toEqual({
+      pathname: '/organizations/org-slug/traces/',
+      query: {
+        query: 'span.op:db',
+        project: ['2'],
+        start: '2026-08-01T00:00:00',
+        end: '2026-08-02T00:00:00',
+        sort: '-timestamp',
+        field: ['id', 'span.op'],
+      },
+    });
+  });
+
+  it('infers the issues dataset for a bare org issues list', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/issues/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path: '/api/0/organizations/org-slug/issues/?query=is%3Aunresolved',
+        title: 'Listing issues',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual({
+      id: 'telemetry_live_search',
+      label: 'Listing issues',
+      url: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          query: 'is:unresolved',
+          project: null,
+        },
+      },
+    });
+  });
+
+  it('keeps issue event lists on the issue page, not Explore', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/events/',
+          params: {issue_id: '54'},
+        },
+        ctx
+      )?.id
+    ).toBe('get_issue_details');
+  });
+
+  it('pins a project-scoped events list onto errors Explore for that project', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/',
+        path_params: {
+          organization_id_or_slug: 'org-slug',
+          project_id_or_slug: 'javascript',
+        },
+        resolved_path: '/api/0/projects/org-slug/javascript/events/?statsPeriod=7d',
+        title: 'Listing project events',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/explore/discover/homepage/',
+          query: expect.objectContaining({
+            dataset: 'errors',
+            project: ['2'],
+            statsPeriod: '7d',
+          }),
+        }),
+      })
+    );
+  });
+
+  it.each(['dataset=discover', 'dataset=transactions', 'dataset=unknown', ''])(
+    'declines an ambiguous or unsupported organization events dataset: %s',
+    datasetQuery => {
+      const result = resolveLink(
+        subjectFromCallRecord({
+          id: 1,
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/events/',
+          resolved_path: `/api/0/organizations/org-slug/events/?query=transaction.duration%3A%3E100&${datasetQuery}`,
+        }),
+        ctx
+      );
+      expect(result).toBeNull();
+    }
+  );
+
+  it('keeps events API field columns on the Discover deep-link', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=errors&field=title&field=count()',
+        title: 'Listing events',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/explore/discover/homepage/',
+          query: expect.objectContaining({
+            field: ['title', 'count()'],
+          }),
+        }),
+      })
+    );
+  });
+
+  it('dedupes overlapping field and yAxis values on Discover deep-links', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
+        resolved_path:
+          '/api/0/organizations/org-slug/events/?dataset=errors&field=count()&yAxis=count()',
+        title: 'Listing events',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        url: expect.objectContaining({
+          query: expect.objectContaining({
+            field: ['count()'],
+            yAxis: ['count()'],
+          }),
+        }),
+      })
+    );
+  });
+
+  it('sends the classic monitors list to the monitors surface, not empty alerts/crons', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/organizations/{organization_id_or_slug}/monitors/',
+          params: {},
+          title: 'Listing monitors',
+        },
+        ctx
+      )
+    ).toEqual({
+      id: 'list_monitors',
+      label: 'Listing monitors',
+      url: {pathname: '/organizations/org-slug/monitors/'},
+    });
+  });
+
+  it('does not let nested membership lists steal the parent entity link', () => {
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/members/',
+          params: {project_id_or_slug: 'javascript'},
+        },
+        ctx
+      )?.id
+    ).toBe('get_project_details');
+
+    expect(
+      resolveLink(
+        {
+          kind: 'api',
+          method: 'GET',
+          path: '/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/projects/',
+          params: {team_id_or_slug: 'frontend'},
+        },
+        ctx
+      )?.id
+    ).toBe('get_team_details');
+  });
 });
 
 describe('subjectFromCallRecord', () => {
@@ -784,12 +1411,14 @@ describe('subjectFromCallRecord', () => {
         kind: 'api',
         method: 'GET',
         path: '/api/0/organizations/{organization_id_or_slug}/events/',
+        path_params: {organization_id_or_slug: 'org-slug'},
         resolved_path: '/api/0/organizations/org-slug/events/?dataset=logs&per_page=10',
       })
     ).toEqual(
       expect.objectContaining({
         pathname: '/api/0/organizations/org-slug/events/',
         query: {dataset: 'logs', per_page: '10'},
+        params: {organization_id_or_slug: 'org-slug'},
       })
     );
   });

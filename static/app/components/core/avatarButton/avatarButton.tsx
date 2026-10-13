@@ -1,19 +1,24 @@
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconUser} from '@sentry/icons/user';
 import type {DistributedOmit} from 'type-fest';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
-
-import {IconUser} from 'sentry/icons';
 
 import {useAvatarColors} from './useAvatarColors';
 
 type AvatarButtonSize = 'xs' | 'sm' | 'md';
+type AvatarTriggerProps = React.ComponentProps<typeof OverlayTrigger.Button> &
+  Pick<ButtonProps, 'onClick'>;
 
-interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'variant'> {
+interface AvatarButtonProps extends Omit<
+  AvatarTriggerProps,
+  'children' | 'icon' | 'variant' | 'showChevron'
+> {
   'aria-label': string;
   /** Omit to render an empty/unassigned placeholder. */
   avatar?: BaseAvatarProps;
@@ -168,7 +173,7 @@ const AVATAR_BUTTON_ELEVATION: Record<AvatarButtonSize, string> = {
   xs: '1px',
 };
 
-type ResolvedAvatarButtonProps = DistributedOmit<ButtonProps, 'size'> & {
+type ResolvedAvatarButtonProps = DistributedOmit<AvatarTriggerProps, 'size'> & {
   chonk: string | undefined;
   round: boolean;
   size: AvatarButtonSize;
@@ -179,7 +184,7 @@ function AvatarButtonBase({
   round: _round,
   ...props
 }: ResolvedAvatarButtonProps) {
-  return <Button {...props} />;
+  return <OverlayTrigger.Button {...props} showChevron={false} />;
 }
 
 const StyledAvatarButton = styled(AvatarButtonBase)`
