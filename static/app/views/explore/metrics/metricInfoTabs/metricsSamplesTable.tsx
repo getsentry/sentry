@@ -1,12 +1,10 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {useLocation} from 'sentry/utils/useLocation';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
   getTraceSamplesTableFields,
@@ -22,10 +20,7 @@ import {
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {MetricsSamplesTableHeader} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTableHeader';
 import {SampleTableRow} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTableRow';
-import {
-  stripMetricParamsFromLocation,
-  type TraceMetric,
-} from 'sentry/views/explore/metrics/metricQuery';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   isEmbeddedMetricsSamplesTableSource,
@@ -38,7 +33,6 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 
 const RESULT_LIMIT = 50;
 const EMBEDDED_RESULT_LIMIT = 100;
-const EMPTY_META: EventsMetaType = {fields: {}, units: {}};
 
 interface MetricsSamplesTableProps {
   isMetricOptionsEmpty?: boolean;
@@ -65,7 +59,7 @@ export function MetricsSamplesTable({
 
   const {
     result: {data},
-    meta = EMPTY_META,
+    meta = {fields: {}, units: {}},
     error,
     isFetching,
   } = useMetricSamplesTable({
@@ -95,13 +89,6 @@ export function MetricsSamplesTable({
     };
   }, [meta, traceMetric?.unit]);
 
-  const {pathname, query} = stripMetricParamsFromLocation(useLocation());
-  const queryKey = qs.stringify(query);
-  const traceLinkLocation = useMemo(
-    () => ({pathname, query: qs.parse(queryKey)}),
-    [pathname, queryKey]
-  );
-
   return (
     <SimpleTableGrid
       header={<MetricsSamplesTableHeader columns={columns} source={source} />}
@@ -123,7 +110,6 @@ export function MetricsSamplesTable({
             meta={metaWithValueUnit}
             routingHint={overrideTableData ? overrideTableRoutingHint : meta.routingHint}
             source={source}
-            traceLinkLocation={traceLinkLocation}
           />
         ))
       ) : isFetching ? (
