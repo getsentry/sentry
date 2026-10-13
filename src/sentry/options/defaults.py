@@ -4504,3 +4504,10 @@ register(
     default=30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "sentry.net.http.retries.coerce_null",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

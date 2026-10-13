@@ -16,6 +16,7 @@ from urllib3.util.connection import _TYPE_SOCKET_OPTIONS, _set_socket_options
 from urllib3.util.timeout import _DEFAULT_TIMEOUT
 
 from sentry import VERSION as SENTRY_VERSION
+from sentry import options
 from sentry.net.socket import safe_create_connection
 
 IsIpAddressPermitted = Optional[Callable[[str], bool]]
@@ -164,6 +165,9 @@ class BlacklistAdapter(HTTPAdapter):
     ) -> None:
         # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
         # `urllib3.connectionpool.ConnectionPool` instances managed by `SafePoolManager`.
+        if options.get("sentry.net.http.retries.coerce_null") and max_retries is None:
+            max_retries = 0
+
         self.is_ipaddress_permitted = is_ipaddress_permitted
         super().__init__(max_retries=max_retries if max_retries is not None else 0)
 
@@ -216,7 +220,7 @@ class SafeSession(Session):
     def __init__(
         self,
         is_ipaddress_permitted: IsIpAddressPermitted = None,
-        max_retries: Retry | int | None = None,
+        max_retries: Retry | int | None = DEFAULT_RETRIES,
     ) -> None:
         Session.__init__(self)
         self.headers.update({"User-Agent": USER_AGENT})
