@@ -85,7 +85,7 @@ jobs:
           python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
-      - uses: getsentry/action-build-and-push-images@ed7edfe71545a2a99985e86473b7cd9fbf25ce88
+      - uses: getsentry/action-build-and-push-images@3714f354c0bc912a95221f193c9643cdba966e34
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
           image_name: 'sentry'
