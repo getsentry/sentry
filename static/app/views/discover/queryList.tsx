@@ -14,7 +14,7 @@ import Feature from 'sentry/components/acl/feature';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {TimeSince} from 'sentry/components/timeSince';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -55,7 +55,7 @@ type SavedQueryActions = ReturnType<typeof useSavedQueryActions>;
 
 function getTimelineSubtitle(eventView: EventView) {
   if (eventView.statsPeriod) {
-    return t('Last ') + eventView.statsPeriod;
+    return tct('Last [statsPeriod]', {statsPeriod: eventView.statsPeriod});
   }
   return (
     moment(eventView.start).format('MMM D, YYYY h:mm A') +
