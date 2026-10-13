@@ -189,10 +189,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             update={"group_id": self.group.id + 1000, "show_investigation_button": True}
         )
 
-        result = SlackMetricAlertRenderer.render(
-            data=data,
-            rendered_template=self.rendered_template,
-        )
+        result = _render(data, self.rendered_template)
 
         blocks: list[Any] = result["attachments"][0]["blocks"]
         assert [block["type"] for block in blocks] == ["section"]
