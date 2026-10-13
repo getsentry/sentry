@@ -68,7 +68,7 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
 
         # Must not raise File.DoesNotExist.
         delete_file_for_artifact_bundle(_MissingFile())
-        
+
     def test_indices_deleted_by_cascade(self) -> None:
         org = self.create_organization()
         artifact_bundle = self.create_artifact_bundle(org=org)
