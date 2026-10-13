@@ -18,6 +18,10 @@ export type IssueUpdateData =
   | MarkReviewed
   | GroupStatusResolution;
 
+export type AssignIssuesData = {assignedTo: string};
+
+export type BulkIssueUpdateData = IssueUpdateData | AssignIssuesData;
+
 export type IssueActionHandler = (
   /** Explicit issue IDs, or undefined for all issues matching the current query. */
   itemIds: string[] | undefined,

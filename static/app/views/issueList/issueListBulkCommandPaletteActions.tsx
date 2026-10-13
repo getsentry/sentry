@@ -36,7 +36,12 @@ import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
-import type {IssueActionHandler, IssueUpdateData} from 'sentry/views/issueList/types';
+import type {
+  AssignIssuesData,
+  BulkIssueUpdateData,
+  IssueActionHandler,
+  IssueUpdateData,
+} from 'sentry/views/issueList/types';
 
 interface IssueListBulkCommandPaletteActionsProps {
   groupIds: string[];
@@ -68,7 +73,7 @@ function AssignActionItems({
   onConfirmBulkUpdate,
   onBulkUpdate,
 }: {
-  onBulkUpdate: (data: Record<string, unknown>) => void;
+  onBulkUpdate: (data: AssignIssuesData) => void;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   const user = useUser();
@@ -165,7 +170,7 @@ function AssignActions({
   onConfirmBulkUpdate,
   onBulkUpdate,
 }: {
-  onBulkUpdate: (data: Record<string, unknown>) => void;
+  onBulkUpdate: (data: AssignIssuesData) => void;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   return (
@@ -257,7 +262,7 @@ function useIssueListBulkCommandPaletteActions({
   }
 
   function performBulkUpdate(
-    data: IssueUpdateData | Record<string, unknown>,
+    data: BulkIssueUpdateData,
     onSuccess?: (
       itemIds: string[] | undefined,
       previousGroups: BaseGroup[]
@@ -294,7 +299,7 @@ function useIssueListBulkCommandPaletteActions({
     );
   }
 
-  function handleBulkUpdate(data: Record<string, unknown>, allInQuery?: boolean) {
+  function handleBulkUpdate(data: AssignIssuesData, allInQuery?: boolean) {
     performBulkUpdate(data, undefined, allInQuery);
   }
   const selectedIssueIds = useMemo(() => {
@@ -369,8 +374,7 @@ export function IssueListMarkAllCommandPaletteAction(
   }
 
   const handleUpdateAll = (data: IssueUpdateData) => handleUpdate(data, true);
-  const handleBulkUpdateAll = (data: Record<string, unknown>) =>
-    handleBulkUpdate(data, true);
+  const handleBulkUpdateAll = (data: AssignIssuesData) => handleBulkUpdate(data, true);
 
   return (
     <CMDKAction

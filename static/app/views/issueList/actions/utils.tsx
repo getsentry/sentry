@@ -20,7 +20,7 @@ import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {BulkIssueUpdateData} from 'sentry/views/issueList/types';
 
 import {ExtraDescription} from './extraDescription';
 
@@ -237,14 +237,15 @@ export function invalidateIssueQueries({
 }
 
 function getBulkActionMessages(
-  data: IssueUpdateData | Record<string, unknown>,
-  itemIds: string[] | undefined
+  data: BulkIssueUpdateData,
+  itemIds: string[] | undefined,
+  previousGroups: BaseGroup[]
 ) {
   const allInQuery = itemIds === undefined;
-  const target =
-    itemIds?.length === 1
-      ? (GroupStore.get(itemIds[0]!)?.shortId ?? t('1 issue'))
-      : tn('%s issue', '%s issues', itemIds?.length ?? 0);
+  const singleGroup = itemIds?.length === 1 ? previousGroups[0] : undefined;
+  const target = singleGroup
+    ? singleGroup.shortId
+    : tn('%s issue', '%s issues', itemIds?.length ?? 0);
   const status = 'status' in data ? data.status : undefined;
 
   if (status === GroupStatus.RESOLVED) {
@@ -314,7 +315,7 @@ export async function performBulkUpdate({
   onSuccess,
 }: {
   api: Client;
-  data: IssueUpdateData | Record<string, unknown>;
+  data: BulkIssueUpdateData;
   itemIds: string[] | undefined;
   organizationSlug: string;
   query: string;
@@ -334,7 +335,7 @@ export async function performBulkUpdate({
   };
 
   const previousGroups = itemIds?.map(id => GroupStore.get(id)).filter(defined) ?? [];
-  const messages = getBulkActionMessages(data, itemIds);
+  const messages = getBulkActionMessages(data, itemIds, previousGroups);
   const toastId = toast.loading(messages.loading, {
     id: uuid4(),
     duration: 30_000,
