@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -11,7 +12,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {OnDemandBudgets, Plan, Subscription} from 'getsentry/types';
@@ -95,8 +98,6 @@ export function SpendLimitsEditModal({
   organization,
   subscription,
 }: Props) {
-  const api = useApi();
-
   const [currentOnDemandBudget] = useState<OnDemandBudgets>(() => ({
     ...parseOnDemandBudgetsFromSubscription(subscription),
   }));
@@ -105,24 +106,41 @@ export function SpendLimitsEditModal({
   );
   const [updateError, setUpdateError] = useState<UpdateError>(undefined);
 
-  const saveOnDemandBudget = async (
-    ondemandBudget: OnDemandBudgets
-  ): Promise<boolean> => {
-    try {
-      await api.requestPromise(`/customers/${subscription.slug}/ondemand-budgets/`, {
+  const {mutate: saveOnDemandBudget} = useMutation({
+    mutationFn: (data: OnDemandBudgets) =>
+      fetchMutation({
+        url: getApiUrl('/customers/$organizationIdOrSlug/ondemand-budgets/', {
+          path: {organizationIdOrSlug: subscription.slug},
+        }),
         method: 'POST',
-        data: ondemandBudget,
-      });
+        data,
+      }),
+    onSuccess: (_resp, newOnDemandBudget) => {
       SubscriptionStore.loadData(subscription.slug);
-      return true;
-    } catch (response: any) {
-      setUpdateError(
-        response?.responseJSON ?? getBudgetSaveError(subscription.planDetails)
+      trackOnDemandBudgetAnalytics(
+        organization,
+        currentOnDemandBudget,
+        newOnDemandBudget
       );
-      addErrorMessage(getBudgetSaveError(subscription.planDetails));
-      return false;
-    }
-  };
+
+      if (getTotalBudget(newOnDemandBudget) > 0) {
+        addSuccessMessage(t('Budget updated'));
+      } else {
+        addSuccessMessage(t('Budget turned off'));
+      }
+
+      closeModal();
+    },
+    onError: error => {
+      const saveError = getBudgetSaveError(subscription.planDetails);
+      setUpdateError(
+        error instanceof RequestError && error.responseJSON
+          ? (error.responseJSON as Record<string, string[]>)
+          : saveError
+      );
+      addErrorMessage(saveError);
+    },
+  });
 
   const handleSave = () => {
     const newOnDemandBudget = normalizeOnDemandBudget(onDemandBudget);
@@ -134,23 +152,7 @@ export function SpendLimitsEditModal({
       return;
     }
 
-    saveOnDemandBudget(newOnDemandBudget).then(saveSuccess => {
-      if (saveSuccess) {
-        trackOnDemandBudgetAnalytics(
-          organization,
-          currentOnDemandBudget,
-          newOnDemandBudget
-        );
-
-        if (getTotalBudget(onDemandBudget) > 0) {
-          addSuccessMessage(t('Budget updated'));
-        } else {
-          addSuccessMessage(t('Budget turned off'));
-        }
-
-        closeModal();
-      }
-    });
+    saveOnDemandBudget(newOnDemandBudget);
   };
 
   const addOnDataCategories = Object.values(
