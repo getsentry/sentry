@@ -2511,7 +2511,7 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
                 "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
             }
         },
-        "cookies": {"mode": "denylist", "terms": ["forwarded", "-ip", "remote-", "via", "-user"]},
+        "cookies": {"mode": "off"},
         "url_query_params": {
             "mode": "denylist",
             "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
