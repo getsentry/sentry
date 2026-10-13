@@ -15,6 +15,7 @@ from sentry.issues.derived.features import (
     BLOCKER,
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
+    IMPACT,
     IS_ASSIGNED,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
@@ -24,6 +25,7 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.processing import PIPELINE
 from sentry.issues.derived.store import GroupDerivedDataStore
+from sentry.issues.impact.types import ImpactDerivedData
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.utils import metrics
@@ -41,6 +43,7 @@ class GroupDerivedDataResponse(TypedDict):
     hasRootCause: bool
     lastCompletedAutofixStep: str
     lastProgressedAt: datetime | None
+    impact: ImpactDerivedData | None
 
 
 def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDataResponse]:
@@ -71,6 +74,7 @@ def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDa
                 hasRootCause=state[HAS_ROOT_CAUSE],
                 lastCompletedAutofixStep=state[LAST_COMPLETED_AUTOFIX_STEP].value,
                 lastProgressedAt=state[LAST_PROGRESSED_AT],
+                impact=state[IMPACT],
             )
         except (TypeError, ValueError):
             logger.exception(

@@ -2,6 +2,7 @@ from sentry.issues.action_log.types import (
     AssignAction,
     GroupActionType,
     GroupActorType,
+    ImpactAssessmentAction,
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.testutils.cases import TestCase
@@ -31,6 +32,21 @@ class GroupActionLogEntryActionPropertyTest(TestCase):
         loaded = GroupActionLogEntry.objects.get(id=entry.id)
 
         assert loaded.action is loaded.action
+
+    def test_impact_action_deserializes(self) -> None:
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.IMPACT_ASSESSMENT,
+            data={
+                "score": 75,
+                "description": "Users cannot submit an order.",
+                "citations": [
+                    {"reference": "trace", "claim": "The request failed.", "source": "trace"}
+                ],
+                "source_event_id": "a" * 32,
+            },
+        )
+
+        assert isinstance(entry.action, ImpactAssessmentAction)
 
 
 class GroupActionLogEntryManagerTest(TestCase):
