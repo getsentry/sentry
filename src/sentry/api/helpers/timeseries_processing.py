@@ -10,6 +10,7 @@ from sentry.search.events.fields import (
     FunctionArg,
     IntArg,
     InvalidFunctionArgument,
+    NumberRange,
     parse_arguments,
 )
 
@@ -18,6 +19,7 @@ FILL_MODE_ZERO: Final = "zero"
 FILL_MODE_LINEAR: Final = "linear"
 
 SMOOTH_MODE_SMA: Final = "sma"
+SMOOTH_MODE_EMA: Final = "ema"
 
 
 class FillTransformation(BaseModel):
@@ -29,8 +31,8 @@ class FillTransformation(BaseModel):
         validate_all = True
 
 
-class SmoothTransformation(BaseModel):
-    mode: Literal["sma"]
+class _SmoothTransformation(BaseModel):
+    mode: Literal["sma", "ema"]
     window_size: int
 
     class Config:
@@ -47,11 +49,33 @@ class SmoothTransformation(BaseModel):
         return value
 
 
-Transformation = FillTransformation | SmoothTransformation
+class SmoothTransformation(_SmoothTransformation):
+    mode: Literal["sma"]
+
+
+class EmaSmoothTransformation(_SmoothTransformation):
+    mode: Literal["ema"]
+    smoothing_factor: float | None = None
+
+    @validator("smoothing_factor", pre=True)
+    def validate_smoothing_factor(cls, value: object) -> float | None:
+        if value is None:
+            return None
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise ValueError("Smoothing factor must be a number.")
+        if not 0 < value <= 1:
+            raise ValueError("Smoothing factor must be greater than zero and at most one.")
+        return float(value)
+
+
+Transformation = FillTransformation | SmoothTransformation | EmaSmoothTransformation
 
 _TRANSFORMATIONS: dict[
     str,
-    tuple[type[FillTransformation] | type[SmoothTransformation], tuple[FunctionArg, ...]],
+    tuple[
+        type[FillTransformation] | type[SmoothTransformation] | type[EmaSmoothTransformation],
+        tuple[FunctionArg, ...],
+    ],
 ] = {
     "fill": (FillTransformation, (FunctionArg("mode"),)),
     "smooth": (
@@ -75,8 +99,14 @@ def parse_transformation(value: str) -> Transformation:
     arguments = parse_arguments(function, match.group("columns"))
     if function == "fill" and len(arguments) != 1:
         raise InvalidSearchQuery(f"{value}: argument count must be 1")
-    if function == "smooth" and len(arguments) != 2:
-        raise InvalidSearchQuery(f"{value}: argument count must be 2")
+    if function == "smooth":
+        if arguments and arguments[0] == SMOOTH_MODE_EMA:
+            if len(arguments) not in (2, 3):
+                raise InvalidSearchQuery(f"{value}: argument count must be 2 or 3")
+            model = EmaSmoothTransformation
+            argument_definitions += (NumberRange("smoothing_factor", None, None),)
+        elif len(arguments) != 2:
+            raise InvalidSearchQuery(f"{value}: argument count must be 2")
 
     config: dict[str, object] = {}
     for argument, raw_value in zip(argument_definitions, arguments):
@@ -91,7 +121,10 @@ def parse_transformation(value: str) -> Transformation:
         detail = error.errors()[0]
         message = detail["msg"]
         if detail["type"] == "value_error.const":
-            message = f"expected one of {', '.join(detail['ctx']['permitted'])}"
+            permitted = detail["ctx"]["permitted"]
+            if function == "smooth":
+                permitted = (SMOOTH_MODE_SMA, SMOOTH_MODE_EMA)
+            message = f"expected one of {', '.join(permitted)}"
         raise InvalidSearchQuery(f"{value}: {detail['loc'][0]} argument invalid: {message}")
 
 
@@ -168,7 +201,7 @@ def smooth_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
-    config: SmoothTransformation,
+    config: SmoothTransformation | EmaSmoothTransformation,
 ) -> list[float | None]:
     """Smooth values using the selected mode.
 
@@ -183,9 +216,36 @@ def smooth_timeseries(
             Missing buckets stay None and are excluded from the average. Each available
             value has equal weight, regardless of timestamp spacing. window_size must
             be provided and positive.
+        ema: Exponential moving average seeded with the first observed value. Each
+            later observation updates the average as smoothing_factor * value +
+            (1 - smoothing_factor) * previous_average. Missing buckets stay None and
+            leave the average unchanged. Weighting depends on observations, regardless
+            of timestamp spacing. window_size determines the factor as
+            2 / (window_size + 1), without cutting off older observations. An explicit
+            smoothing_factor in (0, 1] overrides it and is only supported for ema.
     """
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
+
+    if isinstance(config, EmaSmoothTransformation):
+        smoothing_factor = config.smoothing_factor
+        if smoothing_factor is None:
+            smoothing_factor = 2 / (config.window_size + 1)
+
+        ema_values: list[float | None] = []
+        average: float | None = None
+        for value in values:
+            if value is None:
+                ema_values.append(None)
+            else:
+                average = (
+                    value
+                    if average is None
+                    else smoothing_factor * value + (1 - smoothing_factor) * average
+                )
+                ema_values.append(average)
+
+        return ema_values
 
     smoothed_values: list[float | None] = []
     window_sum = 0.0
