@@ -376,6 +376,12 @@ const zIndex = {
   overlay: 10102,
 };
 
+/**
+ * Keep the guide inside the viewport even when that means overlapping its
+ * highlighted element, such as one that is taller than the viewport.
+ */
+const keepGuideInViewport = {crossAxis: true, tether: false};
+
 export function TourGuide({
   children,
   title,
@@ -397,12 +403,24 @@ export function TourGuide({
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
-  const {triggerProps, overlayProps, arrowProps} = useOverlay({
+  const {triggerProps, triggerRef, overlayProps, arrowProps} = useOverlay({
     shouldApplyMinWidth: false,
     isOpen,
     position,
     offset,
+    strategy: 'fixed',
+    preventOverflowOptions: keepGuideInViewport,
   });
+
+  // Scroll the highlighted element rather than the guide. The element may live in
+  // a nested scroll container (e.g. the issue details sidebar, which stacks below
+  // the content at narrow widths); the guide is portaled to the body and can't
+  // scroll that container.
+  useEffect(() => {
+    if (isOpen) {
+      triggerRef.current?.scrollIntoView?.({block: 'nearest', behavior: 'smooth'});
+    }
+  }, [isOpen, triggerRef]);
 
   return (
     <Fragment>
@@ -439,7 +457,7 @@ export function TourGuide({
                         `,
                       }}
                     >
-                      <TourBody ref={scrollToElement}>
+                      <TourBody>
                         {isTopRowVisible && (
                           <TopRow>
                             <div>{countText}</div>
@@ -472,10 +490,6 @@ export function TourGuide({
         : null}
     </Fragment>
   );
-}
-
-function scrollToElement(element: HTMLDivElement | null) {
-  element?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */

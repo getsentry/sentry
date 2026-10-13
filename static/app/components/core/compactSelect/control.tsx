@@ -1,12 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme, css} from '@emotion/react';
@@ -31,10 +23,10 @@ import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
+import {ControlContext} from './controlContext';
 import type {SingleListProps} from './list';
 import type {
   SearchConfig,
-  SearchMatchResult,
   SelectKey,
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
@@ -54,43 +46,6 @@ function nextFrameCallback(cb: () => void) {
     }, 1);
   }
 }
-
-interface ControlContextValue {
-  overlayIsOpen: boolean;
-  /**
-   * Search string to determine whether an option should be rendered in the select list.
-   */
-  search: string;
-  /**
-   * Whether the select has a search input field.
-   */
-  searchable: boolean;
-  disabled?: boolean;
-  /**
-   * Whether the matched substring of each option's label should be highlighted
-   * as the user types.
-   */
-  highlightSearch?: boolean;
-  /**
-   * The control's overlay state. Useful for opening/closing the menu from inside the
-   * selector.
-   */
-  overlayState?: OverlayTriggerState;
-  /**
-   * Custom function to determine whether an option matches the search query.
-   */
-  searchMatcher?: (
-    option: SelectOptionWithKey<SelectKey>,
-    search: string
-  ) => SearchMatchResult;
-  size?: FormSize;
-}
-
-export const ControlContext = createContext<ControlContextValue>({
-  overlayIsOpen: false,
-  search: '',
-  searchable: false,
-});
 
 export interface ControlProps
   extends

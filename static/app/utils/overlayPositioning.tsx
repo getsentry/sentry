@@ -80,26 +80,38 @@ export function arrowOverlay(options: {padding?: Padding} = {}): Middleware {
   };
 }
 
+export interface ShiftOverlayOptions extends ShiftOptions {
+  /**
+   * Stop the overlay from shifting so far that it detaches from its trigger.
+   * @default true
+   */
+  tether?: boolean;
+}
+
 /**
- * Floating UI's `shift()`, limited so the overlay never shifts so far that it
- * detaches from its trigger. With an arrow, enough of the overlay stays beside
- * the trigger for the arrow to point at it.
+ * Floating UI's `shift()`, by default limited so the overlay never shifts so
+ * far that it detaches from its trigger. With an arrow, enough of the overlay
+ * stays beside the trigger for the arrow to point at it.
  *
  * Unlike `limitShift()`, this only limits how far the overlay is shifted. An
  * offset that already places the overlay away from its trigger is kept.
  */
-export function shiftOverlay(options: ShiftOptions = {}): Middleware {
+export function shiftOverlay(options: ShiftOverlayOptions = {}): Middleware {
+  const {tether = true, ...shiftOptions} = options;
+
   return {
     name: 'shift',
     options,
     fn(state) {
-      const limiter = tether(state, getArrow(state.elements.floating));
-      return shift({limiter, ...options}).fn(state);
+      const limiter = tether
+        ? tetherLimiter(state, getArrow(state.elements.floating))
+        : undefined;
+      return shift({limiter, ...shiftOptions}).fn(state);
     },
   };
 }
 
-function tether(origin: Coords, arrowElement: HTMLElement | null) {
+function tetherLimiter(origin: Coords, arrowElement: HTMLElement | null) {
   // `limitShift()` already stops the overlay from shifting past its trigger
   // along the cross axis
   const crossAxisLimiter = limitShift({mainAxis: false});

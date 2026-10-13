@@ -25,7 +25,7 @@ import {
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 // eslint-disable-next-line boundaries/dependencies
-import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
+import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {flipOverlay, shiftOverlay} from 'sentry/utils/overlayPositioning';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';

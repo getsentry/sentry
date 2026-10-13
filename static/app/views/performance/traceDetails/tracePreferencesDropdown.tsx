@@ -22,7 +22,6 @@ import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDet
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/traceDetails/traceApi/utils';
 import {getCustomInstrumentationLink} from 'sentry/views/performance/traceDetails/traceConfigurations';
 import {TraceShortcutsModal} from 'sentry/views/performance/traceDetails/traceShortcutsModal';
-import {TRACE_WATERFALL_TIME_COMPRESSION_FEATURE} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 
 interface TracePreferencesDropdownProps {
   autogroup: boolean;
@@ -45,9 +44,6 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
 
   const organization = useOrganization();
   const {projects} = useProjects();
-  const hasCompressedTimelineFeature = organization.features.includes(
-    TRACE_WATERFALL_TIME_COMPRESSION_FEATURE
-  );
 
   const traceProject = getTraceProject(projects, props.rootEventResults);
   const selectOptions: Array<SelectOption<string>> = [
@@ -68,14 +64,12 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         }
       ),
     },
-  ];
-  if (hasCompressedTimelineFeature) {
-    selectOptions.push({
+    {
       label: t('Compressed Timeline'),
       value: 'compressed-timeline',
       details: t('Collapses long inactive gaps in the waterfall timeline.'),
-    });
-  }
+    },
+  ];
 
   const values = useMemo(() => {
     const value: string[] = [];
@@ -85,16 +79,11 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     if (props.missingInstrumentation) {
       value.push('no-instrumentation');
     }
-    if (hasCompressedTimelineFeature && props.compressedTimeline) {
+    if (props.compressedTimeline) {
       value.push('compressed-timeline');
     }
     return value;
-  }, [
-    hasCompressedTimelineFeature,
-    props.autogroup,
-    props.compressedTimeline,
-    props.missingInstrumentation,
-  ]);
+  }, [props.autogroup, props.compressedTimeline, props.missingInstrumentation]);
 
   const fallbackPlacements = props.fallbackPlacements;
   const flipOptions = useMemo(

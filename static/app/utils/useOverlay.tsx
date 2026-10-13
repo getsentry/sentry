@@ -5,7 +5,6 @@ import type {
   FlipOptions,
   Middleware,
   Padding,
-  ShiftOptions,
   Strategy,
 } from '@floating-ui/react-dom';
 import {
@@ -24,7 +23,10 @@ import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-stately/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
 
-import type {OverlayPlacement} from 'sentry/utils/overlayPositioning';
+import type {
+  OverlayPlacement,
+  ShiftOverlayOptions,
+} from 'sentry/utils/overlayPositioning';
 import {
   arrowOverlay,
   placementMiddleware,
@@ -121,7 +123,7 @@ export interface UseOverlayProps
    * Options to pass to the `shift` middleware, which keeps the overlay inside
    * its boundary.
    */
-  preventOverflowOptions?: ShiftOptions;
+  preventOverflowOptions?: ShiftOverlayOptions;
   /**
    * By default, the overlay's min-width will match the trigger's width.
    * If this is not desired, set to `false`.

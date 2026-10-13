@@ -290,6 +290,14 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     == "1",
                     extrapolation_mode=extrapolation_mode,
                     disable_array_attributes=disable_array_attributes,
+                    disable_deprecated_functions=(
+                        scoped_dataset == Spans
+                        and features.has(
+                            "organizations:explore-disable-deprecated-if-functions",
+                            organization,
+                            actor=request.user,
+                        )
+                    ),
                 )
 
             if top_events > 0:

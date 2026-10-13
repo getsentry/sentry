@@ -92,7 +92,8 @@ class NotificationHelpersTest(TestCase):
 
     def test_get_group_settings_link(self) -> None:
         rule: Rule = self.create_project_rule(self.project)
-        rule_details = get_rules([rule], self.organization, self.project, self.group.type)
+        origin = NotificationOrigin.from_legacy_rule(rule)
+        rule_details = get_rules([origin], self.organization, self.project, self.group.type)
         assert rule_details[0].id == rule.id
         assert rule_details[0].status_url == (
             f"/organizations/{self.organization.slug}/issues/alerts/rules/"
@@ -116,8 +117,9 @@ class NotificationHelpersTest(TestCase):
 
     def test_get_rules_uses_workflow_identity_without_legacy_rule(self) -> None:
         rule = self.create_project_rule(self.project, include_legacy_rule_id=False)
+        origin = NotificationOrigin.from_legacy_rule(rule)
 
-        [rule_details] = get_rules([rule], self.organization, self.project)
+        [rule_details] = get_rules([origin], self.organization, self.project)
 
         workflow_id = int(rule.data["actions"][0]["workflow_id"])
         assert rule_details.id == workflow_id
@@ -129,8 +131,9 @@ class NotificationHelpersTest(TestCase):
         rule = self.create_project_rule(
             self.project, include_legacy_rule_id=False, include_workflow_id=False
         )
+        origin = NotificationOrigin.from_legacy_rule(rule)
 
-        [rule_details] = get_rules([rule], self.organization, self.project)
+        [rule_details] = get_rules([origin], self.organization, self.project)
 
         assert rule_details.id == rule.id
         assert rule_details.status_url == (
@@ -165,8 +168,12 @@ class NotificationHelpersTest(TestCase):
         rule: Rule = self.create_project_rule(self.project)
         project2 = self.create_project()
         rule2 = self.create_project_rule(project2)
+        origins = [
+            NotificationOrigin.from_legacy_rule(rule),
+            NotificationOrigin.from_legacy_rule(rule2),
+        ]
 
-        rule_details = get_rules([rule, rule2], self.organization, self.project, self.group.type)
+        rule_details = get_rules(origins, self.organization, self.project, self.group.type)
         extra_params = {
             k: dict(map(lambda x: (x[0], x[1][0]), parse_qs(v.strip("?")).items()))
             for k, v in get_email_link_extra_params(
