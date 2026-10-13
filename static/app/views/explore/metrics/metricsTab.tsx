@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 
@@ -55,25 +55,29 @@ type MetricsTabProps = {
 function MetricsTabContentInner({datePageFilterProps}: MetricsTabProps) {
   const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();
   const searchRef = useRef<HTMLDivElement>(null);
-  const [newlyAddedLabel, setNewlyAddedLabel] = useState<string>();
+  const newlyAddedLabelRef = useRef<string>(undefined);
 
-  function scrollToNewlyAdded(panel: HTMLElement) {
+  const scrollToNewlyAdded = useCallback((label: string, panel: HTMLElement) => {
+    if (label !== newlyAddedLabelRef.current) {
+      return;
+    }
+    newlyAddedLabelRef.current = undefined;
     panel.style.scrollMarginTop = `calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + ${searchRef.current?.offsetHeight ?? 0}px)`;
     panel.scrollIntoView({behavior: 'smooth', block: 'start'});
-    setNewlyAddedLabel(undefined);
-  }
+  }, []);
 
   return (
     <Fragment>
       <MetricsTabFilterSection
         ref={searchRef}
         datePageFilterProps={datePageFilterProps}
-        onAddMetricQuery={setNewlyAddedLabel}
+        onAddMetricQuery={label => {
+          newlyAddedLabelRef.current = label;
+        }}
       />
       <ExploreBodyContent>
         <MetricsTabBodySection
-          newlyAddedLabel={newlyAddedLabel}
-          onNewlyAdded={scrollToNewlyAdded}
+          onPanelMount={scrollToNewlyAdded}
           referencedMetricLabels={referencedMetricLabels}
           onEquationLabelsChange={onEquationLabelsChange}
         />
@@ -149,14 +153,12 @@ function MetricsTabFilterSection({
 
 interface SectionProps {
   onEquationLabelsChange: (equationLabel: string, labels: string[]) => void;
-  onNewlyAdded: (panel: HTMLElement) => void;
+  onPanelMount: (label: string, panel: HTMLElement) => void;
   referencedMetricLabels: Set<string>;
-  newlyAddedLabel?: string;
 }
 
 function MetricsTabBodySection({
-  newlyAddedLabel,
-  onNewlyAdded,
+  onPanelMount,
   referencedMetricLabels,
   onEquationLabelsChange,
 }: SectionProps) {
@@ -208,8 +210,7 @@ function MetricsTabBodySection({
         <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
           <SortableMetricPanelSection
             dataTestId="aggregate-metric-panels"
-            newlyAddedLabel={newlyAddedLabel}
-            onNewlyAdded={onNewlyAdded}
+            onPanelMount={onPanelMount}
             sortableQueries={aggregateMetricQueries}
             referenceMap={referenceMap}
             isAnyDragging={isDragging}
@@ -227,8 +228,7 @@ function MetricsTabBodySection({
           ) : null}
           <SortableMetricPanelSection
             dataTestId="equation-metric-panels"
-            newlyAddedLabel={newlyAddedLabel}
-            onNewlyAdded={onNewlyAdded}
+            onPanelMount={onPanelMount}
             sortableQueries={equationMetricQueries}
             referenceMap={referenceMap}
             isAnyDragging={isDragging}
@@ -245,17 +245,15 @@ interface SortableMetricPanelSectionProps {
   dataTestId: string;
   isAnyDragging: boolean;
   onEquationLabelsChange: (equationLabel: string, labels: string[]) => void;
-  onNewlyAdded: (panel: HTMLElement) => void;
+  onPanelMount: (label: string, panel: HTMLElement) => void;
   referenceMap: Record<string, string>;
   referencedMetricLabels: Set<string>;
   sortableQueries: ReturnType<typeof useSortableMetricQueries>;
-  newlyAddedLabel?: string;
 }
 
 function SortableMetricPanelSection({
   dataTestId,
-  newlyAddedLabel,
-  onNewlyAdded,
+  onPanelMount,
   referencedMetricLabels,
   onEquationLabelsChange,
   sortableQueries,
@@ -299,7 +297,7 @@ function SortableMetricPanelSection({
                     referenceMap={referenceMap}
                     isAnyDragging={isAnyDragging}
                     canDrag={sortableItems.length > 1}
-                    onNewlyAdded={id === newlyAddedLabel ? onNewlyAdded : undefined}
+                    onPanelMount={onPanelMount}
                   />
                 </AiQueryProvider>
               </MetricsQueryParamsProvider>

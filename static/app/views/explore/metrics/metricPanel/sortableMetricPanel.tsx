@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useCallback} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 
@@ -13,7 +13,7 @@ interface SortableMetricPanelProps {
   sortableId: string;
   traceMetric: TraceMetric;
   onEquationLabelsChange?: (equationLabel: string, labels: string[]) => void;
-  onNewlyAdded?: (panel: HTMLElement) => void;
+  onPanelMount?: (sortableId: string, panel: HTMLElement) => void;
   referenceMap?: Record<string, string>;
   referencedMetricLabels?: Set<string>;
 }
@@ -27,23 +27,27 @@ export function SortableMetricPanel({
   referencedMetricLabels,
   onEquationLabelsChange,
   isAnyDragging,
-  onNewlyAdded,
+  onPanelMount,
   canDrag,
 }: SortableMetricPanelProps) {
-  const {attributes, listeners, node, setNodeRef, transform, isDragging} = useSortable({
+  const {attributes, listeners, setNodeRef, transform, isDragging} = useSortable({
     id: sortableId,
     transition: null,
   });
 
-  useEffect(() => {
-    if (onNewlyAdded && node.current) {
-      onNewlyAdded(node.current);
-    }
-  }, [node, onNewlyAdded]);
+  const ref = useCallback(
+    (panel: HTMLElement | null) => {
+      setNodeRef(panel);
+      if (panel) {
+        onPanelMount?.(sortableId, panel);
+      }
+    },
+    [onPanelMount, setNodeRef, sortableId]
+  );
 
   return (
     <MetricPanel
-      ref={setNodeRef}
+      ref={ref}
       style={{
         transform: CSS.Translate.toString(transform),
         opacity: isDragging ? 0.5 : undefined,
