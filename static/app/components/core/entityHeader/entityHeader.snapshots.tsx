@@ -11,13 +11,23 @@ import {EntityHeader} from '@sentry/scraps/entityHeader';
  */
 
 const props: EntityHeaderProps = {
-  title: {label: 'Replay user', value: 'anonymous@example.com'},
+  title: {type: 'text', label: 'Replay user', value: 'anonymous@example.com'},
   metadata: {
     label: 'Replay properties',
     items: [
-      {label: 'Started at', values: ['Feb 11, 2026 10:56 CET']},
-      {label: 'Browser', values: ['Chrome', '144.0.0']},
-      {label: 'Operating system', values: ['Windows', '>=10']},
+      {label: 'Started at', type: 'text', value: 'Feb 11, 2026 10:56 CET'},
+      {
+        label: 'Browser',
+        type: 'text',
+        value: 'Chrome',
+        secondary: {label: 'version', value: '144.0.0'},
+      },
+      {
+        label: 'Operating system',
+        type: 'text',
+        value: 'Windows',
+        secondary: {label: 'version', value: '>=10'},
+      },
     ],
   },
   stats: {

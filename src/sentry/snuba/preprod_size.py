@@ -1,13 +1,13 @@
 import logging
 
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
+from sentry_sdk import traces
 
 from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.preprod_size")
 
@@ -24,7 +24,7 @@ class PreprodSize(rpc_dataset_common.RPCBase):
     DEFINITIONS = PREPROD_SIZE_DEFINITIONS
 
     @classmethod
-    @trace
+    @traces.trace
     def run_table_query(
         cls,
         *,

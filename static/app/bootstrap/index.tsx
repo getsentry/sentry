@@ -21,11 +21,17 @@ async function bootWithHydration() {
   const response = await fetch(BOOTSTRAP_URL);
   const data: Config = await response.json();
 
+  const domain = window.__SENTRY_DEV_UI ? extractSlug(window.location.host) : null;
+  if (domain?.slug) {
+    // The last organization in client-config can belong to another region.
+    // On an organization subdomain, bootstrap that organization instead.
+    data.lastOrganization = domain.slug;
+  }
+
   // Shim up the initialData payload to quack like it came from
   // a customer-domains initial request. Because our initial call to BOOTSTRAP_URL
   // will not be on a customer domain, the response will not include this context.
   if (data.customerDomain === null && window.__SENTRY_DEV_UI) {
-    const domain = extractSlug(window.location.host);
     if (domain) {
       data.customerDomain = {
         organizationUrl: `https://${domain.slug}.sentry.io`,
@@ -99,10 +105,15 @@ function preloadOrganizationData(config: Config) {
   // When running in 'dev-ui' mode we need to use /region/$region instead of
   // subdomains so that webpack/vercel can proxy requests.
   if (host && window.__SENTRY_DEV_UI) {
-    const domainpattern = /https?:\/\/([^.]*)\.sentry.io/;
-    const domainmatch = host.match(domainpattern);
-    if (domainmatch) {
-      host = `/region/${domainmatch[1]}`;
+    if (extractSlug(window.location.host)?.slug) {
+      // The dev-ui proxy routes organization-domain requests to that organization.
+      host = '';
+    } else {
+      const domainpattern = /https?:\/\/([^.]*)\.sentry.io/;
+      const domainmatch = host.match(domainpattern);
+      if (domainmatch) {
+        host = `/region/${domainmatch[1]}`;
+      }
     }
   }
 
