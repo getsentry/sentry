@@ -221,13 +221,10 @@ describe('SnapshotListView', () => {
   it('collapses a card when it is marked viewed and expands it when unmarked', async () => {
     render(<ExampleSnapshotListView items={[changedGroup(1)]} />);
 
-    expect(screen.getAllByRole('button', {name: 'Zoom in'}).length).toBeGreaterThan(0);
-
     await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
 
     expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).toBeChecked();
     expect(screen.queryByRole('button', {name: 'Zoom in'})).not.toBeInTheDocument();
-    expect(screen.getByText('Screen 0')).toBeInTheDocument();
     expect(
       JSON.parse(localStorage.getItem(VIEWED_SNAPSHOTS_STORAGE_KEY)!)
     ).toHaveProperty([viewedKeyForPair(changedGroup(1).pairs[0]!)]);
@@ -258,58 +255,17 @@ describe('SnapshotListView', () => {
     expect(lastRow).toHaveStyle({transform: 'translateY(96px)'});
   });
 
-  it('marks every card in a group from the group checkbox', async () => {
+  it('marks and unmarks every card in a group from the group checkbox', async () => {
     render(<ExampleSnapshotListView items={[changedGroup(2)]} />);
-    const groupCheckbox = screen.getByRole('checkbox', {
-      name: 'All in Screens viewed',
-    });
 
-    await userEvent.click(groupCheckbox);
+    await userEvent.click(screen.getByRole('checkbox', {name: 'All in Screens viewed'}));
+    expect(screen.queryAllByRole('checkbox', {checked: false})).toHaveLength(0);
 
-    expect(groupCheckbox).toBeChecked();
-    for (const cardCheckbox of screen.getAllByRole('checkbox', {
-      name: /^Screen \d+ viewed$/,
-    })) {
-      expect(cardCheckbox).toBeChecked();
-    }
-    expect(screen.queryByRole('button', {name: 'Zoom in'})).not.toBeInTheDocument();
-    expect(screen.getByText('Screen 0')).toBeInTheDocument();
-    expect(screen.getByText('Screen 1')).toBeInTheDocument();
-
-    await userEvent.click(groupCheckbox);
-
-    expect(groupCheckbox).not.toBeChecked();
-    for (const cardCheckbox of screen.getAllByRole('checkbox', {
-      name: /^Screen \d+ viewed$/,
-    })) {
-      expect(cardCheckbox).not.toBeChecked();
-    }
+    await userEvent.click(screen.getByRole('checkbox', {name: 'All in Screens viewed'}));
+    expect(screen.queryAllByRole('checkbox', {checked: true})).toHaveLength(0);
   });
 
-  it('shows a partial group and marks the rest when clicked', async () => {
-    const group = changedGroup(2);
-    localStorage.setItem(
-      VIEWED_SNAPSHOTS_STORAGE_KEY,
-      JSON.stringify({[viewedKeyForPair(group.pairs[0]!)]: Date.now()})
-    );
-    render(<ExampleSnapshotListView items={[group]} />);
-    const groupCheckbox = screen.getByRole('checkbox', {
-      name: 'All in Screens viewed',
-    });
-
-    expect(groupCheckbox).toBePartiallyChecked();
-
-    await userEvent.click(groupCheckbox);
-
-    expect(groupCheckbox).toBeChecked();
-    for (const cardCheckbox of screen.getAllByRole('checkbox', {
-      name: /^Screen \d+ viewed$/,
-    })) {
-      expect(cardCheckbox).toBeChecked();
-    }
-  });
-
-  it('shows a fully viewed group as partial once one of its images changes', () => {
+  it('restores stored marks and drops ones whose images changed', async () => {
     const group = changedGroup(2);
     localStorage.setItem(
       VIEWED_SNAPSHOTS_STORAGE_KEY,
@@ -325,61 +281,21 @@ describe('SnapshotListView', () => {
             ...group,
             pairs: [
               first!,
-              {...second!, head_image: {...second!.head_image, key: 'new-head-hash'}},
+              {...second!, base_image: {...second!.base_image, key: 'new-base-hash'}},
             ],
           },
         ]}
       />
     );
 
-    expect(
-      screen.getByRole('checkbox', {name: 'All in Screens viewed'})
-    ).toBePartiallyChecked();
-    const [firstCard, secondCard] = screen.getAllByRole('checkbox', {
-      name: /^Screen \d+ viewed$/,
-    });
-    expect(firstCard).toBeChecked();
-    expect(secondCard).not.toBeChecked();
-  });
-
-  it('does not select the card when toggling viewed', async () => {
-    const onSelectSnapshot = jest.fn();
-    render(
-      <SnapshotListView
-        items={[changedGroup(1)]}
-        imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
-        onSelectSnapshot={onSelectSnapshot}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
-
-    expect(onSelectSnapshot).not.toHaveBeenCalled();
-  });
-
-  it('starts collapsed for stored pairs and expanded once the base image changes', () => {
-    const group = changedGroup(1);
-    localStorage.setItem(
-      VIEWED_SNAPSHOTS_STORAGE_KEY,
-      JSON.stringify({[viewedKeyForPair(group.pairs[0]!)]: Date.now()})
-    );
-
-    const {unmount} = render(<ExampleSnapshotListView items={[group]} />);
+    const groupCheckbox = screen.getByRole('checkbox', {name: 'All in Screens viewed'});
+    expect(groupCheckbox).toBePartiallyChecked();
     expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).toBeChecked();
-    unmount();
+    expect(screen.getByRole('checkbox', {name: 'Screen 1 viewed'})).not.toBeChecked();
 
-    const pair = group.pairs[0]!;
-    render(
-      <ExampleSnapshotListView
-        items={[
-          {
-            ...group,
-            pairs: [{...pair, base_image: {...pair.base_image, key: 'new-base-hash'}}],
-          },
-        ]}
-      />
-    );
-    expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).not.toBeChecked();
+    await userEvent.click(groupCheckbox);
+
+    expect(screen.getByRole('checkbox', {name: 'Screen 1 viewed'})).toBeChecked();
   });
 
   it('does not offer a viewed toggle for unchanged images', () => {

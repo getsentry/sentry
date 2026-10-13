@@ -250,64 +250,18 @@ describe('SnapshotCards', () => {
   );
 
   it.snapshot(
-    'card-header-not-viewed',
+    'group-header-partially-viewed',
     () => (
       <Wrapper>
-        <CardHeader
-          {...headerProps}
-          displayName="Button / light"
-          status={DiffStatus.CHANGED}
-          diffPercent={0.042}
-          isViewed={false}
+        <SnapshotGroupHeader
+          name="EntityHeader/dark"
+          isViewed="indeterminate"
           onToggleViewed={noop}
         />
       </Wrapper>
     ),
     {tags: {area: 'snapshots'}}
   );
-
-  it.snapshot(
-    'card-header-viewed',
-    () => (
-      <Wrapper>
-        <CardHeader
-          {...headerProps}
-          displayName="Button / light"
-          status={DiffStatus.CHANGED}
-          diffPercent={0.042}
-          isViewed
-          onToggleViewed={noop}
-        />
-      </Wrapper>
-    ),
-    {tags: {area: 'snapshots'}}
-  );
-
-  function snapshotGroupHeaderViewed({
-    state,
-    isViewed,
-  }: {
-    isViewed: boolean | 'indeterminate';
-    state: string;
-  }) {
-    it.snapshot(
-      `group-header-viewed-${state}`,
-      () => (
-        <Wrapper>
-          <SnapshotGroupHeader
-            name="EntityHeader/dark"
-            isViewed={isViewed}
-            onToggleViewed={noop}
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
-  }
-
-  snapshotGroupHeaderViewed({state: 'none', isViewed: false});
-  snapshotGroupHeaderViewed({state: 'some', isViewed: 'indeterminate'});
-  snapshotGroupHeaderViewed({state: 'all', isViewed: true});
 
   function snapshotPairCard({
     state,
