@@ -6,6 +6,7 @@ from unittest import mock
 
 from slack_sdk.web import SlackResponse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
@@ -13,9 +14,11 @@ from sentry.notifications.notification_action.platform_dispatch import get_platf
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
@@ -126,6 +129,24 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
 
         assert "thread_ts" not in client.chat_postMessage.call_args_list[1].kwargs
+
+    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_skips_inactive_integration(self, mock_slack_client: mock.MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(status=ObjectStatus.DISABLED)
+
+        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
+
+        mock_slack_client.return_value.chat_postMessage.assert_not_called()
+
+    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_skips_removed_integration(self, mock_slack_client: mock.MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.delete()
+
+        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
+
+        mock_slack_client.return_value.chat_postMessage.assert_not_called()
 
     @mock.patch.object(NotificationService, "notify_sync", return_value={})
     def test_slack_staging_targets_staging_provider(self, mock_notify: mock.MagicMock) -> None:

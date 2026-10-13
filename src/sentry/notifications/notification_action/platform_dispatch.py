@@ -3,9 +3,10 @@ import logging
 import sentry_sdk
 
 from sentry import features, options
-from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT
+from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_detector_serializer,
@@ -65,6 +66,19 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
     notification_context = context.notification_context
     metric_issue_context = context.metric_issue_context
     open_period_context = context.open_period_context
+
+    # Match the legacy send: skip actions whose channel or integration is gone, rather than
+    # raising and retrying on every alert.
+    integration_context = integration_service.organization_context(
+        organization_id=organization.id, integration_id=notification_context.integration_id
+    )
+    if (
+        notification_context.target_identifier is None
+        or integration_context.organization_integration is None
+        or integration_context.integration is None
+        or integration_context.integration.status != ObjectStatus.ACTIVE
+    ):
+        return
 
     target = IntegrationNotificationTarget(
         provider_key=provider,
