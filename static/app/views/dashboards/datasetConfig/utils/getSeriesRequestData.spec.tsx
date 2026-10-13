@@ -375,12 +375,8 @@ describe('utils', () => {
         DiscoverDatasets.SPANS
       );
 
-      const params = convertEventStatsRequestDataToEventTimeseriesQueryParams(
-        requestData,
-        {
-          includeMeasuredIngestionDelayMetadata: true,
-        }
-      );
+      const params =
+        convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData);
 
       expect(params).toEqual(
         expect.objectContaining({
@@ -390,7 +386,6 @@ describe('utils', () => {
           sort: '-count()',
           topEvents: 5,
           excludeOther: '1',
-          includeMeasuredIngestionDelayMetadata: '1',
         })
       );
     });

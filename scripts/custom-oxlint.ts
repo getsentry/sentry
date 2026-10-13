@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {
+  appendFileSync,
   cpSync,
   existsSync,
   linkSync,
@@ -19,7 +20,7 @@ import {createRequire} from 'node:module';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {parseArgs} from 'node:util';
 
 import type {OxlintConfig} from 'oxlint';
@@ -301,9 +302,12 @@ async function rawScan(directory: string, allowed: Set<string>, policy: string) 
     );
     const rule = canonicalRule(`${match[1]}/${match[2]}`);
     assert(allowed.has(rule), `Unexpected oxlint rule ${rule}`);
-    const file = path.isAbsolute(diagnostic.filename)
-      ? path.relative(directory, diagnostic.filename)
+    const filename = diagnostic.filename.startsWith('file:')
+      ? fileURLToPath(diagnostic.filename)
       : diagnostic.filename;
+    const file = path.isAbsolute(filename)
+      ? path.relative(directory, filename)
+      : filename;
     assert(validPath(file), `Invalid diagnostic path ${file}`);
     const {span} = diagnostic.labels[0]!;
     const rules = (counts[file] ??= Object.create(null));
@@ -323,7 +327,7 @@ async function rawScan(directory: string, allowed: Set<string>, policy: string) 
   return {counts, findings};
 }
 
-function fits(current: Suppressions, baseline: Suppressions) {
+function fits(current: Suppressions, baseline: Suppressions, findings: Finding[] = []) {
   const increases: string[] = [];
   for (const [file, rules] of Object.entries(current)) {
     for (const [rule, {count}] of Object.entries(rules)) {
@@ -334,6 +338,14 @@ function fits(current: Suppressions, baseline: Suppressions) {
     }
   }
   if (increases.length > 0) {
+    if (findings.length > 0) {
+      increases.push('Current violations for over-budget file/rule pairs:');
+      for (const {file, line, column, rule, message} of findings) {
+        if (current[file]![rule]!.count > (baseline[file]?.[rule]?.count ?? 0)) {
+          increases.push(`${file}:${line}:${column} ${rule} ${message}`);
+        }
+      }
+    }
     process.exitCode = 1;
     throw new Error(`New incubator violations:\n${increases.join('\n')}`);
   }
@@ -367,12 +379,70 @@ function transferRenames(base: string, counts: Suppressions) {
   return counts;
 }
 
-async function ciBaseline(base: string, allowed: Set<string>, policy: string) {
-  const changes = [
+function changedFiles(base: string) {
+  return [
     ...git(root, ['diff', '--name-only', '--no-renames', '-z', base, '--']).split('\0'),
     ...git(root, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0'),
-  ];
-  const policyChanged = changes.some(
+  ].filter(Boolean);
+}
+
+function committedBudgets(base: string, allowed?: Set<string>) {
+  if (!git(root, ['ls-tree', '--name-only', base, '--', 'oxlint-suppressions.json'])) {
+    return;
+  }
+  return parseSuppressions(
+    git(root, ['show', `${base}:oxlint-suppressions.json`]),
+    allowed
+  );
+}
+
+// Merges that are not up to date with master can each prune budgets independently,
+// so master can carry budgets above live debt. That inherited slack is not new debt.
+// A change must prune only budgets it edited and reductions in live debt since the
+// base, including reductions caused indirectly by edits to other files.
+function staleBudgets(
+  committed: Suppressions,
+  counts: Suppressions,
+  base?: {counts: Suppressions; ref: string}
+) {
+  const stale: Array<{count: number; file: string; rule: string}> = [];
+  for (const [file, rules] of Object.entries(committed)) {
+    for (const [rule, {count}] of Object.entries(rules)) {
+      if (count > (counts[file]?.[rule]?.count ?? 0)) {
+        stale.push({file, rule, count});
+      }
+    }
+  }
+  const live = (file: string, rule: string) => counts[file]?.[rule]?.count ?? 0;
+  const baseBudgets = base && stale.length > 0 ? committedBudgets(base.ref) : undefined;
+  if (base && baseBudgets) {
+    transferRenames(base.ref, baseBudgets);
+  }
+  const owned = stale.filter(
+    ({file, rule, count}) =>
+      base !== undefined &&
+      (baseBudgets?.[file]?.[rule]?.count !== count ||
+        live(file, rule) < (base.counts[file]?.[rule]?.count ?? 0))
+  );
+  const describe = ({file, rule, count}: (typeof stale)[number]) =>
+    `${file} ${rule}: budget ${count}, ${live(file, rule)} violations`;
+  return {
+    owned: owned.map(describe),
+    inherited: stale.filter(entry => !owned.includes(entry)).map(describe),
+  };
+}
+
+function warn(title: string, details: string[]) {
+  console.warn([title, ...details].join('\n'));
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    const escape = (value: string) =>
+      value.replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A');
+    console.log(`::warning title=${escape(title)}::${escape(details.join('\n'))}`);
+  }
+}
+
+async function ciBaseline(base: string, allowed: Set<string>, policy: string) {
+  const policyChanged = changedFiles(base).some(
     file =>
       [
         'oxlint.config.ts',
@@ -386,17 +456,11 @@ async function ciBaseline(base: string, allowed: Set<string>, policy: string) {
         file
       )
   );
-  if (
-    process.env.SENTRY_OXLINT_VERIFIED_BASE !== base ||
-    policyChanged ||
-    !git(root, ['ls-tree', '--name-only', base, '--', 'oxlint-suppressions.json'])
-  ) {
-    return baseScan(base, allowed, policy);
-  }
-  return transferRenames(
-    base,
-    parseSuppressions(git(root, ['show', `${base}:oxlint-suppressions.json`]), allowed)
-  );
+  const budgets =
+    process.env.SENTRY_OXLINT_VERIFIED_BASE === base && !policyChanged
+      ? committedBudgets(base, allowed)
+      : undefined;
+  return budgets ? transferRenames(base, budgets) : baseScan(base, allowed, policy);
 }
 
 async function baseScan(base: string, allowed: Set<string>, policy: string) {
@@ -504,6 +568,8 @@ Put a maintenance flag first. Maintenance always scans all files.
                           Defaults to the merge base of HEAD and origin/master.
   --ci [--base REF]        Verify committed budgets match live debt and fit REF.
                           Reuse verified REF budgets unless lint policy changed.
+                          Stale budgets fail only for edited budgets or debt
+                          reduced since REF, and only warn without --base.
   --enroll --base REF      Enroll rules using trusted source at REF.
   --prune                 Reduce remaining budgets with a full type-aware scan.
   --backlog [--rule RULE] [--file PATH] [--json]
@@ -697,30 +763,51 @@ Native oxlint options:
             }
           }
         }
-        fits(current.counts, reduced);
+        fits(current.counts, reduced, current.findings);
         replacement = reduced;
       } else {
+        let base: {counts: Suppressions; ref: string} | undefined;
         if (command !== 'ci' || values.base) {
           let ref = values.base;
           if (!ref) {
             ref = git(root, ['merge-base', 'HEAD', revision('origin/master')]);
           }
-          const base = revision(ref);
-          fits(
-            current.counts,
-            await (command === 'ci'
-              ? ciBaseline(base, allowed, policy)
-              : baseScan(base, allowed, policy))
-          );
+          ref = revision(ref);
+          base = {
+            ref,
+            counts: await (command === 'ci'
+              ? ciBaseline(ref, allowed, policy)
+              : baseScan(ref, allowed, policy)),
+          };
+          fits(current.counts, base.counts, current.findings);
         }
         if (command === 'enroll') {
           replacement = current.counts;
         } else if (command === 'ci') {
           assert(committed, 'The suppression asset must be committed');
-          if (serialize(committed) !== serialize(current.counts)) {
+          fits(current.counts, committed, current.findings);
+          const {owned, inherited} = staleBudgets(committed, current.counts, base);
+          if (owned.length > 0) {
             process.exitCode = 1;
             throw new Error(
-              'Suppression budgets do not match live debt. Run pnpm run fix:oxlint after cleanup, or pnpm run lint:js --prune for remaining budgets. Use pnpm run lint:js --enroll --base REF for changed policy using trusted source.'
+              [
+                'Suppression budgets are stale. Run pnpm run lint:js --prune and commit the updated oxlint-suppressions.json.',
+                ...owned,
+              ].join('\n')
+            );
+          }
+          if (inherited.length > 0) {
+            warn(
+              'Ignoring stale suppression budgets inherited from the base. Prune them separately with pnpm run lint:js --prune.',
+              inherited
+            );
+          }
+          // Only exact budgets equal live debt, so only they may be reused as a verified
+          // baseline by find-verified-lint-base.js.
+          if (process.env.GITHUB_OUTPUT) {
+            appendFileSync(
+              process.env.GITHUB_OUTPUT,
+              `budgets=${inherited.length > 0 ? 'stale' : 'exact'}\n`
             );
           }
         }

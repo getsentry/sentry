@@ -56,26 +56,26 @@ import {
 } from 'sentry/views/performance/utils';
 
 const MOBILE_COLUMN_TITLES = [
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'slow frame %'},
-  {title: 'frozen frame %'},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
+  {title: 'Transaction'},
+  {title: 'Operation'},
+  {title: 'Project'},
+  {title: 'TPM'},
+  {title: 'Slow frame %'},
+  {title: 'Frozen frame %'},
+  {title: 'Users'},
+  {title: 'User misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
 const REACT_NATIVE_COLUMN_TITLES = [
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'slow frame %'},
-  {title: 'frozen frame %'},
-  {title: 'stall %'},
-  {title: 'users'},
-  {title: 'user misery'},
+  {title: 'Transaction'},
+  {title: 'Operation'},
+  {title: 'Project'},
+  {title: 'TPM'},
+  {title: 'Slow frame %'},
+  {title: 'Frozen frame %'},
+  {title: 'Stall %'},
+  {title: 'Users'},
+  {title: 'User misery'},
 ];
 
 interface Am1MobileOverviewPageProps {

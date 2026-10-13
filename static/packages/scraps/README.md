@@ -17,6 +17,11 @@ pnpm --dir static/packages/scraps test
 pnpm --dir static/packages/scraps typecheck
 ```
 
+Typechecking checks source and tests together and emits declarations into the
+ignored `.types` directory. The app uses these declarations through a TypeScript
+project reference. Run `pnpm run typecheck` to check the full project in
+dependency order. The release build continues to use `dist`.
+
 To check package imports through the Sentry app's aliases, run the app integration test:
 
 ```sh

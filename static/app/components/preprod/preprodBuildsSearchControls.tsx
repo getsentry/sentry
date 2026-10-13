@@ -1,3 +1,5 @@
+import {IconDownload} from '@sentry/icons/download';
+
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -10,7 +12,6 @@ import {
 } from 'sentry/components/preprod/constants';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
-import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 const displaySelectOptions: Array<SelectOption<PreprodBuildsDisplay>> = [

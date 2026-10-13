@@ -146,6 +146,17 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         assert issue_alert_rule is not None
         assert issue_alert_rule["environment"] is not None
 
+    def test_expand_issue_alert_rule_disabled(self) -> None:
+        monitor = self._create_monitor()
+        self._create_issue_alert_rule(monitor)
+
+        with self.feature("organizations:crons-disable-alert-rule"):
+            resp = self.get_success_response(
+                self.organization.slug, monitor.slug, expand=["alertRule"]
+            )
+
+        assert "alertRule" not in resp.data
+
     @patch("sentry.monitors.endpoints.base_monitor_details.logger")
     @patch("sentry.utils.metrics.incr")
     def test_expand_issue_alert_rule_metric(
@@ -667,6 +678,38 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         rule = monitor.get_issue_alert_rule()
         assert rule is not None
+
+    @patch("sentry.monitors.validators.logger")
+    def test_issue_alert_rule_disabled(self, mock_logger: MagicMock) -> None:
+        monitor = self._create_monitor()
+
+        with self.feature("organizations:crons-disable-alert-rule"):
+            resp = self.get_error_response(
+                self.organization.slug,
+                monitor.slug,
+                method="PUT",
+                status_code=400,
+                **{
+                    "alertRule": {
+                        "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]
+                    }
+                },
+            )
+
+        assert resp.data["alertRule"] == [
+            "Cron monitor alert rules are disabled for this organization."
+        ]
+        mock_logger.info.assert_called_once_with(
+            "monitors.validator.alert_rule_rejected",
+            extra={
+                "organization_id": self.organization.id,
+                "operation": "update",
+                "endpoint": self.endpoint,
+                "ui_request": True,
+            },
+        )
+        monitor.refresh_from_db()
+        assert monitor.get_issue_alert_rule() is None
 
     def test_invalid_config_param(self) -> None:
         monitor = self._create_monitor()

@@ -80,6 +80,7 @@
         (error) => ({
           outcome: 'error',
           status: error.status,
+          error: error,
           errorName: error.name,
           durationMs: performance.now() - startTime,
         })

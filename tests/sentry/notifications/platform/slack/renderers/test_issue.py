@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest import mock
 
 import pytest
 
@@ -120,12 +119,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
             tags=["environment", "level"], notes="test note", notification_uuid="test-uuid-123"
         )
 
-        with mock.patch(
-            "sentry.notifications.notification_action.types."
-            "BaseIssueAlertHandler.create_rule_instance_from_action",
-            side_effect=AssertionError("payload creation must not construct a Rule"),
-        ):
-            result = issue_notification_data_factory(invocation)
+        result = issue_notification_data_factory(invocation)
 
         assert result.source == NotificationSource.ISSUE
         assert result.group_id == invocation.event_data.group.id
@@ -140,7 +134,6 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.notes == "test note"
         assert len(result.rule.data["actions"]) == 1
         action_blob = result.rule.data["actions"][0]
-        assert action_blob["workflow_id"] == invocation.workflow_id
         assert (
             action_blob["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
         )
@@ -160,7 +153,6 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert result.tags is None
         assert len(result.rule.data["actions"]) == 1
         action_blob = result.rule.data["actions"][0]
-        assert action_blob["workflow_id"] == invocation.workflow_id
         assert (
             action_blob["id"] == "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
         )
@@ -210,7 +202,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         project_slug = self.project.slug
         project_id = self.project.id
         group_id = group.id
-        block_id = json.dumps({"issue": group_id, "rule": workflow_id, "workflow": workflow_id})
+        block_id = json.dumps({"issue": group_id, "workflow": workflow_id})
 
         issue_url = (
             f"http://testserver/organizations/{org_slug}/issues/{group_id}/"
@@ -240,7 +232,6 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
                     "block_id": json.dumps(
                         {
                             "issue": group_id,
-                            "rule": workflow_id,
                             "workflow": workflow_id,
                             "block": "tags",
                         },

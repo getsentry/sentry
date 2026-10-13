@@ -1,3 +1,8 @@
+import {IconBug} from '@sentry/icons/bug';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconUpload} from '@sentry/icons/upload';
 import * as Sentry from '@sentry/react';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -5,7 +10,6 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
-import {IconBug, IconCopyId, IconDelete, IconDownload, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';

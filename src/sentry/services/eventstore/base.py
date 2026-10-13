@@ -8,6 +8,7 @@ from typing import Any, Literal, Self, overload
 
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_sdk import traces
 from snuba_sdk import Condition
 
 from sentry import nodestore
@@ -16,7 +17,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.snuba.referrer import Referrer
 from sentry.utils.services import Service
-from sentry.utils.tracing import start_span
 
 
 class Filter:
@@ -346,7 +346,10 @@ class EventStorage(Service):
         sentry_sdk.set_tag("eventstore.backend", "nodestore")
         sentry_sdk.set_attribute("eventstore.backend", "nodestore")
 
-        with start_span(op="eventstore.base.bind_nodes", name="eventstore.base.bind_nodes"):
+        with traces.start_span(
+            name="eventstore.base.bind_nodes",
+            attributes={"sentry.op": "eventstore.base.bind_nodes"},
+        ):
             object_node_list = [(i, i.data) for i in object_list if i.data.id]
 
             # Remove duplicates from the list of nodes to be fetched
