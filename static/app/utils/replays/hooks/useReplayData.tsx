@@ -55,9 +55,9 @@ function selectReplayRecord(data: ApiResponse<{data: unknown}>) {
 /**
  * Long replays can have thousands of segments, loaded as one request per page
  * of segments. Firing them all at once trips the API's concurrent and
- * per-second rate limits (25 concurrent / 40 per second), and the CORS
- * preflights for those requests get limited too. Stay well under the
- * concurrent limit, because other requests on the page share that budget.
+ * per-second rate limits, and the CORS preflights for those requests get
+ * limited too. Stay well under the concurrent limit, because other requests on
+ * the page share that budget.
  */
 const limitReplaySegmentsRequest = createConcurrencyLimiter({
   concurrency: 10,
@@ -201,9 +201,7 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
     Boolean(replayRecord);
 
   const attachmentCursors = Array.from(
-    {
-      length: Math.ceil((replayRecord?.count_segments ?? 0) / SEGMENTS_PER_PAGE),
-    },
+    {length: Math.ceil((replayRecord?.count_segments ?? 0) / SEGMENTS_PER_PAGE)},
     (_, i) => `0:${SEGMENTS_PER_PAGE * i}:0`
   );
 
