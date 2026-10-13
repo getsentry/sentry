@@ -88,6 +88,7 @@ logger = logging.getLogger(__name__)
 # entrypoint's ability to receive updates from those triggers. So 12 is plenty, even accounting for
 # incidents, since a run should not take nearly that long to complete.
 PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
+PROCESS_INVESTIGATION_TIMEOUT_SECONDS = 60
 
 
 def has_seer_autofix_entrypoint_access(
@@ -888,37 +889,39 @@ def process_autofix_updates(
 @instrumented_task(
     name="sentry.seer.entrypoints.operator.process_investigation_updates",
     namespace=seer_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=PROCESS_INVESTIGATION_TIMEOUT_SECONDS,
     retry=None,
 )
 def process_investigation_updates(*, investigation_id: int) -> None:
     """
-    Sends the latest orchestration run of an investigation to each entrypoint that has a cache for it.
+    Sends the latest orchestration run to each entrypoint with a cache for it.
     """
     with SeerOperatorEventLifecycleMetric(
         interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_INVESTIGATION_UPDATE
     ).capture() as lifecycle:
-        lifecycle.add_extra("investigation_id", investigation_id)
-
-        run = (
-            InvestigationOrchestrationRun.objects.select_related("investigation")
-            .filter(investigation_id=investigation_id)
-            .first()
-        )
-        if run is None:
-            lifecycle.record_halt(halt_reason="run_not_found")
+        try:
+            run = InvestigationOrchestrationRun.objects.select_related("investigation").get(
+                investigation_id=investigation_id
+            )
+        except InvestigationOrchestrationRun.DoesNotExist:
+            lifecycle.add_extra("investigation_id", investigation_id)
+            lifecycle.record_failure(failure_reason="run_not_found")
             return
 
         organization = Organization.objects.get_from_cache(id=run.investigation.organization_id)
-        lifecycle.add_extra("organization_id", organization.id)
+        lifecycle.add_extras(
+            {"investigation_id": investigation_id, "organization_id": organization.id}
+        )
+
+        if not features.has("organizations:investigations", organization):
+            lifecycle.record_halt(halt_reason="no_operator_access")
+            return
 
         for (
             entrypoint_key,
             entrypoint_cls,
         ) in investigation_entrypoint_registry.registrations.items():
-            if not SeerInvestigationOperator.has_access(
-                organization=organization, entrypoint_key=entrypoint_key
-            ):
+            if not entrypoint_cls.has_access(organization):
                 continue
 
             from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload

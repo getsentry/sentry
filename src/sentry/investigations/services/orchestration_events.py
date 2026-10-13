@@ -799,6 +799,12 @@ def _apply_snapshot(
     _bump_notebook(run, run.investigation)
 
 
+def _event_carries_projection(event: InvestigationOrchestrationEvent) -> bool:
+    return event.type in {"workflow_updated", "state_snapshot"} or (
+        event.type == "workflow_failed" and isinstance(_event_data(event).get("projection"), dict)
+    )
+
+
 def _apply_event(
     run: InvestigationOrchestrationRun, event: InvestigationOrchestrationEvent
 ) -> tuple[bool, str | None]:
@@ -811,10 +817,7 @@ def _apply_event(
         return False, "stale_generation"
     # A projection is what establishes a new generation, so only an event carrying
     # one may move the run forward.
-    carries_projection = event.type in {"workflow_updated", "state_snapshot"} or (
-        event.type == "workflow_failed" and isinstance(payload.get("projection"), dict)
-    )
-    if generation > run.generation and not carries_projection:
+    if generation > run.generation and not _event_carries_projection(event):
         return False, "future_generation_without_projection"
     notebook_writes_are_fenced = _notebook_writes_are_fenced(
         run,
@@ -1022,12 +1025,6 @@ def _lock_run_after_investigation(
         InvestigationOrchestrationRun.objects.select_for_update(of=("self",))
         .select_related("investigation")
         .get(id=orchestration_run_id)
-    )
-
-
-def _event_carries_projection(event: InvestigationOrchestrationEvent) -> bool:
-    return event.type in {"workflow_updated", "state_snapshot"} or (
-        event.type == "workflow_failed" and isinstance(_event_data(event).get("projection"), dict)
     )
 
 

@@ -1347,7 +1347,9 @@ class TestProcessInvestigationUpdates(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.investigation = self.create_investigation(organization=self.organization)
-        self.run = self.create_investigation_orchestration_run(investigation=self.investigation)
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation
+        )
         self.cache_payload = {"organization_id": self.organization.id}
 
     def _make_entrypoint(self, *, has_access: bool = True) -> Mock:
@@ -1380,7 +1382,7 @@ class TestProcessInvestigationUpdates(TestCase):
         self._process({"slack": entrypoint_cls})
 
         entrypoint_cls.on_investigation_update.assert_called_once_with(
-            cache_payload=self.cache_payload, run=self.run
+            cache_payload=self.cache_payload, run=self.orchestration_run
         )
 
     def test_skips_on_cache_miss(self) -> None:
@@ -1390,7 +1392,8 @@ class TestProcessInvestigationUpdates(TestCase):
 
         entrypoint_cls.on_investigation_update.assert_not_called()
 
-    def test_skips_without_operator_access(self) -> None:
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_halts_without_operator_access(self, mock_record: Mock) -> None:
         entrypoint_cls = self._make_entrypoint()
         self._set_cache("slack", self.cache_payload)
 
@@ -1402,6 +1405,7 @@ class TestProcessInvestigationUpdates(TestCase):
             process_investigation_updates(investigation_id=self.investigation.id)
 
         entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_halt_metric(mock_record, "no_operator_access")
 
     def test_skips_entrypoint_without_access(self) -> None:
         entrypoint_cls = self._make_entrypoint(has_access=False)
@@ -1410,6 +1414,18 @@ class TestProcessInvestigationUpdates(TestCase):
         self._process({"slack": entrypoint_cls})
 
         entrypoint_cls.on_investigation_update.assert_not_called()
+
+    def test_cache_miss_does_not_stop_others(self) -> None:
+        missing_cls = self._make_entrypoint()
+        cached_cls = self._make_entrypoint()
+        self._set_cache("cached", self.cache_payload)
+
+        self._process({"missing": missing_cls, "cached": cached_cls})
+
+        missing_cls.on_investigation_update.assert_not_called()
+        cached_cls.on_investigation_update.assert_called_once_with(
+            cache_payload=self.cache_payload, run=self.orchestration_run
+        )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_records_failure_on_org_mismatch(self, mock_record: Mock) -> None:
@@ -1423,7 +1439,7 @@ class TestProcessInvestigationUpdates(TestCase):
         assert_failure_metric(mock_record, "org_mismatch")
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_halts_when_run_is_missing(self, mock_record: Mock) -> None:
+    def test_records_failure_when_run_is_missing(self, mock_record: Mock) -> None:
         entrypoint_cls = self._make_entrypoint()
         investigation = self.create_investigation(organization=self.organization)
 
@@ -1438,7 +1454,7 @@ class TestProcessInvestigationUpdates(TestCase):
             process_investigation_updates(investigation_id=investigation.id)
 
         entrypoint_cls.on_investigation_update.assert_not_called()
-        assert_halt_metric(mock_record, "run_not_found")
+        assert_failure_metric(mock_record, "run_not_found")
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_entrypoint_failure_does_not_stop_others(self, mock_record: Mock) -> None:
@@ -1451,6 +1467,6 @@ class TestProcessInvestigationUpdates(TestCase):
         self._process({"failing": failing_cls, "other": other_cls})
 
         other_cls.on_investigation_update.assert_called_once_with(
-            cache_payload=self.cache_payload, run=self.run
+            cache_payload=self.cache_payload, run=self.orchestration_run
         )
         assert_failure_metric(mock_record, Exception("boom"))
