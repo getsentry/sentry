@@ -12,10 +12,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.client_kind import get_client_kind
-from sentry.api.endpoints.timeseries import Annotation
 from sentry.api.helpers.data_annotations import (
     DATASET_TO_CATEGORY,
     DROPPED_OUTCOMES,
+    Annotation,
     get_dropped_data_annotations,
     record_dropped_events_telemetry,
 )
