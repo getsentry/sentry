@@ -22,9 +22,10 @@ export function useRefetchOutdatedTimeseries() {
       return;
     }
 
-    const filters = {
+    const queryKeyPrefix = makeEventsTimeSeriesQueryKeyPrefix(organization.slug);
+    const triggerFilters = {
       queryKey: [
-        ...makeEventsTimeSeriesQueryKeyPrefix(organization.slug),
+        ...queryKeyPrefix,
         {query: {referrer: METRIC_TIMESERIES_REFERRER, sampling: SAMPLING_MODE.NORMAL}},
       ],
     };
@@ -33,16 +34,17 @@ export function useRefetchOutdatedTimeseries() {
       if (
         event.type !== 'updated' ||
         event.action.type !== 'fetch' ||
-        !matchQuery(filters, event.query)
+        !matchQuery(triggerFilters, event.query)
       ) {
         return;
       }
 
       const bucketStart = Math.floor(Date.now() / intervalMs) * intervalMs;
 
+      // Not filtered by sampling mode: charts that escalated to high accuracy display that tier's data.
       queryClient.refetchQueries(
         {
-          ...filters,
+          queryKey: [...queryKeyPrefix, {query: {referrer: METRIC_TIMESERIES_REFERRER}}],
           type: 'active',
           predicate: query =>
             query.state.status === 'success' &&

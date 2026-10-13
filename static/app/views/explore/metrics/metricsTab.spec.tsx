@@ -17,6 +17,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   defaultMetricQuery,
   encodeMetricQueryParams,
@@ -276,6 +277,43 @@ describe('MetricsTabContent', () => {
 
       await waitFor(() =>
         expect(getYAxesAfter(timeseriesMock, initialCallCount)).toEqual([
+          'p50(value,bar,distribution,none)',
+          'p75(value,bar,distribution,none)',
+          'sum(value)',
+        ])
+      );
+    });
+
+    it('refetches high accuracy charts fetched in an earlier interval', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({sampling: SAMPLING_MODE.NORMAL})],
+        body: (_url: string, options: {query: {yAxis: string[]}}) => {
+          const timeSeries = TimeSeriesFixture({yAxis: options.query.yAxis[0]});
+          return {
+            timeSeries: [
+              {...timeSeries, meta: {...timeSeries.meta, dataScanned: 'partial'}},
+            ],
+          };
+        },
+      });
+      const highAccuracyMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({sampling: SAMPLING_MODE.HIGH_ACCURACY})],
+        body: (_url: string, options: {query: {yAxis: string[]}}) => ({
+          timeSeries: [TimeSeriesFixture({yAxis: options.query.yAxis[0]})],
+        }),
+      });
+      renderWithTwoPanels();
+      await waitFor(() => expect(highAccuracyMock).toHaveBeenCalledTimes(2));
+      setMockDate(Date.now() + 24 * 60 * 60 * 1000);
+
+      await changeLastPanelAggregate();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(highAccuracyMock, 2)).toEqual([
           'p50(value,bar,distribution,none)',
           'p75(value,bar,distribution,none)',
           'sum(value)',
