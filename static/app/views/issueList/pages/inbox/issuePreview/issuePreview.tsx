@@ -49,6 +49,7 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {CopyIssueMarkdownButton} from 'sentry/views/issueList/pages/inbox/issuePreview/copyIssueMarkdown';
 import {
   IssuePreviewHeaderActions,
   OpenIssueButton,
@@ -265,13 +266,16 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        <IssuePreviewHeaderActions
-          group={group}
-          project={project}
-          disabled={disableActions}
-          onContinueInSeer={() => openSeer()}
-          onRetryCodeChanges={() => openSeer('retry_code_changes')}
-        />
+        <Flex align="center" wrap="wrap" gap="md">
+          <IssuePreviewHeaderActions
+            group={group}
+            project={project}
+            disabled={disableActions}
+            onContinueInSeer={() => openSeer()}
+            onRetryCodeChanges={() => openSeer('retry_code_changes')}
+          />
+          <CopyIssueMarkdownButton group={group} autofix={previewSeer.autofix} />
+        </Flex>
         <Flex align="center" wrap="wrap" gap={shouldUseNewUI ? 'md' : 'lg'}>
           <GroupPriority group={group} />
           <GroupHeaderAssigneeSelector
