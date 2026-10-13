@@ -7,13 +7,12 @@ type Context = {run: () => Promise<unknown>; signal: AbortSignal};
 const queryFn = (context: Context) => context.run();
 
 function renderLimitedQueryFn(concurrency: number) {
-  return renderHook(
-    props => useConcurrencyLimitedQueryFn(queryFn, props),
-    {initialProps: {concurrency, key: 'test'}}
-  );
+  return renderHook(props => useConcurrencyLimitedQueryFn(queryFn, props), {
+    initialProps: {concurrency, key: 'test'},
+  });
 }
 
-function context(run: () => Promise<unknown>, signal = new AbortController().signal) {
+function makeContext(run: () => Promise<unknown>, signal = new AbortController().signal) {
   return {run, signal};
 }
 
@@ -27,7 +26,7 @@ describe('useConcurrencyLimitedQueryFn', () => {
 
     const results = Array.from({length: 10}, (_, i) =>
       limitedQueryFn(
-        context(async () => {
+        makeContext(async () => {
           inFlight++;
           maxInFlight = Math.max(maxInFlight, inFlight);
           const deferred = Promise.withResolvers<void>();
@@ -62,8 +61,8 @@ describe('useConcurrencyLimitedQueryFn', () => {
     const {result} = renderLimitedQueryFn(1);
     const error = new Error('429');
 
-    const failed = result.current(context(() => Promise.reject(error)));
-    const succeeded = result.current(context(() => Promise.resolve('ok')));
+    const failed = result.current(makeContext(() => Promise.reject(error)));
+    const succeeded = result.current(makeContext(() => Promise.resolve('ok')));
 
     await expect(failed).rejects.toBe(error);
     await expect(succeeded).resolves.toBe('ok');
@@ -75,8 +74,8 @@ describe('useConcurrencyLimitedQueryFn', () => {
     const controller = new AbortController();
     const skippedRequest = jest.fn(() => Promise.resolve('never'));
 
-    const first = result.current(context(() => blocker.promise));
-    const skipped = result.current(context(skippedRequest, controller.signal));
+    const first = result.current(makeContext(() => blocker.promise));
+    const skipped = result.current(makeContext(skippedRequest, controller.signal));
     controller.abort();
     blocker.resolve();
 
@@ -89,8 +88,8 @@ describe('useConcurrencyLimitedQueryFn', () => {
     const {result, unmount} = renderLimitedQueryFn(1);
     const blocker = Promise.withResolvers<void>();
 
-    const first = result.current(context(() => blocker.promise));
-    const queued = result.current(context(() => Promise.resolve('ok')));
+    const first = result.current(makeContext(() => blocker.promise));
+    const queued = result.current(makeContext(() => Promise.resolve('ok')));
     unmount();
     blocker.resolve();
 
