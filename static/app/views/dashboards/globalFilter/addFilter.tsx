@@ -33,8 +33,6 @@ import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {shouldExcludeTracingKeys} from 'sentry/views/performance/utils';
 
-export {DATASET_CHOICES} from 'sentry/views/dashboards/globalFilter/datasetLabels';
-
 const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION];
 const UNSUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.DATE];
 const IGNORE_DEFAULT_VALUES = [FieldValueType.STRING, FieldValueType.BOOLEAN];

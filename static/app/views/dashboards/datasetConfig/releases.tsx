@@ -32,7 +32,6 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import type {DatasetConfig} from './base';
-export {transformSessionsResponseToTable} from 'sentry/views/dashboards/datasetConfig/utils/releasesResponseTransforms';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
