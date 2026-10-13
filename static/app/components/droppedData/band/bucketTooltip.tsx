@@ -102,7 +102,7 @@ export function DroppedDataTooltip({bucket, timezone}: DroppedDataTooltipProps) 
           {formatBucketRange(bucket.start, bucket.end, timezone)}
         </Text>
       </Container>
-      <div className="tooltip-arrow arrow-top" />
+      <div className="tooltip-arrow" />
     </Fragment>
   );
 }
