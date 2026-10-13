@@ -102,6 +102,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
         chart_url=chart_url,
     )
 
+    # for notifications that have threads (just slack)
     threading_options = None
     if provider in (
         NotificationProviderKey.SLACK,
