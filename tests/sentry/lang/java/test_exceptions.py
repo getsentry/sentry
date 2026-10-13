@@ -196,6 +196,19 @@ def test_deobfuscate_value_ignores_quoted_values_matching_class_names() -> None:
     assert "raw_value" not in exc
 
 
+def test_deobfuscate_value_only_replaces_quoted_name_introduced_as_class() -> None:
+    # The same word appears both as a class and as a plain value.
+    exc = {"value": "class 'en': requested 'en-IE', got 'en'"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    excs.deobfuscate_and_save({"en": "com.example.Screen"}, mapped_exceptions=[])
+
+    assert exc["value"] == "class 'com.example.Screen': requested 'en-IE', got 'en'"
+    assert exc["raw_value"] == "class 'en': requested 'en-IE', got 'en'"
+
+
 def test_cast_message_class_names_are_matched_when_bare() -> None:
     data = build_event(
         [
