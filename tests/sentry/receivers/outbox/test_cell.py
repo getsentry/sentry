@@ -2,9 +2,11 @@ import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejso
 from typing import Any
 from unittest.mock import Mock, patch
 
+import orjson
 import pytest
 from cryptography.fernet import Fernet
 from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
@@ -14,7 +16,12 @@ from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -194,9 +201,10 @@ class HandleSeerRunCreateTest(TestCase):
         assert all(isinstance(provider, dict) for provider in providers)
         assert providers[0]["provider_key"] == "datadog"
 
-    @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
-    def test_happy_path_assisted_query(self, mock_request: Mock) -> None:
-        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 7}))
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_happy_path_assisted_query(self, mock_urlopen: Mock) -> None:
+        mock_urlopen.return_value = HTTPResponse(orjson.dumps({"run_id": 7}), status=200)
         run = self.create_seer_run(type=SeerRunType.ASSISTED_QUERY)
 
         handle_seer_run_create(
@@ -208,6 +216,14 @@ class HandleSeerRunCreateTest(TestCase):
         run.refresh_from_db()
         assert run.seer_run_state_id == 7
         assert run.mirror_status == SeerRunMirrorStatus.LIVE
+
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context.organization_id == run.organization_id
+        assert viewer_context.user_id is None
+        assert viewer_context.actor_type == ActorType.SYSTEM
 
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_happy_path_feature_run(self, mock_request: Mock) -> None:

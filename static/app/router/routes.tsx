@@ -527,6 +527,7 @@ function buildRoutes(): RouteObject[] {
   };
 
   const projectSettingsChildren: SentryRouteObject[] = [
+    routeHook('routes:project-settings'),
     {
       handle: {
         settingsBreadcrumb: {
@@ -602,6 +603,18 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/attributes/',
+        },
+      },
+      path: 'attributes/',
+      name: t('Attributes'),
+      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+    },
+    {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
           switchTo: '/settings/:orgId/projects/:projectId/tags/',
         },
       },
@@ -644,19 +657,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'data-forwarding/',
       redirectTo: '/settings/:orgId/data-forwarding/',
-    },
-    {
-      handle: {
-        settingsBreadcrumb: {
-          type: 'project',
-          to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/seer/',
-        },
-      },
-      path: 'seer/',
-      name: t('Seer'),
-      // eslint-disable-next-line boundaries/dependencies -- TODO: move to getsentry routes
-      component: make(() => import('getsentry/views/seerAutomation/projectDetails')),
     },
     {
       handle: {

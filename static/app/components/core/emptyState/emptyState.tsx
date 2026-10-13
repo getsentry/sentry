@@ -19,7 +19,12 @@ export function EmptyState({
   ...props
 }: EmptyStateProps) {
   const switchOn = 'md';
-  const textAlign: TextProps<'p'>['align'] = {zero: 'center', [switchOn]: 'left'};
+  const textAlign: TextProps<'p'>['align'] = illustration
+    ? {zero: 'center', [switchOn]: 'left'}
+    : 'center';
+  const actionJustify: FlexProps['justify'] = illustration
+    ? {zero: 'center', [switchOn]: 'start'}
+    : 'center';
 
   return (
     <Flex containerType="inline-size" width="100%" flexGrow={1} minWidth={0}>
@@ -38,7 +43,7 @@ export function EmptyState({
           </Flex>
         )}
         <Stack gap="xl">
-          <Stack gap="md" width="100%" maxWidth="48ch">
+          <Stack gap={illustration ? 'md' : 'sm'} width="100%" maxWidth="48ch">
             <Heading as="h3" size="lg" align={textAlign}>
               {title}
             </Heading>
@@ -49,7 +54,7 @@ export function EmptyState({
             )}
           </Stack>
           {action && (
-            <Flex gap="md" justify={{zero: 'center', [switchOn]: 'start'}} wrap="wrap">
+            <Flex gap="md" justify={actionJustify} wrap="wrap">
               {action}
             </Flex>
           )}
