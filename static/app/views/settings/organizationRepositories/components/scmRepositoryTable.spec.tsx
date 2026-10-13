@@ -70,10 +70,7 @@ describe('ScmRepositoryTable', () => {
     it('toggles expansion on click for multi-installation tables', async () => {
       const second: ScmInstallation = {
         ...makeInstallation({initiallyExpanded: false}),
-        integration: OrganizationIntegrationsFixture({
-          id: '2',
-          name: '@second-org',
-        }),
+        integration: OrganizationIntegrationsFixture({id: '2', name: '@second-org'}),
         repositories: [makeRepo('10', 'second/repo')],
       };
 
@@ -88,10 +85,7 @@ describe('ScmRepositoryTable', () => {
       expect(screen.queryByText('second/repo')).not.toBeInTheDocument();
 
       await userEvent.click(
-        within(table).getByRole('button', {
-          name: '@second-org',
-          expanded: false,
-        })
+        within(table).getByRole('button', {name: '@second-org', expanded: false})
       );
 
       expect(within(table).getByText('second/repo')).toBeInTheDocument();
@@ -119,9 +113,7 @@ describe('ScmRepositoryTable', () => {
         <ScmRepositoryTable
           provider={provider}
           installations={[
-            makeInstallation({
-              manageUrl: 'https://github.com/apps/sentry-io',
-            }),
+            makeInstallation({manageUrl: 'https://github.com/apps/sentry-io'}),
           ]}
         />
       );
@@ -135,10 +127,7 @@ describe('ScmRepositoryTable', () => {
     it('auto-expands installations with search hits even when collapsed', () => {
       const second: ScmInstallation = {
         ...makeInstallation({initiallyExpanded: false}),
-        integration: OrganizationIntegrationsFixture({
-          id: '2',
-          name: '@second-org',
-        }),
+        integration: OrganizationIntegrationsFixture({id: '2', name: '@second-org'}),
         repositories: [makeRepo('10', 'second/repo')],
       };
 
@@ -155,10 +144,7 @@ describe('ScmRepositoryTable', () => {
 
       const table = screen.getByRole('table', {name: 'GitHub'});
       expect(
-        within(table).getByRole('button', {
-          name: '@second-org',
-          expanded: true,
-        })
+        within(table).getByRole('button', {name: '@second-org', expanded: true})
       ).toBeInTheDocument();
       expect(within(table).getByText('second')).toBeInTheDocument();
     });
@@ -166,10 +152,7 @@ describe('ScmRepositoryTable', () => {
     it('does not toggle expansion when a button inside the row is clicked', async () => {
       const second: ScmInstallation = {
         ...makeInstallation({initiallyExpanded: false}),
-        integration: OrganizationIntegrationsFixture({
-          id: '2',
-          name: '@second-org',
-        }),
+        integration: OrganizationIntegrationsFixture({id: '2', name: '@second-org'}),
         repositories: [makeRepo('10', 'second/repo')],
       };
 
@@ -198,10 +181,7 @@ describe('ScmRepositoryTable', () => {
         <ScmRepositoryTable
           provider={provider}
           installations={[
-            makeInstallation({
-              repositories: [],
-              manageUrl: 'https://github.com/',
-            }),
+            makeInstallation({repositories: [], manageUrl: 'https://github.com/'}),
           ]}
         />
       );

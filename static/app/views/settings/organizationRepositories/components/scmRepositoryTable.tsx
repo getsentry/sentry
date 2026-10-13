@@ -271,12 +271,13 @@ function TableItemRow({
   providerName,
   repoMatches,
 }: TableItemRowProps) {
+  const rowProps = {'data-index': index, ref: measureElement};
+
   switch (item.type) {
     case 'installation':
       return (
         <InstallationRow
-          data-index={index}
-          ref={measureElement}
+          {...rowProps}
           expanded={item.expanded}
           installation={item.installation}
           onToggle={item.onToggle}
@@ -286,8 +287,7 @@ function TableItemRow({
     case 'repo':
       return (
         <RepoRow
-          data-index={index}
-          ref={measureElement}
+          {...rowProps}
           installation={item.installation}
           nested={nested}
           providerName={providerName}
@@ -298,8 +298,7 @@ function TableItemRow({
     case 'empty':
       return (
         <EmptyRow
-          data-index={index}
-          ref={measureElement}
+          {...rowProps}
           installation={item.installation}
           repoMatches={repoMatches}
         />
@@ -635,9 +634,7 @@ function getRepoCountTooltip(
       syncNow: syncNowButton,
     });
   }
-  return tct('Repositories not yet synced. [syncNow]', {
-    syncNow: syncNowButton,
-  });
+  return tct('Repositories not yet synced. [syncNow]', {syncNow: syncNowButton});
 }
 
 function InstallationActions({installation, providerName}: InstallationActionsProps) {
@@ -649,10 +646,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     onSettings,
     onUninstall,
   } = installation;
-  const showManageRepositoriesLabel = useResponsivePropValue({
-    zero: false,
-    '2xl': true,
-  });
+  const showManageRepositoriesLabel = useResponsivePropValue({zero: false, '2xl': true});
   const manageRepositoriesLabel = t('Manage repositories');
 
   return (
