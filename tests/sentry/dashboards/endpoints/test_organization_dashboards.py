@@ -33,6 +33,142 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
 
+class DashboardTransformationUpdateTest(OrganizationDashboardWidgetTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.dashboard = self.create_dashboard(organization=self.organization, created_by=self.user)
+        self.widget = self.create_dashboard_widget(
+            dashboard=self.dashboard, widget_type=DashboardWidgetTypes.ERROR_EVENTS
+        )
+        self.query = self.create_dashboard_widget_query(
+            widget=self.widget,
+            order=0,
+            fields=["count()", "count_unique(user)", "count()"],
+            aggregates=["count()", "count_unique(user)", "count()"],
+            columns=[],
+            conditions="",
+            transformations={"1": ["fill(locf)"], "2": ["smooth(sma)"]},
+        )
+        self.url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            args=[self.organization.slug, self.dashboard.id],
+        )
+
+    def test_reorder_remaps_omitted_transformations(self) -> None:
+        self.assert_aggregate_transformations(
+            ["count_unique(user)", "count()", "count()"],
+            {"0": ["fill(locf)"], "2": ["smooth(sma)"]},
+        )
+
+    def test_removed_axis_drops_omitted_transformations(self) -> None:
+        self.assert_aggregate_transformations(["count()", "count()"], {"1": ["smooth(sma)"]})
+
+    def test_shrinking_axes_remaps_omitted_transformations(self) -> None:
+        self.assert_aggregate_transformations(["count_unique(user)"], {"0": ["fill(locf)"]})
+
+    def test_added_axes_do_not_inherit_transformations(self) -> None:
+        self.assert_aggregate_transformations(
+            ["count()", "count_unique(id)", "count_unique(user)", "count()", "count()"],
+            {"2": ["fill(locf)"], "3": ["smooth(sma)"]},
+        )
+
+    def test_replaced_axis_drops_omitted_transformations(self) -> None:
+        self.assert_aggregate_transformations(["count_unique(id)"], {})
+
+    def test_empty_axes_drop_omitted_transformations(self) -> None:
+        self.assert_aggregate_transformations([], {})
+
+    def assert_aggregate_transformations(self, aggregates, expected) -> None:
+        response = self.client.put(
+            self.url,
+            {
+                "widgets": [
+                    {
+                        "id": str(self.widget.id),
+                        "queries": [{"id": str(self.query.id), "aggregates": aggregates}],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == expected
+        self.query.refresh_from_db()
+        assert self.query.aggregates == aggregates
+        assert self.query.transformations == expected
+
+    def test_explicit_transformations_use_new_aggregate_positions(self) -> None:
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            response = self.client.put(
+                self.url,
+                {
+                    "widgets": [
+                        {
+                            "id": str(self.widget.id),
+                            "queries": [
+                                {
+                                    "id": str(self.query.id),
+                                    "aggregates": ["count_unique(user)", "count()", "count()"],
+                                    "transformations": {"1": ["fill(zero)"]},
+                                }
+                            ],
+                        }
+                    ]
+                },
+            )
+        assert response.status_code == 200, response.data
+        self.query.refresh_from_db()
+        assert self.query.transformations == {"1": ["fill(zero)"]}
+
+    def test_full_save_preserves_transformations_without_feature(self) -> None:
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            retrieved = self.client.get(self.url)
+            assert retrieved.status_code == 200, retrieved.data
+            retrieved.data["title"] = "Renamed dashboard"
+            response = self.client.put(self.url, retrieved.data)
+        assert response.status_code == 200, response.data
+        self.query.refresh_from_db()
+        assert self.query.transformations == {"1": ["fill(locf)"], "2": ["smooth(sma)"]}
+
+    def test_explicit_transformations_still_validate_axis_bounds_without_feature(self) -> None:
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            response = self.client.put(
+                self.url,
+                {
+                    "widgets": [
+                        {
+                            "id": str(self.widget.id),
+                            "queries": [{"id": str(self.query.id), "transformations": {"3": []}}],
+                        }
+                    ]
+                },
+            )
+        assert response.status_code == 400, response.data
+        assert "transformations" in response.data["widgets"][0]["queries"][0]
+        self.query.refresh_from_db()
+        assert self.query.transformations == {"1": ["fill(locf)"], "2": ["smooth(sma)"]}
+
+    def test_null_character_returns_validation_error(self) -> None:
+        with self.feature("organizations:explore-interpolation-and-smoothing"):
+            response = self.client.put(
+                self.url,
+                {
+                    "widgets": [
+                        {
+                            "id": str(self.widget.id),
+                            "queries": [
+                                {"id": str(self.query.id), "transformations": {"0": ["fill(\x00)"]}}
+                            ],
+                        }
+                    ]
+                },
+            )
+        assert response.status_code == 400, response.data
+        assert "transformations" in response.data["widgets"][0]["queries"][0]
+        self.query.refresh_from_db()
+        assert self.query.transformations == {"1": ["fill(locf)"], "2": ["smooth(sma)"]}
+
+
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1168,7 +1304,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
 
         with self.feature("organizations:explore-interpolation-and-smoothing"):
-            invalid = self.client.put(
+            reduced = self.client.put(
                 detail_url,
                 {
                     "widgets": [
@@ -1179,8 +1315,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     ]
                 },
             )
-            assert invalid.status_code == 400, invalid.data
-            assert "transformations" in invalid.data["widgets"][0]["queries"][0]
+            assert reduced.status_code == 200, reduced.data
+            assert reduced.data["widgets"][0]["queries"][0]["transformations"] == {}
             replacement = self.client.put(
                 detail_url,
                 {
@@ -1216,7 +1352,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         saved.refresh_from_db()
         assert saved.transformations == {}
 
-    def test_transformations_require_feature(self) -> None:
+    def test_transformations_can_be_saved_without_feature(self) -> None:
         with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
             response = self.client.post(
                 self.url,
@@ -1238,8 +1374,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     ],
                 },
             )
-        assert response.status_code == 400, response.data
-        assert "transformations" in response.data["widgets"][0]["queries"][0]
+        assert response.status_code == 201, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {"0": ["fill(locf)"]}
 
     def test_post_derives_widget_min_height(self) -> None:
         data = {

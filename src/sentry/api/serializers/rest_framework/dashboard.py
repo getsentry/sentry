@@ -11,7 +11,11 @@ from rest_framework import serializers
 from sentry_sdk import traces
 
 from sentry import features, options
-from sentry.api.fields.transformations import TransformationsField, validate_transformation_indexes
+from sentry.api.fields.transformations import (
+    TransformationsField,
+    remap_transformation_indexes,
+    validate_transformation_indexes,
+)
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.apidocs.omissions import sentry_schema_serializer
@@ -670,6 +674,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             }
             for index, query in enumerate(data["queries"]):
                 existing_query = existing_queries.get(query.get("id"))
+                if existing_query and "aggregates" in query and "transformations" not in query:
+                    query["transformations"] = remap_transformation_indexes(
+                        existing_query.transformations or {},
+                        existing_query.aggregates or [],
+                        query["aggregates"] or [],
+                    )
                 transformations = query.get(
                     "transformations", existing_query.transformations if existing_query else None
                 )

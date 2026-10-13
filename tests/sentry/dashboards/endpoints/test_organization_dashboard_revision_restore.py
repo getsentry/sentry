@@ -99,10 +99,6 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
             }
         )
         with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
-            rejected = self.client.post(self._url(revision.id))
-        assert rejected.status_code == 400, rejected.data
-        assert "transformations" in rejected.data["widgets"][0]["queries"][0]
-        with self.feature("organizations:explore-interpolation-and-smoothing"):
             response = self.client.post(self._url(revision.id))
         assert response.status_code == 200, response.data
         query = response.data["widgets"][0]["queries"][0]
