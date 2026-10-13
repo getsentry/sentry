@@ -2450,7 +2450,7 @@ requires-dist = [
     { name = "requests-oauthlib", specifier = ">=1.2.0" },
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
-    { name = "sentry-arroyo", specifier = ">=2.42.2" },
+    { name = "sentry-arroyo", specifier = ">=2.46.0" },
     { name = "sentry-conventions", specifier = ">=0.27.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=3.0.2" },
@@ -2541,13 +2541,13 @@ image-debug = [{ name = "memray", specifier = "==1.20.0" }]
 
 [[package]]
 name = "sentry-arroyo"
-version = "2.42.2"
+version = "2.46.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.42.2-py3-none-any.whl", hash = "sha256:ff6c3b52e372cab05e964c6e9b3d4a892b16a41a4cdfaa4c1735798214532e07" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.46.0-py3-none-any.whl", hash = "sha256:27e0a075a08082ae4bdfa0c11106582da404071127b670f6347ace4aabdb2ddd" },
 ]
 
 [[package]]
