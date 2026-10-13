@@ -1,5 +1,3 @@
-import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
-
 type ExtractedSlug = {
   domain: string;
   slug: string;
@@ -38,7 +36,9 @@ export function extractSlug(hostname: string): ExtractedSlug | null {
  * `sentry-abc123.sentry.dev`, so its first label is not an organization.
  */
 export function getDevUiOrganizationSlug(): string | null {
-  if (!window.__SENTRY_DEV_UI || DEPLOY_PREVIEW_CONFIG) {
+  // Read the build define directly: bootstrap runs before hydration and
+  // locale init, so it must not load `sentry/constants`.
+  if (!window.__SENTRY_DEV_UI || process.env.DEPLOY_PREVIEW_CONFIG) {
     return null;
   }
 
