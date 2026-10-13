@@ -28,10 +28,10 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
     ScheduleType,
+    get_detector_for_monitor,
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException, ProcessingErrorType
 from sentry.monitors.types import CheckinItem
-from sentry.monitors.models import get_detector_for_monitor
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time

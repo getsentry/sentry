@@ -27,8 +27,8 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
+    get_detector_for_monitor,
 )
-from sentry.monitors.models import get_detector_for_monitor
 from sentry.types.actor import validate_actor
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.kafka_config import get_topic_definition
