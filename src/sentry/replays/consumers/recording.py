@@ -5,7 +5,7 @@ from typing import cast
 import sentry_sdk
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
-from sentry_sdk import set_tag
+from sentry_sdk import set_tag, traces
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -20,7 +20,6 @@ from sentry.replays.usecases.ingest import (
 from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.services.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.utils import json, metrics
-from sentry.utils.tracing import trace
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
@@ -34,7 +33,7 @@ class DropSilently(Exception):
 # Processing Task
 
 
-@trace
+@traces.trace
 def process_message(message: bytes) -> ProcessedEvent | None:
     try:
         recording_event = parse_recording_event(message)
@@ -53,7 +52,7 @@ def process_message(message: bytes) -> ProcessedEvent | None:
         return None
 
 
-@trace
+@traces.trace
 def parse_recording_event(message: bytes) -> Event:
     recording = parse_request_message(message)
     segment_id, payload = parse_headers(cast(bytes, recording["payload"]), recording["replay_id"])
@@ -101,7 +100,7 @@ def parse_recording_event(message: bytes) -> Event:
     }
 
 
-@trace
+@traces.trace
 def parse_request_message(message: bytes) -> ReplayRecording:
     try:
         return RECORDINGS_CODEC.decode(message)
@@ -110,7 +109,7 @@ def parse_request_message(message: bytes) -> ReplayRecording:
         raise DropSilently()
 
 
-@trace
+@traces.trace
 def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
     try:
         return (segment, zlib.decompress(segment))
@@ -122,7 +121,7 @@ def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
             raise DropSilently()
 
 
-@trace
+@traces.trace
 def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
     try:
         recording_headers_json, recording_segment = recording.split(b"\n", 1)
@@ -135,7 +134,7 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 # I/O Task
 
 
-@trace
+@traces.trace
 def commit_message(message: ProcessedEvent, context: ProcessorContext) -> None:
     try:
         commit_recording_message(message, context)

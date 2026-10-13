@@ -60,7 +60,10 @@ import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
 import {OrgStatsProfilingBanner} from 'getsentry/overrides/orgStatsProfilingBanner';
 import {rootRoutes} from 'getsentry/overrides/rootRoutes';
 import {ScmGithubMultiOrgInstall} from 'getsentry/overrides/scmGithubMultiOrgInstall';
-import {seerSettingsRoutes} from 'getsentry/overrides/seerSettingsRoutes';
+import {
+  seerSettingsRoutes,
+  seerProjectSettingsRoutes,
+} from 'getsentry/overrides/seerSettingsRoutes';
 import {SpikeProtectionProjectSettings} from 'getsentry/overrides/spendVisibility/spikeProtectionProjectSettings';
 import {subscriptionSettingsRoutes} from 'getsentry/overrides/subscriptionSettingsRoutes';
 import {SuperuserAccessCategory} from 'getsentry/overrides/superuserAccessCategory';
@@ -117,6 +120,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    */
   'routes:root': rootRoutes,
   'routes:org-settings': seerSettingsRoutes,
+  'routes:project-settings': seerProjectSettingsRoutes,
   'routes:legacy-organization-redirects': legacyOrganizationRedirectRoutes,
 
   /**
