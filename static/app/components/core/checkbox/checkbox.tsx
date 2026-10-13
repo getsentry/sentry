@@ -4,11 +4,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {
-  Tooltip,
-  useDisabledTooltip,
-  type TooltipPropsWithOptionalTitle,
-} from '@sentry/scraps/tooltip';
+import {Tooltip, useDisabledTooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -96,8 +92,8 @@ export interface CheckboxProps extends Omit<
    * The size of the checkbox. Defaults to 'sm'.
    */
   size?: FormSize;
-  /** Tooltip shown on hover or focus. */
-  tooltipProps?: TooltipPropsWithOptionalTitle;
+  /** Tooltip shown on hover or focus. Requires a title when provided. */
+  tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper'>;
 }
 
 function preventInteraction(event: React.SyntheticEvent): void {
