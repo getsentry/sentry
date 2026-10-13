@@ -6,14 +6,17 @@ from django.utils import timezone
 
 from sentry.issues.action_log.backfill import (
     BACKFILL_ACTIVITY_SOURCE,
+    BACKFILL_FIRST_SEEN_SOURCE,
     BACKFILL_PR_LIFECYCLE_SOURCE,
     BackfillEntry,
     backfill_actions,
+    backfill_first_seen_actions,
     backfill_group_activities,
     backfill_group_pr_lifecycle,
 )
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
+    FirstSeenAction,
     GroupAction,
     GroupActionActor,
     GroupActionType,
@@ -21,6 +24,7 @@ from sentry.issues.action_log.types import (
     ResolveAction,
     ResolvedInPullRequestAction,
     ViewAction,
+    first_seen_idempotency_key,
 )
 from sentry.issues.derived.processing import process_group_log
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -154,6 +158,63 @@ class BackfillActionsTest(TestCase):
             entries=entries, group_id=self.group.id, project_id=self.project.id
         )
         assert count == 0
+        mock_invalidate.assert_not_called()
+
+
+class BackfillFirstSeenActionsTest(TestCase):
+    def test_empty(self) -> None:
+        assert backfill_first_seen_actions([]) == 0
+
+    def test_inserts_entry_dated_at_first_seen(self) -> None:
+        first_seen = timezone.now() - timedelta(days=30)
+        group = self.create_group(first_seen=first_seen)
+
+        assert backfill_first_seen_actions([group.id]) == 1
+
+        row = GroupActionLogEntry.objects.get(group_id=group.id)
+        assert row.project_id == group.project_id
+        assert row.type == GroupActionType.FIRST_SEEN.value
+        assert row.actor_type == SYSTEM_ACTOR.actor_type.value
+        assert row.actor_id == SYSTEM_ACTOR.actor_id
+        assert row.source == BACKFILL_FIRST_SEEN_SOURCE
+        assert row.idempotency_key == first_seen_idempotency_key(group.id)
+        assert row.date_added == first_seen
+        assert row.action == FirstSeenAction(first_seen=first_seen)
+
+    def test_idempotent(self) -> None:
+        groups = [self.create_group(), self.create_group()]
+        group_ids = [g.id for g in groups]
+
+        assert backfill_first_seen_actions(group_ids) == 2
+        assert backfill_first_seen_actions(group_ids) == 0
+        assert GroupActionLogEntry.objects.filter(group_id__in=group_ids).count() == 2
+
+    def test_skips_groups_with_live_entry(self) -> None:
+        group = self.create_group()
+        backfill_actions(
+            entries=[
+                BackfillEntry(
+                    action=FirstSeenAction(first_seen=group.first_seen),
+                    actor=SYSTEM_ACTOR,
+                    source="live",
+                    date_added=group.first_seen,
+                    idempotency_key=first_seen_idempotency_key(group.id),
+                )
+            ],
+            group_id=group.id,
+            project_id=group.project_id,
+        )
+
+        assert backfill_first_seen_actions([group.id]) == 0
+        assert GroupActionLogEntry.objects.get(group_id=group.id).source == "live"
+
+    def test_ignores_missing_groups(self) -> None:
+        group = self.create_group()
+        assert backfill_first_seen_actions([group.id, group.id + 1000]) == 1
+
+    @patch("sentry.issues.action_log.backfill.invalidate_group_derived_data")
+    def test_does_not_invalidate(self, mock_invalidate: MagicMock) -> None:
+        backfill_first_seen_actions([self.create_group().id])
         mock_invalidate.assert_not_called()
 
 
