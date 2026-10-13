@@ -1,5 +1,6 @@
 import pytest
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.api.serializers import serialize
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
@@ -28,6 +29,12 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
 
         assert response.status_code == 204, response.content
         assert response.data is None
+
+    def test_anonymous_user_is_rejected(self) -> None:
+        with self.feature(FEATURES):
+            response = APIClient().get(self.url)
+
+        assert response.status_code == 401, response.content
 
     def test_demo_user_can_read_homepage_query(self) -> None:
         demo_user = self.create_user()
