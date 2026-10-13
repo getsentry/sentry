@@ -296,6 +296,63 @@ class ControlOutboxDrainTest(TransactionTestCase):
         mock_process.assert_called_once()
         assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
 
+    def _save_organization_scope_outbox(self, category: OutboxCategory) -> ControlOutbox:
+        outbox = ControlOutbox(
+            cell_name="us",
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=42,
+            category=category,
+            object_identifier=42,
+        )
+        with outbox_context(flush=False):
+            outbox.save()
+        return outbox
+
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_reconnects_after_disconnect_during_organization_provisioning(
+        self, mock_send: Mock
+    ) -> None:
+        outbox = self._save_organization_scope_outbox(OutboxCategory.PROVISION_ORGANIZATION)
+
+        def disconnect_once(**kwargs: Any) -> None:
+            mock_send.side_effect = None
+            self.terminate_connection()
+
+        mock_send.side_effect = disconnect_once
+        outbox.drain_shard()
+
+        assert mock_send.call_count == 2
+        assert mock_send.call_args_list[0] == mock_send.call_args_list[1]
+        assert not self.connection.in_atomic_block
+        assert not ControlOutbox.objects.filter(id=outbox.id).exists()
+
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_retries_organization_provisioning_disconnect_only_once(self, mock_send: Mock) -> None:
+        outbox = self._save_organization_scope_outbox(OutboxCategory.PROVISION_ORGANIZATION)
+        mock_send.side_effect = self.terminate_connection
+
+        with pytest.raises(OutboxDatabaseError):
+            outbox.drain_shard()
+
+        assert mock_send.call_count == 2
+        assert not self.connection.in_atomic_block
+        assert ControlOutbox.objects.filter(id=outbox.id).exists()
+
+    def test_does_not_retry_other_organization_scope_categories(self) -> None:
+        outbox = self._save_organization_scope_outbox(OutboxCategory.ORGANIZATION_UPDATE)
+        disconnect_error = OperationalError("server closed the connection unexpectedly")
+
+        with (
+            patch.object(ControlOutbox, "process", side_effect=disconnect_error) as mock_process,
+            pytest.raises(OutboxDatabaseError) as exc_info,
+        ):
+            outbox.drain_shard()
+
+        assert exc_info.value.__cause__ is disconnect_error
+        mock_process.assert_called_once_with(is_synchronous_flush=True)
+        assert not self.connection.in_atomic_block
+        assert ControlOutbox.objects.filter(id=outbox.id).exists()
+
 
 class OutboxDrainTest(TransactionTestCase):
     @patch("sentry.hybridcloud.models.outbox.process_cell_outbox.send")
