@@ -206,7 +206,7 @@ export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: b
         // clips everything inside the heading. `Container` floors the
         // anchor's width so it still shrinks as a flex item.
         <Container minWidth={0}>
-          {styleProps => (
+          {containerProps => (
             // Named like the heading, so a links list reads "Replay user,
             // anonymous@example.com" rather than a bare address.
             <Link to={props.to} aria-label={accessibleName} {...styleProps}>
