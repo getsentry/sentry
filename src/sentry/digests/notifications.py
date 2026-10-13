@@ -11,7 +11,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.notifications.utils.rules import get_notification_origins
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger("sentry.digests")
@@ -72,16 +72,13 @@ def unsplit_key(
 
 
 def event_to_record(
-    event: Event | GroupEvent,
+    event: GroupEvent,
     rules: Sequence[NotificationOrigin],
     notification_uuid: str | None = None,
 ) -> Record:
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
-    # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
-    # TODO(iamrajjoshi): Creating a PR to fix this
-    assert event.group is not None
     rule_ids = []
     for origin in rules:
         assert origin.workflow_id is not None
