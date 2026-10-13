@@ -10,10 +10,14 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
-interface BookmarkStarProps extends Omit<ButtonProps, 'as' | 'onToggle'> {
+interface BookmarkStarProps extends Omit<
+  ButtonProps,
+  'as' | 'onToggle' | 'tooltipProps'
+> {
   organization: Organization;
   project: Project;
   onToggle?: (isBookmarked: boolean) => void;
+  tooltipProps?: Omit<NonNullable<ButtonProps['tooltipProps']>, 'title'>;
 }
 
 export function BookmarkStar({

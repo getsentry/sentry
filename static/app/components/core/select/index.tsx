@@ -1,12 +1,12 @@
 export {
   Select,
-  CheckWrap,
   type StylesConfig,
   type ControlProps,
   type GeneralSelectValue,
 } from './select';
 
 export {SelectOption} from './option';
+export {CheckWrap} from './styles';
 export {components, createFilter} from './reactSelectWrapper';
 export type {
   MultiValueProps,
