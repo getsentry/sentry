@@ -1,9 +1,10 @@
+import {IconTimer} from '@sentry/icons/timer';
+
 import {
   ResourceLink,
   type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';

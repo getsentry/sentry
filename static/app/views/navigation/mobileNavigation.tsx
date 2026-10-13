@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
+import {IconMenu} from '@sentry/icons/menu';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
@@ -8,7 +9,6 @@ import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';

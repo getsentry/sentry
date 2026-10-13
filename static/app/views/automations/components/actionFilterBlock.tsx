@@ -1,5 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconMail} from '@sentry/icons/mail';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -7,7 +9,6 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
-import {IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {

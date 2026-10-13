@@ -258,7 +258,7 @@ describe('trace view', () => {
       return children;
     }
 
-    function setupPinnedTrace(features = ['trace-waterfall-attribute-pinning']) {
+    function setupPinnedTrace() {
       jest
         .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
         .mockReturnValue(new DOMRect(0, 0, 1000, 500));
@@ -280,7 +280,7 @@ describe('trace view', () => {
           }),
         ],
       });
-      const organization = OrganizationFixture({features});
+      const organization = OrganizationFixture({features: []});
       mockPerformanceSubscriptionDetailsResponse();
       mockProjectDetailsResponse();
       mockTraceRootFacets();
@@ -904,14 +904,17 @@ describe('trace view', () => {
       expect(attributeRequest.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
     });
 
-    it('ignores URL pins and hides controls when the flag is absent', async () => {
-      const {renderTrace} = setupPinnedTrace([]);
+    it('loads URL pins and shows controls without feature flags', async () => {
+      const {renderTrace, root} = setupPinnedTrace();
       const attributeRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
-        body: [],
+        body: {
+          data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}],
+        },
       });
       renderTrace({pinnedAttribute: 'custom.region'});
+      expect(await screen.findByText('waterfall-region')).toBeInTheDocument();
       await userEvent.click(await screen.findByText('pinnable root'));
       expect(await screen.findByText('drawer-region')).toBeInTheDocument();
       await openAttributeMenu('custom.region');
@@ -924,14 +927,60 @@ describe('trace view', () => {
         screen.queryByRole('menuitemradio', {name: 'Pin to waterfall'})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('menuitemradio', {name: 'Unpin from waterfall'})
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Unpin attribute'})
-      ).not.toBeInTheDocument();
-      expect(attributeRequest).not.toHaveBeenCalled();
+        screen.getByRole('menuitemradio', {name: 'Unpin from waterfall'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Unpin attribute'})).toBeInTheDocument();
+      expect(attributeRequest).toHaveBeenCalledTimes(1);
       await userEvent.keyboard('{Escape}');
     });
+  });
+
+  it('compresses inactive gaps by default and allows opting out without feature flags', async () => {
+    localStorage.clear();
+    jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue(new DOMRect(0, 0, 1000, 500));
+    setupEAPTraceView();
+    mockTraceResponse({
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'root-transaction',
+          description: 'root transaction',
+          is_transaction: true,
+          start_timestamp: 1,
+          end_timestamp: 2,
+        }),
+        makeEAPSpan({
+          event_id: 'second-transaction',
+          description: 'second transaction',
+          is_transaction: true,
+          start_timestamp: 10,
+          end_timestamp: 11,
+        }),
+      ]),
+    });
+    render(<TraceView />, {
+      organization: OrganizationFixture({features: []}),
+      initialRouterConfig,
+    });
+
+    const gapLabel = await screen.findByText('6.08s');
+    await userEvent.hover(gapLabel);
+    expect(await screen.findByText('Skipped 6.08s inactive period')).toBeInTheDocument();
+    await userEvent.unhover(gapLabel);
+    await userEvent.click(screen.getByRole('button', {name: 'Trace Preferences'}));
+    const option = screen.getByRole('option', {name: 'Compressed Timeline'});
+    expect(option).toHaveAttribute('aria-selected', 'true');
+    await userEvent.click(option);
+    await waitFor(() =>
+      expect(screen.getByRole('option', {name: 'Compressed Timeline'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      )
+    );
+    expect(screen.queryByText('6.08s')).not.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    localStorage.clear();
   });
 
   it('renders loading state', async () => {

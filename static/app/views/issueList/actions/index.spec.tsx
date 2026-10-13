@@ -11,6 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -79,10 +80,12 @@ function WrappedComponent({
   return (
     <Fragment>
       <GlobalModal />
-      <IssueSelectionProvider visibleGroupIds={groupIds}>
-        <SelectionInitializer selectedIds={selectedIds} allSelected={allSelected} />
-        <IssueListActions {...defaultProps} {...props} groupIds={groupIds} />
-      </IssueSelectionProvider>
+      <Container containerType="inline-size">
+        <IssueSelectionProvider visibleGroupIds={groupIds}>
+          <SelectionInitializer selectedIds={selectedIds} allSelected={allSelected} />
+          <IssueListActions {...defaultProps} {...props} groupIds={groupIds} />
+        </IssueSelectionProvider>
+      </Container>
     </Fragment>
   );
 }
@@ -94,6 +97,7 @@ describe('IssueListActions', () => {
 
   beforeEach(() => {
     GroupStore.reset();
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,

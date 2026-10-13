@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NotificationActionItem} from 'sentry/components/notificationActions/notificationActionItem';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   AvailableNotificationAction,

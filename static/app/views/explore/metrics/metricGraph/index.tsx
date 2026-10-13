@@ -2,10 +2,10 @@ import {Fragment, useMemo, useState} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {hasDroppedData} from 'sentry/components/droppedData/buckets';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
-import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';

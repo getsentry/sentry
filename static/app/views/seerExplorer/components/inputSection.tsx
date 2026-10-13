@@ -1,5 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconPause} from '@sentry/icons/pause';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,7 +10,6 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconArrow, IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PRWidget} from 'sentry/views/seerExplorer/components/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
