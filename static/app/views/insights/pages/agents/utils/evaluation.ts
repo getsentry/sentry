@@ -1,8 +1,10 @@
 /**
- * Parsing for `gen_ai.evaluate` spans. Evaluator SDKs record the evaluated
- * text and its questions on `gen_ai.input.messages`, and the answers on
+ * Parsing for evaluation spans. Evaluator SDKs record the evaluated text and
+ * its questions on `gen_ai.input.messages`, and the answers on
  * `gen_ai.output.messages`, as a single `{"type": "evaluation"}` item rather
- * than chat messages.
+ * than chat messages. The span is recognized by its `gen_ai.operation.name`:
+ * `decide` is the current value, `evaluate` the deprecated one still emitted by
+ * older SDKs, and both must keep working.
  */
 
 import round from 'lodash/round';
@@ -183,6 +185,13 @@ export function parseEvaluationOutput(raw: unknown): EvaluationAnswer[] | null {
 }
 
 /**
+ * Well-known `gen_ai.operation.name` values for evaluation spans. `decide` is
+ * the current value; `evaluate` is the deprecated one still emitted by older
+ * SDKs.
+ */
+const EVALUATION_OPERATION_NAMES: ReadonlySet<string> = new Set(['decide', 'evaluate']);
+
+/**
  * Whether a span is an evaluation, from its `gen_ai.operation.name`.
  */
 export function isEvaluationNode(
@@ -190,9 +199,14 @@ export function isEvaluationNode(
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ): boolean {
+  const operationName = getTraceNodeAttribute(
+    SpanFields.GEN_AI_OPERATION_NAME,
+    node,
+    event,
+    attributes
+  );
   return (
-    getTraceNodeAttribute(SpanFields.GEN_AI_OPERATION_NAME, node, event, attributes) ===
-    'evaluate'
+    typeof operationName === 'string' && EVALUATION_OPERATION_NAMES.has(operationName)
   );
 }
 

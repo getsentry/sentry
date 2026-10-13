@@ -193,6 +193,36 @@ describe('getNodeEvaluation', () => {
     });
   });
 
+  it.each(['decide', 'evaluate'])(
+    'recognizes a span with the %s operation name',
+    operationName => {
+      const evaluation = getNodeEvaluation(
+        makeNode({
+          'gen_ai.operation.name': operationName,
+          'gen_ai.input.messages': RAW_INPUT,
+          'gen_ai.output.messages': RAW_OUTPUT,
+        })
+      );
+
+      expect(evaluation).toEqual({
+        input: {
+          state: 'I cannot log in.',
+          questions: [
+            {
+              key: 'urgency',
+              kind: 'question',
+              type: 'score',
+              criteria: ['low', 'medium', 'high'],
+            },
+          ],
+        },
+        answers: [{kind: 'score', key: 'urgency', score: 1.6}],
+        rawInput: RAW_INPUT,
+        rawOutput: RAW_OUTPUT,
+      });
+    }
+  );
+
   it('returns null for other spans, even with an evaluation message', () => {
     expect(
       getNodeEvaluation(
