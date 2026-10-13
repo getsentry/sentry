@@ -98,7 +98,6 @@ describe('IssueListBulkCommandPaletteActions', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.useRealTimers();
   });
 
   it('shows mark all actions when no issues are selected', async () => {
@@ -201,95 +200,105 @@ describe('IssueListBulkCommandPaletteActions', () => {
     expect(labels).toContain('Archive');
   });
 
-  it('shows a loader when marking all issues as resolved', async () => {
-    jest.useFakeTimers();
-    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-    const response = Promise.withResolvers<void>();
-    const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/`,
-      method: 'PUT',
-      body: [],
-      asyncDelay: response.promise,
+  describe('with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    render(
-      <CommandPaletteProvider>
-        <IssueSelectionProvider visibleGroupIds={['1', '2']}>
-          <IssueListCommandPaletteActions
-            groupIds={['1', '2']}
-            onActionTaken={jest.fn()}
-            onQueryChange={jest.fn()}
-            onSortChange={jest.fn()}
-            query=""
-            queryCount={10}
-            selection={{
-              projects: [1],
-              environments: [],
-              datetime: {start: null, end: null, period: null, utc: true},
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
+    });
+
+    it('shows a loader when marking all issues as resolved', async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const response = Promise.withResolvers<void>();
+      const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/`,
+        method: 'PUT',
+        body: [],
+        asyncDelay: response.promise,
+      });
+
+      render(
+        <CommandPaletteProvider>
+          <IssueSelectionProvider visibleGroupIds={['1', '2']}>
+            <IssueListCommandPaletteActions
+              groupIds={['1', '2']}
+              onActionTaken={jest.fn()}
+              onQueryChange={jest.fn()}
+              onSortChange={jest.fn()}
+              query=""
+              queryCount={10}
+              selection={{
+                projects: [1],
+                environments: [],
+                datetime: {start: null, end: null, period: null, utc: true},
+              }}
+              sort={IssueSortOptions.DATE}
+            />
+          </IssueSelectionProvider>
+          <GlobalModal />
+          <SlotOutlets />
+          <CommandPaletteTree
+            onTree={tree => {
+              treeRef.current = tree;
             }}
-            sort={IssueSortOptions.DATE}
           />
-        </IssueSelectionProvider>
-        <GlobalModal />
-        <SlotOutlets />
-        <CommandPaletteTree
-          onTree={tree => {
-            treeRef.current = tree;
-          }}
-        />
-      </CommandPaletteProvider>,
-      {organization}
-    );
+        </CommandPaletteProvider>,
+        {organization}
+      );
 
-    await waitFor(() => {
-      expect(treeRef.current.length).toBeGreaterThan(0);
+      await waitFor(() => {
+        expect(treeRef.current.length).toBeGreaterThan(0);
+      });
+
+      const issueFeedNode = treeRef.current.find(
+        node => node.display.label === 'Issues Feed'
+      );
+      const markAllNode = issueFeedNode?.children.find(
+        child => child.display.label === 'Mark all issues as'
+      );
+      const resolvedAction = markAllNode?.children.find(
+        child => child.display.label === 'Resolved' && 'onAction' in child
+      );
+
+      expect(resolvedAction).toBeDefined();
+
+      act(() => {
+        if (resolvedAction && 'onAction' in resolvedAction) {
+          resolvedAction.onAction();
+        }
+      });
+
+      expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          'You are about to resolve all 10 issues matching this search. Are you sure?'
+        )
+      ).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      expect(await screen.findByText('Resolving issues…')).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(10_000));
+      expect(screen.getByText('Resolving issues…')).toBeInTheDocument();
+
+      act(() => jest.advanceTimersByTime(20_000));
+      act(() => jest.advanceTimersByTime(400));
+      expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
+
+      act(() => response.resolve());
+      expect(await screen.findByText('Selected issues resolved')).toBeInTheDocument();
+      expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Undo'})).not.toBeInTheDocument();
+
+      act(() => jest.advanceTimersByTime(6_000));
+      act(() => jest.advanceTimersByTime(400));
+      expect(screen.queryByText('Selected issues resolved')).not.toBeInTheDocument();
     });
-
-    const issueFeedNode = treeRef.current.find(
-      node => node.display.label === 'Issues Feed'
-    );
-    const markAllNode = issueFeedNode?.children.find(
-      child => child.display.label === 'Mark all issues as'
-    );
-    const resolvedAction = markAllNode?.children.find(
-      child => child.display.label === 'Resolved' && 'onAction' in child
-    );
-
-    expect(resolvedAction).toBeDefined();
-
-    act(() => {
-      if (resolvedAction && 'onAction' in resolvedAction) {
-        resolvedAction.onAction();
-      }
-    });
-
-    expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
-    expect(
-      await screen.findByText(
-        'You are about to resolve all 10 issues matching this search. Are you sure?'
-      )
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', {name: 'Confirm'}));
-
-    expect(await screen.findByText('Resolving issues…')).toBeInTheDocument();
-    act(() => jest.advanceTimersByTime(10_000));
-    expect(screen.getByText('Resolving issues…')).toBeInTheDocument();
-
-    act(() => jest.advanceTimersByTime(20_000));
-    act(() => jest.advanceTimersByTime(400));
-    expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
-
-    act(() => response.resolve());
-    expect(await screen.findByText('Selected issues resolved')).toBeInTheDocument();
-    expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Undo'})).not.toBeInTheDocument();
-
-    act(() => jest.advanceTimersByTime(6_000));
-    act(() => jest.advanceTimersByTime(400));
-    expect(screen.queryByText('Selected issues resolved')).not.toBeInTheDocument();
   });
 
   it('sends query-based API request when marking all issues as resolved', async () => {
