@@ -20,6 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 import {useTeams} from 'sentry/utils/useTeams';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {getTransactionSummaryParentCrumbs} from 'sentry/views/performance/breadcrumb';
 
@@ -165,10 +166,13 @@ function TransactionBreadcrumbsContent({
     projects,
     transactionName,
   });
+  // Apdex and User Misery thresholds only apply to the transactions dataset.
+  const isInsightsEap = useInsightsEap();
   const {isLoading: isThresholdLoading, openThresholdModal} = useTransactionThreshold({
     eventView,
     organization,
     transactionName,
+    enabled: !isInsightsEap,
     onChangeThreshold,
   });
 
@@ -203,13 +207,17 @@ function TransactionBreadcrumbsContent({
           triggerIcon: <IconEllipsis />,
           items: [
             starForTeamItem,
-            {
-              key: 'set-transaction-threshold',
-              label: t('Transaction Settings'),
-              leadingItems: <IconSettings variant="muted" />,
-              disabled: isThresholdLoading,
-              onAction: openThresholdModal,
-            },
+            ...(isInsightsEap
+              ? []
+              : [
+                  {
+                    key: 'set-transaction-threshold',
+                    label: t('Transaction Settings'),
+                    leadingItems: <IconSettings variant="muted" />,
+                    disabled: isThresholdLoading,
+                    onAction: openThresholdModal,
+                  },
+                ]),
           ],
         },
       }}

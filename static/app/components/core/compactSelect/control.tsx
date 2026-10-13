@@ -1,12 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme, css} from '@emotion/react';
@@ -32,10 +24,10 @@ import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
+import {ControlContext} from './controlContext';
 import type {SingleListProps} from './list';
 import type {
   SearchConfig,
-  SearchMatchResult,
   SelectKey,
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
@@ -55,43 +47,6 @@ function nextFrameCallback(cb: () => void) {
     }, 1);
   }
 }
-
-interface ControlContextValue {
-  overlayIsOpen: boolean;
-  /**
-   * Search string to determine whether an option should be rendered in the select list.
-   */
-  search: string;
-  /**
-   * Whether the select has a search input field.
-   */
-  searchable: boolean;
-  disabled?: boolean;
-  /**
-   * Whether the matched substring of each option's label should be highlighted
-   * as the user types.
-   */
-  highlightSearch?: boolean;
-  /**
-   * The control's overlay state. Useful for opening/closing the menu from inside the
-   * selector.
-   */
-  overlayState?: OverlayTriggerState;
-  /**
-   * Custom function to determine whether an option matches the search query.
-   */
-  searchMatcher?: (
-    option: SelectOptionWithKey<SelectKey>,
-    search: string
-  ) => SearchMatchResult;
-  size?: FormSize;
-}
-
-export const ControlContext = createContext<ControlContextValue>({
-  overlayIsOpen: false,
-  search: '',
-  searchable: false,
-});
 
 export interface ControlProps
   extends
@@ -350,9 +305,14 @@ export function Control<Value extends SelectKey>({
   });
 
   const overflowBoundaryId = useBoundaryContext();
-  const overflowBoundary = overflowBoundaryId
-    ? document.getElementById(overflowBoundaryId)
-    : null;
+  const getOverflowBoundary = useCallback(
+    () =>
+      (overflowBoundaryId ? document.getElementById(overflowBoundaryId) : null) ??
+      document.querySelector('main') ??
+      document.getElementById('main') ??
+      undefined,
+    [overflowBoundaryId]
+  );
 
   // Manage overlay position
   const {
@@ -373,15 +333,8 @@ export function Control<Value extends SelectKey>({
     onInteractOutside,
     shouldCloseOnInteractOutside,
     shouldCloseOnBlur,
-    preventOverflowOptions: {
-      ...preventOverflowOptions,
-      boundary:
-        preventOverflowOptions?.boundary ??
-        overflowBoundary ??
-        document.querySelector('main') ??
-        document.getElementById('main') ??
-        undefined,
-    },
+    preventOverflowOptions,
+    getOverflowBoundary,
     flipOptions,
     strategy,
     onOpenChange: open => {

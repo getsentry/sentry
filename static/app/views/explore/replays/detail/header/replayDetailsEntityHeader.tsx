@@ -11,6 +11,7 @@ import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoading
 import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
@@ -19,22 +20,29 @@ import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplay
 import {useReplayViewers} from 'sentry/utils/replays/hooks/useReplayViewers';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplayErrorsTooltip} from 'sentry/views/explore/replays/detail/header/replayErrorsTooltip';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-function nameAndVersion(
-  name: string,
-  version: string | null
-): [React.ReactNode, ...React.ReactNode[]] {
-  return version ? [name, version] : [name];
+function getUserSearchQuery(user: ReplayRecord['user']) {
+  if (user?.email) {
+    return `user.email:"${escapeDoubleQuotes(user.email)}"`;
+  }
+  if (user?.id) {
+    return `user.id:"${escapeDoubleQuotes(user.id)}"`;
+  }
+  return null;
 }
 
 export function ReplayDetailsEntityHeader({readerResult}: Props) {
   const location = useLocation();
   const matches = useMatches();
+  const organization = useOrganization();
   const [prefs] = useReplayPrefs();
 
   const replayRecord = readerResult.replayRecord;
@@ -59,6 +67,15 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
     query: {...location.query, t_main: TabKey.ERRORS},
   };
 
+  const userSearchQuery = replayRecord ? getUserSearchQuery(replayRecord.user) : null;
+  const replaysIndexUrl =
+    userSearchQuery && replayRecord
+      ? {
+          pathname: makeReplaysPathname({path: '/', organization}),
+          query: {query: userSearchQuery, project: replayRecord.project_id},
+        }
+      : null;
+
   const deadClicks = replayRecord?.count_dead_clicks ?? 0;
   const rageClicks = replayRecord?.count_rage_clicks ?? 0;
 
@@ -75,33 +92,37 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
     const isVideoReplay = readerResult.replay?.isVideoReplay() ?? false;
     const showDeadRageClicks = statsLoading || !isVideoReplay;
 
+    // The heading shows who recorded the session, which a sighted reader
+    // infers from the avatar beside it.
+    const title = {
+      label: t('Replay user'),
+      value: replayRecord?.user.display_name || t('Anonymous User'),
+      leadingGraphic: replayRecord
+        ? ({
+            type: 'user',
+            user: {
+              username: replayRecord.user?.display_name || '',
+              email: replayRecord.user?.email || '',
+              id: replayRecord.user?.id || '',
+              ip_address: replayRecord.user?.ip || '',
+              name: replayRecord.user?.username || '',
+            },
+          } as const)
+        : undefined,
+      tags: [
+        isLive ? (
+          <Tag key="live" variant="success">
+            {t('Live')}
+          </Tag>
+        ) : null,
+      ],
+    };
+
     return {
       isLoading,
-      title: {
-        // The heading shows who recorded the session, which a sighted reader
-        // infers from the avatar beside it.
-        label: t('Replay user'),
-        value: replayRecord?.user.display_name || t('Anonymous User'),
-        leadingGraphic: replayRecord
-          ? {
-              type: 'user',
-              user: {
-                username: replayRecord.user?.display_name || '',
-                email: replayRecord.user?.email || '',
-                id: replayRecord.user?.id || '',
-                ip_address: replayRecord.user?.ip || '',
-                name: replayRecord.user?.username || '',
-              },
-            }
-          : undefined,
-        tags: [
-          isLive ? (
-            <Tag key="live" variant="success">
-              {t('Live')}
-            </Tag>
-          ) : null,
-        ],
-      },
+      title: replaysIndexUrl
+        ? {...title, type: 'link' as const, to: replaysIndexUrl}
+        : {...title, type: 'text' as const},
       people: {
         users: viewers.users,
         label: t('Viewed by'),
@@ -147,18 +168,13 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
             ? {
                 leadingGraphic: <IconCalendar size="md" variant="muted" />,
                 label: t('Started at'),
-                values: [
+                type: 'text',
+                value:
                   prefs.timestampType === 'absolute' ? (
-                    <DateTime
-                      key="started"
-                      year
-                      timeZone
-                      date={replayRecord.started_at}
-                    />
+                    <DateTime year timeZone date={replayRecord.started_at} />
                   ) : (
-                    <TimeSince key="started" date={replayRecord.started_at} />
+                    <TimeSince date={replayRecord.started_at} />
                   ),
-                ],
               }
             : null,
           replayRecord?.browser.name
@@ -173,10 +189,11 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                   />
                 ),
                 label: t('Browser'),
-                values: nameAndVersion(
-                  replayRecord.browser.name,
-                  replayRecord.browser.version
-                ),
+                type: 'text',
+                value: replayRecord.browser.name,
+                secondary: replayRecord.browser.version
+                  ? {label: t('version'), value: replayRecord.browser.version}
+                  : undefined,
               }
             : null,
           replayRecord?.os.name
@@ -191,7 +208,11 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                   />
                 ),
                 label: t('Operating system'),
-                values: nameAndVersion(replayRecord.os.name, replayRecord.os.version),
+                type: 'text',
+                value: replayRecord.os.name,
+                secondary: replayRecord.os.version
+                  ? {label: t('version'), value: replayRecord.os.version}
+                  : undefined,
               }
             : null,
         ],
@@ -203,7 +224,13 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
     <ReplayLoadingState
       readerResult={readerResult}
       renderArchived={() => (
-        <EntityHeader title={{label: t('Session replay'), value: t('Deleted Replay')}} />
+        <EntityHeader
+          title={{
+            type: 'text',
+            label: t('Session replay'),
+            value: t('Deleted Replay'),
+          }}
+        />
       )}
       renderError={() => null}
       renderThrottled={() => null}

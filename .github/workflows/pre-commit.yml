@@ -58,6 +58,16 @@ jobs:
           filters: |
             all:
               - added|modified: '**/*'
+            frontend:
+              - 'static/**'
+              - 'tests/js/**'
+              - 'scripts/**'
+              - 'oxlint-suppressions.json'
+              - 'oxlint.config.ts'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'scripts/custom-oxlint.ts'
+              - 'stylelint.config.js'
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -89,7 +99,7 @@ jobs:
             xargs .venv/bin/prek run -q --files
 
       - name: Prune suppression budgets
-        if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure')
+        if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'
         run: pnpm run lint:js --prune
 
       - name: Apply any pre-commit fixed files

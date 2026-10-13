@@ -3,74 +3,54 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import type {PlatformIcon} from 'platformicons';
 
+import type {UserAvatar} from '@sentry/scraps/avatar';
 import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
-/**
- * The variants a metadata item can take. Narrower than `ContentVariant`, so
- * that a tooltipped item's underline can use the same list.
- */
-type EntityHeaderMetadataVariant = 'primary' | 'muted' | 'danger' | 'success' | 'warning';
+const TEXT_STYLES = {
+  size: 'md',
+  density: 'comfortable',
+  wrap: 'nowrap',
+} as const;
 
-export interface EntityHeaderMetadataItemProps {
-  /**
-   * What the values are — "Browser", "Started at". Required, and read before
-   * them by assistive technology. Same meaning as a stat's or the title's
-   * `label`.
-   */
+interface EntityHeaderMetadataItemBase {
   label: string;
-  /**
-   * The values themselves, rendered together. One item is one property, which
-   * may take more than one value to express: a browser is its name *and* its
-   * version, which is two values rather than one string the caller joined.
-   *
-   * At least one. An item with none would announce a label and then nothing,
-   * which reads as a property whose value failed to load.
-   */
-  values: [React.ReactNode, ...React.ReactNode[]];
-  /**
-   * Decorative graphic rendered before the values: an icon from
-   * `sentry/icons`, or a `PlatformIcon` for a browser, OS or SDK. Drawn in a
-   * fixed 16x16 box, which is held through loading so the row does not
-   * narrow as items resolve.
-   */
   leadingGraphic?:
     | React.ReactElement<SVGIconProps>
-    | React.ReactElement<React.ComponentProps<typeof PlatformIcon>>;
+    | React.ReactElement<React.ComponentProps<typeof PlatformIcon>>
+    | React.ReactElement<React.ComponentProps<typeof UserAvatar>>;
   /**
-   * How much of the property to draw.
-   *
-   * `compact` renders the values alone and leaves naming them to the graphic
-   * beside them, because a header has no room to spell out every property.
-   * `full` draws the label as text in front of them.
-   *
-   * The label is in the DOM either way and read by assistive technology, so
-   * this decides what is on screen, not what is announced.
-   *
    * @default 'compact'
    */
   mode?: 'compact' | 'full';
-  /**
-   * Shown on hover, with a dotted underline to signal it. Use to expand an
-   * abbreviation or explain a term.
-   */
+  secondary?: {
+    label: string;
+    value: React.ReactNode;
+  };
   tooltip?: React.ReactNode;
-  /**
-   * Defaults to `muted`. Use a semantic variant to call out a problem.
-   */
-  variant?: EntityHeaderMetadataVariant;
 }
 
-/**
- * A metadata slot the caller declared but whose item has not resolved yet.
- *
- * The row reserves space for every declared slot, so the number of items
- * cannot change as data lands and push the rows below it down.
- */
+export type EntityHeaderMetadataItemProps = EntityHeaderMetadataItemBase &
+  (
+    | {
+        type: 'text';
+        value: React.ReactNode;
+        variant?: 'primary' | 'muted' | 'danger' | 'success' | 'warning';
+      }
+    | {
+        to: LinkProps['to'];
+        type: 'link';
+        value: string;
+      }
+  );
+
 export function EntityHeaderMetadataItemSkeleton() {
   return (
     <Flex role="listitem" align="center" minWidth={0} minHeight={METADATA_TEXT_HEIGHT}>
@@ -79,31 +59,46 @@ export function EntityHeaderMetadataItemSkeleton() {
   );
 }
 
-export function EntityHeaderMetadataItem({
-  isLoading,
-  label,
-  leadingGraphic,
-  mode = 'compact',
-  tooltip,
-  values,
-  variant = 'muted',
-}: EntityHeaderMetadataItemProps & {isLoading?: boolean}) {
-  const textStyles = {
-    size: 'md',
-    density: 'comfortable',
-    wrap: 'nowrap',
-  } as const;
+function MetadataValue(props: EntityHeaderMetadataItemProps) {
+  const {label, tooltip} = props;
 
-  // Rendered as one run, so a screen reader reads "Chrome 144.0.0" rather than
-  // two fragments. The name comes from this content rather than an `aria-label`
-  // the way the title's does, because a value can be an element — a formatted
-  // timestamp, say — and an element cannot be concatenated into a string.
-  const valueContent = values.map((value, index) => (
-    <Fragment key={index}>
-      {index > 0 ? ' ' : null}
-      {value}
-    </Fragment>
-  ));
+  if (props.type === 'link') {
+    return (
+      <Text {...TEXT_STYLES} variant="accent">
+        {styleProps => {
+          const link = (
+            <Link to={props.to} aria-label={`${label} ${props.value}`} {...styleProps}>
+              {props.value}
+            </Link>
+          );
+          return tooltip ? (
+            <Tooltip title={tooltip} skipWrapper showUnderline>
+              {link}
+            </Tooltip>
+          ) : (
+            link
+          );
+        }}
+      </Text>
+    );
+  }
+
+  return tooltip ? (
+    <InfoText title={tooltip} variant={props.variant} {...TEXT_STYLES}>
+      {props.value}
+    </InfoText>
+  ) : (
+    <Text variant={props.variant} {...TEXT_STYLES}>
+      {props.value}
+    </Text>
+  );
+}
+
+export function EntityHeaderMetadataItem(
+  props: EntityHeaderMetadataItemProps & {isLoading?: boolean}
+) {
+  const {isLoading, label, leadingGraphic, mode = 'compact', secondary} = props;
+  const needsOwnLabel = props.type === 'text' || mode === 'full';
 
   return (
     <Flex
@@ -129,26 +124,31 @@ export function EntityHeaderMetadataItem({
         <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
       ) : (
         <Fragment>
-          {/*
-            The label is in the DOM either way, so a screen reader reads
-            "Browser Chrome 144.0.0" whether or not it is on screen. Showing it
-            is then only a question of visibility, not of semantics.
-          */}
-          {mode === 'full' ? (
-            <Text {...textStyles} variant="muted">
-              {label}
-            </Text>
-          ) : (
-            <VisuallyHidden>{label}</VisuallyHidden>
-          )}
-          {tooltip ? (
-            <InfoText title={tooltip} variant={variant} {...textStyles}>
-              {valueContent}
-            </InfoText>
-          ) : (
-            <Text variant={variant} {...textStyles}>
-              {valueContent}
-            </Text>
+          {needsOwnLabel &&
+            (mode === 'full' ? (
+              <Text {...TEXT_STYLES} variant="muted">
+                {label}
+              </Text>
+            ) : (
+              <VisuallyHidden>{label}</VisuallyHidden>
+            ))}
+          <MetadataValue {...props} />
+          {secondary && (
+            <Fragment>
+              {/*
+                The composed key is real text and not only the tooltip's,
+                because a tooltip reaches assistive technology through
+                `aria-describedby`, which is not announced on focus.
+              */}
+              <VisuallyHidden>{`${label} ${secondary.label}`}</VisuallyHidden>
+              <InfoText
+                title={`${label} ${secondary.label}`}
+                variant="muted"
+                {...TEXT_STYLES}
+              >
+                {secondary.value}
+              </InfoText>
+            </Fragment>
           )}
         </Fragment>
       )}

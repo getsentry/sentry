@@ -217,10 +217,7 @@ from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
 )
-from sentry.insights.endpoints.starred_segments import (
-    InsightsStarredSegmentsEndpoint,
-    OrganizationStarredServiceSpansEndpoint,
-)
+from sentry.insights.endpoints.starred_segments import OrganizationStarredServiceSpansEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
 from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
@@ -585,6 +582,9 @@ from sentry.seer.endpoints.organization_seer_agent_update import (
 from sentry.seer.endpoints.organization_seer_autofix_overview import (
     OrganizationSeerAutofixOverviewEndpoint,
     OrganizationSeerAutofixScmInfoEndpoint,
+)
+from sentry.seer.endpoints.organization_seer_chat_suggestions import (
+    OrganizationSeerChatSuggestionsEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
@@ -1539,12 +1539,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/project-transaction-threshold-override/$",
         ProjectTransactionThresholdOverrideEndpoint.as_view(),
         name="sentry-api-0-organization-project-transaction-threshold-override",
-    ),
-    # Insights
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/insights/starred-segments/$",
-        InsightsStarredSegmentsEndpoint.as_view(),
-        name="sentry-api-0-insights-starred-segments",
     ),
     # Explore
     re_path(
@@ -2555,6 +2549,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?P<run_id>[^/]+)/$",
         OrganizationSeerAgentChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/chat-suggestions/$",
+        OrganizationSeerChatSuggestionsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-chat-suggestions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-overview/$",

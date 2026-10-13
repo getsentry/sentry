@@ -499,6 +499,7 @@ function CodeChangesBody({patchesByRepo}: CodeChangesBodyProps) {
             <FileDiffViewer
               key={index}
               patch={patch.patch}
+              fileUrl={patch.code_url}
               showBorder
               collapsible
               defaultExpanded={repoPatches.length <= 1}
