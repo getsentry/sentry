@@ -67,13 +67,14 @@ export function Button({
         type={type}
         busy={busy}
         {...props}
-        {...(useAriaDisabled && {'aria-disabled': true})}
+        aria-disabled={useAriaDisabled || undefined}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
-        {...(useAriaDisabled && {
-          onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) =>
-            preventKeyboardSubmit(e, props.onKeyDown),
-        })}
+        onKeyDown={
+          useAriaDisabled
+            ? e => preventKeyboardSubmit(e, props.onKeyDown)
+            : props.onKeyDown
+        }
         role="button"
       >
         <Flex

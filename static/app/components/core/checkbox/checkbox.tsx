@@ -135,7 +135,7 @@ export function Checkbox({
           type="checkbox"
           {...props}
           disabled={disabledWithTooltip ? undefined : disabled}
-          {...(disabledWithTooltip && {'aria-disabled': true})}
+          aria-disabled={disabledWithTooltip || undefined}
           name={disabledWithTooltip ? undefined : props.name}
           required={disabledWithTooltip ? undefined : props.required}
           onChange={disabledWithTooltip ? preventDisabledInteraction : props.onChange}
