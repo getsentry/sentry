@@ -153,13 +153,12 @@ function LeadingGraphicSlot({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
 }
 
 export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: boolean}) {
-  const {isLoading, label, leadingGraphic, tags, value} = props;
   // Named from both, so heading navigation lands on "Replay user,
   // anonymous@example.com" rather than on an email address with no frame. The
   // comma is what gives a screen reader its pause; visually hidden text inside
   // the heading would read as one run.
-  const accessibleName = `${label}, ${value}`;
-  if (isLoading) {
+  const accessibleName = `${props.label}, ${props.value}`;
+  if (props.isLoading) {
     // The heading stays in the tree, carrying the label the caller already has.
     // Dropping it would make the page's structure change as the data lands, so
     // anyone navigating by heading mid-load would find nothing and no signal to
@@ -172,8 +171,8 @@ export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: b
           otherwise have the header assert a name it has not got.
         */}
         <VisuallyHidden>
-          <Heading as="h2" size="lg" aria-label={label}>
-            {value}
+          <Heading as="h2" size="lg" aria-label={props.label}>
+            {props.value}
           </Heading>
         </VisuallyHidden>
         <Placeholder width="240px" height={TITLE_HEIGHT} />
@@ -181,7 +180,7 @@ export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: b
     );
   }
 
-  const visibleTags = (tags ?? [])
+  const visibleTags = (props.tags ?? [])
     .map((tag, index) => ({tag, index}))
     .filter(entry => entry.tag !== null);
 
@@ -194,13 +193,13 @@ export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: b
       variant={props.type === 'link' ? 'accent' : undefined}
       aria-label={accessibleName}
     >
-      {value}
+      {props.value}
     </Heading>
   );
 
   return (
     <Flex align="center" gap="sm" minWidth={0} minHeight={ROW_HEIGHT}>
-      {leadingGraphic && <LeadingGraphicSlot graphic={leadingGraphic} />}
+      {props.leadingGraphic && <LeadingGraphicSlot graphic={props.leadingGraphic} />}
       {props.type === 'link' ? (
         // The anchor sits outside the element that clips, because the focus
         // ring is a box-shadow painted beyond its own box and `ellipsis`
