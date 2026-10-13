@@ -2504,7 +2504,19 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "project_root": "/usr/src",
     "in_app_include": ["sentry"],
     "debug": True,
-    "data_collection": {},
+    "data_collection": {
+        "http_headers": {
+            "request": {
+                "mode": "denylist",
+                "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
+            }
+        },
+        "cookies": {"mode": "denylist", "terms": ["forwarded", "-ip", "remote-", "via", "-user"]},
+        "url_query_params": {
+            "mode": "denylist",
+            "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
+        },
+    },
     "auto_enabling_integrations": False,
     "enable_db_query_source": True,
     # Keep alive is enabled to help avoid losing events due to network
