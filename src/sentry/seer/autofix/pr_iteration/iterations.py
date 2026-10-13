@@ -15,6 +15,7 @@ from dataclasses import dataclass
 import sentry_sdk
 
 from sentry.seer.agent.client_models import MemoryBlock, SeerRunState
+from sentry.seer.autofix.pr_iteration.errors import raised_pr_iteration_error
 from sentry.seer.autofix.steps import AutofixStep
 
 logger = logging.getLogger(__name__)
@@ -47,8 +48,8 @@ def get_iterations(state: SeerRunState) -> list[Iteration]:
             # queue). Missing metadata is unexpected; report but keep going.
             raw_feedback = metadata.get("feedback")
             if not raw_feedback or (isinstance(raw_feedback, str) and not raw_feedback.strip()):
-                sentry_sdk.capture_message(
-                    "PR_ITERATION block missing feedback metadata",
+                sentry_sdk.capture_exception(
+                    raised_pr_iteration_error("PR_ITERATION block missing feedback metadata"),
                     level="warning",
                     extras={
                         "run_id": state.run_id,

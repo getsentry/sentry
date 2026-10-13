@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconStack} from '@sentry/icons/stack';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -19,7 +21,6 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconDelete, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {UserEmail} from 'sentry/types/user';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';

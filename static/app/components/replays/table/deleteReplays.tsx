@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconDelete} from '@sentry/icons/delete';
 import {useQueryClient} from '@tanstack/react-query';
 import invariant from 'invariant';
 import {useQueryState} from 'nuqs';
@@ -21,7 +23,6 @@ import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulk
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCalendar, IconDelete} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';

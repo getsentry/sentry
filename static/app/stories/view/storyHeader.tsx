@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
+import {IconGithub} from '@sentry/icons/github';
+import {IconLink} from '@sentry/icons/link';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
-import {IconGithub, IconLink} from 'sentry/icons';
 import {ThemeSwitcher} from 'sentry/stories/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';

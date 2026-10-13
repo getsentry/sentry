@@ -2,13 +2,12 @@ import type {HTMLAttributes, MouseEvent, ReactNode} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import type {LocationDescriptor} from 'history';
 
 import {FLEX_JUSTIFY_CONTENT, type FlexJustify} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {IconArrow} from 'sentry/icons';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -89,7 +88,9 @@ export function SortableHeaderCell({
 const Label = styled('div', {
   shouldForwardProp: prop => prop !== 'align' && prop !== 'grow',
 })<{grow: boolean; align?: ColumnAlign}>`
+  margin: -${p => p.theme.space['2xs']};
   overflow: hidden;
+  padding: ${p => p.theme.space['2xs']};
   text-overflow: ellipsis;
   white-space: nowrap;
 
@@ -121,9 +122,10 @@ export const HeaderCellContent = styled('div', {
   flex: 1;
   font: inherit;
   gap: ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space['2xs']};
   min-width: 0;
   overflow: hidden;
-  padding: 0;
+  padding: ${p => p.theme.space['2xs']};
   text-align: inherit;
   text-transform: inherit;
 
