@@ -133,7 +133,6 @@ function SubtitleWithCopyButton({
           variant="transparent"
           size="zero"
           text={clipboardText}
-          tooltipProps={{disabled: true}}
         />
       ) : null}
     </Flex>

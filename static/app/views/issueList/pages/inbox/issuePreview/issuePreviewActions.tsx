@@ -8,13 +8,16 @@ import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExp
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {EntryType} from 'sentry/types/event';
+import {EntryType, type Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
-import {issueAndEventToMarkdown} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
+import {
+  issueAndEventToMarkdown,
+  useActiveThreadId,
+} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   PullRequestButtons,
@@ -45,6 +48,7 @@ function CopyAsMarkdownButton({
 }: CopyAsMarkdownButtonProps) {
   const organization = useOrganization();
   const {copy} = useCopyToClipboard();
+  const activeThreadId = useActiveThreadId();
   const {data: event, isPending} = useGroupEvent({
     groupId: group.id,
     eventId: 'recommended',
@@ -52,7 +56,7 @@ function CopyAsMarkdownButton({
   });
 
   function handleCopy() {
-    const threads =
+    const threads: Thread[] =
       event?.entries.find(entry => entry.type === EntryType.THREADS)?.data.values ?? [];
     void copy(
       issueAndEventToMarkdown({
@@ -61,7 +65,9 @@ function CopyAsMarkdownButton({
         organization,
         autofixData,
         autofixFormatted,
-        activeThreadId: findBestThread(threads)?.id,
+        activeThreadId: (
+          threads.find(thread => thread.id === activeThreadId) ?? findBestThread(threads)
+        )?.id,
       }),
       {successMessage: t('Copied issue to clipboard as Markdown')}
     );
