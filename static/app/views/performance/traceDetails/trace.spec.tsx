@@ -934,6 +934,54 @@ describe('trace view', () => {
     });
   });
 
+  it('compresses inactive gaps by default and allows opting out without feature flags', async () => {
+    localStorage.clear();
+    jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue(new DOMRect(0, 0, 1000, 500));
+    setupEAPTraceView();
+    mockTraceResponse({
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'root-transaction',
+          description: 'root transaction',
+          is_transaction: true,
+          start_timestamp: 1,
+          end_timestamp: 2,
+        }),
+        makeEAPSpan({
+          event_id: 'second-transaction',
+          description: 'second transaction',
+          is_transaction: true,
+          start_timestamp: 10,
+          end_timestamp: 11,
+        }),
+      ]),
+    });
+    render(<TraceView />, {
+      organization: OrganizationFixture({features: []}),
+      initialRouterConfig,
+    });
+
+    const gapLabel = await screen.findByText('6.08s');
+    await userEvent.hover(gapLabel);
+    expect(await screen.findByText('Skipped 6.08s inactive period')).toBeInTheDocument();
+    await userEvent.unhover(gapLabel);
+    await userEvent.click(screen.getByRole('button', {name: 'Trace Preferences'}));
+    const option = screen.getByRole('option', {name: 'Compressed Timeline'});
+    expect(option).toHaveAttribute('aria-selected', 'true');
+    await userEvent.click(option);
+    await waitFor(() =>
+      expect(screen.getByRole('option', {name: 'Compressed Timeline'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      )
+    );
+    expect(screen.queryByText('6.08s')).not.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    localStorage.clear();
+  });
+
   it('renders loading state', async () => {
     mockPerformanceSubscriptionDetailsResponse();
     mockProjectDetailsResponse();
