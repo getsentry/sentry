@@ -326,6 +326,14 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                disable_deprecated_functions=(
+                    dataset == Spans
+                    and features.has(
+                        "organizations:explore-disable-deprecated-if-functions",
+                        organization,
+                        actor=request.user,
+                    )
+                ),
             )
 
     def get_event_stats(

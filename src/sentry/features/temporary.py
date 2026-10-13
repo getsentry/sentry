@@ -452,6 +452,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Enable saving reusable formulas in Explore and referencing them in visualizations
     manager.add("organizations:explore-saved-formulas", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Disable the deprecated if functions in EAP
+    manager.add("organizations:explore-disable-deprecated-if-functions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Show combined resolved "past issues" section instead of separate key errors / performance issues
     manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
