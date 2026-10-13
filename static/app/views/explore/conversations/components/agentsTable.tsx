@@ -29,7 +29,7 @@ export const LLM_CALLS_SAVED_QUERY = {
     SpanFields.GEN_AI_COST_TOTAL_TOKENS,
     SpanFields.TIMESTAMP,
   ],
-  query: `${getAiClientSpansFilter()} has:${SpanFields.GEN_AI_OUTPUT_MESSAGES}`,
+  query: getAiClientSpansFilter(),
 } satisfies Pick<ReadableQueryParamsOptions, 'fields' | 'query'>;
 
 interface AgentsTableProps {
