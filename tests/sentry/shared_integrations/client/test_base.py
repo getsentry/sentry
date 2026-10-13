@@ -25,6 +25,12 @@ class BaseApiClientTest(TestCase):
 
         self.api_client = Client()
 
+    def test_build_session_disables_retries(self) -> None:
+        with self.options({"integrations.client.disable_retries": True}):
+            session = self.api_client.build_session()
+
+        assert session.get_adapter("https://").max_retries.total == 0
+
     @responses.activate
     @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
     def test_finalize_request(self, mock_finalize_request) -> None:
