@@ -33,7 +33,9 @@ describe('Button', () => {
 
     const button = screen.getByRole('button', {name: 'Save'});
     expect(button).toHaveAttribute('aria-disabled', 'true');
-    expect(button).toBeEnabled();
+
+    await userEvent.tab();
+    expect(button).toHaveFocus();
 
     await userEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();

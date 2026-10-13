@@ -53,7 +53,6 @@ describe('Checkbox', () => {
 
     const checkbox = screen.getByRole('checkbox', {name: 'Enable feature'});
     expect(checkbox).toHaveAttribute('aria-disabled', 'true');
-    expect(checkbox).toBeEnabled();
 
     await userEvent.tab();
     expect(checkbox).toHaveFocus();
