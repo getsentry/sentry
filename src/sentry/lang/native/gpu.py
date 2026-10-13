@@ -183,6 +183,7 @@ def _decode_data_chunk(node: Any) -> str | None:
 
 
 def _last_gpu_operation(response: Mapping[str, Any]) -> str | None:
+    executing = None
     fallback = None
     for marker in response.get("markers") or []:
         if not isinstance(marker, dict) or marker.get("kind") != "aftermath":
@@ -194,10 +195,10 @@ def _last_gpu_operation(response: Mapping[str, Any]) -> str | None:
         event = data.get("Event") if isinstance(data, dict) else None
         status = event.get("Status") if isinstance(event, dict) else None
         if status == "Executing":
-            return text
-        if status is None and fallback is None:
+            executing = text
+        elif status is None:
             fallback = text
-    return fallback
+    return executing or fallback
 
 
 def _marker_callstack(marker_data: Any) -> list[str] | None:

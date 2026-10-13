@@ -417,6 +417,23 @@ def test_apply_last_gpu_operation_prefers_executing_marker() -> None:
     assert "during Draw Triangle" in data["exception"]["values"][0]["value"]
 
 
+def test_apply_last_gpu_operation_picks_innermost_executing_marker() -> None:
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(
+            markers=[
+                _aftermath_marker("Frame 2841", "Executing"),
+                _aftermath_marker("BasePass", "Executing"),
+                _aftermath_marker("DrawIndexed Rock_LOD0", "Executing"),
+                _aftermath_marker("Present", "Not Started"),
+            ]
+        ),
+    )
+    assert data["contexts"]["gpu_crash"]["last_gpu_operation"] == "DrawIndexed Rock_LOD0"
+    assert "during DrawIndexed Rock_LOD0" in data["exception"]["values"][0]["value"]
+
+
 def test_apply_last_gpu_operation_ignores_finished_and_pending_markers() -> None:
     data = _relay_gpu_event()
     apply_gpu_crash_symbolication(
