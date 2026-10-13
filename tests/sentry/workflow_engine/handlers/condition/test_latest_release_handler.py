@@ -8,9 +8,9 @@ from jsonschema import ValidationError
 from sentry.models.release import Release
 from sentry.rules.filters.latest_release import LatestReleaseFilter
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.cache import cache
 from sentry.workflow_engine.handlers.condition.utils.releases import (
-    get_latest_release_cache_key as get_project_release_cache_key,
+    LatestReleaseCacheKey,
+    latest_release_cache,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -109,22 +109,22 @@ class TestLatestReleaseCondition(ConditionTestCase):
         new_release.add_project(self.project)
 
         # ensure we clear the cache after creating a new release
-        cache_key = get_project_release_cache_key(self.event.group.project_id)
-        assert cache.get(cache_key) is None
+        cache_key = LatestReleaseCacheKey(self.event.group.project_id, None)
+        assert latest_release_cache.get(cache_key) is None
 
         self.assert_does_not_pass(self.dc, self.event_data)
 
         # ensure we clear the cache when a release is deleted
         new_release.safe_delete()
-        cache_key = get_project_release_cache_key(self.event.group.project_id)
-        assert cache.get(cache_key) is None
+        cache_key = LatestReleaseCacheKey(self.event.group.project_id, None)
+        assert latest_release_cache.get(cache_key) is None
 
         # rule should pass again because the latest release is oldRelease
         self.assert_passes(self.dc, self.event_data)
 
     def test_release_environment_clears_cache(self) -> None:
-        cache_key = get_project_release_cache_key(self.project.id, self.environment.id)
-        cache.set(cache_key, self.release, 600)
+        cache_key = LatestReleaseCacheKey(self.project.id, self.environment.id)
+        latest_release_cache.set(cache_key, self.release)
 
         self.create_release(
             project=self.project,
@@ -132,7 +132,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
             environments=[self.environment],
         )
 
-        assert cache.get(cache_key) is None
+        assert latest_release_cache.get(cache_key) is None
 
     def test_latest_release_with_environment(self) -> None:
         self.create_release(

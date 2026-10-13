@@ -15,7 +15,7 @@ from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.renderers import JSONRenderer
 from rest_framework.request import Request as DRFRequest
 from rest_framework.response import Response as DRFResponse
-from sentry_sdk import Scope
+from sentry_sdk import Scope, traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -50,7 +50,6 @@ from sentry.silo.util import (
     verify_subnet_signature,
 )
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -378,7 +377,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             tags={"failure_type": failure_type.value, "provider": self.provider},
         )
 
-    @trace
+    @traces.trace
     def _call_third_party_api(
         self, request: HttpRequest, full_url: str, headers: MutableMapping[str, str]
     ) -> StreamingHttpResponse:
@@ -427,7 +426,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             reason=resp.reason,
         )
 
-    @trace(op="integration_proxy.http_method_not_allowed")
+    @traces.trace(attributes={"sentry.op": "integration_proxy.http_method_not_allowed"})
     def http_method_not_allowed(self, request):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)

@@ -258,6 +258,14 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
  * Main Webpack config for Sentry React SPA.
  */
 
+// Resolve workspace imports from the importing package's declared dependencies.
+const workspaceResolutionRules = ['app', 'gsApp', 'gsAdmin'].map(directory => ({
+  include: path.join(staticPrefix, directory),
+  resolve: {
+    modules: [path.join(staticPrefix, directory, 'node_modules')],
+  },
+}));
+
 const appConfig: Configuration = {
   name: 'app',
   mode: WEBPACK_MODE,
@@ -281,7 +289,7 @@ const appConfig: Configuration = {
      * This generates a single "sentry.css" file that imports ALL component styles
      * for use on Django-powered pages.
      */
-    sentry: 'less/sentry.less',
+    sentry: './less/sentry.less',
   },
   context: staticPrefix,
   incremental: DEV_MODE,
@@ -318,6 +326,22 @@ const appConfig: Configuration = {
      * Please remember to test it.
      */
     rules: [
+      ...workspaceResolutionRules,
+      {
+        // Only first-party imports use V8 paths. Leave dependencies and the
+        // compatibility implementation on the original V6 package resolution.
+        include: [staticPrefix, path.join(import.meta.dirname, 'tests/js')],
+        exclude: [path.join(staticPrefix, 'app/utils/reactRouterV6'), /node_modules/],
+        resolve: {
+          alias: {
+            'react-router$': path.join(staticPrefix, 'app/utils/reactRouterV6/index.ts'),
+            'react-router/dom$': path.join(
+              staticPrefix,
+              'app/utils/reactRouterV6/dom.ts'
+            ),
+          },
+        },
+      },
       {
         test: /\.(?:tsx?|jsx?)$/,
         oneOf: [
@@ -492,7 +516,6 @@ const appConfig: Configuration = {
 
   resolve: {
     alias: {
-      sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
@@ -510,14 +533,9 @@ const appConfig: Configuration = {
         path.join(staticPrefix, 'app', 'components', 'core'),
       ],
 
-      getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
       'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
-      admin: path.join(staticPrefix, 'gsAdmin'),
 
-      // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
-      // to be resolved
-      less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
       'ios-device-list': path.join(
@@ -597,6 +615,7 @@ const workerConfig: Configuration = {
   lazyCompilation: appConfig.lazyCompilation,
   module: {
     rules: [
+      ...workspaceResolutionRules,
       {
         test: /\.ts$/,
         // core-js: Avoids recompiling core-js based on usage imports
@@ -989,16 +1008,21 @@ if (IS_PRODUCTION) {
   );
 }
 
-// Cache rspack builds
+// Cache rspack builds (CI and Vercel)
 if (env.WEBPACK_CACHE_PATH) {
-  appConfig.cache = true;
+  appConfig.experiments = {...appConfig.experiments, newCache: true};
   appConfig.cache = {
-    type: 'persistent',
-    // https://rspack.rs/config/cache
-    storage: {
-      type: 'filesystem',
-      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
-    },
+    type: 'filesystem',
+    // Keep clear of the old persistent cache's `app-production` directory,
+    // the new cache fails to open when both share a location
+    name: `app-${WEBPACK_MODE}-new`,
+    cacheDirectory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    // Read entries from disk instead of holding the whole cache in memory
+    maxMemoryGenerations: 0,
+    // Only master deploys write the cache, preview deploys restore it from
+    // master. Avoids growing the cache on every branch and the memory spike
+    // from writing it on Vercel's 8GB build machines.
+    readonly: IS_DEPLOY_PREVIEW && env.NOW_GITHUB_COMMIT_REF !== 'master',
   };
 }
 

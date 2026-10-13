@@ -1,11 +1,12 @@
 import {useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {IconClose} from '@sentry/icons/close';
+import {IconExclamation} from '@sentry/icons/exclamation';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClose, IconExclamation} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useAuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';

@@ -1,10 +1,10 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import {IconSentry} from '@sentry/icons/sentry';
 
 import {Link} from '@sentry/scraps/link';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {IconSentry} from 'sentry/icons';
 
 const BODY_CLASSES = ['narrow'];
 

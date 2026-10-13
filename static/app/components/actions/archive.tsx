@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -11,7 +12,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {CustomIgnoreCountModal} from 'sentry/components/customIgnoreCountModal';
 import {CustomIgnoreDurationModal} from 'sentry/components/customIgnoreDurationModal';
-import {IconChevron} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';

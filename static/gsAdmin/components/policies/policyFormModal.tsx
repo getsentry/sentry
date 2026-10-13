@@ -1,4 +1,5 @@
 import {Fragment, useRef, useState} from 'react';
+import {IconClose} from '@sentry/icons/close';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -9,7 +10,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {IconClose} from 'sentry/icons';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {readFileAsBase64} from 'sentry/utils/readFileAsBase64';

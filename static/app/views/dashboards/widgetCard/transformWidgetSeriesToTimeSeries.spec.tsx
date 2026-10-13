@@ -291,7 +291,7 @@ describe('transformWidgetSeriesToTimeSeries', () => {
           timestamp: 2000,
           value: null,
           incomplete: true,
-          incompleteReason: 'INCOMPLETE_BUCKET',
+          incompleteReason: 'INGESTION_PENDING',
         },
       ],
     });
@@ -314,7 +314,7 @@ describe('transformWidgetSeriesToTimeSeries', () => {
         timestamp: 2000,
         value: 0,
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       },
     ]);
     expect(result?.timeSeries.meta).toEqual({

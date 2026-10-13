@@ -1,18 +1,10 @@
 from __future__ import annotations
 
-from django import forms
-
 from sentry.rules.filters.base import EventFilter
 from sentry.workflow_engine.handlers.condition.utils.age import (
     age_comparison_choices,
     get_timerange_choices,
 )
-
-
-class AgeComparisonForm(forms.Form):
-    comparison_type = forms.ChoiceField(choices=age_comparison_choices)
-    value = forms.IntegerField()
-    time = forms.ChoiceField(choices=get_timerange_choices)
 
 
 class AgeComparisonFilter(EventFilter):
@@ -26,6 +18,3 @@ class AgeComparisonFilter(EventFilter):
     # An issue is newer/older than X minutes/hours/days/weeks
     label = "The issue is {comparison_type} than {value} {time}"
     prompt = "The issue is older or newer than..."
-
-    def get_form_instance(self) -> AgeComparisonForm:
-        return AgeComparisonForm(self.data)

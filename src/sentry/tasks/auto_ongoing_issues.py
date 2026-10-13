@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from django.db.models import OuterRef, Subquery
+from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 
 from sentry import options
@@ -16,7 +17,6 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
 
     spread_seconds = max(0, options.get("issues.auto_ongoing_issues.child_task_spread_seconds"))
     scheduled = 0
-    with start_span(name="iterate_chunked_group_ids"):
+    with traces.start_span(name="iterate_chunked_group_ids"):
         started = time.monotonic()
         for batch_index, groups in enumerate(
             chunked(
@@ -158,8 +158,9 @@ def run_auto_transition_issues_new_to_ongoing(
     Child task of `auto_transition_issues_new_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
-    with start_span(name="bulk_transition_group_to_ongoing") as span:
-        set_span_tag(span, "group_ids", group_ids)
+    with traces.start_span(
+        name="bulk_transition_group_to_ongoing", attributes={"group_ids": group_ids}
+    ):
         bulk_transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.NEW,
@@ -210,7 +211,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
 
     spread_seconds = max(0, options.get("issues.auto_ongoing_issues.child_task_spread_seconds"))
     scheduled = 0
-    with start_span(name="iterate_chunked_group_ids"):
+    with traces.start_span(name="iterate_chunked_group_ids"):
         started = time.monotonic()
         for batch_index, group_ids_with_regressed_history in enumerate(
             chunked(
@@ -256,8 +257,9 @@ def run_auto_transition_issues_regressed_to_ongoing(
     Child task of `auto_transition_issues_regressed_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
-    with start_span(name="bulk_transition_group_to_ongoing") as span:
-        set_span_tag(span, "group_ids", group_ids)
+    with traces.start_span(
+        name="bulk_transition_group_to_ongoing", attributes={"group_ids": group_ids}
+    ):
         bulk_transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.REGRESSED,
@@ -308,7 +310,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
 
     spread_seconds = max(0, options.get("issues.auto_ongoing_issues.child_task_spread_seconds"))
     scheduled = 0
-    with start_span(name="iterate_chunked_group_ids"):
+    with traces.start_span(name="iterate_chunked_group_ids"):
         started = time.monotonic()
         for batch_index, new_group_ids in enumerate(
             chunked(
@@ -354,8 +356,9 @@ def run_auto_transition_issues_escalating_to_ongoing(
     Child task of `auto_transition_issues_escalating_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
-    with start_span(name="bulk_transition_group_to_ongoing") as span:
-        set_span_tag(span, "group_ids", group_ids)
+    with traces.start_span(
+        name="bulk_transition_group_to_ongoing", attributes={"group_ids": group_ids}
+    ):
         bulk_transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.ESCALATING,

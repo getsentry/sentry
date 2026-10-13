@@ -17,6 +17,11 @@ pnpm --dir static/packages/scraps test
 pnpm --dir static/packages/scraps typecheck
 ```
 
+Typechecking checks source and tests together and emits declarations into the
+ignored `.types` directory. The app uses these declarations through a TypeScript
+project reference. Run `pnpm run typecheck` to check the full project in
+dependency order. The release build continues to use `dist`.
+
 To check package imports through the Sentry app's aliases, run the app integration test:
 
 ```sh
@@ -56,12 +61,8 @@ The package does not include application providers, global CSS, or fonts.
 
 ## Prepare a release
 
-Add a nonempty `## <version>` section to [CHANGELOG.md](./CHANGELOG.md), then
-run the `Prepare Scraps release` GitHub workflow with that version. The initial
-entry is `0.1.0`. Craft's `simple` policy rejects a release without a matching
-entry.
-
-Craft creates a `scraps/release/<version>` branch and opens a request in
-`getsentry/publish`. The package workflow verifies that branch and uploads its
-npm tarball. A release manager must approve the request before Craft publishes.
-The Sentry Docker release uses the root `.craft.yml`.
+Run the `Release` GitHub workflow and select the `static/packages/scraps` workspace.
+Leave the version blank to use the workspace's automatic versioning policy.
+Craft uses conventional commits to choose the next version and update
+[CHANGELOG.md](./CHANGELOG.md). To override the version, enter an exact version
+or `major`, `minor`, `patch`, or `auto`.

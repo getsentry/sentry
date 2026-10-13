@@ -14,6 +14,7 @@ import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryPar
 import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesTable';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {getAiClientSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const AGENTS_TABLE_TABS = ['conversations', 'traces', 'spans'] as const;
@@ -28,7 +29,7 @@ export const LLM_CALLS_SAVED_QUERY = {
     SpanFields.GEN_AI_COST_TOTAL_TOKENS,
     SpanFields.TIMESTAMP,
   ],
-  query: `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client has:${SpanFields.GEN_AI_OUTPUT_MESSAGES}`,
+  query: `${getAiClientSpansFilter()} has:${SpanFields.GEN_AI_OUTPUT_MESSAGES}`,
 } satisfies Pick<ReadableQueryParamsOptions, 'fields' | 'query'>;
 
 interface AgentsTableProps {

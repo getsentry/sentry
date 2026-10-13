@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
+import {Fragment, useContext, useMemo, useRef} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -12,29 +12,14 @@ import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type {useOverlay} from 'sentry/utils/useOverlay';
 
+import type {OverlayState} from './context';
+import {DropdownMenuContext} from './context';
 import type {MenuItemProps} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
 import {DropdownSubmenu} from './submenu';
-
-type OverlayState = ReturnType<typeof useOverlay>['state'];
-
-interface DropdownMenuContextValue {
-  /**
-   * Menu state (from @react-aria's useTreeState) of the parent menu. To be used to
-   * close the current submenu.
-   */
-  parentMenuState?: TreeState<MenuItemProps>;
-  /**
-   * Overlay state manager (from useOverlay) for the root (top-most) menu. To be used to
-   * close the entire menu system.
-   */
-  rootOverlayState?: OverlayState;
-}
-
-export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
+import {useSafetyTriangle} from './useSafetyTriangle';
 
 export interface DropdownMenuListProps
   extends
@@ -196,6 +181,7 @@ export function DropdownMenuList({
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
+  const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
 
@@ -257,8 +243,9 @@ export function DropdownMenuList({
     () => ({
       rootOverlayState: rootOverlayState ?? overlayState,
       parentMenuState: state,
+      safetyTriangle,
     }),
-    [rootOverlayState, overlayState, state]
+    [rootOverlayState, overlayState, state, safetyTriangle]
   );
   return (
     <FocusScope restoreFocus autoFocus>
@@ -339,7 +326,7 @@ const MenuTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   z-index: 2;
 `;

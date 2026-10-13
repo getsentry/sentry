@@ -1,6 +1,10 @@
 import {Fragment, useState} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconInfo} from '@sentry/icons/info';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSubtract} from '@sentry/icons/subtract';
 import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
@@ -22,7 +26,6 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
-import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject} from 'sentry/types/project';
@@ -70,7 +73,7 @@ function EditPreviewHighlightSection({
     location,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
-    (rowList, {alias, data, type}) => {
+    (rowList, {alias, data}) => {
       const meta = getContextMeta(event, alias);
       const newRows = data.map(item => (
         <Fragment key={`edit-highlight-ctx-${alias}-${item.key}`}>
@@ -84,9 +87,7 @@ function EditPreviewHighlightSection({
             meta={meta}
             item={item}
             alias={alias}
-            type={type}
             config={{
-              attributeDetailsType: 'event',
               includeAliasInSubject: true,
               disableErrors: true,
               disableLink: true,

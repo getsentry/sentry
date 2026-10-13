@@ -1133,11 +1133,21 @@ class GroupUpdateTest(APITestCase):
             user_id=self.user.id, group=group, is_active=True
         ).exists()
 
+        resp = self.client.get(url)
+        assert resp.status_code == 200, resp.content
+        assert [(user["id"], user["type"]) for user in resp.data["participants"]] == [
+            (str(self.user.id), "user")
+        ]
+
         resp = self.client.put(url, data={"isSubscribed": "false"})
         assert resp.status_code == 200, resp.content
         assert GroupSubscription.objects.filter(
             user_id=self.user.id, group=group, is_active=False
         ).exists()
+
+        resp = self.client.get(url)
+        assert resp.status_code == 200, resp.content
+        assert resp.data["participants"] == []
 
     def test_discard(self) -> None:
         self.login_as(user=self.user)

@@ -196,7 +196,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     // The stored backend key and its `[*]` membership form both resolve to the
     // array definition (the `[*]` is stripped before lookup).
     expect(getFieldDefinition('tags[csv_headers,array]')?.kind).toBe(FieldKind.ARRAY);
-    expect(getFieldDefinition('tags[csv_headers,array][*]')?.kind).toBe(FieldKind.ARRAY);
+    expect(getFieldDefinition('tags[csv_headers[*],array]')?.kind).toBe(FieldKind.ARRAY);
   });
 
   it('wires string attributes into filter keys and aliases', () => {

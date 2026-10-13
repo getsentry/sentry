@@ -1,7 +1,10 @@
+import {IconPause} from '@sentry/icons/pause';
+import {IconPlay} from '@sentry/icons/play';
+import {IconRefresh} from '@sentry/icons/refresh';
+
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 
-import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   useReplayPlayerState,

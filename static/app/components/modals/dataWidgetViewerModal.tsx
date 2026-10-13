@@ -28,6 +28,7 @@ import type {User} from 'sentry/types/user';
 import {CAN_MARK, trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
+import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -106,10 +107,7 @@ import {
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
-import {
-  decodeColumnOrder,
-  getTargetForTransactionSummaryLink,
-} from 'sentry/views/discover/utils';
+import {getTargetForTransactionSummaryLink} from 'sentry/views/discover/utils';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 

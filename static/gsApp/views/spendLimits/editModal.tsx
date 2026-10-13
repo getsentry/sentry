@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -200,7 +200,15 @@ class SpendLimitsEditModal extends Component<Props, State> {
 
     return (
       <Fragment>
-        <OffsetBody>
+        <Container
+          css={theme => css`
+            margin: -${theme.space['2xl']};
+
+            @container (min-width: ${theme.container['3xl']}) {
+              margin-inline: -${theme.space['3xl']};
+            }
+          `}
+        >
           {this.renderError(this.state.updateError)}
           <Container padding="2xl">
             <EmbeddedSpendLimitSettings
@@ -224,7 +232,7 @@ class SpendLimitsEditModal extends Component<Props, State> {
               }}
             />
           </Container>
-        </OffsetBody>
+        </Container>
         <Footer>
           <Grid flow="column" align="center" gap="md">
             <Button
@@ -243,13 +251,5 @@ class SpendLimitsEditModal extends Component<Props, State> {
     );
   }
 }
-
-const OffsetBody = styled('div')`
-  margin: -${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${p => p.theme.space['2xl']};
-  }
-`;
 
 export default withApi(SpendLimitsEditModal);
