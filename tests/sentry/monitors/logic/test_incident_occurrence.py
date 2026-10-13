@@ -25,7 +25,8 @@ from sentry.monitors.models import (
     MonitorStatus,
     ScheduleType,
 )
-from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
+from sentry.monitors.models import get_detector_for_monitor
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.testutils.cases import TestCase
 
 

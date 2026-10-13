@@ -9,7 +9,8 @@ from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, ScheduleType
-from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
+from sentry.monitors.models import get_detector_for_monitor
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.rules.conditions.event_frequency import (
     EventUniqueUserFrequencyConditionWithConditions,
 )
