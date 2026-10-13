@@ -20,7 +20,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {AggregationKey} from 'sentry/utils/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {EventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
+import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -120,7 +120,7 @@ export const ErrorsConfig: DatasetConfig<
   ],
   useSeriesQuery: useErrorsSeriesQuery,
   useTableQuery: useErrorsTableQuery,
-  ...EventsResponseTransforms,
+  ...eventsResponseTransforms,
   filterAggregateParams,
 };
 

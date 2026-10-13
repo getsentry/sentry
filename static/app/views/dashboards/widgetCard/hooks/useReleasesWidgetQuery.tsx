@@ -13,7 +13,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/datasetConfig/utils/releaseQueryFields';
-import {ReleasesResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/releasesResponseTransforms';
+import {releasesResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/releasesResponseTransforms';
 import {getWidgetInterval} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -152,7 +152,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
       const responseData = q.data.json;
 
-      const transformedResult = ReleasesResponseTransforms.transformSeries?.(
+      const transformedResult = releasesResponseTransforms.transformSeries?.(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -306,7 +306,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
       const responseData = q.data.json;
 
-      const tableData = ReleasesResponseTransforms.transformTable?.(
+      const tableData = releasesResponseTransforms.transformTable?.(
         responseData,
         filteredWidget.queries[i]!,
         organization,

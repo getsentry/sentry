@@ -25,7 +25,7 @@ import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import {TraceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
+import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -125,7 +125,7 @@ export function useTraceMetricsSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = TraceMetricsResponseTransforms.transformSeries!(
+      const transformedResult = traceMetricsResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -142,11 +142,11 @@ export function useTraceMetricsSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = TraceMetricsResponseTransforms.getSeriesResultType?.(
+      const resultTypes = traceMetricsResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
-      const resultUnits = TraceMetricsResponseTransforms.getSeriesResultUnit?.(
+      const resultUnits = traceMetricsResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -288,7 +288,7 @@ export function useTraceMetricsTableQuery(
       const responseData = q.data.json;
 
       const transformedDataItem = {
-        ...TraceMetricsResponseTransforms.transformTable(
+        ...traceMetricsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,

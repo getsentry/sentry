@@ -20,7 +20,7 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import {TransactionsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/transactionsResponseTransforms';
+import {transactionsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/transactionsResponseTransforms';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
@@ -162,7 +162,7 @@ export function useTransactionsSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = TransactionsResponseTransforms.transformSeries!(
+      const transformedResult = transactionsResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -311,7 +311,7 @@ export function useTransactionsTableQuery(
       const responseData = q.data.json;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...TransactionsResponseTransforms.transformTable(
+        ...transactionsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,

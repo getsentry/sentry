@@ -26,7 +26,7 @@ import {
   getTableSortOptions,
   getTimeseriesSortOptions,
 } from 'sentry/views/dashboards/datasetConfig/events';
-import {EventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
+import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {
@@ -253,7 +253,7 @@ export const LogsConfig: DatasetConfig<
   ],
   useSeriesQuery: useLogsSeriesQuery,
   useTableQuery: useLogsTableQuery,
-  ...EventsResponseTransforms,
+  ...eventsResponseTransforms,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);

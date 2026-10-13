@@ -28,7 +28,7 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/events';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {TraceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
+import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {
@@ -336,7 +336,7 @@ export const TraceMetricsConfig: DatasetConfig<
   useSeriesQuery: useTraceMetricsSeriesQuery,
   useTableQuery: useTraceMetricsTableQuery,
   useHeatmapQuery: useTraceMetricsHeatmapQuery,
-  ...TraceMetricsResponseTransforms,
+  ...traceMetricsResponseTransforms,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },

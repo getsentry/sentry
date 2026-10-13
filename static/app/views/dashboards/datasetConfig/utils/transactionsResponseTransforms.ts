@@ -8,7 +8,7 @@ import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 
-export const TransactionsResponseTransforms: Pick<
+export const transactionsResponseTransforms: Pick<
   DatasetConfig<
     EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
     TableData | EventsTableData

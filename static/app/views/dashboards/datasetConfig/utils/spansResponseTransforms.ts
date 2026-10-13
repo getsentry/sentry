@@ -136,7 +136,7 @@ function transformSeries(
   return transformEventsResponseToSeries(eventsStats, widgetQuery);
 }
 
-export const SpansResponseTransforms: Pick<
+export const spansResponseTransforms: Pick<
   DatasetConfig<
     | EventsStats
     | MultiSeriesEventsStats

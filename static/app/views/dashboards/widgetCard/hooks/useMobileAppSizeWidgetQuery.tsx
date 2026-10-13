@@ -15,7 +15,7 @@ import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import {MobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/mobileAppSizeResponseTransforms';
+import {mobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/mobileAppSizeResponseTransforms';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -148,7 +148,7 @@ export function useMobileAppSizeSeriesQuery(
   });
 
   useEventsTimeseriesSpotCheck({
-    config: MobileAppSizeResponseTransforms,
+    config: mobileAppSizeResponseTransforms,
     enabled,
     statsQueryResults: queryResults,
     organization,
@@ -186,7 +186,7 @@ export function useMobileAppSizeSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = MobileAppSizeResponseTransforms.transformSeries!(
+      const transformedResult = mobileAppSizeResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -203,7 +203,7 @@ export function useMobileAppSizeSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = MobileAppSizeResponseTransforms.getSeriesResultType?.(
+      const resultTypes = mobileAppSizeResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -212,7 +212,7 @@ export function useMobileAppSizeSeriesQuery(
         Object.assign(timeseriesResultsTypes, resultTypes);
       }
 
-      const resultUnits = MobileAppSizeResponseTransforms.getSeriesResultUnit?.(
+      const resultUnits = mobileAppSizeResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );

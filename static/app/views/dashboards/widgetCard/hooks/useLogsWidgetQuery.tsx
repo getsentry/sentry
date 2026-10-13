@@ -22,7 +22,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {EventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
+import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
@@ -161,7 +161,7 @@ export function useLogsSeriesQuery(
   });
 
   useEventsTimeseriesSpotCheck({
-    config: EventsResponseTransforms,
+    config: eventsResponseTransforms,
     enabled,
     statsQueryResults: queryResults,
     organization,
@@ -198,7 +198,7 @@ export function useLogsSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = EventsResponseTransforms.transformSeries!(
+      const transformedResult = eventsResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -215,11 +215,11 @@ export function useLogsSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = EventsResponseTransforms.getSeriesResultType?.(
+      const resultTypes = eventsResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
-      const resultUnits = EventsResponseTransforms.getSeriesResultUnit?.(
+      const resultUnits = eventsResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -345,7 +345,7 @@ export function useLogsTableQuery(
       const responseData = q.data.json;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...EventsResponseTransforms.transformTable(
+        ...eventsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,

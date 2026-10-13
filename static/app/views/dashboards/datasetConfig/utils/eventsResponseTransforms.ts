@@ -15,7 +15,7 @@ import {
   transformTimeSeriesResponseToSeries,
 } from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 
-export const EventsResponseTransforms: Pick<
+export const eventsResponseTransforms: Pick<
   DatasetConfig<
     | EventsStats
     | MultiSeriesEventsStats

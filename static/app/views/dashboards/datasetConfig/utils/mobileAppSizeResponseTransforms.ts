@@ -69,7 +69,7 @@ function removeEmptyBuckets(series: WidgetSeries): WidgetSeries {
   };
 }
 
-export const MobileAppSizeResponseTransforms: Pick<
+export const mobileAppSizeResponseTransforms: Pick<
   DatasetConfig<
     EventsStats | MultiSeriesEventsStats | EventsTimeSeriesResponse,
     TableData

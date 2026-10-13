@@ -45,7 +45,7 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/events';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
-import {SpansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
+import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
 import {
   DisplayType,
   type DashboardFilters,
@@ -231,7 +231,7 @@ export const SpansConfig: DatasetConfig<
   ],
   useSeriesQuery: useSpansSeriesQuery,
   useTableQuery: useSpansTableQuery,
-  ...SpansResponseTransforms,
+  ...spansResponseTransforms,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     if (field === 'id') {

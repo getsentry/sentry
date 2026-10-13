@@ -38,7 +38,7 @@ import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import {SpansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
+import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
@@ -325,7 +325,7 @@ export function useSpansSeriesQuery(
   });
 
   useEventsTimeseriesSpotCheck({
-    config: SpansResponseTransforms,
+    config: spansResponseTransforms,
     enabled,
     statsQueryResults: queryResults,
     organization,
@@ -393,7 +393,7 @@ export function useSpansSeriesQuery(
         requestIndex
       ).queries[requestIndex]!;
 
-      const transformedResult = SpansResponseTransforms.transformSeries!(
+      const transformedResult = spansResponseTransforms.transformSeries!(
         responseData,
         queryForTransform,
         organization
@@ -408,11 +408,11 @@ export function useSpansSeriesQuery(
       });
 
       // Get result types and units from config
-      const resultTypes = SpansResponseTransforms.getSeriesResultType?.(
+      const resultTypes = spansResponseTransforms.getSeriesResultType?.(
         responseData,
         queryForTransform
       );
-      const resultUnits = SpansResponseTransforms.getSeriesResultUnit?.(
+      const resultUnits = spansResponseTransforms.getSeriesResultUnit?.(
         responseData,
         queryForTransform
       );
@@ -637,7 +637,7 @@ export function useSpansTableQuery(
       ]!;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...SpansResponseTransforms.transformTable(
+        ...spansResponseTransforms.transformTable(
           responseData,
           queryForTransform,
           organization,

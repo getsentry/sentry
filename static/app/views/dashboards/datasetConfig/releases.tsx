@@ -9,7 +9,7 @@ import type {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
-import {ReleasesResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/releasesResponseTransforms';
+import {releasesResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/releasesResponseTransforms';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {
@@ -87,7 +87,7 @@ export const ReleasesConfig: DatasetConfig<SessionApiResponse, SessionApiRespons
     DisplayType.TABLE,
     DisplayType.TOP_N,
   ],
-  ...ReleasesResponseTransforms,
+  ...releasesResponseTransforms,
 };
 
 function disableSortOptions(widgetQuery: WidgetQuery) {

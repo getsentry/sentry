@@ -18,7 +18,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
-import {TransactionsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/transactionsResponseTransforms';
+import {transactionsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/transactionsResponseTransforms';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
@@ -84,7 +84,7 @@ export const TransactionsConfig: DatasetConfig<
   ],
   useSeriesQuery: useTransactionsSeriesQuery,
   useTableQuery: useTransactionsTableQuery,
-  ...TransactionsResponseTransforms,
+  ...transactionsResponseTransforms,
   filterAggregateParams,
 };
 

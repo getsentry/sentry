@@ -46,7 +46,7 @@ export function transformSessionsResponseToTable(
   return {meta, data: rows};
 }
 
-export const ReleasesResponseTransforms: Pick<
+export const releasesResponseTransforms: Pick<
   DatasetConfig<SessionApiResponse, SessionApiResponse>,
   'transformSeries' | 'transformTable'
 > = {

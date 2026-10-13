@@ -43,7 +43,7 @@ function formatMetricsTimeseriesLabel({
   return baseName;
 }
 
-export const TraceMetricsResponseTransforms: Pick<
+export const traceMetricsResponseTransforms: Pick<
   DatasetConfig<EventsTimeSeriesResponse, EventsTableData>,
   'transformTable' | 'transformSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
 > = {

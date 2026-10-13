@@ -19,7 +19,7 @@ import type {
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/events';
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
-import {MobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/mobileAppSizeResponseTransforms';
+import {mobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/mobileAppSizeResponseTransforms';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {
@@ -232,7 +232,7 @@ export const MobileAppSizeConfig: DatasetConfig<
     getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
   useSeriesQuery: useMobileAppSizeSeriesQuery,
   useTableQuery: useMobileAppSizeTableQuery,
-  ...MobileAppSizeResponseTransforms,
+  ...mobileAppSizeResponseTransforms,
   filterAggregateParams,
   handleOrderByReset,
 };
