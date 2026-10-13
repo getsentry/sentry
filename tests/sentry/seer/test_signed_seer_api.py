@@ -262,6 +262,7 @@ class TestResolveViewerContext:
                 "explicit_user_id": 5,
                 "endpoint": "/v1/automation/summarize",
             },
+            stack_info=True,
         )
         mock_metrics.incr.assert_called_once_with(
             "seer.viewer_context_resolution",

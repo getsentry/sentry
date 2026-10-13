@@ -78,6 +78,7 @@ def _resolve_viewer_context(
                 "explicit_user_id": explicit.get("user_id") if explicit else None,
                 "endpoint": endpoint,
             },
+            stack_info=True,
         )
         metrics.incr(
             "seer.viewer_context_resolution",
