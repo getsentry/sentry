@@ -86,8 +86,8 @@ def frozen_after_boot(point: str) -> Generator[None]:
         gc.freeze()
         duration_ms = (time.monotonic() - start) * 1000
     finally:
-        # Re-enable on every path, before this thread forks anything: children
-        # inherit a disabled collector.
+        # Re-enable on every path, before this thread can fork: a child forked
+        # while the collector is disabled would start with it disabled.
         gc.enable()
 
     _record(point, collected, duration_ms)

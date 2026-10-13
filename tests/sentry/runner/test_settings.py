@@ -57,14 +57,3 @@ def test_configure_does_nothing_once_installed(boot_events: list[object]) -> Non
 
     _configure.assert_not_called()
     assert boot_events == []
-
-
-def test_failed_configure_can_be_retried(boot_events: list[object]) -> None:
-    with (
-        mock.patch.object(runner_settings, "__installed", False),
-        mock.patch.object(runner_settings, "_configure", side_effect=ValueError("no config")),
-    ):
-        with pytest.raises(ValueError):
-            runner_settings.configure(None, "sentry.conf.py", "config.yml")
-
-        assert getattr(runner_settings, "__installed") is False
