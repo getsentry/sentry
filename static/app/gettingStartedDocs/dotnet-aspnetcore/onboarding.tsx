@@ -125,7 +125,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Keep [code:builder.Build()] as its own statement. [code:UseSentry] returns the [code:IWebHostBuilder], so chaining [code:.Build()] onto it does not return the [code:WebApplication].',
+            'Keep [code:var app = builder.Build();] on its own line. If you chain [code:.Build()] onto [code:UseSentry(...)], calls like [code:app.MapGet(...)] will not compile.',
             {code: <code />}
           ),
         },
@@ -172,7 +172,7 @@ export const onboarding: OnboardingConfig = {
               {
                 type: 'text',
                 text: tct(
-                  '[code:UseSentry] already adds the middleware that creates a transaction for each request. To add your own spans, take [code:IHub] as a parameter of your endpoint:',
+                  'With [code:TracesSampleRate] set, Sentry traces every request automatically. To measure a specific part of a request, add a span inside your endpoint:',
                   {
                     code: <code />,
                   }
