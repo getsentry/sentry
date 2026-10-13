@@ -22,6 +22,160 @@ from sentry.users.models.user import User
 pytestmark = pytest.mark.sentry_metrics
 
 
+class DashboardTransformationsTranslationTestCase(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.widget = self.create_dashboard_widget(
+            dashboard=self.create_dashboard(organization=self.organization, created_by=self.user),
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+    def create_query(self, fields, aggregates, transformations) -> DashboardWidgetQuery:
+        return self.create_dashboard_widget_query(
+            widget=self.widget,
+            order=0,
+            fields=fields,
+            aggregates=aggregates,
+            columns=[],
+            conditions="",
+            transformations=transformations,
+        )
+
+    def test_preserves_transformations(self) -> None:
+        self.create_query(
+            ["count()", "count_unique(user)"],
+            ["count()", "count_unique(user)"],
+            {"0": ["fill(locf)", "smooth(sma)", "fill(locf)", " future(function) "], "1": []},
+        )
+
+        translate_dashboard_widget(self.widget)
+
+        translated = self.widget.dashboardwidgetquery_set.get()
+        assert translated.aggregates == ["count(span.duration)", "count_unique(user)"]
+        assert translated.transformations == {
+            "0": ["fill(locf)", "smooth(sma)", "fill(locf)", " future(function) "],
+            "1": [],
+        }
+
+    def test_remaps_transformations_after_dropping_an_axis(self) -> None:
+        self.create_query(
+            ["count()", "count_web_vitals(lcp,300)", "count_unique(user)"],
+            ["count()", "count_web_vitals(lcp,300)", "count_unique(user)"],
+            {"0": ["fill(zero)"], "1": ["fill(locf)"], "2": ["smooth(sma)"]},
+        )
+
+        translate_dashboard_widget(self.widget)
+
+        translated = self.widget.dashboardwidgetquery_set.get()
+        assert translated.aggregates == ["count(span.duration)", "count_unique(user)"]
+        assert translated.transformations == {"0": ["fill(zero)"], "1": ["smooth(sma)"]}
+
+    def test_remaps_transformations_to_aggregate_order(self) -> None:
+        self.create_query(
+            ["transaction", "count_unique(user)", "count()"],
+            ["count()", "count_unique(user)"],
+            {"0": ["fill(zero)"], "1": ["smooth(sma)"]},
+        )
+
+        translate_dashboard_widget(self.widget)
+
+        translated = self.widget.dashboardwidgetquery_set.get()
+        assert translated.aggregates == ["count_unique(user)", "count(span.duration)"]
+        assert translated.transformations == {"0": ["smooth(sma)"], "1": ["fill(zero)"]}
+
+    def test_preserves_distinct_duplicate_axis_transformations(self) -> None:
+        self.create_query(
+            ["count()", "count()", "count()"],
+            ["count()", "count()", "count()"],
+            {"1": ["fill(locf)"], "2": ["smooth(sma)"]},
+        )
+
+        translate_dashboard_widget(self.widget)
+
+        translated = self.widget.dashboardwidgetquery_set.get()
+        assert translated.aggregates == [
+            "count(span.duration)",
+            "count(span.duration)",
+            "count(span.duration)",
+        ]
+        assert translated.transformations == {"1": ["fill(locf)"], "2": ["smooth(sma)"]}
+
+    def test_remaps_transformations_past_fields_only_aggregates(self) -> None:
+        self.create_query(
+            ["count_unique(user)", "count()"],
+            ["count()"],
+            {"0": ["fill(locf)"]},
+        )
+
+        translate_dashboard_widget(self.widget)
+
+        translated = self.widget.dashboardwidgetquery_set.get()
+        assert translated.aggregates == ["count_unique(user)", "count(span.duration)"]
+        assert translated.transformations == {"1": ["fill(locf)"]}
+
+    def test_drops_transformations_for_omitted_duplicate_axes(self) -> None:
+        self.create_query(
+            ["count()"],
+            ["count()", "count()"],
+            {"0": ["fill(locf)"], "1": ["smooth(sma)"]},
+        )
+
+        translate_dashboard_widget(self.widget)
+
+        translated = self.widget.dashboardwidgetquery_set.get()
+        assert translated.aggregates == ["count(span.duration)"]
+        assert translated.transformations == {"0": ["fill(locf)"]}
+
+    def test_remaps_equation_transformations(self) -> None:
+        self.create_query(
+            ["equation|count_if(transaction.duration,less,300)", "count()"],
+            ["count()", "equation|count_if(transaction.duration,less,300)"],
+            {"1": ["smooth(sma)"]},
+        )
+
+        translate_dashboard_widget(self.widget)
+
+        translated = self.widget.dashboardwidgetquery_set.get()
+        assert translated.aggregates == [
+            "equation|count_if(span.duration,less,300)",
+            "count(span.duration)",
+        ]
+        assert translated.transformations == {"0": ["smooth(sma)"]}
+
+    def test_restores_original_transformations_from_snapshot(self) -> None:
+        self.create_query(
+            ["count_web_vitals(lcp,300)", "count()"],
+            ["count_web_vitals(lcp,300)", "count()"],
+            {"0": ["fill(locf)"], "1": ["smooth(sma)", "fill(zero)"]},
+        )
+        translate_dashboard_widget(self.widget)
+        assert self.widget.widget_snapshot["queries"][0]["transformations"] == {
+            "0": ["fill(locf)"],
+            "1": ["smooth(sma)", "fill(zero)"],
+        }
+
+        restore_transaction_widget(self.widget)
+
+        restored = self.widget.dashboardwidgetquery_set.get()
+        assert restored.aggregates == ["count_web_vitals(lcp,300)", "count()"]
+        assert restored.transformations == {"0": ["fill(locf)"], "1": ["smooth(sma)", "fill(zero)"]}
+
+    def test_restores_legacy_snapshot_without_transformations(self) -> None:
+        self.widget.update(
+            widget_type=DashboardWidgetTypes.SPANS,
+            widget_snapshot={
+                "queries": [{"fields": ["count()"], "aggregates": ["count()"], "conditions": ""}]
+            },
+        )
+
+        restore_transaction_widget(self.widget)
+
+        restored = self.widget.dashboardwidgetquery_set.get()
+        assert restored.aggregates == ["count()"]
+        assert restored.transformations == {}
+
+
 class DashboardTranslationTestCase(TestCase):
     @property
     def now(self) -> datetime:
