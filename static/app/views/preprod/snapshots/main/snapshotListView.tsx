@@ -31,6 +31,11 @@ import {ImageCard, PairCard} from './snapshotCards';
 import {MAX_IMAGE_HEIGHT} from './snapshotDiffBodies';
 import {SnapshotGroupHeader} from './snapshotFrames';
 import {RowFrame} from './snapshotRowFrame';
+import {
+  useViewedSnapshots,
+  viewedKeyForImage,
+  viewedKeyForPair,
+} from './useViewedSnapshots';
 
 interface SnapshotListViewProps {
   imageBaseUrl: string;
@@ -67,6 +72,7 @@ type GroupCard =
       pair: SnapshotDiffPair;
       status: DiffStatus;
       type: 'pair-card';
+      viewedKey: string | null;
     }
   | {
       cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged' | 'skipped';
@@ -74,12 +80,14 @@ type GroupCard =
       id: string;
       image: SnapshotImage;
       type: 'image-card';
+      viewedKey: string | null;
       copyData?: unknown;
     };
 
 // Keep in sync with SnapshotGroupHeader: lg vertical padding + md heading height.
 const SNAPSHOT_GROUP_HEADER_HEIGHT = 44;
 const CARD_CHROME_HEIGHT = 120;
+const COLLAPSED_CARD_HEIGHT = 48;
 const ERRORED_BANNER_HEIGHT = 56;
 const ROW_PADDING_BOTTOM = 16;
 const DEFAULT_CONTENT_WIDTH = 900;
@@ -114,8 +122,10 @@ export type ListRow =
       estimatedHeight: number;
       groupName: string;
       id: string;
+      isViewed: boolean | 'indeterminate';
       itemKey: string;
       kind: 'header';
+      viewedKeys: string[];
     }
   | {
       card: GroupCard;
@@ -125,6 +135,7 @@ export type ListRow =
       isFirstInGroup: boolean;
       isLastInGroup: boolean;
       isUngrouped: boolean;
+      isViewed: boolean;
       itemKey: string;
       kind: 'card';
     };
@@ -140,6 +151,7 @@ function buildItemCards(item: SidebarItem, contentWidth: number): GroupCard[] {
         id: `c:${item.key}:${pair.head_image.image_file_name}`,
         pair,
         status,
+        viewedKey: viewedKeyForPair(pair),
         estimatedHeight:
           Math.max(
             estimateCardHeight(pair.head_image, true, contentWidth),
@@ -155,6 +167,7 @@ function buildItemCards(item: SidebarItem, contentWidth: number): GroupCard[] {
         image: pair.head_image,
         copyData: pair,
         cardType: item.type,
+        viewedKey: viewedKeyForPair(pair),
         estimatedHeight: estimateCardHeight(pair.head_image, false, contentWidth),
       });
     }
@@ -165,6 +178,7 @@ function buildItemCards(item: SidebarItem, contentWidth: number): GroupCard[] {
         id: `c:${item.key}:${image.image_file_name}`,
         image,
         cardType: item.type,
+        viewedKey: item.type === 'unchanged' ? null : viewedKeyForImage(image),
         estimatedHeight: estimateCardHeight(image, false, contentWidth),
       });
     }
@@ -172,22 +186,39 @@ function buildItemCards(item: SidebarItem, contentWidth: number): GroupCard[] {
   return cards;
 }
 
-export function buildRows(items: SidebarItem[], contentWidth: number): ListRow[] {
+export function buildRows(
+  items: SidebarItem[],
+  contentWidth: number,
+  viewed: Record<string, number> = {}
+): ListRow[] {
   const rows: ListRow[] = [];
   for (const item of items) {
     const cards = buildItemCards(item, contentWidth);
     const ungrouped = isItemUngrouped(item);
     if (!ungrouped) {
+      const viewedKeys = cards.flatMap(card =>
+        card.viewedKey === null ? [] : [card.viewedKey]
+      );
+      const viewedCount = viewedKeys.filter(key => key in viewed).length;
       rows.push({
         kind: 'header',
         id: `h:${item.key}`,
         itemKey: item.key,
         groupName: item.name,
+        viewedKeys,
+        isViewed:
+          viewedCount === 0
+            ? false
+            : viewedCount === viewedKeys.length
+              ? true
+              : 'indeterminate',
         estimatedHeight: SNAPSHOT_GROUP_HEADER_HEIGHT,
       });
     }
     cards.forEach((card, i) => {
       const isLast = i === cards.length - 1;
+      const isViewed = card.viewedKey !== null && card.viewedKey in viewed;
+      const cardHeight = isViewed ? COLLAPSED_CARD_HEIGHT : card.estimatedHeight;
       rows.push({
         kind: 'card',
         id: card.id,
@@ -197,7 +228,8 @@ export function buildRows(items: SidebarItem[], contentWidth: number): ListRow[]
         isUngrouped: ungrouped,
         isFirstInGroup: i === 0,
         isLastInGroup: isLast,
-        estimatedHeight: card.estimatedHeight + (isLast ? ROW_PADDING_BOTTOM : 0),
+        isViewed,
+        estimatedHeight: cardHeight + (isLast ? ROW_PADDING_BOTTOM : 0),
       });
     });
   }
@@ -304,7 +336,11 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     return () => observer.disconnect();
   }, []);
 
-  const rows = useMemo(() => buildRows(items, contentWidth), [items, contentWidth]);
+  const {viewed, setViewed} = useViewedSnapshots();
+  const rows = useMemo(
+    () => buildRows(items, contentWidth, viewed),
+    [items, contentWidth, viewed]
+  );
   const getItemKey = useCallback((index: number) => rows[index]!.id, [rows]);
 
   const {totalSize, virtualItems, virtualizer} = useVirtualRows({
@@ -317,6 +353,15 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   });
 
   const rowIndex = useMemo(() => buildRowIndex(rows), [rows]);
+
+  useLayoutEffect(() => {
+    scrollRef.current?.querySelectorAll<HTMLElement>('[data-index]').forEach(node => {
+      const index = Number(node.dataset.index);
+      if (rows[index]?.kind === 'card') {
+        virtualizer.resizeItem(index, node.offsetHeight);
+      }
+    });
+  }, [rows, virtualizer]);
 
   useImperativeHandle(
     ref,
@@ -578,7 +623,10 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   });
   const activeRow = activeRowItem ? rows[activeRowItem.index] : undefined;
   const activeItemKey = activeRow && isGroupedRow(activeRow) ? activeRow.itemKey : null;
-  const activeGroupName = activeItemKey === null ? null : (activeRow?.groupName ?? null);
+  const activeHeaderRowIdx =
+    activeItemKey === null ? undefined : rowIndex.firstRowByItemKey.get(activeItemKey);
+  const activeHeaderRow =
+    activeHeaderRowIdx === undefined ? undefined : rows[activeHeaderRowIdx];
   const measurements = virtualizer.measurementsCache;
   const activeGroupBounds = (() => {
     if (activeItemKey === null) {
@@ -637,13 +685,13 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       contain="layout"
       overscrollBehavior="contain"
     >
-      {activeGroupName ? (
+      {activeHeaderRow?.kind === 'header' ? (
         <StickyGroupHeader
           data-bottom-frame={stickyHeaderHasBottomFrame ? '' : undefined}
           data-detached-frame={stickyHeaderHasDetachedFrame ? '' : undefined}
           style={stickyHeaderStyle}
         >
-          <SnapshotGroupHeader name={activeGroupName} />
+          <GroupHeaderRow row={activeHeaderRow} onSetViewed={setViewed} />
         </StickyGroupHeader>
       ) : null}
       <Container position="relative" width="100%" style={{height: totalSize}}>
@@ -665,7 +713,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
                 data-separator={separator ? '' : undefined}
               >
                 {row.kind === 'header' ? (
-                  <SnapshotGroupHeader name={row.groupName} />
+                  <GroupHeaderRow row={row} onSetViewed={setViewed} />
                 ) : (
                   <CardRow
                     row={row}
@@ -678,6 +726,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
                     overlayColor={overlayColor}
                     overlayOpacity={overlayOpacity}
                     diffImageBaseUrl={diffImageBaseUrl}
+                    onSetViewed={setViewed}
                   />
                 )}
               </RowFrame>
@@ -700,9 +749,11 @@ const CardRow = memo(function CardRowImpl({
   overlayColor,
   overlayOpacity,
   diffImageBaseUrl,
+  onSetViewed,
 }: {
   diffMode: DiffMode;
   imageBaseUrl: string;
+  onSetViewed: (keys: string[], isViewed: boolean) => void;
   row: Extract<ListRow, {kind: 'card'}>;
   selectedSnapshotKey: string | null;
   diffImageBaseUrl?: string;
@@ -734,6 +785,20 @@ const CardRow = memo(function CardRowImpl({
       }),
     [organization, diffStatus]
   );
+  const {viewedKey} = card;
+  const {isViewed} = row;
+  const handleToggleViewed = useCallback(() => {
+    if (viewedKey === null) {
+      return;
+    }
+    onSetViewed([viewedKey], !isViewed);
+    trackAnalytics('preprod.snapshots.details.image_viewed_toggled', {
+      organization,
+      diff_status: diffStatus === 'solo' ? null : diffStatus,
+      viewed: !isViewed,
+    });
+  }, [viewedKey, isViewed, onSetViewed, organization, diffStatus]);
+  const onToggleViewed = viewedKey === null ? undefined : handleToggleViewed;
   return card.type === 'pair-card' ? (
     <PairCard
       pair={card.pair}
@@ -751,6 +816,8 @@ const CardRow = memo(function CardRowImpl({
       onOpenSnapshot={onOpenSnapshot}
       onCopyLink={onCopyLink}
       onCopyMetadata={onCopyMetadata}
+      isViewed={isViewed}
+      onToggleViewed={onToggleViewed}
     />
   ) : (
     <ImageCard
@@ -765,9 +832,37 @@ const CardRow = memo(function CardRowImpl({
       onOpenSnapshot={onOpenSnapshot}
       onCopyLink={onCopyLink}
       onCopyMetadata={onCopyMetadata}
+      isViewed={isViewed}
+      onToggleViewed={onToggleViewed}
     />
   );
 });
+
+function GroupHeaderRow({
+  row,
+  onSetViewed,
+}: {
+  onSetViewed: (keys: string[], isViewed: boolean) => void;
+  row: Extract<ListRow, {kind: 'header'}>;
+}) {
+  const organization = useOrganization();
+  const handleToggleViewed = () => {
+    const viewed = row.isViewed !== true;
+    onSetViewed(row.viewedKeys, viewed);
+    trackAnalytics('preprod.snapshots.details.group_viewed_toggled', {
+      organization,
+      viewed,
+      image_count: row.viewedKeys.length,
+    });
+  };
+  return (
+    <SnapshotGroupHeader
+      name={row.groupName}
+      isViewed={row.isViewed}
+      onToggleViewed={row.viewedKeys.length > 0 ? handleToggleViewed : undefined}
+    />
+  );
+}
 
 const ScrollContainer = styled(Container)`
   scroll-padding-top: ${p => p.theme.space.md};
@@ -780,6 +875,10 @@ const StickyGroupHeader = styled('div')`
   z-index: 1;
   height: 0;
   pointer-events: none;
+
+  label {
+    pointer-events: auto;
+  }
 
   > * {
     border-left: 1px solid ${p => p.theme.tokens.border.primary};

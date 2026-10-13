@@ -103,6 +103,11 @@ export type PreprodBuildEventParameters = {
     diff_mode: string;
     organization: Organization;
   };
+  'preprod.snapshots.details.group_viewed_toggled': {
+    image_count: number;
+    organization: Organization;
+    viewed: boolean;
+  };
   'preprod.snapshots.details.image_link_copied': {
     diff_status: string | null;
     organization: Organization;
@@ -110,6 +115,11 @@ export type PreprodBuildEventParameters = {
   'preprod.snapshots.details.image_metadata_copied': {
     diff_status: string | null;
     organization: Organization;
+  };
+  'preprod.snapshots.details.image_viewed_toggled': {
+    diff_status: string | null;
+    organization: Organization;
+    viewed: boolean;
   };
   'preprod.snapshots.details.keyboard_shortcuts_opened': {
     organization: Organization;
@@ -173,6 +183,10 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.snapshots.details.image_link_copied': 'Preprod Snapshots: Image Link Copied',
   'preprod.snapshots.details.image_metadata_copied':
     'Preprod Snapshots: Image Metadata Copied',
+  'preprod.snapshots.details.image_viewed_toggled':
+    'Preprod Snapshots: Image Viewed Toggled',
+  'preprod.snapshots.details.group_viewed_toggled':
+    'Preprod Snapshots: Group Viewed Toggled',
   'preprod.snapshots.details.keyboard_shortcuts_opened':
     'Preprod Snapshots: Keyboard Shortcuts Opened',
   'preprod.snapshots.details.view_mode_changed': 'Preprod Snapshots: View Mode Changed',
