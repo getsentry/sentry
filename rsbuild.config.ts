@@ -1003,6 +1003,9 @@ if (IS_PRODUCTION) {
       },
       release: {
         create: false,
+        // The SDK sets `release` itself. Injecting it puts the commit SHA in
+        // every chunk, which changes every chunk hash on every deploy.
+        inject: false,
       },
       reactComponentAnnotation: {
         // Using swc-plugin-react-component-annotate instead
