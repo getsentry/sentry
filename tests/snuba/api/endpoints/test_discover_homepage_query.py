@@ -1,8 +1,11 @@
+from contextlib import AbstractContextManager
+
 import pytest
 from django.urls import reverse
 
 from sentry.api.serializers import serialize
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.testutils.helpers.options import override_options
 from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
 FEATURES = ("organizations:discover-query",)
@@ -193,3 +196,36 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert data["yAxis"] == ["count(id)"]
         assert data["display"] == "releases"
         assert data["version"] == 2
+
+    def _login_as_demo_user(self) -> AbstractContextManager[None]:
+        demo_user = self.create_user()
+        self.create_member(user=demo_user, organization=self.org, role="member")
+        self.login_as(user=demo_user)
+        return override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [self.org.id],
+            }
+        )
+
+    def test_demo_user_can_get(self) -> None:
+        with self._login_as_demo_user(), self.feature(FEATURES):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 204, response.content
+
+    def test_demo_user_cannot_put(self) -> None:
+        with self._login_as_demo_user(), self.feature(FEATURES):
+            response = self.client.put(
+                self.url,
+                {"name": "new query", "projects": self.project_ids, "fields": ["title"]},
+            )
+
+        assert response.status_code == 403, response.content
+
+    def test_demo_user_cannot_delete(self) -> None:
+        with self._login_as_demo_user(), self.feature(FEATURES):
+            response = self.client.delete(self.url)
+
+        assert response.status_code == 403, response.content
