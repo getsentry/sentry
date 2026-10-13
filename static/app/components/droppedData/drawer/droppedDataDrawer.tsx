@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
@@ -8,7 +8,11 @@ import {Text} from '@sentry/scraps/text';
 import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {getOutcomeColors} from 'sentry/components/droppedData/outcomes';
+import {
+  getOutcomeColors,
+  isOutcomeSelected,
+  type OutcomeSelection,
+} from 'sentry/components/droppedData/outcomes';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -49,6 +53,13 @@ function DroppedDataDrawerInner({
     [sections, theme]
   );
 
+  const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
+  const selectedSections = useMemo(
+    () =>
+      sections.filter(section => isOutcomeSelected(outcomeSelection, section.outcome)),
+    [sections, outcomeSelection]
+  );
+
   useLLMContext({
     contextHint:
       'Sentry dropped-data panel. drops are the events Sentry dropped for this ' +
@@ -78,9 +89,11 @@ function DroppedDataDrawerInner({
             <DroppedDataChart
               droppedEvents={droppedEvents ?? []}
               colors={outcomeColors}
+              selection={outcomeSelection}
+              onSelectionChange={setOutcomeSelection}
             />
             <DroppedDataOutcomeList
-              sections={sections}
+              sections={selectedSections}
               colors={outcomeColors}
               onInvestigate={onInvestigate}
             />

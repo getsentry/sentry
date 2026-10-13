@@ -1,11 +1,17 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CircleIndicator} from 'sentry/components/circleIndicator';
-import {outcomeLabel, type OutcomeColors} from 'sentry/components/droppedData/outcomes';
+import {ChartLegend, type LegendItem} from 'sentry/components/charts/chartLegend';
+import {
+  isOutcomeSelected,
+  outcomeLabel,
+  type OutcomeColors,
+  type OutcomeSelection,
+} from 'sentry/components/droppedData/outcomes';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -54,45 +60,47 @@ export function droppedEventsToSeries(
   return seriesByOutcome;
 }
 
-function ChartLegend({colors, outcomes}: {colors: OutcomeColors; outcomes: string[]}) {
-  return (
-    <Flex align="center" gap="md">
-      {outcomes.map(outcome => (
-        <Flex key={outcome} align="center" gap="xs">
-          <CircleIndicator color={colors[outcome]} size={8} />
-          <Text size="xs">{outcomeLabel(outcome)}</Text>
-        </Flex>
-      ))}
-    </Flex>
-  );
-}
-
 interface DroppedDataChartProps {
   colors: OutcomeColors;
   droppedEvents: DroppedEventsBucket[];
+  onSelectionChange: (selection: OutcomeSelection) => void;
+  selection: OutcomeSelection;
 }
 
-export function DroppedDataChart({droppedEvents, colors}: DroppedDataChartProps) {
+export function DroppedDataChart({
+  droppedEvents,
+  colors,
+  selection,
+  onSelectionChange,
+}: DroppedDataChartProps) {
   const theme = useTheme();
 
-  const {outcomes, plottables} = useMemo(() => {
+  const {legendItems, plottables} = useMemo(() => {
     const series = droppedEventsToSeries(droppedEvents);
     const orderedOutcomes = Object.keys(series).sort();
 
     return {
-      outcomes: orderedOutcomes,
-      plottables: orderedOutcomes.map(
-        outcome =>
-          new Bars(series[outcome]!, {
-            stack: STACK_NAME,
-            color: colors[outcome],
-            alias: outcomeLabel(outcome),
-          })
-      ),
+      legendItems: orderedOutcomes.map((outcome): LegendItem => ({
+        name: outcome,
+        label: outcomeLabel(outcome),
+        color: colors[outcome]!,
+      })),
+      plottables: orderedOutcomes
+        .filter(outcome => isOutcomeSelected(selection, outcome))
+        .map(
+          outcome =>
+            new Bars(series[outcome]!, {
+              stack: STACK_NAME,
+              color: colors[outcome],
+              alias: outcomeLabel(outcome),
+            })
+        ),
     };
-  }, [droppedEvents, colors]);
+  }, [droppedEvents, colors, selection]);
 
-  const totalDropped = droppedEvents.reduce((sum, event) => sum + event.count, 0);
+  const totalDropped = droppedEvents
+    .filter(event => isOutcomeSelected(selection, event.outcome))
+    .reduce((sum, event) => sum + event.count, 0);
 
   return (
     <Container
@@ -101,15 +109,30 @@ export function DroppedDataChart({droppedEvents, colors}: DroppedDataChartProps)
       padding="md xl xl xl"
       style={{borderColor: theme.tokens.graphics.neutral.moderate}}
     >
-      <Flex align="center" justify="between" paddingBottom="md">
-        <Text size="lg" bold>
+      <Flex align="center" gap="xl" paddingBottom="md">
+        <Text size="lg" bold wrap="nowrap">
           {t('%s Dropped Events', formatAbbreviatedNumber(totalDropped))}
         </Text>
-        <ChartLegend outcomes={outcomes} colors={colors} />
+        <Container flex="1" minWidth="0">
+          <ChartLegend
+            items={legendItems}
+            selected={selection}
+            onSelectionChange={onSelectionChange}
+          />
+        </Container>
       </Flex>
       <Container height={CHART_HEIGHT}>
         {plottables.length > 0 ? (
           <TimeSeriesWidgetVisualization plottables={plottables} showLegend="never" />
+        ) : legendItems.length > 0 ? (
+          <Flex height="100%" align="center">
+            <EmptyState
+              title={t('No outcomes selected.')}
+              description={t(
+                'Select an outcome in the legend to see its dropped events.'
+              )}
+            />
+          </Flex>
         ) : (
           <TimeSeriesWidgetVisualization.NoData />
         )}
