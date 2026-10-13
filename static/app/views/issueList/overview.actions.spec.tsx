@@ -377,6 +377,54 @@ describe('IssueListOverview (actions)', () => {
       await waitFor(() => expect(screen.queryByText('Group 1')).not.toBeInTheDocument());
     });
 
+    it('offers Undo without a substatus when the issues had different substatuses', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group1, {...group2, substatus: GroupSubstatus.NEW}],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+        body: {status: GroupStatus.RESOLVED},
+      });
+      render(
+        <Fragment>
+          <OverviewInContainer />
+          <GlobalModal />
+        </Fragment>,
+        {
+          organization,
+          initialRouterConfig: {
+            route: '/organizations/:orgId/issues/',
+            location: {
+              pathname: '/organizations/org-slug/issues/',
+              query: {query: 'is:unresolved'},
+            },
+          },
+        }
+      );
+
+      await screen.findByText('Group 1');
+      await userEvent.click(screen.getByRole('checkbox', {name: /select all/i}));
+      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      await userEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', {
+          name: 'Resolve 2 selected issues',
+        })
+      );
+      expect(await screen.findByText('Resolved 2 issues')).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', {name: 'Undo'}));
+
+      expect(updateIssueMock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/issues/',
+        expect.objectContaining({
+          query: expect.objectContaining({id: ['1', '2']}),
+          data: {status: 'unresolved', statusDetails: {}, substatus: undefined},
+        })
+      );
+    });
+
     it('does not offer Undo when resolving a previously archived issue', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',

@@ -843,30 +843,35 @@ function IssueListOverviewInner({
           skipRefetch: realtimeActive,
         });
 
-        const firstGroup = previousGroups[0];
-        // Undo needs the previous state of every explicitly selected issue.
-        if (realtimeActive || !firstGroup || previousGroups.length !== itemIds?.length) {
+        // Realtime refetches the list on its own, and query-wide actions don't
+        // know which issues changed, so neither can be undone.
+        if (realtimeActive || previousGroups.length !== itemIds?.length) {
           return;
         }
 
-        // One Undo request applies the same status, substatus and empty details to
-        // every issue, so it must match all of their previous states.
-        const canRestorePreviousState = previousGroups.every(
-          group =>
-            group.status === GroupStatus.UNRESOLVED &&
-            group.substatus === firstGroup.substatus &&
-            Object.keys(group.statusDetails).length === 0
-        );
-        if (!canRestorePreviousState) {
+        // Undo can only send issues back to unresolved. An issue that was already
+        // archived or resolved would lose that state, so skip Undo entirely.
+        if (previousGroups.some(group => group.status !== GroupStatus.UNRESOLVED)) {
           return;
         }
+
+        // One request sets one substatus for every issue. Restore it when they all
+        // share it (e.g. a single escalating issue). Otherwise leave it out and the
+        // backend picks one; this matters because without it a single issue
+        // coming back from resolved is marked regressed.
+        const substatus = previousGroups[0]?.substatus;
+        const sharedSubstatus = previousGroups.every(
+          group => group.substatus === substatus
+        )
+          ? substatus
+          : undefined;
 
         return () =>
           undoAction({
             data: {
               status: GroupStatus.UNRESOLVED,
               statusDetails: {},
-              substatus: firstGroup.substatus,
+              substatus: sharedSubstatus,
             },
             groupItems: previousGroups,
           });
