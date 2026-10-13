@@ -8,7 +8,6 @@ from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
-# ObjectStatus values; other statuses are pending deletion and left alone.
 ACTIVE = 0
 DISABLED = 1
 
