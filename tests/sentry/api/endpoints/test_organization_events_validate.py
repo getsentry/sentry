@@ -39,6 +39,14 @@ class OrganizationEventsValidateEndpointTest(
             {"error": "At least one valid project is required to query", "valid": False}
         ]
 
+    def test_invalid_project(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        response = self.do_request({"project": [other_project.id]})
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["projects"] == [{"error": "Invalid project", "valid": False}]
+
     def test_invalid_dataset(self) -> None:
         response = self.do_request(
             {
