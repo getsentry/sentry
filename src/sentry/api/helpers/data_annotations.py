@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from sentry_sdk import traces
 
-from sentry.api.endpoints.timeseries import Annotation
 from sentry.constants import DataCategory
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import errors
@@ -19,6 +18,18 @@ from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
 
 logger = logging.getLogger(__name__)
+
+
+class Annotation(TypedDict):
+    """One time bucket's volume for a system data-fidelity annotation."""
+
+    type: Literal["system"]
+    category: str
+    outcome: str
+    reason: str
+    start: float
+    end: float
+    eventCount: float
 
 
 def record_dropped_events_telemetry(
