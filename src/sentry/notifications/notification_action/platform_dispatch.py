@@ -74,6 +74,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
         organization_id=organization.id,
     )
 
+    # for notifications that include a chart
     chart_url = None
     if provider in CHART_PROVIDERS and features.has(
         "organizations:metric-alert-chartcuterie", organization
