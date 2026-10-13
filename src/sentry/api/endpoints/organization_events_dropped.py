@@ -89,7 +89,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
 
     @extend_schema(
         operation_id="listOrganizationEventsDropped",
-        summary="Query Dropped Events",
+        summary="Query Dropped and Accepted Events/Stats by Outcome and Reason",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
