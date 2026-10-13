@@ -42,9 +42,12 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
+
+export {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
 
 interface ToolbarVisualizeProps {
   allowEquations: boolean;
@@ -315,10 +318,6 @@ interface VisualizeLabelProps {
   index: number;
   onClick: MouseEventHandler<HTMLDivElement>;
   visualize: Visualize;
-}
-
-export function getFunctionLabel(index: number) {
-  return String.fromCharCode('A'.charCodeAt(0) + index);
 }
 
 function getEquationLabel(index: number) {

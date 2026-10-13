@@ -54,15 +54,15 @@ import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDatasetFromLocationOrDataset,
-} from 'sentry/views/discover/savedQuery/utils';
+} from 'sentry/views/discover/savedQuery/datasets';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-import {getSortField} from './fieldRenderers';
+import {getSortField} from './fieldSorting';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, any> & {

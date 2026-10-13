@@ -4,12 +4,14 @@ import type {Location} from 'history';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 
+export {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
+
 const LOGS_PARAMS_VERSION = 2;
-export const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
-export const LOGS_CURSOR_KEY = 'logsCursor';
+export const LOGS_QUERY_KEY = 'logsQuery';
 export const LOGS_AGGREGATE_CURSOR_KEY = 'logsAggregateCursor';
 export const LOGS_FIELDS_KEY = 'logsFields';
 export const LOGS_AGGREGATE_FN_KEY = 'logsAggregate'; // e.g., p99

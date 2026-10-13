@@ -19,36 +19,13 @@ import {
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
 import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
-export enum TraceViewSources {
-  TRACES = 'traces',
-  METRICS = 'metrics',
-  DISCOVER = 'discover',
-  PROFILING_FLAMEGRAPH = 'profiling_flamegraph',
-  REQUESTS_MODULE = 'requests_module',
-  QUERIES_MODULE = 'queries_module',
-  ASSETS_MODULE = 'assets_module',
-  APP_STARTS_MODULE = 'app_starts_module',
-  SCREEN_LOADS_MODULE = 'screen_loads_module',
-  WEB_VITALS_MODULE = 'web_vitals_module',
-  CACHES_MODULE = 'caches_module',
-  QUEUES_MODULE = 'queues_module',
-  LLM_MODULE = 'llm_module',
-  SCREEN_LOAD_MODULE = 'screen_load_module',
-  MOBILE_SCREENS_MODULE = 'mobile_screens_module',
-  SCREEN_RENDERING_MODULE = 'screen_rendering_module',
-  PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
-  ISSUE_DETAILS = 'issue_details',
-  DASHBOARDS = 'dashboards',
-  FEEDBACK_DETAILS = 'feedback_details',
-  LOGS = 'logs',
-  AGENT_MONITORING = 'agent_monitoring',
-  TRACE_METRICS = 'trace_metrics',
-}
+export {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
 const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {

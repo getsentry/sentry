@@ -18,15 +18,14 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverDatasets,
-  DisplayModes,
-  SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
+import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {getDatasetFromLocationOrSavedQueryDataset} from 'sentry/views/discover/savedQuery/datasets';
+
+export {getDatasetFromLocationOrSavedQueryDataset} from 'sentry/views/discover/savedQuery/datasets';
 
 const DATASET_PARAM = 'queryDataset';
 
@@ -307,48 +306,6 @@ export function getSavedQueryWithDataset<T extends SavedQuery | NewQuery>(
       savedQuery?.queryDataset
     ),
   };
-}
-
-export function getDatasetFromLocationOrSavedQueryDataset(
-  location: Location | undefined,
-  queryDataset: SavedQueryDatasets | undefined
-): DiscoverDatasets | undefined {
-  const dataset = decodeScalar(location?.query?.dataset);
-  if (dataset) {
-    return dataset as DiscoverDatasets;
-  }
-  const savedQueryDataset = decodeScalar(location?.query?.queryDataset) ?? queryDataset;
-  switch (savedQueryDataset) {
-    case SavedQueryDatasets.ERRORS:
-      return DiscoverDatasets.ERRORS;
-    case SavedQueryDatasets.TRANSACTIONS:
-      return DiscoverDatasets.TRANSACTIONS;
-    case SavedQueryDatasets.DISCOVER:
-      return DiscoverDatasets.DISCOVER;
-    default:
-      return undefined;
-  }
-}
-
-export function getSavedQueryDatasetFromLocationOrDataset(
-  location: Location | undefined,
-  dataset: DiscoverDatasets | undefined
-): SavedQueryDatasets | undefined {
-  const savedQueryDataset = decodeScalar(location?.query?.queryDataset);
-  if (savedQueryDataset) {
-    return savedQueryDataset as SavedQueryDatasets;
-  }
-  const discoverDataset = decodeScalar(location?.query?.dataset) ?? dataset;
-  switch (discoverDataset) {
-    case DiscoverDatasets.ERRORS:
-      return SavedQueryDatasets.ERRORS;
-    case DiscoverDatasets.TRANSACTIONS:
-      return SavedQueryDatasets.TRANSACTIONS;
-    case DiscoverDatasets.DISCOVER:
-      return SavedQueryDatasets.DISCOVER;
-    default:
-      return undefined;
-  }
 }
 
 export function getTransactionDeprecationMessage(tracesUrl: string) {
