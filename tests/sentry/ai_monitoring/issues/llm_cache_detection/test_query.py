@@ -118,25 +118,24 @@ def test_fetch_call_site_stats(row_count: int, truncated: bool) -> None:
     )
     rows = [make_row()] * row_count
 
-    with mock.patch.object(Spans, "run_table_query", return_value={"data": rows}) as run_query:
+    with mock.patch.object(
+        Spans,
+        "run_table_query",
+        side_effect=[{"data": rows}, {"data": []}],
+    ) as run_query:
         result = fetch_call_site_stats(project, window)
 
     assert len(result.call_sites) == 1
     assert result.call_sites[0].call_count == row_count * 100
     assert result.dropped_calls == {}
     assert result.truncated is truncated
-    kwargs = run_query.call_args.kwargs
-    assert kwargs["params"].start == window.start
-    assert kwargs["params"].end == window.end
-    assert kwargs["params"].projects == [project]
-    assert kwargs["query_string"] == (
-        "gen_ai.operation.type:ai_client "
-        "!gen_ai.operation.name:embeddings "
-        "has:gen_ai.usage.input_tokens"
-    )
-    assert kwargs["selected_columns"] == [
+    named, fallback = (call.kwargs for call in run_query.call_args_list)
+    assert named["params"].start == window.start
+    assert named["params"].end == window.end
+    assert named["params"].projects == [project]
+    assert named["query_string"].endswith('has:gen_ai.agent.name !gen_ai.agent.name:""')
+    assert named["selected_columns"] == [
         AGENT_NAME,
-        OPERATION_NAME,
         SPAN_NAME,
         MODEL,
         COUNT,
@@ -146,10 +145,42 @@ def test_fetch_call_site_stats(row_count: int, truncated: bool) -> None:
         SUM_CACHE_CREATION_TOKENS,
         AVG_INPUT_TOKENS,
     ]
-    assert kwargs["orderby"] == [f"-{SUM_INPUT_TOKENS}"]
-    assert kwargs["limit"] == CALL_SITE_GROUPS_LIMIT
-    assert kwargs["referrer"] == Referrer.ISSUES_LLM_CACHE_DETECTION.value
-    assert kwargs["sampling_mode"] == "NORMAL"
+    assert fallback["query_string"].endswith('(!has:gen_ai.agent.name OR gen_ai.agent.name:"")')
+    assert fallback["selected_columns"][0] == OPERATION_NAME
+    assert named["orderby"] == [f"-{SUM_INPUT_TOKENS}"]
+    assert named["limit"] == CALL_SITE_GROUPS_LIMIT
+    assert named["referrer"] == Referrer.ISSUES_LLM_CACHE_DETECTION.value
+    assert named["sampling_mode"] == "HIGHEST_ACCURACY"
+
+
+def test_fetch_call_site_stats_applies_limit_after_combining_labels() -> None:
+    project = mock.Mock(spec=Project)
+    project.organization = mock.Mock()
+    window = DetectionWindow(
+        start=datetime(2026, 1, 1, tzinfo=UTC),
+        end=datetime(2026, 1, 8, tzinfo=UTC),
+    )
+    named = [
+        make_row(**{MODEL: "named-high", SUM_INPUT_TOKENS: 400}),
+        make_row(**{MODEL: "named-low", SUM_INPUT_TOKENS: 100}),
+    ]
+    fallback = [
+        make_row(**{AGENT_NAME: None, MODEL: "fallback-high", SUM_INPUT_TOKENS: 300}),
+        make_row(**{AGENT_NAME: None, MODEL: "fallback-low", SUM_INPUT_TOKENS: 200}),
+    ]
+
+    with (
+        mock.patch.object(query_module, "CALL_SITE_GROUPS_LIMIT", 2),
+        mock.patch.object(
+            Spans,
+            "run_table_query",
+            side_effect=[{"data": named}, {"data": fallback}],
+        ),
+    ):
+        result = fetch_call_site_stats(project, window)
+
+    assert [stats.model for stats in result.call_sites] == ["named-high", "fallback-high"]
+    assert result.truncated
 
 
 def test_build_group_filter_uses_the_call_site_label_source() -> None:
@@ -164,7 +195,7 @@ def test_build_group_filter_uses_the_call_site_label_source() -> None:
         'span.name:"generate_content" '
         'gen_ai.request.model:"model-x"'
     )
-    assert '!has:gen_ai.agent.name gen_ai.operation.name:"chat"' in (
+    assert ('(!has:gen_ai.agent.name OR gen_ai.agent.name:"") gen_ai.operation.name:"chat"') in (
         _build_group_filter(fallback) or ""
     )
     assert _build_group_filter(replace(named, model="invalid\\")) is None
