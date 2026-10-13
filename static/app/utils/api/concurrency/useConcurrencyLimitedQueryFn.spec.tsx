@@ -2,20 +2,6 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useConcurrencyLimitedQueryFn} from 'sentry/utils/api/concurrency/useConcurrencyLimitedQueryFn';
 
-type Context = {run: () => Promise<unknown>; signal: AbortSignal};
-
-const queryFn = (context: Context) => context.run();
-
-function renderLimitedQueryFn(concurrency: number) {
-  return renderHook(props => useConcurrencyLimitedQueryFn(queryFn, props), {
-    initialProps: {concurrency, key: 'test'},
-  });
-}
-
-function makeContext(run: () => Promise<unknown>, signal = new AbortController().signal) {
-  return {run, signal};
-}
-
 describe('useConcurrencyLimitedQueryFn', () => {
   it('runs at most `concurrency` calls at a time and resolves all of them', async () => {
     const {result} = renderLimitedQueryFn(3);
@@ -27,12 +13,12 @@ describe('useConcurrencyLimitedQueryFn', () => {
     const results = Array.from({length: 10}, (_, i) =>
       limitedQueryFn(
         makeContext(async () => {
-          inFlight++;
+          inFlight += 1;
           maxInFlight = Math.max(maxInFlight, inFlight);
           const deferred = Promise.withResolvers<void>();
           started.push(deferred);
           await deferred.promise;
-          inFlight--;
+          inFlight -= 1;
           return i;
         })
       )
@@ -97,3 +83,17 @@ describe('useConcurrencyLimitedQueryFn', () => {
     await expect(queued).resolves.toBe('ok');
   });
 });
+
+type Context = {run: () => Promise<unknown>; signal: AbortSignal};
+
+const queryFn = (context: Context) => context.run();
+
+function renderLimitedQueryFn(concurrency: number) {
+  return renderHook(props => useConcurrencyLimitedQueryFn(queryFn, props), {
+    initialProps: {concurrency, key: 'test'},
+  });
+}
+
+function makeContext(run: () => Promise<unknown>, signal = new AbortController().signal) {
+  return {run, signal};
+}

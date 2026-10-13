@@ -9,8 +9,9 @@ interface LimitedRequest {
 
 async function runLimitedRequest({reject, run, signal}: LimitedRequest) {
   // TanStack aborts the signal when nothing observes the query anymore, e.g.
-  // the user navigated away. `apiFetch` doesn't forward the signal, so skip
-  // the request here instead of sending it and spending rate-limit budget.
+  // the user navigated away. The wrapped `queryFn` may ignore the signal (our
+  // `apiFetch` helper doesn't pass it to the request), so skip the request
+  // here instead of sending it and spending rate-limit budget.
   if (signal.aborted) {
     reject(signal.reason);
     return;
@@ -52,11 +53,13 @@ export function useConcurrencyLimitedQueryFn<
       // them too.
       asyncRetryerOptions: {maxAttempts: 1},
     }),
-    // Pacer's hook stops its queue on unmount by default. That would leave
-    // queued requests unsettled, and the TanStack query they belong to can
-    // outlive this component: another component observing the same query key
-    // keeps waiting on the fetch this queue started. Let the queue drain;
-    // requests for queries nobody observes anymore are skipped above.
+    // On unmount, `useAsyncQueuer` calls `onUnmount` if one is given, and
+    // otherwise stops the queue and aborts in-flight work. Passing a no-op
+    // replaces that default, so the queue keeps running and settles every
+    // queued request. That matters because the TanStack query a request
+    // belongs to can outlive this component: another component observing the
+    // same query key keeps waiting on the fetch this queue started. Requests
+    // for queries nobody observes anymore are skipped above.
     onUnmount: keepDraining,
   });
 

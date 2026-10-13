@@ -24,7 +24,6 @@ import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RawReplayError} from 'sentry/utils/replays/types';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function replayRecordApiOptions({
@@ -47,9 +46,9 @@ export function replayRecordApiOptions({
  * Long replays can have thousands of segments, loaded as one request per page
  * of segments. Firing them all at once trips the API's concurrent and
  * per-second rate limits, and the CORS preflights for those requests get
- * limited too. The org-level limit is shared with dashboard widget queries.
+ * limited too.
  */
-const FALLBACK_SEGMENTS_CONCURRENCY = 10;
+const SEGMENTS_CONCURRENCY = 10;
 
 /**
  * Hoisted so the identity stays stable across renders. TanStack Query only
@@ -175,10 +174,8 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
   );
   const isResolvingProjectSlug = !!replayRecord && !projectSlug && isFetchingProjects;
 
-  const organization = useOrganization({allowNull: true});
   const limitedApiFetch = useConcurrencyLimitedQueryFn(apiFetch, {
-    concurrency:
-      organization?.dashboardsAsyncQueueParallelLimit ?? FALLBACK_SEGMENTS_CONCURRENCY,
+    concurrency: SEGMENTS_CONCURRENCY,
     key: 'replay-segments',
   });
 
