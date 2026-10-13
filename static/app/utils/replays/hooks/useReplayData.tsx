@@ -14,7 +14,7 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiFetch, useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {useConcurrencyLimiter} from 'sentry/utils/api/concurrency/useConcurrencyLimiter';
+import {useConcurrencyLimitedQueryFn} from 'sentry/utils/api/concurrency/useConcurrencyLimitedQueryFn';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -44,20 +44,19 @@ export function replayRecordApiOptions({
 }
 
 /**
+ * Long replays can have thousands of segments, loaded as one request per page
+ * of segments. Firing them all at once trips the API's concurrent and
+ * per-second rate limits, and the CORS preflights for those requests get
+ * limited too. The org-level limit is shared with dashboard widget queries.
+ */
+const FALLBACK_SEGMENTS_CONCURRENCY = 10;
+
+/**
  * Hoisted so the identity stays stable across renders. TanStack Query only
  * reuses a cached `select` result while the function reference is unchanged,
  * and re-running this one yields a fresh object every time: `ReplayRecord`
  * holds `Date` and `Duration` values, which structural sharing cannot dedupe.
  */
-/**
- * Long replays can have thousands of segments, loaded as one request per page
- * of segments. Firing them all at once trips the API's concurrent and
- * per-second rate limits, and the CORS preflights for those requests get
- * limited too. The org-level limit is shared with dashboard widget queries;
- * the fallback matches theirs for orgs without the option.
- */
-const FALLBACK_SEGMENTS_CONCURRENCY = 5;
-
 function selectReplayRecord(data: ApiResponse<{data: unknown}>) {
   return data.json.data ? mapResponseToReplayRecord(data.json.data) : undefined;
 }
@@ -177,7 +176,7 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
   const isResolvingProjectSlug = !!replayRecord && !projectSlug && isFetchingProjects;
 
   const organization = useOrganization({allowNull: true});
-  const limitSegmentsRequest = useConcurrencyLimiter({
+  const limitedApiFetch = useConcurrencyLimitedQueryFn(apiFetch, {
     concurrency:
       organization?.dashboardsAsyncQueueParallelLimit ?? FALLBACK_SEGMENTS_CONCURRENCY,
     key: 'replay-segments',
@@ -192,9 +191,9 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
           replayId: replayId!,
           query: {download: true, per_page, cursor},
         }),
-        queryFn: context => limitSegmentsRequest(() => apiFetch(context), context.signal),
+        queryFn: limitedApiFetch,
       }),
-    [orgSlug, projectSlug, replayId, limitSegmentsRequest]
+    [orgSlug, projectSlug, replayId, limitedApiFetch]
   );
 
   const enableAttachments =

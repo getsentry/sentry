@@ -4,14 +4,14 @@ import {asyncQueuerOptions, useAsyncQueuer} from '@tanstack/react-pacer';
 interface LimitedRequest {
   reject: (reason: unknown) => void;
   run: () => Promise<void>;
-  signal: AbortSignal | undefined;
+  signal: AbortSignal;
 }
 
 async function runLimitedRequest({reject, run, signal}: LimitedRequest) {
   // TanStack aborts the signal when nothing observes the query anymore, e.g.
   // the user navigated away. `apiFetch` doesn't forward the signal, so skip
   // the request here instead of sending it and spending rate-limit budget.
-  if (signal?.aborted) {
+  if (signal.aborted) {
     reject(signal.reason);
     return;
   }
@@ -25,25 +25,24 @@ async function runLimitedRequest({reject, run, signal}: LimitedRequest) {
 function keepDraining() {}
 
 /**
- * Caps how many requests run at once. Call it in the hook that builds a group
- * of queries which share an API rate limit, and use the returned function
- * inside each `queryFn`:
+ * Wraps a `queryFn` so that at most `concurrency` calls to it run at once.
+ * Use it for a group of queries that share an API rate limit:
  *
  * ```ts
- * const limit = useConcurrencyLimiter({concurrency, key});
- * queryFn: context => limit(() => apiFetch(context), context.signal)
+ * const limitedApiFetch = useConcurrencyLimitedQueryFn(apiFetch, {concurrency, key});
+ * useQueries({queries: cursors.map(cursor => ({...options, queryFn: limitedApiFetch}))});
  * ```
  *
  * Each call resolves or rejects with its own request's result, so TanStack
  * Query caching and retries are unchanged. A retry joins the back of the queue.
  */
-export function useConcurrencyLimiter({
-  concurrency,
-  key,
-}: {
-  concurrency: number;
-  key: string;
-}) {
+export function useConcurrencyLimitedQueryFn<
+  TContext extends {signal: AbortSignal},
+  TResult,
+>(
+  queryFn: (context: TContext) => Promise<TResult>,
+  {concurrency, key}: {concurrency: number; key: string}
+): (context: TContext) => Promise<TResult> {
   const {addItem} = useAsyncQueuer(runLimitedRequest, {
     ...asyncQueuerOptions<LimitedRequest>({
       concurrency,
@@ -53,23 +52,24 @@ export function useConcurrencyLimiter({
       // them too.
       asyncRetryerOptions: {maxAttempts: 1},
     }),
-    // By default the queue stops when the component unmounts, which would
-    // leave queued requests unsettled. Another component can still be
-    // observing the same queries, so keep draining. Queries nobody observes
-    // anymore are skipped by the aborted-signal check.
+    // Pacer's hook stops its queue on unmount by default. That would leave
+    // queued requests unsettled, and the TanStack query they belong to can
+    // outlive this component: another component observing the same query key
+    // keeps waiting on the fetch this queue started. Let the queue drain;
+    // requests for queries nobody observes anymore are skipped above.
     onUnmount: keepDraining,
   });
 
   return useCallback(
-    function limit<T>(run: () => Promise<T>, signal?: AbortSignal): Promise<T> {
-      const deferred = Promise.withResolvers<T>();
+    (context: TContext) => {
+      const deferred = Promise.withResolvers<TResult>();
       addItem({
         reject: deferred.reject,
-        run: async () => deferred.resolve(await run()),
-        signal,
+        run: async () => deferred.resolve(await queryFn(context)),
+        signal: context.signal,
       });
       return deferred.promise;
     },
-    [addItem]
+    [addItem, queryFn]
   );
 }
